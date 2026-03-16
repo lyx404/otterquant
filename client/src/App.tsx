@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import AppLayout from "./components/AppLayout";
+import CustomCursor from "./components/CustomCursor";
 import Dashboard from "./pages/Dashboard";
 import MyAlphas from "./pages/MyAlphas";
 import AlphaDetail from "./pages/AlphaDetail";
@@ -31,6 +32,7 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
+          <CustomCursor />
           <AppLayout>
             <Router />
           </AppLayout>

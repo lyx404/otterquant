@@ -1,8 +1,10 @@
 /*
- * AlphaForge — Katana Network Inspired Design System
- * Deep navy background (#0a0e1a), lime green accent (#c3f53c)
- * Minimalist borders, large monospace numbers, uppercase labels
- * Inter for body, Space Grotesk for headings, JetBrains Mono for data
+ * AlphaForge — Acid Green Design System
+ * Background: #0B0B0B (deep gray, not pure black)
+ * Accent: #C5FF4A (acid green)
+ * Text: white for core, white/50 for secondary
+ * Borders: white/10 ultra-thin semi-transparent
+ * Font: Inter globally, JetBrains Mono for data
  */
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -47,59 +49,57 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-heading: 'Space Grotesk', sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  --font-sans: 'Inter', sans-serif;
+  --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
 
-  /* Katana palette */
-  --color-lime: oklch(0.87 0.22 128);
-  --color-lime-dim: oklch(0.87 0.22 128 / 0.15);
+  /* Acid green palette */
+  --color-acid: oklch(0.90 0.24 120);
+  --color-acid-dim: oklch(0.90 0.24 120 / 0.12);
   --color-positive: oklch(0.75 0.18 155);
   --color-negative: oklch(0.65 0.22 25);
   --color-info: oklch(0.72 0.12 230);
   --color-warning: oklch(0.80 0.16 85);
-  --color-surface-1: oklch(0.16 0.02 260);
-  --color-surface-2: oklch(0.19 0.02 260);
-  --color-surface-3: oklch(0.22 0.02 260);
-  --color-text-dim: oklch(0.50 0.02 260);
 }
 
 :root {
   --radius: 0.5rem;
-  /* Katana deep navy background */
-  --background: oklch(0.12 0.025 260);
-  --foreground: oklch(0.92 0.01 260);
-  --card: oklch(0.15 0.02 260);
-  --card-foreground: oklch(0.92 0.01 260);
-  --popover: oklch(0.16 0.02 260);
-  --popover-foreground: oklch(0.92 0.01 260);
-  /* Lime green primary */
-  --primary: oklch(0.87 0.22 128);
-  --primary-foreground: oklch(0.15 0.02 260);
-  --secondary: oklch(0.18 0.02 260);
-  --secondary-foreground: oklch(0.80 0.01 260);
-  --muted: oklch(0.20 0.02 260);
-  --muted-foreground: oklch(0.55 0.02 260);
-  --accent: oklch(0.18 0.02 260);
-  --accent-foreground: oklch(0.92 0.01 260);
+  /* #0B0B0B deep gray background */
+  --background: oklch(0.13 0 0);
+  --foreground: oklch(0.98 0 0);
+  /* Card: slightly lighter than bg */
+  --card: oklch(0.15 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.16 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+  /* Acid green primary */
+  --primary: oklch(0.90 0.24 120);
+  --primary-foreground: oklch(0.13 0 0);
+  --secondary: oklch(0.18 0 0);
+  --secondary-foreground: oklch(0.70 0 0);
+  --muted: oklch(0.20 0 0);
+  --muted-foreground: oklch(0.50 0 0);
+  --accent: oklch(0.18 0 0);
+  --accent-foreground: oklch(0.98 0 0);
   --destructive: oklch(0.65 0.22 25);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.22 0.02 260);
-  --input: oklch(0.18 0.02 260);
-  --ring: oklch(0.87 0.22 128);
-  --chart-1: oklch(0.87 0.22 128);
+  /* Borders: white/10 equivalent */
+  --border: oklch(0.98 0 0 / 0.10);
+  --input: oklch(0.18 0 0);
+  --ring: oklch(0.90 0.24 120);
+  --chart-1: oklch(0.90 0.24 120);
   --chart-2: oklch(0.72 0.12 230);
   --chart-3: oklch(0.80 0.16 85);
   --chart-4: oklch(0.70 0.18 300);
   --chart-5: oklch(0.65 0.22 25);
-  --sidebar: oklch(0.13 0.025 260);
-  --sidebar-foreground: oklch(0.85 0.01 260);
-  --sidebar-primary: oklch(0.87 0.22 128);
-  --sidebar-primary-foreground: oklch(0.15 0.02 260);
-  --sidebar-accent: oklch(0.18 0.02 260);
-  --sidebar-accent-foreground: oklch(0.92 0.01 260);
-  --sidebar-border: oklch(0.22 0.02 260);
-  --sidebar-ring: oklch(0.87 0.22 128);
+  --sidebar: oklch(0.13 0 0);
+  --sidebar-foreground: oklch(0.85 0 0);
+  --sidebar-primary: oklch(0.90 0.24 120);
+  --sidebar-primary-foreground: oklch(0.13 0 0);
+  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(0.98 0 0 / 0.10);
+  --sidebar-ring: oklch(0.90 0.24 120);
 }
 
 @layer base {
@@ -108,10 +108,13 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #0B0B0B;
+    color: #ffffff;
   }
+  /* All headings use Inter */
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
   code, pre, .font-mono {
     font-family: 'JetBrains Mono', monospace;
@@ -125,7 +128,7 @@
   select:not(:disabled),
   input[type="checkbox"]:not(:disabled),
   input[type="radio"]:not(:disabled) {
-    @apply cursor-pointer;
+    cursor: none;
   }
 }
 
@@ -158,46 +161,59 @@
     }
   }
 
-  /* Katana-style card */
+  /* ---- Card Styles ---- */
   .katana-card {
-    @apply bg-card border border-border rounded-lg;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 0.5rem;
+    transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .katana-card:hover {
+    border-color: #C5FF4A;
   }
 
-  /* Legacy alias for terminal-card references */
+  /* Legacy alias */
   .terminal-card {
-    @apply bg-card border border-border rounded-lg;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 0.5rem;
+    transition: border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .terminal-card:hover {
+    border-color: #C5FF4A;
   }
 
-  /* Data display value */
+  /* ---- Data Display ---- */
   .data-value {
     font-family: 'JetBrains Mono', monospace;
     font-variant-numeric: tabular-nums;
   }
 
-  /* Katana stat number — large monospace */
   .stat-value {
     font-family: 'JetBrains Mono', monospace;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
   }
 
-  /* Katana uppercase label */
+  /* ---- Labels: 10px, uppercase, wide tracking ---- */
   .label-upper {
-    font-size: 0.6875rem;
+    font-size: 10px;
     font-weight: 500;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: oklch(0.50 0.02 260);
+    color: rgba(255, 255, 255, 0.50);
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Subtle lime glow for emphasis */
+  /* ---- Glow Effects ---- */
+  .glow-acid {
+    text-shadow: 0 0 20px rgba(197, 255, 74, 0.5), 0 0 40px rgba(197, 255, 74, 0.2);
+  }
   .glow-lime {
-    text-shadow: 0 0 12px oklch(0.87 0.22 128 / 0.4);
+    text-shadow: 0 0 20px rgba(197, 255, 74, 0.5), 0 0 40px rgba(197, 255, 74, 0.2);
   }
-
-  /* Legacy glow classes mapped to Katana style */
   .glow-green {
-    text-shadow: 0 0 12px oklch(0.87 0.22 128 / 0.4);
+    text-shadow: 0 0 20px rgba(197, 255, 74, 0.5);
   }
   .glow-cyan {
     text-shadow: 0 0 10px oklch(0.72 0.12 230 / 0.4);
@@ -206,44 +222,59 @@
     text-shadow: 0 0 10px oklch(0.65 0.22 25 / 0.4);
   }
 
-  /* Border glow effects */
   .border-glow-green {
-    box-shadow: 0 0 8px oklch(0.87 0.22 128 / 0.12);
+    box-shadow: 0 0 12px rgba(197, 255, 74, 0.15);
   }
   .border-glow-cyan {
     box-shadow: 0 0 8px oklch(0.72 0.12 230 / 0.12);
   }
 
-  /* Scrollbar styling — Katana dark */
+  /* ---- Scrollbar ---- */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
-    background: oklch(0.12 0.025 260);
+    background: #0B0B0B;
   }
   ::-webkit-scrollbar-thumb {
-    background: oklch(0.28 0.02 260);
+    background: rgba(255, 255, 255, 0.12);
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.38 0.02 260);
+    background: rgba(255, 255, 255, 0.25);
   }
 
-  /* Katana-style table row hover */
+  /* ---- Table Row Hover ---- */
   .katana-row:hover {
-    background: oklch(0.17 0.02 260);
+    background: rgba(255, 255, 255, 0.04);
   }
 
-  /* Katana pill / chip */
+  /* ---- Pill / Chip ---- */
   .katana-pill {
     @apply inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium;
-    background: oklch(0.18 0.02 260);
-    border: 1px solid oklch(0.25 0.02 260);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.10);
   }
   .katana-pill-active {
-    background: oklch(0.87 0.22 128 / 0.12);
-    border-color: oklch(0.87 0.22 128 / 0.3);
-    color: oklch(0.87 0.22 128);
+    background: rgba(197, 255, 74, 0.10);
+    border-color: rgba(197, 255, 74, 0.25);
+    color: #C5FF4A;
+  }
+
+  /* ---- Hero Typography ---- */
+  .hero-title {
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 500;
+    letter-spacing: -0.05em;
+    line-height: 1;
+  }
+
+  /* ---- GSAP reveal clip ---- */
+  .reveal-clip {
+    overflow: hidden;
+  }
+  .reveal-line {
+    will-change: transform, opacity;
   }
 }

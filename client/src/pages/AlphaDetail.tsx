@@ -1,10 +1,8 @@
 /*
- * AlphaDetail — Katana Network Style
- * Factor detail page with charts, summary table, testing status, correlation
- * Deep navy bg, lime accent, info blue for train, warning amber for test
+ * AlphaDetail — Acid Green Design System
+ * #0B0B0B bg, #C5FF4A accent, white/10 borders, white/50 secondary
+ * GSAP staggered reveal, chart with acid green palette
  */
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -22,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useParams, Link } from "wouter";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import gsap from "gsap";
 import {
   LineChart,
   Line,
@@ -59,18 +58,17 @@ import {
   testingStatus,
   correlationData,
 } from "@/lib/mockData";
-import { motion } from "framer-motion";
 
 type ChartType = "pnl" | "sharpe" | "turnover" | "returns" | "drawdown";
 
-/* Katana chart colors */
+/* Acid green chart colors */
 const CHART_COLORS = {
-  train: "oklch(0.72 0.12 230)",       /* info blue */
-  test: "oklch(0.80 0.16 85)",         /* warning amber */
-  grid: "oklch(0.22 0.02 260)",        /* surface border */
-  tick: "oklch(0.50 0.02 260)",        /* muted text */
-  tooltipBg: "oklch(0.16 0.02 260)",   /* popover bg */
-  tooltipBorder: "oklch(0.25 0.02 260)",
+  train: "#C5FF4A",
+  test: "rgb(255,200,50)",
+  grid: "rgba(255,255,255,0.06)",
+  tick: "rgba(255,255,255,0.40)",
+  tooltipBg: "#151515",
+  tooltipBorder: "rgba(255,255,255,0.15)",
 };
 
 export default function AlphaDetail() {
@@ -84,6 +82,18 @@ export default function AlphaDetail() {
     fail: true,
     pending: false,
   });
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  // GSAP staggered reveal for header
+  useEffect(() => {
+    if (!headerRef.current) return;
+    const lines = headerRef.current.querySelectorAll(".reveal-line");
+    gsap.set(lines, { y: 100, skewY: 7, opacity: 0 });
+    gsap.to(lines, {
+      y: 0, skewY: 0, opacity: 1,
+      duration: 1, stagger: 0.08, ease: "power4.out", delay: 0.1,
+    });
+  }, []);
 
   const pnlData = useMemo(() => generatePnLData(), []);
   const sharpeData = useMemo(() => generateSharpeData(), []);
@@ -131,65 +141,82 @@ export default function AlphaDetail() {
       {/* Back + Header */}
       <div className="flex items-center gap-4">
         <Link href="/alphas">
-          <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" className="gap-1" style={{ color: "rgba(255,255,255,0.50)" }}>
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
         </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-heading font-bold">{factor.name}</h1>
-            <Badge variant="outline" className={`text-xs ${factor.market === "CEX" ? "border-info/25 text-info" : "border-lime/25 text-lime"}`}>
+        <div className="flex-1" ref={headerRef}>
+          <div className="reveal-line flex items-center gap-3">
+            <h1 className="text-3xl md:text-5xl font-medium tracking-tighter leading-none text-white">{factor.name}</h1>
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.15em]"
+              style={{
+                backgroundColor: factor.market === "CEX" ? "rgba(100,180,255,0.08)" : "rgba(197,255,74,0.08)",
+                color: factor.market === "CEX" ? "rgb(100,180,255)" : "#C5FF4A",
+                border: `1px solid ${factor.market === "CEX" ? "rgba(100,180,255,0.20)" : "rgba(197,255,74,0.20)"}`,
+              }}
+            >
               {factor.market}
-            </Badge>
-            <Badge variant="outline" className={`text-xs ${factor.status === "active" ? "bg-positive/8 text-positive border-positive/20" : factor.status === "testing" ? "bg-warning/8 text-warning border-warning/20" : "bg-muted text-muted-foreground border-border"}`}>
+            </span>
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.15em]"
+              style={{
+                backgroundColor: factor.status === "active" ? "rgba(74,222,128,0.08)" : factor.status === "testing" ? "rgba(255,200,50,0.08)" : "rgba(255,255,255,0.05)",
+                color: factor.status === "active" ? "rgb(74,222,128)" : factor.status === "testing" ? "rgb(255,200,50)" : "rgba(255,255,255,0.50)",
+                border: `1px solid ${factor.status === "active" ? "rgba(74,222,128,0.20)" : factor.status === "testing" ? "rgba(255,200,50,0.20)" : "rgba(255,255,255,0.10)"}`,
+              }}
+            >
               {factor.status}
-            </Badge>
+            </span>
           </div>
-          <p className="text-xs font-mono text-muted-foreground mt-1">{factor.id} &middot; Created {factor.createdAt}</p>
+          <div className="reveal-line">
+            <p className="text-xs font-mono mt-1" style={{ color: "rgba(255,255,255,0.40)" }}>{factor.id} &middot; Created {factor.createdAt}</p>
+          </div>
         </div>
       </div>
 
       {/* Factor Expression */}
-      <Card className="katana-card">
-        <CardContent className="py-3 px-4">
-          <div className="flex items-center gap-2">
-            <span className="label-upper">Expression:</span>
-            <code className="text-sm font-mono text-info">{factor.expression}</code>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="katana-card py-3 px-4">
+        <div className="flex items-center gap-2">
+          <span className="label-upper">Expression:</span>
+          <code className="text-sm font-mono" style={{ color: "rgb(100,180,255)" }}>{factor.expression}</code>
+        </div>
+      </div>
 
       {/* Show/Hide Test Period Toggle */}
       <div className="flex items-center gap-3">
-        <Button
-          variant={showTestPeriod ? "default" : "outline"}
-          size="sm"
-          className="h-8 text-xs"
+        <button
+          className="h-8 text-xs px-4 rounded-md font-medium transition-all"
+          style={{
+            backgroundColor: showTestPeriod ? "rgba(197,255,74,0.10)" : "rgba(255,255,255,0.05)",
+            color: showTestPeriod ? "#C5FF4A" : "rgba(255,255,255,0.50)",
+            border: `1px solid ${showTestPeriod ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)"}`,
+          }}
           onClick={() => setShowTestPeriod(!showTestPeriod)}
         >
           {showTestPeriod ? "Hide test period" : "Show test period"}
-        </Button>
+        </button>
         {showTestPeriod && (
-          <span className="text-xs text-warning bg-warning/8 px-3 py-1 rounded-full border border-warning/15">
+          <span className="text-xs px-3 py-1 rounded-full" style={{ color: "rgb(255,200,50)", backgroundColor: "rgba(255,200,50,0.08)", border: "1px solid rgba(255,200,50,0.15)" }}>
             Test period and overall stats are hidden by default when test period is specified.
           </span>
         )}
       </div>
 
       {/* Chart Section */}
-      <Card className="katana-card">
-        <CardHeader className="pb-2">
+      <div className="katana-card">
+        <div className="p-4 pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-heading flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-info" />
-              Chart
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" style={{ color: "rgb(100,180,255)" }} />
+              <span className="text-base font-semibold text-white">Chart</span>
+            </div>
             <Select value={chartType} onValueChange={(v) => setChartType(v as ChartType)}>
-              <SelectTrigger className="w-[160px] h-8 text-sm bg-secondary border-border">
+              <SelectTrigger className="w-[160px] h-8 text-sm" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
                 <SelectItem value="pnl">PnL</SelectItem>
                 <SelectItem value="sharpe">Sharpe</SelectItem>
                 <SelectItem value="turnover">Turnover</SelectItem>
@@ -198,8 +225,8 @@ export default function AlphaDetail() {
               </SelectContent>
             </Select>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="px-4 pb-4">
           <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               {chartType === "turnover" ? (
@@ -207,17 +234,17 @@ export default function AlphaDetail() {
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.tick }} tickFormatter={(d) => d.substring(0, 7)} interval={Math.floor(chartData.length / 8)} />
                   <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.tick }} tickFormatter={formatYAxis} />
-                  <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, borderRadius: "6px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace" }} labelStyle={{ color: CHART_COLORS.tick }} />
-                  <Bar dataKey="train" fill={`${CHART_COLORS.train.replace(")", " / 0.7)")}`.replace("oklch", "oklch")} name="Train" />
-                  <Bar dataKey="test" fill={`${CHART_COLORS.test.replace(")", " / 0.7)")}`.replace("oklch", "oklch")} name="Test" />
+                  <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, borderRadius: "6px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#fff" }} labelStyle={{ color: CHART_COLORS.tick }} />
+                  <Bar dataKey="train" fill="rgba(197,255,74,0.60)" name="Train" />
+                  <Bar dataKey="test" fill="rgba(255,200,50,0.60)" name="Test" />
                 </BarChart>
               ) : (
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.tick }} tickFormatter={(d) => d.substring(0, 7)} interval={Math.floor(chartData.length / 8)} />
                   <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.tick }} tickFormatter={formatYAxis} />
-                  {chartType === "sharpe" && <ReferenceLine y={0} stroke="oklch(0.30 0.02 260)" />}
-                  <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, borderRadius: "6px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace" }} labelStyle={{ color: CHART_COLORS.tick }} />
+                  {chartType === "sharpe" && <ReferenceLine y={0} stroke="rgba(255,255,255,0.12)" />}
+                  <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, borderRadius: "6px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace", color: "#fff" }} labelStyle={{ color: CHART_COLORS.tick }} />
                   <Line type="monotone" dataKey="train" stroke={CHART_COLORS.train} strokeWidth={1.5} dot={false} name="Train" connectNulls={false} />
                   <Line type="monotone" dataKey="test" stroke={CHART_COLORS.test} strokeWidth={1.5} dot={false} name="Test" connectNulls={false} />
                 </LineChart>
@@ -227,50 +254,53 @@ export default function AlphaDetail() {
           {/* Legend */}
           <div className="flex items-center justify-center gap-6 mt-2">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-0.5 bg-info rounded" />
-              <span className="text-xs text-muted-foreground">Train</span>
+              <div className="w-4 h-0.5 rounded" style={{ backgroundColor: "#C5FF4A" }} />
+              <span className="text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>Train</span>
             </div>
             {showTestPeriod && (
               <div className="flex items-center gap-2">
-                <div className="w-4 h-0.5 bg-warning rounded" />
-                <span className="text-xs text-muted-foreground">Test (OS)</span>
+                <div className="w-4 h-0.5 rounded" style={{ backgroundColor: "rgb(255,200,50)" }} />
+                <span className="text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>Test (OS)</span>
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Summary Section */}
-      <Card className="katana-card">
-        <CardHeader className="pb-3">
+      <div className="katana-card">
+        <div className="p-4 pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-heading flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-info" />
-              {summaryPeriod} Summary
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" style={{ color: "rgb(100,180,255)" }} />
+              <span className="text-base font-semibold text-white">{summaryPeriod} Summary</span>
+            </div>
             <div className="flex items-center gap-1">
-              <span className="text-xs text-muted-foreground mr-2">Period</span>
+              <span className="text-xs mr-2" style={{ color: "rgba(255,255,255,0.50)" }}>Period</span>
               {(["IS", "OS"] as const).map((p) => (
-                <Button
+                <button
                   key={p}
-                  variant={summaryPeriod === p ? "default" : "outline"}
-                  size="sm"
-                  className={`h-7 text-xs px-3 ${summaryPeriod !== p ? "border-border text-muted-foreground" : ""}`}
+                  className="h-7 text-xs px-3 rounded-md font-medium transition-all"
+                  style={{
+                    backgroundColor: summaryPeriod === p ? "rgba(197,255,74,0.10)" : "transparent",
+                    color: summaryPeriod === p ? "#C5FF4A" : "rgba(255,255,255,0.50)",
+                    border: summaryPeriod === p ? "1px solid rgba(197,255,74,0.20)" : "1px solid rgba(255,255,255,0.10)",
+                  }}
                   onClick={() => setSummaryPeriod(p)}
                 >
                   {p}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </div>
+        <div className="px-4 pb-4 space-y-4">
           {/* Aggregate Data Cards */}
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
             {Object.entries(aggData).map(([key, val]) => (
-              <div key={key} className="text-center p-3 bg-secondary/30 rounded-lg border border-border/50">
+              <div key={key} className="text-center p-3 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
                 <div className="label-upper mb-1">{key}</div>
-                <div className="text-lg stat-value font-bold text-foreground">{val}</div>
+                <div className="text-lg stat-value font-bold text-white">{val}</div>
               </div>
             ))}
           </div>
@@ -278,97 +308,100 @@ export default function AlphaDetail() {
           {/* Yearly Table */}
           <Table>
             <TableHeader>
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="label-upper text-info">Year</TableHead>
-                <TableHead className="label-upper text-info">Sharpe</TableHead>
-                <TableHead className="label-upper text-info">Turnover</TableHead>
-                <TableHead className="label-upper text-info">Fitness</TableHead>
-                <TableHead className="label-upper text-info">Returns</TableHead>
-                <TableHead className="label-upper text-info">Drawdown</TableHead>
-                <TableHead className="label-upper text-info">Margin</TableHead>
-                <TableHead className="label-upper text-info">Long Count</TableHead>
-                <TableHead className="label-upper text-info">Short Count</TableHead>
+              <TableRow style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Year</TableHead>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Sharpe</TableHead>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Turnover</TableHead>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Fitness</TableHead>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Returns</TableHead>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Drawdown</TableHead>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Margin</TableHead>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Long Count</TableHead>
+                <TableHead className="label-upper" style={{ color: "rgb(100,180,255)" }}>Short Count</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {summaryData.map((row) => (
-                <TableRow key={row.year} className="border-border hover:bg-secondary/20">
-                  <TableCell className="font-mono text-sm font-medium">{row.year}</TableCell>
-                  <TableCell className={`font-mono text-sm ${row.sharpe >= 1 ? "text-lime" : row.sharpe >= 0.5 ? "text-warning" : "text-negative"}`}>
+                <TableRow key={row.year} style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+                  <TableCell className="font-mono text-sm font-medium text-white">{row.year}</TableCell>
+                  <TableCell className="font-mono text-sm" style={{
+                    color: row.sharpe >= 1 ? "#C5FF4A" : row.sharpe >= 0.5 ? "rgb(255,200,50)" : "rgb(248,113,113)"
+                  }}>
                     {row.sharpe.toFixed(2)}
                   </TableCell>
-                  <TableCell className="font-mono text-sm text-foreground/80">{row.turnover}</TableCell>
-                  <TableCell className="font-mono text-sm text-foreground/80">{row.fitness.toFixed(2)}</TableCell>
-                  <TableCell className="font-mono text-sm text-foreground/80">{row.returns}</TableCell>
-                  <TableCell className="font-mono text-sm text-negative">{row.drawdown}</TableCell>
-                  <TableCell className="font-mono text-sm text-foreground/80">{row.margin}</TableCell>
-                  <TableCell className="font-mono text-sm text-foreground/80">{row.longCount.toLocaleString()}</TableCell>
-                  <TableCell className="font-mono text-sm text-foreground/80">{row.shortCount.toLocaleString()}</TableCell>
+                  <TableCell className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.turnover}</TableCell>
+                  <TableCell className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.fitness.toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.returns}</TableCell>
+                  <TableCell className="font-mono text-sm" style={{ color: "rgb(248,113,113)" }}>{row.drawdown}</TableCell>
+                  <TableCell className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.margin}</TableCell>
+                  <TableCell className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.longCount.toLocaleString()}</TableCell>
+                  <TableCell className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.shortCount.toLocaleString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Correlation + Testing Status */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Correlation */}
-        <Card className="katana-card">
-          <CardHeader className="pb-3">
+        <div className="katana-card">
+          <div className="p-4 pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-heading flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-info" />
-                Correlation
-              </CardTitle>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" style={{ color: "rgb(100,180,255)" }} />
+                <span className="text-base font-semibold text-white">Correlation</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>
                 Last Run: {correlationData.lastRun}
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-lime">
+                <button className="p-1 rounded transition-colors" style={{ color: "rgba(255,255,255,0.30)" }}>
                   <RefreshCw className="w-3 h-3" />
-                </Button>
+                </button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div className="px-4 pb-4">
             <div className="flex items-center gap-8">
               <div>
                 <span className="label-upper">Self Correlation</span>
               </div>
               <div>
-                <span className="text-xs text-info mr-2">Maximum</span>
-                <span className="font-mono text-sm">{correlationData.selfCorrelation.maximum}</span>
+                <span className="text-xs mr-2" style={{ color: "rgb(100,180,255)" }}>Maximum</span>
+                <span className="font-mono text-sm text-white">{correlationData.selfCorrelation.maximum}</span>
               </div>
               <div>
-                <span className="text-xs text-positive mr-2">Minimum</span>
-                <span className="font-mono text-sm">{correlationData.selfCorrelation.minimum}</span>
+                <span className="text-xs mr-2" style={{ color: "rgb(74,222,128)" }}>Minimum</span>
+                <span className="font-mono text-sm text-white">{correlationData.selfCorrelation.minimum}</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Testing Status */}
-        <Card className="katana-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-positive" />
-              IS Testing Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
+        <div className="katana-card">
+          <div className="p-4 pb-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" style={{ color: "rgb(74,222,128)" }} />
+              <span className="text-base font-semibold text-white">IS Testing Status</span>
+            </div>
+          </div>
+          <div className="px-4 pb-4 space-y-2">
             {/* PASS */}
             <div
-              className="border-l-2 border-positive bg-positive/5 rounded-r-md cursor-pointer"
+              className="rounded-r-md"
+              style={{ borderLeft: "2px solid rgb(74,222,128)", backgroundColor: "rgba(74,222,128,0.04)", cursor: "pointer" }}
               onClick={() => setExpandedTestSections((s) => ({ ...s, pass: !s.pass }))}
             >
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-sm font-medium text-positive">{passItems.length} PASS</span>
-                {expandedTestSections.pass ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                <span className="text-sm font-medium" style={{ color: "rgb(74,222,128)" }}>{passItems.length} PASS</span>
+                {expandedTestSections.pass ? <ChevronUp className="w-4 h-4" style={{ color: "rgba(255,255,255,0.30)" }} /> : <ChevronDown className="w-4 h-4" style={{ color: "rgba(255,255,255,0.30)" }} />}
               </div>
               {expandedTestSections.pass && (
                 <div className="px-3 pb-2 space-y-1">
                   {passItems.map((t, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <span className="text-positive mt-0.5">{"\u25CF"}</span>
+                    <div key={i} className="flex items-start gap-2 text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>
+                      <span style={{ color: "rgb(74,222,128)" }} className="mt-0.5">{"\u25CF"}</span>
                       <span>{t.text}</span>
                     </div>
                   ))}
@@ -378,18 +411,19 @@ export default function AlphaDetail() {
 
             {/* FAIL */}
             <div
-              className="border-l-2 border-negative bg-negative/5 rounded-r-md cursor-pointer"
+              className="rounded-r-md"
+              style={{ borderLeft: "2px solid rgb(248,113,113)", backgroundColor: "rgba(248,113,113,0.04)", cursor: "pointer" }}
               onClick={() => setExpandedTestSections((s) => ({ ...s, fail: !s.fail }))}
             >
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-sm font-medium text-negative">{failItems.length} FAIL</span>
-                {expandedTestSections.fail ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                <span className="text-sm font-medium" style={{ color: "rgb(248,113,113)" }}>{failItems.length} FAIL</span>
+                {expandedTestSections.fail ? <ChevronUp className="w-4 h-4" style={{ color: "rgba(255,255,255,0.30)" }} /> : <ChevronDown className="w-4 h-4" style={{ color: "rgba(255,255,255,0.30)" }} />}
               </div>
               {expandedTestSections.fail && (
                 <div className="px-3 pb-2 space-y-1">
                   {failItems.map((t, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <span className="text-negative mt-0.5">{"\u25CF"}</span>
+                    <div key={i} className="flex items-start gap-2 text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>
+                      <span style={{ color: "rgb(248,113,113)" }} className="mt-0.5">{"\u25CF"}</span>
                       <span>{t.text}</span>
                     </div>
                   ))}
@@ -399,26 +433,27 @@ export default function AlphaDetail() {
 
             {/* PENDING */}
             <div
-              className="border-l-2 border-muted-foreground bg-muted/30 rounded-r-md cursor-pointer"
+              className="rounded-r-md"
+              style={{ borderLeft: "2px solid rgba(255,255,255,0.30)", backgroundColor: "rgba(255,255,255,0.03)", cursor: "pointer" }}
               onClick={() => setExpandedTestSections((s) => ({ ...s, pending: !s.pending }))}
             >
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-sm font-medium text-muted-foreground">{pendingItems.length} PENDING</span>
-                {expandedTestSections.pending ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.50)" }}>{pendingItems.length} PENDING</span>
+                {expandedTestSections.pending ? <ChevronUp className="w-4 h-4" style={{ color: "rgba(255,255,255,0.30)" }} /> : <ChevronDown className="w-4 h-4" style={{ color: "rgba(255,255,255,0.30)" }} />}
               </div>
               {expandedTestSections.pending && (
                 <div className="px-3 pb-2 space-y-1">
                   {pendingItems.map((t, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <span className="mt-0.5">{"\u25CF"}</span>
+                    <div key={i} className="flex items-start gap-2 text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>
+                      <span className="mt-0.5" style={{ color: "rgba(255,255,255,0.30)" }}>{"\u25CF"}</span>
                       <span>{t.text}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
