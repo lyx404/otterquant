@@ -1,6 +1,7 @@
 /*
- * MyAlphas - Combined single view: Pipeline stats overview + WQ-style data table
- * Terminal Noir: No tabs, unified layout
+ * MyAlphas — Katana Network Style
+ * Pipeline stats overview + WQ-style data table
+ * Deep navy bg, lime accent, monospace data, minimal borders
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,9 +45,6 @@ import {
 } from "@/lib/mockData";
 import { motion } from "framer-motion";
 
-// ============================================================
-// TABLE VIEW TYPES & CONFIG
-// ============================================================
 type AlphaRow = Factor & {
   submissionStatus: "unsubmitted" | "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
   submittedAt?: string;
@@ -81,11 +79,7 @@ const allColumns: ColumnDef[] = [
 
 type SortDir = "asc" | "desc" | null;
 
-// ============================================================
-// MAIN COMPONENT
-// ============================================================
 export default function MyAlphas() {
-  // --- Table view state ---
   const [sortKey, setSortKey] = useState<string>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
@@ -102,9 +96,6 @@ export default function MyAlphas() {
   const [filterTurnoverMin, setFilterTurnoverMin] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
 
-  // ============================================================
-  // TABLE VIEW LOGIC
-  // ============================================================
   const alphaRows: AlphaRow[] = useMemo(() => {
     return factors.map((f) => {
       const sub = submissions.find((s) => s.factorId === f.id);
@@ -197,24 +188,24 @@ export default function MyAlphas() {
 
   const statusBadge = (status: AlphaRow["submissionStatus"]) => {
     const map: Record<string, { label: string; className: string }> = {
-      unsubmitted: { label: "UNSUBMITTED", className: "bg-neon-amber/15 text-neon-amber border-neon-amber/30 font-mono text-[10px]" },
+      unsubmitted: { label: "UNSUBMITTED", className: "bg-warning/10 text-warning border-warning/20 font-mono text-[10px]" },
       queued: { label: "QUEUED", className: "bg-muted text-muted-foreground border-border font-mono text-[10px]" },
-      backtesting: { label: "BACKTESTING", className: "bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30 font-mono text-[10px]" },
-      is_testing: { label: "IS TESTING", className: "bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30 font-mono text-[10px]" },
-      os_testing: { label: "OS TESTING", className: "bg-neon-purple/15 text-neon-purple border-neon-purple/30 font-mono text-[10px]" },
-      passed: { label: "PASSED", className: "bg-neon-green/15 text-neon-green border-neon-green/30 font-mono text-[10px]" },
-      failed: { label: "FAILED", className: "bg-neon-red/15 text-neon-red border-neon-red/30 font-mono text-[10px]" },
-      rejected: { label: "REJECTED", className: "bg-neon-red/15 text-neon-red border-neon-red/30 font-mono text-[10px]" },
+      backtesting: { label: "BACKTESTING", className: "bg-info/10 text-info border-info/20 font-mono text-[10px]" },
+      is_testing: { label: "IS TESTING", className: "bg-info/10 text-info border-info/20 font-mono text-[10px]" },
+      os_testing: { label: "OS TESTING", className: "bg-lime/8 text-lime border-lime/20 font-mono text-[10px]" },
+      passed: { label: "PASSED", className: "bg-positive/10 text-positive border-positive/20 font-mono text-[10px]" },
+      failed: { label: "FAILED", className: "bg-negative/10 text-negative border-negative/20 font-mono text-[10px]" },
+      rejected: { label: "REJECTED", className: "bg-negative/10 text-negative border-negative/20 font-mono text-[10px]" },
     };
     const s = map[status] || map.unsubmitted;
     return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
   };
 
   const SortIcon = ({ colKey }: { colKey: string }) => {
-    if (sortKey !== colKey) return <ArrowUpDown className="w-3 h-3 opacity-40" />;
-    if (sortDir === "desc") return <ArrowDown className="w-3 h-3 text-primary" />;
-    if (sortDir === "asc") return <ArrowUp className="w-3 h-3 text-primary" />;
-    return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+    if (sortKey !== colKey) return <ArrowUpDown className="w-3 h-3 opacity-30" />;
+    if (sortDir === "desc") return <ArrowDown className="w-3 h-3 text-lime" />;
+    if (sortDir === "asc") return <ArrowUp className="w-3 h-3 text-lime" />;
+    return <ArrowUpDown className="w-3 h-3 opacity-30" />;
   };
 
   const visibleCols = allColumns.filter((c) => visibleColumns.has(c.key));
@@ -226,18 +217,18 @@ export default function MyAlphas() {
       case "name":
         return (
           <div className="flex items-center gap-2 max-w-[200px]">
-            <span className="truncate text-sm">{row.name}</span>
+            <span className="truncate text-sm text-foreground/90">{row.name}</span>
           </div>
         );
       case "market":
         return (
-          <Badge variant="outline" className={`text-[10px] font-mono ${row.market === "CEX" ? "border-neon-cyan/30 text-neon-cyan" : "border-neon-purple/30 text-neon-purple"}`}>
+          <Badge variant="outline" className={`text-[10px] font-mono ${row.market === "CEX" ? "border-info/25 text-info" : "border-lime/25 text-lime"}`}>
             {row.market}
           </Badge>
         );
       case "type":
         return (
-          <span className={`text-xs capitalize ${row.status === "active" ? "text-neon-green" : row.status === "testing" ? "text-neon-amber" : "text-muted-foreground"}`}>
+          <span className={`text-xs capitalize ${row.status === "active" ? "text-positive" : row.status === "testing" ? "text-warning" : "text-muted-foreground"}`}>
             {row.status === "active" ? "Regular" : row.status === "testing" ? "Testing" : "Archived"}
           </span>
         );
@@ -247,30 +238,30 @@ export default function MyAlphas() {
         return <span className="font-mono text-xs text-muted-foreground">{row.createdAt}</span>;
       case "osSharpe":
         return (
-          <span className={`font-mono text-sm ${row.osSharpe >= 1 ? "text-neon-green" : row.osSharpe >= 0.5 ? "text-neon-amber" : "text-neon-red"}`}>
+          <span className={`font-mono text-sm ${row.osSharpe >= 1 ? "text-lime" : row.osSharpe >= 0.5 ? "text-warning" : "text-negative"}`}>
             {row.osSharpe.toFixed(2)}
           </span>
         );
       case "sharpe":
-        return <span className="font-mono text-sm">{row.sharpe.toFixed(2)}</span>;
+        return <span className="font-mono text-sm text-foreground/80">{row.sharpe.toFixed(2)}</span>;
       case "fitness":
         return (
-          <span className={`font-mono text-sm ${row.fitness >= 1 ? "text-neon-green" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"}`}>
+          <span className={`font-mono text-sm ${row.fitness >= 1 ? "text-lime" : row.fitness >= 0.5 ? "text-foreground/80" : "text-muted-foreground"}`}>
             {row.fitness.toFixed(2)}
           </span>
         );
       case "returns":
-        return <span className="font-mono text-sm">{row.returns}</span>;
+        return <span className="font-mono text-sm text-foreground/80">{row.returns}</span>;
       case "turnover":
-        return <span className="font-mono text-sm">{row.turnover}</span>;
+        return <span className="font-mono text-sm text-foreground/80">{row.turnover}</span>;
       case "drawdown":
-        return <span className="font-mono text-sm text-neon-red">{row.drawdown}</span>;
+        return <span className="font-mono text-sm text-negative">{row.drawdown}</span>;
       case "testsPassed":
         return (
           <div className="flex items-center gap-1 font-mono text-xs">
-            <span className="text-neon-green">{row.testsPassed}</span>
+            <span className="text-positive">{row.testsPassed}</span>
             <span className="text-muted-foreground">/</span>
-            <span className="text-neon-red">{row.testsFailed}</span>
+            <span className="text-negative">{row.testsFailed}</span>
             {row.testsPending > 0 && (
               <>
                 <span className="text-muted-foreground">/</span>
@@ -280,69 +271,66 @@ export default function MyAlphas() {
           </div>
         );
       case "submittedAt":
-        return <span className="font-mono text-xs text-muted-foreground">{row.submittedAt || "—"}</span>;
+        return <span className="font-mono text-xs text-muted-foreground">{row.submittedAt || "\u2014"}</span>;
       default:
         return null;
     }
   };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
   return (
     <div className="space-y-4">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-heading font-bold">My Alphas</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {factors.length} alphas · {submissions.filter((s) => s.status === "passed").length} passed · {submissions.filter((s) => ["queued", "backtesting", "is_testing", "os_testing"].includes(s.status)).length} in pipeline
+          {factors.length} alphas &middot; {submissions.filter((s) => s.status === "passed").length} passed &middot; {submissions.filter((s) => ["queued", "backtesting", "is_testing", "os_testing"].includes(s.status)).length} in pipeline
         </p>
       </div>
 
       {/* Pipeline Stats Overview */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="terminal-card">
+        <Card className="katana-card">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wider mb-2">
+            <div className="flex items-center gap-2 label-upper mb-2">
               <BarChart3 className="w-3.5 h-3.5" /> Total
             </div>
-            <div className="font-mono text-2xl font-bold">{submissionStats.total}</div>
+            <div className="stat-value text-2xl font-bold">{submissionStats.total}</div>
             <div className="text-xs text-muted-foreground mt-1">submissions</div>
           </CardContent>
         </Card>
-        <Card className="terminal-card">
+        <Card className="katana-card">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-neon-green uppercase tracking-wider mb-2">
+            <div className="flex items-center gap-2 text-xs text-positive uppercase tracking-wider font-medium mb-2">
               <CheckCircle className="w-3.5 h-3.5" /> Passed
             </div>
-            <div className="font-mono text-2xl font-bold text-neon-green">{submissionStats.passed}</div>
+            <div className="stat-value text-2xl font-bold text-positive">{submissionStats.passed}</div>
             <div className="text-xs text-muted-foreground mt-1">pass rate: {submissionStats.passRate}</div>
           </CardContent>
         </Card>
-        <Card className="terminal-card">
+        <Card className="katana-card">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-neon-cyan uppercase tracking-wider mb-2">
+            <div className="flex items-center gap-2 text-xs text-info uppercase tracking-wider font-medium mb-2">
               <Loader2 className="w-3.5 h-3.5" /> In Progress
             </div>
-            <div className="font-mono text-2xl font-bold text-neon-cyan">{submissionStats.inProgress}</div>
+            <div className="stat-value text-2xl font-bold text-info">{submissionStats.inProgress}</div>
             <div className="text-xs text-muted-foreground mt-1">avg time: {submissionStats.avgProcessingTime}</div>
           </CardContent>
         </Card>
-        <Card className="terminal-card">
+        <Card className="katana-card">
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-xs text-neon-red uppercase tracking-wider mb-2">
+            <div className="flex items-center gap-2 text-xs text-negative uppercase tracking-wider font-medium mb-2">
               <XCircle className="w-3.5 h-3.5" /> Failed
             </div>
-            <div className="font-mono text-2xl font-bold text-neon-red">{submissionStats.failed + 1}</div>
+            <div className="stat-value text-2xl font-bold text-negative">{submissionStats.failed + 1}</div>
             <div className="text-xs text-muted-foreground mt-1">{submissionStats.rejected} rejected</div>
           </CardContent>
         </Card>
       </div>
 
       {/* Data Table */}
-      <div className="terminal-card overflow-hidden">
-        {/* Column selector + filter row header */}
-        <div className="border-b border-border bg-secondary/30">
+      <div className="katana-card overflow-hidden">
+        {/* Column selector + header row */}
+        <div className="border-b border-border bg-secondary/20">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -350,7 +338,7 @@ export default function MyAlphas() {
                   <th className="px-2 py-2.5 w-[40px]">
                     <Popover>
                       <PopoverTrigger asChild>
-                        <button className="flex items-center gap-1 text-primary text-xs hover:text-primary/80 transition-colors whitespace-nowrap">
+                        <button className="flex items-center gap-1 text-lime text-xs hover:text-lime/80 transition-colors whitespace-nowrap">
                           <Settings2 className="w-3.5 h-3.5" />
                           <span className="hidden sm:inline">Columns</span>
                         </button>
@@ -376,11 +364,11 @@ export default function MyAlphas() {
                   {visibleCols.map((col) => (
                     <th
                       key={col.key}
-                      className={`px-3 py-2.5 text-left ${col.sortable ? "cursor-pointer hover:bg-secondary/50" : ""}`}
+                      className={`px-3 py-2.5 text-left ${col.sortable ? "cursor-pointer hover:bg-secondary/30" : ""}`}
                       style={{ minWidth: col.width }}
                       onClick={() => col.sortable && handleSort(col.key)}
                     >
-                      <span className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground font-medium whitespace-nowrap select-none">
+                      <span className="flex items-center gap-1 label-upper whitespace-nowrap select-none">
                         {col.label}
                         {col.sortable && <SortIcon colKey={col.key} />}
                       </span>
@@ -396,7 +384,7 @@ export default function MyAlphas() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <tbody>
-                <tr className="bg-secondary/20">
+                <tr className="bg-secondary/10">
                   <td className="px-2 py-1.5 w-[40px]" />
                   <td className="w-[28px]" />
                   {visibleCols.map((col) => (
@@ -494,16 +482,16 @@ export default function MyAlphas() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.02 }}
-                  className="border-b border-border/50 hover:bg-secondary/20 transition-colors group"
+                  className="border-b border-border/40 hover:bg-secondary/20 transition-colors group"
                 >
                   <td className="px-2 py-2.5 w-[40px]">
-                    <span className="text-[10px] font-mono text-muted-foreground/50">
+                    <span className="text-[10px] font-mono text-muted-foreground/40">
                       {(page - 1) * pageSize + i + 1}
                     </span>
                   </td>
                   <td className="w-[28px] py-2.5">
                     <button onClick={() => toggleStar(row.id)}>
-                      <Star className={`w-3.5 h-3.5 ${starred.has(row.id) ? "fill-neon-amber text-neon-amber" : "text-muted-foreground/30 hover:text-muted-foreground"}`} />
+                      <Star className={`w-3.5 h-3.5 ${starred.has(row.id) ? "fill-warning text-warning" : "text-muted-foreground/25 hover:text-muted-foreground"}`} />
                     </button>
                   </td>
                   {visibleCols.map((col) => (
@@ -513,7 +501,7 @@ export default function MyAlphas() {
                   ))}
                   <td className="w-[36px] py-2.5">
                     <Link href={`/alphas/${row.id}`}>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-lime opacity-0 group-hover:opacity-100 transition-opacity">
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </Button>
                     </Link>
@@ -532,7 +520,7 @@ export default function MyAlphas() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-secondary/20">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-secondary/10">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>Page size</span>
             <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>

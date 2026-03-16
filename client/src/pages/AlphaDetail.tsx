@@ -1,13 +1,11 @@
 /*
- * AlphaDetail - Factor detail page (WorldQuant BRAIN style)
- * Charts: PnL / Sharpe / Turnover / Returns / Drawdown
- * Summary table, Testing Status, Correlation
- * Train period = cyan, Test period = orange
+ * AlphaDetail — Katana Network Style
+ * Factor detail page with charts, summary table, testing status, correlation
+ * Deep navy bg, lime accent, info blue for train, warning amber for test
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
   TableBody,
@@ -35,14 +33,12 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   ReferenceLine,
 } from "recharts";
 import {
   ArrowLeft,
   CheckCircle,
   XCircle,
-  Clock,
   BarChart3,
   TrendingUp,
   ChevronDown,
@@ -67,6 +63,16 @@ import { motion } from "framer-motion";
 
 type ChartType = "pnl" | "sharpe" | "turnover" | "returns" | "drawdown";
 
+/* Katana chart colors */
+const CHART_COLORS = {
+  train: "oklch(0.72 0.12 230)",       /* info blue */
+  test: "oklch(0.80 0.16 85)",         /* warning amber */
+  grid: "oklch(0.22 0.02 260)",        /* surface border */
+  tick: "oklch(0.50 0.02 260)",        /* muted text */
+  tooltipBg: "oklch(0.16 0.02 260)",   /* popover bg */
+  tooltipBorder: "oklch(0.25 0.02 260)",
+};
+
 export default function AlphaDetail() {
   const params = useParams<{ id: string }>();
   const factor = factors.find((f) => f.id === params.id) || factors[0];
@@ -79,7 +85,6 @@ export default function AlphaDetail() {
     pending: false,
   });
 
-  // Generate chart data
   const pnlData = useMemo(() => generatePnLData(), []);
   const sharpeData = useMemo(() => generateSharpeData(), []);
   const turnoverData = useMemo(() => generateTurnoverData(), []);
@@ -89,12 +94,10 @@ export default function AlphaDetail() {
   const getChartData = () => {
     const dataMap = { pnl: pnlData, sharpe: sharpeData, turnover: turnoverData, returns: returnsData, drawdown: drawdownData };
     const raw = dataMap[chartType];
-    // Merge train + test into single array with separate fields
     const trainMap = new Map(raw.train.map((d) => [d.date, d.value]));
     const testMap = new Map(raw.test.map((d) => [d.date, d.value]));
     const allDatesSet = new Set([...raw.train.map((d) => d.date), ...raw.test.map((d) => d.date)]);
     const allDates = Array.from(allDatesSet).sort();
-
     return allDates.map((date) => ({
       date,
       train: trainMap.get(date) ?? null,
@@ -136,10 +139,10 @@ export default function AlphaDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-heading font-bold">{factor.name}</h1>
-            <Badge variant="outline" className={`text-xs ${factor.market === "CEX" ? "border-neon-cyan/30 text-neon-cyan" : "border-neon-purple/30 text-neon-purple"}`}>
+            <Badge variant="outline" className={`text-xs ${factor.market === "CEX" ? "border-info/25 text-info" : "border-lime/25 text-lime"}`}>
               {factor.market}
             </Badge>
-            <Badge variant="outline" className={`text-xs ${factor.status === "active" ? "bg-neon-green/10 text-neon-green border-neon-green/20" : factor.status === "testing" ? "bg-neon-amber/10 text-neon-amber border-neon-amber/20" : "bg-muted text-muted-foreground border-border"}`}>
+            <Badge variant="outline" className={`text-xs ${factor.status === "active" ? "bg-positive/8 text-positive border-positive/20" : factor.status === "testing" ? "bg-warning/8 text-warning border-warning/20" : "bg-muted text-muted-foreground border-border"}`}>
               {factor.status}
             </Badge>
           </div>
@@ -148,11 +151,11 @@ export default function AlphaDetail() {
       </div>
 
       {/* Factor Expression */}
-      <Card className="terminal-card">
+      <Card className="katana-card">
         <CardContent className="py-3 px-4">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider">Expression:</span>
-            <code className="text-sm font-mono text-neon-cyan">{factor.expression}</code>
+            <span className="label-upper">Expression:</span>
+            <code className="text-sm font-mono text-info">{factor.expression}</code>
           </div>
         </CardContent>
       </Card>
@@ -168,18 +171,18 @@ export default function AlphaDetail() {
           {showTestPeriod ? "Hide test period" : "Show test period"}
         </Button>
         {showTestPeriod && (
-          <span className="text-xs text-neon-amber bg-neon-amber/10 px-3 py-1 rounded-full">
+          <span className="text-xs text-warning bg-warning/8 px-3 py-1 rounded-full border border-warning/15">
             Test period and overall stats are hidden by default when test period is specified.
           </span>
         )}
       </div>
 
       {/* Chart Section */}
-      <Card className="terminal-card">
+      <Card className="katana-card">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-heading flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-neon-cyan" />
+              <BarChart3 className="w-4 h-4 text-info" />
               Chart
             </CardTitle>
             <Select value={chartType} onValueChange={(v) => setChartType(v as ChartType)}>
@@ -201,50 +204,22 @@ export default function AlphaDetail() {
             <ResponsiveContainer width="100%" height="100%">
               {chartType === "turnover" ? (
                 <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.01 280)" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: "oklch(0.55 0.01 280)" }}
-                    tickFormatter={(d) => d.substring(0, 7)}
-                    interval={Math.floor(chartData.length / 8)}
-                  />
-                  <YAxis tick={{ fontSize: 10, fill: "oklch(0.55 0.01 280)" }} tickFormatter={formatYAxis} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "oklch(0.14 0.01 280)",
-                      border: "1px solid oklch(0.25 0.01 280)",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontFamily: "'JetBrains Mono', monospace",
-                    }}
-                    labelStyle={{ color: "oklch(0.55 0.01 280)" }}
-                  />
-                  <Bar dataKey="train" fill="oklch(0.78 0.15 190 / 0.7)" name="Train" />
-                  <Bar dataKey="test" fill="oklch(0.80 0.18 80 / 0.7)" name="Test" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.tick }} tickFormatter={(d) => d.substring(0, 7)} interval={Math.floor(chartData.length / 8)} />
+                  <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.tick }} tickFormatter={formatYAxis} />
+                  <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, borderRadius: "6px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace" }} labelStyle={{ color: CHART_COLORS.tick }} />
+                  <Bar dataKey="train" fill={`${CHART_COLORS.train.replace(")", " / 0.7)")}`.replace("oklch", "oklch")} name="Train" />
+                  <Bar dataKey="test" fill={`${CHART_COLORS.test.replace(")", " / 0.7)")}`.replace("oklch", "oklch")} name="Test" />
                 </BarChart>
               ) : (
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.25 0.01 280)" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 10, fill: "oklch(0.55 0.01 280)" }}
-                    tickFormatter={(d) => d.substring(0, 7)}
-                    interval={Math.floor(chartData.length / 8)}
-                  />
-                  <YAxis tick={{ fontSize: 10, fill: "oklch(0.55 0.01 280)" }} tickFormatter={formatYAxis} />
-                  {chartType === "sharpe" && <ReferenceLine y={0} stroke="oklch(0.35 0.01 280)" />}
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "oklch(0.14 0.01 280)",
-                      border: "1px solid oklch(0.25 0.01 280)",
-                      borderRadius: "6px",
-                      fontSize: "12px",
-                      fontFamily: "'JetBrains Mono', monospace",
-                    }}
-                    labelStyle={{ color: "oklch(0.55 0.01 280)" }}
-                  />
-                  <Line type="monotone" dataKey="train" stroke="oklch(0.78 0.15 190)" strokeWidth={1.5} dot={false} name="Train" connectNulls={false} />
-                  <Line type="monotone" dataKey="test" stroke="oklch(0.80 0.18 80)" strokeWidth={1.5} dot={false} name="Test" connectNulls={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.tick }} tickFormatter={(d) => d.substring(0, 7)} interval={Math.floor(chartData.length / 8)} />
+                  <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.tick }} tickFormatter={formatYAxis} />
+                  {chartType === "sharpe" && <ReferenceLine y={0} stroke="oklch(0.30 0.02 260)" />}
+                  <Tooltip contentStyle={{ backgroundColor: CHART_COLORS.tooltipBg, border: `1px solid ${CHART_COLORS.tooltipBorder}`, borderRadius: "6px", fontSize: "12px", fontFamily: "'JetBrains Mono', monospace" }} labelStyle={{ color: CHART_COLORS.tick }} />
+                  <Line type="monotone" dataKey="train" stroke={CHART_COLORS.train} strokeWidth={1.5} dot={false} name="Train" connectNulls={false} />
+                  <Line type="monotone" dataKey="test" stroke={CHART_COLORS.test} strokeWidth={1.5} dot={false} name="Test" connectNulls={false} />
                 </LineChart>
               )}
             </ResponsiveContainer>
@@ -252,12 +227,12 @@ export default function AlphaDetail() {
           {/* Legend */}
           <div className="flex items-center justify-center gap-6 mt-2">
             <div className="flex items-center gap-2">
-              <div className="w-4 h-0.5 bg-neon-cyan rounded" />
+              <div className="w-4 h-0.5 bg-info rounded" />
               <span className="text-xs text-muted-foreground">Train</span>
             </div>
             {showTestPeriod && (
               <div className="flex items-center gap-2">
-                <div className="w-4 h-0.5 bg-neon-amber rounded" />
+                <div className="w-4 h-0.5 bg-warning rounded" />
                 <span className="text-xs text-muted-foreground">Test (OS)</span>
               </div>
             )}
@@ -266,11 +241,11 @@ export default function AlphaDetail() {
       </Card>
 
       {/* Summary Section */}
-      <Card className="terminal-card">
+      <Card className="katana-card">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base font-heading flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-neon-cyan" />
+              <TrendingUp className="w-4 h-4 text-info" />
               {summaryPeriod} Summary
             </CardTitle>
             <div className="flex items-center gap-1">
@@ -280,7 +255,7 @@ export default function AlphaDetail() {
                   key={p}
                   variant={summaryPeriod === p ? "default" : "outline"}
                   size="sm"
-                  className={`h-7 text-xs px-3 ${summaryPeriod === p ? "bg-primary text-primary-foreground" : "border-border text-muted-foreground"}`}
+                  className={`h-7 text-xs px-3 ${summaryPeriod !== p ? "border-border text-muted-foreground" : ""}`}
                   onClick={() => setSummaryPeriod(p)}
                 >
                   {p}
@@ -293,9 +268,9 @@ export default function AlphaDetail() {
           {/* Aggregate Data Cards */}
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
             {Object.entries(aggData).map(([key, val]) => (
-              <div key={key} className="text-center p-3 bg-secondary/30 rounded-lg">
-                <div className="text-xs text-muted-foreground capitalize mb-1">{key}</div>
-                <div className="text-lg font-mono font-bold text-foreground">{val}</div>
+              <div key={key} className="text-center p-3 bg-secondary/30 rounded-lg border border-border/50">
+                <div className="label-upper mb-1">{key}</div>
+                <div className="text-lg stat-value font-bold text-foreground">{val}</div>
               </div>
             ))}
           </div>
@@ -304,31 +279,31 @@ export default function AlphaDetail() {
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-xs text-neon-cyan font-mono">Year</TableHead>
-                <TableHead className="text-xs text-neon-cyan font-mono">Sharpe</TableHead>
-                <TableHead className="text-xs text-neon-cyan font-mono">Turnover</TableHead>
-                <TableHead className="text-xs text-neon-cyan font-mono">Fitness</TableHead>
-                <TableHead className="text-xs text-neon-cyan font-mono">Returns</TableHead>
-                <TableHead className="text-xs text-neon-cyan font-mono">Drawdown</TableHead>
-                <TableHead className="text-xs text-neon-cyan font-mono">Margin</TableHead>
-                <TableHead className="text-xs text-neon-cyan font-mono">Long Count</TableHead>
-                <TableHead className="text-xs text-neon-cyan font-mono">Short Count</TableHead>
+                <TableHead className="label-upper text-info">Year</TableHead>
+                <TableHead className="label-upper text-info">Sharpe</TableHead>
+                <TableHead className="label-upper text-info">Turnover</TableHead>
+                <TableHead className="label-upper text-info">Fitness</TableHead>
+                <TableHead className="label-upper text-info">Returns</TableHead>
+                <TableHead className="label-upper text-info">Drawdown</TableHead>
+                <TableHead className="label-upper text-info">Margin</TableHead>
+                <TableHead className="label-upper text-info">Long Count</TableHead>
+                <TableHead className="label-upper text-info">Short Count</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {summaryData.map((row) => (
                 <TableRow key={row.year} className="border-border hover:bg-secondary/20">
                   <TableCell className="font-mono text-sm font-medium">{row.year}</TableCell>
-                  <TableCell className={`font-mono text-sm ${row.sharpe >= 1 ? "text-neon-green" : row.sharpe >= 0.5 ? "text-neon-amber" : "text-neon-red"}`}>
+                  <TableCell className={`font-mono text-sm ${row.sharpe >= 1 ? "text-lime" : row.sharpe >= 0.5 ? "text-warning" : "text-negative"}`}>
                     {row.sharpe.toFixed(2)}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{row.turnover}</TableCell>
-                  <TableCell className="font-mono text-sm">{row.fitness.toFixed(2)}</TableCell>
-                  <TableCell className="font-mono text-sm">{row.returns}</TableCell>
-                  <TableCell className="font-mono text-sm text-neon-red">{row.drawdown}</TableCell>
-                  <TableCell className="font-mono text-sm">{row.margin}</TableCell>
-                  <TableCell className="font-mono text-sm">{row.longCount.toLocaleString()}</TableCell>
-                  <TableCell className="font-mono text-sm">{row.shortCount.toLocaleString()}</TableCell>
+                  <TableCell className="font-mono text-sm text-foreground/80">{row.turnover}</TableCell>
+                  <TableCell className="font-mono text-sm text-foreground/80">{row.fitness.toFixed(2)}</TableCell>
+                  <TableCell className="font-mono text-sm text-foreground/80">{row.returns}</TableCell>
+                  <TableCell className="font-mono text-sm text-negative">{row.drawdown}</TableCell>
+                  <TableCell className="font-mono text-sm text-foreground/80">{row.margin}</TableCell>
+                  <TableCell className="font-mono text-sm text-foreground/80">{row.longCount.toLocaleString()}</TableCell>
+                  <TableCell className="font-mono text-sm text-foreground/80">{row.shortCount.toLocaleString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -339,16 +314,16 @@ export default function AlphaDetail() {
       {/* Correlation + Testing Status */}
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Correlation */}
-        <Card className="terminal-card">
+        <Card className="katana-card">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-heading flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-neon-cyan" />
+                <BarChart3 className="w-4 h-4 text-info" />
                 Correlation
               </CardTitle>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 Last Run: {correlationData.lastRun}
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-lime">
                   <RefreshCw className="w-3 h-3" />
                 </Button>
               </div>
@@ -357,14 +332,14 @@ export default function AlphaDetail() {
           <CardContent>
             <div className="flex items-center gap-8">
               <div>
-                <span className="text-xs text-muted-foreground">Self Correlation</span>
+                <span className="label-upper">Self Correlation</span>
               </div>
               <div>
-                <span className="text-xs text-neon-cyan mr-2">Maximum</span>
+                <span className="text-xs text-info mr-2">Maximum</span>
                 <span className="font-mono text-sm">{correlationData.selfCorrelation.maximum}</span>
               </div>
               <div>
-                <span className="text-xs text-neon-green mr-2">Minimum</span>
+                <span className="text-xs text-positive mr-2">Minimum</span>
                 <span className="font-mono text-sm">{correlationData.selfCorrelation.minimum}</span>
               </div>
             </div>
@@ -372,28 +347,28 @@ export default function AlphaDetail() {
         </Card>
 
         {/* Testing Status */}
-        <Card className="terminal-card">
+        <Card className="katana-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-heading flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 text-neon-green" />
+              <CheckCircle className="w-4 h-4 text-positive" />
               IS Testing Status
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {/* PASS */}
             <div
-              className="border-l-2 border-neon-green bg-neon-green/5 rounded-r-md cursor-pointer"
+              className="border-l-2 border-positive bg-positive/5 rounded-r-md cursor-pointer"
               onClick={() => setExpandedTestSections((s) => ({ ...s, pass: !s.pass }))}
             >
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-sm font-medium text-neon-green">{passItems.length} PASS</span>
+                <span className="text-sm font-medium text-positive">{passItems.length} PASS</span>
                 {expandedTestSections.pass ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
               </div>
               {expandedTestSections.pass && (
                 <div className="px-3 pb-2 space-y-1">
                   {passItems.map((t, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <span className="text-neon-green mt-0.5">●</span>
+                      <span className="text-positive mt-0.5">{"\u25CF"}</span>
                       <span>{t.text}</span>
                     </div>
                   ))}
@@ -403,18 +378,18 @@ export default function AlphaDetail() {
 
             {/* FAIL */}
             <div
-              className="border-l-2 border-neon-red bg-neon-red/5 rounded-r-md cursor-pointer"
+              className="border-l-2 border-negative bg-negative/5 rounded-r-md cursor-pointer"
               onClick={() => setExpandedTestSections((s) => ({ ...s, fail: !s.fail }))}
             >
               <div className="flex items-center justify-between px-3 py-2">
-                <span className="text-sm font-medium text-neon-red">{failItems.length} FAIL</span>
+                <span className="text-sm font-medium text-negative">{failItems.length} FAIL</span>
                 {expandedTestSections.fail ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
               </div>
               {expandedTestSections.fail && (
                 <div className="px-3 pb-2 space-y-1">
                   {failItems.map((t, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <span className="text-neon-red mt-0.5">●</span>
+                      <span className="text-negative mt-0.5">{"\u25CF"}</span>
                       <span>{t.text}</span>
                     </div>
                   ))}
@@ -435,7 +410,7 @@ export default function AlphaDetail() {
                 <div className="px-3 pb-2 space-y-1">
                   {pendingItems.map((t, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                      <span className="mt-0.5">●</span>
+                      <span className="mt-0.5">{"\u25CF"}</span>
                       <span>{t.text}</span>
                     </div>
                   ))}

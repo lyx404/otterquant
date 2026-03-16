@@ -1,78 +1,43 @@
 /*
- * Account - User account management
- * Terminal Noir: profile info, API key management, settings
+ * Account — Katana Network Style
+ * Profile, API Keys, Exchange Connections, Notifications
+ * Deep navy bg, lime accent, monospace data, minimal borders
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
-import { useSearch } from "wouter";
 import { toast } from "sonner";
 import {
   User,
-  Mail,
   Key,
+  Link2,
+  Shield,
+  Bell,
   Copy,
   Check,
   Eye,
   EyeOff,
-  Plus,
-  Trash2,
   RefreshCw,
-  Shield,
-  Clock,
+  Wifi,
+  WifiOff,
   AlertTriangle,
-  Save,
-  Camera,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { exchanges, type Exchange } from "@/lib/mockData";
 
-// Mock user data
-const mockUser = {
-  nickname: "CryptoQuant_Pro",
-  email: "quant_pro@example.com",
-  avatar: "CQ",
-  joinedAt: "2025-10-15",
-  tier: "Pro",
-  factorsCreated: 42,
-  totalRewards: "12,500 USDT",
-};
+type TabId = "profile" | "api" | "exchanges" | "notifications";
 
-// Mock API keys
-const initialApiKeys = [
-  {
-    id: "key-001",
-    name: "Production Key",
-    key: "af_sk_prod_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
-    createdAt: "2025-12-01",
-    lastUsed: "2 min ago",
-    status: "active" as const,
-    permissions: ["read", "write", "submit"],
-  },
-  {
-    id: "key-002",
-    name: "Codex Agent Key",
-    key: "af_sk_agent_x9y8z7w6v5u4t3s2r1q0p9o8n7m6l5k4",
-    createdAt: "2026-01-15",
-    lastUsed: "5 min ago",
-    status: "active" as const,
-    permissions: ["read", "write", "submit"],
-  },
-  {
-    id: "key-003",
-    name: "Read-Only Analytics",
-    key: "af_sk_read_j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6",
-    createdAt: "2026-02-20",
-    lastUsed: "3 days ago",
-    status: "active" as const,
-    permissions: ["read"],
-  },
+const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: "profile", label: "Profile", icon: User },
+  { id: "api", label: "API Keys", icon: Key },
+  { id: "exchanges", label: "Exchanges", icon: Link2 },
+  { id: "notifications", label: "Notifications", icon: Bell },
 ];
 
-function CopyButton({ text }: { text: string }) {
+function CopyBtn({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
@@ -81,397 +46,339 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded hover:bg-secondary/50">
-      {copied ? <Check className="w-3.5 h-3.5 text-neon-green" /> : <Copy className="w-3.5 h-3.5" />}
+    <button onClick={handleCopy} className="p-1.5 rounded-md hover:bg-secondary/60 text-muted-foreground hover:text-foreground transition-colors">
+      {copied ? <Check className="w-3.5 h-3.5 text-lime" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
 }
 
-function MaskedKey({ apiKey }: { apiKey: string }) {
-  const [visible, setVisible] = useState(false);
-  const masked = apiKey.slice(0, 12) + "••••••••••••••••" + apiKey.slice(-4);
-  return (
-    <div className="flex items-center gap-1.5">
-      <code className="font-mono text-xs text-neon-cyan bg-secondary/30 px-2 py-1 rounded">
-        {visible ? apiKey : masked}
-      </code>
-      <button
-        onClick={() => setVisible(!visible)}
-        className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-secondary/50"
-      >
-        {visible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-      </button>
-      <CopyButton text={apiKey} />
-    </div>
-  );
-}
-
 export default function Account() {
-  const searchString = useSearch();
-  const urlTab = new URLSearchParams(searchString).get("tab");
-  const [activeTab, setActiveTab] = useState(urlTab === "api" ? "api" : "profile");
-  const [nickname, setNickname] = useState(mockUser.nickname);
-  const [email, setEmail] = useState(mockUser.email);
-  const [apiKeys, setApiKeys] = useState(initialApiKeys);
-  const [newKeyName, setNewKeyName] = useState("");
-  const [showNewKeyForm, setShowNewKeyForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
 
   useEffect(() => {
-    if (urlTab === "api" || urlTab === "profile") {
-      setActiveTab(urlTab);
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab && tabs.some((t) => t.id === tab)) {
+      setActiveTab(tab as TabId);
     }
-  }, [urlTab]);
+  }, []);
 
-  const handleSaveProfile = () => {
-    toast.success("Profile updated successfully");
-  };
+  const mockApiKey = "af_sk_live_7x9kM2nP4qR8sT6uW3yA1bC5dE0fG";
+  const mockApiSecret = "af_ss_live_hJ2kL4mN6pQ8rS0tU2vW4xY6zA8bC0d";
 
-  const handleCreateKey = () => {
-    if (!newKeyName.trim()) {
-      toast.error("Please enter a key name");
-      return;
-    }
-    const newKey = {
-      id: `key-${Date.now()}`,
-      name: newKeyName,
-      key: `af_sk_new_${Array.from({ length: 32 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("")}`,
-      createdAt: new Date().toISOString().split("T")[0],
-      lastUsed: "Never",
-      status: "active" as const,
-      permissions: ["read", "write", "submit"],
-    };
-    setApiKeys([newKey, ...apiKeys]);
-    setNewKeyName("");
-    setShowNewKeyForm(false);
-    toast.success("API key created successfully. Copy it now — it won't be shown again.");
-  };
-
-  const handleRevokeKey = (id: string) => {
-    setApiKeys(apiKeys.filter((k) => k.id !== id));
-    toast.success("API key revoked");
-  };
-
-  const handleRegenerateKey = (id: string) => {
-    setApiKeys(
-      apiKeys.map((k) =>
-        k.id === id
-          ? {
-              ...k,
-              key: `af_sk_regen_${Array.from({ length: 32 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("")}`,
-              lastUsed: "Just now",
-            }
-          : k
+  const handleConnect = (id: string) => {
+    setExchangeList((prev) =>
+      prev.map((ex) =>
+        ex.id === id ? { ...ex, status: ex.status === "connected" ? "disconnected" : "connected" } : ex
       )
     );
-    toast.success("API key regenerated. Copy the new key — the old one is now invalid.");
+    toast.success("Exchange connection updated");
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-heading font-bold">Account Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">Manage your profile, API keys, and preferences</p>
+        <h1 className="text-2xl font-heading font-bold">Account</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Manage your profile, API keys, and exchange connections</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-secondary border border-border">
-          <TabsTrigger value="profile" className="text-xs data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <User className="w-3.5 h-3.5 mr-1.5" />
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value="api" className="text-xs data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-            <Key className="w-3.5 h-3.5 mr-1.5" />
-            API Keys
-          </TabsTrigger>
-        </TabsList>
+      {/* Tab Navigation */}
+      <div className="flex items-center gap-1 bg-secondary/40 p-1 rounded-lg border border-border/50 w-fit">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <Button
+              key={tab.id}
+              variant={activeTab === tab.id ? "default" : "ghost"}
+              size="sm"
+              className={`h-8 text-xs px-3 gap-1.5 ${activeTab !== tab.id ? "text-muted-foreground" : ""}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {tab.label}
+            </Button>
+          );
+        })}
+      </div>
 
-        {/* Profile Tab */}
-        <TabsContent value="profile" className="space-y-6">
-          <div className="grid lg:grid-cols-3 gap-6">
-            {/* Profile Card */}
-            <Card className="terminal-card lg:col-span-2">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <User className="w-4 h-4 text-neon-cyan" />
-                  Basic Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {/* Avatar */}
-                <div className="flex items-center gap-4">
-                  <div className="relative group">
-                    <div className="w-20 h-20 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-2xl font-heading font-bold text-primary">
-                      {mockUser.avatar}
-                    </div>
-                    <button className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Camera className="w-5 h-5 text-white" />
-                    </button>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{mockUser.nickname}</p>
-                    <p className="text-xs text-muted-foreground">{mockUser.email}</p>
-                    <Badge variant="outline" className="mt-1 bg-neon-amber/10 text-neon-amber border-neon-amber/20 text-[10px] font-mono">
-                      {mockUser.tier} TIER
-                    </Badge>
-                  </div>
+      {/* Profile Tab */}
+      {activeTab === "profile" && (
+        <div className="grid lg:grid-cols-3 gap-6">
+          <Card className="katana-card lg:col-span-2">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-heading flex items-center gap-2">
+                <User className="w-4 h-4 text-info" />
+                Profile Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-upper">Username</Label>
+                  <Input defaultValue="CryptoQuant_Pro" className="bg-input border-border" />
                 </div>
-
-                {/* Form Fields */}
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nickname" className="text-xs text-muted-foreground uppercase tracking-wider">
-                      Nickname
-                    </Label>
-                    <Input
-                      id="nickname"
-                      value={nickname}
-                      onChange={(e) => setNickname(e.target.value)}
-                      className="bg-input border-border font-mono"
-                      placeholder="Your display name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-xs text-muted-foreground uppercase tracking-wider">
-                      Email
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="bg-input border-border font-mono flex-1"
-                        placeholder="your@email.com"
-                      />
-                      <Badge variant="outline" className="bg-neon-green/10 text-neon-green border-neon-green/20 text-[10px] font-mono self-center">
-                        VERIFIED
-                      </Badge>
-                    </div>
-                  </div>
+                <div className="space-y-2">
+                  <Label className="label-upper">Display Name</Label>
+                  <Input defaultValue="CryptoQuant Pro" className="bg-input border-border" />
                 </div>
+                <div className="space-y-2">
+                  <Label className="label-upper">Email</Label>
+                  <Input defaultValue="quant@example.com" className="bg-input border-border" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-upper">Timezone</Label>
+                  <Input defaultValue="UTC+8" className="bg-input border-border" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="label-upper">Bio</Label>
+                <textarea
+                  defaultValue="Quantitative researcher specializing in crypto alpha factor mining. Building systematic strategies using AI-powered tools."
+                  className="w-full h-20 px-3 py-2 rounded-md bg-input border border-border text-sm text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-lime/50"
+                />
+              </div>
+              <Button className="bg-lime text-background hover:bg-lime/90 font-medium" onClick={() => toast.success("Profile updated")}>
+                Save Changes
+              </Button>
+            </CardContent>
+          </Card>
 
-                <Button onClick={handleSaveProfile} className="gap-2">
-                  <Save className="w-4 h-4" />
-                  Save Changes
+          <Card className="katana-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-heading flex items-center gap-2">
+                <Shield className="w-4 h-4 text-info" />
+                Security
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <div className="text-sm font-medium">Two-Factor Auth</div>
+                  <div className="text-xs text-muted-foreground">TOTP authenticator</div>
+                </div>
+                <Badge variant="outline" className="bg-positive/8 text-positive border-positive/20 text-[10px] font-mono">
+                  ENABLED
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-border">
+                <div>
+                  <div className="text-sm font-medium">Password</div>
+                  <div className="text-xs text-muted-foreground">Last changed 30 days ago</div>
+                </div>
+                <Button variant="outline" size="sm" className="h-7 text-xs border-border text-muted-foreground hover:text-foreground">
+                  Change
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Stats Card */}
-            <Card className="terminal-card">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-neon-green" />
-                  Account Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-xs text-muted-foreground">Member Since</span>
-                    <span className="text-sm font-mono">{mockUser.joinedAt}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-xs text-muted-foreground">Account Tier</span>
-                    <Badge variant="outline" className="bg-neon-amber/10 text-neon-amber border-neon-amber/20 text-[10px] font-mono">
-                      {mockUser.tier}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-xs text-muted-foreground">Factors Created</span>
-                    <span className="text-sm font-mono text-neon-cyan">{mockUser.factorsCreated}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b border-border/50">
-                    <span className="text-xs text-muted-foreground">Total Rewards</span>
-                    <span className="text-sm font-mono text-neon-green">{mockUser.totalRewards}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-2">
-                    <span className="text-xs text-muted-foreground">API Keys</span>
-                    <span className="text-sm font-mono">{apiKeys.length}</span>
-                  </div>
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-border">
+                <div>
+                  <div className="text-sm font-medium">Sessions</div>
+                  <div className="text-xs text-muted-foreground">2 active sessions</div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+                <Button variant="outline" size="sm" className="h-7 text-xs border-border text-muted-foreground hover:text-foreground">
+                  Manage
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-        {/* API Keys Tab */}
-        <TabsContent value="api" className="space-y-6">
-          {/* Warning Banner */}
-          <div className="bg-neon-amber/5 border border-neon-amber/20 rounded-lg p-4 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-neon-amber shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-neon-amber">Keep your API keys secure</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                API keys grant access to your AlphaForge account. Never share them publicly or commit them to version control.
-                Use environment variables or secret managers to store them safely.
-              </p>
-            </div>
-          </div>
-
-          {/* Create New Key */}
-          <Card className="terminal-card">
+      {/* API Keys Tab */}
+      {activeTab === "api" && (
+        <div className="space-y-6">
+          <Card className="katana-card">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-heading flex items-center gap-2">
-                  <Key className="w-4 h-4 text-neon-cyan" />
-                  API Keys
-                  <Badge variant="outline" className="ml-2 text-[10px] font-mono border-border">
-                    {apiKeys.length} keys
-                  </Badge>
+                  <Key className="w-4 h-4 text-lime" />
+                  API Credentials
                 </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-neon-green/30 text-neon-green hover:bg-neon-green/10 text-xs"
-                  onClick={() => setShowNewKeyForm(!showNewKeyForm)}
-                >
-                  <Plus className="w-3.5 h-3.5 mr-1" />
-                  New Key
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1 border-lime/20 text-lime hover:bg-lime/8">
+                  <RefreshCw className="w-3 h-3" />
+                  Regenerate
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* New Key Form */}
-              {showNewKeyForm && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="bg-secondary/30 border border-border rounded-lg p-4 space-y-3"
-                >
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Key Name</Label>
-                    <Input
-                      value={newKeyName}
-                      onChange={(e) => setNewKeyName(e.target.value)}
-                      className="bg-input border-border font-mono"
-                      placeholder="e.g., Claude Code Agent, Production Key"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleCreateKey} className="text-xs">
-                      <Plus className="w-3.5 h-3.5 mr-1" />
-                      Create Key
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs border-border"
-                      onClick={() => { setShowNewKeyForm(false); setNewKeyName(""); }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* Key List */}
-              <div className="space-y-3">
-                {apiKeys.map((apiKey, i) => (
-                  <motion.div
-                    key={apiKey.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="border border-border rounded-lg p-4 hover:border-primary/20 transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{apiKey.name}</span>
-                          <Badge variant="outline" className="bg-neon-green/10 text-neon-green border-neon-green/20 text-[10px] font-mono">
-                            ACTIVE
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            Created {apiKey.createdAt}
-                          </span>
-                          <span>Last used: {apiKey.lastUsed}</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-muted-foreground hover:text-neon-amber"
-                          onClick={() => handleRegenerateKey(apiKey.id)}
-                          title="Regenerate key"
-                        >
-                          <RefreshCw className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-muted-foreground hover:text-neon-red"
-                          onClick={() => handleRevokeKey(apiKey.id)}
-                          title="Revoke key"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Key value */}
-                    <MaskedKey apiKey={apiKey.key} />
-
-                    {/* Permissions */}
-                    <div className="flex items-center gap-1.5 mt-3">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider mr-1">Permissions:</span>
-                      {apiKey.permissions.map((perm) => (
-                        <Badge
-                          key={perm}
-                          variant="outline"
-                          className={`text-[10px] font-mono ${
-                            perm === "submit"
-                              ? "border-neon-amber/30 text-neon-amber"
-                              : perm === "write"
-                              ? "border-neon-cyan/30 text-neon-cyan"
-                              : "border-border text-muted-foreground"
-                          }`}
-                        >
-                          {perm.toUpperCase()}
-                        </Badge>
-                      ))}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Usage Example */}
-              <div className="mt-4 bg-[#0a0f14] border border-border rounded-lg overflow-hidden">
-                <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-secondary/20">
-                  <div className="w-2.5 h-2.5 rounded-full bg-neon-red/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-neon-amber/60" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-neon-green/60" />
-                  <span className="text-xs text-muted-foreground font-mono ml-2">Usage Example</span>
+              <div className="space-y-2">
+                <Label className="label-upper">API Key</Label>
+                <div className="flex items-center gap-2 bg-[#080c16] border border-border rounded-md px-3 py-2">
+                  <code className="flex-1 font-mono text-sm text-info">
+                    {showApiKey ? mockApiKey : "\u2022".repeat(20) + "..."}
+                  </code>
+                  <button onClick={() => setShowApiKey(!showApiKey)} className="p-1 text-muted-foreground hover:text-foreground transition-colors">
+                    {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                  <CopyBtn text={mockApiKey} />
                 </div>
-                <div className="p-3 space-y-1">
-                  <code className="font-mono text-xs leading-relaxed block">
-                    <span className="text-muted-foreground"># Set your API key as environment variable</span>
+              </div>
+              <div className="space-y-2">
+                <Label className="label-upper">API Secret</Label>
+                <div className="flex items-center gap-2 bg-[#080c16] border border-border rounded-md px-3 py-2">
+                  <code className="flex-1 font-mono text-sm text-muted-foreground">
+                    {"\u2022".repeat(20)}...
                   </code>
-                  <code className="font-mono text-xs leading-relaxed block">
-                    <span className="text-neon-green">export </span>
-                    <span className="text-foreground">ALPHAFORGE_API_KEY</span>
-                    <span className="text-muted-foreground">=</span>
-                    <span className="text-neon-amber">"af_sk_prod_..."</span>
-                  </code>
-                  <code className="font-mono text-xs leading-relaxed block mt-2">
-                    <span className="text-muted-foreground"># Use in your AI agent configuration</span>
-                  </code>
-                  <code className="font-mono text-xs leading-relaxed block">
-                    <span className="text-neon-green">npx </span>
-                    <span className="text-neon-cyan">alphaforge-skill</span>
-                    <span className="text-foreground"> configure --key $ALPHAFORGE_API_KEY</span>
-                  </code>
+                  <CopyBtn text={mockApiSecret} />
+                </div>
+              </div>
+              <div className="bg-warning/5 border border-warning/15 rounded-md p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                  <div className="text-xs text-muted-foreground">
+                    <span className="text-warning font-medium">Security Notice:</span> Never share your API secret. It provides full access to your account. Use environment variables to store credentials.
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+
+          <Card className="katana-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-heading">Usage & Rate Limits</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="p-3 bg-secondary/30 rounded-lg border border-border/50 text-center">
+                  <div className="label-upper mb-1">Requests Today</div>
+                  <div className="stat-value text-xl font-bold text-foreground">1,247</div>
+                  <div className="text-xs text-muted-foreground mt-1">of 10,000</div>
+                </div>
+                <div className="p-3 bg-secondary/30 rounded-lg border border-border/50 text-center">
+                  <div className="label-upper mb-1">Rate Limit</div>
+                  <div className="stat-value text-xl font-bold text-foreground">100</div>
+                  <div className="text-xs text-muted-foreground mt-1">req/min</div>
+                </div>
+                <div className="p-3 bg-secondary/30 rounded-lg border border-border/50 text-center">
+                  <div className="label-upper mb-1">Plan</div>
+                  <div className="stat-value text-xl font-bold text-lime">Pro</div>
+                  <div className="text-xs text-muted-foreground mt-1">unlimited factors</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Exchanges Tab */}
+      {activeTab === "exchanges" && (
+        <div className="space-y-4">
+          <div>
+            <h3 className="label-upper mb-3 text-info">Centralized Exchanges (CEX)</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {exchangeList
+                .filter((ex) => ex.type === "CEX")
+                .map((ex) => (
+                  <Card key={ex.id} className={`katana-card transition-all duration-200 ${ex.status === "connected" ? "border-lime/15" : ""}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-mono font-bold ${ex.status === "connected" ? "bg-lime/10 text-lime border border-lime/20" : "bg-secondary text-muted-foreground border border-border"}`}>
+                            {ex.logo}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium">{ex.name}</div>
+                            <div className="text-[10px] text-muted-foreground">{ex.supportedPairs} pairs</div>
+                          </div>
+                        </div>
+                        {ex.status === "connected" ? (
+                          <div className="flex items-center gap-1">
+                            <Wifi className="w-3 h-3 text-lime" />
+                            <span className="text-[10px] font-mono text-lime">LIVE</span>
+                          </div>
+                        ) : (
+                          <WifiOff className="w-3 h-3 text-muted-foreground" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{ex.description}</p>
+                      <Button
+                        variant={ex.status === "connected" ? "outline" : "default"}
+                        size="sm"
+                        className={`w-full h-7 text-xs ${ex.status === "connected" ? "border-border text-muted-foreground hover:text-negative hover:border-negative/30" : "bg-lime text-background hover:bg-lime/90"}`}
+                        onClick={() => handleConnect(ex.id)}
+                      >
+                        {ex.status === "connected" ? "Disconnect" : "Connect"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="label-upper mb-3 text-lime">Decentralized Exchanges (DEX)</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {exchangeList
+                .filter((ex) => ex.type === "DEX")
+                .map((ex) => (
+                  <Card key={ex.id} className={`katana-card transition-all duration-200 ${ex.status === "connected" ? "border-lime/15" : ""}`}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-md flex items-center justify-center text-xs font-mono font-bold ${ex.status === "connected" ? "bg-lime/10 text-lime border border-lime/20" : "bg-secondary text-muted-foreground border border-border"}`}>
+                            {ex.logo}
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium">{ex.name}</div>
+                            <div className="text-[10px] text-muted-foreground">{ex.supportedPairs} pairs</div>
+                          </div>
+                        </div>
+                        {ex.status === "connected" ? (
+                          <div className="flex items-center gap-1">
+                            <Wifi className="w-3 h-3 text-lime" />
+                            <span className="text-[10px] font-mono text-lime">LIVE</span>
+                          </div>
+                        ) : (
+                          <WifiOff className="w-3 h-3 text-muted-foreground" />
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{ex.description}</p>
+                      <Button
+                        variant={ex.status === "connected" ? "outline" : "default"}
+                        size="sm"
+                        className={`w-full h-7 text-xs ${ex.status === "connected" ? "border-border text-muted-foreground hover:text-negative hover:border-negative/30" : "bg-lime text-background hover:bg-lime/90"}`}
+                        onClick={() => handleConnect(ex.id)}
+                      >
+                        {ex.status === "connected" ? "Disconnect" : "Connect"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Tab */}
+      {activeTab === "notifications" && (
+        <Card className="katana-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-heading flex items-center gap-2">
+              <Bell className="w-4 h-4 text-info" />
+              Notification Preferences
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {[
+              { label: "Factor Test Results", desc: "Get notified when IS/OS tests complete", defaultChecked: true },
+              { label: "Epoch Rewards", desc: "Reward distribution notifications", defaultChecked: true },
+              { label: "Trade Execution", desc: "Real-time trade execution alerts", defaultChecked: false },
+              { label: "New Subscribers", desc: "When someone subscribes to your strategies", defaultChecked: true },
+              { label: "System Maintenance", desc: "Platform maintenance and downtime alerts", defaultChecked: true },
+              { label: "Weekly Digest", desc: "Weekly summary of your factor performance", defaultChecked: false },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                <div>
+                  <div className="text-sm font-medium">{item.label}</div>
+                  <div className="text-xs text-muted-foreground">{item.desc}</div>
+                </div>
+                <Switch defaultChecked={item.defaultChecked} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
