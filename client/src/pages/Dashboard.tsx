@@ -148,9 +148,17 @@ export default function Dashboard() {
               <Cpu className="w-4 h-4 text-neon-cyan" />
               Agent Skill Status
             </CardTitle>
-            <Badge variant="outline" className="bg-neon-green/10 text-neon-green border-neon-green/20 text-[10px] font-mono">
-              {agentSkills.filter(s => s.status === "connected").length}/{agentSkills.length} CONNECTED
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="bg-neon-green/10 text-neon-green border-neon-green/20 text-[10px] font-mono">
+                {agentSkills.filter(s => s.status === "connected").length}/{agentSkills.length} CONNECTED
+              </Badge>
+              <Link href="/account?tab=api">
+                <Button variant="outline" size="sm" className="h-7 text-xs border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/10 gap-1">
+                  <ExternalLink className="w-3 h-3" />
+                  API Keys
+                </Button>
+              </Link>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">

@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearch } from "wouter";
 import { toast } from "sonner";
 import {
   User,
@@ -106,11 +107,20 @@ function MaskedKey({ apiKey }: { apiKey: string }) {
 }
 
 export default function Account() {
+  const searchString = useSearch();
+  const urlTab = new URLSearchParams(searchString).get("tab");
+  const [activeTab, setActiveTab] = useState(urlTab === "api" ? "api" : "profile");
   const [nickname, setNickname] = useState(mockUser.nickname);
   const [email, setEmail] = useState(mockUser.email);
   const [apiKeys, setApiKeys] = useState(initialApiKeys);
   const [newKeyName, setNewKeyName] = useState("");
   const [showNewKeyForm, setShowNewKeyForm] = useState(false);
+
+  useEffect(() => {
+    if (urlTab === "api" || urlTab === "profile") {
+      setActiveTab(urlTab);
+    }
+  }, [urlTab]);
 
   const handleSaveProfile = () => {
     toast.success("Profile updated successfully");
@@ -164,7 +174,7 @@ export default function Account() {
         <p className="text-sm text-muted-foreground mt-1">Manage your profile, API keys, and preferences</p>
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-secondary border border-border">
           <TabsTrigger value="profile" className="text-xs data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <User className="w-3.5 h-3.5 mr-1.5" />
