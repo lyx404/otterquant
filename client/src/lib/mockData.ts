@@ -250,35 +250,126 @@ export const currentEpoch = {
   timeRemaining: "1d 14h 32m",
 };
 
-export const previousEpochs = [
-  { id: "EP-2026-031", startDate: "2026-03-12", endDate: "2026-03-15", totalPool: "5,000 USDT", distributed: true, winners: 18 },
-  { id: "EP-2026-030", startDate: "2026-03-09", endDate: "2026-03-12", totalPool: "5,000 USDT", distributed: true, winners: 21 },
-  { id: "EP-2026-029", startDate: "2026-03-06", endDate: "2026-03-09", totalPool: "5,000 USDT", distributed: true, winners: 15 },
+export interface EpochInfo {
+  id: string;
+  startDate: string;
+  endDate: string;
+  totalPool: string;
+  qualifiedFactors: number;
+  totalSubmissions: number;
+  timeRemaining?: string;
+  distributed?: boolean;
+  winners?: number;
+}
+
+export const allEpochs: EpochInfo[] = [
+  { id: "EP-2026-032", startDate: "2026-03-15", endDate: "2026-03-18", totalPool: "5,000 USDT", qualifiedFactors: 23, totalSubmissions: 156, timeRemaining: "1d 14h 32m" },
+  { id: "EP-2026-031", startDate: "2026-03-12", endDate: "2026-03-15", totalPool: "5,000 USDT", qualifiedFactors: 20, totalSubmissions: 142, distributed: true, winners: 18 },
+  { id: "EP-2026-030", startDate: "2026-03-09", endDate: "2026-03-12", totalPool: "5,000 USDT", qualifiedFactors: 25, totalSubmissions: 168, distributed: true, winners: 21 },
+  { id: "EP-2026-029", startDate: "2026-03-06", endDate: "2026-03-09", totalPool: "5,000 USDT", qualifiedFactors: 17, totalSubmissions: 131, distributed: true, winners: 15 },
 ];
 
-export const leaderboardByFactor: LeaderboardEntry[] = [
-  { rank: 1, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", factorId: "AF-004", factorName: "Cross-Exchange Spread", osSharpe: 1.85, osFitness: 1.35, osReturns: "25.8%", compositeScore: 95.2, reward: "1,250 USDT", market: "CEX" },
-  { rank: 2, userId: "U-002", username: "DeepAlpha", avatar: "DA", factorId: "AF-009", factorName: "OI Delta Momentum", osSharpe: 1.55, osFitness: 1.15, osReturns: "22.9%", compositeScore: 88.7, reward: "950 USDT", market: "CEX" },
-  { rank: 3, userId: "U-003", username: "NeuralTrader", avatar: "NT", factorId: "AF-005", factorName: "Funding Rate Mean Rev", osSharpe: 1.42, osFitness: 1.02, osReturns: "21.3%", compositeScore: 82.3, reward: "720 USDT", market: "CEX" },
-  { rank: 4, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", factorId: "AF-001", factorName: "BTC Momentum RSI Cross", osSharpe: 1.15, osFitness: 0.89, osReturns: "18.5%", compositeScore: 75.1, reward: "540 USDT", market: "CEX" },
-  { rank: 5, userId: "U-005", username: "OnChainWiz", avatar: "OW", factorId: "AF-007", factorName: "Whale Wallet Tracker", osSharpe: 1.08, osFitness: 0.81, osReturns: "16.7%", compositeScore: 69.8, reward: "410 USDT", market: "CEX" },
-  { rank: 6, userId: "U-006", username: "DeFi_Miner", avatar: "DM", factorId: "AF-002", factorName: "ETH Volume Divergence", osSharpe: 0.95, osFitness: 0.72, osReturns: "14.2%", compositeScore: 63.5, reward: "320 USDT", market: "CEX" },
-  { rank: 7, userId: "U-007", username: "QuantBot_v3", avatar: "QB", factorId: "AF-010", factorName: "MEV Sandwich Detect", osSharpe: 0.72, osFitness: 0.52, osReturns: "10.8%", compositeScore: 52.1, reward: "250 USDT", market: "DEX" },
-  { rank: 8, userId: "U-008", username: "SatoshiAlpha", avatar: "SA", factorId: "AF-003", factorName: "DeFi TVL Alpha", osSharpe: 0.62, osFitness: 0.45, osReturns: "8.9%", compositeScore: 45.8, reward: "190 USDT", market: "DEX" },
-  { rank: 9, userId: "U-009", username: "BlockResearch", avatar: "BR", factorId: "AF-006", factorName: "Uniswap LP Flow", osSharpe: 0.38, osFitness: 0.22, osReturns: "5.2%", compositeScore: 32.4, reward: "150 USDT", market: "DEX" },
-  { rank: 10, userId: "U-010", username: "ChainAnalyst", avatar: "CA", factorId: "AF-008", factorName: "Gas Fee Sentiment", osSharpe: 0.15, osFitness: 0.08, osReturns: "2.1%", compositeScore: 18.9, reward: "120 USDT", market: "DEX" },
-];
+export const previousEpochs = allEpochs.filter(e => e.distributed);
 
-export const leaderboardByUser = [
-  { rank: 1, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", totalFactors: 12, qualifiedFactors: 8, avgOsSharpe: 1.52, totalReward: "3,850 USDT", topFactor: "Cross-Exchange Spread" },
-  { rank: 2, userId: "U-002", username: "DeepAlpha", avatar: "DA", totalFactors: 9, qualifiedFactors: 6, avgOsSharpe: 1.35, totalReward: "2,920 USDT", topFactor: "OI Delta Momentum" },
-  { rank: 3, userId: "U-003", username: "NeuralTrader", avatar: "NT", totalFactors: 15, qualifiedFactors: 7, avgOsSharpe: 1.18, totalReward: "2,450 USDT", topFactor: "Funding Rate Mean Rev" },
-  { rank: 4, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", totalFactors: 6, qualifiedFactors: 4, avgOsSharpe: 1.05, totalReward: "1,780 USDT", topFactor: "BTC Momentum RSI Cross" },
-  { rank: 5, userId: "U-005", username: "OnChainWiz", avatar: "OW", totalFactors: 8, qualifiedFactors: 5, avgOsSharpe: 0.92, totalReward: "1,350 USDT", topFactor: "Whale Wallet Tracker" },
-  { rank: 6, userId: "U-006", username: "DeFi_Miner", avatar: "DM", totalFactors: 11, qualifiedFactors: 5, avgOsSharpe: 0.85, totalReward: "1,120 USDT", topFactor: "ETH Volume Divergence" },
-  { rank: 7, userId: "U-007", username: "QuantBot_v3", avatar: "QB", totalFactors: 4, qualifiedFactors: 3, avgOsSharpe: 0.68, totalReward: "780 USDT", topFactor: "MEV Sandwich Detect" },
-  { rank: 8, userId: "U-008", username: "SatoshiAlpha", avatar: "SA", totalFactors: 7, qualifiedFactors: 3, avgOsSharpe: 0.55, totalReward: "520 USDT", topFactor: "DeFi TVL Alpha" },
-];
+// Leaderboard data keyed by epoch ID
+export const leaderboardByFactorByEpoch: Record<string, LeaderboardEntry[]> = {
+  "EP-2026-032": [
+    { rank: 1, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", factorId: "AF-004", factorName: "Cross-Exchange Spread", osSharpe: 1.85, osFitness: 1.35, osReturns: "25.8%", compositeScore: 95.2, reward: "1,250 USDT", market: "CEX" },
+    { rank: 2, userId: "U-002", username: "DeepAlpha", avatar: "DA", factorId: "AF-009", factorName: "OI Delta Momentum", osSharpe: 1.55, osFitness: 1.15, osReturns: "22.9%", compositeScore: 88.7, reward: "950 USDT", market: "CEX" },
+    { rank: 3, userId: "U-003", username: "NeuralTrader", avatar: "NT", factorId: "AF-005", factorName: "Funding Rate Mean Rev", osSharpe: 1.42, osFitness: 1.02, osReturns: "21.3%", compositeScore: 82.3, reward: "720 USDT", market: "CEX" },
+    { rank: 4, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", factorId: "AF-001", factorName: "BTC Momentum RSI Cross", osSharpe: 1.15, osFitness: 0.89, osReturns: "18.5%", compositeScore: 75.1, reward: "540 USDT", market: "CEX" },
+    { rank: 5, userId: "U-005", username: "OnChainWiz", avatar: "OW", factorId: "AF-007", factorName: "Whale Wallet Tracker", osSharpe: 1.08, osFitness: 0.81, osReturns: "16.7%", compositeScore: 69.8, reward: "410 USDT", market: "CEX" },
+    { rank: 6, userId: "U-006", username: "DeFi_Miner", avatar: "DM", factorId: "AF-002", factorName: "ETH Volume Divergence", osSharpe: 0.95, osFitness: 0.72, osReturns: "14.2%", compositeScore: 63.5, reward: "320 USDT", market: "CEX" },
+    { rank: 7, userId: "U-007", username: "QuantBot_v3", avatar: "QB", factorId: "AF-010", factorName: "MEV Sandwich Detect", osSharpe: 0.72, osFitness: 0.52, osReturns: "10.8%", compositeScore: 52.1, reward: "250 USDT", market: "DEX" },
+    { rank: 8, userId: "U-008", username: "SatoshiAlpha", avatar: "SA", factorId: "AF-003", factorName: "DeFi TVL Alpha", osSharpe: 0.62, osFitness: 0.45, osReturns: "8.9%", compositeScore: 45.8, reward: "190 USDT", market: "DEX" },
+    { rank: 9, userId: "U-009", username: "BlockResearch", avatar: "BR", factorId: "AF-006", factorName: "Uniswap LP Flow", osSharpe: 0.38, osFitness: 0.22, osReturns: "5.2%", compositeScore: 32.4, reward: "150 USDT", market: "DEX" },
+    { rank: 10, userId: "U-010", username: "ChainAnalyst", avatar: "CA", factorId: "AF-008", factorName: "Gas Fee Sentiment", osSharpe: 0.15, osFitness: 0.08, osReturns: "2.1%", compositeScore: 18.9, reward: "120 USDT", market: "DEX" },
+  ],
+  "EP-2026-031": [
+    { rank: 1, userId: "U-003", username: "NeuralTrader", avatar: "NT", factorId: "AF-005", factorName: "Funding Rate Mean Rev", osSharpe: 1.78, osFitness: 1.42, osReturns: "27.1%", compositeScore: 96.5, reward: "1,250 USDT", market: "CEX" },
+    { rank: 2, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", factorId: "AF-004", factorName: "Cross-Exchange Spread", osSharpe: 1.62, osFitness: 1.28, osReturns: "24.3%", compositeScore: 90.1, reward: "950 USDT", market: "CEX" },
+    { rank: 3, userId: "U-005", username: "OnChainWiz", avatar: "OW", factorId: "AF-007", factorName: "Whale Wallet Tracker", osSharpe: 1.35, osFitness: 0.98, osReturns: "19.8%", compositeScore: 81.4, reward: "720 USDT", market: "CEX" },
+    { rank: 4, userId: "U-002", username: "DeepAlpha", avatar: "DA", factorId: "AF-009", factorName: "OI Delta Momentum", osSharpe: 1.22, osFitness: 0.91, osReturns: "17.6%", compositeScore: 74.8, reward: "540 USDT", market: "CEX" },
+    { rank: 5, userId: "U-006", username: "DeFi_Miner", avatar: "DM", factorId: "AF-002", factorName: "ETH Volume Divergence", osSharpe: 1.05, osFitness: 0.78, osReturns: "15.2%", compositeScore: 68.2, reward: "410 USDT", market: "CEX" },
+    { rank: 6, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", factorId: "AF-001", factorName: "BTC Momentum RSI Cross", osSharpe: 0.88, osFitness: 0.65, osReturns: "12.8%", compositeScore: 58.9, reward: "320 USDT", market: "CEX" },
+    { rank: 7, userId: "U-008", username: "SatoshiAlpha", avatar: "SA", factorId: "AF-003", factorName: "DeFi TVL Alpha", osSharpe: 0.75, osFitness: 0.55, osReturns: "9.5%", compositeScore: 48.3, reward: "250 USDT", market: "DEX" },
+    { rank: 8, userId: "U-007", username: "QuantBot_v3", avatar: "QB", factorId: "AF-010", factorName: "MEV Sandwich Detect", osSharpe: 0.58, osFitness: 0.42, osReturns: "7.8%", compositeScore: 39.7, reward: "190 USDT", market: "DEX" },
+  ],
+  "EP-2026-030": [
+    { rank: 1, userId: "U-002", username: "DeepAlpha", avatar: "DA", factorId: "AF-009", factorName: "OI Delta Momentum", osSharpe: 1.92, osFitness: 1.48, osReturns: "28.5%", compositeScore: 97.8, reward: "1,250 USDT", market: "CEX" },
+    { rank: 2, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", factorId: "AF-004", factorName: "Cross-Exchange Spread", osSharpe: 1.71, osFitness: 1.32, osReturns: "25.1%", compositeScore: 91.3, reward: "950 USDT", market: "CEX" },
+    { rank: 3, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", factorId: "AF-001", factorName: "BTC Momentum RSI Cross", osSharpe: 1.45, osFitness: 1.08, osReturns: "22.0%", compositeScore: 84.6, reward: "720 USDT", market: "CEX" },
+    { rank: 4, userId: "U-003", username: "NeuralTrader", avatar: "NT", factorId: "AF-005", factorName: "Funding Rate Mean Rev", osSharpe: 1.28, osFitness: 0.95, osReturns: "18.9%", compositeScore: 76.2, reward: "540 USDT", market: "CEX" },
+    { rank: 5, userId: "U-007", username: "QuantBot_v3", avatar: "QB", factorId: "AF-010", factorName: "MEV Sandwich Detect", osSharpe: 1.12, osFitness: 0.82, osReturns: "16.1%", compositeScore: 70.5, reward: "410 USDT", market: "DEX" },
+    { rank: 6, userId: "U-005", username: "OnChainWiz", avatar: "OW", factorId: "AF-007", factorName: "Whale Wallet Tracker", osSharpe: 0.98, osFitness: 0.71, osReturns: "13.5%", compositeScore: 62.1, reward: "320 USDT", market: "CEX" },
+    { rank: 7, userId: "U-009", username: "BlockResearch", avatar: "BR", factorId: "AF-006", factorName: "Uniswap LP Flow", osSharpe: 0.82, osFitness: 0.58, osReturns: "10.2%", compositeScore: 51.8, reward: "250 USDT", market: "DEX" },
+    { rank: 8, userId: "U-006", username: "DeFi_Miner", avatar: "DM", factorId: "AF-002", factorName: "ETH Volume Divergence", osSharpe: 0.65, osFitness: 0.48, osReturns: "8.4%", compositeScore: 43.2, reward: "190 USDT", market: "CEX" },
+    { rank: 9, userId: "U-008", username: "SatoshiAlpha", avatar: "SA", factorId: "AF-003", factorName: "DeFi TVL Alpha", osSharpe: 0.45, osFitness: 0.32, osReturns: "5.8%", compositeScore: 34.5, reward: "150 USDT", market: "DEX" },
+  ],
+  "EP-2026-029": [
+    { rank: 1, userId: "U-005", username: "OnChainWiz", avatar: "OW", factorId: "AF-007", factorName: "Whale Wallet Tracker", osSharpe: 1.88, osFitness: 1.40, osReturns: "26.9%", compositeScore: 94.8, reward: "1,250 USDT", market: "CEX" },
+    { rank: 2, userId: "U-003", username: "NeuralTrader", avatar: "NT", factorId: "AF-005", factorName: "Funding Rate Mean Rev", osSharpe: 1.65, osFitness: 1.22, osReturns: "23.5%", compositeScore: 88.2, reward: "950 USDT", market: "CEX" },
+    { rank: 3, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", factorId: "AF-004", factorName: "Cross-Exchange Spread", osSharpe: 1.48, osFitness: 1.05, osReturns: "20.8%", compositeScore: 82.7, reward: "720 USDT", market: "CEX" },
+    { rank: 4, userId: "U-006", username: "DeFi_Miner", avatar: "DM", factorId: "AF-002", factorName: "ETH Volume Divergence", osSharpe: 1.18, osFitness: 0.88, osReturns: "17.2%", compositeScore: 73.5, reward: "540 USDT", market: "CEX" },
+    { rank: 5, userId: "U-002", username: "DeepAlpha", avatar: "DA", factorId: "AF-009", factorName: "OI Delta Momentum", osSharpe: 0.95, osFitness: 0.72, osReturns: "14.1%", compositeScore: 65.8, reward: "410 USDT", market: "CEX" },
+    { rank: 6, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", factorId: "AF-001", factorName: "BTC Momentum RSI Cross", osSharpe: 0.78, osFitness: 0.58, osReturns: "11.5%", compositeScore: 55.2, reward: "320 USDT", market: "CEX" },
+    { rank: 7, userId: "U-010", username: "ChainAnalyst", avatar: "CA", factorId: "AF-008", factorName: "Gas Fee Sentiment", osSharpe: 0.52, osFitness: 0.38, osReturns: "6.8%", compositeScore: 42.1, reward: "250 USDT", market: "DEX" },
+  ],
+};
+
+// Backward-compatible aliases
+export const leaderboardByFactor = leaderboardByFactorByEpoch["EP-2026-032"];
+
+export interface LeaderboardUserEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  avatar: string;
+  totalFactors: number;
+  qualifiedFactors: number;
+  avgOsSharpe: number;
+  totalReward: string;
+  topFactor: string;
+}
+
+export const leaderboardByUserByEpoch: Record<string, LeaderboardUserEntry[]> = {
+  "EP-2026-032": [
+    { rank: 1, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", totalFactors: 12, qualifiedFactors: 8, avgOsSharpe: 1.52, totalReward: "3,850 USDT", topFactor: "Cross-Exchange Spread" },
+    { rank: 2, userId: "U-002", username: "DeepAlpha", avatar: "DA", totalFactors: 9, qualifiedFactors: 6, avgOsSharpe: 1.35, totalReward: "2,920 USDT", topFactor: "OI Delta Momentum" },
+    { rank: 3, userId: "U-003", username: "NeuralTrader", avatar: "NT", totalFactors: 15, qualifiedFactors: 7, avgOsSharpe: 1.18, totalReward: "2,450 USDT", topFactor: "Funding Rate Mean Rev" },
+    { rank: 4, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", totalFactors: 6, qualifiedFactors: 4, avgOsSharpe: 1.05, totalReward: "1,780 USDT", topFactor: "BTC Momentum RSI Cross" },
+    { rank: 5, userId: "U-005", username: "OnChainWiz", avatar: "OW", totalFactors: 8, qualifiedFactors: 5, avgOsSharpe: 0.92, totalReward: "1,350 USDT", topFactor: "Whale Wallet Tracker" },
+    { rank: 6, userId: "U-006", username: "DeFi_Miner", avatar: "DM", totalFactors: 11, qualifiedFactors: 5, avgOsSharpe: 0.85, totalReward: "1,120 USDT", topFactor: "ETH Volume Divergence" },
+    { rank: 7, userId: "U-007", username: "QuantBot_v3", avatar: "QB", totalFactors: 4, qualifiedFactors: 3, avgOsSharpe: 0.68, totalReward: "780 USDT", topFactor: "MEV Sandwich Detect" },
+    { rank: 8, userId: "U-008", username: "SatoshiAlpha", avatar: "SA", totalFactors: 7, qualifiedFactors: 3, avgOsSharpe: 0.55, totalReward: "520 USDT", topFactor: "DeFi TVL Alpha" },
+  ],
+  "EP-2026-031": [
+    { rank: 1, userId: "U-003", username: "NeuralTrader", avatar: "NT", totalFactors: 14, qualifiedFactors: 7, avgOsSharpe: 1.48, totalReward: "3,620 USDT", topFactor: "Funding Rate Mean Rev" },
+    { rank: 2, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", totalFactors: 11, qualifiedFactors: 7, avgOsSharpe: 1.38, totalReward: "3,150 USDT", topFactor: "Cross-Exchange Spread" },
+    { rank: 3, userId: "U-005", username: "OnChainWiz", avatar: "OW", totalFactors: 7, qualifiedFactors: 5, avgOsSharpe: 1.12, totalReward: "2,080 USDT", topFactor: "Whale Wallet Tracker" },
+    { rank: 4, userId: "U-002", username: "DeepAlpha", avatar: "DA", totalFactors: 8, qualifiedFactors: 5, avgOsSharpe: 1.02, totalReward: "1,850 USDT", topFactor: "OI Delta Momentum" },
+    { rank: 5, userId: "U-006", username: "DeFi_Miner", avatar: "DM", totalFactors: 10, qualifiedFactors: 4, avgOsSharpe: 0.88, totalReward: "1,280 USDT", topFactor: "ETH Volume Divergence" },
+    { rank: 6, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", totalFactors: 5, qualifiedFactors: 3, avgOsSharpe: 0.72, totalReward: "920 USDT", topFactor: "BTC Momentum RSI Cross" },
+  ],
+  "EP-2026-030": [
+    { rank: 1, userId: "U-002", username: "DeepAlpha", avatar: "DA", totalFactors: 9, qualifiedFactors: 7, avgOsSharpe: 1.58, totalReward: "4,120 USDT", topFactor: "OI Delta Momentum" },
+    { rank: 2, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", totalFactors: 10, qualifiedFactors: 7, avgOsSharpe: 1.42, totalReward: "3,480 USDT", topFactor: "Cross-Exchange Spread" },
+    { rank: 3, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", totalFactors: 6, qualifiedFactors: 5, avgOsSharpe: 1.25, totalReward: "2,650 USDT", topFactor: "BTC Momentum RSI Cross" },
+    { rank: 4, userId: "U-003", username: "NeuralTrader", avatar: "NT", totalFactors: 13, qualifiedFactors: 6, avgOsSharpe: 1.08, totalReward: "2,180 USDT", topFactor: "Funding Rate Mean Rev" },
+    { rank: 5, userId: "U-007", username: "QuantBot_v3", avatar: "QB", totalFactors: 4, qualifiedFactors: 3, avgOsSharpe: 0.92, totalReward: "1,450 USDT", topFactor: "MEV Sandwich Detect" },
+    { rank: 6, userId: "U-005", username: "OnChainWiz", avatar: "OW", totalFactors: 7, qualifiedFactors: 4, avgOsSharpe: 0.78, totalReward: "1,080 USDT", topFactor: "Whale Wallet Tracker" },
+    { rank: 7, userId: "U-009", username: "BlockResearch", avatar: "BR", totalFactors: 5, qualifiedFactors: 3, avgOsSharpe: 0.65, totalReward: "780 USDT", topFactor: "Uniswap LP Flow" },
+  ],
+  "EP-2026-029": [
+    { rank: 1, userId: "U-005", username: "OnChainWiz", avatar: "OW", totalFactors: 7, qualifiedFactors: 6, avgOsSharpe: 1.55, totalReward: "3,920 USDT", topFactor: "Whale Wallet Tracker" },
+    { rank: 2, userId: "U-003", username: "NeuralTrader", avatar: "NT", totalFactors: 12, qualifiedFactors: 6, avgOsSharpe: 1.32, totalReward: "3,050 USDT", topFactor: "Funding Rate Mean Rev" },
+    { rank: 3, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", totalFactors: 10, qualifiedFactors: 6, avgOsSharpe: 1.18, totalReward: "2,520 USDT", topFactor: "Cross-Exchange Spread" },
+    { rank: 4, userId: "U-006", username: "DeFi_Miner", avatar: "DM", totalFactors: 9, qualifiedFactors: 4, avgOsSharpe: 0.95, totalReward: "1,680 USDT", topFactor: "ETH Volume Divergence" },
+    { rank: 5, userId: "U-002", username: "DeepAlpha", avatar: "DA", totalFactors: 7, qualifiedFactors: 4, avgOsSharpe: 0.78, totalReward: "1,250 USDT", topFactor: "OI Delta Momentum" },
+  ],
+};
+
+export const leaderboardByUser: LeaderboardUserEntry[] = leaderboardByUserByEpoch["EP-2026-032"];
 
 // --- Exchange Connections ---
 export interface Exchange {
