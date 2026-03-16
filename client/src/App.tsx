@@ -4,35 +4,40 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-
+import AppLayout from "./components/AppLayout";
+import Dashboard from "./pages/Dashboard";
+import MyAlphas from "./pages/MyAlphas";
+import AlphaDetail from "./pages/AlphaDetail";
+import StrategyMarket from "./pages/StrategyMarket";
+import Leaderboard from "./pages/Leaderboard";
+import AutoTrading from "./pages/AutoTrading";
+import Subscription from "./pages/Subscription";
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
+      <Route path="/" component={Dashboard} />
+      <Route path="/alphas" component={MyAlphas} />
+      <Route path="/alphas/:id" component={AlphaDetail} />
+      <Route path="/strategies" component={StrategyMarket} />
+      <Route path="/leaderboard" component={Leaderboard} />
+      <Route path="/trading" component={AutoTrading} />
+      <Route path="/subscription" component={Subscription} />
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <AppLayout>
+            <Router />
+          </AppLayout>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
