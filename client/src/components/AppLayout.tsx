@@ -1,10 +1,10 @@
 /*
  * AppLayout — Acid Green Design System
  * #0B0B0B bg, #C5FF4A accent, white/10 borders, white/50 secondary text
- * Horizontal top nav, Inter font, tracking-[0.2em] uppercase labels
+ * Horizontal top nav with scroll-direction hide/show behavior
  */
 import { Link, useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   LayoutDashboard,
   FlaskConical,
@@ -25,6 +25,41 @@ const navItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  useEffect(() => {
+    const THRESHOLD = 8; // minimum scroll delta to trigger hide/show
+
+    const handleScroll = () => {
+      if (ticking.current) return;
+      ticking.current = true;
+
+      requestAnimationFrame(() => {
+        const currentY = window.scrollY;
+        const delta = currentY - lastScrollY.current;
+
+        // Always show header when near top of page
+        if (currentY < 60) {
+          setHeaderVisible(true);
+        } else if (delta > THRESHOLD) {
+          // Scrolling down → hide
+          setHeaderVisible(false);
+          setMobileMenuOpen(false);
+        } else if (delta < -THRESHOLD) {
+          // Scrolling up → show
+          setHeaderVisible(true);
+        }
+
+        lastScrollY.current = currentY;
+        ticking.current = false;
+      });
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
@@ -33,12 +68,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#0B0B0B" }}>
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar — hides on scroll down, shows on scroll up */}
       <header
         className="sticky top-0 z-50 backdrop-blur-xl"
         style={{
           backgroundColor: "rgba(11, 11, 11, 0.85)",
           borderBottom: "1px solid rgba(255, 255, 255, 0.10)",
+          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+          transition: "transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+          willChange: "transform",
         }}
       >
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">

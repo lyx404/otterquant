@@ -36,6 +36,7 @@ import {
   XCircle,
   Loader2,
   BarChart3,
+  X,
 } from "lucide-react";
 import {
   factors,
@@ -370,153 +371,210 @@ export default function MyAlphas() {
 
       {/* Data Table */}
       <div className="katana-card overflow-hidden">
-        {/* Column selector + header row */}
-        <div style={{ borderBottom: "1px solid rgba(255,255,255,0.10)", backgroundColor: "rgba(255,255,255,0.02)" }}>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
-                  <th className="px-2 py-2.5 w-[40px]">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="flex items-center gap-1 text-xs transition-colors whitespace-nowrap" style={{ color: "#C5FF4A" }}>
-                          <Settings2 className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Columns</span>
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-56" align="start" style={{ backgroundColor: "#151515", border: "1px solid rgba(255,255,255,0.10)" }}>
-                        <div className="space-y-1">
-                          <p className="text-xs font-medium mb-2" style={{ color: "rgba(255,255,255,0.50)" }}>Toggle Columns</p>
-                          {allColumns.map((col) => (
-                            <label key={col.key} className="flex items-center gap-2 py-1 px-1 rounded cursor-pointer" style={{ cursor: "pointer" }}>
-                              <Checkbox
-                                checked={visibleColumns.has(col.key)}
-                                onCheckedChange={() => toggleColumn(col.key)}
-                                className="h-3.5 w-3.5"
-                              />
-                              <span className="text-xs text-white">{col.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </th>
-                  <th className="w-[28px]" />
-                  {visibleCols.map((col) => (
-                    <th
-                      key={col.key}
-                      className={`px-3 py-2.5 text-left ${col.sortable ? "cursor-pointer" : ""}`}
-                      style={{ minWidth: col.width }}
-                      onClick={() => col.sortable && handleSort(col.key)}
-                      onMouseEnter={(e) => { if (col.sortable) e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-                    >
-                      <span className="flex items-center gap-1 label-upper whitespace-nowrap select-none">
-                        {col.label}
-                        {col.sortable && <SortIcon colKey={col.key} />}
-                      </span>
-                    </th>
-                  ))}
-                  <th className="w-[36px]" />
-                </tr>
-              </thead>
-            </table>
+        {/* Toolbar — search, filters, column toggle */}
+        <div
+          className="flex flex-wrap items-center gap-2 px-4 py-3"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.10)", backgroundColor: "rgba(255,255,255,0.02)" }}
+        >
+          {/* Search */}
+          <div className="relative flex-1 min-w-[180px] max-w-[280px]">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.30)" }} />
+            <Input
+              placeholder="Search by name or ID..."
+              value={filterName}
+              onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
+              className="h-8 text-xs pl-8"
+              style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+            />
           </div>
 
-          {/* Filter row */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <tbody>
-                <tr style={{ backgroundColor: "rgba(255,255,255,0.015)" }}>
-                  <td className="px-2 py-1.5 w-[40px]" />
-                  <td className="w-[28px]" />
-                  {visibleCols.map((col) => (
-                    <td key={col.key} className="px-2 py-1.5" style={{ minWidth: col.width }}>
-                      {col.key === "name" || col.key === "id" ? (
-                        <div className="relative">
-                          <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3 h-3" style={{ color: "rgba(255,255,255,0.30)" }} />
-                          <Input
-                            placeholder="Search"
-                            value={filterName}
-                            onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
-                            className="h-7 text-xs pl-6"
-                            style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
-                          />
-                        </div>
-                      ) : col.key === "market" ? (
-                        <Select value={filterMarket} onValueChange={(v) => { setFilterMarket(v); setPage(1); }}>
-                          <SelectTrigger className="h-7 text-xs" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}>
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="CEX">CEX</SelectItem>
-                            <SelectItem value="DEX">DEX</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : col.key === "submissionStatus" ? (
-                        <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
-                          <SelectTrigger className="h-7 text-xs" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}>
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="unsubmitted">Unsubmitted</SelectItem>
-                            <SelectItem value="queued">Queued</SelectItem>
-                            <SelectItem value="backtesting">Backtesting</SelectItem>
-                            <SelectItem value="is_testing">IS Testing</SelectItem>
-                            <SelectItem value="os_testing">OS Testing</SelectItem>
-                            <SelectItem value="passed">Passed</SelectItem>
-                            <SelectItem value="failed">Failed</SelectItem>
-                            <SelectItem value="rejected">Rejected</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : col.key === "type" ? (
-                        <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
-                          <SelectTrigger className="h-7 text-xs" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}>
-                            <SelectValue placeholder="Select" />
-                          </SelectTrigger>
-                          <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
-                            <SelectItem value="all">All</SelectItem>
-                            <SelectItem value="active">Regular</SelectItem>
-                            <SelectItem value="testing">Testing</SelectItem>
-                            <SelectItem value="archived">Archived</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (col.key === "osSharpe" || col.key === "sharpe" || col.key === "fitness") ? (
-                        <Input
-                          placeholder="e.g > 1"
-                          value={col.key === "osSharpe" ? filterSharpeMin : ""}
-                          onChange={(e) => { if (col.key === "osSharpe") { setFilterSharpeMin(e.target.value); setPage(1); } }}
-                          className="h-7 text-xs font-mono"
-                          style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
-                        />
-                      ) : col.key === "returns" ? (
-                        <Input
-                          placeholder="e.g > 1"
-                          value={filterReturnsMin}
-                          onChange={(e) => { setFilterReturnsMin(e.target.value); setPage(1); }}
-                          className="h-7 text-xs font-mono"
-                          style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
-                        />
-                      ) : col.key === "turnover" ? (
-                        <Input
-                          placeholder="e.g > 1"
-                          value={filterTurnoverMin}
-                          onChange={(e) => { setFilterTurnoverMin(e.target.value); setPage(1); }}
-                          className="h-7 text-xs font-mono"
-                          style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
-                        />
-                      ) : (
-                        <div className="h-7" />
-                      )}
-                    </td>
-                  ))}
-                  <td className="w-[36px]" />
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {/* Filter pills */}
+          <Select value={filterMarket} onValueChange={(v) => { setFilterMarket(v); setPage(1); }}>
+            <SelectTrigger className="h-8 w-auto min-w-[80px] text-xs gap-1" style={{ backgroundColor: filterMarket !== "all" ? "rgba(197,255,74,0.08)" : "rgba(255,255,255,0.05)", borderColor: filterMarket !== "all" ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)", color: filterMarket !== "all" ? "#C5FF4A" : "rgba(255,255,255,0.60)" }}>
+              <SelectValue placeholder="Market" />
+            </SelectTrigger>
+            <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
+              <SelectItem value="all">All Markets</SelectItem>
+              <SelectItem value="CEX">CEX</SelectItem>
+              <SelectItem value="DEX">DEX</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
+            <SelectTrigger className="h-8 w-auto min-w-[100px] text-xs gap-1" style={{ backgroundColor: filterStatus !== "all" ? "rgba(197,255,74,0.08)" : "rgba(255,255,255,0.05)", borderColor: filterStatus !== "all" ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)", color: filterStatus !== "all" ? "#C5FF4A" : "rgba(255,255,255,0.60)" }}>
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="unsubmitted">Unsubmitted</SelectItem>
+              <SelectItem value="queued">Queued</SelectItem>
+              <SelectItem value="backtesting">Backtesting</SelectItem>
+              <SelectItem value="is_testing">IS Testing</SelectItem>
+              <SelectItem value="os_testing">OS Testing</SelectItem>
+              <SelectItem value="passed">Passed</SelectItem>
+              <SelectItem value="failed">Failed</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
+            <SelectTrigger className="h-8 w-auto min-w-[80px] text-xs gap-1" style={{ backgroundColor: filterType !== "all" ? "rgba(197,255,74,0.08)" : "rgba(255,255,255,0.05)", borderColor: filterType !== "all" ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)", color: filterType !== "all" ? "#C5FF4A" : "rgba(255,255,255,0.60)" }}>
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="active">Regular</SelectItem>
+              <SelectItem value="testing">Testing</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Numeric filter popover */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs transition-colors"
+                style={{
+                  backgroundColor: (filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? "rgba(197,255,74,0.08)" : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${(filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)"}`,
+                  color: (filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? "#C5FF4A" : "rgba(255,255,255,0.60)",
+                }}
+              >
+                <BarChart3 className="w-3 h-3" />
+                Metrics
+                {(filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#C5FF4A" }} />
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-60" align="start" style={{ backgroundColor: "#151515", border: "1px solid rgba(255,255,255,0.10)" }}>
+              <div className="space-y-3">
+                <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.50)" }}>Minimum Thresholds</p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: "rgba(255,255,255,0.40)" }}>OS Sharpe</label>
+                    <Input
+                      placeholder="e.g. 1.0"
+                      value={filterSharpeMin}
+                      onChange={(e) => { setFilterSharpeMin(e.target.value); setPage(1); }}
+                      className="h-7 text-xs font-mono"
+                      style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: "rgba(255,255,255,0.40)" }}>Returns</label>
+                    <Input
+                      placeholder="e.g. 5.0"
+                      value={filterReturnsMin}
+                      onChange={(e) => { setFilterReturnsMin(e.target.value); setPage(1); }}
+                      className="h-7 text-xs font-mono"
+                      style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: "rgba(255,255,255,0.40)" }}>Turnover</label>
+                    <Input
+                      placeholder="e.g. 30"
+                      value={filterTurnoverMin}
+                      onChange={(e) => { setFilterTurnoverMin(e.target.value); setPage(1); }}
+                      className="h-7 text-xs font-mono"
+                      style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+                    />
+                  </div>
+                </div>
+                {(filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
+                  <button
+                    className="text-[10px] uppercase tracking-[0.15em] transition-colors"
+                    style={{ color: "rgba(255,255,255,0.40)" }}
+                    onClick={() => { setFilterSharpeMin(""); setFilterReturnsMin(""); setFilterTurnoverMin(""); setPage(1); }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = "#C5FF4A"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.40)"; }}
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Active filter count + clear */}
+          {(filterName || filterMarket !== "all" || filterStatus !== "all" || filterType !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
+            <button
+              className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs transition-colors"
+              style={{ backgroundColor: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.20)", color: "rgb(248,113,113)" }}
+              onClick={() => {
+                setFilterName(""); setFilterMarket("all"); setFilterStatus("all"); setFilterType("all");
+                setFilterSharpeMin(""); setFilterReturnsMin(""); setFilterTurnoverMin(""); setPage(1);
+              }}
+            >
+              <X className="w-3 h-3" />
+              Clear filters
+            </button>
+          )}
+
+          {/* Column toggle */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs transition-colors"
+                style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.60)" }}
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+                Columns
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56" align="end" style={{ backgroundColor: "#151515", border: "1px solid rgba(255,255,255,0.10)" }}>
+              <div className="space-y-1">
+                <p className="text-xs font-medium mb-2" style={{ color: "rgba(255,255,255,0.50)" }}>Toggle Columns</p>
+                {allColumns.map((col) => (
+                  <label key={col.key} className="flex items-center gap-2 py-1 px-1 rounded cursor-pointer">
+                    <Checkbox
+                      checked={visibleColumns.has(col.key)}
+                      onCheckedChange={() => toggleColumn(col.key)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="text-xs text-white">{col.label}</span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {/* Table header row with inline sort */}
+        <div className="overflow-x-auto" style={{ borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
+          <table className="w-full">
+            <thead>
+              <tr style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
+                <th className="px-2 py-2.5 w-[40px]">
+                  <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.20)" }}>#</span>
+                </th>
+                <th className="w-[28px]" />
+                {visibleCols.map((col) => (
+                  <th
+                    key={col.key}
+                    className={`px-3 py-2.5 text-left transition-colors ${col.sortable ? "cursor-pointer" : ""}`}
+                    style={{
+                      minWidth: col.width,
+                      backgroundColor: sortKey === col.key ? "rgba(197,255,74,0.04)" : "transparent",
+                    }}
+                    onClick={() => col.sortable && handleSort(col.key)}
+                    onMouseEnter={(e) => { if (col.sortable) e.currentTarget.style.backgroundColor = sortKey === col.key ? "rgba(197,255,74,0.06)" : "rgba(255,255,255,0.04)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = sortKey === col.key ? "rgba(197,255,74,0.04)" : "transparent"; }}
+                  >
+                    <span className="flex items-center gap-1.5 label-upper whitespace-nowrap select-none">
+                      {col.label}
+                      {col.sortable && <SortIcon colKey={col.key} />}
+                    </span>
+                  </th>
+                ))}
+                <th className="w-[36px]" />
+              </tr>
+            </thead>
+          </table>
         </div>
 
         {/* Data rows */}
