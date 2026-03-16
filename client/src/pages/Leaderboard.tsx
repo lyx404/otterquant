@@ -163,7 +163,7 @@ export default function Leaderboard() {
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Award className="w-3.5 h-3.5" /> Prize Pool
           </div>
-          <div className="stat-value text-xl font-bold glow-acid" style={{ color: "#C5FF4A" }}>{selectedEpoch.totalPool}</div>
+          <div className="stat-value text-xl font-bold" style={{ color: "#C5FF4A" }}>{selectedEpoch.totalPool}</div>
           <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>
             {isCurrent ? "distributed proportionally" : "fully distributed"}
           </div>
