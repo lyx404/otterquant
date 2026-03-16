@@ -333,3 +333,175 @@ export const correlationData = {
   selfCorrelation: { maximum: 0.85, minimum: -0.12 },
   lastRun: "2026-03-15 14:30 UTC",
 };
+
+// --- Submission Status Management ---
+export type SubmissionStatus = "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
+
+export interface Submission {
+  id: string;
+  factorId: string;
+  factorName: string;
+  expression: string;
+  market: "CEX" | "DEX";
+  submittedAt: string;
+  status: SubmissionStatus;
+  currentStep: number; // 0-5 pipeline step
+  totalSteps: number;
+  progress: number; // 0-100
+  estimatedTime?: string;
+  // Results (populated as pipeline progresses)
+  isSharpe?: number;
+  osSharpe?: number;
+  fitness?: number;
+  returns?: string;
+  turnover?: string;
+  drawdown?: string;
+  // Testing details
+  testsPassed?: number;
+  testsFailed?: number;
+  testsPending?: number;
+  failReasons?: string[];
+  // Epoch info
+  epochId?: string;
+  epochQualified?: boolean;
+}
+
+export const submissionPipeline = [
+  { step: 0, label: "Queued", description: "Waiting in submission queue" },
+  { step: 1, label: "Data Validation", description: "Validating expression syntax and data availability" },
+  { step: 2, label: "Backtesting", description: "Running historical backtest simulation" },
+  { step: 3, label: "IS Testing", description: "In-Sample statistical tests and quality checks" },
+  { step: 4, label: "OS Testing", description: "Out-of-Sample performance evaluation" },
+  { step: 5, label: "Complete", description: "All tests completed, results available" },
+];
+
+export const submissions: Submission[] = [
+  {
+    id: "SUB-001", factorId: "AF-004", factorName: "Cross-Exchange Spread",
+    expression: "rank(spread_binance_okx) * ts_decay(volume_imbalance, 5)",
+    market: "CEX", submittedAt: "2026-03-15 09:32:15", status: "passed",
+    currentStep: 5, totalSteps: 5, progress: 100,
+    isSharpe: 2.15, osSharpe: 1.85, fitness: 1.35, returns: "25.8%", turnover: "31.5%", drawdown: "4.2%",
+    testsPassed: 6, testsFailed: 0, testsPending: 0,
+    epochId: "EP-2026-032", epochQualified: true,
+  },
+  {
+    id: "SUB-002", factorId: "AF-009", factorName: "OI Delta Momentum",
+    expression: "ts_delta(open_interest, 4) / ts_std(open_interest, 20) * sign(return_1h)",
+    market: "CEX", submittedAt: "2026-03-15 10:15:42", status: "passed",
+    currentStep: 5, totalSteps: 5, progress: 100,
+    isSharpe: 1.78, osSharpe: 1.55, fitness: 1.15, returns: "22.9%", turnover: "33.2%", drawdown: "5.8%",
+    testsPassed: 6, testsFailed: 0, testsPending: 0,
+    epochId: "EP-2026-032", epochQualified: true,
+  },
+  {
+    id: "SUB-003", factorId: "AF-005", factorName: "Funding Rate Mean Rev",
+    expression: "ts_zscore(funding_rate, 168) * -1 * rank(open_interest_change)",
+    market: "CEX", submittedAt: "2026-03-15 11:08:33", status: "passed",
+    currentStep: 5, totalSteps: 5, progress: 100,
+    isSharpe: 1.65, osSharpe: 1.42, fitness: 1.02, returns: "21.3%", turnover: "28.7%", drawdown: "7.5%",
+    testsPassed: 5, testsFailed: 1, testsPending: 0,
+    epochId: "EP-2026-032", epochQualified: true,
+  },
+  {
+    id: "SUB-004", factorId: "AF-001", factorName: "BTC Momentum RSI Cross",
+    expression: "ts_rank(close/delay(close,14), 252) * ts_std(volume, 20)",
+    market: "CEX", submittedAt: "2026-03-15 12:45:10", status: "passed",
+    currentStep: 5, totalSteps: 5, progress: 100,
+    isSharpe: 1.42, osSharpe: 1.15, fitness: 0.89, returns: "18.5%", turnover: "38.2%", drawdown: "6.8%",
+    testsPassed: 5, testsFailed: 1, testsPending: 0,
+    epochId: "EP-2026-032", epochQualified: true,
+  },
+  {
+    id: "SUB-005", factorId: "AF-003", factorName: "DeFi TVL Alpha",
+    expression: "ts_regression(tvl_change, price_return, 30, 'residual')",
+    market: "DEX", submittedAt: "2026-03-15 14:22:08", status: "os_testing",
+    currentStep: 4, totalSteps: 5, progress: 78,
+    estimatedTime: "~12 min",
+    isSharpe: 0.87, fitness: 0.45, returns: "8.9%", turnover: "55.3%", drawdown: "15.2%",
+    testsPassed: 3, testsFailed: 3, testsPending: 1,
+  },
+  {
+    id: "SUB-006", factorId: "AF-010", factorName: "MEV Sandwich Detect",
+    expression: "rank(sandwich_attack_freq) * ts_decay(price_impact, 10) * -1",
+    market: "DEX", submittedAt: "2026-03-15 15:10:55", status: "is_testing",
+    currentStep: 3, totalSteps: 5, progress: 55,
+    estimatedTime: "~25 min",
+    isSharpe: 0.95,
+    testsPassed: 3, testsFailed: 2, testsPending: 2,
+  },
+  {
+    id: "SUB-007", factorId: "AF-011", factorName: "Liquidation Cascade",
+    expression: "ts_rank(liquidation_volume, 24) * rank(oi_change) * sign(funding_rate)",
+    market: "CEX", submittedAt: "2026-03-15 16:30:22", status: "backtesting",
+    currentStep: 2, totalSteps: 5, progress: 35,
+    estimatedTime: "~40 min",
+  },
+  {
+    id: "SUB-008", factorId: "AF-012", factorName: "NFT Floor Price Signal",
+    expression: "ts_corr(nft_floor_price_change, eth_return, 14) * rank(nft_volume)",
+    market: "DEX", submittedAt: "2026-03-15 17:05:48", status: "queued",
+    currentStep: 0, totalSteps: 5, progress: 0,
+    estimatedTime: "~55 min",
+  },
+  {
+    id: "SUB-009", factorId: "AF-006", factorName: "Uniswap LP Flow",
+    expression: "rank(net_lp_flow_7d) * ts_rank(pool_volume, 30)",
+    market: "DEX", submittedAt: "2026-03-14 08:12:33", status: "failed",
+    currentStep: 5, totalSteps: 5, progress: 100,
+    isSharpe: 0.55, osSharpe: 0.38, fitness: 0.22, returns: "5.2%", turnover: "62.8%", drawdown: "18.5%",
+    testsPassed: 2, testsFailed: 4, testsPending: 0,
+    failReasons: [
+      "IS Sharpe of 0.55 is below cutoff of 1.25",
+      "Fitness of 0.22 is below cutoff of 1.0",
+      "Max drawdown of 18.5% exceeds cutoff of 15%",
+      "Turnover of 62.8% exceeds optimal range (20%-55%)",
+    ],
+  },
+  {
+    id: "SUB-010", factorId: "AF-008", factorName: "Gas Fee Sentiment",
+    expression: "ts_corr(gas_price_gwei, eth_return, 24) * rank(tx_count)",
+    market: "DEX", submittedAt: "2026-03-13 11:45:20", status: "rejected",
+    currentStep: 1, totalSteps: 5, progress: 100,
+    failReasons: [
+      "Expression contains unsupported function: gas_price_gwei (data source deprecated)",
+      "Insufficient historical data coverage (< 2 years required)",
+    ],
+  },
+  {
+    id: "SUB-011", factorId: "AF-013", factorName: "Stablecoin Flow Indicator",
+    expression: "ts_delta(usdt_supply, 7) / ts_std(usdt_supply, 30) * rank(btc_volume)",
+    market: "CEX", submittedAt: "2026-03-14 14:30:00", status: "failed",
+    currentStep: 5, totalSteps: 5, progress: 100,
+    isSharpe: 0.32, osSharpe: -0.15, fitness: 0.05, returns: "-2.1%", turnover: "48.5%", drawdown: "25.3%",
+    testsPassed: 1, testsFailed: 5, testsPending: 0,
+    failReasons: [
+      "OS Sharpe of -0.15 is negative (minimum: 0)",
+      "IS Sharpe of 0.32 is below cutoff of 1.25",
+      "Fitness of 0.05 is below cutoff of 1.0",
+      "Max drawdown of 25.3% exceeds cutoff of 15%",
+      "Negative OS returns indicate overfitting",
+    ],
+  },
+  {
+    id: "SUB-012", factorId: "AF-002", factorName: "ETH Volume Divergence",
+    expression: "rank(ts_corr(close, volume, 10)) - rank(ts_delta(close, 5))",
+    market: "CEX", submittedAt: "2026-03-14 16:20:45", status: "passed",
+    currentStep: 5, totalSteps: 5, progress: 100,
+    isSharpe: 1.18, osSharpe: 0.95, fitness: 0.72, returns: "14.2%", turnover: "42.1%", drawdown: "9.3%",
+    testsPassed: 4, testsFailed: 2, testsPending: 0,
+    epochId: "EP-2026-032", epochQualified: true,
+  },
+];
+
+// Submission stats
+export const submissionStats = {
+  total: 12,
+  passed: 5,
+  failed: 2,
+  rejected: 1,
+  inProgress: 4,
+  avgProcessingTime: "45 min",
+  passRate: "41.7%",
+  currentQueueSize: 3,
+};

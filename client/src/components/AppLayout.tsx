@@ -15,11 +15,13 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  GitPullRequest,
 } from "lucide-react";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/alphas", label: "My Alphas", icon: FlaskConical },
+  { path: "/submissions", label: "Submissions", icon: GitPullRequest },
   { path: "/strategies", label: "Strategies", icon: Store },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { path: "/trading", label: "Auto Trading", icon: Bot },

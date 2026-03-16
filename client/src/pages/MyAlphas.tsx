@@ -1,10 +1,19 @@
 /*
- * MyAlphas - Factor list with sortable table
- * Terminal Noir: data-dense table, mono numbers, status badges
+ * MyAlphas - WorldQuant-style Alpha overview table
+ * Terminal Noir: dense data table with column filters, sortable headers,
+ * status badges (UNSUBMITTED/SUBMITTED/PASSED/FAILED), pagination
+ * Reference: WorldQuant BRAIN alpha list with Select Columns, filter row
  */
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -13,194 +22,545 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Link } from "wouter";
-import { useState } from "react";
 import {
-  FlaskConical,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Link } from "wouter";
+import { useState, useMemo } from "react";
+import {
   ArrowUpDown,
   ArrowUpRight,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Filter,
+  ArrowUp,
+  ArrowDown,
+  Settings2,
+  Star,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  SlidersHorizontal,
 } from "lucide-react";
-import { factors, type Factor } from "@/lib/mockData";
+import { factors, submissions, type Factor } from "@/lib/mockData";
 import { motion } from "framer-motion";
 
-type SortKey = "osSharpe" | "sharpe" | "fitness" | "createdAt";
+// Merge factor data with submission status
+type AlphaRow = Factor & {
+  submissionStatus: "unsubmitted" | "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
+  submittedAt?: string;
+  osFitness?: number;
+  compositeScore?: number;
+};
+
+// Column definition
+interface ColumnDef {
+  key: string;
+  label: string;
+  defaultVisible: boolean;
+  sortable: boolean;
+  width?: string;
+}
+
+const allColumns: ColumnDef[] = [
+  { key: "id", label: "ID", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
+  { key: "market", label: "Market", defaultVisible: true, sortable: true, width: "80px" },
+  { key: "type", label: "Type", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "submissionStatus", label: "Status", defaultVisible: true, sortable: true, width: "130px" },
+  { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "130px" },
+  { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "100px" },
+  { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "100px" },
+  { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "returns", label: "Returns", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "turnover", label: "Turnover", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "drawdown", label: "Drawdown", defaultVisible: false, sortable: true, width: "100px" },
+  { key: "testsPassed", label: "Tests", defaultVisible: true, sortable: true, width: "80px" },
+  { key: "submittedAt", label: "Date Submitted", defaultVisible: false, sortable: true, width: "140px" },
+];
+
+type SortKey = string;
+type SortDir = "asc" | "desc" | null;
 
 export default function MyAlphas() {
-  const [sortKey, setSortKey] = useState<SortKey>("osSharpe");
-  const [sortAsc, setSortAsc] = useState(false);
-  const [filterMarket, setFilterMarket] = useState<"all" | "CEX" | "DEX">("all");
-  const [filterStatus, setFilterStatus] = useState<"all" | "active" | "testing" | "archived">("all");
+  const [sortKey, setSortKey] = useState<SortKey>("createdAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
+    () => new Set(allColumns.filter((c) => c.defaultVisible).map((c) => c.key))
+  );
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const handleSort = (key: SortKey) => {
+  // Filters
+  const [filterName, setFilterName] = useState("");
+  const [filterMarket, setFilterMarket] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [filterSharpeMin, setFilterSharpeMin] = useState("");
+  const [filterReturnsMin, setFilterReturnsMin] = useState("");
+  const [filterTurnoverMin, setFilterTurnoverMin] = useState("");
+
+  // Starred alphas
+  const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
+
+  // Build merged data
+  const alphaRows: AlphaRow[] = useMemo(() => {
+    return factors.map((f) => {
+      const sub = submissions.find((s) => s.factorId === f.id);
+      return {
+        ...f,
+        submissionStatus: sub ? sub.status as AlphaRow["submissionStatus"] : "unsubmitted",
+        submittedAt: sub?.submittedAt,
+        osFitness: sub?.fitness,
+        compositeScore: sub?.osSharpe ? sub.osSharpe * 40 + (sub.fitness || 0) * 30 : undefined,
+      };
+    });
+  }, []);
+
+  // Filter
+  const filtered = useMemo(() => {
+    return alphaRows.filter((r) => {
+      if (filterName && !r.name.toLowerCase().includes(filterName.toLowerCase()) && !r.id.toLowerCase().includes(filterName.toLowerCase())) return false;
+      if (filterMarket !== "all" && r.market !== filterMarket) return false;
+      if (filterStatus !== "all" && r.submissionStatus !== filterStatus) return false;
+      if (filterType !== "all" && r.status !== filterType) return false;
+      if (filterSharpeMin && r.osSharpe < parseFloat(filterSharpeMin)) return false;
+      if (filterReturnsMin) {
+        const rv = parseFloat(r.returns);
+        if (!isNaN(rv) && rv < parseFloat(filterReturnsMin)) return false;
+      }
+      if (filterTurnoverMin) {
+        const tv = parseFloat(r.turnover);
+        if (!isNaN(tv) && tv < parseFloat(filterTurnoverMin)) return false;
+      }
+      return true;
+    });
+  }, [alphaRows, filterName, filterMarket, filterStatus, filterType, filterSharpeMin, filterReturnsMin, filterTurnoverMin]);
+
+  // Sort
+  const sorted = useMemo(() => {
+    if (!sortDir || !sortKey) return filtered;
+    return [...filtered].sort((a, b) => {
+      let av: any, bv: any;
+      if (sortKey === "createdAt" || sortKey === "submittedAt") {
+        av = a[sortKey as keyof AlphaRow] ? new Date(a[sortKey as keyof AlphaRow] as string).getTime() : 0;
+        bv = b[sortKey as keyof AlphaRow] ? new Date(b[sortKey as keyof AlphaRow] as string).getTime() : 0;
+      } else if (sortKey === "returns" || sortKey === "turnover" || sortKey === "drawdown") {
+        av = parseFloat(String(a[sortKey as keyof AlphaRow])) || 0;
+        bv = parseFloat(String(b[sortKey as keyof AlphaRow])) || 0;
+      } else if (sortKey === "submissionStatus") {
+        const order = { passed: 0, os_testing: 1, is_testing: 2, backtesting: 3, queued: 4, unsubmitted: 5, failed: 6, rejected: 7 };
+        av = order[a.submissionStatus] ?? 99;
+        bv = order[b.submissionStatus] ?? 99;
+      } else {
+        av = a[sortKey as keyof AlphaRow] ?? 0;
+        bv = b[sortKey as keyof AlphaRow] ?? 0;
+      }
+      if (typeof av === "string") av = av.toLowerCase();
+      if (typeof bv === "string") bv = bv.toLowerCase();
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [filtered, sortKey, sortDir]);
+
+  // Paginate
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
+
+  const handleSort = (key: string) => {
     if (sortKey === key) {
-      setSortAsc(!sortAsc);
+      if (sortDir === "desc") setSortDir("asc");
+      else if (sortDir === "asc") { setSortDir(null); setSortKey(""); }
+      else { setSortDir("desc"); }
     } else {
       setSortKey(key);
-      setSortAsc(false);
+      setSortDir("desc");
     }
   };
 
-  const filtered = factors
-    .filter((f) => filterMarket === "all" || f.market === filterMarket)
-    .filter((f) => filterStatus === "all" || f.status === filterStatus)
-    .sort((a, b) => {
-      let av: number, bv: number;
-      if (sortKey === "createdAt") {
-        av = new Date(a.createdAt).getTime();
-        bv = new Date(b.createdAt).getTime();
-      } else {
-        av = a[sortKey];
-        bv = b[sortKey];
-      }
-      return sortAsc ? av - bv : bv - av;
+  const toggleColumn = (key: string) => {
+    setVisibleColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
     });
+  };
 
-  const statusBadge = (status: Factor["status"]) => {
-    const map = {
-      active: { label: "Active", className: "bg-neon-green/10 text-neon-green border-neon-green/20" },
-      testing: { label: "Testing", className: "bg-neon-amber/10 text-neon-amber border-neon-amber/20" },
-      archived: { label: "Archived", className: "bg-muted text-muted-foreground border-border" },
+  const toggleStar = (id: string) => {
+    setStarred((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const statusBadge = (status: AlphaRow["submissionStatus"]) => {
+    const map: Record<string, { label: string; className: string }> = {
+      unsubmitted: { label: "UNSUBMITTED", className: "bg-neon-amber/15 text-neon-amber border-neon-amber/30 font-mono text-[10px]" },
+      queued: { label: "QUEUED", className: "bg-muted text-muted-foreground border-border font-mono text-[10px]" },
+      backtesting: { label: "BACKTESTING", className: "bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30 font-mono text-[10px]" },
+      is_testing: { label: "IS TESTING", className: "bg-neon-cyan/15 text-neon-cyan border-neon-cyan/30 font-mono text-[10px]" },
+      os_testing: { label: "OS TESTING", className: "bg-neon-purple/15 text-neon-purple border-neon-purple/30 font-mono text-[10px]" },
+      passed: { label: "PASSED", className: "bg-neon-green/15 text-neon-green border-neon-green/30 font-mono text-[10px]" },
+      failed: { label: "FAILED", className: "bg-neon-red/15 text-neon-red border-neon-red/30 font-mono text-[10px]" },
+      rejected: { label: "REJECTED", className: "bg-neon-red/15 text-neon-red border-neon-red/30 font-mono text-[10px]" },
     };
-    const s = map[status];
+    const s = map[status] || map.unsubmitted;
     return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
   };
 
+  const SortIcon = ({ colKey }: { colKey: string }) => {
+    if (sortKey !== colKey) return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+    if (sortDir === "desc") return <ArrowDown className="w-3 h-3 text-primary" />;
+    if (sortDir === "asc") return <ArrowUp className="w-3 h-3 text-primary" />;
+    return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+  };
+
+  const visibleCols = allColumns.filter((c) => visibleColumns.has(c.key));
+
+  const renderCell = (row: AlphaRow, colKey: string) => {
+    switch (colKey) {
+      case "id":
+        return <span className="font-mono text-xs text-muted-foreground">{row.id}</span>;
+      case "name":
+        return (
+          <div className="flex items-center gap-2 max-w-[200px]">
+            <button onClick={(e) => { e.stopPropagation(); toggleStar(row.id); }} className="shrink-0">
+              <Star className={`w-3.5 h-3.5 ${starred.has(row.id) ? "fill-neon-amber text-neon-amber" : "text-muted-foreground/40 hover:text-muted-foreground"}`} />
+            </button>
+            <span className="truncate text-sm">{row.name}</span>
+          </div>
+        );
+      case "market":
+        return (
+          <Badge variant="outline" className={`text-[10px] font-mono ${row.market === "CEX" ? "border-neon-cyan/30 text-neon-cyan" : "border-neon-purple/30 text-neon-purple"}`}>
+            {row.market}
+          </Badge>
+        );
+      case "type":
+        return (
+          <span className={`text-xs capitalize ${row.status === "active" ? "text-neon-green" : row.status === "testing" ? "text-neon-amber" : "text-muted-foreground"}`}>
+            {row.status === "active" ? "Regular" : row.status === "testing" ? "Testing" : "Archived"}
+          </span>
+        );
+      case "submissionStatus":
+        return statusBadge(row.submissionStatus);
+      case "createdAt":
+        return <span className="font-mono text-xs text-muted-foreground">{row.createdAt}</span>;
+      case "osSharpe":
+        return (
+          <span className={`font-mono text-sm ${row.osSharpe >= 1 ? "text-neon-green" : row.osSharpe >= 0.5 ? "text-neon-amber" : "text-neon-red"}`}>
+            {row.osSharpe.toFixed(2)}
+          </span>
+        );
+      case "sharpe":
+        return <span className="font-mono text-sm">{row.sharpe.toFixed(2)}</span>;
+      case "fitness":
+        return (
+          <span className={`font-mono text-sm ${row.fitness >= 1 ? "text-neon-green" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"}`}>
+            {row.fitness.toFixed(2)}
+          </span>
+        );
+      case "returns":
+        return <span className="font-mono text-sm">{row.returns}</span>;
+      case "turnover":
+        return <span className="font-mono text-sm">{row.turnover}</span>;
+      case "drawdown":
+        return <span className="font-mono text-sm text-neon-red">{row.drawdown}</span>;
+      case "testsPassed":
+        return (
+          <div className="flex items-center gap-1 font-mono text-xs">
+            <span className="text-neon-green">{row.testsPassed}</span>
+            <span className="text-muted-foreground">/</span>
+            <span className="text-neon-red">{row.testsFailed}</span>
+            {row.testsPending > 0 && (
+              <>
+                <span className="text-muted-foreground">/</span>
+                <span className="text-muted-foreground">{row.testsPending}</span>
+              </>
+            )}
+          </div>
+        );
+      case "submittedAt":
+        return <span className="font-mono text-xs text-muted-foreground">{row.submittedAt || "—"}</span>;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-4">
+      {/* Header bar */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-heading font-bold">My Alphas</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {factors.length} factors mined by AI Agent
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {factors.length} alphas · {submissions.filter((s) => s.status === "passed").length} passed · {submissions.filter((s) => ["queued", "backtesting", "is_testing", "os_testing"].includes(s.status)).length} in pipeline
           </p>
         </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Filter className="w-3 h-3" /> Market:
+        <div className="flex items-center gap-2">
+          <Link href="/submissions">
+            <Button variant="outline" size="sm" className="border-border text-sm">
+              <SlidersHorizontal className="w-4 h-4 mr-1.5" />
+              Submission Pipeline
+            </Button>
+          </Link>
         </div>
-        {(["all", "CEX", "DEX"] as const).map((m) => (
-          <Button
-            key={m}
-            variant={filterMarket === m ? "default" : "outline"}
-            size="sm"
-            className={`h-7 text-xs ${filterMarket === m ? "" : "border-border text-muted-foreground"}`}
-            onClick={() => setFilterMarket(m)}
-          >
-            {m === "all" ? "All" : m}
-          </Button>
-        ))}
-        <div className="w-px h-5 bg-border mx-1" />
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">Status:</div>
-        {(["all", "active", "testing", "archived"] as const).map((s) => (
-          <Button
-            key={s}
-            variant={filterStatus === s ? "default" : "outline"}
-            size="sm"
-            className={`h-7 text-xs capitalize ${filterStatus === s ? "" : "border-border text-muted-foreground"}`}
-            onClick={() => setFilterStatus(s)}
-          >
-            {s}
-          </Button>
-        ))}
       </div>
 
-      {/* Table */}
-      <Card className="terminal-card">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">ID</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Name</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Market</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Status</TableHead>
-                <TableHead
-                  className="text-xs uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground"
-                  onClick={() => handleSort("osSharpe")}
-                >
-                  <span className="flex items-center gap-1">
-                    OS Sharpe <ArrowUpDown className="w-3 h-3" />
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="text-xs uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground"
-                  onClick={() => handleSort("sharpe")}
-                >
-                  <span className="flex items-center gap-1">
-                    IS Sharpe <ArrowUpDown className="w-3 h-3" />
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="text-xs uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground"
-                  onClick={() => handleSort("fitness")}
-                >
-                  <span className="flex items-center gap-1">
-                    Fitness <ArrowUpDown className="w-3 h-3" />
-                  </span>
-                </TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Returns</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">Tests</TableHead>
-                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground w-10"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((f, i) => (
+      {/* Table container */}
+      <div className="terminal-card overflow-hidden">
+        {/* Column selector + filter row header */}
+        <div className="border-b border-border bg-secondary/30">
+          {/* Header row with column names */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  {/* Select columns button */}
+                  <th className="px-2 py-2.5 w-[40px]">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="flex items-center gap-1 text-primary text-xs hover:text-primary/80 transition-colors whitespace-nowrap">
+                          <Settings2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Columns</span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-56 bg-popover border-border" align="start">
+                        <div className="space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Toggle Columns</p>
+                          {allColumns.map((col) => (
+                            <label key={col.key} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-secondary/50 cursor-pointer">
+                              <Checkbox
+                                checked={visibleColumns.has(col.key)}
+                                onCheckedChange={() => toggleColumn(col.key)}
+                                className="h-3.5 w-3.5"
+                              />
+                              <span className="text-xs">{col.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </th>
+                  {/* Star column */}
+                  <th className="w-[28px]" />
+                  {visibleCols.map((col) => (
+                    <th
+                      key={col.key}
+                      className={`px-3 py-2.5 text-left ${col.sortable ? "cursor-pointer hover:bg-secondary/50" : ""}`}
+                      style={{ minWidth: col.width }}
+                      onClick={() => col.sortable && handleSort(col.key)}
+                    >
+                      <span className="flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground font-medium whitespace-nowrap select-none">
+                        {col.label}
+                        {col.sortable && <SortIcon colKey={col.key} />}
+                      </span>
+                    </th>
+                  ))}
+                  {/* Action column */}
+                  <th className="w-[36px]" />
+                </tr>
+              </thead>
+            </table>
+          </div>
+
+          {/* Filter row */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <tbody>
+                <tr className="bg-secondary/20">
+                  <td className="px-2 py-1.5 w-[40px]" />
+                  <td className="w-[28px]" />
+                  {visibleCols.map((col) => (
+                    <td key={col.key} className="px-2 py-1.5" style={{ minWidth: col.width }}>
+                      {col.key === "name" || col.key === "id" ? (
+                        <div className="relative">
+                          <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                          <Input
+                            placeholder="Search"
+                            value={filterName}
+                            onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
+                            className="h-7 text-xs pl-6 bg-input border-border"
+                          />
+                        </div>
+                      ) : col.key === "market" ? (
+                        <Select value={filterMarket} onValueChange={(v) => { setFilterMarket(v); setPage(1); }}>
+                          <SelectTrigger className="h-7 text-xs bg-input border-border">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="CEX">CEX</SelectItem>
+                            <SelectItem value="DEX">DEX</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : col.key === "submissionStatus" ? (
+                        <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
+                          <SelectTrigger className="h-7 text-xs bg-input border-border">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="unsubmitted">Unsubmitted</SelectItem>
+                            <SelectItem value="queued">Queued</SelectItem>
+                            <SelectItem value="backtesting">Backtesting</SelectItem>
+                            <SelectItem value="is_testing">IS Testing</SelectItem>
+                            <SelectItem value="os_testing">OS Testing</SelectItem>
+                            <SelectItem value="passed">Passed</SelectItem>
+                            <SelectItem value="failed">Failed</SelectItem>
+                            <SelectItem value="rejected">Rejected</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : col.key === "type" ? (
+                        <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
+                          <SelectTrigger className="h-7 text-xs bg-input border-border">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            <SelectItem value="all">All</SelectItem>
+                            <SelectItem value="active">Regular</SelectItem>
+                            <SelectItem value="testing">Testing</SelectItem>
+                            <SelectItem value="archived">Archived</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : col.key === "osSharpe" || col.key === "sharpe" || col.key === "fitness" ? (
+                        <Input
+                          placeholder="e.g > 1"
+                          value={col.key === "osSharpe" ? filterSharpeMin : ""}
+                          onChange={(e) => { if (col.key === "osSharpe") { setFilterSharpeMin(e.target.value); setPage(1); } }}
+                          className="h-7 text-xs bg-input border-border font-mono"
+                        />
+                      ) : col.key === "returns" ? (
+                        <Input
+                          placeholder="e.g > 1"
+                          value={filterReturnsMin}
+                          onChange={(e) => { setFilterReturnsMin(e.target.value); setPage(1); }}
+                          className="h-7 text-xs bg-input border-border font-mono"
+                        />
+                      ) : col.key === "turnover" ? (
+                        <Input
+                          placeholder="e.g > 1"
+                          value={filterTurnoverMin}
+                          onChange={(e) => { setFilterTurnoverMin(e.target.value); setPage(1); }}
+                          className="h-7 text-xs bg-input border-border font-mono"
+                        />
+                      ) : (
+                        <div className="h-7" />
+                      )}
+                    </td>
+                  ))}
+                  <td className="w-[36px]" />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Data rows */}
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <tbody>
+              {paginated.map((row, i) => (
                 <motion.tr
-                  key={f.id}
+                  key={row.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="border-border hover:bg-secondary/30 transition-colors"
+                  transition={{ delay: i * 0.02 }}
+                  className="border-b border-border/50 hover:bg-secondary/20 transition-colors group"
                 >
-                  <TableCell className="font-mono text-xs text-muted-foreground">{f.id}</TableCell>
-                  <TableCell className="font-medium text-sm max-w-[200px] truncate">{f.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={`text-xs ${f.market === "CEX" ? "border-neon-cyan/30 text-neon-cyan" : "border-neon-purple/30 text-neon-purple"}`}>
-                      {f.market}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{statusBadge(f.status)}</TableCell>
-                  <TableCell className={`font-mono text-sm ${f.osSharpe >= 1 ? "text-neon-green" : f.osSharpe >= 0.5 ? "text-neon-amber" : "text-neon-red"}`}>
-                    {f.osSharpe.toFixed(2)}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">{f.sharpe.toFixed(2)}</TableCell>
-                  <TableCell className="font-mono text-sm">{f.fitness.toFixed(2)}</TableCell>
-                  <TableCell className="font-mono text-sm">{f.returns}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <span className="text-neon-green text-xs">{f.testsPassed}</span>
-                      <CheckCircle className="w-3 h-3 text-neon-green" />
-                      <span className="text-neon-red text-xs ml-1">{f.testsFailed}</span>
-                      <XCircle className="w-3 h-3 text-neon-red" />
-                      {f.testsPending > 0 && (
-                        <>
-                          <span className="text-muted-foreground text-xs ml-1">{f.testsPending}</span>
-                          <Clock className="w-3 h-3 text-muted-foreground" />
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Link href={`/alphas/${f.id}`}>
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
-                        <ArrowUpRight className="w-4 h-4" />
+                  {/* Row number */}
+                  <td className="px-2 py-2.5 w-[40px]">
+                    <span className="text-[10px] font-mono text-muted-foreground/50">
+                      {(page - 1) * pageSize + i + 1}
+                    </span>
+                  </td>
+                  {/* Star */}
+                  <td className="w-[28px] py-2.5">
+                    <button onClick={() => toggleStar(row.id)}>
+                      <Star className={`w-3.5 h-3.5 ${starred.has(row.id) ? "fill-neon-amber text-neon-amber" : "text-muted-foreground/30 hover:text-muted-foreground"}`} />
+                    </button>
+                  </td>
+                  {visibleCols.map((col) => (
+                    <td key={col.key} className="px-3 py-2.5" style={{ minWidth: col.width }}>
+                      {renderCell(row, col.key)}
+                    </td>
+                  ))}
+                  {/* Action */}
+                  <td className="w-[36px] py-2.5">
+                    <Link href={`/alphas/${row.id}`}>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ArrowUpRight className="w-3.5 h-3.5" />
                       </Button>
                     </Link>
-                  </TableCell>
+                  </td>
                 </motion.tr>
               ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              {paginated.length === 0 && (
+                <tr>
+                  <td colSpan={visibleCols.length + 3} className="text-center py-12 text-muted-foreground text-sm">
+                    No alphas match the current filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination footer */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-secondary/20">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Page size</span>
+            <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
+              <SelectTrigger className="h-7 w-16 text-xs bg-input border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border">
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+            <span>out of {sorted.length}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-border"
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
+            >
+              <ChevronLeft className="w-3 h-3 mr-0.5" />
+              Prev
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Button
+                key={p}
+                variant={p === page ? "default" : "outline"}
+                size="sm"
+                className={`h-7 w-7 text-xs p-0 ${p !== page ? "border-border" : ""}`}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs border-border"
+              disabled={page >= totalPages}
+              onClick={() => setPage(page + 1)}
+            >
+              Next
+              <ChevronRight className="w-3 h-3 ml-0.5" />
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

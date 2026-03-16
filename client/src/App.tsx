@@ -12,6 +12,7 @@ import StrategyMarket from "./pages/StrategyMarket";
 import Leaderboard from "./pages/Leaderboard";
 import AutoTrading from "./pages/AutoTrading";
 import Subscription from "./pages/Subscription";
+import Submissions from "./pages/Submissions";
 
 function Router() {
   return (
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/leaderboard" component={Leaderboard} />
       <Route path="/trading" component={AutoTrading} />
       <Route path="/subscription" component={Subscription} />
+      <Route path="/submissions" component={Submissions} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
