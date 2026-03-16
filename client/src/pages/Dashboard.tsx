@@ -171,21 +171,21 @@ export default function Dashboard() {
         })}
       </div>
 
-      {/* Agent Skill Connection Status */}
-      <div className="katana-card">
+      {/* Agent Skill Connection Status — DE-EMPHASIZED */}
+      <div className="katana-card" style={{ borderColor: "rgba(255,255,255,0.06)", opacity: 0.85 }}>
         <div className="p-4 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-info" />
-              <span className="text-base font-semibold text-white">Agent Skill Status</span>
+              <Cpu className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.30)" }} />
+              <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.60)" }}>Agent Skill Status</span>
             </div>
             <div className="flex items-center gap-2">
               <span
-                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.2em] uppercase"
+                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.15em] uppercase"
                 style={{
-                  backgroundColor: "rgba(197, 255, 74, 0.08)",
-                  color: "#C5FF4A",
-                  border: "1px solid rgba(197, 255, 74, 0.20)",
+                  backgroundColor: "rgba(197, 255, 74, 0.05)",
+                  color: "rgba(197, 255, 74, 0.60)",
+                  border: "1px solid rgba(197, 255, 74, 0.12)",
                 }}
               >
                 {agentSkills.filter(s => s.status === "connected").length}/{agentSkills.length} CONNECTED
@@ -196,8 +196,8 @@ export default function Dashboard() {
                   size="sm"
                   className="h-7 text-xs gap-1"
                   style={{
-                    borderColor: "rgba(255,255,255,0.10)",
-                    color: "rgba(255,255,255,0.50)",
+                    borderColor: "rgba(255,255,255,0.08)",
+                    color: "rgba(255,255,255,0.40)",
                   }}
                 >
                   <ExternalLink className="w-3 h-3" />
