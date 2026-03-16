@@ -8,11 +8,8 @@ import AppLayout from "./components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import MyAlphas from "./pages/MyAlphas";
 import AlphaDetail from "./pages/AlphaDetail";
-import StrategyMarket from "./pages/StrategyMarket";
 import Leaderboard from "./pages/Leaderboard";
-import AutoTrading from "./pages/AutoTrading";
-import Subscription from "./pages/Subscription";
-import Submissions from "./pages/Submissions";
+import Account from "./pages/Account";
 
 function Router() {
   return (
@@ -20,11 +17,8 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/alphas" component={MyAlphas} />
       <Route path="/alphas/:id" component={AlphaDetail} />
-      <Route path="/strategies" component={StrategyMarket} />
       <Route path="/leaderboard" component={Leaderboard} />
-      <Route path="/trading" component={AutoTrading} />
-      <Route path="/subscription" component={Subscription} />
-      <Route path="/submissions" component={Submissions} />
+      <Route path="/account" component={Account} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

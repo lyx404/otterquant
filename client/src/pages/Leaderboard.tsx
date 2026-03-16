@@ -2,10 +2,10 @@
  * Leaderboard - Epoch-based ranking page
  * Every 3 days, fixed prize pool, ranked by OS composite score
  * Two tabs: Factor Ranking & User Ranking
+ * Previous epoch selector at top above stats overview
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -15,15 +15,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useState } from "react";
 import {
   Trophy,
-  Clock,
   Award,
   Users,
   TrendingUp,
-  ChevronRight,
   Flame,
+  Calendar,
+  ChevronRight,
 } from "lucide-react";
 import {
   currentEpoch,
@@ -35,35 +42,99 @@ import { motion } from "framer-motion";
 
 const TROPHY_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/leaderboard-trophy-9A9Q5D9KsgD8YnPGnwC2ga.webp";
 
+// All epochs (current + previous) for the selector
+const allEpochs = [
+  { id: currentEpoch.id, label: `${currentEpoch.id} (Current)`, startDate: currentEpoch.startDate, endDate: currentEpoch.endDate, isCurrent: true, totalPool: currentEpoch.totalPool, winners: currentEpoch.qualifiedFactors },
+  ...previousEpochs.map((ep) => ({
+    id: ep.id,
+    label: `${ep.id}`,
+    startDate: ep.startDate,
+    endDate: ep.endDate,
+    isCurrent: false,
+    totalPool: ep.totalPool,
+    winners: ep.winners,
+  })),
+];
+
 function RankBadge({ rank }: { rank: number }) {
-  if (rank === 1) return <span className="text-lg font-bold text-neon-amber glow-green">🥇</span>;
-  if (rank === 2) return <span className="text-lg font-bold text-gray-300">🥈</span>;
-  if (rank === 3) return <span className="text-lg font-bold text-amber-600">🥉</span>;
-  return <span className="text-sm font-mono text-muted-foreground w-6 text-center inline-block">{rank}</span>;
+  if (rank === 1) return <div className="w-7 h-7 rounded-full bg-neon-amber/20 border border-neon-amber/40 flex items-center justify-center text-sm font-bold text-neon-amber">1</div>;
+  if (rank === 2) return <div className="w-7 h-7 rounded-full bg-gray-400/10 border border-gray-400/30 flex items-center justify-center text-sm font-bold text-gray-300">2</div>;
+  if (rank === 3) return <div className="w-7 h-7 rounded-full bg-amber-700/10 border border-amber-700/30 flex items-center justify-center text-sm font-bold text-amber-600">3</div>;
+  return <span className="text-sm font-mono text-muted-foreground w-7 text-center inline-block">{rank}</span>;
 }
 
 export default function Leaderboard() {
   const [tab, setTab] = useState("factors");
+  const [selectedEpoch, setSelectedEpoch] = useState(currentEpoch.id);
+
+  const epochInfo = allEpochs.find((e) => e.id === selectedEpoch) || allEpochs[0];
+  const isCurrentEpoch = epochInfo.isCurrent;
 
   return (
     <div className="space-y-6">
-      {/* Header with Trophy */}
-      <div className="flex items-start gap-6">
-        <div className="hidden lg:block w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-border">
-          <img src={TROPHY_IMG} alt="Trophy" className="w-full h-full object-cover" />
-        </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-neon-amber" />
-            Leaderboard
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Ranked by OS (Out-of-Sample) performance. Rewards distributed every 3 days to qualified factors.
-          </p>
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          <div className="hidden lg:block w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-border">
+            <img src={TROPHY_IMG} alt="Trophy" className="w-full h-full object-cover" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-heading font-bold flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-neon-amber" />
+              Leaderboard
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Ranked by OS (Out-of-Sample) performance. Rewards distributed every 3 days.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Current Epoch Banner */}
+      {/* Epoch Selector - Moved to top, above stats */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">Epoch:</span>
+        </div>
+        <Select value={selectedEpoch} onValueChange={setSelectedEpoch}>
+          <SelectTrigger className="w-[280px] bg-secondary/50 border-border">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="bg-popover border-border">
+            {allEpochs.map((ep) => (
+              <SelectItem key={ep.id} value={ep.id}>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs">{ep.id}</span>
+                  {ep.isCurrent && (
+                    <Badge variant="outline" className="text-[9px] bg-neon-amber/10 text-neon-amber border-neon-amber/20 py-0 px-1">
+                      LIVE
+                    </Badge>
+                  )}
+                  <span className="text-xs text-muted-foreground">{ep.startDate} → {ep.endDate}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {/* Quick nav pills for previous epochs */}
+        <div className="flex items-center gap-1.5">
+          {allEpochs.slice(0, 4).map((ep) => (
+            <button
+              key={ep.id}
+              onClick={() => setSelectedEpoch(ep.id)}
+              className={`px-2.5 py-1 rounded-md text-xs font-mono transition-all ${
+                selectedEpoch === ep.id
+                  ? "bg-primary/20 text-primary border border-primary/30"
+                  : "bg-secondary/30 text-muted-foreground border border-border hover:bg-secondary/50"
+              }`}
+            >
+              {ep.isCurrent ? "Current" : ep.id.split("-").pop()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Epoch Stats Banner */}
       <Card className="terminal-card border-neon-amber/20 overflow-hidden">
         <CardContent className="p-0">
           <div className="flex flex-col md:flex-row">
@@ -71,32 +142,53 @@ export default function Leaderboard() {
             <div className="flex-1 p-5">
               <div className="flex items-center gap-2 mb-3">
                 <Flame className="w-4 h-4 text-neon-amber" />
-                <span className="text-sm font-heading font-semibold text-neon-amber">Current Epoch</span>
-                <span className="font-mono text-xs text-muted-foreground">{currentEpoch.id}</span>
+                <span className="text-sm font-heading font-semibold text-neon-amber">
+                  {isCurrentEpoch ? "Current Epoch" : "Past Epoch"}
+                </span>
+                <span className="font-mono text-xs text-muted-foreground">{epochInfo.id}</span>
+                {isCurrentEpoch && (
+                  <Badge variant="outline" className="bg-neon-green/10 text-neon-green border-neon-green/20 text-[10px] font-mono animate-pulse">
+                    LIVE
+                  </Badge>
+                )}
+                {!isCurrentEpoch && (
+                  <Badge variant="outline" className="bg-muted text-muted-foreground border-border text-[10px] font-mono">
+                    COMPLETED
+                  </Badge>
+                )}
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
                   <div className="text-xs text-muted-foreground mb-1">Prize Pool</div>
-                  <div className="text-xl font-mono font-bold text-neon-green glow-green">{currentEpoch.totalPool}</div>
+                  <div className="text-xl font-mono font-bold text-neon-green glow-green">{epochInfo.totalPool}</div>
                 </div>
+                {isCurrentEpoch ? (
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Time Remaining</div>
+                    <div className="text-xl font-mono font-bold text-neon-red">{currentEpoch.timeRemaining}</div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Status</div>
+                    <div className="text-xl font-mono font-bold text-neon-green">Distributed</div>
+                  </div>
+                )}
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Time Remaining</div>
-                  <div className="text-xl font-mono font-bold text-neon-red">{currentEpoch.timeRemaining}</div>
+                  <div className="text-xs text-muted-foreground mb-1">{isCurrentEpoch ? "Qualified" : "Winners"}</div>
+                  <div className="text-xl font-mono font-bold">{epochInfo.winners}</div>
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Qualified</div>
-                  <div className="text-xl font-mono font-bold">{currentEpoch.qualifiedFactors}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Total Submissions</div>
-                  <div className="text-xl font-mono font-bold">{currentEpoch.totalSubmissions}</div>
-                </div>
+                {isCurrentEpoch && (
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Total Submissions</div>
+                    <div className="text-xl font-mono font-bold">{currentEpoch.totalSubmissions}</div>
+                  </div>
+                )}
               </div>
             </div>
             {/* Period Info */}
             <div className="border-t md:border-t-0 md:border-l border-border p-5 md:w-[280px] bg-secondary/20">
               <div className="text-xs text-muted-foreground mb-2">Period</div>
-              <div className="font-mono text-sm mb-3">{currentEpoch.startDate} → {currentEpoch.endDate}</div>
+              <div className="font-mono text-sm mb-3">{epochInfo.startDate} <ChevronRight className="w-3 h-3 inline" /> {epochInfo.endDate}</div>
               <div className="text-xs text-muted-foreground mb-2">Qualification Criteria</div>
               <ul className="text-xs text-muted-foreground space-y-1">
                 <li className="flex items-center gap-1"><span className="text-neon-green">●</span> Pass all IS tests</li>
@@ -107,20 +199,6 @@ export default function Leaderboard() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Previous Epochs */}
-      <div className="flex items-center gap-3 overflow-x-auto pb-1">
-        <span className="text-xs text-muted-foreground whitespace-nowrap">Previous:</span>
-        {previousEpochs.map((ep) => (
-          <div key={ep.id} className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-secondary/30 border border-border text-xs whitespace-nowrap">
-            <span className="font-mono text-muted-foreground">{ep.id}</span>
-            <span className="text-neon-green">{ep.winners} winners</span>
-            <Badge variant="outline" className="text-[10px] bg-neon-green/10 text-neon-green border-neon-green/20">
-              Distributed
-            </Badge>
-          </div>
-        ))}
-      </div>
 
       {/* Ranking Tabs */}
       <Tabs value={tab} onValueChange={setTab}>

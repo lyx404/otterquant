@@ -8,24 +8,18 @@ import { useState } from "react";
 import {
   LayoutDashboard,
   FlaskConical,
-  Store,
   Trophy,
-  Bot,
-  CreditCard,
   ChevronLeft,
   ChevronRight,
   Zap,
-  GitPullRequest,
+  UserCog,
 } from "lucide-react";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
   { path: "/alphas", label: "My Alphas", icon: FlaskConical },
-  { path: "/submissions", label: "Submissions", icon: GitPullRequest },
-  { path: "/strategies", label: "Strategies", icon: Store },
   { path: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { path: "/trading", label: "Auto Trading", icon: Bot },
-  { path: "/subscription", label: "Subscription", icon: CreditCard },
+  { path: "/account", label: "Account", icon: UserCog },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
