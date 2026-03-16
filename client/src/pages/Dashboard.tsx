@@ -348,75 +348,36 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Two Column Layout */}
+      {/* Two Column Layout — Epoch emphasized, Activity de-emphasized */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Recent Activity */}
-        <div className="katana-card lg:col-span-2">
-          <div className="p-4 pb-3">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-info" />
-              <span className="text-base font-semibold text-white">Recent Activity</span>
-            </div>
-          </div>
-          <div className="px-4 pb-4">
-            <div className="space-y-0.5">
-              {recentActivity.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 py-2.5 px-3 rounded-md transition-colors group"
-                  style={{ cursor: "default" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-                >
-                  <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-                  >
-                    {iconMap[item.icon]}
-                  </div>
-                  <span className="text-sm flex-1 truncate" style={{ color: "rgba(255,255,255,0.80)" }}>{item.message}</span>
-                  <span className="text-xs whitespace-nowrap font-mono" style={{ color: "rgba(255,255,255,0.30)" }}>{item.time}</span>
+        {/* Current Epoch Card — EMPHASIZED: 2 columns, accent border, larger typography */}
+        <div
+          className="katana-card lg:col-span-2"
+          style={{
+            borderColor: "rgba(197, 255, 74, 0.15)",
+            background: "linear-gradient(135deg, rgba(197,255,74,0.04) 0%, rgba(255,255,255,0.02) 100%)",
+          }}
+        >
+          <div className="p-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ backgroundColor: "rgba(197,255,74,0.10)" }}>
+                  <Trophy className="w-4.5 h-4.5" style={{ color: "#C5FF4A" }} />
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Current Epoch Card */}
-        <div className="katana-card" style={{ borderColor: "rgba(197, 255, 74, 0.12)" }}>
-          <div className="p-4 pb-3">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-warning" />
-              <span className="text-base font-semibold text-white">Current Epoch</span>
-            </div>
-          </div>
-          <div className="px-4 pb-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="label-upper">Epoch</span>
-              <span className="text-sm font-mono text-warning">{currentEpoch.id}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="label-upper">Prize Pool</span>
-              <span className="text-lg font-mono font-bold glow-acid" style={{ color: "#C5FF4A" }}>{currentEpoch.totalPool}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="label-upper">Time Left</span>
-              <span className="text-sm font-mono text-negative">{currentEpoch.timeRemaining}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="label-upper">Qualified</span>
-              <span className="text-sm font-mono text-white">{currentEpoch.qualifiedFactors} / {currentEpoch.totalSubmissions}</span>
-            </div>
-            <div className="pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.10)" }}>
-              <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.50)" }}>
-                Ranking by OS (Out-of-Sample) performance. Rewards distributed proportionally to composite score.
-              </p>
+                <div>
+                  <span className="text-lg font-semibold text-white">Current Epoch</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs font-mono" style={{ color: "#C5FF4A" }}>{currentEpoch.id}</span>
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono tracking-[0.15em]" style={{ backgroundColor: "rgba(197,255,74,0.12)", color: "#C5FF4A" }}>LIVE</span>
+                  </div>
+                </div>
+              </div>
               <Link href="/leaderboard">
                 <Button
                   variant="outline"
-                  className="w-full gap-2"
+                  className="gap-2"
                   style={{
-                    borderColor: "rgba(197, 255, 74, 0.20)",
+                    borderColor: "rgba(197, 255, 74, 0.25)",
                     color: "#C5FF4A",
                   }}
                 >
@@ -424,6 +385,66 @@ export default function Dashboard() {
                   <ArrowUpRight className="w-3 h-3" />
                 </Button>
               </Link>
+            </div>
+          </div>
+          <div className="p-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div>
+                <div className="label-upper mb-2">Prize Pool</div>
+                <div className="stat-value text-2xl font-bold" style={{ color: "#C5FF4A" }}>{currentEpoch.totalPool}</div>
+                <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.40)" }}>distributed proportionally</div>
+              </div>
+              <div>
+                <div className="label-upper mb-2">Time Left</div>
+                <div className="stat-value text-2xl font-bold" style={{ color: "rgb(248,113,113)" }}>{currentEpoch.timeRemaining}</div>
+                <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.40)" }}>until epoch ends</div>
+              </div>
+              <div>
+                <div className="label-upper mb-2">Qualified</div>
+                <div className="stat-value text-2xl font-bold text-white">{currentEpoch.qualifiedFactors} <span className="text-base font-normal" style={{ color: "rgba(255,255,255,0.40)" }}>/ {currentEpoch.totalSubmissions}</span></div>
+                <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.40)" }}>factors qualified</div>
+              </div>
+              <div>
+                <div className="label-upper mb-2">Scoring</div>
+                <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.50)" }}>Ranking by OS (Out-of-Sample) performance. Rewards distributed proportionally to composite score.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Activity — DE-EMPHASIZED: 1 column, muted styling, compact list */}
+        <div
+          className="katana-card lg:col-span-1"
+          style={{ borderColor: "rgba(255,255,255,0.06)" }}
+        >
+          <div className="p-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center gap-2">
+              <Activity className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.30)" }} />
+              <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.60)" }}>Recent Activity</span>
+            </div>
+          </div>
+          <div className="px-3 pb-3">
+            <div className="space-y-0">
+              {recentActivity.slice(0, 6).map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-2.5 py-2 px-2 rounded-md transition-colors"
+                  style={{ cursor: "default" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                >
+                  <div
+                    className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                    style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+                  >
+                    <span style={{ fontSize: "10px" }}>{iconMap[item.icon]}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs leading-snug block truncate" style={{ color: "rgba(255,255,255,0.60)" }}>{item.message}</span>
+                    <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>{item.time}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
