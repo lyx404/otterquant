@@ -1,7 +1,7 @@
 /*
- * MyAlphas — Acid Green Design System
- * #0B0B0B bg, #C5FF4A accent, white/10 borders, white/50 secondary
- * GSAP staggered reveal, Inter font, tracking-[0.2em] uppercase labels
+ * MyAlphas — Katana Deep Navy Design System
+ * bg-0: #0d111c | bg-1: #101631 | Primary: #0058ff | Success: #00ffc2
+ * Text: rgba(236,238,243, 0.92/0.48/0.32) | Border: rgba(236,238,243, 0.08/0.12)
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,6 +44,32 @@ import {
   submissionStats,
   type Factor,
 } from "@/lib/mockData";
+
+/* ── color tokens ── */
+const C = {
+  bg0: "#0d111c",
+  bg1: "#101631",
+  card: "rgba(236,238,243,0.04)",
+  cardHover: "rgba(236,238,243,0.06)",
+  borderWeak: "rgba(236,238,243,0.08)",
+  border: "rgba(236,238,243,0.12)",
+  text1: "rgba(236,238,243,0.92)",
+  text2: "rgba(236,238,243,0.48)",
+  text3: "rgba(236,238,243,0.32)",
+  primary: "#0058ff",
+  primaryLight: "#4d94ff",
+  primaryDim: "rgba(0,88,255,0.12)",
+  primaryBorder: "rgba(0,88,255,0.30)",
+  success: "#00ffc2",
+  successDim: "rgba(0,255,194,0.10)",
+  successBorder: "rgba(0,255,194,0.20)",
+  danger: "#f12211",
+  dangerDim: "rgba(241,34,17,0.10)",
+  dangerBorder: "rgba(241,34,17,0.20)",
+  purple: "#a268ff",
+  orange: "#db5e05",
+  popover: "#131a2e",
+};
 
 type AlphaRow = Factor & {
   submissionStatus: "unsubmitted" | "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
@@ -98,7 +124,6 @@ export default function MyAlphas() {
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
-  // GSAP staggered reveal for header
   useEffect(() => {
     if (!headerRef.current) return;
     const lines = headerRef.current.querySelectorAll(".reveal-line");
@@ -109,7 +134,6 @@ export default function MyAlphas() {
     });
   }, []);
 
-  // GSAP fade-in for stat cards
   useEffect(() => {
     if (!statsRef.current) return;
     const items = statsRef.current.querySelectorAll(".fade-item");
@@ -212,19 +236,19 @@ export default function MyAlphas() {
 
   const statusBadge = (status: AlphaRow["submissionStatus"]) => {
     const map: Record<string, { label: string; bg: string; color: string; border: string }> = {
-      unsubmitted: { label: "UNSUBMITTED", bg: "rgba(255,200,50,0.08)", color: "rgb(255,200,50)", border: "rgba(255,200,50,0.20)" },
-      queued: { label: "QUEUED", bg: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.50)", border: "rgba(255,255,255,0.10)" },
-      backtesting: { label: "BACKTESTING", bg: "rgba(100,180,255,0.08)", color: "rgb(100,180,255)", border: "rgba(100,180,255,0.20)" },
-      is_testing: { label: "IS TESTING", bg: "rgba(100,180,255,0.08)", color: "rgb(100,180,255)", border: "rgba(100,180,255,0.20)" },
-      os_testing: { label: "OS TESTING", bg: "rgba(197,255,74,0.08)", color: "#C5FF4A", border: "rgba(197,255,74,0.20)" },
-      passed: { label: "PASSED", bg: "rgba(74,222,128,0.08)", color: "rgb(74,222,128)", border: "rgba(74,222,128,0.20)" },
-      failed: { label: "FAILED", bg: "rgba(248,113,113,0.08)", color: "rgb(248,113,113)", border: "rgba(248,113,113,0.20)" },
-      rejected: { label: "REJECTED", bg: "rgba(248,113,113,0.08)", color: "rgb(248,113,113)", border: "rgba(248,113,113,0.20)" },
+      unsubmitted: { label: "UNSUBMITTED", bg: "rgba(219,94,5,0.10)", color: "#db5e05", border: "rgba(219,94,5,0.25)" },
+      queued: { label: "QUEUED", bg: C.card, color: C.text2, border: C.border },
+      backtesting: { label: "BACKTESTING", bg: C.primaryDim, color: C.primaryLight, border: C.primaryBorder },
+      is_testing: { label: "IS TESTING", bg: C.primaryDim, color: C.primaryLight, border: C.primaryBorder },
+      os_testing: { label: "OS TESTING", bg: "rgba(162,104,255,0.10)", color: C.purple, border: "rgba(162,104,255,0.25)" },
+      passed: { label: "PASSED", bg: C.successDim, color: C.success, border: C.successBorder },
+      failed: { label: "FAILED", bg: C.dangerDim, color: C.danger, border: C.dangerBorder },
+      rejected: { label: "REJECTED", bg: C.dangerDim, color: C.danger, border: C.dangerBorder },
     };
     const s = map[status] || map.unsubmitted;
     return (
       <span
-        className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.15em]"
+        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em]"
         style={{ backgroundColor: s.bg, color: s.color, border: `1px solid ${s.border}` }}
       >
         {s.label}
@@ -234,8 +258,8 @@ export default function MyAlphas() {
 
   const SortIcon = ({ colKey }: { colKey: string }) => {
     if (sortKey !== colKey) return <ArrowUpDown className="w-3 h-3 opacity-30" />;
-    if (sortDir === "desc") return <ArrowDown className="w-3 h-3" style={{ color: "#C5FF4A" }} />;
-    if (sortDir === "asc") return <ArrowUp className="w-3 h-3" style={{ color: "#C5FF4A" }} />;
+    if (sortDir === "desc") return <ArrowDown className="w-3 h-3" style={{ color: C.primaryLight }} />;
+    if (sortDir === "asc") return <ArrowUp className="w-3 h-3" style={{ color: C.primaryLight }} />;
     return <ArrowUpDown className="w-3 h-3 opacity-30" />;
   };
 
@@ -244,21 +268,21 @@ export default function MyAlphas() {
   const renderCell = (row: AlphaRow, colKey: string) => {
     switch (colKey) {
       case "id":
-        return <span className="font-mono text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>{row.id}</span>;
+        return <span className="font-mono text-xs" style={{ color: C.text3 }}>{row.id}</span>;
       case "name":
         return (
           <div className="flex items-center gap-2 max-w-[200px]">
-            <span className="truncate text-sm" style={{ color: "rgba(255,255,255,0.85)" }}>{row.name}</span>
+            <span className="truncate text-sm" style={{ color: C.text1 }}>{row.name}</span>
           </div>
         );
       case "market":
         return (
           <span
-            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.15em]"
+            className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em]"
             style={{
-              backgroundColor: row.market === "CEX" ? "rgba(100,180,255,0.08)" : "rgba(197,255,74,0.08)",
-              color: row.market === "CEX" ? "rgb(100,180,255)" : "#C5FF4A",
-              border: `1px solid ${row.market === "CEX" ? "rgba(100,180,255,0.20)" : "rgba(197,255,74,0.20)"}`,
+              backgroundColor: row.market === "CEX" ? C.primaryDim : "rgba(162,104,255,0.10)",
+              color: row.market === "CEX" ? C.primaryLight : C.purple,
+              border: `1px solid ${row.market === "CEX" ? C.primaryBorder : "rgba(162,104,255,0.25)"}`,
             }}
           >
             {row.market}
@@ -267,7 +291,7 @@ export default function MyAlphas() {
       case "type":
         return (
           <span className="text-xs capitalize" style={{
-            color: row.status === "active" ? "rgb(74,222,128)" : row.status === "testing" ? "rgb(255,200,50)" : "rgba(255,255,255,0.40)"
+            color: row.status === "active" ? C.success : row.status === "testing" ? "#db5e05" : C.text3
           }}>
             {row.status === "active" ? "Regular" : row.status === "testing" ? "Testing" : "Archived"}
           </span>
@@ -275,125 +299,125 @@ export default function MyAlphas() {
       case "submissionStatus":
         return statusBadge(row.submissionStatus);
       case "createdAt":
-        return <span className="font-mono text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>{row.createdAt}</span>;
+        return <span className="font-mono text-xs" style={{ color: C.text3 }}>{row.createdAt}</span>;
       case "osSharpe":
         return (
           <span className="font-mono text-sm" style={{
-            color: row.osSharpe >= 1 ? "#C5FF4A" : row.osSharpe >= 0.5 ? "rgb(255,200,50)" : "rgb(248,113,113)"
+            color: row.osSharpe >= 1 ? C.success : row.osSharpe >= 0.5 ? "#db5e05" : C.danger
           }}>
             {row.osSharpe.toFixed(2)}
           </span>
         );
       case "sharpe":
-        return <span className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.sharpe.toFixed(2)}</span>;
+        return <span className="font-mono text-sm" style={{ color: C.text1 }}>{row.sharpe.toFixed(2)}</span>;
       case "fitness":
         return (
           <span className="font-mono text-sm" style={{
-            color: row.fitness >= 1 ? "#C5FF4A" : row.fitness >= 0.5 ? "rgba(255,255,255,0.70)" : "rgba(255,255,255,0.40)"
+            color: row.fitness >= 1 ? C.success : row.fitness >= 0.5 ? C.text1 : C.text3
           }}>
             {row.fitness.toFixed(2)}
           </span>
         );
       case "returns":
-        return <span className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.returns}</span>;
+        return <span className="font-mono text-sm" style={{ color: C.text1 }}>{row.returns}</span>;
       case "turnover":
-        return <span className="font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{row.turnover}</span>;
+        return <span className="font-mono text-sm" style={{ color: C.text1 }}>{row.turnover}</span>;
       case "drawdown":
-        return <span className="font-mono text-sm" style={{ color: "rgb(248,113,113)" }}>{row.drawdown}</span>;
+        return <span className="font-mono text-sm" style={{ color: C.danger }}>{row.drawdown}</span>;
       case "testsPassed":
         return (
           <div className="flex items-center gap-1 font-mono text-xs">
-            <span style={{ color: "rgb(74,222,128)" }}>{row.testsPassed}</span>
-            <span style={{ color: "rgba(255,255,255,0.30)" }}>/</span>
-            <span style={{ color: "rgb(248,113,113)" }}>{row.testsFailed}</span>
+            <span style={{ color: C.success }}>{row.testsPassed}</span>
+            <span style={{ color: C.text3 }}>/</span>
+            <span style={{ color: C.danger }}>{row.testsFailed}</span>
             {row.testsPending > 0 && (
               <>
-                <span style={{ color: "rgba(255,255,255,0.30)" }}>/</span>
-                <span style={{ color: "rgba(255,255,255,0.40)" }}>{row.testsPending}</span>
+                <span style={{ color: C.text3 }}>/</span>
+                <span style={{ color: C.text2 }}>{row.testsPending}</span>
               </>
             )}
           </div>
         );
       case "submittedAt":
-        return <span className="font-mono text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>{row.submittedAt || "\u2014"}</span>;
+        return <span className="font-mono text-xs" style={{ color: C.text3 }}>{row.submittedAt || "\u2014"}</span>;
       default:
         return null;
     }
   };
 
+  const hasActiveFilters = filterName || filterMarket !== "all" || filterStatus !== "all" || filterType !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin;
+
   return (
     <div className="space-y-4">
-      {/* Header — GSAP staggered reveal */}
+      {/* Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none text-white">
+          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none" style={{ color: C.text1 }}>
             My Alphas
           </h1>
         </div>
         <div className="reveal-line mt-2">
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.50)" }}>
+          <p className="text-sm" style={{ color: C.text2 }}>
             {factors.length} alphas &middot; {submissions.filter((s) => s.status === "passed").length} passed &middot; {submissions.filter((s) => ["queued", "backtesting", "is_testing", "os_testing"].includes(s.status)).length} in pipeline
           </p>
         </div>
       </div>
 
-      {/* Pipeline Stats Overview */}
+      {/* Pipeline Stats */}
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="fade-item katana-card p-4">
           <div className="flex items-center gap-2 label-upper mb-2">
             <BarChart3 className="w-3.5 h-3.5" /> Total
           </div>
-          <div className="stat-value text-2xl font-bold text-white">{submissionStats.total}</div>
-          <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>submissions</div>
+          <div className="stat-value text-2xl font-bold" style={{ color: C.text1 }}>{submissionStats.total}</div>
+          <div className="text-xs mt-1" style={{ color: C.text2 }}>submissions</div>
         </div>
         <div className="fade-item katana-card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2" style={{ color: "rgb(74,222,128)" }}>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2" style={{ color: C.success }}>
             <CheckCircle className="w-3.5 h-3.5" /> Passed
           </div>
-          <div className="stat-value text-2xl font-bold" style={{ color: "rgb(74,222,128)" }}>{submissionStats.passed}</div>
-          <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>pass rate: {submissionStats.passRate}</div>
+          <div className="stat-value text-2xl font-bold" style={{ color: C.success }}>{submissionStats.passed}</div>
+          <div className="text-xs mt-1" style={{ color: C.text2 }}>pass rate: {submissionStats.passRate}</div>
         </div>
         <div className="fade-item katana-card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2" style={{ color: "rgb(100,180,255)" }}>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2" style={{ color: C.primaryLight }}>
             <Loader2 className="w-3.5 h-3.5" /> In Progress
           </div>
-          <div className="stat-value text-2xl font-bold" style={{ color: "rgb(100,180,255)" }}>{submissionStats.inProgress}</div>
-          <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>avg time: {submissionStats.avgProcessingTime}</div>
+          <div className="stat-value text-2xl font-bold" style={{ color: C.primaryLight }}>{submissionStats.inProgress}</div>
+          <div className="text-xs mt-1" style={{ color: C.text2 }}>avg time: {submissionStats.avgProcessingTime}</div>
         </div>
         <div className="fade-item katana-card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2" style={{ color: "rgb(248,113,113)" }}>
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2" style={{ color: C.danger }}>
             <XCircle className="w-3.5 h-3.5" /> Failed
           </div>
-          <div className="stat-value text-2xl font-bold" style={{ color: "rgb(248,113,113)" }}>{submissionStats.failed + 1}</div>
-          <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>{submissionStats.rejected} rejected</div>
+          <div className="stat-value text-2xl font-bold" style={{ color: C.danger }}>{submissionStats.failed + 1}</div>
+          <div className="text-xs mt-1" style={{ color: C.text2 }}>{submissionStats.rejected} rejected</div>
         </div>
       </div>
 
       {/* Data Table */}
       <div className="katana-card overflow-hidden">
-        {/* Toolbar — search, filters, column toggle */}
+        {/* Toolbar */}
         <div
           className="flex flex-wrap items-center gap-2 px-4 py-3"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.10)", backgroundColor: "rgba(255,255,255,0.02)" }}
+          style={{ borderBottom: `1px solid ${C.border}`, backgroundColor: C.card }}
         >
-          {/* Search */}
           <div className="relative flex-1 min-w-[180px] max-w-[280px]">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.30)" }} />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5" style={{ color: C.text3 }} />
             <Input
               placeholder="Search by name or ID..."
               value={filterName}
               onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
-              className="h-8 text-xs pl-8"
-              style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+              className="h-8 text-xs pl-8 rounded-xl"
+              style={{ backgroundColor: C.card, borderColor: C.border }}
             />
           </div>
 
-          {/* Filter pills */}
           <Select value={filterMarket} onValueChange={(v) => { setFilterMarket(v); setPage(1); }}>
-            <SelectTrigger className="h-8 w-auto min-w-[80px] text-xs gap-1" style={{ backgroundColor: filterMarket !== "all" ? "rgba(197,255,74,0.08)" : "rgba(255,255,255,0.05)", borderColor: filterMarket !== "all" ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)", color: filterMarket !== "all" ? "#C5FF4A" : "rgba(255,255,255,0.60)" }}>
+            <SelectTrigger className="h-8 w-auto min-w-[80px] text-xs gap-1 rounded-full" style={{ backgroundColor: filterMarket !== "all" ? C.primaryDim : C.card, borderColor: filterMarket !== "all" ? C.primaryBorder : C.border, color: filterMarket !== "all" ? C.primaryLight : C.text2 }}>
               <SelectValue placeholder="Market" />
             </SelectTrigger>
-            <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
+            <SelectContent style={{ backgroundColor: C.popover, borderColor: C.border }}>
               <SelectItem value="all">All Markets</SelectItem>
               <SelectItem value="CEX">CEX</SelectItem>
               <SelectItem value="DEX">DEX</SelectItem>
@@ -401,10 +425,10 @@ export default function MyAlphas() {
           </Select>
 
           <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
-            <SelectTrigger className="h-8 w-auto min-w-[100px] text-xs gap-1" style={{ backgroundColor: filterStatus !== "all" ? "rgba(197,255,74,0.08)" : "rgba(255,255,255,0.05)", borderColor: filterStatus !== "all" ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)", color: filterStatus !== "all" ? "#C5FF4A" : "rgba(255,255,255,0.60)" }}>
+            <SelectTrigger className="h-8 w-auto min-w-[100px] text-xs gap-1 rounded-full" style={{ backgroundColor: filterStatus !== "all" ? C.primaryDim : C.card, borderColor: filterStatus !== "all" ? C.primaryBorder : C.border, color: filterStatus !== "all" ? C.primaryLight : C.text2 }}>
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
+            <SelectContent style={{ backgroundColor: C.popover, borderColor: C.border }}>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="unsubmitted">Unsubmitted</SelectItem>
               <SelectItem value="queued">Queued</SelectItem>
@@ -418,10 +442,10 @@ export default function MyAlphas() {
           </Select>
 
           <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
-            <SelectTrigger className="h-8 w-auto min-w-[80px] text-xs gap-1" style={{ backgroundColor: filterType !== "all" ? "rgba(197,255,74,0.08)" : "rgba(255,255,255,0.05)", borderColor: filterType !== "all" ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)", color: filterType !== "all" ? "#C5FF4A" : "rgba(255,255,255,0.60)" }}>
+            <SelectTrigger className="h-8 w-auto min-w-[80px] text-xs gap-1 rounded-full" style={{ backgroundColor: filterType !== "all" ? C.primaryDim : C.card, borderColor: filterType !== "all" ? C.primaryBorder : C.border, color: filterType !== "all" ? C.primaryLight : C.text2 }}>
               <SelectValue placeholder="Type" />
             </SelectTrigger>
-            <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
+            <SelectContent style={{ backgroundColor: C.popover, borderColor: C.border }}>
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="active">Regular</SelectItem>
               <SelectItem value="testing">Testing</SelectItem>
@@ -433,62 +457,62 @@ export default function MyAlphas() {
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs transition-colors"
+                className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-250"
                 style={{
-                  backgroundColor: (filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? "rgba(197,255,74,0.08)" : "rgba(255,255,255,0.05)",
-                  border: `1px solid ${(filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? "rgba(197,255,74,0.20)" : "rgba(255,255,255,0.10)"}`,
-                  color: (filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? "#C5FF4A" : "rgba(255,255,255,0.60)",
+                  backgroundColor: (filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? C.primaryDim : C.card,
+                  border: `1px solid ${(filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? C.primaryBorder : C.border}`,
+                  color: (filterSharpeMin || filterReturnsMin || filterTurnoverMin) ? C.primaryLight : C.text2,
                 }}
               >
                 <BarChart3 className="w-3 h-3" />
                 Metrics
                 {(filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#C5FF4A" }} />
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: C.primary }} />
                 )}
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-60" align="start" style={{ backgroundColor: "#151515", border: "1px solid rgba(255,255,255,0.10)" }}>
+            <PopoverContent className="w-60 rounded-2xl" align="start" style={{ backgroundColor: C.popover, border: `1px solid ${C.border}`, backdropFilter: "blur(16px)" }}>
               <div className="space-y-3">
-                <p className="text-xs font-medium" style={{ color: "rgba(255,255,255,0.50)" }}>Minimum Thresholds</p>
+                <p className="text-xs font-medium" style={{ color: C.text2 }}>Minimum Thresholds</p>
                 <div className="space-y-2">
                   <div>
-                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: "rgba(255,255,255,0.40)" }}>OS Sharpe</label>
+                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: C.text3 }}>OS Sharpe</label>
                     <Input
                       placeholder="e.g. 1.0"
                       value={filterSharpeMin}
                       onChange={(e) => { setFilterSharpeMin(e.target.value); setPage(1); }}
-                      className="h-7 text-xs font-mono"
-                      style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+                      className="h-7 text-xs font-mono rounded-lg"
+                      style={{ backgroundColor: C.card, borderColor: C.border }}
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: "rgba(255,255,255,0.40)" }}>Returns</label>
+                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: C.text3 }}>Returns</label>
                     <Input
                       placeholder="e.g. 5.0"
                       value={filterReturnsMin}
                       onChange={(e) => { setFilterReturnsMin(e.target.value); setPage(1); }}
-                      className="h-7 text-xs font-mono"
-                      style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+                      className="h-7 text-xs font-mono rounded-lg"
+                      style={{ backgroundColor: C.card, borderColor: C.border }}
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: "rgba(255,255,255,0.40)" }}>Turnover</label>
+                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block" style={{ color: C.text3 }}>Turnover</label>
                     <Input
                       placeholder="e.g. 30"
                       value={filterTurnoverMin}
                       onChange={(e) => { setFilterTurnoverMin(e.target.value); setPage(1); }}
-                      className="h-7 text-xs font-mono"
-                      style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+                      className="h-7 text-xs font-mono rounded-lg"
+                      style={{ backgroundColor: C.card, borderColor: C.border }}
                     />
                   </div>
                 </div>
                 {(filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
                   <button
                     className="text-[10px] uppercase tracking-[0.15em] transition-colors"
-                    style={{ color: "rgba(255,255,255,0.40)" }}
+                    style={{ color: C.text3 }}
                     onClick={() => { setFilterSharpeMin(""); setFilterReturnsMin(""); setFilterTurnoverMin(""); setPage(1); }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = "#C5FF4A"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.40)"; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = C.primaryLight; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = C.text3; }}
                   >
                     Clear all
                   </button>
@@ -497,14 +521,12 @@ export default function MyAlphas() {
             </PopoverContent>
           </Popover>
 
-          {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Active filter count + clear */}
-          {(filterName || filterMarket !== "all" || filterStatus !== "all" || filterType !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
+          {hasActiveFilters && (
             <button
-              className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs transition-colors"
-              style={{ backgroundColor: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.20)", color: "rgb(248,113,113)" }}
+              className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-250"
+              style={{ backgroundColor: C.dangerDim, border: `1px solid ${C.dangerBorder}`, color: C.danger }}
               onClick={() => {
                 setFilterName(""); setFilterMarket("all"); setFilterStatus("all"); setFilterType("all");
                 setFilterSharpeMin(""); setFilterReturnsMin(""); setFilterTurnoverMin(""); setPage(1);
@@ -515,20 +537,19 @@ export default function MyAlphas() {
             </button>
           )}
 
-          {/* Column toggle */}
           <Popover>
             <PopoverTrigger asChild>
               <button
-                className="flex items-center gap-1.5 h-8 px-3 rounded-md text-xs transition-colors"
-                style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.60)" }}
+                className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-250"
+                style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, color: C.text2 }}
               >
                 <Settings2 className="w-3.5 h-3.5" />
                 Columns
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-56" align="end" style={{ backgroundColor: "#151515", border: "1px solid rgba(255,255,255,0.10)" }}>
+            <PopoverContent className="w-56 rounded-2xl" align="end" style={{ backgroundColor: C.popover, border: `1px solid ${C.border}`, backdropFilter: "blur(16px)" }}>
               <div className="space-y-1">
-                <p className="text-xs font-medium mb-2" style={{ color: "rgba(255,255,255,0.50)" }}>Toggle Columns</p>
+                <p className="text-xs font-medium mb-2" style={{ color: C.text2 }}>Toggle Columns</p>
                 {allColumns.map((col) => (
                   <label key={col.key} className="flex items-center gap-2 py-1 px-1 rounded cursor-pointer">
                     <Checkbox
@@ -536,7 +557,7 @@ export default function MyAlphas() {
                       onCheckedChange={() => toggleColumn(col.key)}
                       className="h-3.5 w-3.5"
                     />
-                    <span className="text-xs text-white">{col.label}</span>
+                    <span className="text-xs" style={{ color: C.text1 }}>{col.label}</span>
                   </label>
                 ))}
               </div>
@@ -544,26 +565,26 @@ export default function MyAlphas() {
           </Popover>
         </div>
 
-        {/* Table header row with inline sort */}
-        <div className="overflow-x-auto" style={{ borderBottom: "1px solid rgba(255,255,255,0.10)" }}>
+        {/* Table header */}
+        <div className="overflow-x-auto" style={{ borderBottom: `1px solid ${C.border}` }}>
           <table className="w-full">
             <thead>
-              <tr style={{ backgroundColor: "rgba(255,255,255,0.02)" }}>
+              <tr style={{ backgroundColor: C.card }}>
                 <th className="px-2 py-2.5 w-[40px]">
-                  <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.20)" }}>#</span>
+                  <span className="text-[10px] font-mono" style={{ color: C.text3 }}>#</span>
                 </th>
                 <th className="w-[28px]" />
                 {visibleCols.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-3 py-2.5 text-left transition-colors ${col.sortable ? "cursor-pointer" : ""}`}
+                    className={`px-3 py-2.5 text-left transition-all duration-200 ${col.sortable ? "cursor-pointer" : ""}`}
                     style={{
                       minWidth: col.width,
-                      backgroundColor: sortKey === col.key ? "rgba(197,255,74,0.04)" : "transparent",
+                      backgroundColor: sortKey === col.key ? C.primaryDim : "transparent",
                     }}
                     onClick={() => col.sortable && handleSort(col.key)}
-                    onMouseEnter={(e) => { if (col.sortable) e.currentTarget.style.backgroundColor = sortKey === col.key ? "rgba(197,255,74,0.06)" : "rgba(255,255,255,0.04)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = sortKey === col.key ? "rgba(197,255,74,0.04)" : "transparent"; }}
+                    onMouseEnter={(e) => { if (col.sortable) e.currentTarget.style.backgroundColor = sortKey === col.key ? "rgba(0,88,255,0.16)" : C.cardHover; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = sortKey === col.key ? C.primaryDim : "transparent"; }}
                   >
                     <span className="flex items-center gap-1.5 label-upper whitespace-nowrap select-none">
                       {col.label}
@@ -584,19 +605,19 @@ export default function MyAlphas() {
               {paginated.map((row, i) => (
                 <tr
                   key={row.id}
-                  className="transition-colors group"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.04)"; }}
+                  className="transition-all duration-200 group"
+                  style={{ borderBottom: `1px solid ${C.borderWeak}` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.card; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
                 >
                   <td className="px-2 py-2.5 w-[40px]">
-                    <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.20)" }}>
+                    <span className="text-[10px] font-mono" style={{ color: C.text3 }}>
                       {(page - 1) * pageSize + i + 1}
                     </span>
                   </td>
                   <td className="w-[28px] py-2.5">
                     <button onClick={() => toggleStar(row.id)}>
-                      <Star className={`w-3.5 h-3.5 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : ""}`} style={!starred.has(row.id) ? { color: "rgba(255,255,255,0.15)" } : {}} />
+                      <Star className={`w-3.5 h-3.5 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : ""}`} style={!starred.has(row.id) ? { color: C.text3 } : {}} />
                     </button>
                   </td>
                   {visibleCols.map((col) => (
@@ -606,7 +627,7 @@ export default function MyAlphas() {
                   ))}
                   <td className="w-[36px] py-2.5">
                     <Link href={`/alphas/${row.id}`}>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: "#C5FF4A" }}>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: C.primaryLight }}>
                         <ArrowUpRight className="w-3.5 h-3.5" />
                       </Button>
                     </Link>
@@ -615,7 +636,7 @@ export default function MyAlphas() {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={visibleCols.length + 3} className="text-center py-12 text-sm" style={{ color: "rgba(255,255,255,0.50)" }}>
+                  <td colSpan={visibleCols.length + 3} className="text-center py-12 text-sm" style={{ color: C.text2 }}>
                     No alphas match the current filters.
                   </td>
                 </tr>
@@ -625,14 +646,14 @@ export default function MyAlphas() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: "1px solid rgba(255,255,255,0.10)", backgroundColor: "rgba(255,255,255,0.02)" }}>
-          <div className="flex items-center gap-2 text-xs" style={{ color: "rgba(255,255,255,0.50)" }}>
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: `1px solid ${C.border}`, backgroundColor: C.card }}>
+          <div className="flex items-center gap-2 text-xs" style={{ color: C.text2 }}>
             <span>Page size</span>
             <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
-              <SelectTrigger className="h-7 w-16 text-xs" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}>
+              <SelectTrigger className="h-7 w-16 text-xs rounded-lg" style={{ backgroundColor: C.card, borderColor: C.border }}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
+              <SelectContent style={{ backgroundColor: C.popover, borderColor: C.border }}>
                 <SelectItem value="10">10</SelectItem>
                 <SelectItem value="25">25</SelectItem>
                 <SelectItem value="50">50</SelectItem>
@@ -641,7 +662,7 @@ export default function MyAlphas() {
             <span>out of {sorted.length}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-7 text-xs" style={{ borderColor: "rgba(255,255,255,0.10)" }} disabled={page <= 1} onClick={() => setPage(page - 1)}>
+            <Button variant="outline" size="sm" className="h-7 text-xs rounded-lg" style={{ borderColor: C.border }} disabled={page <= 1} onClick={() => setPage(page - 1)}>
               <ChevronLeft className="w-3 h-3 mr-0.5" /> Prev
             </Button>
             {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map((p) => (
@@ -649,14 +670,14 @@ export default function MyAlphas() {
                 key={p}
                 variant={p === page ? "default" : "outline"}
                 size="sm"
-                className="h-7 w-7 text-xs p-0"
-                style={p !== page ? { borderColor: "rgba(255,255,255,0.10)" } : {}}
+                className="h-7 w-7 text-xs p-0 rounded-lg"
+                style={p === page ? { backgroundColor: C.primary, color: "#fff" } : { borderColor: C.border }}
                 onClick={() => setPage(p)}
               >
                 {p}
               </Button>
             ))}
-            <Button variant="outline" size="sm" className="h-7 text-xs" style={{ borderColor: "rgba(255,255,255,0.10)" }} disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+            <Button variant="outline" size="sm" className="h-7 text-xs rounded-lg" style={{ borderColor: C.border }} disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
               Next <ChevronRight className="w-3 h-3 ml-0.5" />
             </Button>
           </div>

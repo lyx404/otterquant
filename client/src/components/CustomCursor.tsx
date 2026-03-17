@@ -1,7 +1,7 @@
 /*
- * CustomCursor — Acid Green Design System
+ * CustomCursor — Katana Deep Navy Design System
  * Circle cursor with mix-blend-mode: difference
- * Enlarges and turns acid green on hoverable elements
+ * Enlarges and turns electric blue on hoverable elements
  */
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
@@ -16,18 +16,13 @@ export default function CustomCursor() {
     const dot = dotRef.current;
     if (!cursor || !dot) return;
 
-    // Position state
     let mouseX = 0;
     let mouseY = 0;
 
     const onMouseMove = (e: MouseEvent) => {
       mouseX = e.clientX;
       mouseY = e.clientY;
-
-      // Dot follows instantly
       gsap.set(dot, { x: mouseX, y: mouseY });
-
-      // Ring follows with slight lag
       gsap.to(cursor, {
         x: mouseX,
         y: mouseY,
@@ -39,7 +34,6 @@ export default function CustomCursor() {
     const onMouseEnterHoverable = () => setIsHovering(true);
     const onMouseLeaveHoverable = () => setIsHovering(false);
 
-    // Attach hover listeners to all clickable elements
     const addHoverListeners = () => {
       const hoverables = document.querySelectorAll(
         'a, button, [role="button"], select, input, textarea, [data-cursor-hover]'
@@ -52,17 +46,13 @@ export default function CustomCursor() {
     };
 
     document.addEventListener("mousemove", onMouseMove);
-
-    // Initial attach + MutationObserver for dynamic elements
     let hoverables = addHoverListeners();
 
     const observer = new MutationObserver(() => {
-      // Cleanup old
       hoverables.forEach((el) => {
         el.removeEventListener("mouseenter", onMouseEnterHoverable);
         el.removeEventListener("mouseleave", onMouseLeaveHoverable);
       });
-      // Re-attach
       hoverables = addHoverListeners();
     });
 
@@ -78,7 +68,6 @@ export default function CustomCursor() {
     };
   }, []);
 
-  // Animate ring size on hover state change
   useEffect(() => {
     const cursor = cursorRef.current;
     if (!cursor) return;
@@ -87,8 +76,8 @@ export default function CustomCursor() {
       gsap.to(cursor, {
         width: 56,
         height: 56,
-        borderColor: "#C5FF4A",
-        backgroundColor: "rgba(197, 255, 74, 0.06)",
+        borderColor: "#0058ff",
+        backgroundColor: "rgba(0, 88, 255, 0.06)",
         duration: 0.3,
         ease: "power3.out",
       });
@@ -96,7 +85,7 @@ export default function CustomCursor() {
       gsap.to(cursor, {
         width: 32,
         height: 32,
-        borderColor: "rgba(255, 255, 255, 0.5)",
+        borderColor: "rgba(236, 238, 243, 0.4)",
         backgroundColor: "transparent",
         duration: 0.3,
         ease: "power3.out",
@@ -106,28 +95,26 @@ export default function CustomCursor() {
 
   return (
     <>
-      {/* Ring */}
       <div
         ref={cursorRef}
         className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border"
         style={{
           width: 32,
           height: 32,
-          borderColor: "rgba(255, 255, 255, 0.5)",
+          borderColor: "rgba(236, 238, 243, 0.4)",
           borderWidth: 1,
           transform: "translate(-50%, -50%)",
           mixBlendMode: "difference",
           willChange: "transform, width, height",
         }}
       />
-      {/* Dot */}
       <div
         ref={dotRef}
         className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full"
         style={{
           width: 5,
           height: 5,
-          backgroundColor: "#C5FF4A",
+          backgroundColor: "#0058ff",
           transform: "translate(-50%, -50%)",
           willChange: "transform",
         }}

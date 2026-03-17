@@ -1,31 +1,18 @@
-# Visual Style Upgrade - Acid Green / Dark Mode
+# Katana Deep Navy Skin — Design Tokens
 
-## Typography
-- [ ] Switch to Inter font globally
-- [ ] Hero titles: text-7xl to text-9xl, font-medium, tracking-tighter, leading-none
-- [ ] Labels/nav: text-[10px], uppercase, tracking-[0.2em], tabular-nums
+## Colors
+- bg-0: #0d111c | bg-1: #101631
+- card: rgba(236,238,243,0.04) | card-hover: rgba(236,238,243,0.08)
+- border-weak: rgba(236,238,243,0.08) | border-default: rgba(236,238,243,0.12)
+- text-primary: rgba(236,238,243,0.92) | text-secondary: rgba(236,238,243,0.48) | text-muted: rgba(236,238,243,0.32)
+- primary: #0058ff | success: #00ffc2 | accent: #d7ff00 | danger: #f12211
+- purple: #a268ff | orange: #db5e05
 
-## Color Palette
-- [ ] Background: #0B0B0B (deep gray, not pure black)
-- [ ] Accent: #C5FF4A (acid green) for buttons, key labels, hover states
-- [ ] Text hierarchy: text-white for core, text-white/50 for secondary
-- [ ] Borders: border-white/10 (ultra-thin semi-transparent white)
-
-## Motion & Interaction
-- [ ] Install GSAP dependency
-- [ ] GSAP staggered reveal: titles from y:100 + skewY:7, power4.out easing
-- [ ] Custom cursor: circle with mix-blend-mode:difference, enlarges on hover to acid green
-- [ ] Card hover: border transition white/10 → #C5FF4A, inner text/icon parallax shift
-
-## Pages to Update
-- [ ] Global CSS (index.css)
-- [ ] index.html (fonts)
-- [ ] CustomCursor component
-- [ ] GSAP animation hooks
-- [ ] AppLayout (navigation)
-- [ ] Dashboard
-- [ ] MyAlphas
-- [ ] Leaderboard
-- [ ] AlphaDetail
-- [ ] Account
-- [ ] App.tsx + NotFound
+## Files to update
+- [x] index.css
+- [ ] AppLayout.tsx + CustomCursor.tsx
+- [ ] Dashboard.tsx
+- [ ] MyAlphas.tsx
+- [ ] Leaderboard.tsx
+- [ ] AlphaDetail.tsx
+- [ ] Account.tsx + NotFound.tsx

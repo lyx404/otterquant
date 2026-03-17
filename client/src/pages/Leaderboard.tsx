@@ -1,7 +1,7 @@
 /*
- * Leaderboard — Acid Green Design System
- * #0B0B0B bg, #C5FF4A accent, white/10 borders, white/50 secondary
- * GSAP staggered reveal, epoch selector, factor/user ranking tables
+ * Leaderboard — Katana Deep Navy Design System
+ * bg-0: #0d111c | bg-1: #101631 | Primary: #0058ff | Success: #00ffc2
+ * Text: rgba(236,238,243, 0.92/0.48/0.32) | Border: rgba(236,238,243, 0.08/0.12)
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,13 +37,44 @@ import {
   leaderboardByUserByEpoch,
 } from "@/lib/mockData";
 
+/* ── color tokens ── */
+const C = {
+  bg0: "#0d111c",
+  bg1: "#101631",
+  card: "rgba(236,238,243,0.04)",
+  cardHover: "rgba(236,238,243,0.06)",
+  borderWeak: "rgba(236,238,243,0.08)",
+  border: "rgba(236,238,243,0.12)",
+  text1: "rgba(236,238,243,0.92)",
+  text2: "rgba(236,238,243,0.48)",
+  text3: "rgba(236,238,243,0.32)",
+  primary: "#0058ff",
+  primaryLight: "#4d94ff",
+  primaryDim: "rgba(0,88,255,0.12)",
+  primaryBorder: "rgba(0,88,255,0.30)",
+  success: "#00ffc2",
+  successDim: "rgba(0,255,194,0.10)",
+  successBorder: "rgba(0,255,194,0.20)",
+  danger: "#f12211",
+  dangerDim: "rgba(241,34,17,0.10)",
+  dangerBorder: "rgba(241,34,17,0.20)",
+  purple: "#a268ff",
+  orange: "#db5e05",
+  popover: "#131a2e",
+  gold: "#f5c542",
+  goldDim: "rgba(245,197,66,0.12)",
+  goldBorder: "rgba(245,197,66,0.25)",
+  silver: "rgba(236,238,243,0.55)",
+  bronze: "#cd7f32",
+};
+
 type ViewMode = "factor" | "user";
 
 const rankBadge = (rank: number) => {
-  if (rank === 1) return <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(255,200,50,0.15)" }}><Medal className="w-3.5 h-3.5" style={{ color: "rgb(255,200,50)" }} /></div>;
-  if (rank === 2) return <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}><Medal className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.50)" }} /></div>;
-  if (rank === 3) return <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(255,200,50,0.08)" }}><Medal className="w-3.5 h-3.5" style={{ color: "rgba(255,200,50,0.60)" }} /></div>;
-  return <span className="w-6 h-6 flex items-center justify-center text-xs font-mono" style={{ color: "rgba(255,255,255,0.40)" }}>{rank}</span>;
+  if (rank === 1) return <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: C.goldDim }}><Medal className="w-3.5 h-3.5" style={{ color: C.gold }} /></div>;
+  if (rank === 2) return <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: C.card }}><Medal className="w-3.5 h-3.5" style={{ color: C.silver }} /></div>;
+  if (rank === 3) return <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(205,127,50,0.10)" }}><Medal className="w-3.5 h-3.5" style={{ color: C.bronze }} /></div>;
+  return <span className="w-6 h-6 flex items-center justify-center text-xs font-mono" style={{ color: C.text3 }}>{rank}</span>;
 };
 
 export default function Leaderboard() {
@@ -52,7 +83,6 @@ export default function Leaderboard() {
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
-  // GSAP staggered reveal for header
   useEffect(() => {
     if (!headerRef.current) return;
     const lines = headerRef.current.querySelectorAll(".reveal-line");
@@ -63,7 +93,6 @@ export default function Leaderboard() {
     });
   }, []);
 
-  // GSAP fade-in for stat cards
   useEffect(() => {
     if (!statsRef.current) return;
     const items = statsRef.current.querySelectorAll(".fade-item");
@@ -97,12 +126,12 @@ export default function Leaderboard() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div ref={headerRef} className="reveal-clip">
           <div className="reveal-line">
-            <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none text-white">
+            <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none" style={{ color: C.text1 }}>
               Leaderboard
             </h1>
           </div>
           <div className="reveal-line mt-2">
-            <p className="text-sm" style={{ color: "rgba(255,255,255,0.50)" }}>
+            <p className="text-sm" style={{ color: C.text2 }}>
               Epoch rankings and reward distribution
             </p>
           </div>
@@ -113,28 +142,28 @@ export default function Leaderboard() {
           <span className="label-upper shrink-0">Epoch</span>
           <Select value={selectedEpochId} onValueChange={setSelectedEpochId}>
             <SelectTrigger
-              className="w-[260px] h-9 text-sm font-mono"
-              style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.10)" }}
+              className="w-[260px] h-9 text-sm font-mono rounded-xl"
+              style={{ backgroundColor: C.card, borderColor: C.border }}
             >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent style={{ backgroundColor: "#151515", borderColor: "rgba(255,255,255,0.10)" }}>
+            <SelectContent style={{ backgroundColor: C.popover, borderColor: C.border }}>
               {allEpochs.map((epoch) => (
                 <SelectItem key={epoch.id} value={epoch.id} className="font-mono text-sm">
                   <div className="flex items-center gap-2">
                     {!epoch.distributed ? (
-                      <Timer className="w-3.5 h-3.5 shrink-0" style={{ color: "#C5FF4A" }} />
+                      <Timer className="w-3.5 h-3.5 shrink-0" style={{ color: C.primary }} />
                     ) : (
-                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: "rgb(74,222,128)" }} />
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" style={{ color: C.success }} />
                     )}
-                    <span className="text-white">{epoch.id}</span>
-                    <span className="text-xs" style={{ color: "rgba(255,255,255,0.40)" }}>
+                    <span style={{ color: C.text1 }}>{epoch.id}</span>
+                    <span className="text-xs" style={{ color: C.text3 }}>
                       {epoch.startDate} — {epoch.endDate}
                     </span>
                     {!epoch.distributed && (
                       <span
-                        className="text-[9px] px-1.5 py-0 h-4 inline-flex items-center rounded font-mono ml-1"
-                        style={{ backgroundColor: "rgba(197,255,74,0.10)", color: "#C5FF4A", border: "1px solid rgba(197,255,74,0.20)" }}
+                        className="text-[9px] px-1.5 py-0 h-4 inline-flex items-center rounded-full font-mono ml-1"
+                        style={{ backgroundColor: C.primaryDim, color: C.primaryLight, border: `1px solid ${C.primaryBorder}` }}
                       >
                         LIVE
                       </span>
@@ -149,13 +178,13 @@ export default function Leaderboard() {
 
       {/* Epoch Info Bar */}
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="fade-item katana-card p-4" style={isCurrent ? { borderColor: "rgba(197,255,74,0.12)" } : {}}>
+        <div className="fade-item katana-card p-4" style={isCurrent ? { borderColor: C.primaryBorder } : {}}>
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Trophy className="w-3.5 h-3.5" />
             {isCurrent ? "Current Epoch" : "Epoch"}
           </div>
-          <div className="stat-value text-xl font-bold" style={{ color: "#C5FF4A" }}>{selectedEpoch.id}</div>
-          <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>
+          <div className="stat-value text-xl font-bold" style={{ color: C.primaryLight }}>{selectedEpoch.id}</div>
+          <div className="text-xs mt-1" style={{ color: C.text2 }}>
             {selectedEpoch.startDate} — {selectedEpoch.endDate}
           </div>
         </div>
@@ -163,8 +192,8 @@ export default function Leaderboard() {
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Award className="w-3.5 h-3.5" /> Prize Pool
           </div>
-          <div className="stat-value text-xl font-bold" style={{ color: "#C5FF4A" }}>{selectedEpoch.totalPool}</div>
-          <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>
+          <div className="stat-value text-xl font-bold" style={{ color: C.success }}>{selectedEpoch.totalPool}</div>
+          <div className="text-xs mt-1" style={{ color: C.text2 }}>
             {isCurrent ? "distributed proportionally" : "fully distributed"}
           </div>
         </div>
@@ -174,18 +203,18 @@ export default function Leaderboard() {
             {isCurrent ? "Time Remaining" : "Status"}
           </div>
           {isCurrent ? (
-            <div className="stat-value text-xl font-bold" style={{ color: "rgb(248,113,113)" }}>{selectedEpoch.timeRemaining}</div>
+            <div className="stat-value text-xl font-bold" style={{ color: C.danger }}>{selectedEpoch.timeRemaining}</div>
           ) : (
             <div className="flex items-center gap-2">
               <span
-                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono"
-                style={{ backgroundColor: "rgba(74,222,128,0.08)", color: "rgb(74,222,128)", border: "1px solid rgba(74,222,128,0.20)" }}
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono"
+                style={{ backgroundColor: C.successDim, color: C.success, border: `1px solid ${C.successBorder}` }}
               >
                 COMPLETED
               </span>
             </div>
           )}
-          <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>
+          <div className="text-xs mt-1" style={{ color: C.text2 }}>
             {isCurrent ? "until epoch ends" : `${selectedEpoch.winners} winners`}
           </div>
         </div>
@@ -193,30 +222,30 @@ export default function Leaderboard() {
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" /> Submissions
           </div>
-          <div className="stat-value text-xl font-bold text-white">{selectedEpoch.totalSubmissions}</div>
-          <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>{selectedEpoch.qualifiedFactors} qualified</div>
+          <div className="stat-value text-xl font-bold" style={{ color: C.text1 }}>{selectedEpoch.totalSubmissions}</div>
+          <div className="text-xs mt-1" style={{ color: C.text2 }}>{selectedEpoch.qualifiedFactors} qualified</div>
         </div>
       </div>
 
       {/* View Mode Toggle */}
-      <div className="flex items-center gap-1 p-1 rounded-lg w-fit" style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }}>
+      <div className="flex items-center gap-1 p-1 rounded-2xl w-fit" style={{ backgroundColor: C.card, border: `1px solid ${C.border}` }}>
         <button
-          className="h-8 text-xs px-4 rounded-md font-medium transition-all"
+          className="h-8 text-xs px-4 rounded-xl font-medium transition-all duration-250"
           style={{
-            backgroundColor: viewMode === "factor" ? "rgba(197,255,74,0.10)" : "transparent",
-            color: viewMode === "factor" ? "#C5FF4A" : "rgba(255,255,255,0.50)",
-            border: viewMode === "factor" ? "1px solid rgba(197,255,74,0.20)" : "1px solid transparent",
+            backgroundColor: viewMode === "factor" ? C.primaryDim : "transparent",
+            color: viewMode === "factor" ? C.primaryLight : C.text2,
+            border: viewMode === "factor" ? `1px solid ${C.primaryBorder}` : "1px solid transparent",
           }}
           onClick={() => setViewMode("factor")}
         >
           By Factor
         </button>
         <button
-          className="h-8 text-xs px-4 rounded-md font-medium transition-all"
+          className="h-8 text-xs px-4 rounded-xl font-medium transition-all duration-250"
           style={{
-            backgroundColor: viewMode === "user" ? "rgba(197,255,74,0.10)" : "transparent",
-            color: viewMode === "user" ? "#C5FF4A" : "rgba(255,255,255,0.50)",
-            border: viewMode === "user" ? "1px solid rgba(197,255,74,0.20)" : "1px solid transparent",
+            backgroundColor: viewMode === "user" ? C.primaryDim : "transparent",
+            color: viewMode === "user" ? C.primaryLight : C.text2,
+            border: viewMode === "user" ? `1px solid ${C.primaryBorder}` : "1px solid transparent",
           }}
           onClick={() => setViewMode("user")}
         >
@@ -230,7 +259,7 @@ export default function Leaderboard() {
           <div key={`factor-${selectedEpochId}`}>
             <Table>
               <TableHeader>
-                <TableRow style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+                <TableRow style={{ borderColor: C.border }}>
                   <TableHead className="label-upper w-[60px]">Rank</TableHead>
                   <TableHead className="label-upper">User</TableHead>
                   <TableHead className="label-upper">Factor</TableHead>
@@ -246,10 +275,10 @@ export default function Leaderboard() {
                 {factorData.map((entry) => (
                   <TableRow
                     key={entry.factorId}
-                    className="transition-colors"
+                    className="transition-all duration-200"
                     style={{
-                      borderColor: "rgba(255,255,255,0.06)",
-                      backgroundColor: entry.rank <= 3 ? "rgba(197,255,74,0.02)" : "transparent",
+                      borderColor: C.borderWeak,
+                      backgroundColor: entry.rank <= 3 ? C.primaryDim : "transparent",
                     }}
                   >
                     <TableCell>{rankBadge(entry.rank)}</TableCell>
@@ -257,24 +286,24 @@ export default function Leaderboard() {
                       <div className="flex items-center gap-2">
                         <div
                           className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono"
-                          style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.50)" }}
+                          style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, color: C.text2 }}
                         >
                           {entry.avatar}
                         </div>
-                        <span className="text-sm font-medium text-white">{entry.username}</span>
+                        <span className="text-sm font-medium" style={{ color: C.text1 }}>{entry.username}</span>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm" style={{ color: "rgba(255,255,255,0.80)" }}>{entry.factorName}</span>
-                      <span className="text-[10px] font-mono ml-2" style={{ color: "rgba(255,255,255,0.30)" }}>{entry.factorId}</span>
+                      <span className="text-sm" style={{ color: C.text1 }}>{entry.factorName}</span>
+                      <span className="text-[10px] font-mono ml-2" style={{ color: C.text3 }}>{entry.factorId}</span>
                     </TableCell>
                     <TableCell>
                       <span
-                        className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.15em]"
+                        className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em]"
                         style={{
-                          backgroundColor: entry.market === "CEX" ? "rgba(100,180,255,0.08)" : "rgba(197,255,74,0.08)",
-                          color: entry.market === "CEX" ? "rgb(100,180,255)" : "#C5FF4A",
-                          border: `1px solid ${entry.market === "CEX" ? "rgba(100,180,255,0.20)" : "rgba(197,255,74,0.20)"}`,
+                          backgroundColor: entry.market === "CEX" ? C.primaryDim : "rgba(162,104,255,0.10)",
+                          color: entry.market === "CEX" ? C.primaryLight : C.purple,
+                          border: `1px solid ${entry.market === "CEX" ? C.primaryBorder : "rgba(162,104,255,0.25)"}`,
                         }}
                       >
                         {entry.market}
@@ -282,18 +311,18 @@ export default function Leaderboard() {
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-mono text-sm" style={{
-                        color: entry.osSharpe >= 1 ? "#C5FF4A" : entry.osSharpe >= 0.5 ? "rgb(255,200,50)" : "rgb(248,113,113)"
+                        color: entry.osSharpe >= 1 ? C.success : entry.osSharpe >= 0.5 ? C.orange : C.danger
                       }}>
                         {entry.osSharpe.toFixed(2)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{entry.osFitness.toFixed(2)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{entry.osReturns}</TableCell>
+                    <TableCell className="text-right font-mono text-sm" style={{ color: C.text1 }}>{entry.osFitness.toFixed(2)}</TableCell>
+                    <TableCell className="text-right font-mono text-sm" style={{ color: C.text1 }}>{entry.osReturns}</TableCell>
                     <TableCell className="text-right">
-                      <span className="font-mono text-sm font-bold" style={{ color: "#C5FF4A" }}>{entry.compositeScore.toFixed(1)}</span>
+                      <span className="font-mono text-sm font-bold" style={{ color: C.success }}>{entry.compositeScore.toFixed(1)}</span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="font-mono text-sm" style={{ color: "rgb(255,200,50)" }}>{entry.reward}</span>
+                      <span className="font-mono text-sm" style={{ color: C.gold }}>{entry.reward}</span>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -304,7 +333,7 @@ export default function Leaderboard() {
           <div key={`user-${selectedEpochId}`}>
             <Table>
               <TableHeader>
-                <TableRow style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+                <TableRow style={{ borderColor: C.border }}>
                   <TableHead className="label-upper w-[60px]">Rank</TableHead>
                   <TableHead className="label-upper">User</TableHead>
                   <TableHead className="label-upper text-right">Total Factors</TableHead>
@@ -318,10 +347,10 @@ export default function Leaderboard() {
                 {userData.map((entry) => (
                   <TableRow
                     key={entry.userId}
-                    className="transition-colors"
+                    className="transition-all duration-200"
                     style={{
-                      borderColor: "rgba(255,255,255,0.06)",
-                      backgroundColor: entry.rank <= 3 ? "rgba(197,255,74,0.02)" : "transparent",
+                      borderColor: C.borderWeak,
+                      backgroundColor: entry.rank <= 3 ? C.primaryDim : "transparent",
                     }}
                   >
                     <TableCell>{rankBadge(entry.rank)}</TableCell>
@@ -329,25 +358,25 @@ export default function Leaderboard() {
                       <div className="flex items-center gap-2">
                         <div
                           className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono"
-                          style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)", color: "rgba(255,255,255,0.50)" }}
+                          style={{ backgroundColor: C.card, border: `1px solid ${C.border}`, color: C.text2 }}
                         >
                           {entry.avatar}
                         </div>
-                        <span className="text-sm font-medium text-white">{entry.username}</span>
+                        <span className="text-sm font-medium" style={{ color: C.text1 }}>{entry.username}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-mono text-sm text-white">{entry.totalFactors}</TableCell>
-                    <TableCell className="text-right font-mono text-sm" style={{ color: "#C5FF4A" }}>{entry.qualifiedFactors}</TableCell>
+                    <TableCell className="text-right font-mono text-sm" style={{ color: C.text1 }}>{entry.totalFactors}</TableCell>
+                    <TableCell className="text-right font-mono text-sm" style={{ color: C.success }}>{entry.qualifiedFactors}</TableCell>
                     <TableCell className="text-right">
                       <span className="font-mono text-sm" style={{
-                        color: entry.avgOsSharpe >= 1 ? "#C5FF4A" : entry.avgOsSharpe >= 0.5 ? "rgb(255,200,50)" : "rgb(248,113,113)"
+                        color: entry.avgOsSharpe >= 1 ? C.success : entry.avgOsSharpe >= 0.5 ? C.orange : C.danger
                       }}>
                         {entry.avgOsSharpe.toFixed(2)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm" style={{ color: "rgba(255,255,255,0.70)" }}>{entry.topFactor}</TableCell>
+                    <TableCell className="text-sm" style={{ color: C.text1 }}>{entry.topFactor}</TableCell>
                     <TableCell className="text-right">
-                      <span className="font-mono text-sm font-bold" style={{ color: "rgb(255,200,50)" }}>{entry.totalReward}</span>
+                      <span className="font-mono text-sm font-bold" style={{ color: C.gold }}>{entry.totalReward}</span>
                     </TableCell>
                   </TableRow>
                 ))}

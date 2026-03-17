@@ -1,7 +1,10 @@
 /*
- * Dashboard — Acid Green Design System
- * #0B0B0B bg, #C5FF4A accent, white/10 borders, white/50 secondary
- * GSAP staggered reveal, card hover parallax
+ * Dashboard — Katana Deep Navy Design System
+ * bg-0: #0d111c | bg-1: #101631
+ * Primary: #0058ff | Success: #00ffc2 | Danger: #f12211
+ * Text: rgba(236,238,243, 0.92/0.48/0.32)
+ * Border: rgba(236,238,243, 0.08/0.12)
+ * Frosted glass cards, GSAP staggered reveal
  */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,21 +35,42 @@ import {
 } from "lucide-react";
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
 
+/* ── color tokens ── */
+const C = {
+  bg0: "#0d111c",
+  bg1: "#101631",
+  card: "rgba(236,238,243,0.04)",
+  cardHover: "rgba(236,238,243,0.06)",
+  borderWeak: "rgba(236,238,243,0.08)",
+  border: "rgba(236,238,243,0.12)",
+  text1: "rgba(236,238,243,0.92)",
+  text2: "rgba(236,238,243,0.48)",
+  text3: "rgba(236,238,243,0.32)",
+  primary: "#0058ff",
+  primaryDim: "rgba(0,88,255,0.12)",
+  primaryBorder: "rgba(0,88,255,0.30)",
+  success: "#00ffc2",
+  successDim: "rgba(0,255,194,0.10)",
+  successBorder: "rgba(0,255,194,0.20)",
+  danger: "#f12211",
+  accent: "#d7ff00",
+};
+
 const statCards = [
-  { label: "TOTAL FACTORS", value: dashboardStats.totalFactors.toString(), sub: `${dashboardStats.activeFactors} active`, icon: FlaskConical, accent: false },
-  { label: "AVG SHARPE (OS)", value: dashboardStats.avgSharpe.toFixed(2), sub: "Out-of-Sample", icon: TrendingUp, accent: true },
-  { label: "PASS RATE", value: dashboardStats.passRate, sub: `${dashboardStats.activeFactors}/${dashboardStats.totalFactors}`, icon: CheckCircle, accent: false },
-  { label: "ACTIVE TRADES", value: dashboardStats.activeTrades.toString(), sub: "Running now", icon: Zap, accent: false },
-  { label: "SUBSCRIBERS", value: dashboardStats.subscriberCount.toLocaleString(), sub: "Platform total", icon: Users, accent: false },
+  { label: "TOTAL FACTORS", value: dashboardStats.totalFactors.toString(), sub: `${dashboardStats.activeFactors} active`, icon: FlaskConical, highlight: false },
+  { label: "AVG SHARPE (OS)", value: dashboardStats.avgSharpe.toFixed(2), sub: "Out-of-Sample", icon: TrendingUp, highlight: true },
+  { label: "PASS RATE", value: dashboardStats.passRate, sub: `${dashboardStats.activeFactors}/${dashboardStats.totalFactors}`, icon: CheckCircle, highlight: false },
+  { label: "ACTIVE TRADES", value: dashboardStats.activeTrades.toString(), sub: "Running now", icon: Zap, highlight: false },
+  { label: "SUBSCRIBERS", value: dashboardStats.subscriberCount.toLocaleString(), sub: "Platform total", icon: Users, highlight: false },
 ];
 
 const iconMap: Record<string, React.ReactNode> = {
-  plus: <Zap className="w-4 h-4" style={{ color: "#C5FF4A" }} />,
-  check: <CheckCircle className="w-4 h-4 text-positive" />,
-  trophy: <Award className="w-4 h-4 text-warning" />,
-  activity: <Activity className="w-4 h-4 text-info" />,
-  x: <XCircle className="w-4 h-4 text-negative" />,
-  user: <Users className="w-4 h-4 text-info" />,
+  plus: <Zap className="w-4 h-4" style={{ color: C.primary }} />,
+  check: <CheckCircle className="w-4 h-4" style={{ color: C.success }} />,
+  trophy: <Award className="w-4 h-4" style={{ color: "#db5e05" }} />,
+  activity: <Activity className="w-4 h-4" style={{ color: C.primary }} />,
+  x: <XCircle className="w-4 h-4" style={{ color: C.danger }} />,
+  user: <Users className="w-4 h-4" style={{ color: "#a268ff" }} />,
 };
 
 const agentSkills = [
@@ -93,8 +117,8 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="p-1 rounded transition-colors" style={{ color: "rgba(255,255,255,0.3)" }}>
-      {copied ? <Check className="w-3.5 h-3.5" style={{ color: "#C5FF4A" }} /> : <Copy className="w-3.5 h-3.5" />}
+    <button onClick={handleCopy} className="p-1 rounded transition-colors" style={{ color: C.text3 }}>
+      {copied ? <Check className="w-3.5 h-3.5" style={{ color: C.success }} /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
 }
@@ -105,7 +129,6 @@ export default function Dashboard() {
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
-  // GSAP staggered reveal for header
   useEffect(() => {
     if (!headerRef.current) return;
     const lines = headerRef.current.querySelectorAll(".reveal-line");
@@ -116,7 +139,6 @@ export default function Dashboard() {
     });
   }, []);
 
-  // GSAP fade-in for stat cards
   useEffect(() => {
     if (!statsRef.current) return;
     const items = statsRef.current.querySelectorAll(".fade-item");
@@ -129,15 +151,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header — GSAP staggered reveal */}
+      {/* Page Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none text-white">
+          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none" style={{ color: C.text1 }}>
             Dashboard
           </h1>
         </div>
         <div className="reveal-line mt-2">
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.50)" }}>
+          <p className="text-sm" style={{ color: C.text2 }}>
             AI Factor Mining Platform Overview
           </p>
         </div>
@@ -149,19 +171,21 @@ export default function Dashboard() {
           const Icon = stat.icon;
           return (
             <div key={stat.label} className="fade-item">
-              <div className="katana-card p-4 group">
+              <div
+                className="katana-card p-4 group"
+              >
                 <div data-parallax-inner="">
                   <div className="flex items-center justify-between mb-3">
                     <span className="label-upper">{stat.label}</span>
-                    <Icon className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: "rgba(255,255,255,0.30)" }} />
+                    <Icon className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: C.text3 }} />
                   </div>
                   <div
                     className="text-2xl stat-value font-bold"
-                    style={{ color: stat.accent ? "#C5FF4A" : "#ffffff" }}
+                    style={{ color: stat.highlight ? C.success : C.text1 }}
                   >
                     {stat.value}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.50)" }}>
+                  <div className="text-xs mt-1" style={{ color: C.text2 }}>
                     {stat.sub}
                   </div>
                 </div>
@@ -172,20 +196,20 @@ export default function Dashboard() {
       </div>
 
       {/* Agent Skill Connection Status — DE-EMPHASIZED */}
-      <div className="katana-card" style={{ borderColor: "rgba(255,255,255,0.06)", opacity: 0.85 }}>
+      <div className="katana-card" style={{ borderColor: C.borderWeak, opacity: 0.85 }}>
         <div className="p-4 pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Cpu className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.30)" }} />
-              <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.60)" }}>Agent Skill Status</span>
+              <Cpu className="w-3.5 h-3.5" style={{ color: C.text3 }} />
+              <span className="text-sm font-medium" style={{ color: C.text2 }}>Agent Skill Status</span>
             </div>
             <div className="flex items-center gap-2">
               <span
-                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono tracking-[0.15em] uppercase"
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] uppercase"
                 style={{
-                  backgroundColor: "rgba(197, 255, 74, 0.05)",
-                  color: "rgba(197, 255, 74, 0.60)",
-                  border: "1px solid rgba(197, 255, 74, 0.12)",
+                  backgroundColor: C.successDim,
+                  color: C.success,
+                  border: `1px solid ${C.successBorder}`,
                 }}
               >
                 {agentSkills.filter(s => s.status === "connected").length}/{agentSkills.length} CONNECTED
@@ -194,10 +218,10 @@ export default function Dashboard() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs gap-1"
+                  className="h-7 text-xs gap-1 rounded-full"
                   style={{
-                    borderColor: "rgba(255,255,255,0.08)",
-                    color: "rgba(255,255,255,0.40)",
+                    borderColor: C.borderWeak,
+                    color: C.text2,
                   }}
                 >
                   <ExternalLink className="w-3 h-3" />
@@ -208,48 +232,47 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="px-4 pb-4 space-y-3">
-          {/* Skill cards */}
           <div className="grid md:grid-cols-3 gap-3">
             {agentSkills.map((skill) => (
               <div
                 key={skill.id}
-                className="rounded-lg p-3.5 transition-all duration-300"
+                className="rounded-2xl p-3.5 transition-all duration-250"
                 style={{
-                  border: `1px solid ${skill.status === "connected" ? "rgba(197, 255, 74, 0.15)" : "rgba(255,255,255,0.10)"}`,
-                  backgroundColor: skill.status === "connected" ? "rgba(197, 255, 74, 0.03)" : "rgba(255,255,255,0.03)",
+                  border: `1px solid ${skill.status === "connected" ? C.successBorder : C.borderWeak}`,
+                  backgroundColor: skill.status === "connected" ? C.successDim : C.card,
                 }}
               >
                 <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-sm font-medium text-white">{skill.name}</span>
+                  <span className="text-sm font-medium" style={{ color: C.text1 }}>{skill.name}</span>
                   {skill.status === "connected" ? (
                     <div className="flex items-center gap-1.5">
                       <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: "#C5FF4A" }} />
-                        <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: "#C5FF4A" }} />
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: C.success }} />
+                        <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: C.success }} />
                       </span>
-                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: "#C5FF4A" }}>ONLINE</span>
+                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: C.success }}>ONLINE</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5">
-                      <WifiOff className="w-3 h-3" style={{ color: "rgba(255,255,255,0.30)" }} />
-                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: "rgba(255,255,255,0.30)" }}>OFFLINE</span>
+                      <WifiOff className="w-3 h-3" style={{ color: C.text3 }} />
+                      <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: C.text3 }}>OFFLINE</span>
                     </div>
                   )}
                 </div>
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between">
-                    <span style={{ color: "rgba(255,255,255,0.50)" }}>Last Sync</span>
-                    <span className="font-mono" style={{ color: "rgba(255,255,255,0.70)" }}>{skill.lastSync}</span>
+                    <span style={{ color: C.text2 }}>Last Sync</span>
+                    <span className="font-mono" style={{ color: C.text1 }}>{skill.lastSync}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span style={{ color: "rgba(255,255,255,0.50)" }}>Factors Mined</span>
-                    <span className="font-mono" style={{ color: skill.factorsGenerated > 0 ? "#C5FF4A" : "rgba(255,255,255,0.30)" }}>
+                    <span style={{ color: C.text2 }}>Factors Mined</span>
+                    <span className="font-mono" style={{ color: skill.factorsGenerated > 0 ? C.success : C.text3 }}>
                       {skill.factorsGenerated}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span style={{ color: "rgba(255,255,255,0.50)" }}>Skill Version</span>
-                    <span className="font-mono" style={{ color: "rgba(255,255,255,0.30)" }}>{skill.version}</span>
+                    <span style={{ color: C.text2 }}>Skill Version</span>
+                    <span className="font-mono" style={{ color: C.text3 }}>{skill.version}</span>
                   </div>
                 </div>
               </div>
@@ -259,33 +282,33 @@ export default function Dashboard() {
           {/* Installation Guide Toggle */}
           <button
             onClick={() => setGuideExpanded(!guideExpanded)}
-            className="flex items-center gap-2 w-full py-2.5 px-3 rounded-md transition-colors text-sm"
+            className="flex items-center gap-2 w-full py-2.5 px-3 rounded-xl transition-colors text-sm"
             style={{
-              backgroundColor: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.08)",
+              backgroundColor: C.card,
+              border: `1px solid ${C.borderWeak}`,
             }}
           >
-            <BookOpen className="w-4 h-4 text-info" />
-            <span className="text-white font-medium">Skill Installation Guide</span>
-            <span className="text-xs ml-1" style={{ color: "rgba(255,255,255,0.50)" }}>— Set up AI agents to mine factors</span>
+            <BookOpen className="w-4 h-4" style={{ color: C.primary }} />
+            <span className="font-medium" style={{ color: C.text1 }}>Skill Installation Guide</span>
+            <span className="text-xs ml-1" style={{ color: C.text2 }}>— Set up AI agents to mine factors</span>
             <div className="ml-auto">
-              {guideExpanded ? <ChevronUp className="w-4 h-4" style={{ color: "rgba(255,255,255,0.30)" }} /> : <ChevronDown className="w-4 h-4" style={{ color: "rgba(255,255,255,0.30)" }} />}
+              {guideExpanded ? <ChevronUp className="w-4 h-4" style={{ color: C.text3 }} /> : <ChevronDown className="w-4 h-4" style={{ color: C.text3 }} />}
             </div>
           </button>
 
           {guideExpanded && (
             <div className="space-y-3">
               {/* Tab selector */}
-              <div className="flex gap-1 p-1 rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: C.card, border: `1px solid ${C.borderWeak}` }}>
                 {installSteps.map((guide) => (
                   <button
                     key={guide.id}
                     onClick={() => setActiveGuide(guide.id)}
-                    className="flex-1 py-1.5 px-3 rounded text-xs font-medium transition-all"
+                    className="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all duration-250"
                     style={{
-                      backgroundColor: activeGuide === guide.id ? "rgba(197, 255, 74, 0.10)" : "transparent",
-                      color: activeGuide === guide.id ? "#C5FF4A" : "rgba(255,255,255,0.50)",
-                      border: activeGuide === guide.id ? "1px solid rgba(197, 255, 74, 0.20)" : "1px solid transparent",
+                      backgroundColor: activeGuide === guide.id ? C.primaryDim : "transparent",
+                      color: activeGuide === guide.id ? "#4d94ff" : C.text2,
+                      border: activeGuide === guide.id ? `1px solid ${C.primaryBorder}` : "1px solid transparent",
                     }}
                   >
                     {guide.title}
@@ -298,21 +321,21 @@ export default function Dashboard() {
                 .filter((g) => g.id === activeGuide)
                 .map((guide) => (
                   <div key={guide.id} className="space-y-2">
-                    <div className="rounded-lg overflow-hidden" style={{ backgroundColor: "#080808", border: "1px solid rgba(255,255,255,0.10)" }}>
-                      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)", backgroundColor: "rgba(255,255,255,0.03)" }}>
-                        <Terminal className="w-3.5 h-3.5" style={{ color: "#C5FF4A" }} />
-                        <span className="text-xs font-mono" style={{ color: "rgba(255,255,255,0.50)" }}>terminal</span>
+                    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: C.bg0, border: `1px solid ${C.border}` }}>
+                      <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${C.borderWeak}`, backgroundColor: C.card }}>
+                        <Terminal className="w-3.5 h-3.5" style={{ color: C.primary }} />
+                        <span className="text-xs font-mono" style={{ color: C.text2 }}>terminal</span>
                       </div>
                       <div className="p-3 space-y-1">
                         {guide.steps.map((step, idx) => (
                           <div key={idx} className="flex items-start gap-2 group">
                             <code className="text-xs font-mono flex-1">
                               {step.startsWith("#") ? (
-                                <span style={{ color: "rgba(255,255,255,0.30)" }}>{step}</span>
+                                <span style={{ color: C.text3 }}>{step}</span>
                               ) : (
                                 <>
-                                  <span style={{ color: "#C5FF4A" }}>$ </span>
-                                  <span className="text-info">{step}</span>
+                                  <span style={{ color: C.primary }}>$ </span>
+                                  <span style={{ color: C.text1 }}>{step}</span>
                                 </>
                               )}
                             </code>
@@ -325,21 +348,21 @@ export default function Dashboard() {
                         ))}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs px-1" style={{ color: "rgba(255,255,255,0.50)" }}>
+                    <div className="flex items-center gap-2 text-xs px-1" style={{ color: C.text2 }}>
                       <ExternalLink className="w-3 h-3" />
                       <span>Full documentation at</span>
-                      <span className="font-mono" style={{ color: "#C5FF4A", cursor: "pointer" }}>docs.alphaforge.io/skills/{guide.id}</span>
+                      <span className="font-mono" style={{ color: "#4d94ff", cursor: "pointer" }}>docs.alphaforge.io/skills/{guide.id}</span>
                     </div>
                   </div>
                 ))}
 
               {/* Quick start summary */}
-              <div className="rounded-md p-3" style={{ backgroundColor: "rgba(197, 255, 74, 0.04)", border: "1px solid rgba(197, 255, 74, 0.12)" }}>
-                <div className="text-xs font-medium mb-1.5" style={{ color: "#C5FF4A" }}>Quick Start</div>
-                <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: "rgba(255,255,255,0.50)" }}>
+              <div className="rounded-xl p-3" style={{ backgroundColor: C.primaryDim, border: `1px solid ${C.primaryBorder}` }}>
+                <div className="text-xs font-medium mb-1.5" style={{ color: "#4d94ff" }}>Quick Start</div>
+                <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: C.text2 }}>
                   <li>Install the AlphaForge skill in your preferred AI coding agent</li>
                   <li>Configure your API key in the account settings page</li>
-                  <li>Start a conversation: <code className="font-mono px-1 rounded" style={{ color: "#C5FF4A", backgroundColor: "rgba(255,255,255,0.05)" }}>"Mine alpha factors for BTC/USDT on Binance"</code></li>
+                  <li>Start a conversation: <code className="font-mono px-1 rounded" style={{ color: "#4d94ff", backgroundColor: C.card }}>"Mine alpha factors for BTC/USDT on Binance"</code></li>
                   <li>The agent will generate factors, backtest, and submit results automatically</li>
                 </ol>
               </div>
@@ -350,35 +373,34 @@ export default function Dashboard() {
 
       {/* Two Column Layout — Epoch emphasized, Activity de-emphasized */}
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Current Epoch Card — EMPHASIZED: 2 columns, accent border, larger typography */}
+        {/* Current Epoch Card — EMPHASIZED */}
         <div
           className="katana-card lg:col-span-2"
           style={{
-            borderColor: "rgba(197, 255, 74, 0.15)",
-            background: "linear-gradient(135deg, rgba(197,255,74,0.04) 0%, rgba(255,255,255,0.02) 100%)",
+            borderColor: C.primaryBorder,
+            background: `linear-gradient(135deg, ${C.primaryDim} 0%, ${C.card} 100%)`,
           }}
         >
-          <div className="p-5 pb-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="p-5 pb-4" style={{ borderBottom: `1px solid ${C.borderWeak}` }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ backgroundColor: "rgba(197,255,74,0.10)" }}>
-                  <Trophy className="w-4.5 h-4.5" style={{ color: "#C5FF4A" }} />
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: C.primaryDim }}>
+                  <Trophy className="w-4.5 h-4.5" style={{ color: C.primary }} />
                 </div>
                 <div>
-                  <span className="text-lg font-semibold text-white">Current Epoch</span>
+                  <span className="text-lg font-semibold" style={{ color: C.text1 }}>Current Epoch</span>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs font-mono" style={{ color: "#C5FF4A" }}>{currentEpoch.id}</span>
-                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono tracking-[0.15em]" style={{ backgroundColor: "rgba(197,255,74,0.12)", color: "#C5FF4A" }}>LIVE</span>
+                    <span className="text-xs font-mono" style={{ color: "#4d94ff" }}>{currentEpoch.id}</span>
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em]" style={{ backgroundColor: C.primaryDim, color: "#4d94ff" }}>LIVE</span>
                   </div>
                 </div>
               </div>
               <Link href="/leaderboard">
                 <Button
-                  variant="outline"
-                  className="gap-2"
+                  className="gap-2 rounded-full"
                   style={{
-                    borderColor: "rgba(197, 255, 74, 0.25)",
-                    color: "#C5FF4A",
+                    backgroundColor: C.primary,
+                    color: "#ffffff",
                   }}
                 >
                   View Leaderboard
@@ -391,36 +413,36 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
                 <div className="label-upper mb-2">Prize Pool</div>
-                <div className="stat-value text-2xl font-bold" style={{ color: "#C5FF4A" }}>{currentEpoch.totalPool}</div>
-                <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.40)" }}>distributed proportionally</div>
+                <div className="stat-value text-2xl font-bold" style={{ color: C.success }}>{currentEpoch.totalPool}</div>
+                <div className="text-xs mt-1" style={{ color: C.text3 }}>distributed proportionally</div>
               </div>
               <div>
                 <div className="label-upper mb-2">Time Left</div>
-                <div className="stat-value text-2xl font-bold" style={{ color: "rgb(248,113,113)" }}>{currentEpoch.timeRemaining}</div>
-                <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.40)" }}>until epoch ends</div>
+                <div className="stat-value text-2xl font-bold" style={{ color: C.danger }}>{currentEpoch.timeRemaining}</div>
+                <div className="text-xs mt-1" style={{ color: C.text3 }}>until epoch ends</div>
               </div>
               <div>
                 <div className="label-upper mb-2">Qualified</div>
-                <div className="stat-value text-2xl font-bold text-white">{currentEpoch.qualifiedFactors} <span className="text-base font-normal" style={{ color: "rgba(255,255,255,0.40)" }}>/ {currentEpoch.totalSubmissions}</span></div>
-                <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.40)" }}>factors qualified</div>
+                <div className="stat-value text-2xl font-bold" style={{ color: C.text1 }}>{currentEpoch.qualifiedFactors} <span className="text-base font-normal" style={{ color: C.text3 }}>/ {currentEpoch.totalSubmissions}</span></div>
+                <div className="text-xs mt-1" style={{ color: C.text3 }}>factors qualified</div>
               </div>
               <div>
                 <div className="label-upper mb-2">Scoring</div>
-                <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.50)" }}>Ranking by OS (Out-of-Sample) performance. Rewards distributed proportionally to composite score.</div>
+                <div className="text-xs leading-relaxed" style={{ color: C.text2 }}>Ranking by OS (Out-of-Sample) performance. Rewards distributed proportionally to composite score.</div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Recent Activity — DE-EMPHASIZED: 1 column, muted styling, compact list */}
+        {/* Recent Activity — DE-EMPHASIZED */}
         <div
           className="katana-card lg:col-span-1"
-          style={{ borderColor: "rgba(255,255,255,0.06)" }}
+          style={{ borderColor: C.borderWeak }}
         >
-          <div className="p-4 pb-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="p-4 pb-3" style={{ borderBottom: `1px solid ${C.borderWeak}` }}>
             <div className="flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5" style={{ color: "rgba(255,255,255,0.30)" }} />
-              <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.60)" }}>Recent Activity</span>
+              <Activity className="w-3.5 h-3.5" style={{ color: C.text3 }} />
+              <span className="text-sm font-medium" style={{ color: C.text2 }}>Recent Activity</span>
             </div>
           </div>
           <div className="px-3 pb-3">
@@ -428,20 +450,20 @@ export default function Dashboard() {
               {recentActivity.slice(0, 6).map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-2.5 py-2 px-2 rounded-md transition-colors"
+                  className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200"
                   style={{ cursor: "default" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.03)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.card; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
                 >
                   <div
                     className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+                    style={{ backgroundColor: C.card }}
                   >
                     <span style={{ fontSize: "10px" }}>{iconMap[item.icon]}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs leading-snug block truncate" style={{ color: "rgba(255,255,255,0.60)" }}>{item.message}</span>
-                    <span className="text-[10px] font-mono" style={{ color: "rgba(255,255,255,0.25)" }}>{item.time}</span>
+                    <span className="text-xs leading-snug block truncate" style={{ color: C.text2 }}>{item.message}</span>
+                    <span className="text-[10px] font-mono" style={{ color: C.text3 }}>{item.time}</span>
                   </div>
                 </div>
               ))}
