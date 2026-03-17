@@ -41,32 +41,20 @@ import {
   Sparkles,
 } from "lucide-react";
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
+import { useKatanaColors } from "@/hooks/useKatanaColors";
 
-/* ── color tokens ── */
-const C = {
-  bg0: "#0d111c",
-  bg1: "#101631",
-  card: "rgba(236,238,243,0.04)",
-  cardHover: "rgba(236,238,243,0.06)",
-  borderWeak: "rgba(236,238,243,0.08)",
-  border: "rgba(236,238,243,0.12)",
-  text1: "rgba(236,238,243,0.92)",
-  text2: "rgba(236,238,243,0.48)",
-  text3: "rgba(236,238,243,0.32)",
-  primary: "#0058ff",
-  primaryLight: "#4d94ff",
-  primaryDim: "rgba(0,88,255,0.12)",
-  primaryBorder: "rgba(0,88,255,0.30)",
-  success: "#00ffc2",
-  successDim: "rgba(0,255,194,0.10)",
-  successBorder: "rgba(0,255,194,0.20)",
-  danger: "#f12211",
-  dangerDim: "rgba(241,34,17,0.10)",
-  accent: "#d7ff00",
-  accentDim: "rgba(215,255,0,0.10)",
-  purple: "#a268ff",
-  orange: "#db5e05",
-};
+/* ── color tokens (derived from theme) ── */
+function useC() {
+  const k = useKatanaColors();
+  return {
+    ...k,
+    primaryBorder: k.isDark ? "rgba(0,88,255,0.30)" : "rgba(0,88,255,0.20)",
+    successDim: k.isDark ? "rgba(0,255,194,0.10)" : "rgba(0,200,150,0.08)",
+    successBorder: k.isDark ? "rgba(0,255,194,0.20)" : "rgba(0,200,150,0.15)",
+    dangerDim: k.isDark ? "rgba(241,34,17,0.10)" : "rgba(241,34,17,0.06)",
+    accentDim: k.isDark ? "rgba(215,255,0,0.10)" : "rgba(215,255,0,0.06)",
+  };
+}
 
 const statCards = [
   { label: "TOTAL FACTORS", value: dashboardStats.totalFactors.toString(), sub: `${dashboardStats.activeFactors} active`, icon: FlaskConical, highlight: false },
@@ -77,12 +65,12 @@ const statCards = [
 ];
 
 const iconMap: Record<string, React.ReactNode> = {
-  plus: <Zap className="w-3.5 h-3.5" style={{ color: C.primary }} />,
-  check: <CheckCircle className="w-3.5 h-3.5" style={{ color: C.success }} />,
-  trophy: <Award className="w-3.5 h-3.5" style={{ color: C.orange }} />,
-  activity: <Activity className="w-3.5 h-3.5" style={{ color: C.primary }} />,
-  x: <XCircle className="w-3.5 h-3.5" style={{ color: C.danger }} />,
-  user: <Users className="w-3.5 h-3.5" style={{ color: C.purple }} />,
+  plus: <Zap className="w-3.5 h-3.5" style={{ color: "#0058ff" }} />,
+  check: <CheckCircle className="w-3.5 h-3.5" style={{ color: "#00ffc2" }} />,
+  trophy: <Award className="w-3.5 h-3.5" style={{ color: "#db5e05" }} />,
+  activity: <Activity className="w-3.5 h-3.5" style={{ color: "#0058ff" }} />,
+  x: <XCircle className="w-3.5 h-3.5" style={{ color: "#f12211" }} />,
+  user: <Users className="w-3.5 h-3.5" style={{ color: "#a268ff" }} />,
 };
 
 const agentSkills = [
@@ -126,6 +114,7 @@ const installSteps = [
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const C = useC();
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -139,6 +128,7 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export default function Dashboard() {
+  const C = useC();
   const [guideExpanded, setGuideExpanded] = useState(!isAnyConnected);
   const [activeGuide, setActiveGuide] = useState("codex");
   const headerRef = useRef<HTMLDivElement>(null);

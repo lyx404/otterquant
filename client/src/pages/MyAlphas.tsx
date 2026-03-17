@@ -53,32 +53,20 @@ import {
   submissionStats,
   type Factor,
 } from "@/lib/mockData";
+import { useKatanaColors } from "@/hooks/useKatanaColors";
 
-/* ── color tokens ── */
-const C = {
-  bg0: "#0d111c",
-  bg1: "#101631",
-  card: "rgba(236,238,243,0.04)",
-  cardHover: "rgba(236,238,243,0.06)",
-  borderWeak: "rgba(236,238,243,0.08)",
-  border: "rgba(236,238,243,0.12)",
-  text1: "rgba(236,238,243,0.92)",
-  text2: "rgba(236,238,243,0.48)",
-  text3: "rgba(236,238,243,0.32)",
-  primary: "#0058ff",
-  primaryLight: "#4d94ff",
-  primaryDim: "rgba(0,88,255,0.12)",
-  primaryBorder: "rgba(0,88,255,0.30)",
-  success: "#00ffc2",
-  successDim: "rgba(0,255,194,0.10)",
-  successBorder: "rgba(0,255,194,0.20)",
-  danger: "#f12211",
-  dangerDim: "rgba(241,34,17,0.10)",
-  dangerBorder: "rgba(241,34,17,0.20)",
-  purple: "#a268ff",
-  orange: "#db5e05",
-  popover: "#131a2e",
-};
+/* ── color tokens (derived from theme) ── */
+function useC() {
+  const k = useKatanaColors();
+  return {
+    ...k,
+    primaryBorder: k.isDark ? "rgba(0,88,255,0.30)" : "rgba(0,88,255,0.20)",
+    successDim: k.isDark ? "rgba(0,255,194,0.10)" : "rgba(0,200,150,0.08)",
+    successBorder: k.isDark ? "rgba(0,255,194,0.20)" : "rgba(0,200,150,0.15)",
+    dangerDim: k.isDark ? "rgba(241,34,17,0.10)" : "rgba(241,34,17,0.06)",
+    dangerBorder: k.isDark ? "rgba(241,34,17,0.20)" : "rgba(241,34,17,0.12)",
+  };
+}
 
 type AlphaRow = Factor & {
   submissionStatus: "unsubmitted" | "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
@@ -125,16 +113,17 @@ type SortDir = "asc" | "desc" | null;
  */
 const statusConfig: Record<string, { label: string; bg: string; color: string; border: string }> = {
   unsubmitted: { label: "UNSUBMITTED", bg: "rgba(219,94,5,0.10)", color: "#db5e05", border: "rgba(219,94,5,0.25)" },
-  queued: { label: "IN PROGRESS", bg: C.primaryDim, color: "#4d94ff", border: C.primaryBorder },
-  backtesting: { label: "IN PROGRESS", bg: C.primaryDim, color: "#4d94ff", border: C.primaryBorder },
-  is_testing: { label: "IN PROGRESS", bg: C.primaryDim, color: "#4d94ff", border: C.primaryBorder },
-  os_testing: { label: "IN PROGRESS", bg: C.primaryDim, color: "#4d94ff", border: C.primaryBorder },
+  queued: { label: "IN PROGRESS", bg: "rgba(0,88,255,0.12)", color: "#4d94ff", border: "rgba(0,88,255,0.30)" },
+  backtesting: { label: "IN PROGRESS", bg: "rgba(0,88,255,0.12)", color: "#4d94ff", border: "rgba(0,88,255,0.30)" },
+  is_testing: { label: "IN PROGRESS", bg: "rgba(0,88,255,0.12)", color: "#4d94ff", border: "rgba(0,88,255,0.30)" },
+  os_testing: { label: "IN PROGRESS", bg: "rgba(0,88,255,0.12)", color: "#4d94ff", border: "rgba(0,88,255,0.30)" },
   passed: { label: "PASSED", bg: "rgba(0,255,194,0.10)", color: "#00ffc2", border: "rgba(0,255,194,0.20)" },
   failed: { label: "FAILED", bg: "rgba(241,34,17,0.10)", color: "#f12211", border: "rgba(241,34,17,0.20)" },
   rejected: { label: "FAILED", bg: "rgba(241,34,17,0.10)", color: "#f12211", border: "rgba(241,34,17,0.20)" },
 };
 
 export default function MyAlphas() {
+  const C = useC();
   const [sortKey, setSortKey] = useState<string>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
@@ -405,24 +394,17 @@ export default function MyAlphas() {
       {visibleCols.map((col) => (
         <col key={col.key} style={{ width: col.width }} />
       ))}
-      <col style={{ width: "110px" }} /> {/* Status — pinned */}
-      <col style={{ width: "40px" }} /> {/* Actions — pinned */}
+      <col style={{ width: "180px" }} /> {/* Status + Actions — pinned together */}
     </colgroup>
   );
 
-  /* ── Pinned cell styles ── */
-  const pinnedStatusStyle: React.CSSProperties = {
-    position: "sticky",
-    right: "40px",
-    zIndex: 2,
-    background: C.bg1,
-    boxShadow: "-4px 0 8px rgba(0,0,0,0.3)",
-  };
-  const pinnedActionStyle: React.CSSProperties = {
+  /* ── Pinned cell style — single combined column ── */
+  const pinnedRightStyle: React.CSSProperties = {
     position: "sticky",
     right: 0,
     zIndex: 2,
-    background: C.bg1,
+    background: C.bg0,
+    boxShadow: "-6px 0 12px rgba(0,0,0,0.4)",
   };
 
   return (
@@ -655,25 +637,21 @@ export default function MyAlphas() {
                     </span>
                   </th>
                 ))}
-                {/* Pinned: Status header */}
+                {/* Pinned: Status + Actions header (combined) */}
                 <th
-                  className="px-3 py-2.5 text-left cursor-pointer transition-all duration-200"
+                  className="px-4 py-2.5 text-left cursor-pointer transition-all duration-200"
                   style={{
-                    ...pinnedStatusStyle,
-                    backgroundColor: sortKey === "submissionStatus" ? C.primaryDim : C.card,
+                    ...pinnedRightStyle,
+                    background: sortKey === "submissionStatus" ? "rgba(0,88,255,0.08)" : C.bg0,
                     borderLeft: `1px solid ${C.borderWeak}`,
                   }}
                   onClick={() => handleSort("submissionStatus")}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = sortKey === "submissionStatus" ? "rgba(0,88,255,0.16)" : C.cardHover; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = sortKey === "submissionStatus" ? C.primaryDim : C.card; }}
                 >
                   <span className="flex items-center gap-1.5 label-upper whitespace-nowrap select-none">
                     Status
                     <SortIcon colKey="submissionStatus" />
                   </span>
                 </th>
-                {/* Pinned: Actions header */}
-                <th className="py-2.5" style={{ ...pinnedActionStyle, backgroundColor: C.card }} />
               </tr>
             </thead>
             {/* Body — no height limit, rows flow naturally */}
@@ -687,12 +665,12 @@ export default function MyAlphas() {
                     e.currentTarget.style.backgroundColor = C.card;
                     // Update pinned cells bg
                     const pinned = e.currentTarget.querySelectorAll<HTMLElement>("[data-pinned]");
-                    pinned.forEach(el => { el.style.backgroundColor = C.card; });
+                    pinned.forEach(el => { el.style.background = "rgba(13,17,28,0.95)"; });
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = "transparent";
                     const pinned = e.currentTarget.querySelectorAll<HTMLElement>("[data-pinned]");
-                    pinned.forEach(el => { el.style.backgroundColor = C.bg1; });
+                    pinned.forEach(el => { el.style.background = C.bg0; });
                   }}
                 >
                   <td className="px-2 py-2.5">
@@ -710,34 +688,37 @@ export default function MyAlphas() {
                       {renderCell(row, col.key)}
                     </td>
                   ))}
-                  {/* Pinned: Status */}
+                  {/* Pinned: Status + Actions (combined) */}
                   <td
-                    className="px-3 py-2.5"
+                    className="px-4 py-2.5"
                     data-pinned="true"
                     style={{
-                      ...pinnedStatusStyle,
+                      ...pinnedRightStyle,
                       borderLeft: `1px solid ${C.borderWeak}`,
                     }}
                   >
-                    {renderStatusBadge(row.submissionStatus)}
-                  </td>
-                  {/* Pinned: Actions */}
-                  <td
-                    className="py-2.5 text-center"
-                    data-pinned="true"
-                    style={pinnedActionStyle}
-                  >
-                    <Link href={`/alphas/${row.id}`}>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: C.primaryLight }}>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </Link>
+                    <div className="flex items-center justify-between gap-3">
+                      {renderStatusBadge(row.submissionStatus)}
+                      <Link href={`/alphas/${row.id}`}>
+                        <button
+                          className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-md transition-all duration-200 whitespace-nowrap opacity-0 group-hover:opacity-100"
+                          style={{
+                            color: C.text2,
+                            border: `1px solid ${C.borderWeak}`,
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.text1; e.currentTarget.style.backgroundColor = "rgba(236,238,243,0.04)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.borderWeak; e.currentTarget.style.color = C.text2; e.currentTarget.style.backgroundColor = "transparent"; }}
+                        >
+                          View
+                        </button>
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={visibleCols.length + 4} className="text-center py-12 text-sm" style={{ color: C.text2 }}>
+                  <td colSpan={visibleCols.length + 3} className="text-center py-12 text-sm" style={{ color: C.text2 }}>
                     No alphas match the current filters.
                   </td>
                 </tr>

@@ -26,30 +26,20 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { exchanges, type Exchange } from "@/lib/mockData";
+import { useKatanaColors } from "@/hooks/useKatanaColors";
 
-/* ── color tokens ── */
-const C = {
-  bg0: "#0d111c",
-  bg1: "#101631",
-  card: "rgba(236,238,243,0.04)",
-  cardHover: "rgba(236,238,243,0.06)",
-  borderWeak: "rgba(236,238,243,0.08)",
-  border: "rgba(236,238,243,0.12)",
-  text1: "rgba(236,238,243,0.92)",
-  text2: "rgba(236,238,243,0.48)",
-  text3: "rgba(236,238,243,0.32)",
-  primary: "#0058ff",
-  primaryLight: "#4d94ff",
-  primaryDim: "rgba(0,88,255,0.12)",
-  primaryBorder: "rgba(0,88,255,0.30)",
-  success: "#00ffc2",
-  successDim: "rgba(0,255,194,0.10)",
-  successBorder: "rgba(0,255,194,0.20)",
-  danger: "#f12211",
-  dangerDim: "rgba(241,34,17,0.10)",
-  purple: "#a268ff",
-  orange: "#db5e05",
-};
+/* ── color tokens (derived from theme) ── */
+function useC() {
+  const k = useKatanaColors();
+  return {
+    ...k,
+    primaryBorder: k.isDark ? "rgba(0,88,255,0.30)" : "rgba(0,88,255,0.20)",
+    successDim: k.isDark ? "rgba(0,255,194,0.10)" : "rgba(0,200,150,0.08)",
+    successBorder: k.isDark ? "rgba(0,255,194,0.20)" : "rgba(0,200,150,0.15)",
+    dangerDim: k.isDark ? "rgba(241,34,17,0.10)" : "rgba(241,34,17,0.06)",
+    dangerBorder: k.isDark ? "rgba(241,34,17,0.20)" : "rgba(241,34,17,0.12)",
+  };
+}
 
 type TabId = "profile" | "api" | "exchanges" | "notifications";
 
@@ -61,6 +51,7 @@ const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
 ];
 
 function CopyBtn({ text }: { text: string }) {
+  const C = useC();
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
@@ -76,6 +67,7 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 export default function Account() {
+  const C = useC();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [showApiKey, setShowApiKey] = useState(false);
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
