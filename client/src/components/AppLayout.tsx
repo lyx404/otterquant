@@ -75,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }`}
       >
         <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
-          <div className="flex h-14 items-center justify-between">
+          <div className="flex h-11 items-center justify-between">
             {/* Logo */}
             <Link href="/">
               <div className="flex items-center gap-2.5 shrink-0">
@@ -125,10 +125,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
               </button>
 
-              {/* User Pill */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent border border-border">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                <span className="text-xs font-mono text-muted-foreground">
+              {/* User Info */}
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-accent border border-border">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
+                  O
+                </div>
+                <span className="text-xs font-medium text-foreground">
                   Otter User
                 </span>
               </div>

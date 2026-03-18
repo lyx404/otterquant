@@ -9,7 +9,7 @@
  */
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
 import {
   FlaskConical,
@@ -34,6 +34,7 @@ import {
   Flame,
   Star,
   Sparkles,
+  Coins,
 } from "lucide-react";
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
 
@@ -107,12 +108,51 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+/* ── Countdown Timer Hook ── */
+function useCountdown(timeStr: string) {
+  // Parse "2d 14h 32m" format into total seconds
+  const parseTime = useCallback((s: string) => {
+    let total = 0;
+    const dMatch = s.match(/(\d+)d/);
+    const hMatch = s.match(/(\d+)h/);
+    const mMatch = s.match(/(\d+)m/);
+    if (dMatch) total += parseInt(dMatch[1]) * 86400;
+    if (hMatch) total += parseInt(hMatch[1]) * 3600;
+    if (mMatch) total += parseInt(mMatch[1]) * 60;
+    return total;
+  }, []);
+
+  const [remaining, setRemaining] = useState(() => parseTime(timeStr));
+
+  useEffect(() => {
+    if (remaining <= 0) return;
+    const timer = setInterval(() => {
+      setRemaining((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [remaining]);
+
+  const days = Math.floor(remaining / 86400);
+  const hours = Math.floor((remaining % 86400) / 3600);
+  const minutes = Math.floor((remaining % 3600) / 60);
+  const seconds = remaining % 60;
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return {
+    display: `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`,
+    isUrgent: remaining < 86400, // less than 1 day
+    remaining,
+  };
+}
+
 export default function Dashboard() {
   const [guideExpanded, setGuideExpanded] = useState(!isAnyConnected);
   const [activeGuide, setActiveGuide] = useState("codex");
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
+  const countdown = useCountdown(currentEpoch.timeRemaining);
 
   useEffect(() => {
     if (!headerRef.current) return;
@@ -160,7 +200,11 @@ export default function Dashboard() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-base font-semibold text-foreground">Current Epoch</span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-primary/10 text-primary border border-primary/20">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-primary/10 text-primary border border-primary/20">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                  </span>
                   LIVE
                 </span>
               </div>
@@ -172,12 +216,17 @@ export default function Dashboard() {
           <div className="flex items-center gap-6 flex-wrap">
             <div className="text-center">
               <div className="label-upper mb-0.5">Prize Pool</div>
-              <div className="stat-value text-base font-bold text-success">{currentEpoch.totalPool}</div>
+              <div className="stat-value text-base font-bold text-amber-500 dark:text-amber-400 inline-flex items-center gap-1.5">
+                <Coins className="w-4 h-4" />
+                {currentEpoch.totalPool}
+              </div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center">
               <div className="label-upper mb-0.5">Time Left</div>
-              <div className="stat-value text-base font-bold text-destructive">{currentEpoch.timeRemaining}</div>
+              <div className={`stat-value text-base font-bold font-mono tabular-nums ${countdown.isUrgent ? "text-destructive animate-pulse" : "text-destructive"}`}>
+                {countdown.display}
+              </div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center">
