@@ -378,20 +378,14 @@ export default function MyAlphas() {
             My Alphas
           </h1>
         </div>
-        <div className="reveal-line mt-2">
-          <p className="text-base text-muted-foreground">
-            {factors.length} alphas &middot; {submissions.filter((s) => s.status === "passed").length} passed &middot; {submissions.filter((s) => ["queued", "backtesting", "is_testing", "os_testing"].includes(s.status)).length} in pipeline
-          </p>
-        </div>
+
       </div>
 
       {/* Pipeline Stats — clickable filter cards */}
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
-          onClick={() => { setCardFilter(cardFilter === "all" ? "all" : "all"); setCardFilter("all"); setPage(1); }}
-          className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-            cardFilter === "all" ? "ring-2 ring-primary border-primary/30" : "hover:border-slate-300 dark:hover:border-slate-600"
-          }`}
+          onClick={() => { setCardFilter("all"); setPage(1); }}
+          className="fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer hover:border-slate-300 dark:hover:border-slate-600"
         >
           <div className="flex items-center gap-2 label-upper mb-2">
             <BarChart3 className="w-3.5 h-3.5" /> Total
@@ -402,7 +396,7 @@ export default function MyAlphas() {
         <button
           onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
           className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-            cardFilter === "passed" ? "ring-2 ring-success border-success/30" : "hover:border-slate-300 dark:hover:border-slate-600"
+            cardFilter === "passed" ? "border-success/40" : "hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-success">
@@ -414,7 +408,7 @@ export default function MyAlphas() {
         <button
           onClick={() => { setCardFilter(cardFilter === "in_progress" ? "all" : "in_progress"); setPage(1); }}
           className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-            cardFilter === "in_progress" ? "ring-2 ring-secondary border-secondary/30" : "hover:border-slate-300 dark:hover:border-slate-600"
+            cardFilter === "in_progress" ? "border-secondary/40" : "hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-secondary">
@@ -426,7 +420,7 @@ export default function MyAlphas() {
         <button
           onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
           className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-            cardFilter === "failed" ? "ring-2 ring-destructive border-destructive/30" : "hover:border-slate-300 dark:hover:border-slate-600"
+            cardFilter === "failed" ? "border-destructive/40" : "hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-destructive">
