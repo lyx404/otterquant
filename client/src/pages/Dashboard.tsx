@@ -185,7 +185,7 @@ export default function Dashboard() {
   const goldGradient = "text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* ═══════════════════════════════════════════
           1. CURRENT EPOCH — Single Banner Entry
           ═══════════════════════════════════════════ */}
@@ -275,16 +275,6 @@ export default function Dashboard() {
           ref={statsRef}
           className="surface-card p-6 cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
         >
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">Portfolio Overview</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-primary transition-colors duration-200">
-              <span>View All</span>
-              <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </div>
-          </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {statCards.map((stat) => {
               const Icon = stat.icon;
