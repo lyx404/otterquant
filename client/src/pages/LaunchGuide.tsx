@@ -102,7 +102,7 @@ export default function LaunchGuide() {
 
   const finishGuide = () => {
     markOnboarded();
-    toast.success("Setup complete! Welcome to AlphaForge.");
+    toast.success("Setup complete! Welcome to Otter.");
     navigate("/");
   };
 
@@ -165,7 +165,7 @@ export default function LaunchGuide() {
             <Zap className="w-4 h-4 text-primary" />
           </div>
           <span className="font-semibold text-base tracking-tight text-foreground">
-            AlphaForge
+            Otter
           </span>
           <span className="text-xs font-mono ml-2 px-2 py-0.5 rounded-full text-primary bg-primary/10 border border-primary/20">
             SETUP
@@ -239,7 +239,7 @@ export default function LaunchGuide() {
                 <div>
                   <h2 className="mb-1 text-foreground">Welcome</h2>
                   <p className="text-sm text-muted-foreground">
-                    Let's set up your AlphaForge workspace. This only takes a minute.
+                    Let's set up your Otter workspace. This only takes a minute.
                   </p>
                 </div>
 
@@ -328,7 +328,7 @@ export default function LaunchGuide() {
                 <div>
                   <h2 className="mb-1 text-foreground">Install Skill</h2>
                   <p className="text-sm text-muted-foreground">
-                    Connect your AI agent to AlphaForge by installing the mining skill. Choose one of the methods below.
+                    Connect your AI agent to Otter by installing the mining skill. Choose one of the methods below.
                   </p>
                 </div>
 
@@ -341,7 +341,7 @@ export default function LaunchGuide() {
                 >
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      Run the following command in your terminal to install the AlphaForge skill package:
+                      Run the following command in your terminal to install the Otter skill package:
                     </p>
                     <CodeBlock code="pip install alphaforge-skill --upgrade" id="pip" copiedCode={copiedCode} onCopy={copyCode} />
                     <p className="text-sm text-muted-foreground">Then configure your API key:</p>
@@ -647,7 +647,7 @@ npm install && npm start`}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold bg-primary text-primary-foreground hover:brightness-110 hover:-translate-y-0.5 transition-all duration-200 ease-in-out btn-bounce"
               >
                 <Rocket className="w-4 h-4" />
-                Launch AlphaForge
+                Launch Otter
               </button>
             )}
           </div>

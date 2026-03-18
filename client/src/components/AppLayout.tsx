@@ -83,7 +83,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Zap className="w-4 h-4 text-primary" />
                 </div>
                 <span className="font-semibold text-base tracking-tight text-foreground">
-                  AlphaForge
+                  Otter
                 </span>
               </div>
             </Link>
@@ -129,7 +129,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent border border-border">
                 <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                 <span className="text-xs font-mono text-muted-foreground">
-                  CryptoQuant_Pro
+                  Otter User
                 </span>
               </div>
             </div>

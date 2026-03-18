@@ -1,5 +1,5 @@
 // ============================================================
-// AlphaForge Mock Data - Terminal Noir Theme
+// Otter Mock Data - Indigo/Sky + Slate Theme
 // All data is simulated for demo purposes
 // ============================================================
 
@@ -216,11 +216,11 @@ export interface Strategy {
 }
 
 export const strategies: Strategy[] = [
-  { id: "STR-001", name: "BTC Alpha Composite", description: "Multi-factor momentum strategy combining RSI cross, volume divergence, and funding rate signals for BTC perpetual futures.", factorCount: 5, market: "CEX", annualReturn: "45.2%", sharpe: 2.31, maxDrawdown: "8.5%", winRate: "62.3%", status: "live", subscribers: 342, author: "AlphaForge Lab", updatedAt: "2026-03-14", tags: ["BTC", "Momentum", "Perpetual"] },
-  { id: "STR-002", name: "DeFi Yield Hunter", description: "Captures alpha from TVL flows, LP dynamics, and gas fee patterns across major DeFi protocols.", factorCount: 4, market: "DEX", annualReturn: "32.8%", sharpe: 1.85, maxDrawdown: "12.3%", winRate: "58.7%", status: "live", subscribers: 189, author: "AlphaForge Lab", updatedAt: "2026-03-12", tags: ["DeFi", "Yield", "LP"] },
-  { id: "STR-003", name: "Cross-Exchange Arb Pro", description: "Exploits price discrepancies between major CEX platforms using spread analysis and order book depth.", factorCount: 3, market: "CEX", annualReturn: "28.5%", sharpe: 3.12, maxDrawdown: "3.2%", winRate: "71.5%", status: "live", subscribers: 567, author: "AlphaForge Lab", updatedAt: "2026-03-15", tags: ["Arbitrage", "Low Risk", "HFT"] },
+  { id: "STR-001", name: "BTC Alpha Composite", description: "Multi-factor momentum strategy combining RSI cross, volume divergence, and funding rate signals for BTC perpetual futures.", factorCount: 5, market: "CEX", annualReturn: "45.2%", sharpe: 2.31, maxDrawdown: "8.5%", winRate: "62.3%", status: "live", subscribers: 342, author: "Otter Lab", updatedAt: "2026-03-14", tags: ["BTC", "Momentum", "Perpetual"] },
+  { id: "STR-002", name: "DeFi Yield Hunter", description: "Captures alpha from TVL flows, LP dynamics, and gas fee patterns across major DeFi protocols.", factorCount: 4, market: "DEX", annualReturn: "32.8%", sharpe: 1.85, maxDrawdown: "12.3%", winRate: "58.7%", status: "live", subscribers: 189, author: "Otter Lab", updatedAt: "2026-03-12", tags: ["DeFi", "Yield", "LP"] },
+  { id: "STR-003", name: "Cross-Exchange Arb Pro", description: "Exploits price discrepancies between major CEX platforms using spread analysis and order book depth.", factorCount: 3, market: "CEX", annualReturn: "28.5%", sharpe: 3.12, maxDrawdown: "3.2%", winRate: "71.5%", status: "live", subscribers: 567, author: "Otter Lab", updatedAt: "2026-03-15", tags: ["Arbitrage", "Low Risk", "HFT"] },
   { id: "STR-004", name: "Altcoin Rotation", description: "Systematic rotation between top 50 altcoins based on momentum, whale tracking, and on-chain metrics.", factorCount: 6, market: "Mixed", annualReturn: "68.3%", sharpe: 1.52, maxDrawdown: "22.5%", winRate: "55.2%", status: "backtested", subscribers: 98, author: "Community", updatedAt: "2026-03-10", tags: ["Altcoin", "Rotation", "High Vol"] },
-  { id: "STR-005", name: "Stable Yield Optimizer", description: "Low-risk strategy focusing on funding rate arbitrage and basis trading with controlled exposure.", factorCount: 2, market: "CEX", annualReturn: "15.8%", sharpe: 4.25, maxDrawdown: "1.8%", winRate: "78.9%", status: "live", subscribers: 891, author: "AlphaForge Lab", updatedAt: "2026-03-15", tags: ["Low Risk", "Stable", "Funding"] },
+  { id: "STR-005", name: "Stable Yield Optimizer", description: "Low-risk strategy focusing on funding rate arbitrage and basis trading with controlled exposure.", factorCount: 2, market: "CEX", annualReturn: "15.8%", sharpe: 4.25, maxDrawdown: "1.8%", winRate: "78.9%", status: "live", subscribers: 891, author: "Otter Lab", updatedAt: "2026-03-15", tags: ["Low Risk", "Stable", "Funding"] },
   { id: "STR-006", name: "MEV Protection Alpha", description: "Generates alpha by detecting and avoiding MEV attacks while capturing sandwich-resistant opportunities.", factorCount: 3, market: "DEX", annualReturn: "22.1%", sharpe: 1.68, maxDrawdown: "10.5%", winRate: "60.1%", status: "new", subscribers: 45, author: "Community", updatedAt: "2026-03-08", tags: ["MEV", "Protection", "DEX"] },
 ];
 

@@ -88,7 +88,7 @@ const installSteps = [
     steps: [
       'npx alphaforge-skill install --target cursor',
       '# Or: add to .cursor/skills/ directory',
-      'cursor settings → Skills → Enable AlphaForge',
+      'cursor settings → Skills → Enable Otter',
     ],
   },
 ];
@@ -353,7 +353,7 @@ export default function Dashboard() {
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-foreground">Get Started — Connect Your First AI Agent</div>
-                    <div className="text-xs text-muted-foreground">Install the AlphaForge skill to start mining factors automatically</div>
+                    <div className="text-xs text-muted-foreground">Install the Otter skill to start mining factors automatically</div>
                   </div>
                 </div>
               </div>
@@ -420,7 +420,7 @@ export default function Dashboard() {
                 <div className="rounded-2xl p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20">
                   <div className="text-xs font-medium mb-1.5 text-primary">Quick Start</div>
                   <ol className="text-xs space-y-1 list-decimal list-inside text-muted-foreground">
-                    <li>Install the AlphaForge skill in your preferred AI coding agent</li>
+                    <li>Install the Otter skill in your preferred AI coding agent</li>
                     <li>Configure your API key in the account settings page</li>
                     <li>Start a conversation: <code className="font-mono px-1 rounded-lg text-primary bg-accent">"Mine alpha factors for BTC/USDT on Binance"</code></li>
                     <li>The agent will generate factors, backtest, and submit results automatically</li>

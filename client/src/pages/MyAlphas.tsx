@@ -631,7 +631,7 @@ export default function MyAlphas() {
             <div className="flex items-center gap-1.5">
               <span>Rows</span>
               <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
-                <SelectTrigger className="h-6 w-14 text-xs rounded-lg bg-transparent border-border">
+                <SelectTrigger className="h-6 w-16 text-xs rounded-lg bg-transparent border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
