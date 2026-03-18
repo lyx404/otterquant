@@ -194,8 +194,15 @@ export default function MyAlphas() {
     });
   }, [filtered, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
+  /* ── Starred items pinned to top ── */
+  const starSorted = useMemo(() => {
+    const starredItems = sorted.filter((r) => starred.has(r.id));
+    const unstarredItems = sorted.filter((r) => !starred.has(r.id));
+    return [...starredItems, ...unstarredItems];
+  }, [sorted, starred]);
+
+  const totalPages = Math.max(1, Math.ceil(starSorted.length / pageSize));
+  const paginated = starSorted.slice((page - 1) * pageSize, page * pageSize);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -351,7 +358,6 @@ export default function MyAlphas() {
   const ColGroup = () => (
     <colgroup>
       <col style={{ width: "36px" }} />
-      <col style={{ width: "28px" }} />
       {visibleCols.map((col) => (
         <col key={col.key} style={{ width: col.width }} />
       ))}
@@ -557,10 +563,9 @@ export default function MyAlphas() {
             <ColGroup />
             <thead>
               <tr className="bg-accent dark:bg-slate-900/50">
-                <th className="px-2 py-2.5 text-left">
-                  <span className="text-[10px] font-mono text-muted-foreground">#</span>
+                <th className="px-2 py-2.5 text-center">
+                  <Star className="w-3 h-3 text-muted-foreground mx-auto" />
                 </th>
-                <th className="py-2.5" />
                 {visibleCols.map((col) => (
                   <th
                     key={col.key}
@@ -583,16 +588,11 @@ export default function MyAlphas() {
               {paginated.map((row, i) => (
                 <tr
                   key={row.id}
-                  className="transition-all duration-200 ease-in-out group border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/30"
+                  className={`transition-all duration-200 ease-in-out group border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
                 >
-                  <td className="px-2 py-2.5">
-                    <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
-                      {(page - 1) * pageSize + i + 1}
-                    </span>
-                  </td>
-                  <td className="py-2.5">
-                    <button onClick={() => toggleStar(row.id)}>
-                      <Star className={`w-3.5 h-3.5 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
+                  <td className="px-2 py-2.5 text-center">
+                    <button onClick={() => toggleStar(row.id)} className="transition-transform duration-200 hover:scale-125">
+                      <Star className={`w-3.5 h-3.5 transition-colors duration-200 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`} />
                     </button>
                   </td>
                   {visibleCols.map((col) => (
@@ -612,7 +612,7 @@ export default function MyAlphas() {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={visibleCols.length + 3} className="text-center py-12 text-sm text-muted-foreground">
+                  <td colSpan={visibleCols.length + 2} className="text-center py-12 text-sm text-muted-foreground">
                     No alphas match the current filters.
                   </td>
                 </tr>
@@ -625,7 +625,7 @@ export default function MyAlphas() {
         <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="font-mono tabular-nums">
-              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
+              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, starSorted.length)} of {starSorted.length}
             </span>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-1.5">

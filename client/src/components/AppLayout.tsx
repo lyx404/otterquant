@@ -127,7 +127,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
               {/* User Info — clickable, links to Account page */}
               <Link href="/account">
-                <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full border cursor-pointer transition-all duration-200 ease-in-out ${
+                <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full border cursor-pointer transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-sm ${
                   isActive("/account")
                     ? "bg-primary/10 border-primary/20"
                     : "bg-accent border-border hover:bg-slate-200 dark:hover:bg-slate-800 hover:border-primary/20"
