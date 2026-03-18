@@ -1,12 +1,10 @@
 /*
  * Leaderboard — Indigo/Sky + Slate Design System
- * Cards: rounded-2xl, p-6 | Buttons: rounded-full | Inputs: rounded-lg
- * Primary: Indigo | Secondary: Sky | Success: Emerald | Danger: Red
- * Top 1-3: Trophy icons (gold/silver/bronze) per reference image
- * Reward: rich gold gradient text | USDT in table header
+ * Top 1-3: Refined trophy SVGs with metallic sheen (gold/silver/bronze)
+ * Top 1-3 text: username & factor in matching gold/silver/bronze colors
+ * Reward: rich gold gradient text, USDT only in table header
  * Pure Tailwind classes — zero inline styles
  */
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -68,73 +66,125 @@ function useCountdown(endDateStr: string, isActive: boolean) {
   return timeLeft;
 }
 
-/* ── Trophy SVG components matching reference image ── */
+/* ── Strip " USDT" from reward strings ── */
+function stripUSDT(reward: string) {
+  return reward.replace(/\s*USDT$/i, "");
+}
+
+/* ── Refined Trophy SVGs with metallic sheen & highlights ── */
 const GoldTrophy = () => (
-  <div className="w-10 h-10 flex items-center justify-center relative">
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Trophy cup */}
-      <path d="M8 6h16v2c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z" fill="url(#gold-grad)" />
-      {/* Handles */}
-      <path d="M8 8H5c0 3 1.5 5.5 3 6.5" stroke="url(#gold-grad)" strokeWidth="1.5" fill="none" />
-      <path d="M24 8h3c0 3-1.5 5.5-3 6.5" stroke="url(#gold-grad)" strokeWidth="1.5" fill="none" />
-      {/* Stem & base */}
-      <rect x="14" y="18" width="4" height="4" fill="url(#gold-grad)" />
-      <rect x="10" y="22" width="12" height="2" rx="1" fill="url(#gold-grad)" />
-      {/* Number badge */}
-      <circle cx="16" cy="12" r="5" fill="#1a1a2e" stroke="url(#gold-grad)" strokeWidth="1" />
-      <text x="16" y="14.5" textAnchor="middle" fill="url(#gold-grad)" fontSize="7" fontWeight="bold" fontFamily="monospace">1</text>
+  <div className="w-10 h-10 flex items-center justify-center">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="gold-grad" x1="0" y1="0" x2="32" y2="32">
-          <stop offset="0%" stopColor="#F6D365" />
+        <linearGradient id="gold-body" x1="8" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FDE68A" />
+          <stop offset="25%" stopColor="#F6D365" />
           <stop offset="50%" stopColor="#D4A843" />
+          <stop offset="75%" stopColor="#B8860B" />
+          <stop offset="100%" stopColor="#92700A" />
+        </linearGradient>
+        <linearGradient id="gold-shine" x1="12" y1="4" x2="20" y2="18" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFDE7" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#FFFDE7" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="gold-base" x1="10" y1="24" x2="26" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#D4A843" />
+          <stop offset="50%" stopColor="#F6D365" />
           <stop offset="100%" stopColor="#B8860B" />
         </linearGradient>
       </defs>
+      {/* Cup body */}
+      <path d="M10 6h16v3c0 5.5-3.2 9.5-8 11-4.8-1.5-8-5.5-8-11V6z" fill="url(#gold-body)" />
+      {/* Sheen highlight */}
+      <path d="M12 6h5v2c0 4-1.5 7-3 8.5C12.5 14 11 11 11 8V6z" fill="url(#gold-shine)" />
+      {/* Left handle */}
+      <path d="M10 8H6.5c0 3.5 1.8 6 3.5 7" stroke="url(#gold-body)" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      {/* Right handle */}
+      <path d="M26 8h3.5c0 3.5-1.8 6-3.5 7" stroke="url(#gold-body)" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      {/* Stem */}
+      <rect x="16" y="20" width="4" height="4" rx="0.5" fill="url(#gold-body)" />
+      {/* Base */}
+      <rect x="12" y="24" width="12" height="2.5" rx="1.25" fill="url(#gold-base)" />
+      {/* Number circle */}
+      <circle cx="18" cy="13" r="5" fill="#1E1B3A" stroke="#D4A843" strokeWidth="0.8" />
+      <text x="18" y="15.5" textAnchor="middle" fill="#F6D365" fontSize="7" fontWeight="700" fontFamily="ui-monospace, monospace">1</text>
     </svg>
   </div>
 );
 
 const SilverTrophy = () => (
-  <div className="w-10 h-10 flex items-center justify-center relative">
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M8 6h16v2c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z" fill="url(#silver-grad)" />
-      <path d="M8 8H5c0 3 1.5 5.5 3 6.5" stroke="url(#silver-grad)" strokeWidth="1.5" fill="none" />
-      <path d="M24 8h3c0 3-1.5 5.5-3 6.5" stroke="url(#silver-grad)" strokeWidth="1.5" fill="none" />
-      <rect x="14" y="18" width="4" height="4" fill="url(#silver-grad)" />
-      <rect x="10" y="22" width="12" height="2" rx="1" fill="url(#silver-grad)" />
-      <circle cx="16" cy="12" r="5" fill="#1a1a2e" stroke="url(#silver-grad)" strokeWidth="1" />
-      <text x="16" y="14.5" textAnchor="middle" fill="url(#silver-grad)" fontSize="7" fontWeight="bold" fontFamily="monospace">2</text>
+  <div className="w-10 h-10 flex items-center justify-center">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="silver-grad" x1="0" y1="0" x2="32" y2="32">
-          <stop offset="0%" stopColor="#E8E8E8" />
-          <stop offset="50%" stopColor="#B0B0B0" />
-          <stop offset="100%" stopColor="#808080" />
+        <linearGradient id="silver-body" x1="8" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#F1F5F9" />
+          <stop offset="25%" stopColor="#CBD5E1" />
+          <stop offset="50%" stopColor="#94A3B8" />
+          <stop offset="75%" stopColor="#64748B" />
+          <stop offset="100%" stopColor="#475569" />
+        </linearGradient>
+        <linearGradient id="silver-shine" x1="12" y1="4" x2="20" y2="18" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="silver-base" x1="10" y1="24" x2="26" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#94A3B8" />
+          <stop offset="50%" stopColor="#CBD5E1" />
+          <stop offset="100%" stopColor="#64748B" />
         </linearGradient>
       </defs>
+      <path d="M10 6h16v3c0 5.5-3.2 9.5-8 11-4.8-1.5-8-5.5-8-11V6z" fill="url(#silver-body)" />
+      <path d="M12 6h5v2c0 4-1.5 7-3 8.5C12.5 14 11 11 11 8V6z" fill="url(#silver-shine)" />
+      <path d="M10 8H6.5c0 3.5 1.8 6 3.5 7" stroke="url(#silver-body)" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <path d="M26 8h3.5c0 3.5-1.8 6-3.5 7" stroke="url(#silver-body)" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <rect x="16" y="20" width="4" height="4" rx="0.5" fill="url(#silver-body)" />
+      <rect x="12" y="24" width="12" height="2.5" rx="1.25" fill="url(#silver-base)" />
+      <circle cx="18" cy="13" r="5" fill="#1E1B3A" stroke="#94A3B8" strokeWidth="0.8" />
+      <text x="18" y="15.5" textAnchor="middle" fill="#CBD5E1" fontSize="7" fontWeight="700" fontFamily="ui-monospace, monospace">2</text>
     </svg>
   </div>
 );
 
 const BronzeTrophy = () => (
-  <div className="w-10 h-10 flex items-center justify-center relative">
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M8 6h16v2c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z" fill="url(#bronze-grad)" />
-      <path d="M8 8H5c0 3 1.5 5.5 3 6.5" stroke="url(#bronze-grad)" strokeWidth="1.5" fill="none" />
-      <path d="M24 8h3c0 3-1.5 5.5-3 6.5" stroke="url(#bronze-grad)" strokeWidth="1.5" fill="none" />
-      <rect x="14" y="18" width="4" height="4" fill="url(#bronze-grad)" />
-      <rect x="10" y="22" width="12" height="2" rx="1" fill="url(#bronze-grad)" />
-      <circle cx="16" cy="12" r="5" fill="#1a1a2e" stroke="url(#bronze-grad)" strokeWidth="1" />
-      <text x="16" y="14.5" textAnchor="middle" fill="url(#bronze-grad)" fontSize="7" fontWeight="bold" fontFamily="monospace">3</text>
+  <div className="w-10 h-10 flex items-center justify-center">
+    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="bronze-grad" x1="0" y1="0" x2="32" y2="32">
-          <stop offset="0%" stopColor="#D4A574" />
+        <linearGradient id="bronze-body" x1="8" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#E8C9A0" />
+          <stop offset="25%" stopColor="#D4A574" />
           <stop offset="50%" stopColor="#B87333" />
-          <stop offset="100%" stopColor="#8B5E3C" />
+          <stop offset="75%" stopColor="#9A6229" />
+          <stop offset="100%" stopColor="#7A4E20" />
+        </linearGradient>
+        <linearGradient id="bronze-shine" x1="12" y1="4" x2="20" y2="18" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFF3E0" stopOpacity="0.5" />
+          <stop offset="100%" stopColor="#FFF3E0" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="bronze-base" x1="10" y1="24" x2="26" y2="28" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#9A6229" />
+          <stop offset="50%" stopColor="#D4A574" />
+          <stop offset="100%" stopColor="#7A4E20" />
         </linearGradient>
       </defs>
+      <path d="M10 6h16v3c0 5.5-3.2 9.5-8 11-4.8-1.5-8-5.5-8-11V6z" fill="url(#bronze-body)" />
+      <path d="M12 6h5v2c0 4-1.5 7-3 8.5C12.5 14 11 11 11 8V6z" fill="url(#bronze-shine)" />
+      <path d="M10 8H6.5c0 3.5 1.8 6 3.5 7" stroke="url(#bronze-body)" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <path d="M26 8h3.5c0 3.5-1.8 6-3.5 7" stroke="url(#bronze-body)" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <rect x="16" y="20" width="4" height="4" rx="0.5" fill="url(#bronze-body)" />
+      <rect x="12" y="24" width="12" height="2.5" rx="1.25" fill="url(#bronze-base)" />
+      <circle cx="18" cy="13" r="5" fill="#1E1B3A" stroke="#B87333" strokeWidth="0.8" />
+      <text x="18" y="15.5" textAnchor="middle" fill="#D4A574" fontSize="7" fontWeight="700" fontFamily="ui-monospace, monospace">3</text>
     </svg>
   </div>
 );
+
+/* ── Rank-based text color classes ── */
+const rankTextColor = (rank: number): string => {
+  if (rank === 1) return "text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500";
+  if (rank === 2) return "text-transparent bg-clip-text bg-gradient-to-r from-slate-300 via-slate-200 to-slate-400";
+  if (rank === 3) return "text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700";
+  return "text-foreground";
+};
 
 export default function Leaderboard() {
   const [viewMode, setViewMode] = useState<ViewMode>("factor");
@@ -169,9 +219,7 @@ export default function Leaderboard() {
 
   const isCurrent = !selectedEpoch.distributed;
 
-  /* Countdown — parse endDate to a real Date for the timer */
   const endDateForTimer = useMemo(() => {
-    // endDate format is like "2025-04-15" — set to end of day
     return selectedEpoch.endDate + "T23:59:59";
   }, [selectedEpoch.endDate]);
 
@@ -187,7 +235,6 @@ export default function Leaderboard() {
     [selectedEpochId]
   );
 
-  /* ── Rank badge: Trophy SVGs for top 3, plain number for rest ── */
   const rankBadge = (rank: number) => {
     if (rank === 1) return <GoldTrophy />;
     if (rank === 2) return <SilverTrophy />;
@@ -195,8 +242,11 @@ export default function Leaderboard() {
     return <span className="w-10 h-10 flex items-center justify-center text-sm font-mono text-muted-foreground">{rank}</span>;
   };
 
-  /* ── Gold reward text style (rich gradient in dark, solid gold in light) ── */
+  /* ── Reward text style: rich gold gradient ── */
   const rewardStyle = "font-mono text-sm font-bold tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500";
+
+  /* ── Prize Pool display: strip USDT from data, show gold style ── */
+  const prizePoolDisplay = stripUSDT(selectedEpoch.totalPool);
 
   return (
     <div className="space-y-8">
@@ -264,8 +314,8 @@ export default function Leaderboard() {
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Award className="w-3.5 h-3.5" /> Prize Pool
           </div>
-          <div className={`stat-value text-xl font-bold ${rewardStyle} !text-xl`}>
-            {selectedEpoch.totalPool}
+          <div className={`stat-value text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>
+            {prizePoolDisplay} <span className="text-sm font-medium">USDT</span>
           </div>
           <div className="text-xs mt-1 text-muted-foreground">
             {isCurrent ? "distributed proportionally" : "fully distributed"}
@@ -347,12 +397,11 @@ export default function Leaderboard() {
               <TableBody>
                 {factorData.map((entry) => {
                   const isTop3 = entry.rank <= 3;
+                  const nameColor = isTop3 ? rankTextColor(entry.rank) : "text-foreground";
                   return (
                     <TableRow
                       key={entry.factorId}
-                      className={`transition-all duration-200 ease-in-out border-border hover:bg-slate-50 dark:hover:bg-slate-800/30 ${
-                        isTop3 ? "bg-primary/[0.03] dark:bg-primary/[0.04]" : ""
-                      }`}
+                      className="transition-all duration-200 ease-in-out border-border hover:bg-slate-50 dark:hover:bg-slate-800/30"
                     >
                       <TableCell className="pl-4">{rankBadge(entry.rank)}</TableCell>
                       <TableCell>
@@ -360,11 +409,11 @@ export default function Leaderboard() {
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono bg-accent border border-border text-muted-foreground">
                             {entry.avatar}
                           </div>
-                          <span className={`text-sm ${isTop3 ? "font-semibold text-foreground" : "font-medium text-foreground"}`}>{entry.username}</span>
+                          <span className={`text-sm font-semibold ${nameColor}`}>{entry.username}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={`text-sm ${isTop3 ? "font-semibold text-foreground" : "text-foreground"}`}>{entry.factorName}</span>
+                        <span className={`text-sm font-semibold ${nameColor}`}>{entry.factorName}</span>
                         <span className="text-[10px] font-mono ml-2 text-muted-foreground">{entry.factorId}</span>
                       </TableCell>
                       <TableCell>
@@ -390,7 +439,7 @@ export default function Leaderboard() {
                       </TableCell>
                       <TableCell className="text-right pr-4">
                         <span className={rewardStyle}>
-                          {entry.reward}
+                          {stripUSDT(entry.reward)}
                         </span>
                       </TableCell>
                     </TableRow>
@@ -418,12 +467,11 @@ export default function Leaderboard() {
               <TableBody>
                 {userData.map((entry) => {
                   const isTop3 = entry.rank <= 3;
+                  const nameColor = isTop3 ? rankTextColor(entry.rank) : "text-foreground";
                   return (
                     <TableRow
                       key={entry.userId}
-                      className={`transition-all duration-200 ease-in-out border-border hover:bg-slate-50 dark:hover:bg-slate-800/30 ${
-                        isTop3 ? "bg-primary/[0.03] dark:bg-primary/[0.04]" : ""
-                      }`}
+                      className="transition-all duration-200 ease-in-out border-border hover:bg-slate-50 dark:hover:bg-slate-800/30"
                     >
                       <TableCell className="pl-4">{rankBadge(entry.rank)}</TableCell>
                       <TableCell>
@@ -431,7 +479,7 @@ export default function Leaderboard() {
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono bg-accent border border-border text-muted-foreground">
                             {entry.avatar}
                           </div>
-                          <span className={`text-sm ${isTop3 ? "font-semibold text-foreground" : "font-medium text-foreground"}`}>{entry.username}</span>
+                          <span className={`text-sm font-semibold ${nameColor}`}>{entry.username}</span>
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">{entry.totalFactors}</TableCell>
@@ -443,10 +491,10 @@ export default function Leaderboard() {
                           {entry.avgOsSharpe.toFixed(2)}
                         </span>
                       </TableCell>
-                      <TableCell className={`text-sm ${isTop3 ? "font-semibold text-foreground" : "text-foreground"}`}>{entry.topFactor}</TableCell>
+                      <TableCell className={`text-sm font-semibold ${nameColor}`}>{entry.topFactor}</TableCell>
                       <TableCell className="text-right pr-4">
                         <span className={rewardStyle}>
-                          {entry.totalReward}
+                          {stripUSDT(entry.totalReward)}
                         </span>
                       </TableCell>
                     </TableRow>
