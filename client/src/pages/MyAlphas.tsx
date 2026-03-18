@@ -129,10 +129,13 @@ export default function MyAlphas() {
   useEffect(() => {
     if (!statsRef.current) return;
     const items = statsRef.current.querySelectorAll(".fade-item");
-    gsap.set(items, { y: 30, opacity: 0 });
+    /* Card entrance: fade-in + slide-up with bouncy easing */
+    gsap.set(items, { y: 16, opacity: 0, scale: 0.97 });
     gsap.to(items, {
-      y: 0, opacity: 1,
-      duration: 0.6, stagger: 0.06, ease: "power3.out", delay: 0.3,
+      y: 0, opacity: 1, scale: 1,
+      duration: 0.5, stagger: 0.08,
+      ease: "back.out(1.4)",
+      delay: 0.25,
     });
   }, []);
 
@@ -385,7 +388,7 @@ export default function MyAlphas() {
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
           onClick={() => { setCardFilter("all"); setPage(1); }}
-          className="fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer hover:border-slate-300 dark:hover:border-slate-600"
+          className="fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:border-slate-300 dark:hover:border-slate-600 hover:scale-[1.03] active:scale-[0.98]"
         >
           <div className="flex items-center gap-2 label-upper mb-2">
             <BarChart3 className="w-3.5 h-3.5" /> Total
@@ -395,7 +398,7 @@ export default function MyAlphas() {
         </button>
         <button
           onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
-          className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
+          className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
             cardFilter === "passed" ? "border-success/40" : "hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
@@ -407,7 +410,7 @@ export default function MyAlphas() {
         </button>
         <button
           onClick={() => { setCardFilter(cardFilter === "in_progress" ? "all" : "in_progress"); setPage(1); }}
-          className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
+          className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
             cardFilter === "in_progress" ? "border-secondary/40" : "hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
@@ -419,7 +422,7 @@ export default function MyAlphas() {
         </button>
         <button
           onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
-          className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
+          className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
             cardFilter === "failed" ? "border-destructive/40" : "hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
