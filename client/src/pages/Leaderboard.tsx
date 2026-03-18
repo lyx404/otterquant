@@ -31,6 +31,9 @@ import {
   Medal,
   CheckCircle2,
   Timer,
+  Crown,
+  Gem,
+  Coins,
 } from "lucide-react";
 import {
   allEpochs,
@@ -84,10 +87,22 @@ export default function Leaderboard() {
   );
 
   const rankBadge = (rank: number) => {
-    if (rank === 1) return <div className="w-6 h-6 rounded-full flex items-center justify-center bg-amber-500/10"><Medal className="w-3.5 h-3.5 text-amber-500" /></div>;
-    if (rank === 2) return <div className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-400/10"><Medal className="w-3.5 h-3.5 text-slate-400" /></div>;
-    if (rank === 3) return <div className="w-6 h-6 rounded-full flex items-center justify-center bg-amber-700/10"><Medal className="w-3.5 h-3.5 text-amber-600" /></div>;
-    return <span className="w-6 h-6 flex items-center justify-center text-xs font-mono text-muted-foreground">{rank}</span>;
+    if (rank === 1) return (
+      <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-400 to-amber-600 shadow-lg shadow-amber-500/25 ring-2 ring-amber-400/30">
+        <Crown className="w-4 h-4 text-white drop-shadow-sm" />
+      </div>
+    );
+    if (rank === 2) return (
+      <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gradient-to-br from-slate-300 to-slate-500 shadow-lg shadow-slate-400/25 ring-2 ring-slate-300/30">
+        <Medal className="w-4 h-4 text-white drop-shadow-sm" />
+      </div>
+    );
+    if (rank === 3) return (
+      <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gradient-to-br from-amber-600 to-amber-800 shadow-lg shadow-amber-700/25 ring-2 ring-amber-600/30">
+        <Gem className="w-4 h-4 text-white drop-shadow-sm" />
+      </div>
+    );
+    return <span className="w-8 h-8 flex items-center justify-center text-xs font-mono text-muted-foreground">{rank}</span>;
   };
 
   return (
@@ -213,13 +228,13 @@ export default function Leaderboard() {
       </div>
 
       {/* Leaderboard Table */}
-      <div className="surface-card overflow-hidden">
+      <div className="surface-card overflow-hidden px-2 sm:px-4">
         {viewMode === "factor" ? (
           <div key={`factor-${selectedEpochId}`}>
             <Table>
               <TableHeader>
                 <TableRow className="border-border">
-                  <TableHead className="label-upper w-[60px]">Rank</TableHead>
+                  <TableHead className="label-upper w-[70px] pl-4">Rank</TableHead>
                   <TableHead className="label-upper">User</TableHead>
                   <TableHead className="label-upper">Factor</TableHead>
                   <TableHead className="label-upper">Market</TableHead>
@@ -227,7 +242,7 @@ export default function Leaderboard() {
                   <TableHead className="label-upper text-right">OS Fitness</TableHead>
                   <TableHead className="label-upper text-right">Returns</TableHead>
                   <TableHead className="label-upper text-right">Score</TableHead>
-                  <TableHead className="label-upper text-right">Reward</TableHead>
+                  <TableHead className="label-upper text-right pr-4">Reward</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -238,7 +253,7 @@ export default function Leaderboard() {
                       entry.rank <= 3 ? "bg-primary/5 dark:bg-primary/[0.06]" : ""
                     }`}
                   >
-                    <TableCell>{rankBadge(entry.rank)}</TableCell>
+                    <TableCell className="pl-4">{rankBadge(entry.rank)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono bg-accent border border-border text-muted-foreground">
@@ -272,8 +287,11 @@ export default function Leaderboard() {
                     <TableCell className="text-right">
                       <span className="font-mono text-sm font-bold text-success">{entry.compositeScore.toFixed(1)}</span>
                     </TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm text-amber-500 dark:text-amber-400">{entry.reward}</span>
+                    <TableCell className="text-right pr-4">
+                      <span className="inline-flex items-center gap-1.5 font-mono text-sm font-bold text-amber-500 dark:text-amber-400">
+                        <Coins className="w-3.5 h-3.5" />
+                        {entry.reward}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -285,13 +303,13 @@ export default function Leaderboard() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border">
-                  <TableHead className="label-upper w-[60px]">Rank</TableHead>
+                  <TableHead className="label-upper w-[70px] pl-4">Rank</TableHead>
                   <TableHead className="label-upper">User</TableHead>
                   <TableHead className="label-upper text-right">Total Factors</TableHead>
                   <TableHead className="label-upper text-right">Qualified</TableHead>
                   <TableHead className="label-upper text-right">Avg OS Sharpe</TableHead>
                   <TableHead className="label-upper">Top Factor</TableHead>
-                  <TableHead className="label-upper text-right">Total Reward</TableHead>
+                  <TableHead className="label-upper text-right pr-4">Total Reward</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -302,7 +320,7 @@ export default function Leaderboard() {
                       entry.rank <= 3 ? "bg-primary/5 dark:bg-primary/[0.06]" : ""
                     }`}
                   >
-                    <TableCell>{rankBadge(entry.rank)}</TableCell>
+                    <TableCell className="pl-4">{rankBadge(entry.rank)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono bg-accent border border-border text-muted-foreground">
@@ -321,8 +339,11 @@ export default function Leaderboard() {
                       </span>
                     </TableCell>
                     <TableCell className="text-sm text-foreground">{entry.topFactor}</TableCell>
-                    <TableCell className="text-right">
-                      <span className="font-mono text-sm font-bold text-amber-500 dark:text-amber-400">{entry.totalReward}</span>
+                    <TableCell className="text-right pr-4">
+                      <span className="inline-flex items-center gap-1.5 font-mono text-sm font-bold text-amber-500 dark:text-amber-400">
+                        <Coins className="w-3.5 h-3.5" />
+                        {entry.totalReward}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}

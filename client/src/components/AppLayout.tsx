@@ -89,20 +89,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden md:flex items-center gap-0.5">
               {navItems.map((item) => {
                 const active = isActive(item.path);
                 const Icon = item.icon;
                 return (
                   <Link key={item.path} href={item.path}>
                     <div
-                      className={`relative flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${
+                      className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ease-in-out ${
                         active
                           ? "bg-primary/10 text-primary"
                           : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-3.5 h-3.5" />
                       <span>{item.label}</span>
                     </div>
                   </Link>
