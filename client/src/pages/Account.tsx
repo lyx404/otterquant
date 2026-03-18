@@ -77,7 +77,7 @@ export default function Account() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
@@ -213,7 +213,7 @@ export default function Account() {
 
       {/* API Keys Tab */}
       {activeTab === "api" && (
-        <div className="space-y-8">
+        <div className="space-y-6">
           <div className="surface-card">
             <div className="px-6 py-4 pb-3 border-b border-border">
               <div className="flex items-center justify-between">

@@ -273,7 +273,7 @@ export default function Dashboard() {
       <Link href="/my-alphas">
         <div
           ref={statsRef}
-          className="surface-card p-6 cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
+          className="surface-card p-6 mb-6 cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
         >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {statCards.map((stat) => {

@@ -249,7 +249,7 @@ export default function Leaderboard() {
   const prizePoolDisplay = stripUSDT(selectedEpoch.totalPool);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header with Epoch Selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div ref={headerRef} className="reveal-clip">

@@ -106,7 +106,7 @@ export default function AlphaDetail() {
   const aggData = summaryPeriod === "IS" ? aggregateData : osAggregateData;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Back + Header */}
       <div className="flex items-center gap-4">
         <Link href="/alphas">
