@@ -1,12 +1,11 @@
 /*
- * AlphaForge — Indigo/Sky + Slate Design System
- * Dual-theme: Light (Slate-50 #F8FAFC) / Dark (Slate-950 #020617)
- * Primary: Indigo-600 #4F46E5 (light) / Indigo-400 #818CF8 (dark)
- * Secondary: Sky-500 #0EA5E9 (light) / Sky-400 #38BDF8 (dark)
- * Text: Slate scale (900/500 light — 50/400 dark)
- * Surface: White #FFFFFF (light) / Slate-900 #0F172A (dark)
- * Border: Slate-200 #E2E8F0 (light) / Slate-800 #1E293B (dark)
- * Radius: buttons=full, inputs=lg(8px), cards=2xl(16px)
+ * Otter — Amber/Orange + Warm Beige Design System
+ * Dual-theme: Light (#FDFCF6 warm beige) / Dark (#020617 deep slate + #F5F1E1 beige cards)
+ * Primary: Amber-500 #F59E0B (light) / Amber-400 #FBBF24 (dark)
+ * Secondary: Orange-500 #F97316 (light) / Orange-400 #FB923C (dark)
+ * Data: Orange-500 #F97316 (Data-1) / Lime-300 #BEF264 (Data-2)
+ * Surface: #F5F1E1 beige cards (both modes) — paper-like texture
+ * Radius: buttons=full, inputs=xl(12px), cards=3xl(24px)
  * Font: Inter + Roboto Mono (tabular-nums)
  * Animation: 200ms ease-in-out default, 300ms bouncy cubic-bezier(0.34,1.56,0.64,1)
  */
@@ -21,6 +20,7 @@
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
+  --radius-3xl: 1.5rem;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -59,102 +59,110 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
 
+  /* Beige surface token */
+  --color-beige: var(--beige);
+  --color-beige-foreground: var(--beige-foreground);
+
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'Roboto Mono', ui-monospace, monospace;
   --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* ══════════════════════════════════════════════
-   LIGHT THEME (default) — Slate-50 base
+   LIGHT THEME (default) — Warm Beige #FDFCF6 base
    ══════════════════════════════════════════════ */
 :root {
   --radius: 0.75rem;
-  --background: #F8FAFC;
+  --background: #FDFCF6;
   --foreground: #0F172A;
-  --card: #FFFFFF;
+  --card: #F5F1E1;
   --card-foreground: #0F172A;
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
-  --primary: #4F46E5;
-  --primary-foreground: #FFFFFF;
-  --secondary: #0EA5E9;
+  --primary: #F59E0B;
+  --primary-foreground: #0F172A;
+  --secondary: #F97316;
   --secondary-foreground: #FFFFFF;
-  --muted: #F1F5F9;
+  --muted: #F0ECE0;
   --muted-foreground: #64748B;
-  --accent: #F1F5F9;
+  --accent: #EDE8D8;
   --accent-foreground: #0F172A;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #4F46E5;
+  --border: #DDD8C8;
+  --input: #DDD8C8;
+  --ring: #F59E0B;
   --success: #10B981;
   --warning: #F59E0B;
-  --chart-1: #4F46E5;
-  --chart-2: #10B981;
-  --chart-3: #0EA5E9;
-  --chart-4: #F59E0B;
+  --beige: #F5F1E1;
+  --beige-foreground: #0F172A;
+  --chart-1: #F97316;
+  --chart-2: #BEF264;
+  --chart-3: #F59E0B;
+  --chart-4: #10B981;
   --chart-5: #EF4444;
-  --sidebar: #FFFFFF;
+  --sidebar: #F5F1E1;
   --sidebar-foreground: #64748B;
-  --sidebar-primary: #4F46E5;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F1F5F9;
+  --sidebar-primary: #F59E0B;
+  --sidebar-primary-foreground: #0F172A;
+  --sidebar-accent: #EDE8D8;
   --sidebar-accent-foreground: #0F172A;
-  --sidebar-border: #E2E8F0;
-  --sidebar-ring: #4F46E5;
+  --sidebar-border: #DDD8C8;
+  --sidebar-ring: #F59E0B;
 
   /* Elevation shadows — light */
   --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
   --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.08);
+  --shadow-glow: 0 0 40px rgba(245, 158, 11, 0.08);
 }
 
 /* ══════════════════════════════════════════════
-   DARK THEME — Slate-950 base
+   DARK THEME — Slate-950 #020617 base + Beige #F5F1E1 cards
    ══════════════════════════════════════════════ */
 .dark {
   --background: #020617;
   --foreground: #F8FAFC;
-  --card: #0F172A;
-  --card-foreground: #F8FAFC;
-  --popover: #0F172A;
+  --card: #F5F1E1;
+  --card-foreground: #0F172A;
+  --popover: #1E293B;
   --popover-foreground: #F8FAFC;
-  --primary: #818CF8;
-  --primary-foreground: #020617;
-  --secondary: #38BDF8;
-  --secondary-foreground: #020617;
+  --primary: #FBBF24;
+  --primary-foreground: #0F172A;
+  --secondary: #FB923C;
+  --secondary-foreground: #0F172A;
   --muted: #1E293B;
   --muted-foreground: #94A3B8;
   --accent: #1E293B;
   --accent-foreground: #F8FAFC;
   --destructive: #F87171;
-  --destructive-foreground: #020617;
-  --border: #1E293B;
-  --input: #1E293B;
-  --ring: #818CF8;
+  --destructive-foreground: #0F172A;
+  --border: #334155;
+  --input: #334155;
+  --ring: #FBBF24;
   --success: #34D399;
   --warning: #FBBF24;
-  --chart-1: #818CF8;
-  --chart-2: #34D399;
-  --chart-3: #38BDF8;
-  --chart-4: #FBBF24;
+  --beige: #F5F1E1;
+  --beige-foreground: #0F172A;
+  --chart-1: #F97316;
+  --chart-2: #BEF264;
+  --chart-3: #FBBF24;
+  --chart-4: #34D399;
   --chart-5: #F87171;
   --sidebar: #0F172A;
   --sidebar-foreground: #94A3B8;
-  --sidebar-primary: #818CF8;
-  --sidebar-primary-foreground: #020617;
+  --sidebar-primary: #FBBF24;
+  --sidebar-primary-foreground: #0F172A;
   --sidebar-accent: #1E293B;
   --sidebar-accent-foreground: #F8FAFC;
-  --sidebar-border: #1E293B;
-  --sidebar-ring: #818CF8;
+  --sidebar-border: #334155;
+  --sidebar-ring: #FBBF24;
 
   /* Elevation — dark: no shadows, use border + bg-step */
   --shadow-card: none;
   --shadow-card-hover: none;
   --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 40px rgba(129, 140, 248, 0.1);
+  --shadow-glow: 0 0 40px rgba(251, 191, 36, 0.1);
 }
 
 /* ══════════════════════════════════════════════
@@ -217,20 +225,20 @@
     .container { padding-left: 2rem; padding-right: 2rem; max-width: 1200px; }
   }
 
-  /* ── Surface Card — rounded-2xl, white/slate-900 ── */
+  /* ── Surface Card — rounded-3xl, beige #F5F1E1 ── */
   .surface-card {
-    @apply bg-card border border-border rounded-2xl;
+    @apply bg-card text-card-foreground border border-border rounded-3xl;
     box-shadow: var(--shadow-card);
     transition: background-color 200ms ease-in-out, border-color 200ms ease-in-out, box-shadow 200ms ease-in-out;
   }
   .surface-card:hover {
-    @apply border-slate-300 dark:border-slate-700;
+    @apply border-amber-400/40 dark:border-amber-400/30;
     box-shadow: var(--shadow-card-hover);
   }
 
   /* ── Surface Elevated (dropdowns, popovers) ── */
   .surface-elevated {
-    @apply bg-popover border border-border rounded-2xl;
+    @apply bg-popover border border-border rounded-3xl;
     box-shadow: var(--shadow-dropdown);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -272,7 +280,7 @@
 
   /* ── Table Row Hover ── */
   .table-row-hover:hover {
-    @apply bg-slate-50 dark:bg-slate-800/50;
+    @apply bg-amber-50 dark:bg-slate-800/50;
   }
 
   /* ── GSAP reveal clip ── */
@@ -292,27 +300,27 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 dark:bg-slate-700 rounded-full;
+    @apply bg-amber-300/50 dark:bg-slate-700 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-400 dark:bg-slate-600;
+    @apply bg-amber-400/60 dark:bg-slate-600;
   }
 
-  /* ── Focus ring: indigo glow ── */
+  /* ── Focus ring: amber glow ── */
   input:focus,
   select:focus,
   textarea:focus,
   [role="combobox"]:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-    border-color: rgba(79, 70, 229, 0.5) !important;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 0.5) !important;
   }
   .dark input:focus,
   .dark select:focus,
   .dark textarea:focus,
   .dark [role="combobox"]:focus {
-    box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
-    border-color: rgba(129, 140, 248, 0.5) !important;
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.25);
+    border-color: rgba(251, 191, 36, 0.5) !important;
   }
 
   /* ── Transition utilities ── */
@@ -337,7 +345,7 @@
   }
   .btn-bounce:hover {
     transform: scale(1.05);
-    filter: brightness(1.1);
+    filter: brightness(1.05);
   }
   .btn-bounce:active {
     transform: scale(0.98);
@@ -369,5 +377,33 @@
   input[type="checkbox"]:not(:disabled),
   input[type="radio"]:not(:disabled) {
     cursor: none;
+  }
+
+  /* ── Dark mode card text override ──
+     In dark mode, cards are beige (#F5F1E1) so text inside must be dark.
+     We use a utility class for elements that need to adapt. */
+  .dark .surface-card {
+    color: #0F172A;
+  }
+  .dark .surface-card .text-foreground {
+    color: #0F172A;
+  }
+  .dark .surface-card .text-muted-foreground {
+    color: #64748B;
+  }
+  .dark .surface-card .label-upper {
+    color: #64748B;
+  }
+  .dark .surface-card .text-primary {
+    color: #D97706;
+  }
+  .dark .surface-card .border-border {
+    border-color: #DDD8C8;
+  }
+  .dark .surface-card .bg-accent {
+    background-color: #EDE8D8;
+  }
+  .dark .surface-card .bg-card {
+    background-color: #F5F1E1;
   }
 }

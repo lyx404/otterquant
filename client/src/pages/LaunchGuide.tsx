@@ -1,8 +1,8 @@
 /*
- * LaunchGuide — Indigo/Sky + Slate Design System
- * Cards: rounded-2xl | Buttons: rounded-full | Inputs: rounded-lg
- * Primary: Indigo | Secondary: Sky | Success: Emerald
- * Stepper: horizontal, Indigo progress line
+ * LaunchGuide — Amber/Orange + Warm Beige Design System
+ * Cards: rounded-3xl | Buttons: rounded-full | Inputs: rounded-xl
+ * Primary: Amber | Secondary: Orange | Success: Emerald
+ * Stepper: horizontal, Amber progress line
  * Pure Tailwind classes — zero inline styles (except progress width)
  */
 import { useState, useRef } from "react";
@@ -163,7 +163,7 @@ export default function LaunchGuide() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* ── Minimal header ── */}
-      <header className="shrink-0 h-11 px-6 sm:px-10 border-b border-border bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl flex items-center justify-between">
+      <header className="shrink-0 h-11 px-6 sm:px-10 border-b border-border bg-[#FDFCF6]/80 dark:bg-slate-950/80 backdrop-blur-xl flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-primary/10">
             <Zap className="w-4 h-4 text-primary" />
@@ -178,7 +178,7 @@ export default function LaunchGuide() {
         <div className="flex items-center gap-2.5">
           <button
             onClick={toggleTheme}
-            className="relative w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-200 ease-in-out"
+            className="relative w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-amber-100 dark:hover:bg-slate-800 transition-all duration-200 ease-in-out"
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           >
             {theme === "dark" ? (
@@ -230,7 +230,7 @@ export default function LaunchGuide() {
                       isCompleted
                         ? "bg-primary border-2 border-primary"
                         : isCurrent
-                        ? "bg-primary border-2 border-primary shadow-[0_0_0_4px_rgba(79,70,229,0.15)] dark:shadow-[0_0_0_4px_rgba(129,140,248,0.15)]"
+                        ? "bg-primary border-2 border-primary shadow-[0_0_0_4px_rgba(245,158,11,0.15)] dark:shadow-[0_0_0_4px_rgba(251,191,36,0.15)]"
                         : "bg-background border-2 border-slate-300 dark:border-slate-600"
                     }`}>
                       {isCompleted ? (
@@ -285,7 +285,7 @@ export default function LaunchGuide() {
                         className={`flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-200 ease-in-out border ${
                           experience === opt.value
                             ? "bg-primary/10 border-primary/30"
-                            : "bg-accent border-border hover:bg-slate-200 dark:hover:bg-slate-800"
+                            : "bg-accent border-border hover:bg-amber-100 dark:hover:bg-slate-800"
                         }`}
                       >
                         <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -323,7 +323,7 @@ export default function LaunchGuide() {
                           className={`px-3 py-1.5 rounded-full text-xs font-mono transition-all duration-200 ease-in-out border ${
                             selected
                               ? "bg-primary/10 border-primary/30 text-primary"
-                              : "bg-accent border-border text-muted-foreground hover:border-slate-300 dark:hover:border-slate-600"
+                              : "bg-accent border-border text-muted-foreground hover:border-primary/30"
                           }`}
                         >
                           {m}
@@ -564,7 +564,7 @@ npm install && npm start`}
                   ].map((card) => (
                     <div
                       key={card.step}
-                      className="p-6 rounded-2xl border border-border bg-accent hover:border-primary/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out"
+                      className="p-6 rounded-2xl border border-border bg-accent hover:border-primary/30 hover:bg-amber-50 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out"
                     >
                       <div className="flex items-center gap-2.5 mb-3">
                         <span className="text-[10px] font-mono font-bold text-muted-foreground">{card.step}</span>
@@ -695,7 +695,7 @@ function AccordionSection({
     }`}>
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors duration-200 ease-in-out"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-amber-50 dark:hover:bg-slate-800/50 transition-colors duration-200 ease-in-out"
       >
         <div>
           <h3 className="text-sm font-semibold text-foreground">{title}</h3>

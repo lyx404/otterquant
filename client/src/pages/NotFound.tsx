@@ -1,6 +1,6 @@
 /*
- * NotFound — Indigo/Sky + Slate Design System
- * Buttons: rounded-full | Primary: Indigo
+ * NotFound — Amber/Orange + Warm Beige Design System
+ * Buttons: rounded-full | Primary: Amber
  * Pure Tailwind classes — zero inline styles
  */
 import { AlertCircle, Home } from "lucide-react";

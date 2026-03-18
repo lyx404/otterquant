@@ -1,6 +1,7 @@
 /*
- * MyAlphas — Indigo/Sky + Slate Design System
- * Cards: rounded-2xl, p-6 | Buttons: rounded-full | Inputs: rounded-lg
+ * MyAlphas — Amber/Orange + Warm Beige Design System
+ * Cards: rounded-3xl, p-8 beige #F5F1E1 | Buttons: rounded-full | Inputs: rounded-xl
+ * Primary: Amber | Secondary: Orange | Success: Emerald
  * Table: Status+Actions pinned right, unlimited height, aligned colgroup
  * Animation: 200ms ease-in-out
  * Pure Tailwind classes — zero inline styles
@@ -385,7 +386,7 @@ export default function MyAlphas() {
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
           onClick={() => { setCardFilter("all"); setPage(1); }}
-          className="fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer hover:border-slate-300 dark:hover:border-slate-600"
+          className="fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer hover:border-primary/30"
         >
           <div className="flex items-center gap-2 label-upper mb-2">
             <BarChart3 className="w-3.5 h-3.5" /> Total
@@ -396,7 +397,7 @@ export default function MyAlphas() {
         <button
           onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
           className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-            cardFilter === "passed" ? "border-success/40" : "hover:border-slate-300 dark:hover:border-slate-600"
+            cardFilter === "passed" ? "border-success/40" : "hover:border-primary/30"
           }`}
         >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-success">
@@ -408,7 +409,7 @@ export default function MyAlphas() {
         <button
           onClick={() => { setCardFilter(cardFilter === "in_progress" ? "all" : "in_progress"); setPage(1); }}
           className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-            cardFilter === "in_progress" ? "border-secondary/40" : "hover:border-slate-300 dark:hover:border-slate-600"
+            cardFilter === "in_progress" ? "border-secondary/40" : "hover:border-primary/30"
           }`}
         >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-secondary">
@@ -420,7 +421,7 @@ export default function MyAlphas() {
         <button
           onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
           className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
-            cardFilter === "failed" ? "border-destructive/40" : "hover:border-slate-300 dark:hover:border-slate-600"
+            cardFilter === "failed" ? "border-destructive/40" : "hover:border-primary/30"
           }`}
         >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-destructive">
@@ -552,7 +553,7 @@ export default function MyAlphas() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
+              <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-primary/30">
                 <Settings2 className="w-3.5 h-3.5" />
                 Columns
               </button>
@@ -587,7 +588,7 @@ export default function MyAlphas() {
                 {visibleCols.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.sortable ? "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50" : ""} ${col.align === "right" ? "text-right" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.sortable ? "cursor-pointer hover:bg-amber-50 dark:hover:bg-slate-800/50" : ""} ${col.align === "right" ? "text-right" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
                     onClick={() => col.sortable && handleSort(col.key)}
                   >
                     <span className={`flex items-center gap-1.5 label-upper whitespace-nowrap select-none ${col.align === "right" ? "justify-end" : ""}`}>
@@ -606,7 +607,7 @@ export default function MyAlphas() {
               {paginated.map((row, i) => (
                 <tr
                   key={row.id}
-                  className={`transition-all duration-200 ease-in-out group border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
+                  className={`transition-all duration-200 ease-in-out group border-b border-border hover:bg-amber-50 dark:hover:bg-slate-800/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
                 >
                   <td className="px-2 py-2.5 text-center">
                     <button onClick={() => toggleStar(row.id)} className="transition-transform duration-200 hover:scale-125">
