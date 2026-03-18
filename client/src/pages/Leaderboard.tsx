@@ -1,5 +1,5 @@
 /*
- * Leaderboard — Amber/Orange + Warm Beige Design System
+ * Leaderboard — Indigo/Sky + Slate Design System
  * Top 1-3: Refined trophy SVGs with metallic sheen (gold/silver/bronze)
  * Top 1-3 text: username & factor in matching gold/silver/bronze colors
  * Reward: rich gold gradient text, USDT only in table header
@@ -483,7 +483,7 @@ export default function Leaderboard() {
                   return (
                     <TableRow
                       key={entry.factorId}
-                      className="transition-all duration-200 ease-in-out border-border hover:bg-amber-50 dark:hover:bg-slate-800/30"
+                      className="transition-all duration-200 ease-in-out border-border hover:bg-slate-50 dark:hover:bg-slate-800/30"
                     >
                       <TableCell className="pl-4">{rankBadge(entry.rank)}</TableCell>
                       <TableCell>
@@ -553,7 +553,7 @@ export default function Leaderboard() {
                   return (
                     <TableRow
                       key={entry.userId}
-                      className="transition-all duration-200 ease-in-out border-border hover:bg-amber-50 dark:hover:bg-slate-800/30"
+                      className="transition-all duration-200 ease-in-out border-border hover:bg-slate-50 dark:hover:bg-slate-800/30"
                     >
                       <TableCell className="pl-4">{rankBadge(entry.rank)}</TableCell>
                       <TableCell>

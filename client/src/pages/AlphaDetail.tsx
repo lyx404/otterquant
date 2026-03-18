@@ -1,7 +1,7 @@
 /*
- * AlphaDetail — Amber/Orange + Warm Beige Design System
- * Cards: rounded-3xl, p-8 beige #F5F1E1 | Buttons: rounded-full | Inputs: rounded-xl
- * Primary: Amber | Secondary: Orange | Success: Emerald | Danger: Red
+ * AlphaDetail — Indigo/Sky + Slate Design System
+ * Cards: rounded-2xl, p-6 | Buttons: rounded-full | Inputs: rounded-lg
+ * Primary: Indigo | Secondary: Sky | Success: Emerald | Danger: Red
  * Pure Tailwind classes — zero inline styles (except Recharts which requires inline)
  */
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export default function AlphaDetail() {
 
   /* Recharts needs inline colors — derive from theme */
   const CHART = {
-    train: isDark ? "#FBBF24" : "#F59E0B",
+    train: isDark ? "#818CF8" : "#4F46E5",
     test: isDark ? "#34D399" : "#10B981",
     grid: isDark ? "rgba(148,163,184,0.08)" : "rgba(15,23,42,0.06)",
     tick: isDark ? "rgba(148,163,184,0.5)" : "rgba(15,23,42,0.4)",
@@ -199,7 +199,7 @@ export default function AlphaDetail() {
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART.tick }} tickFormatter={(d) => d.substring(0, 7)} interval={Math.floor(chartData.length / 8)} />
                   <YAxis tick={{ fontSize: 10, fill: CHART.tick }} tickFormatter={formatYAxis} />
                   <Tooltip contentStyle={{ backgroundColor: CHART.tooltipBg, border: `1px solid ${CHART.tooltipBorder}`, borderRadius: "16px", fontSize: "12px", fontFamily: "'Roboto Mono', monospace", color: CHART.tooltipText }} labelStyle={{ color: CHART.tick }} />
-                  <Bar dataKey="train" fill={isDark ? "rgba(251,191,36,0.6)" : "rgba(245,158,11,0.6)"} name="Train" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="train" fill={isDark ? "rgba(129,140,248,0.6)" : "rgba(79,70,229,0.6)"} name="Train" radius={[2, 2, 0, 0]} />
                   <Bar dataKey="test" fill={isDark ? "rgba(52,211,153,0.6)" : "rgba(16,185,129,0.6)"} name="Test" radius={[2, 2, 0, 0]} />
                 </BarChart>
               ) : (
@@ -285,7 +285,7 @@ export default function AlphaDetail() {
             </TableHeader>
             <TableBody>
               {summaryData.map((row) => (
-                <TableRow key={row.year} className="border-border hover:bg-amber-50 dark:hover:bg-slate-800/30">
+                <TableRow key={row.year} className="border-border hover:bg-slate-50 dark:hover:bg-slate-800/30">
                   <TableCell className="font-mono text-sm font-medium text-foreground">{row.year}</TableCell>
                   <TableCell className={`font-mono text-sm ${
                     row.sharpe >= 1 ? "text-success" : row.sharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"

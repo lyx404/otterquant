@@ -1,7 +1,7 @@
 /*
- * CustomCursor — Amber/Orange + Warm Beige Design System
+ * CustomCursor — Indigo/Sky + Slate Design System
  * Circle cursor with mix-blend-mode: difference
- * Enlarges and turns amber (#FBBF24) on hoverable elements
+ * Enlarges and turns indigo (#4F46E5) on hoverable elements
  */
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
@@ -76,8 +76,8 @@ export default function CustomCursor() {
       gsap.to(cursor, {
         width: 56,
         height: 56,
-        borderColor: "#FBBF24",
-        backgroundColor: "rgba(251, 191, 36, 0.06)",
+        borderColor: "#818CF8",
+        backgroundColor: "rgba(129, 140, 248, 0.06)",
         duration: 0.3,
         ease: "power3.out",
       });

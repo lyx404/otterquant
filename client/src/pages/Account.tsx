@@ -1,7 +1,7 @@
 /*
- * Account — Amber/Orange + Warm Beige Design System
- * Cards: rounded-3xl, p-8 beige #F5F1E1 | Buttons: rounded-full | Inputs: rounded-xl
- * Primary: Amber | Secondary: Orange | Success: Emerald
+ * Account — Indigo/Sky + Slate Design System
+ * Cards: rounded-2xl, p-6 | Buttons: rounded-full | Inputs: rounded-lg
+ * Primary: Indigo | Success: Emerald
  * Pure Tailwind classes — zero inline styles
  */
 import { Input } from "@/components/ui/input";
@@ -115,7 +115,7 @@ export default function Account() {
               className={`h-8 text-xs px-3 rounded-xl font-medium transition-all duration-200 ease-in-out flex items-center gap-1.5 border ${
                 isActive
                   ? "bg-primary/10 text-primary border-primary/20"
-                  : "bg-transparent text-muted-foreground border-transparent hover:text-foreground hover:bg-amber-100 dark:hover:bg-slate-800"
+                  : "bg-transparent text-muted-foreground border-transparent hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-800"
               }`}
               onClick={() => setActiveTab(tab.id)}
             >
@@ -193,7 +193,7 @@ export default function Account() {
                   <div className="text-sm font-medium text-foreground">Password</div>
                   <div className="text-xs text-muted-foreground">Last changed 30 days ago</div>
                 </div>
-                <button className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-primary/30">
+                <button className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                   Change
                 </button>
               </div>
@@ -202,7 +202,7 @@ export default function Account() {
                   <div className="text-sm font-medium text-foreground">Sessions</div>
                   <div className="text-xs text-muted-foreground">2 active sessions</div>
                 </div>
-                <button className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-primary/30">
+                <button className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                   Manage
                 </button>
               </div>
@@ -331,7 +331,7 @@ export default function Account() {
                       <button
                         className={`w-full h-7 text-xs rounded-full font-medium transition-all duration-200 ease-in-out ${
                           connected
-                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-primary/30"
+                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
                             : "bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                         }`}
                         onClick={() => handleConnect(ex.id)}
@@ -385,7 +385,7 @@ export default function Account() {
                       <button
                         className={`w-full h-7 text-xs rounded-full font-medium transition-all duration-200 ease-in-out ${
                           connected
-                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-primary/30"
+                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
                             : "bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                         }`}
                         onClick={() => handleConnect(ex.id)}

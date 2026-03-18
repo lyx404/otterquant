@@ -1,7 +1,5 @@
 /*
- * Dashboard — Amber/Orange + Warm Beige Design System
- * Cards: rounded-3xl, beige #F5F1E1 | Buttons: rounded-full | Inputs: rounded-xl
- * Primary: Amber | Secondary: Orange | Success: Emerald
+ * Dashboard — Indigo/Sky + Slate Design System
  * Epoch Banner: single banner entry with inline metrics
  * Skill Guide: agent tabs + terminal fused into one block
  * Pure Tailwind classes — zero inline styles
@@ -195,7 +193,7 @@ export default function Dashboard() {
         ref={bannerRef}
         className="surface-card overflow-hidden border-primary/20 dark:border-primary/30"
       >
-        <div className="flex items-center justify-between px-8 py-5 gap-6 flex-wrap">
+        <div className="flex items-center justify-between px-6 py-5 gap-6 flex-wrap">
           {/* Left: Epoch identity */}
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
@@ -203,7 +201,7 @@ export default function Dashboard() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-semibold text-card-foreground">{currentEpoch.id}</span>
+                <span className="text-base font-semibold text-foreground">{currentEpoch.id}</span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-primary/10 text-primary border border-primary/20">
                   <span className="relative flex h-1.5 w-1.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
@@ -230,14 +228,14 @@ export default function Dashboard() {
                 <Clock className="w-3 h-3" />
                 Time Remaining
               </div>
-              <div className="stat-value text-base font-bold font-mono tabular-nums text-card-foreground">
+              <div className="stat-value text-base font-bold font-mono tabular-nums text-foreground">
                 {countdown.display}
               </div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center">
               <div className="label-upper mb-0.5">Qualified</div>
-              <div className="stat-value text-base font-bold text-card-foreground">
+              <div className="stat-value text-base font-bold text-foreground">
                 {currentEpoch.qualifiedFactors}<span className="text-xs font-normal text-muted-foreground"> / {currentEpoch.totalSubmissions}</span>
               </div>
             </div>
@@ -245,7 +243,7 @@ export default function Dashboard() {
 
           {/* Right: CTA */}
           <Link href="/leaderboard">
-            <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-105 btn-bounce">
+            <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce">
               Leaderboard
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Button>
@@ -275,7 +273,7 @@ export default function Dashboard() {
       <Link href="/my-alphas">
         <div
           ref={statsRef}
-          className="surface-card p-8 mb-6 cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30"
+          className="surface-card p-6 mb-6 cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
         >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {statCards.map((stat) => {
@@ -286,7 +284,7 @@ export default function Dashboard() {
                     <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <span className="label-upper truncate">{stat.label}</span>
                   </div>
-                  <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-card-foreground"}`}>
+                  <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-foreground"}`}>
                     {stat.value}
                   </div>
                   <div className="text-sm mt-1 text-muted-foreground truncate">{stat.sub}</div>
@@ -301,13 +299,13 @@ export default function Dashboard() {
           4. SKILL HUB — Agent + Terminal fused
           ═══════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className={`lg:col-span-2 surface-card cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 ${!isAnyConnected ? "border-primary/20" : ""}`}>
+        <div className={`lg:col-span-2 surface-card cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40 ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
           {/* Header */}
-          <div className="px-8 py-4 border-b border-border">
+          <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Cpu className={`w-4 h-4 ${isAnyConnected ? "text-success" : "text-primary"}`} />
-                <h3 className="text-card-foreground">Skill Hub</h3>
+                <h3 className="text-foreground">Skill Hub</h3>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] uppercase border ${
@@ -321,7 +319,7 @@ export default function Dashboard() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-card-foreground"
+                    className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
                   >
                     <ExternalLink className="w-3 h-3" />
                     API Keys
@@ -331,21 +329,21 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="p-8 space-y-5">
+          <div className="p-6 space-y-5">
             {/* Connected state: Agent cards */}
             {isAnyConnected && (
               <div className="grid md:grid-cols-3 gap-4">
                 {agentSkills.map((skill) => (
                   <div
                     key={skill.id}
-                    className={`rounded-3xl p-4 transition-all duration-200 ease-in-out border ${
+                    className={`rounded-2xl p-4 transition-all duration-200 ease-in-out border ${
                       skill.status === "connected"
-                        ? "bg-success/5 border-success/20"
+                        ? "bg-success/5 dark:bg-success/10 border-success/20"
                         : "bg-card border-border"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-card-foreground">{skill.name}</span>
+                      <span className="text-sm font-medium text-foreground">{skill.name}</span>
                       {skill.status === "connected" ? (
                         <div className="flex items-center gap-1.5">
                           <span className="relative flex h-2 w-2">
@@ -364,7 +362,7 @@ export default function Dashboard() {
                     <div className="space-y-1.5 text-xs">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Last Sync</span>
-                        <span className="font-mono text-card-foreground">{skill.lastSync}</span>
+                        <span className="font-mono text-foreground">{skill.lastSync}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Factors Mined</span>
@@ -386,7 +384,7 @@ export default function Dashboard() {
               {isAnyConnected ? (
                 <button
                   onClick={() => setGuideExpanded(!guideExpanded)}
-                  className="flex items-center gap-2 w-full py-2.5 px-4 rounded-3xl transition-colors duration-200 ease-in-out text-sm bg-accent border border-border hover:bg-amber-100/50 dark:hover:bg-slate-800"
+                  className="flex items-center gap-2 w-full py-2.5 px-4 rounded-2xl transition-colors duration-200 ease-in-out text-sm bg-accent border border-border hover:bg-slate-200 dark:hover:bg-slate-800"
                 >
                   <BookOpen className="w-4 h-4 text-muted-foreground" />
                   <span className="font-medium text-muted-foreground">Skill Installation Guide</span>
@@ -396,13 +394,13 @@ export default function Dashboard() {
                   </div>
                 </button>
               ) : (
-                <div className="rounded-3xl p-5 bg-primary/5 border border-primary/20">
+                <div className="rounded-2xl p-5 bg-primary/5 dark:bg-primary/10 border border-primary/20">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary">
                       <Sparkles className="w-4 h-4 text-primary-foreground" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-card-foreground">Skill Installation Guide</div>
+                      <div className="text-sm font-semibold text-foreground">Skill Installation Guide</div>
                       <div className="text-xs text-muted-foreground">Install the Otter skill to start mining factors automatically</div>
                     </div>
                   </div>
@@ -411,7 +409,7 @@ export default function Dashboard() {
 
               {/* Fused block: Agent tabs as terminal header → code body → quickstart footer */}
               {(guideExpanded || !isAnyConnected) && (
-                <div className="rounded-3xl overflow-hidden bg-background border border-border">
+                <div className="rounded-2xl overflow-hidden bg-background border border-border">
                   {/* Agent tabs + copy button in terminal header bar */}
                   <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-accent">
                     <div className="flex items-center gap-1">
@@ -423,7 +421,7 @@ export default function Dashboard() {
                           className={`py-1 px-2.5 rounded-lg text-[11px] font-medium transition-all duration-200 ease-in-out ${
                             activeGuide === guide.id
                               ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:text-card-foreground"
+                              : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
                           {guide.title}
@@ -446,7 +444,7 @@ export default function Dashboard() {
                               ) : (
                                 <>
                                   <span className="text-primary">$ </span>
-                                  <span className="text-foreground dark:text-foreground">{step}</span>
+                                  <span className="text-foreground">{step}</span>
                                 </>
                               )}
                             </code>
@@ -480,8 +478,8 @@ export default function Dashboard() {
         {/* ═══════════════════════════════════════════
             5. RECENT ACTIVITY
             ═══════════════════════════════════════════ */}
-        <div className="lg:col-span-1 surface-card group transition-all duration-200 ease-in-out hover:border-primary/30">
-          <div className="px-8 py-4 border-b border-border">
+        <div className="lg:col-span-1 surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
+          <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <Activity className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Recent Activity</span>
