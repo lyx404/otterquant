@@ -8,6 +8,7 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useOnboarding } from "@/App";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   ChevronRight,
   ChevronDown,
@@ -27,6 +28,8 @@ import {
   BarChart3,
   Trophy,
   ExternalLink,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,6 +60,7 @@ const EXPERIENCE_OPTIONS = [
 export default function LaunchGuide() {
   const [, navigate] = useLocation();
   const { markOnboarded } = useOnboarding();
+  const { theme, toggleTheme } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
@@ -159,7 +163,7 @@ export default function LaunchGuide() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* ── Minimal header ── */}
-      <header className="shrink-0 px-6 sm:px-10 py-5 border-b border-border bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl">
+      <header className="shrink-0 h-11 px-6 sm:px-10 border-b border-border bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-primary/10">
             <Zap className="w-4 h-4 text-primary" />
@@ -170,6 +174,27 @@ export default function LaunchGuide() {
           <span className="text-xs font-mono ml-2 px-2 py-0.5 rounded-full text-primary bg-primary/10 border border-primary/20">
             SETUP
           </span>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={toggleTheme}
+            className="relative w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-200 ease-in-out"
+            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {theme === "dark" ? (
+              <Sun className="w-3.5 h-3.5 text-slate-400" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-slate-500" />
+            )}
+          </button>
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border bg-accent border-border">
+            <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
+              O
+            </div>
+            <span className="text-xs font-medium text-foreground">
+              Otter User
+            </span>
+          </div>
         </div>
       </header>
 
@@ -697,16 +722,16 @@ function CodeBlock({
   code: string; id: string; copiedCode: string | null; onCopy: (code: string, id: string) => void;
 }) {
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-slate-900 dark:bg-slate-950 border border-slate-800 dark:border-slate-700/50">
-      <pre className="p-4 pr-12 text-xs font-mono leading-relaxed overflow-x-auto text-slate-100">
+    <div className="relative rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50">
+      <pre className="p-4 pr-12 text-xs font-mono leading-relaxed overflow-x-auto text-slate-800 dark:text-slate-100">
         {code}
       </pre>
       <button
         onClick={() => onCopy(code, id)}
         className={`absolute top-2.5 right-2.5 p-1.5 rounded-lg border transition-all duration-200 ease-in-out ${
           copiedCode === id
-            ? "border-success/30 text-success bg-slate-800"
-            : "border-slate-700 text-slate-500 bg-slate-800 hover:border-primary hover:text-primary"
+            ? "border-success/30 text-success bg-slate-200 dark:bg-slate-800"
+            : "border-slate-300 dark:border-slate-700 text-slate-500 bg-slate-200 dark:bg-slate-800 hover:border-primary hover:text-primary"
         }`}
       >
         {copiedCode === id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
