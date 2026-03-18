@@ -88,9 +88,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation — Account entry hidden, accessible via user pill */}
             <nav className="hidden md:flex items-center gap-0.5">
-              {navItems.map((item) => {
+              {navItems.filter((item) => item.path !== "/account").map((item) => {
                 const active = isActive(item.path);
                 const Icon = item.icon;
                 return (
@@ -125,15 +125,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
               </button>
 
-              {/* User Info */}
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-accent border border-border">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
-                  O
+              {/* User Info — clickable, links to Account page */}
+              <Link href="/account">
+                <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full border cursor-pointer transition-all duration-200 ease-in-out ${
+                  isActive("/account")
+                    ? "bg-primary/10 border-primary/20"
+                    : "bg-accent border-border hover:bg-slate-200 dark:hover:bg-slate-800 hover:border-primary/20"
+                }`}>
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
+                    O
+                  </div>
+                  <span className="text-xs font-medium text-foreground">
+                    Otter User
+                  </span>
                 </div>
-                <span className="text-xs font-medium text-foreground">
-                  Otter User
-                </span>
-              </div>
+              </Link>
             </div>
 
             {/* Mobile menu button */}
@@ -162,7 +168,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {mobileMenuOpen && (
           <div className="md:hidden bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-border">
             <nav className="px-4 py-3 space-y-1">
-              {navItems.map((item) => {
+              {navItems.filter((item) => item.path !== "/account").map((item) => {
                 const active = isActive(item.path);
                 const Icon = item.icon;
                 return (
@@ -181,6 +187,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 );
               })}
+              {/* Account entry in mobile — via user pill style */}
+              <Link href="/account">
+                <div
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors duration-200 ${
+                    isActive("/account")
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
+                    O
+                  </div>
+                  <span>Otter User</span>
+                </div>
+              </Link>
             </nav>
           </div>
         )}
