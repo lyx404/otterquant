@@ -68,6 +68,7 @@ interface ColumnDef {
 const dataColumns: ColumnDef[] = [
   { key: "id", label: "ID", defaultVisible: true, sortable: true, width: "80px" },
   { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "180px" },
+  { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "120px" },
   { key: "market", label: "Market", defaultVisible: true, sortable: true, width: "72px" },
   { key: "type", label: "Type", defaultVisible: true, sortable: true, width: "80px" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
@@ -177,7 +178,7 @@ export default function MyAlphas() {
       } else if (sortKey === "returns" || sortKey === "turnover" || sortKey === "drawdown") {
         av = parseFloat(String(a[sortKey as keyof AlphaRow])) || 0;
         bv = parseFloat(String(b[sortKey as keyof AlphaRow])) || 0;
-      } else if (sortKey === "submissionStatus") {
+      } else if (sortKey === "submissionStatus" || sortKey === "status_col") {
         const order = { passed: 0, os_testing: 1, is_testing: 2, backtesting: 3, queued: 4, unsubmitted: 5, failed: 6, rejected: 7 };
         av = order[a.submissionStatus] ?? 99;
         bv = order[b.submissionStatus] ?? 99;
@@ -253,6 +254,8 @@ export default function MyAlphas() {
     switch (colKey) {
       case "id":
         return <span className="font-mono text-xs text-muted-foreground">{row.id}</span>;
+      case "status_col":
+        return renderStatusBadge(row.submissionStatus);
       case "name":
         return (
           <div className="flex items-center gap-2 max-w-[180px]">
@@ -352,7 +355,7 @@ export default function MyAlphas() {
       {visibleCols.map((col) => (
         <col key={col.key} style={{ width: col.width }} />
       ))}
-      <col style={{ width: "180px" }} />
+      <col style={{ width: "100px" }} />
     </colgroup>
   );
 
@@ -407,9 +410,9 @@ export default function MyAlphas() {
       {/* ═══════════════════════════════════════════
           DATA TABLE
           ═══════════════════════════════════════════ */}
-      <div className="surface-card overflow-hidden">
+      <div className="overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-b border-border bg-card">
+        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-b border-border">
           <div className="relative flex-1 min-w-[180px] max-w-[280px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
@@ -570,15 +573,9 @@ export default function MyAlphas() {
                     </span>
                   </th>
                 ))}
-                {/* Pinned: Status + Actions header */}
-                <th
-                  className={`px-4 py-2.5 text-left cursor-pointer transition-all duration-200 ease-in-out sticky right-0 z-[2] bg-background border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] ${sortKey === "submissionStatus" ? "bg-primary/5 dark:bg-primary/10" : ""}`}
-                  onClick={() => handleSort("submissionStatus")}
-                >
-                  <span className="flex items-center gap-1.5 label-upper whitespace-nowrap select-none">
-                    Status
-                    <SortIcon colKey="submissionStatus" />
-                  </span>
+                {/* Actions header */}
+                <th className="px-3 py-2.5 text-right">
+                  <span className="label-upper">Actions</span>
                 </th>
               </tr>
             </thead>
@@ -603,16 +600,13 @@ export default function MyAlphas() {
                       {renderCell(row, col.key)}
                     </td>
                   ))}
-                  {/* Pinned: Status + Actions */}
-                  <td className="px-4 py-2.5 sticky right-0 z-[2] bg-background group-hover:bg-slate-50 dark:group-hover:bg-slate-900 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] transition-colors duration-200 ease-in-out">
-                    <div className="flex items-center justify-between gap-3">
-                      {renderStatusBadge(row.submissionStatus)}
-                      <Link href={`/alphas/${row.id}`}>
-                        <button className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-full transition-all duration-200 ease-in-out whitespace-nowrap opacity-0 group-hover:opacity-100 text-muted-foreground border border-border hover:border-slate-300 dark:hover:border-slate-600 hover:text-foreground hover:bg-accent">
-                          View
-                        </button>
-                      </Link>
-                    </div>
+                  {/* Actions — always visible */}
+                  <td className="px-3 py-2.5 text-right">
+                    <Link href={`/alphas/${row.id}`}>
+                      <button className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-full transition-all duration-200 ease-in-out whitespace-nowrap text-muted-foreground border border-border hover:border-primary hover:text-primary hover:bg-primary/5">
+                        View
+                      </button>
+                    </Link>
                   </td>
                 </tr>
               ))}
@@ -628,7 +622,7 @@ export default function MyAlphas() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="font-mono tabular-nums">
               {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
