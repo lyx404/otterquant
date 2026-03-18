@@ -298,55 +298,137 @@ export default function Leaderboard() {
         </div>
       </div>
 
-      {/* Epoch Info Bar */}
-      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className={`fade-item surface-card p-6 ${isCurrent ? "border-primary/20 dark:border-primary/30" : ""}`}>
-          <div className="label-upper mb-2 flex items-center gap-1.5">
-            <Trophy className="w-3.5 h-3.5" />
-            {isCurrent ? "Current Epoch" : "Epoch"}
-          </div>
-          <div className="stat-value text-xl font-bold text-primary">{selectedEpoch.id}</div>
-          <div className="text-xs mt-1 text-muted-foreground">
-            {selectedEpoch.startDate} — {selectedEpoch.endDate}
-          </div>
+      {/* ═══════════════════════════════════════════
+          Epoch Overview — Unified operational banner
+          ═══════════════════════════════════════════ */}
+      <div ref={statsRef} className="relative overflow-hidden rounded-2xl border border-primary/20 dark:border-primary/30 bg-gradient-to-br from-primary/5 via-card to-secondary/5 dark:from-primary/10 dark:via-card dark:to-secondary/10">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-primary/5 dark:bg-primary/10 blur-3xl" />
+          <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-secondary/5 dark:bg-secondary/10 blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-32 bg-gradient-to-r from-amber-500/3 via-yellow-400/5 to-amber-500/3 dark:from-amber-400/5 dark:via-yellow-300/8 dark:to-amber-400/5 blur-2xl rotate-12" />
+          {/* Grid pattern overlay */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="lb-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#lb-grid)" />
+          </svg>
         </div>
-        <div className="fade-item surface-card p-6">
-          <div className="label-upper mb-2 flex items-center gap-1.5">
-            <Award className="w-3.5 h-3.5" /> Prize Pool
-          </div>
-          <div className={`stat-value text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>
-            {prizePoolDisplay} <span className="text-sm font-medium">USDT</span>
-          </div>
-          <div className="text-xs mt-1 text-muted-foreground">
-            {isCurrent ? "distributed proportionally" : "fully distributed"}
-          </div>
-        </div>
-        <div className="fade-item surface-card p-6">
-          <div className="label-upper mb-2 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />
-            {isCurrent ? "Time Remaining" : "Status"}
-          </div>
-          {isCurrent ? (
-            <div className="stat-value text-xl font-bold font-mono tabular-nums text-foreground">
-              {countdown}
+
+        {/* Main content */}
+        <div className="relative z-10 p-6">
+          {/* Top row: Epoch ID + Status + Timer */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 dark:bg-primary/20 border border-primary/20 flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-foreground">{selectedEpoch.id}</span>
+                  {isCurrent && (
+                    <span className="relative inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-primary/10 text-primary border border-primary/20">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                      </span>
+                      LIVE
+                    </span>
+                  )}
+                  {!isCurrent && selectedEpoch.distributed && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-success/10 text-success border border-success/20">
+                      COMPLETED
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {selectedEpoch.startDate} — {selectedEpoch.endDate}
+                </span>
+              </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono bg-success/10 text-success border border-success/20">
-                COMPLETED
-              </span>
+
+            {/* Timer / Status */}
+            {isCurrent ? (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-card/80 border border-border">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Time Remaining</span>
+                <span className="font-mono text-base font-bold tabular-nums text-foreground">{countdown}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-card/80 border border-border">
+                <CheckCircle2 className="w-4 h-4 text-success" />
+                <span className="text-xs text-muted-foreground">{selectedEpoch.winners} winners rewarded</span>
+              </div>
+            )}
+          </div>
+
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-6">
+            <div className="fade-item">
+              <div className="label-upper mb-1.5 flex items-center gap-1.5">
+                <Award className="w-3 h-3" /> Prize Pool
+              </div>
+              <div className={`stat-value text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>
+                {prizePoolDisplay}
+                <span className="text-sm font-medium ml-1">USDT</span>
+              </div>
+              <div className="text-xs mt-0.5 text-muted-foreground">
+                {isCurrent ? "distributed proportionally" : "fully distributed"}
+              </div>
             </div>
-          )}
-          <div className="text-xs mt-1 text-muted-foreground">
-            {isCurrent ? "until epoch ends" : `${selectedEpoch.winners} winners`}
+            <div className="fade-item">
+              <div className="label-upper mb-1.5 flex items-center gap-1.5">
+                <Users className="w-3 h-3" /> Submissions
+              </div>
+              <div className="stat-value text-2xl font-bold text-foreground">{selectedEpoch.totalSubmissions}</div>
+              <div className="text-xs mt-0.5 text-muted-foreground">{selectedEpoch.qualifiedFactors} qualified factors</div>
+            </div>
+            <div className="fade-item">
+              <div className="label-upper mb-1.5 flex items-center gap-1.5">
+                <CheckCircle2 className="w-3 h-3" /> Qualification Rate
+              </div>
+              <div className="stat-value text-2xl font-bold text-success">
+                {selectedEpoch.totalSubmissions > 0 ? Math.round((selectedEpoch.qualifiedFactors / selectedEpoch.totalSubmissions) * 100) : 0}%
+              </div>
+              <div className="text-xs mt-0.5 text-muted-foreground">{selectedEpoch.qualifiedFactors} of {selectedEpoch.totalSubmissions} passed</div>
+            </div>
           </div>
         </div>
-        <div className="fade-item surface-card p-6">
-          <div className="label-upper mb-2 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" /> Submissions
+
+        {/* ── Your Ranking ── */}
+        <div className="relative z-10 px-6 py-4 border-t border-border/50 bg-card/40">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-mono text-primary font-bold">
+                OU
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">Your Ranking</div>
+                <span className="text-xs text-muted-foreground">Otter User</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className="label-upper mb-0.5">Rank</div>
+                <div className="text-sm font-bold font-mono text-primary">#4</div>
+              </div>
+              <div className="text-center">
+                <div className="label-upper mb-0.5">Score</div>
+                <div className="text-sm font-bold font-mono text-foreground">75.1</div>
+              </div>
+              <div className="text-center">
+                <div className="label-upper mb-0.5">Reward</div>
+                <div className={`text-sm font-bold font-mono ${rewardStyle}`}>540</div>
+              </div>
+              <div className="text-center">
+                <div className="label-upper mb-0.5">Best Factor</div>
+                <div className="text-sm font-semibold text-foreground">BTC Momentum RSI</div>
+              </div>
+            </div>
           </div>
-          <div className="stat-value text-xl font-bold text-foreground">{selectedEpoch.totalSubmissions}</div>
-          <div className="text-xs mt-1 text-muted-foreground">{selectedEpoch.qualifiedFactors} qualified</div>
         </div>
       </div>
 
