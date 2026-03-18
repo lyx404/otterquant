@@ -1,7 +1,8 @@
 /*
- * Leaderboard — Modern Developer Tool Aesthetic
+ * Leaderboard — Indigo/Sky + Slate Design System
+ * Cards: rounded-2xl, p-6 | Buttons: rounded-full | Inputs: rounded-lg
+ * Primary: Indigo | Secondary: Sky | Success: Emerald | Danger: Red
  * Pure Tailwind classes — zero inline styles
- * Dual theme: Light (#FFFFFF) / Dark (#000000)
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,24 +84,24 @@ export default function Leaderboard() {
   );
 
   const rankBadge = (rank: number) => {
-    if (rank === 1) return <div className="w-6 h-6 rounded-full flex items-center justify-center bg-yellow-500/10"><Medal className="w-3.5 h-3.5 text-yellow-500" /></div>;
-    if (rank === 2) return <div className="w-6 h-6 rounded-full flex items-center justify-center bg-zinc-300/10 dark:bg-zinc-500/10"><Medal className="w-3.5 h-3.5 text-zinc-400" /></div>;
+    if (rank === 1) return <div className="w-6 h-6 rounded-full flex items-center justify-center bg-amber-500/10"><Medal className="w-3.5 h-3.5 text-amber-500" /></div>;
+    if (rank === 2) return <div className="w-6 h-6 rounded-full flex items-center justify-center bg-slate-400/10"><Medal className="w-3.5 h-3.5 text-slate-400" /></div>;
     if (rank === 3) return <div className="w-6 h-6 rounded-full flex items-center justify-center bg-amber-700/10"><Medal className="w-3.5 h-3.5 text-amber-600" /></div>;
     return <span className="w-6 h-6 flex items-center justify-center text-xs font-mono text-muted-foreground">{rank}</span>;
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header with Epoch Selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div ref={headerRef} className="reveal-clip">
           <div className="reveal-line">
-            <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none text-foreground">
+            <h1 className="text-foreground">
               Leaderboard
             </h1>
           </div>
           <div className="reveal-line mt-2">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-base text-muted-foreground">
               Epoch rankings and reward distribution
             </p>
           </div>
@@ -110,7 +111,7 @@ export default function Leaderboard() {
         <div className="flex items-center gap-3">
           <span className="label-upper shrink-0">Epoch</span>
           <Select value={selectedEpochId} onValueChange={setSelectedEpochId}>
-            <SelectTrigger className="w-[260px] h-9 text-sm font-mono rounded-xl bg-card border-border">
+            <SelectTrigger className="w-[260px] h-9 text-sm font-mono rounded-lg bg-card border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -140,8 +141,8 @@ export default function Leaderboard() {
       </div>
 
       {/* Epoch Info Bar */}
-      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className={`fade-item surface-card p-4 ${isCurrent ? "border-primary/20" : ""}`}>
+      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className={`fade-item surface-card p-6 ${isCurrent ? "border-primary/20 dark:border-primary/30" : ""}`}>
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Trophy className="w-3.5 h-3.5" />
             {isCurrent ? "Current Epoch" : "Epoch"}
@@ -151,7 +152,7 @@ export default function Leaderboard() {
             {selectedEpoch.startDate} — {selectedEpoch.endDate}
           </div>
         </div>
-        <div className="fade-item surface-card p-4">
+        <div className="fade-item surface-card p-6">
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Award className="w-3.5 h-3.5" /> Prize Pool
           </div>
@@ -160,13 +161,13 @@ export default function Leaderboard() {
             {isCurrent ? "distributed proportionally" : "fully distributed"}
           </div>
         </div>
-        <div className="fade-item surface-card p-4">
+        <div className="fade-item surface-card p-6">
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
             {isCurrent ? "Time Remaining" : "Status"}
           </div>
           {isCurrent ? (
-            <div className="stat-value text-xl font-bold text-red-500">{selectedEpoch.timeRemaining}</div>
+            <div className="stat-value text-xl font-bold text-destructive">{selectedEpoch.timeRemaining}</div>
           ) : (
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono bg-success/10 text-success border border-success/20">
@@ -178,7 +179,7 @@ export default function Leaderboard() {
             {isCurrent ? "until epoch ends" : `${selectedEpoch.winners} winners`}
           </div>
         </div>
-        <div className="fade-item surface-card p-4">
+        <div className="fade-item surface-card p-6">
           <div className="label-upper mb-2 flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" /> Submissions
           </div>
@@ -188,9 +189,9 @@ export default function Leaderboard() {
       </div>
 
       {/* View Mode Toggle */}
-      <div className="flex items-center gap-1 p-1 rounded-2xl w-fit bg-card border border-border">
+      <div className="flex items-center gap-1 p-1 rounded-2xl w-fit bg-accent border border-border">
         <button
-          className={`h-8 text-xs px-4 rounded-xl font-medium transition-all duration-200 border ${
+          className={`h-8 text-xs px-4 rounded-xl font-medium transition-all duration-200 ease-in-out border ${
             viewMode === "factor"
               ? "bg-primary/10 text-primary border-primary/20"
               : "bg-transparent text-muted-foreground border-transparent hover:text-foreground"
@@ -200,7 +201,7 @@ export default function Leaderboard() {
           By Factor
         </button>
         <button
-          className={`h-8 text-xs px-4 rounded-xl font-medium transition-all duration-200 border ${
+          className={`h-8 text-xs px-4 rounded-xl font-medium transition-all duration-200 ease-in-out border ${
             viewMode === "user"
               ? "bg-primary/10 text-primary border-primary/20"
               : "bg-transparent text-muted-foreground border-transparent hover:text-foreground"
@@ -233,14 +234,14 @@ export default function Leaderboard() {
                 {factorData.map((entry) => (
                   <TableRow
                     key={entry.factorId}
-                    className={`transition-all duration-200 border-border hover:bg-muted/30 dark:hover:bg-white/[0.02] ${
+                    className={`transition-all duration-200 ease-in-out border-border hover:bg-slate-50 dark:hover:bg-slate-800/30 ${
                       entry.rank <= 3 ? "bg-primary/5 dark:bg-primary/[0.06]" : ""
                     }`}
                   >
                     <TableCell>{rankBadge(entry.rank)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono bg-card border border-border text-muted-foreground">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono bg-accent border border-border text-muted-foreground">
                           {entry.avatar}
                         </div>
                         <span className="text-sm font-medium text-foreground">{entry.username}</span>
@@ -254,14 +255,14 @@ export default function Leaderboard() {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] border ${
                         entry.market === "CEX"
                           ? "bg-primary/10 text-primary border-primary/20"
-                          : "bg-violet-500/10 text-violet-500 border-violet-500/25"
+                          : "bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/25"
                       }`}>
                         {entry.market}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className={`font-mono text-sm ${
-                        entry.osSharpe >= 1 ? "text-success" : entry.osSharpe >= 0.5 ? "text-amber-500" : "text-red-500"
+                        entry.osSharpe >= 1 ? "text-success" : entry.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
                       }`}>
                         {entry.osSharpe.toFixed(2)}
                       </span>
@@ -272,7 +273,7 @@ export default function Leaderboard() {
                       <span className="font-mono text-sm font-bold text-success">{entry.compositeScore.toFixed(1)}</span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className="font-mono text-sm text-yellow-500">{entry.reward}</span>
+                      <span className="font-mono text-sm text-amber-500 dark:text-amber-400">{entry.reward}</span>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -297,14 +298,14 @@ export default function Leaderboard() {
                 {userData.map((entry) => (
                   <TableRow
                     key={entry.userId}
-                    className={`transition-all duration-200 border-border hover:bg-muted/30 dark:hover:bg-white/[0.02] ${
+                    className={`transition-all duration-200 ease-in-out border-border hover:bg-slate-50 dark:hover:bg-slate-800/30 ${
                       entry.rank <= 3 ? "bg-primary/5 dark:bg-primary/[0.06]" : ""
                     }`}
                   >
                     <TableCell>{rankBadge(entry.rank)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono bg-card border border-border text-muted-foreground">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono bg-accent border border-border text-muted-foreground">
                           {entry.avatar}
                         </div>
                         <span className="text-sm font-medium text-foreground">{entry.username}</span>
@@ -314,14 +315,14 @@ export default function Leaderboard() {
                     <TableCell className="text-right font-mono text-sm text-success">{entry.qualifiedFactors}</TableCell>
                     <TableCell className="text-right">
                       <span className={`font-mono text-sm ${
-                        entry.avgOsSharpe >= 1 ? "text-success" : entry.avgOsSharpe >= 0.5 ? "text-amber-500" : "text-red-500"
+                        entry.avgOsSharpe >= 1 ? "text-success" : entry.avgOsSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
                       }`}>
                         {entry.avgOsSharpe.toFixed(2)}
                       </span>
                     </TableCell>
                     <TableCell className="text-sm text-foreground">{entry.topFactor}</TableCell>
                     <TableCell className="text-right">
-                      <span className="font-mono text-sm font-bold text-yellow-500">{entry.totalReward}</span>
+                      <span className="font-mono text-sm font-bold text-amber-500 dark:text-amber-400">{entry.totalReward}</span>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -1,7 +1,8 @@
 /*
- * Account — Modern Developer Tool Aesthetic
+ * Account — Indigo/Sky + Slate Design System
+ * Cards: rounded-2xl, p-6 | Buttons: rounded-full | Inputs: rounded-lg
+ * Primary: Indigo | Success: Emerald
  * Pure Tailwind classes — zero inline styles
- * Dual theme: Light (#FFFFFF) / Dark (#000000)
  */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +34,7 @@ function CopyBtn({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="p-1.5 rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+    <button onClick={handleCopy} className="p-1.5 rounded-lg transition-colors duration-200 ease-in-out text-muted-foreground hover:text-foreground">
       {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
@@ -74,33 +75,33 @@ export default function Account() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none text-foreground">
+          <h1 className="text-foreground">
             Account
           </h1>
         </div>
         <div className="reveal-line mt-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Manage your profile, API keys, and exchange connections
           </p>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex items-center gap-1 p-1 rounded-2xl w-fit bg-card border border-border">
+      <div className="flex items-center gap-1 p-1 rounded-2xl w-fit bg-accent border border-border">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
-              className={`h-8 text-xs px-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-1.5 border ${
+              className={`h-8 text-xs px-3 rounded-xl font-medium transition-all duration-200 ease-in-out flex items-center gap-1.5 border ${
                 isActive
                   ? "bg-primary/10 text-primary border-primary/20"
-                  : "bg-transparent text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/[0.04]"
+                  : "bg-transparent text-muted-foreground border-transparent hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-800"
               }`}
               onClick={() => setActiveTab(tab.id)}
             >
@@ -113,42 +114,42 @@ export default function Account() {
 
       {/* Profile Tab */}
       {activeTab === "profile" && (
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-8">
           <div className="surface-card lg:col-span-2">
-            <div className="p-4 pb-3 border-b border-border">
+            <div className="px-6 py-4 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-primary" />
                 <span className="text-base font-semibold text-foreground">Profile Information</span>
               </div>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-6 space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="label-upper">Username</Label>
-                  <Input defaultValue="CryptoQuant_Pro" className="rounded-xl bg-card border-border" />
+                  <Input defaultValue="CryptoQuant_Pro" className="rounded-lg bg-card border-border" />
                 </div>
                 <div className="space-y-2">
                   <Label className="label-upper">Display Name</Label>
-                  <Input defaultValue="CryptoQuant Pro" className="rounded-xl bg-card border-border" />
+                  <Input defaultValue="CryptoQuant Pro" className="rounded-lg bg-card border-border" />
                 </div>
                 <div className="space-y-2">
                   <Label className="label-upper">Email</Label>
-                  <Input defaultValue="quant@example.com" className="rounded-xl bg-card border-border" />
+                  <Input defaultValue="quant@example.com" className="rounded-lg bg-card border-border" />
                 </div>
                 <div className="space-y-2">
                   <Label className="label-upper">Timezone</Label>
-                  <Input defaultValue="UTC+8" className="rounded-xl bg-card border-border" />
+                  <Input defaultValue="UTC+8" className="rounded-lg bg-card border-border" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label className="label-upper">Bio</Label>
                 <textarea
                   defaultValue="Quantitative researcher specializing in crypto alpha factor mining. Building systematic strategies using AI-powered tools."
-                  className="w-full h-20 px-3 py-2 rounded-xl text-sm resize-none focus:outline-none transition-all duration-200 bg-card border border-border text-foreground focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
+                  className="w-full h-20 px-3 py-2 rounded-lg text-sm resize-none focus:outline-none transition-all duration-200 ease-in-out bg-card border border-border text-foreground focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
                 />
               </div>
               <button
-                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-white hover:bg-primary/90"
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                 onClick={() => toast.success("Profile updated")}
               >
                 Save Changes
@@ -157,13 +158,13 @@ export default function Account() {
           </div>
 
           <div className="surface-card">
-            <div className="p-4 pb-3 border-b border-border">
+            <div className="px-6 py-4 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
                 <span className="text-base font-semibold text-foreground">Security</span>
               </div>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-6 space-y-4">
               <div className="flex items-center justify-between py-2">
                 <div>
                   <div className="text-sm font-medium text-foreground">Two-Factor Auth</div>
@@ -178,7 +179,7 @@ export default function Account() {
                   <div className="text-sm font-medium text-foreground">Password</div>
                   <div className="text-xs text-muted-foreground">Last changed 30 days ago</div>
                 </div>
-                <button className="h-7 text-xs px-3 rounded-xl transition-all duration-200 border border-border text-muted-foreground hover:text-foreground hover:border-foreground/20">
+                <button className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                   Change
                 </button>
               </div>
@@ -187,7 +188,7 @@ export default function Account() {
                   <div className="text-sm font-medium text-foreground">Sessions</div>
                   <div className="text-xs text-muted-foreground">2 active sessions</div>
                 </div>
-                <button className="h-7 text-xs px-3 rounded-xl transition-all duration-200 border border-border text-muted-foreground hover:text-foreground hover:border-foreground/20">
+                <button className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                   Manage
                 </button>
               </div>
@@ -198,28 +199,28 @@ export default function Account() {
 
       {/* API Keys Tab */}
       {activeTab === "api" && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div className="surface-card">
-            <div className="p-4 pb-3 border-b border-border">
+            <div className="px-6 py-4 pb-3 border-b border-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-primary" />
                   <span className="text-base font-semibold text-foreground">API Credentials</span>
                 </div>
-                <button className="h-7 text-xs px-3 rounded-xl flex items-center gap-1 transition-all duration-200 border border-primary/20 text-primary hover:bg-primary/10">
+                <button className="h-7 text-xs px-3 rounded-full flex items-center gap-1 transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10">
                   <RefreshCw className="w-3 h-3" />
                   Regenerate
                 </button>
               </div>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label className="label-upper">API Key</Label>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent border border-border">
                   <code className="flex-1 font-mono text-sm text-primary">
                     {showApiKey ? mockApiKey : "\u2022".repeat(20) + "..."}
                   </code>
-                  <button onClick={() => setShowApiKey(!showApiKey)} className="p-1 transition-colors text-muted-foreground hover:text-foreground">
+                  <button onClick={() => setShowApiKey(!showApiKey)} className="p-1 transition-colors duration-200 text-muted-foreground hover:text-foreground">
                     {showApiKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                   <CopyBtn text={mockApiKey} />
@@ -227,18 +228,18 @@ export default function Account() {
               </div>
               <div className="space-y-2">
                 <Label className="label-upper">API Secret</Label>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border">
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent border border-border">
                   <code className="flex-1 font-mono text-sm text-muted-foreground">
                     {"\u2022".repeat(20)}...
                   </code>
                   <CopyBtn text={mockApiSecret} />
                 </div>
               </div>
-              <div className="p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
+              <div className="p-4 rounded-2xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500 dark:text-amber-400" />
                   <div className="text-xs text-muted-foreground">
-                    <span className="font-medium text-amber-500">Security Notice:</span> Never share your API secret. It provides full access to your account. Use environment variables to store credentials.
+                    <span className="font-medium text-amber-500 dark:text-amber-400">Security Notice:</span> Never share your API secret. It provides full access to your account. Rotate keys regularly.
                   </div>
                 </div>
               </div>
@@ -246,22 +247,22 @@ export default function Account() {
           </div>
 
           <div className="surface-card">
-            <div className="p-4 pb-3 border-b border-border">
+            <div className="px-6 py-4 pb-3 border-b border-border">
               <span className="text-base font-semibold text-foreground">Usage & Rate Limits</span>
             </div>
-            <div className="p-4">
+            <div className="p-6">
               <div className="grid md:grid-cols-3 gap-4">
-                <div className="p-3 rounded-2xl text-center bg-card border border-border/60">
+                <div className="p-4 rounded-2xl text-center bg-accent border border-border/60">
                   <div className="label-upper mb-1">Requests Today</div>
                   <div className="stat-value text-xl font-bold text-foreground">1,247</div>
                   <div className="text-xs mt-1 text-muted-foreground">of 10,000</div>
                 </div>
-                <div className="p-3 rounded-2xl text-center bg-card border border-border/60">
+                <div className="p-4 rounded-2xl text-center bg-accent border border-border/60">
                   <div className="label-upper mb-1">Rate Limit</div>
                   <div className="stat-value text-xl font-bold text-foreground">100</div>
                   <div className="text-xs mt-1 text-muted-foreground">req/min</div>
                 </div>
-                <div className="p-3 rounded-2xl text-center bg-card border border-border/60">
+                <div className="p-4 rounded-2xl text-center bg-accent border border-border/60">
                   <div className="label-upper mb-1">Plan</div>
                   <div className="stat-value text-xl font-bold text-primary">Pro</div>
                   <div className="text-xs mt-1 text-muted-foreground">unlimited factors</div>
@@ -274,10 +275,10 @@ export default function Account() {
 
       {/* Exchanges Tab */}
       {activeTab === "exchanges" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
             <h3 className="label-upper mb-3 text-primary">Centralized Exchanges (CEX)</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {exchangeList
                 .filter((ex) => ex.type === "CEX")
                 .map((ex) => {
@@ -285,8 +286,8 @@ export default function Account() {
                   return (
                     <div
                       key={ex.id}
-                      className={`surface-card p-4 transition-all duration-200 ${
-                        connected ? "border-success/20" : ""
+                      className={`surface-card p-6 transition-all duration-200 ease-in-out ${
+                        connected ? "border-success/20 dark:border-success/30" : ""
                       }`}
                     >
                       <div className="flex items-center justify-between mb-3">
@@ -294,7 +295,7 @@ export default function Account() {
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-mono font-bold border ${
                             connected
                               ? "bg-success/10 text-success border-success/20"
-                              : "bg-card text-muted-foreground border-border"
+                              : "bg-accent text-muted-foreground border-border"
                           }`}>
                             {ex.logo}
                           </div>
@@ -314,10 +315,10 @@ export default function Account() {
                       </div>
                       <p className="text-xs mb-3 line-clamp-2 text-muted-foreground">{ex.description}</p>
                       <button
-                        className={`w-full h-7 text-xs rounded-full font-medium transition-all duration-200 ${
+                        className={`w-full h-7 text-xs rounded-full font-medium transition-all duration-200 ease-in-out ${
                           connected
-                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-foreground/20"
-                            : "bg-primary text-white hover:bg-primary/90"
+                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
+                            : "bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                         }`}
                         onClick={() => handleConnect(ex.id)}
                       >
@@ -330,8 +331,8 @@ export default function Account() {
           </div>
 
           <div>
-            <h3 className="label-upper mb-3 text-violet-500">Decentralized Exchanges (DEX)</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <h3 className="label-upper mb-3 text-purple-500 dark:text-purple-400">Decentralized Exchanges (DEX)</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {exchangeList
                 .filter((ex) => ex.type === "DEX")
                 .map((ex) => {
@@ -339,8 +340,8 @@ export default function Account() {
                   return (
                     <div
                       key={ex.id}
-                      className={`surface-card p-4 transition-all duration-200 ${
-                        connected ? "border-success/20" : ""
+                      className={`surface-card p-6 transition-all duration-200 ease-in-out ${
+                        connected ? "border-success/20 dark:border-success/30" : ""
                       }`}
                     >
                       <div className="flex items-center justify-between mb-3">
@@ -348,7 +349,7 @@ export default function Account() {
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-mono font-bold border ${
                             connected
                               ? "bg-success/10 text-success border-success/20"
-                              : "bg-card text-muted-foreground border-border"
+                              : "bg-accent text-muted-foreground border-border"
                           }`}>
                             {ex.logo}
                           </div>
@@ -368,10 +369,10 @@ export default function Account() {
                       </div>
                       <p className="text-xs mb-3 line-clamp-2 text-muted-foreground">{ex.description}</p>
                       <button
-                        className={`w-full h-7 text-xs rounded-full font-medium transition-all duration-200 ${
+                        className={`w-full h-7 text-xs rounded-full font-medium transition-all duration-200 ease-in-out ${
                           connected
-                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-foreground/20"
-                            : "bg-primary text-white hover:bg-primary/90"
+                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
+                            : "bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                         }`}
                         onClick={() => handleConnect(ex.id)}
                       >
@@ -388,13 +389,13 @@ export default function Account() {
       {/* Notifications Tab */}
       {activeTab === "notifications" && (
         <div className="surface-card">
-          <div className="p-4 pb-3 border-b border-border">
+          <div className="px-6 py-4 pb-3 border-b border-border">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-primary" />
               <span className="text-base font-semibold text-foreground">Notification Preferences</span>
             </div>
           </div>
-          <div className="p-4 space-y-4">
+          <div className="p-6 space-y-4">
             {[
               { label: "Factor Test Results", desc: "Get notified when IS/OS tests complete", defaultChecked: true },
               { label: "Epoch Rewards", desc: "Reward distribution notifications", defaultChecked: true },

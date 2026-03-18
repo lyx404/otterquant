@@ -1,7 +1,7 @@
 /*
- * CustomCursor — Modern Developer Tool Aesthetic
+ * CustomCursor — Indigo/Sky + Slate Design System
  * Circle cursor with mix-blend-mode: difference
- * Enlarges and turns blue (#3B82F6) on hoverable elements
+ * Enlarges and turns indigo (#4F46E5) on hoverable elements
  */
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
@@ -76,8 +76,8 @@ export default function CustomCursor() {
       gsap.to(cursor, {
         width: 56,
         height: 56,
-        borderColor: "#3B82F6",
-        backgroundColor: "rgba(59, 130, 246, 0.06)",
+        borderColor: "#818CF8",
+        backgroundColor: "rgba(129, 140, 248, 0.06)",
         duration: 0.3,
         ease: "power3.out",
       });
@@ -85,7 +85,7 @@ export default function CustomCursor() {
       gsap.to(cursor, {
         width: 32,
         height: 32,
-        borderColor: "rgba(161, 161, 170, 0.4)",
+        borderColor: "rgba(148, 163, 184, 0.4)",
         backgroundColor: "transparent",
         duration: 0.3,
         ease: "power3.out",
@@ -97,7 +97,7 @@ export default function CustomCursor() {
     <>
       <div
         ref={cursorRef}
-        className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border border-zinc-400/40 mix-blend-difference will-change-transform"
+        className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border border-slate-400/40 mix-blend-difference will-change-transform"
         style={{
           width: 32,
           height: 32,

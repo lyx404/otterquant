@@ -1,12 +1,14 @@
 /*
- * AlphaForge — Modern Developer Tool Aesthetic
- * Dual-theme: Light (#FFFFFF) / Dark (#000000)
- * Primary: #3B82F6 (Blue) | Accent Glow: Purple #8B5CF6
- * Text: Zinc scale (950/600/400 light — white/400/600 dark)
- * Border: Zinc-200 light / Zinc-800 dark
- * Radius: sm 4px, md 8px, xl 16px, full 9999px
- * Font: Inter/Geist + JetBrains Mono
- * NO inline styles — all Tailwind atomic classes
+ * AlphaForge — Indigo/Sky + Slate Design System
+ * Dual-theme: Light (Slate-50 #F8FAFC) / Dark (Slate-950 #020617)
+ * Primary: Indigo-600 #4F46E5 (light) / Indigo-400 #818CF8 (dark)
+ * Secondary: Sky-500 #0EA5E9 (light) / Sky-400 #38BDF8 (dark)
+ * Text: Slate scale (900/500 light — 50/400 dark)
+ * Surface: White #FFFFFF (light) / Slate-900 #0F172A (dark)
+ * Border: Slate-200 #E2E8F0 (light) / Slate-800 #1E293B (dark)
+ * Radius: buttons=full, inputs=lg(8px), cards=2xl(16px)
+ * Font: Inter + Roboto Mono (tabular-nums)
+ * Animation: 200ms ease-in-out default, 300ms bouncy cubic-bezier(0.34,1.56,0.64,1)
  */
 @import "tailwindcss";
 @import "tw-animate-css";
@@ -57,100 +59,102 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
 
-  --font-sans: 'Inter', 'Geist', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
-  --font-heading: 'Inter', 'Geist', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Roboto Mono', ui-monospace, monospace;
+  --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* ══════════════════════════════════════════════
-   LIGHT THEME (default)
+   LIGHT THEME (default) — Slate-50 base
    ══════════════════════════════════════════════ */
 :root {
   --radius: 0.75rem;
-  --background: #FFFFFF;
-  --foreground: #09090B;
-  --card: #F4F4F5;
-  --card-foreground: #09090B;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
   --popover: #FFFFFF;
-  --popover-foreground: #09090B;
-  --primary: #3B82F6;
+  --popover-foreground: #0F172A;
+  --primary: #4F46E5;
   --primary-foreground: #FFFFFF;
-  --secondary: #F4F4F5;
-  --secondary-foreground: #18181B;
-  --muted: #F4F4F5;
-  --muted-foreground: #A1A1AA;
-  --accent: #F4F4F5;
-  --accent-foreground: #18181B;
+  --secondary: #0EA5E9;
+  --secondary-foreground: #FFFFFF;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #F1F5F9;
+  --accent-foreground: #0F172A;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: #E4E4E7;
-  --input: #E4E4E7;
-  --ring: #3B82F6;
-  --success: #22C55E;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #4F46E5;
+  --success: #10B981;
   --warning: #F59E0B;
-  --chart-1: #3B82F6;
+  --chart-1: #4F46E5;
   --chart-2: #10B981;
-  --chart-3: #8B5CF6;
+  --chart-3: #0EA5E9;
   --chart-4: #F59E0B;
   --chart-5: #EF4444;
-  --sidebar: #FAFAFA;
-  --sidebar-foreground: #52525B;
-  --sidebar-primary: #3B82F6;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #64748B;
+  --sidebar-primary: #4F46E5;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F4F4F5;
-  --sidebar-accent-foreground: #09090B;
-  --sidebar-border: #E4E4E7;
-  --sidebar-ring: #3B82F6;
+  --sidebar-accent: #F1F5F9;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #4F46E5;
 
   /* Elevation shadows — light */
-  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --shadow-dropdown: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 40px rgba(59, 130, 246, 0.1);
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.08);
 }
 
 /* ══════════════════════════════════════════════
-   DARK THEME
+   DARK THEME — Slate-950 base
    ══════════════════════════════════════════════ */
 .dark {
-  --background: #000000;
-  --foreground: #FAFAFA;
-  --card: #0A0A0A;
-  --card-foreground: #FAFAFA;
-  --popover: #0A0A0A;
-  --popover-foreground: #FAFAFA;
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
-  --secondary: #121212;
-  --secondary-foreground: #A1A1AA;
-  --muted: #1A1A1A;
-  --muted-foreground: #52525B;
-  --accent: #121212;
-  --accent-foreground: #FAFAFA;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #27272A;
-  --input: #27272A;
-  --ring: #3B82F6;
-  --success: #22C55E;
-  --warning: #F59E0B;
-  --chart-1: #3B82F6;
-  --chart-2: #10B981;
-  --chart-3: #8B5CF6;
-  --chart-4: #F59E0B;
-  --chart-5: #EF4444;
-  --sidebar: #0A0A0A;
-  --sidebar-foreground: #A1A1AA;
-  --sidebar-primary: #3B82F6;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #121212;
-  --sidebar-accent-foreground: #FAFAFA;
-  --sidebar-border: #27272A;
-  --sidebar-ring: #3B82F6;
+  --background: #020617;
+  --foreground: #F8FAFC;
+  --card: #0F172A;
+  --card-foreground: #F8FAFC;
+  --popover: #0F172A;
+  --popover-foreground: #F8FAFC;
+  --primary: #818CF8;
+  --primary-foreground: #020617;
+  --secondary: #38BDF8;
+  --secondary-foreground: #020617;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E293B;
+  --accent-foreground: #F8FAFC;
+  --destructive: #F87171;
+  --destructive-foreground: #020617;
+  --border: #1E293B;
+  --input: #1E293B;
+  --ring: #818CF8;
+  --success: #34D399;
+  --warning: #FBBF24;
+  --chart-1: #818CF8;
+  --chart-2: #34D399;
+  --chart-3: #38BDF8;
+  --chart-4: #FBBF24;
+  --chart-5: #F87171;
+  --sidebar: #0F172A;
+  --sidebar-foreground: #94A3B8;
+  --sidebar-primary: #818CF8;
+  --sidebar-primary-foreground: #020617;
+  --sidebar-accent: #1E293B;
+  --sidebar-accent-foreground: #F8FAFC;
+  --sidebar-border: #1E293B;
+  --sidebar-ring: #818CF8;
 
-  /* Elevation shadows — dark */
-  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  --shadow-dropdown: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 10px 40px -10px rgba(0, 0, 0, 0.8);
-  --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.15);
+  /* Elevation — dark: no shadows, use border + bg-step */
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 40px rgba(129, 140, 248, 0.1);
 }
 
 /* ══════════════════════════════════════════════
@@ -163,6 +167,23 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  h1 {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  h2 {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  h3 {
+    font-size: 1.25rem;
+    line-height: 1.75rem;
+    font-weight: 500;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
@@ -193,28 +214,29 @@
     .container { padding-left: 1.5rem; padding-right: 1.5rem; }
   }
   @media (min-width: 1024px) {
-    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1280px; }
+    .container { padding-left: 2rem; padding-right: 2rem; max-width: 1200px; }
   }
 
-  /* ── Surface Card ── */
+  /* ── Surface Card — rounded-2xl, white/slate-900 ── */
   .surface-card {
-    @apply bg-card dark:bg-[#0A0A0A] border border-border rounded-xl;
+    @apply bg-card border border-border rounded-2xl;
     box-shadow: var(--shadow-card);
-    transition: background-color 200ms ease-out, border-color 200ms ease-out, box-shadow 200ms ease-out;
+    transition: background-color 200ms ease-in-out, border-color 200ms ease-in-out, box-shadow 200ms ease-in-out;
   }
   .surface-card:hover {
-    @apply border-zinc-300 dark:border-zinc-700;
+    @apply border-slate-300 dark:border-slate-700;
+    box-shadow: var(--shadow-card-hover);
   }
 
-  /* ── Surface Card Elevated (for dropdowns, popovers) ── */
+  /* ── Surface Elevated (dropdowns, popovers) ── */
   .surface-elevated {
-    @apply bg-popover border border-border rounded-xl;
+    @apply bg-popover border border-border rounded-2xl;
     box-shadow: var(--shadow-dropdown);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }
 
-  /* ── Data Display ── */
+  /* ── Data Display — Roboto Mono tabular-nums ── */
   .data-value {
     @apply font-mono;
     font-variant-numeric: tabular-nums;
@@ -231,18 +253,18 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── Hero Typography ── */
+  /* ── Hero Typography — 36px, bold, tight ── */
   .hero-title {
-    font-size: clamp(3rem, 8vw, 4.5rem);
+    font-size: 2.25rem;
     font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
+    letter-spacing: -0.02em;
+    line-height: 2.5rem;
   }
 
-  /* ── Pill / Chip ── */
+  /* ── Pill / Chip — rounded-full ── */
   .pill {
-    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground border border-border;
-    transition: all 200ms ease-out;
+    @apply inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground border border-border;
+    transition: all 200ms ease-in-out;
   }
   .pill-active {
     @apply bg-primary/10 border-primary/30 text-primary;
@@ -250,7 +272,7 @@
 
   /* ── Table Row Hover ── */
   .table-row-hover:hover {
-    @apply bg-muted/50 dark:bg-white/[0.03];
+    @apply bg-slate-50 dark:bg-slate-800/50;
   }
 
   /* ── GSAP reveal clip ── */
@@ -270,33 +292,70 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-zinc-300 dark:bg-zinc-700 rounded-full;
+    @apply bg-slate-300 dark:bg-slate-700 rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-zinc-400 dark:bg-zinc-600;
+    @apply bg-slate-400 dark:bg-slate-600;
   }
 
-  /* ── Focus ring: subtle blue glow ── */
+  /* ── Focus ring: indigo glow ── */
   input:focus,
   select:focus,
   textarea:focus,
   [role="combobox"]:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.5) !important;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+    border-color: rgba(79, 70, 229, 0.5) !important;
+  }
+  .dark input:focus,
+  .dark select:focus,
+  .dark textarea:focus,
+  .dark [role="combobox"]:focus {
+    box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
+    border-color: rgba(129, 140, 248, 0.5) !important;
   }
 
   /* ── Transition utilities ── */
   .transition-default {
-    transition: all 200ms ease-out;
+    transition: all 200ms ease-in-out;
   }
   .transition-smooth {
     transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .transition-bouncy {
+    transition: all 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
   /* ── Glow effects (ambient, subtle) ── */
   .glow-primary {
     box-shadow: var(--shadow-glow);
+  }
+
+  /* ── Button hover: scale + brightness (bouncy) ── */
+  .btn-bounce {
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), filter 200ms ease-in-out;
+  }
+  .btn-bounce:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+  .btn-bounce:active {
+    transform: scale(0.98);
+  }
+
+  /* ── Card enter animation ── */
+  .card-enter {
+    animation: cardFadeIn 400ms ease-out both;
+  }
+  @keyframes cardFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* ── Custom cursor — hide default ── */

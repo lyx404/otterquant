@@ -1,7 +1,9 @@
 /*
- * MyAlphas — Modern Developer Tool Aesthetic
- * Pure Tailwind classes — zero inline styles
+ * MyAlphas — Indigo/Sky + Slate Design System
+ * Cards: rounded-2xl, p-6 | Buttons: rounded-full | Inputs: rounded-lg
  * Table: Status+Actions pinned right, unlimited height, aligned colgroup
+ * Animation: 200ms ease-in-out
+ * Pure Tailwind classes — zero inline styles
  */
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,16 +83,16 @@ const dataColumns: ColumnDef[] = [
 
 type SortDir = "asc" | "desc" | null;
 
-/* Status badge config — uses Tailwind-compatible class strings */
+/* Status badge config */
 const statusConfig: Record<string, { label: string; colorClass: string; bgClass: string; borderClass: string }> = {
-  unsubmitted: { label: "UNSUBMITTED", colorClass: "text-amber-500", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/25" },
-  queued: { label: "IN PROGRESS", colorClass: "text-blue-500", bgClass: "bg-blue-500/10", borderClass: "border-blue-500/25" },
-  backtesting: { label: "IN PROGRESS", colorClass: "text-blue-500", bgClass: "bg-blue-500/10", borderClass: "border-blue-500/25" },
-  is_testing: { label: "IN PROGRESS", colorClass: "text-blue-500", bgClass: "bg-blue-500/10", borderClass: "border-blue-500/25" },
-  os_testing: { label: "IN PROGRESS", colorClass: "text-blue-500", bgClass: "bg-blue-500/10", borderClass: "border-blue-500/25" },
+  unsubmitted: { label: "UNSUBMITTED", colorClass: "text-amber-500 dark:text-amber-400", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/25" },
+  queued: { label: "IN PROGRESS", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
+  backtesting: { label: "IN PROGRESS", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
+  is_testing: { label: "IN PROGRESS", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
+  os_testing: { label: "IN PROGRESS", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
   passed: { label: "PASSED", colorClass: "text-success", bgClass: "bg-success/10", borderClass: "border-success/20" },
-  failed: { label: "FAILED", colorClass: "text-red-500", bgClass: "bg-red-500/10", borderClass: "border-red-500/20" },
-  rejected: { label: "FAILED", colorClass: "text-red-500", bgClass: "bg-red-500/10", borderClass: "border-red-500/20" },
+  failed: { label: "FAILED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
+  rejected: { label: "FAILED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
 };
 
 export default function MyAlphas() {
@@ -262,7 +264,7 @@ export default function MyAlphas() {
           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] border ${
             row.market === "CEX"
               ? "bg-primary/10 text-primary border-primary/20"
-              : "bg-violet-500/10 text-violet-500 border-violet-500/25"
+              : "bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/25"
           }`}>
             {row.market}
           </span>
@@ -270,7 +272,7 @@ export default function MyAlphas() {
       case "type":
         return (
           <span className={`text-xs capitalize ${
-            row.status === "active" ? "text-success" : row.status === "testing" ? "text-amber-500" : "text-muted-foreground"
+            row.status === "active" ? "text-success" : row.status === "testing" ? "text-amber-500 dark:text-amber-400" : "text-muted-foreground"
           }`}>
             {row.status === "active" ? "Regular" : row.status === "testing" ? "Testing" : "Archived"}
           </span>
@@ -280,7 +282,7 @@ export default function MyAlphas() {
       case "osSharpe":
         return (
           <span className={`font-mono text-sm tabular-nums ${
-            row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500" : "text-red-500"
+            row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
           }`}>
             {row.osSharpe.toFixed(2)}
           </span>
@@ -300,13 +302,13 @@ export default function MyAlphas() {
       case "turnover":
         return <span className="font-mono text-sm tabular-nums text-foreground">{row.turnover}</span>;
       case "drawdown":
-        return <span className="font-mono text-sm tabular-nums text-red-500">{row.drawdown}</span>;
+        return <span className="font-mono text-sm tabular-nums text-destructive">{row.drawdown}</span>;
       case "testsPassed":
         return (
           <div className="flex items-center gap-1 font-mono text-xs tabular-nums justify-end">
             <span className="text-success">{row.testsPassed}</span>
             <span className="text-muted-foreground">/</span>
-            <span className="text-red-500">{row.testsFailed}</span>
+            <span className="text-destructive">{row.testsFailed}</span>
             {row.testsPending > 0 && (
               <>
                 <span className="text-muted-foreground">/</span>
@@ -355,50 +357,50 @@ export default function MyAlphas() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none text-foreground">
+          <h1 className="text-foreground">
             My Alphas
           </h1>
         </div>
         <div className="reveal-line mt-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             {factors.length} alphas &middot; {submissions.filter((s) => s.status === "passed").length} passed &middot; {submissions.filter((s) => ["queued", "backtesting", "is_testing", "os_testing"].includes(s.status)).length} in pipeline
           </p>
         </div>
       </div>
 
       {/* Pipeline Stats */}
-      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="fade-item surface-card p-4">
+      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="fade-item surface-card p-6">
           <div className="flex items-center gap-2 label-upper mb-2">
             <BarChart3 className="w-3.5 h-3.5" /> Total
           </div>
           <div className="stat-value text-2xl font-bold text-foreground">{submissionStats.total}</div>
-          <div className="text-xs mt-1 text-muted-foreground">submissions</div>
+          <div className="text-sm mt-1 text-muted-foreground">submissions</div>
         </div>
-        <div className="fade-item surface-card p-4">
+        <div className="fade-item surface-card p-6">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-success">
             <CheckCircle className="w-3.5 h-3.5" /> Passed
           </div>
           <div className="stat-value text-2xl font-bold text-success">{submissionStats.passed}</div>
-          <div className="text-xs mt-1 text-muted-foreground">pass rate: {submissionStats.passRate}</div>
+          <div className="text-sm mt-1 text-muted-foreground">pass rate: {submissionStats.passRate}</div>
         </div>
-        <div className="fade-item surface-card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-primary">
+        <div className="fade-item surface-card p-6">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-secondary">
             <Loader2 className="w-3.5 h-3.5" /> In Progress
           </div>
-          <div className="stat-value text-2xl font-bold text-primary">{submissionStats.inProgress}</div>
-          <div className="text-xs mt-1 text-muted-foreground">avg time: {submissionStats.avgProcessingTime}</div>
+          <div className="stat-value text-2xl font-bold text-secondary">{submissionStats.inProgress}</div>
+          <div className="text-sm mt-1 text-muted-foreground">avg time: {submissionStats.avgProcessingTime}</div>
         </div>
-        <div className="fade-item surface-card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-red-500">
+        <div className="fade-item surface-card p-6">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-destructive">
             <XCircle className="w-3.5 h-3.5" /> Failed
           </div>
-          <div className="stat-value text-2xl font-bold text-red-500">{submissionStats.failed + 1}</div>
-          <div className="text-xs mt-1 text-muted-foreground">{submissionStats.rejected} rejected</div>
+          <div className="stat-value text-2xl font-bold text-destructive">{submissionStats.failed + 1}</div>
+          <div className="text-sm mt-1 text-muted-foreground">{submissionStats.rejected} rejected</div>
         </div>
       </div>
 
@@ -407,14 +409,14 @@ export default function MyAlphas() {
           ═══════════════════════════════════════════ */}
       <div className="surface-card overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-border bg-card">
+        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-b border-border bg-card">
           <div className="relative flex-1 min-w-[180px] max-w-[280px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
               placeholder="Search by name or ID..."
               value={filterName}
               onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
-              className="h-8 text-xs pl-8 rounded-xl bg-card border-border"
+              className="h-8 text-xs pl-8 rounded-lg bg-card border-border"
             />
           </div>
 
@@ -467,7 +469,7 @@ export default function MyAlphas() {
           {/* Numeric filter popover */}
           <Popover>
             <PopoverTrigger asChild>
-              <button className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 border ${
+              <button className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
                 (filterSharpeMin || filterReturnsMin || filterTurnoverMin)
                   ? "bg-primary/10 border-primary/20 text-primary"
                   : "bg-card border-border text-muted-foreground"
@@ -482,19 +484,17 @@ export default function MyAlphas() {
             <PopoverContent className="w-60 rounded-2xl" align="start">
               <div className="space-y-3">
                 <p className="text-xs font-medium text-muted-foreground">Minimum Thresholds</p>
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">OS Sharpe</label>
-                    <Input placeholder="e.g. 1.0" value={filterSharpeMin} onChange={(e) => { setFilterSharpeMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">Returns</label>
-                    <Input placeholder="e.g. 5.0" value={filterReturnsMin} onChange={(e) => { setFilterReturnsMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">Turnover</label>
-                    <Input placeholder="e.g. 30" value={filterTurnoverMin} onChange={(e) => { setFilterTurnoverMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
-                  </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">OS Sharpe</label>
+                  <Input placeholder="e.g. 1.0" value={filterSharpeMin} onChange={(e) => { setFilterSharpeMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">Returns</label>
+                  <Input placeholder="e.g. 5.0" value={filterReturnsMin} onChange={(e) => { setFilterReturnsMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">Turnover</label>
+                  <Input placeholder="e.g. 30" value={filterTurnoverMin} onChange={(e) => { setFilterTurnoverMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
                 </div>
                 {(filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
                   <button
@@ -512,7 +512,7 @@ export default function MyAlphas() {
 
           {hasActiveFilters && (
             <button
-              className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/15"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-destructive/10 border border-destructive/20 text-destructive hover:bg-destructive/15"
               onClick={() => {
                 setFilterName(""); setFilterMarket("all"); setFilterStatus("all"); setFilterType("all");
                 setFilterSharpeMin(""); setFilterReturnsMin(""); setFilterTurnoverMin(""); setPage(1);
@@ -525,7 +525,7 @@ export default function MyAlphas() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 bg-card border border-border text-muted-foreground hover:text-foreground hover:border-zinc-300 dark:hover:border-zinc-600">
+              <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                 <Settings2 className="w-3.5 h-3.5" />
                 Columns
               </button>
@@ -534,7 +534,7 @@ export default function MyAlphas() {
               <div className="space-y-1">
                 <p className="text-xs font-medium mb-2 text-muted-foreground">Toggle Columns</p>
                 {dataColumns.map((col) => (
-                  <label key={col.key} className="flex items-center gap-2 py-1 px-1 rounded cursor-pointer">
+                  <label key={col.key} className="flex items-center gap-2 py-1 px-1 rounded-lg cursor-pointer">
                     <Checkbox
                       checked={visibleColumns.has(col.key)}
                       onCheckedChange={() => toggleColumn(col.key)}
@@ -553,7 +553,7 @@ export default function MyAlphas() {
           <table className="w-full" style={{ minWidth: "900px" }}>
             <ColGroup />
             <thead>
-              <tr className="bg-card">
+              <tr className="bg-accent dark:bg-slate-900/50">
                 <th className="px-2 py-2.5 text-left">
                   <span className="text-[10px] font-mono text-muted-foreground">#</span>
                 </th>
@@ -561,7 +561,7 @@ export default function MyAlphas() {
                 {visibleCols.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-3 py-2.5 transition-all duration-200 ${col.sortable ? "cursor-pointer hover:bg-muted/50 dark:hover:bg-white/[0.03]" : ""} ${col.align === "right" ? "text-right" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.sortable ? "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50" : ""} ${col.align === "right" ? "text-right" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
                     onClick={() => col.sortable && handleSort(col.key)}
                   >
                     <span className={`flex items-center gap-1.5 label-upper whitespace-nowrap select-none ${col.align === "right" ? "justify-end" : ""}`}>
@@ -572,7 +572,7 @@ export default function MyAlphas() {
                 ))}
                 {/* Pinned: Status + Actions header */}
                 <th
-                  className={`px-4 py-2.5 text-left cursor-pointer transition-all duration-200 sticky right-0 z-[2] bg-background border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.05)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] ${sortKey === "submissionStatus" ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+                  className={`px-4 py-2.5 text-left cursor-pointer transition-all duration-200 ease-in-out sticky right-0 z-[2] bg-background border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] ${sortKey === "submissionStatus" ? "bg-primary/5 dark:bg-primary/10" : ""}`}
                   onClick={() => handleSort("submissionStatus")}
                 >
                   <span className="flex items-center gap-1.5 label-upper whitespace-nowrap select-none">
@@ -586,7 +586,7 @@ export default function MyAlphas() {
               {paginated.map((row, i) => (
                 <tr
                   key={row.id}
-                  className="transition-all duration-200 group border-b border-border hover:bg-muted/30 dark:hover:bg-white/[0.02]"
+                  className="transition-all duration-200 ease-in-out group border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/30"
                 >
                   <td className="px-2 py-2.5">
                     <span className="text-[10px] font-mono tabular-nums text-muted-foreground">
@@ -604,11 +604,11 @@ export default function MyAlphas() {
                     </td>
                   ))}
                   {/* Pinned: Status + Actions */}
-                  <td className="px-4 py-2.5 sticky right-0 z-[2] bg-background group-hover:bg-zinc-50 dark:group-hover:bg-zinc-950 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.05)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] transition-colors duration-200">
+                  <td className="px-4 py-2.5 sticky right-0 z-[2] bg-background group-hover:bg-slate-50 dark:group-hover:bg-slate-900 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] transition-colors duration-200 ease-in-out">
                     <div className="flex items-center justify-between gap-3">
                       {renderStatusBadge(row.submissionStatus)}
                       <Link href={`/alphas/${row.id}`}>
-                        <button className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-md transition-all duration-200 whitespace-nowrap opacity-0 group-hover:opacity-100 text-muted-foreground border border-border hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/[0.03]">
+                        <button className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-full transition-all duration-200 ease-in-out whitespace-nowrap opacity-0 group-hover:opacity-100 text-muted-foreground border border-border hover:border-slate-300 dark:hover:border-slate-600 hover:text-foreground hover:bg-accent">
                           View
                         </button>
                       </Link>
@@ -628,7 +628,7 @@ export default function MyAlphas() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-card">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="font-mono tabular-nums">
               {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
@@ -660,7 +660,7 @@ export default function MyAlphas() {
                 key={p}
                 variant={p === page ? "default" : "outline"}
                 size="sm"
-                className={`h-7 w-7 text-xs p-0 rounded-lg font-mono tabular-nums ${p === page ? "bg-primary text-white" : "border-border"}`}
+                className={`h-7 w-7 text-xs p-0 rounded-lg font-mono tabular-nums ${p === page ? "bg-primary text-primary-foreground" : "border-border"}`}
                 onClick={() => setPage(p)}
               >
                 {p}

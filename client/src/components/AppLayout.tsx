@@ -1,7 +1,10 @@
 /*
- * AppLayout — Modern Developer Tool Aesthetic
- * Light: #FFFFFF / Dark: #000000
- * Primary: #3B82F6 | Zinc scale text/border
+ * AppLayout — Indigo/Sky + Slate Design System
+ * Light: Slate-50 #F8FAFC / Dark: Slate-950 #020617
+ * Primary: Indigo-600 #4F46E5 / Indigo-400 #818CF8
+ * Surface: White / Slate-900
+ * Buttons: rounded-full | Cards: rounded-2xl | Inputs: rounded-lg
+ * Animation: 200ms ease-in-out | Bouncy: 300ms cubic-bezier(0.34,1.56,0.64,1)
  * Pure Tailwind classes — zero inline styles
  */
 import { Link, useLocation } from "wouter";
@@ -67,16 +70,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       {/* Top Navigation Bar */}
       <header
-        className={`sticky top-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-border transition-transform duration-350 will-change-transform ${
+        className={`sticky top-0 z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-border transition-transform duration-300 ease-in-out will-change-transform ${
           headerVisible ? "translate-y-0" : "-translate-y-full"
         }`}
       >
-        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
             {/* Logo */}
             <Link href="/">
               <div className="flex items-center gap-2.5 shrink-0">
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-primary/10">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary/10">
                   <Zap className="w-4 h-4 text-primary" />
                 </div>
                 <span className="font-semibold text-base tracking-tight text-foreground">
@@ -93,17 +96,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 return (
                   <Link key={item.path} href={item.path}>
                     <div
-                      className={`relative flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-out ${
+                      className={`relative flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-200 ease-in-out ${
                         active
                           ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/[0.05]"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
                       <span>{item.label}</span>
-                      {active && (
-                        <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-primary rounded-full" />
-                      )}
                     </div>
                   </Link>
                 );
@@ -115,18 +115,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
-                className="relative w-8 h-8 rounded-md flex items-center justify-center border border-border bg-muted/50 dark:bg-white/[0.05] hover:bg-muted dark:hover:bg-white/[0.08] transition-all duration-200 ease-out"
+                className="relative w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-200 ease-in-out"
                 title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {theme === "dark" ? (
-                  <Sun className="w-3.5 h-3.5 text-zinc-400" />
+                  <Sun className="w-3.5 h-3.5 text-slate-400" />
                 ) : (
-                  <Moon className="w-3.5 h-3.5 text-zinc-500" />
+                  <Moon className="w-3.5 h-3.5 text-slate-500" />
                 )}
               </button>
 
               {/* User Pill */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 dark:bg-white/[0.05] border border-border">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent border border-border">
                 <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
                 <span className="text-xs font-mono text-muted-foreground">
                   CryptoQuant_Pro
@@ -158,7 +158,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-border">
+          <div className="md:hidden bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-border">
             <nav className="px-4 py-3 space-y-1">
               {navItems.map((item) => {
                 const active = isActive(item.path);
@@ -167,10 +167,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link key={item.path} href={item.path}>
                     <div
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 ${
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium transition-colors duration-200 ${
                         active
                           ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -185,7 +185,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {children}
       </main>
     </div>

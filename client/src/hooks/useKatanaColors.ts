@@ -1,7 +1,7 @@
 /*
- * useC — Theme-aware design tokens for Modern Developer Tool Aesthetic
- * Light: #FFFFFF base, Zinc scale, Blue primary
- * Dark: #000000 base, Zinc scale, Blue primary
+ * useKatanaColors — Theme-aware design tokens for Indigo/Sky + Slate Design System
+ * Light: Slate-50 #F8FAFC base, Indigo-600 #4F46E5 primary, Sky-500 #0EA5E9 secondary
+ * Dark: Slate-950 #020617 base, Indigo-400 #818CF8 primary, Sky-400 #38BDF8 secondary
  *
  * NOTE: This hook is being phased out in favor of pure Tailwind classes.
  * New code should use Tailwind dark: variants instead.
@@ -23,6 +23,7 @@ export interface KatanaColors {
   primary: string;
   primaryLight: string;
   primaryDim: string;
+  secondary: string;
   success: string;
   danger: string;
   accent: string;
@@ -42,28 +43,29 @@ export function useKatanaColors(): KatanaColors {
 
   return {
     isDark: dark,
-    bg0: dark ? "#000000" : "#FFFFFF",
-    bg1: dark ? "#0A0A0A" : "#F4F4F5",
-    card: dark ? "#0A0A0A" : "#F4F4F5",
-    cardHover: dark ? "#121212" : "#E4E4E7",
-    popover: dark ? "#0A0A0A" : "#FFFFFF",
-    border: dark ? "#27272A" : "#E4E4E7",
-    borderWeak: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-    text1: dark ? "#FAFAFA" : "#09090B",
-    text2: dark ? "#A1A1AA" : "#52525B",
-    text3: dark ? "#52525B" : "#A1A1AA",
-    primary: "#3B82F6",
-    primaryLight: "#60A5FA",
-    primaryDim: dark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)",
-    success: "#10B981",
-    danger: "#EF4444",
-    accent: "#8B5CF6",
-    purple: "#8B5CF6",
-    orange: "#F59E0B",
-    warning: "#F59E0B",
-    gold: "#F59E0B",
-    goldDim: dark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)",
-    silver: "#A1A1AA",
+    bg0: dark ? "#020617" : "#F8FAFC",
+    bg1: dark ? "#0F172A" : "#FFFFFF",
+    card: dark ? "#0F172A" : "#FFFFFF",
+    cardHover: dark ? "#1E293B" : "#F1F5F9",
+    popover: dark ? "#0F172A" : "#FFFFFF",
+    border: dark ? "#1E293B" : "#E2E8F0",
+    borderWeak: dark ? "rgba(148,163,184,0.1)" : "rgba(15,23,42,0.06)",
+    text1: dark ? "#F8FAFC" : "#0F172A",
+    text2: dark ? "#94A3B8" : "#64748B",
+    text3: dark ? "#475569" : "#94A3B8",
+    primary: dark ? "#818CF8" : "#4F46E5",
+    primaryLight: dark ? "#A5B4FC" : "#6366F1",
+    primaryDim: dark ? "rgba(129,140,248,0.15)" : "rgba(79,70,229,0.1)",
+    secondary: dark ? "#38BDF8" : "#0EA5E9",
+    success: dark ? "#34D399" : "#10B981",
+    danger: dark ? "#F87171" : "#EF4444",
+    accent: dark ? "#818CF8" : "#4F46E5",
+    purple: dark ? "#C084FC" : "#A855F7",
+    orange: dark ? "#FBBF24" : "#F59E0B",
+    warning: dark ? "#FBBF24" : "#F59E0B",
+    gold: dark ? "#FBBF24" : "#F59E0B",
+    goldDim: dark ? "rgba(251,191,36,0.15)" : "rgba(245,158,11,0.1)",
+    silver: "#94A3B8",
     bronze: "#D97706",
   };
 }

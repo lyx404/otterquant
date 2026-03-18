@@ -1,7 +1,9 @@
 /*
- * Dashboard — Modern Developer Tool Aesthetic
- * Light: #FFFFFF / Dark: #000000
- * Primary: #3B82F6 | Success: #10B981 | Danger: #EF4444
+ * Dashboard — Indigo/Sky + Slate Design System
+ * Light: Slate-50 #F8FAFC / Dark: Slate-950 #020617
+ * Primary: Indigo | Secondary: Sky | Success: Emerald | Danger: Red
+ * Cards: rounded-2xl, p-6 | Buttons: rounded-full
+ * Animation: 200ms ease-in-out, bouncy 300ms cubic-bezier(0.34,1.56,0.64,1)
  * Pure Tailwind classes — zero inline styles
  * GSAP staggered reveal preserved
  */
@@ -46,10 +48,10 @@ const statCards = [
 const iconMap: Record<string, React.ReactNode> = {
   plus: <Zap className="w-3.5 h-3.5 text-primary" />,
   check: <CheckCircle className="w-3.5 h-3.5 text-success" />,
-  trophy: <Award className="w-3.5 h-3.5 text-amber-500" />,
-  activity: <Activity className="w-3.5 h-3.5 text-primary" />,
-  x: <XCircle className="w-3.5 h-3.5 text-red-500" />,
-  user: <Users className="w-3.5 h-3.5 text-violet-500" />,
+  trophy: <Award className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />,
+  activity: <Activity className="w-3.5 h-3.5 text-secondary" />,
+  x: <XCircle className="w-3.5 h-3.5 text-destructive" />,
+  user: <Users className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />,
 };
 
 const agentSkills = [
@@ -99,7 +101,7 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="p-1 rounded transition-colors text-zinc-400 dark:text-zinc-600 hover:text-foreground">
+    <button onClick={handleCopy} className="p-1 rounded-lg transition-colors text-slate-400 dark:text-slate-600 hover:text-foreground">
       {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
@@ -141,7 +143,7 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* ═══════════════════════════════════════════
           1. CURRENT EPOCH BANNER
           ═══════════════════════════════════════════ */}
@@ -149,10 +151,10 @@ export default function Dashboard() {
         ref={bannerRef}
         className="rounded-2xl overflow-hidden bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30"
       >
-        <div className="flex items-center justify-between px-5 py-4 gap-4 flex-wrap">
+        <div className="flex items-center justify-between px-6 py-5 gap-4 flex-wrap">
           {/* Left: Epoch info */}
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
               <Trophy className="w-5 h-5 text-primary" />
             </div>
             <div>
@@ -175,7 +177,7 @@ export default function Dashboard() {
             <div className="w-px h-8 bg-border" />
             <div className="text-center">
               <div className="label-upper mb-0.5">Time Left</div>
-              <div className="stat-value text-base font-bold text-red-500">{currentEpoch.timeRemaining}</div>
+              <div className="stat-value text-base font-bold text-destructive">{currentEpoch.timeRemaining}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center">
@@ -189,15 +191,15 @@ export default function Dashboard() {
           {/* Right: Campaign stickers + CTA */}
           <div className="flex items-center gap-3">
             <div className="hidden md:flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
                 <Flame className="w-3 h-3" /> 2x REWARDS
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide bg-violet-500/10 text-violet-500 border border-violet-500/20">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide bg-purple-500/10 text-purple-500 dark:text-purple-400 border border-purple-500/20">
                 <Star className="w-3 h-3" /> SEASON 3
               </span>
             </div>
             <Link href="/leaderboard">
-              <Button className="gap-1.5 rounded-full text-sm bg-primary text-white hover:bg-primary/90">
+              <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce">
                 Leaderboard
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </Button>
@@ -211,12 +213,12 @@ export default function Dashboard() {
           ═══════════════════════════════════════════ */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none text-foreground">
+          <h1 className="text-foreground">
             Dashboard
           </h1>
         </div>
         <div className="reveal-line mt-2">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             AI-powered factor mining platform — monitor your agents, track performance, compete for rewards.
           </p>
         </div>
@@ -225,21 +227,21 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════
           3. STATS GRID
           ═══════════════════════════════════════════ */}
-      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
             <div key={stat.label} className="fade-item">
-              <div className="surface-card p-4 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200">
+              <div className="surface-card p-6 group transition-all duration-200 ease-in-out">
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="label-upper">{stat.label}</span>
-                    <Icon className="w-4 h-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    <Icon className="w-4 h-4 text-muted-foreground transition-transform duration-300 ease-in-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </div>
                   <div className={`text-2xl stat-value font-bold ${stat.highlight ? "text-success" : "text-foreground"}`}>
                     {stat.value}
                   </div>
-                  <div className="text-xs mt-1 text-muted-foreground">{stat.sub}</div>
+                  <div className="text-sm mt-1 text-muted-foreground">{stat.sub}</div>
                 </div>
               </div>
             </div>
@@ -253,17 +255,17 @@ export default function Dashboard() {
       <div className="grid lg:grid-cols-3 gap-4">
         <div className={`lg:col-span-2 surface-card ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
           {/* Header */}
-          <div className="p-4 pb-3 border-b border-border">
+          <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Cpu className={`w-4 h-4 ${isAnyConnected ? "text-success" : "text-primary"}`} />
-                <span className="text-sm font-semibold text-foreground">Skill Hub</span>
+                <h3 className="text-foreground">Skill Hub</h3>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] uppercase border ${
                   isAnyConnected
                     ? "bg-success/10 text-success border-success/20"
-                    : "bg-red-500/10 text-red-500 border-red-500/20"
+                    : "bg-destructive/10 text-destructive border-destructive/20"
                 }`}>
                   {connectedCount}/{agentSkills.length} CONNECTED
                 </span>
@@ -281,20 +283,20 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="p-4 space-y-3">
+          <div className="p-6 space-y-4">
             {/* Connected state: Agent cards */}
             {isAnyConnected && (
-              <div className="grid md:grid-cols-3 gap-3">
+              <div className="grid md:grid-cols-3 gap-4">
                 {agentSkills.map((skill) => (
                   <div
                     key={skill.id}
-                    className={`rounded-2xl p-3.5 transition-all duration-200 border ${
+                    className={`rounded-2xl p-4 transition-all duration-200 ease-in-out border ${
                       skill.status === "connected"
                         ? "bg-success/5 dark:bg-success/10 border-success/20"
                         : "bg-card border-border"
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-foreground">{skill.name}</span>
                       {skill.status === "connected" ? (
                         <div className="flex items-center gap-1.5">
@@ -334,7 +336,7 @@ export default function Dashboard() {
             {isAnyConnected ? (
               <button
                 onClick={() => setGuideExpanded(!guideExpanded)}
-                className="flex items-center gap-2 w-full py-2.5 px-3 rounded-xl transition-colors text-sm bg-card border border-border hover:bg-muted/50 dark:hover:bg-white/[0.03]"
+                className="flex items-center gap-2 w-full py-2.5 px-4 rounded-2xl transition-colors duration-200 ease-in-out text-sm bg-accent border border-border hover:bg-slate-200 dark:hover:bg-slate-800"
               >
                 <BookOpen className="w-4 h-4 text-muted-foreground" />
                 <span className="font-medium text-muted-foreground">Skill Installation Guide</span>
@@ -344,10 +346,10 @@ export default function Dashboard() {
                 </div>
               </button>
             ) : (
-              <div className="rounded-xl p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20">
+              <div className="rounded-2xl p-6 bg-primary/5 dark:bg-primary/10 border border-primary/20">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary">
-                    <Sparkles className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary">
+                    <Sparkles className="w-4 h-4 text-primary-foreground" />
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-foreground">Get Started — Connect Your First AI Agent</div>
@@ -359,13 +361,13 @@ export default function Dashboard() {
 
             {/* Guide content */}
             {(guideExpanded || !isAnyConnected) && (
-              <div className="space-y-3">
-                <div className="flex gap-1 p-1 rounded-xl bg-card border border-border">
+              <div className="space-y-4">
+                <div className="flex gap-1 p-1 rounded-2xl bg-accent border border-border">
                   {installSteps.map((guide) => (
                     <button
                       key={guide.id}
                       onClick={() => setActiveGuide(guide.id)}
-                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all duration-200 border ${
+                      className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-medium transition-all duration-200 ease-in-out border ${
                         activeGuide === guide.id
                           ? "bg-primary/10 text-primary border-primary/20"
                           : "text-muted-foreground border-transparent hover:text-foreground"
@@ -380,12 +382,12 @@ export default function Dashboard() {
                   .filter((g) => g.id === activeGuide)
                   .map((guide) => (
                     <div key={guide.id} className="space-y-2">
-                      <div className="rounded-xl overflow-hidden bg-background border border-border">
-                        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card">
+                      <div className="rounded-2xl overflow-hidden bg-background border border-border">
+                        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-accent">
                           <Terminal className="w-3.5 h-3.5 text-primary" />
                           <span className="text-xs font-mono text-muted-foreground">terminal</span>
                         </div>
-                        <div className="p-3 space-y-1">
+                        <div className="p-4 space-y-1">
                           {guide.steps.map((step, idx) => (
                             <div key={idx} className="flex items-start gap-2 group">
                               <code className="text-xs font-mono flex-1">
@@ -415,12 +417,12 @@ export default function Dashboard() {
                     </div>
                   ))}
 
-                <div className="rounded-xl p-3 bg-primary/5 dark:bg-primary/10 border border-primary/20">
+                <div className="rounded-2xl p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20">
                   <div className="text-xs font-medium mb-1.5 text-primary">Quick Start</div>
                   <ol className="text-xs space-y-1 list-decimal list-inside text-muted-foreground">
                     <li>Install the AlphaForge skill in your preferred AI coding agent</li>
                     <li>Configure your API key in the account settings page</li>
-                    <li>Start a conversation: <code className="font-mono px-1 rounded text-primary bg-card">"Mine alpha factors for BTC/USDT on Binance"</code></li>
+                    <li>Start a conversation: <code className="font-mono px-1 rounded-lg text-primary bg-accent">"Mine alpha factors for BTC/USDT on Binance"</code></li>
                     <li>The agent will generate factors, backtest, and submit results automatically</li>
                   </ol>
                 </div>
@@ -433,20 +435,20 @@ export default function Dashboard() {
             5. RECENT ACTIVITY
             ═══════════════════════════════════════════ */}
         <div className="lg:col-span-1 surface-card">
-          <div className="p-4 pb-3 border-b border-border">
+          <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <Activity className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">Recent Activity</span>
             </div>
           </div>
-          <div className="px-3 pb-3">
+          <div className="px-4 pb-4">
             <div className="space-y-0">
               {recentActivity.slice(0, 8).map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 hover:bg-muted/50 dark:hover:bg-white/[0.03]"
+                  className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 ease-in-out hover:bg-accent"
                 >
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-card">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-accent">
                     {iconMap[item.icon]}
                   </div>
                   <div className="flex-1 min-w-0">
