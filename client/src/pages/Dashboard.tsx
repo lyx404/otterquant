@@ -268,29 +268,42 @@ export default function Dashboard() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          3. STATS GRID
+          3. STATS — Single fused module → My Alphas
           ═══════════════════════════════════════════ */}
-      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.label} className="fade-item">
-              <div className="surface-card p-6 group transition-all duration-200 ease-in-out">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="label-upper">{stat.label}</span>
-                    <Icon className="w-4 h-4 text-muted-foreground transition-transform duration-300 ease-in-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      <Link href="/my-alphas">
+        <div
+          ref={statsRef}
+          className="surface-card p-6 cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
+        >
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <FlaskConical className="w-4 h-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Portfolio Overview</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-primary transition-colors duration-200">
+              <span>View All</span>
+              <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {statCards.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <div key={stat.label} className="fade-item min-w-0">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span className="label-upper truncate">{stat.label}</span>
                   </div>
-                  <div className={`text-2xl stat-value font-bold ${stat.highlight ? "text-success" : "text-foreground"}`}>
+                  <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-foreground"}`}>
                     {stat.value}
                   </div>
-                  <div className="text-sm mt-1 text-muted-foreground">{stat.sub}</div>
+                  <div className="text-sm mt-1 text-muted-foreground truncate">{stat.sub}</div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              );
+            })}
+          </div>
+        </div>
+      </Link>
 
       {/* ═══════════════════════════════════════════
           4. SKILL HUB — Agent + Terminal fused
