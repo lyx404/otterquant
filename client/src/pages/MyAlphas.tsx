@@ -258,7 +258,7 @@ export default function MyAlphas() {
         return renderStatusBadge(row.submissionStatus);
       case "name":
         return (
-          <div className="flex items-center gap-2 max-w-[180px]">
+          <div className="flex items-center gap-2 min-w-0 max-w-[180px]">
             <span className="truncate text-sm text-foreground">{row.name}</span>
           </div>
         );
@@ -281,7 +281,7 @@ export default function MyAlphas() {
           </span>
         );
       case "createdAt":
-        return <span className="font-mono text-xs text-muted-foreground">{row.createdAt}</span>;
+        return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{row.createdAt}</span>;
       case "osSharpe":
         return (
           <span className={`font-mono text-sm tabular-nums ${
@@ -301,11 +301,11 @@ export default function MyAlphas() {
           </span>
         );
       case "returns":
-        return <span className="font-mono text-sm tabular-nums text-foreground">{row.returns}</span>;
+        return <span className="font-mono text-sm tabular-nums text-foreground whitespace-nowrap">{row.returns}</span>;
       case "turnover":
-        return <span className="font-mono text-sm tabular-nums text-foreground">{row.turnover}</span>;
+        return <span className="font-mono text-sm tabular-nums text-foreground whitespace-nowrap">{row.turnover}</span>;
       case "drawdown":
-        return <span className="font-mono text-sm tabular-nums text-destructive">{row.drawdown}</span>;
+        return <span className="font-mono text-sm tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "testsPassed":
         return (
           <div className="flex items-center gap-1 font-mono text-xs tabular-nums justify-end">
@@ -321,7 +321,7 @@ export default function MyAlphas() {
           </div>
         );
       case "submittedAt":
-        return <span className="font-mono text-xs text-muted-foreground">{row.submittedAt || "\u2014"}</span>;
+        return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{row.submittedAt || "\u2014"}</span>;
       default:
         return null;
     }
@@ -360,7 +360,7 @@ export default function MyAlphas() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       {/* Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
@@ -376,43 +376,43 @@ export default function MyAlphas() {
       </div>
 
       {/* Pipeline Stats */}
-      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <div className="fade-item surface-card p-6">
           <div className="flex items-center gap-2 label-upper mb-2">
             <BarChart3 className="w-3.5 h-3.5" /> Total
           </div>
-          <div className="stat-value text-2xl font-bold text-foreground">{submissionStats.total}</div>
-          <div className="text-sm mt-1 text-muted-foreground">submissions</div>
+          <div className="stat-value text-2xl font-bold text-foreground truncate">{submissionStats.total}</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate">submissions</div>
         </div>
         <div className="fade-item surface-card p-6">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-success">
             <CheckCircle className="w-3.5 h-3.5" /> Passed
           </div>
-          <div className="stat-value text-2xl font-bold text-success">{submissionStats.passed}</div>
-          <div className="text-sm mt-1 text-muted-foreground">pass rate: {submissionStats.passRate}</div>
+          <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate">pass rate: {submissionStats.passRate}</div>
         </div>
         <div className="fade-item surface-card p-6">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-secondary">
             <Loader2 className="w-3.5 h-3.5" /> In Progress
           </div>
-          <div className="stat-value text-2xl font-bold text-secondary">{submissionStats.inProgress}</div>
-          <div className="text-sm mt-1 text-muted-foreground">avg time: {submissionStats.avgProcessingTime}</div>
+          <div className="stat-value text-2xl font-bold text-secondary truncate">{submissionStats.inProgress}</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate">avg time: {submissionStats.avgProcessingTime}</div>
         </div>
         <div className="fade-item surface-card p-6">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-destructive">
             <XCircle className="w-3.5 h-3.5" /> Failed
           </div>
-          <div className="stat-value text-2xl font-bold text-destructive">{submissionStats.failed + 1}</div>
-          <div className="text-sm mt-1 text-muted-foreground">{submissionStats.rejected} rejected</div>
+          <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + 1}</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate">{submissionStats.rejected} rejected</div>
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════
           DATA TABLE
           ═══════════════════════════════════════════ */}
-      <div className="overflow-hidden">
+      <div className="surface-card overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-b border-border">
+        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-b border-border bg-card">
           <div className="relative flex-1 min-w-[180px] max-w-[280px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
@@ -573,8 +573,8 @@ export default function MyAlphas() {
                     </span>
                   </th>
                 ))}
-                {/* Actions header */}
-                <th className="px-3 py-2.5 text-right">
+                {/* Actions header — sticky right */}
+                <th className="px-3 py-2.5 text-right sticky right-0 z-[2] bg-accent dark:bg-slate-900/50 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)]">
                   <span className="label-upper">Actions</span>
                 </th>
               </tr>
@@ -600,8 +600,8 @@ export default function MyAlphas() {
                       {renderCell(row, col.key)}
                     </td>
                   ))}
-                  {/* Actions — always visible */}
-                  <td className="px-3 py-2.5 text-right">
+                  {/* Actions — always visible, sticky right */}
+                  <td className="px-3 py-2.5 text-right sticky right-0 z-[2] bg-card group-hover:bg-slate-50 dark:group-hover:bg-slate-800/30 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] transition-colors duration-200 ease-in-out">
                     <Link href={`/alphas/${row.id}`}>
                       <button className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-full transition-all duration-200 ease-in-out whitespace-nowrap text-muted-foreground border border-border hover:border-primary hover:text-primary hover:bg-primary/5">
                         View
@@ -622,7 +622,7 @@ export default function MyAlphas() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="font-mono tabular-nums">
               {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
