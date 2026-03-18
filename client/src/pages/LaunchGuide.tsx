@@ -243,18 +243,6 @@ export default function LaunchGuide() {
                   </p>
                 </div>
 
-                {/* Team Name */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Choose Team Name</label>
-                  <p className="text-xs text-muted-foreground">You can change it any time</p>
-                  <input
-                    type="text"
-                    value={teamName}
-                    onChange={(e) => setTeamName(e.target.value)}
-                    placeholder="Team Name"
-                    className="w-full px-4 py-3 rounded-lg text-sm font-mono outline-none transition-all duration-200 ease-in-out bg-accent border border-border text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
 
                 {/* Experience Level */}
                 <div className="space-y-3">

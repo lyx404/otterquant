@@ -12,8 +12,10 @@ import gsap from "gsap";
 import { toast } from "sonner";
 import {
   User, Key, Link2, Shield, Bell, Copy, Check,
-  Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle,
+  Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle, Compass,
 } from "lucide-react";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 import { exchanges, type Exchange } from "@/lib/mockData";
 
 type TabId = "profile" | "api" | "exchanges" | "notifications";
@@ -87,6 +89,18 @@ export default function Account() {
           <p className="text-base text-muted-foreground">
             Manage your profile, API keys, and exchange connections
           </p>
+        </div>
+        <div className="reveal-line mt-3">
+          <Link href="/launch-guide">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 rounded-full text-xs border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              Launch Guide
+            </Button>
+          </Link>
         </div>
       </div>
 
