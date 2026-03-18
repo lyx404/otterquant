@@ -298,8 +298,8 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════
           4. SKILL HUB — Agent + Terminal fused
           ═══════════════════════════════════════════ */}
-      <div className="grid lg:grid-cols-3 gap-4">
-        <div className={`lg:col-span-2 surface-card ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className={`lg:col-span-2 surface-card cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40 ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
           {/* Header */}
           <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center justify-between">
@@ -478,7 +478,7 @@ export default function Dashboard() {
         {/* ═══════════════════════════════════════════
             5. RECENT ACTIVITY
             ═══════════════════════════════════════════ */}
-        <div className="lg:col-span-1 surface-card">
+        <div className="lg:col-span-1 surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
           <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center gap-2">
               <Activity className="w-3.5 h-3.5 text-muted-foreground" />
