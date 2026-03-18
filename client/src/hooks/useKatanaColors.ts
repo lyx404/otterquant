@@ -1,6 +1,11 @@
 /*
- * useKatanaColors — Theme-aware design tokens for Katana Deep Navy / Light
- * All pages import this single hook to get the correct colors for current theme.
+ * useC — Theme-aware design tokens for Modern Developer Tool Aesthetic
+ * Light: #FFFFFF base, Zinc scale, Blue primary
+ * Dark: #000000 base, Zinc scale, Blue primary
+ *
+ * NOTE: This hook is being phased out in favor of pure Tailwind classes.
+ * New code should use Tailwind dark: variants instead.
+ * Kept for backward compatibility during migration.
  */
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -23,7 +28,12 @@ export interface KatanaColors {
   accent: string;
   purple: string;
   orange: string;
+  warning: string;
   isDark: boolean;
+  gold: string;
+  goldDim: string;
+  silver: string;
+  bronze: string;
 }
 
 export function useKatanaColors(): KatanaColors {
@@ -32,23 +42,31 @@ export function useKatanaColors(): KatanaColors {
 
   return {
     isDark: dark,
-    bg0: dark ? "#0d111c" : "#f4f5f7",
-    bg1: dark ? "#101631" : "#ffffff",
-    card: dark ? "rgba(236,238,243,0.04)" : "rgba(0,0,0,0.03)",
-    cardHover: dark ? "rgba(236,238,243,0.08)" : "rgba(0,0,0,0.06)",
-    popover: dark ? "rgba(16,22,49,0.95)" : "rgba(255,255,255,0.95)",
-    border: dark ? "rgba(236,238,243,0.12)" : "rgba(0,0,0,0.10)",
-    borderWeak: dark ? "rgba(236,238,243,0.08)" : "rgba(0,0,0,0.06)",
-    text1: dark ? "rgba(236,238,243,0.92)" : "rgba(13,17,28,0.92)",
-    text2: dark ? "rgba(236,238,243,0.48)" : "rgba(13,17,28,0.48)",
-    text3: dark ? "rgba(236,238,243,0.32)" : "rgba(13,17,28,0.32)",
-    primary: "#0058ff",
-    primaryLight: dark ? "#4d94ff" : "#0058ff",
-    primaryDim: dark ? "rgba(0,88,255,0.12)" : "rgba(0,88,255,0.08)",
-    success: "#00ffc2",
-    danger: "#f12211",
-    accent: "#d7ff00",
-    purple: "#a268ff",
-    orange: "#db5e05",
+    bg0: dark ? "#000000" : "#FFFFFF",
+    bg1: dark ? "#0A0A0A" : "#F4F4F5",
+    card: dark ? "#0A0A0A" : "#F4F4F5",
+    cardHover: dark ? "#121212" : "#E4E4E7",
+    popover: dark ? "#0A0A0A" : "#FFFFFF",
+    border: dark ? "#27272A" : "#E4E4E7",
+    borderWeak: dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+    text1: dark ? "#FAFAFA" : "#09090B",
+    text2: dark ? "#A1A1AA" : "#52525B",
+    text3: dark ? "#52525B" : "#A1A1AA",
+    primary: "#3B82F6",
+    primaryLight: "#60A5FA",
+    primaryDim: dark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.1)",
+    success: "#10B981",
+    danger: "#EF4444",
+    accent: "#8B5CF6",
+    purple: "#8B5CF6",
+    orange: "#F59E0B",
+    warning: "#F59E0B",
+    gold: "#F59E0B",
+    goldDim: dark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)",
+    silver: "#A1A1AA",
+    bronze: "#D97706",
   };
 }
+
+// Alias for backward compatibility
+export const useC = useKatanaColors;

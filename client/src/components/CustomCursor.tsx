@@ -1,7 +1,7 @@
 /*
- * CustomCursor — Katana Deep Navy Design System
+ * CustomCursor — Modern Developer Tool Aesthetic
  * Circle cursor with mix-blend-mode: difference
- * Enlarges and turns electric blue on hoverable elements
+ * Enlarges and turns blue (#3B82F6) on hoverable elements
  */
 import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
@@ -76,8 +76,8 @@ export default function CustomCursor() {
       gsap.to(cursor, {
         width: 56,
         height: 56,
-        borderColor: "#0058ff",
-        backgroundColor: "rgba(0, 88, 255, 0.06)",
+        borderColor: "#3B82F6",
+        backgroundColor: "rgba(59, 130, 246, 0.06)",
         duration: 0.3,
         ease: "power3.out",
       });
@@ -85,7 +85,7 @@ export default function CustomCursor() {
       gsap.to(cursor, {
         width: 32,
         height: 32,
-        borderColor: "rgba(236, 238, 243, 0.4)",
+        borderColor: "rgba(161, 161, 170, 0.4)",
         backgroundColor: "transparent",
         duration: 0.3,
         ease: "power3.out",
@@ -97,26 +97,18 @@ export default function CustomCursor() {
     <>
       <div
         ref={cursorRef}
-        className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border"
+        className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border border-zinc-400/40 mix-blend-difference will-change-transform"
         style={{
           width: 32,
           height: 32,
-          borderColor: "rgba(236, 238, 243, 0.4)",
-          borderWidth: 1,
           transform: "translate(-50%, -50%)",
-          mixBlendMode: "difference",
-          willChange: "transform, width, height",
         }}
       />
       <div
         ref={dotRef}
-        className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full"
+        className="pointer-events-none fixed top-0 left-0 z-[9999] w-[5px] h-[5px] rounded-full bg-primary will-change-transform"
         style={{
-          width: 5,
-          height: 5,
-          backgroundColor: "#0058ff",
           transform: "translate(-50%, -50%)",
-          willChange: "transform",
         }}
       />
     </>

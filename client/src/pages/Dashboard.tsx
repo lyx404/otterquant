@@ -1,16 +1,9 @@
 /*
- * Dashboard — Katana Deep Navy Design System
- * bg-0: #0d111c | bg-1: #101631
- * Primary: #0058ff | Success: #00ffc2 | Danger: #f12211
- * Text: rgba(236,238,243, 0.92/0.48/0.32)
- * Border: rgba(236,238,243, 0.08/0.12)
- * Frosted glass cards, GSAP staggered reveal
- *
- * Layout order:
- *   1. Current Epoch Banner (full-width, compact, with campaign stickers)
- *   2. Stats Grid
- *   3. Skill Hub (merged Agent Status + Installation Guide, state-aware)
- *   4. Recent Activity (compact, attached to Skill Hub when connected)
+ * Dashboard — Modern Developer Tool Aesthetic
+ * Light: #FFFFFF / Dark: #000000
+ * Primary: #3B82F6 | Success: #10B981 | Danger: #EF4444
+ * Pure Tailwind classes — zero inline styles
+ * GSAP staggered reveal preserved
  */
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -41,20 +34,6 @@ import {
   Sparkles,
 } from "lucide-react";
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
-import { useKatanaColors } from "@/hooks/useKatanaColors";
-
-/* ── color tokens (derived from theme) ── */
-function useC() {
-  const k = useKatanaColors();
-  return {
-    ...k,
-    primaryBorder: k.isDark ? "rgba(0,88,255,0.30)" : "rgba(0,88,255,0.20)",
-    successDim: k.isDark ? "rgba(0,255,194,0.10)" : "rgba(0,200,150,0.08)",
-    successBorder: k.isDark ? "rgba(0,255,194,0.20)" : "rgba(0,200,150,0.15)",
-    dangerDim: k.isDark ? "rgba(241,34,17,0.10)" : "rgba(241,34,17,0.06)",
-    accentDim: k.isDark ? "rgba(215,255,0,0.10)" : "rgba(215,255,0,0.06)",
-  };
-}
 
 const statCards = [
   { label: "TOTAL FACTORS", value: dashboardStats.totalFactors.toString(), sub: `${dashboardStats.activeFactors} active`, icon: FlaskConical, highlight: false },
@@ -65,12 +44,12 @@ const statCards = [
 ];
 
 const iconMap: Record<string, React.ReactNode> = {
-  plus: <Zap className="w-3.5 h-3.5" style={{ color: "#0058ff" }} />,
-  check: <CheckCircle className="w-3.5 h-3.5" style={{ color: "#00ffc2" }} />,
-  trophy: <Award className="w-3.5 h-3.5" style={{ color: "#db5e05" }} />,
-  activity: <Activity className="w-3.5 h-3.5" style={{ color: "#0058ff" }} />,
-  x: <XCircle className="w-3.5 h-3.5" style={{ color: "#f12211" }} />,
-  user: <Users className="w-3.5 h-3.5" style={{ color: "#a268ff" }} />,
+  plus: <Zap className="w-3.5 h-3.5 text-primary" />,
+  check: <CheckCircle className="w-3.5 h-3.5 text-success" />,
+  trophy: <Award className="w-3.5 h-3.5 text-amber-500" />,
+  activity: <Activity className="w-3.5 h-3.5 text-primary" />,
+  x: <XCircle className="w-3.5 h-3.5 text-red-500" />,
+  user: <Users className="w-3.5 h-3.5 text-violet-500" />,
 };
 
 const agentSkills = [
@@ -114,21 +93,19 @@ const installSteps = [
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
-  const C = useC();
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="p-1 rounded transition-colors" style={{ color: C.text3 }}>
-      {copied ? <Check className="w-3.5 h-3.5" style={{ color: C.success }} /> : <Copy className="w-3.5 h-3.5" />}
+    <button onClick={handleCopy} className="p-1 rounded transition-colors text-zinc-400 dark:text-zinc-600 hover:text-foreground">
+      {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
 }
 
 export default function Dashboard() {
-  const C = useC();
   const [guideExpanded, setGuideExpanded] = useState(!isAnyConnected);
   const [activeGuide, setActiveGuide] = useState("codex");
   const headerRef = useRef<HTMLDivElement>(null);
@@ -166,33 +143,26 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* ═══════════════════════════════════════════
-          1. CURRENT EPOCH BANNER — Full-width, compact, top position
+          1. CURRENT EPOCH BANNER
           ═══════════════════════════════════════════ */}
       <div
         ref={bannerRef}
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, ${C.primaryDim} 0%, rgba(0,88,255,0.06) 40%, ${C.card} 100%)`,
-          border: `1px solid ${C.primaryBorder}`,
-        }}
+        className="rounded-2xl overflow-hidden bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30"
       >
         <div className="flex items-center justify-between px-5 py-4 gap-4 flex-wrap">
           {/* Left: Epoch info */}
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: C.primaryDim, border: `1px solid ${C.primaryBorder}` }}>
-              <Trophy className="w-5 h-5" style={{ color: C.primary }} />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
+              <Trophy className="w-5 h-5 text-primary" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-semibold" style={{ color: C.text1 }}>Current Epoch</span>
-                <span
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase"
-                  style={{ backgroundColor: C.primaryDim, color: C.primaryLight, border: `1px solid ${C.primaryBorder}` }}
-                >
+                <span className="text-base font-semibold text-foreground">Current Epoch</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-primary/10 text-primary border border-primary/20">
                   LIVE
                 </span>
               </div>
-              <span className="text-xs font-mono" style={{ color: C.primaryLight }}>{currentEpoch.id}</span>
+              <span className="text-xs font-mono text-primary">{currentEpoch.id}</span>
             </div>
           </div>
 
@@ -200,44 +170,34 @@ export default function Dashboard() {
           <div className="flex items-center gap-6 flex-wrap">
             <div className="text-center">
               <div className="label-upper mb-0.5">Prize Pool</div>
-              <div className="stat-value text-base font-bold" style={{ color: C.success }}>{currentEpoch.totalPool}</div>
+              <div className="stat-value text-base font-bold text-success">{currentEpoch.totalPool}</div>
             </div>
-            <div className="w-px h-8" style={{ backgroundColor: C.borderWeak }} />
+            <div className="w-px h-8 bg-border" />
             <div className="text-center">
               <div className="label-upper mb-0.5">Time Left</div>
-              <div className="stat-value text-base font-bold" style={{ color: C.danger }}>{currentEpoch.timeRemaining}</div>
+              <div className="stat-value text-base font-bold text-red-500">{currentEpoch.timeRemaining}</div>
             </div>
-            <div className="w-px h-8" style={{ backgroundColor: C.borderWeak }} />
+            <div className="w-px h-8 bg-border" />
             <div className="text-center">
               <div className="label-upper mb-0.5">Qualified</div>
-              <div className="stat-value text-base font-bold" style={{ color: C.text1 }}>
-                {currentEpoch.qualifiedFactors}<span className="text-xs font-normal" style={{ color: C.text3 }}> / {currentEpoch.totalSubmissions}</span>
+              <div className="stat-value text-base font-bold text-foreground">
+                {currentEpoch.qualifiedFactors}<span className="text-xs font-normal text-muted-foreground"> / {currentEpoch.totalSubmissions}</span>
               </div>
             </div>
           </div>
 
           {/* Right: Campaign stickers + CTA */}
           <div className="flex items-center gap-3">
-            {/* Campaign stickers */}
             <div className="hidden md:flex items-center gap-2">
-              <span
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide"
-                style={{ backgroundColor: C.accentDim, color: C.accent, border: `1px solid rgba(215,255,0,0.20)` }}
-              >
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide bg-amber-500/10 text-amber-500 border border-amber-500/20">
                 <Flame className="w-3 h-3" /> 2x REWARDS
               </span>
-              <span
-                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide"
-                style={{ backgroundColor: "rgba(162,104,255,0.10)", color: C.purple, border: `1px solid rgba(162,104,255,0.20)` }}
-              >
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide bg-violet-500/10 text-violet-500 border border-violet-500/20">
                 <Star className="w-3 h-3" /> SEASON 3
               </span>
             </div>
             <Link href="/leaderboard">
-              <Button
-                className="gap-1.5 rounded-full text-sm"
-                style={{ backgroundColor: C.primary, color: "#fff" }}
-              >
+              <Button className="gap-1.5 rounded-full text-sm bg-primary text-white hover:bg-primary/90">
                 Leaderboard
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </Button>
@@ -251,13 +211,13 @@ export default function Dashboard() {
           ═══════════════════════════════════════════ */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none" style={{ color: C.text1 }}>
+          <h1 className="text-5xl md:text-7xl font-medium tracking-tighter leading-none text-foreground">
             Dashboard
           </h1>
         </div>
         <div className="reveal-line mt-2">
-          <p className="text-sm" style={{ color: C.text2 }}>
-            AI Factor Mining Platform Overview
+          <p className="text-sm text-muted-foreground">
+            AI-powered factor mining platform — monitor your agents, track performance, compete for rewards.
           </p>
         </div>
       </div>
@@ -270,16 +230,16 @@ export default function Dashboard() {
           const Icon = stat.icon;
           return (
             <div key={stat.label} className="fade-item">
-              <div className="katana-card p-4 group">
-                <div data-parallax-inner="">
+              <div className="surface-card p-4 group hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200">
+                <div>
                   <div className="flex items-center justify-between mb-3">
                     <span className="label-upper">{stat.label}</span>
-                    <Icon className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" style={{ color: C.text3 }} />
+                    <Icon className="w-4 h-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </div>
-                  <div className="text-2xl stat-value font-bold" style={{ color: stat.highlight ? C.success : C.text1 }}>
+                  <div className={`text-2xl stat-value font-bold ${stat.highlight ? "text-success" : "text-foreground"}`}>
                     {stat.value}
                   </div>
-                  <div className="text-xs mt-1" style={{ color: C.text2 }}>{stat.sub}</div>
+                  <div className="text-xs mt-1 text-muted-foreground">{stat.sub}</div>
                 </div>
               </div>
             </div>
@@ -288,36 +248,30 @@ export default function Dashboard() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          4. SKILL HUB — Merged Agent Status + Installation Guide
-             State-aware: shows different emphasis based on connection
+          4. SKILL HUB
           ═══════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-3 gap-4">
-        {/* Main Skill Module — 2 cols */}
-        <div className="lg:col-span-2 katana-card" style={{ borderColor: isAnyConnected ? C.border : C.primaryBorder }}>
+        <div className={`lg:col-span-2 surface-card ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
           {/* Header */}
-          <div className="p-4 pb-3" style={{ borderBottom: `1px solid ${C.borderWeak}` }}>
+          <div className="p-4 pb-3 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Cpu className="w-4 h-4" style={{ color: isAnyConnected ? C.success : C.primary }} />
-                <span className="text-sm font-semibold" style={{ color: C.text1 }}>Skill Hub</span>
+                <Cpu className={`w-4 h-4 ${isAnyConnected ? "text-success" : "text-primary"}`} />
+                <span className="text-sm font-semibold text-foreground">Skill Hub</span>
               </div>
               <div className="flex items-center gap-2">
-                <span
-                  className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] uppercase"
-                  style={{
-                    backgroundColor: isAnyConnected ? C.successDim : C.dangerDim,
-                    color: isAnyConnected ? C.success : C.danger,
-                    border: `1px solid ${isAnyConnected ? C.successBorder : "rgba(241,34,17,0.20)"}`,
-                  }}
-                >
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] uppercase border ${
+                  isAnyConnected
+                    ? "bg-success/10 text-success border-success/20"
+                    : "bg-red-500/10 text-red-500 border-red-500/20"
+                }`}>
                   {connectedCount}/{agentSkills.length} CONNECTED
                 </span>
                 <Link href="/account?tab=api">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs gap-1 rounded-full"
-                    style={{ borderColor: C.borderWeak, color: C.text2 }}
+                    className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
                   >
                     <ExternalLink className="w-3 h-3" />
                     API Keys
@@ -328,47 +282,47 @@ export default function Dashboard() {
           </div>
 
           <div className="p-4 space-y-3">
-            {/* ── Connected state: Agent cards prominent ── */}
+            {/* Connected state: Agent cards */}
             {isAnyConnected && (
               <div className="grid md:grid-cols-3 gap-3">
                 {agentSkills.map((skill) => (
                   <div
                     key={skill.id}
-                    className="rounded-2xl p-3.5 transition-all duration-250"
-                    style={{
-                      border: `1px solid ${skill.status === "connected" ? C.successBorder : C.borderWeak}`,
-                      backgroundColor: skill.status === "connected" ? C.successDim : C.card,
-                    }}
+                    className={`rounded-2xl p-3.5 transition-all duration-200 border ${
+                      skill.status === "connected"
+                        ? "bg-success/5 dark:bg-success/10 border-success/20"
+                        : "bg-card border-border"
+                    }`}
                   >
                     <div className="flex items-center justify-between mb-2.5">
-                      <span className="text-sm font-medium" style={{ color: C.text1 }}>{skill.name}</span>
+                      <span className="text-sm font-medium text-foreground">{skill.name}</span>
                       {skill.status === "connected" ? (
                         <div className="flex items-center gap-1.5">
                           <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: C.success }} />
-                            <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: C.success }} />
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-success" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
                           </span>
-                          <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: C.success }}>ONLINE</span>
+                          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-success">ONLINE</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          <WifiOff className="w-3 h-3" style={{ color: C.text3 }} />
-                          <span className="text-[10px] font-mono tracking-[0.2em] uppercase" style={{ color: C.text3 }}>OFFLINE</span>
+                          <WifiOff className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">OFFLINE</span>
                         </div>
                       )}
                     </div>
                     <div className="space-y-1.5 text-xs">
                       <div className="flex justify-between">
-                        <span style={{ color: C.text2 }}>Last Sync</span>
-                        <span className="font-mono" style={{ color: C.text1 }}>{skill.lastSync}</span>
+                        <span className="text-muted-foreground">Last Sync</span>
+                        <span className="font-mono text-foreground">{skill.lastSync}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span style={{ color: C.text2 }}>Factors Mined</span>
-                        <span className="font-mono" style={{ color: skill.factorsGenerated > 0 ? C.success : C.text3 }}>{skill.factorsGenerated}</span>
+                        <span className="text-muted-foreground">Factors Mined</span>
+                        <span className={`font-mono ${skill.factorsGenerated > 0 ? "text-success" : "text-muted-foreground"}`}>{skill.factorsGenerated}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span style={{ color: C.text2 }}>Skill Version</span>
-                        <span className="font-mono" style={{ color: C.text3 }}>{skill.version}</span>
+                        <span className="text-muted-foreground">Skill Version</span>
+                        <span className="font-mono text-muted-foreground">{skill.version}</span>
                       </div>
                     </div>
                   </div>
@@ -376,79 +330,71 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* ── Installation Guide ── */}
-            {/* When not connected: expanded by default, prominent */}
-            {/* When connected: collapsed toggle, de-emphasized */}
+            {/* Installation Guide */}
             {isAnyConnected ? (
-              /* Collapsed toggle when connected */
               <button
                 onClick={() => setGuideExpanded(!guideExpanded)}
-                className="flex items-center gap-2 w-full py-2.5 px-3 rounded-xl transition-colors text-sm"
-                style={{ backgroundColor: C.card, border: `1px solid ${C.borderWeak}` }}
+                className="flex items-center gap-2 w-full py-2.5 px-3 rounded-xl transition-colors text-sm bg-card border border-border hover:bg-muted/50 dark:hover:bg-white/[0.03]"
               >
-                <BookOpen className="w-4 h-4" style={{ color: C.text3 }} />
-                <span className="font-medium" style={{ color: C.text2 }}>Skill Installation Guide</span>
-                <span className="text-xs ml-1" style={{ color: C.text3 }}>— Set up more AI agents</span>
+                <BookOpen className="w-4 h-4 text-muted-foreground" />
+                <span className="font-medium text-muted-foreground">Skill Installation Guide</span>
+                <span className="text-xs ml-1 text-muted-foreground/60">— Set up more AI agents</span>
                 <div className="ml-auto">
-                  {guideExpanded ? <ChevronUp className="w-4 h-4" style={{ color: C.text3 }} /> : <ChevronDown className="w-4 h-4" style={{ color: C.text3 }} />}
+                  {guideExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </div>
               </button>
             ) : (
-              /* Prominent header when not connected */
-              <div className="rounded-xl p-4" style={{ backgroundColor: C.primaryDim, border: `1px solid ${C.primaryBorder}` }}>
+              <div className="rounded-xl p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: C.primary }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary">
                     <Sparkles className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold" style={{ color: C.text1 }}>Get Started — Connect Your First AI Agent</div>
-                    <div className="text-xs" style={{ color: C.text2 }}>Install the AlphaForge skill to start mining factors automatically</div>
+                    <div className="text-sm font-semibold text-foreground">Get Started — Connect Your First AI Agent</div>
+                    <div className="text-xs text-muted-foreground">Install the AlphaForge skill to start mining factors automatically</div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Guide content (shown when expanded or not connected) */}
+            {/* Guide content */}
             {(guideExpanded || !isAnyConnected) && (
               <div className="space-y-3">
-                {/* Tab selector */}
-                <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: C.card, border: `1px solid ${C.borderWeak}` }}>
+                <div className="flex gap-1 p-1 rounded-xl bg-card border border-border">
                   {installSteps.map((guide) => (
                     <button
                       key={guide.id}
                       onClick={() => setActiveGuide(guide.id)}
-                      className="flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all duration-250"
-                      style={{
-                        backgroundColor: activeGuide === guide.id ? C.primaryDim : "transparent",
-                        color: activeGuide === guide.id ? C.primaryLight : C.text2,
-                        border: activeGuide === guide.id ? `1px solid ${C.primaryBorder}` : "1px solid transparent",
-                      }}
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium transition-all duration-200 border ${
+                        activeGuide === guide.id
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : "text-muted-foreground border-transparent hover:text-foreground"
+                      }`}
                     >
                       {guide.title}
                     </button>
                   ))}
                 </div>
 
-                {/* Install steps */}
                 {installSteps
                   .filter((g) => g.id === activeGuide)
                   .map((guide) => (
                     <div key={guide.id} className="space-y-2">
-                      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: C.bg0, border: `1px solid ${C.border}` }}>
-                        <div className="flex items-center gap-2 px-3 py-2" style={{ borderBottom: `1px solid ${C.borderWeak}`, backgroundColor: C.card }}>
-                          <Terminal className="w-3.5 h-3.5" style={{ color: C.primary }} />
-                          <span className="text-xs font-mono" style={{ color: C.text2 }}>terminal</span>
+                      <div className="rounded-xl overflow-hidden bg-background border border-border">
+                        <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-card">
+                          <Terminal className="w-3.5 h-3.5 text-primary" />
+                          <span className="text-xs font-mono text-muted-foreground">terminal</span>
                         </div>
                         <div className="p-3 space-y-1">
                           {guide.steps.map((step, idx) => (
                             <div key={idx} className="flex items-start gap-2 group">
                               <code className="text-xs font-mono flex-1">
                                 {step.startsWith("#") ? (
-                                  <span style={{ color: C.text3 }}>{step}</span>
+                                  <span className="text-muted-foreground">{step}</span>
                                 ) : (
                                   <>
-                                    <span style={{ color: C.primary }}>$ </span>
-                                    <span style={{ color: C.text1 }}>{step}</span>
+                                    <span className="text-primary">$ </span>
+                                    <span className="text-foreground">{step}</span>
                                   </>
                                 )}
                               </code>
@@ -461,21 +407,20 @@ export default function Dashboard() {
                           ))}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-xs px-1" style={{ color: C.text2 }}>
+                      <div className="flex items-center gap-2 text-xs px-1 text-muted-foreground">
                         <ExternalLink className="w-3 h-3" />
                         <span>Full documentation at</span>
-                        <span className="font-mono" style={{ color: C.primaryLight, cursor: "pointer" }}>docs.alphaforge.io/skills/{guide.id}</span>
+                        <span className="font-mono text-primary cursor-pointer hover:underline">docs.alphaforge.io/skills/{guide.id}</span>
                       </div>
                     </div>
                   ))}
 
-                {/* Quick start summary */}
-                <div className="rounded-xl p-3" style={{ backgroundColor: C.primaryDim, border: `1px solid ${C.primaryBorder}` }}>
-                  <div className="text-xs font-medium mb-1.5" style={{ color: C.primaryLight }}>Quick Start</div>
-                  <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: C.text2 }}>
+                <div className="rounded-xl p-3 bg-primary/5 dark:bg-primary/10 border border-primary/20">
+                  <div className="text-xs font-medium mb-1.5 text-primary">Quick Start</div>
+                  <ol className="text-xs space-y-1 list-decimal list-inside text-muted-foreground">
                     <li>Install the AlphaForge skill in your preferred AI coding agent</li>
                     <li>Configure your API key in the account settings page</li>
-                    <li>Start a conversation: <code className="font-mono px-1 rounded" style={{ color: C.primaryLight, backgroundColor: C.card }}>"Mine alpha factors for BTC/USDT on Binance"</code></li>
+                    <li>Start a conversation: <code className="font-mono px-1 rounded text-primary bg-card">"Mine alpha factors for BTC/USDT on Binance"</code></li>
                     <li>The agent will generate factors, backtest, and submit results automatically</li>
                   </ol>
                 </div>
@@ -485,13 +430,13 @@ export default function Dashboard() {
         </div>
 
         {/* ═══════════════════════════════════════════
-            5. RECENT ACTIVITY — Sidebar, attached info
+            5. RECENT ACTIVITY
             ═══════════════════════════════════════════ */}
-        <div className="lg:col-span-1 katana-card" style={{ borderColor: C.borderWeak }}>
-          <div className="p-4 pb-3" style={{ borderBottom: `1px solid ${C.borderWeak}` }}>
+        <div className="lg:col-span-1 surface-card">
+          <div className="p-4 pb-3 border-b border-border">
             <div className="flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5" style={{ color: C.text3 }} />
-              <span className="text-sm font-medium" style={{ color: C.text2 }}>Recent Activity</span>
+              <Activity className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Recent Activity</span>
             </div>
           </div>
           <div className="px-3 pb-3">
@@ -499,20 +444,14 @@ export default function Dashboard() {
               {recentActivity.slice(0, 8).map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200"
-                  style={{ cursor: "default" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = C.card; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                  className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 hover:bg-muted/50 dark:hover:bg-white/[0.03]"
                 >
-                  <div
-                    className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ backgroundColor: C.card }}
-                  >
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-card">
                     {iconMap[item.icon]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs leading-snug block truncate" style={{ color: C.text2 }}>{item.message}</span>
-                    <span className="text-[10px] font-mono" style={{ color: C.text3 }}>{item.time}</span>
+                    <span className="text-xs leading-snug block truncate text-muted-foreground">{item.message}</span>
+                    <span className="text-[10px] font-mono text-muted-foreground/60">{item.time}</span>
                   </div>
                 </div>
               ))}

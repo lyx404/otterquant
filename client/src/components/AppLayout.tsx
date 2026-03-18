@@ -1,8 +1,8 @@
 /*
- * AppLayout — Katana Deep Navy Design System
- * bg-0: #0d111c | bg-1: #101631
- * Primary: #0058ff | Border: rgba(236,238,243,0.12)
- * Horizontal top nav with scroll-direction hide/show + theme toggle
+ * AppLayout — Modern Developer Tool Aesthetic
+ * Light: #FFFFFF / Dark: #000000
+ * Primary: #3B82F6 | Zinc scale text/border
+ * Pure Tailwind classes — zero inline styles
  */
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef } from "react";
@@ -26,31 +26,6 @@ const navItems = [
   { path: "/account", label: "Account", icon: UserCog },
 ];
 
-/* ── Theme-aware color tokens ── */
-function useColors() {
-  const { theme } = useTheme();
-  const dark = theme === "dark";
-  return {
-    bg0: dark ? "#0d111c" : "#f4f5f7",
-    headerBg: dark ? "rgba(13, 17, 28, 0.88)" : "rgba(244, 245, 247, 0.88)",
-    headerBorder: dark ? "rgba(236, 238, 243, 0.08)" : "rgba(0, 0, 0, 0.08)",
-    text1: dark ? "rgba(236, 238, 243, 0.92)" : "rgba(13, 17, 28, 0.92)",
-    text2: dark ? "rgba(236, 238, 243, 0.48)" : "rgba(13, 17, 28, 0.48)",
-    activeColor: "#4d94ff",
-    activeBg: dark ? "rgba(0, 88, 255, 0.12)" : "rgba(0, 88, 255, 0.08)",
-    hoverBg: dark ? "rgba(236, 238, 243, 0.06)" : "rgba(0, 0, 0, 0.04)",
-    hoverText: dark ? "rgba(236, 238, 243, 0.92)" : "rgba(13, 17, 28, 0.92)",
-    userPillBg: dark ? "rgba(236, 238, 243, 0.04)" : "rgba(0, 0, 0, 0.04)",
-    userPillBorder: dark ? "rgba(236, 238, 243, 0.08)" : "rgba(0, 0, 0, 0.08)",
-    mobileBg: dark ? "rgba(13, 17, 28, 0.96)" : "rgba(244, 245, 247, 0.96)",
-    logoBg: dark ? "rgba(0, 88, 255, 0.15)" : "rgba(0, 88, 255, 0.10)",
-    toggleBg: dark ? "rgba(236, 238, 243, 0.06)" : "rgba(0, 0, 0, 0.06)",
-    toggleBorder: dark ? "rgba(236, 238, 243, 0.12)" : "rgba(0, 0, 0, 0.12)",
-    toggleIcon: dark ? "rgba(236, 238, 243, 0.60)" : "rgba(13, 17, 28, 0.60)",
-    toggleHoverBg: dark ? "rgba(236, 238, 243, 0.10)" : "rgba(0, 0, 0, 0.10)",
-  };
-}
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -58,7 +33,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
   const { theme, toggleTheme } = useTheme();
-  const C = useColors();
 
   useEffect(() => {
     const THRESHOLD = 8;
@@ -90,68 +64,46 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: C.bg0 }}>
+    <div className="min-h-screen bg-background">
       {/* Top Navigation Bar */}
       <header
-        className="sticky top-0 z-50"
-        style={{
-          backgroundColor: C.headerBg,
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderBottom: `1px solid ${C.headerBorder}`,
-          transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-          transition: "transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
-          willChange: "transform",
-        }}
+        className={`sticky top-0 z-50 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-border transition-transform duration-350 will-change-transform ${
+          headerVisible ? "translate-y-0" : "-translate-y-full"
+        }`}
       >
-        <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8">
           <div className="flex h-14 items-center justify-between">
             {/* Logo */}
             <Link href="/">
               <div className="flex items-center gap-2.5 shrink-0">
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: C.logoBg }}
-                >
-                  <Zap className="w-4 h-4" style={{ color: "#0058ff" }} />
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-primary/10">
+                  <Zap className="w-4 h-4 text-primary" />
                 </div>
-                <span
-                  className="font-semibold text-base tracking-tight"
-                  style={{ color: C.text1 }}
-                >
+                <span className="font-semibold text-base tracking-tight text-foreground">
                   AlphaForge
                 </span>
               </div>
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-0.5">
+            <nav className="hidden md:flex items-center gap-1">
               {navItems.map((item) => {
                 const active = isActive(item.path);
                 const Icon = item.icon;
                 return (
                   <Link key={item.path} href={item.path}>
                     <div
-                      className="relative flex items-center gap-2 px-3.5 py-2 rounded-full text-sm font-medium transition-all duration-250"
-                      style={{
-                        backgroundColor: active ? C.activeBg : "transparent",
-                        color: active ? C.activeColor : C.text2,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!active) {
-                          e.currentTarget.style.color = C.hoverText;
-                          e.currentTarget.style.backgroundColor = C.hoverBg;
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) {
-                          e.currentTarget.style.color = C.text2;
-                          e.currentTarget.style.backgroundColor = "transparent";
-                        }
-                      }}
+                      className={`relative flex items-center gap-2 px-3.5 py-2 rounded-md text-sm font-medium transition-all duration-200 ease-out ${
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-white/[0.05]"
+                      }`}
                     >
                       <Icon className="w-4 h-4" />
                       <span>{item.label}</span>
+                      {active && (
+                        <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-primary rounded-full" />
+                      )}
                     </div>
                   </Link>
                 );
@@ -163,44 +115,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {/* Theme Toggle Button */}
               <button
                 onClick={toggleTheme}
-                className="relative w-8 h-8 rounded-full flex items-center justify-center transition-all duration-250"
-                style={{
-                  backgroundColor: C.toggleBg,
-                  border: `1px solid ${C.toggleBorder}`,
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = C.toggleHoverBg;
-                  e.currentTarget.style.borderColor = theme === "dark" ? "rgba(236,238,243,0.20)" : "rgba(0,0,0,0.20)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = C.toggleBg;
-                  e.currentTarget.style.borderColor = C.toggleBorder;
-                }}
+                className="relative w-8 h-8 rounded-md flex items-center justify-center border border-border bg-muted/50 dark:bg-white/[0.05] hover:bg-muted dark:hover:bg-white/[0.08] transition-all duration-200 ease-out"
                 title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {theme === "dark" ? (
-                  <Sun className="w-3.5 h-3.5" style={{ color: C.toggleIcon }} />
+                  <Sun className="w-3.5 h-3.5 text-zinc-400" />
                 ) : (
-                  <Moon className="w-3.5 h-3.5" style={{ color: C.toggleIcon }} />
+                  <Moon className="w-3.5 h-3.5 text-zinc-500" />
                 )}
               </button>
 
               {/* User Pill */}
-              <div
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-                style={{
-                  backgroundColor: C.userPillBg,
-                  border: `1px solid ${C.userPillBorder}`,
-                }}
-              >
-                <div
-                  className="w-2 h-2 rounded-full animate-pulse"
-                  style={{ backgroundColor: "#00ffc2" }}
-                />
-                <span
-                  className="text-xs font-mono"
-                  style={{ color: C.text2 }}
-                >
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 dark:bg-white/[0.05] border border-border">
+                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <span className="text-xs font-mono text-muted-foreground">
                   CryptoQuant_Pro
                 </span>
               </div>
@@ -208,11 +136,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center gap-2">
-              {/* Mobile theme toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 transition-colors"
-                style={{ color: C.text2 }}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-200"
               >
                 {theme === "dark" ? (
                   <Sun className="w-4.5 h-4.5" />
@@ -221,8 +147,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
               </button>
               <button
-                className="p-2 transition-colors"
-                style={{ color: C.text2 }}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-200"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -233,15 +158,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <div
-            className="md:hidden"
-            style={{
-              backgroundColor: C.mobileBg,
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              borderTop: `1px solid ${C.headerBorder}`,
-            }}
-          >
+          <div className="md:hidden bg-white/95 dark:bg-black/95 backdrop-blur-xl border-t border-border">
             <nav className="px-4 py-3 space-y-1">
               {navItems.map((item) => {
                 const active = isActive(item.path);
@@ -250,11 +167,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Link key={item.path} href={item.path}>
                     <div
                       onClick={() => setMobileMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors"
-                      style={{
-                        backgroundColor: active ? C.activeBg : "transparent",
-                        color: active ? C.activeColor : C.text2,
-                      }}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 ${
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      }`}
                     >
                       <Icon className="w-4 h-4" />
                       <span>{item.label}</span>
@@ -268,7 +185,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {children}
       </main>
     </div>
