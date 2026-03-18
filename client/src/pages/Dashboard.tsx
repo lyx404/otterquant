@@ -1,11 +1,8 @@
 /*
  * Dashboard — Indigo/Sky + Slate Design System
- * Light: Slate-50 #F8FAFC / Dark: Slate-950 #020617
- * Primary: Indigo | Secondary: Sky | Success: Emerald | Danger: Red
- * Cards: rounded-2xl, p-6 | Buttons: rounded-full
- * Animation: 200ms ease-in-out, bouncy 300ms cubic-bezier(0.34,1.56,0.64,1)
+ * Epoch Banner: aligned with Leaderboard 4-card style
+ * Skill Guide: hierarchical layout with single copy button per terminal
  * Pure Tailwind classes — zero inline styles
- * GSAP staggered reveal preserved
  */
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -34,7 +31,7 @@ import {
   Flame,
   Star,
   Sparkles,
-  Coins,
+  Clock,
 } from "lucide-react";
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
 
@@ -67,7 +64,7 @@ const isAnyConnected = connectedCount > 0;
 const installSteps = [
   {
     id: "codex",
-    title: "OpenAI Codex / ChatGPT",
+    title: "OpenAI Codex",
     steps: [
       'npx alphaforge-skill install --target codex',
       '# Or manually: copy skill files to ~/.codex/skills/alphaforge/',
@@ -76,7 +73,7 @@ const installSteps = [
   },
   {
     id: "claude",
-    title: "Claude Code (Anthropic)",
+    title: "Claude Code",
     steps: [
       'npx alphaforge-skill install --target claude-code',
       '# Or manually: copy skill files to ~/.claude/skills/alphaforge/',
@@ -94,15 +91,17 @@ const installSteps = [
   },
 ];
 
-function CopyButton({ text }: { text: string }) {
+/* ── Copy button for terminal title bar ── */
+function TerminalCopyButton({ steps }: { steps: string[] }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
+    const text = steps.filter(s => !s.startsWith("#")).join("\n");
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="p-1 rounded-lg transition-colors text-slate-400 dark:text-slate-600 hover:text-foreground">
+    <button onClick={handleCopy} className="p-1 rounded-lg transition-colors text-muted-foreground hover:text-foreground" title="Copy all commands">
       {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
@@ -110,7 +109,6 @@ function CopyButton({ text }: { text: string }) {
 
 /* ── Countdown Timer Hook ── */
 function useCountdown(timeStr: string) {
-  // Parse "2d 14h 32m" format into total seconds
   const parseTime = useCallback((s: string) => {
     let total = 0;
     const dMatch = s.match(/(\d+)d/);
@@ -141,9 +139,13 @@ function useCountdown(timeStr: string) {
 
   return {
     display: `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`,
-    isUrgent: remaining < 86400, // less than 1 day
     remaining,
   };
+}
+
+/* ── Strip USDT from pool string ── */
+function stripUSDT(s: string) {
+  return s.replace(/\s*USDT$/i, "");
 }
 
 export default function Dashboard() {
@@ -182,78 +184,60 @@ export default function Dashboard() {
     );
   }, []);
 
+  /* ── Gold gradient reward style (same as Leaderboard) ── */
+  const goldGradient = "text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500";
+
   return (
     <div className="space-y-8">
       {/* ═══════════════════════════════════════════
-          1. CURRENT EPOCH BANNER
+          1. CURRENT EPOCH BANNER — 4-card grid matching Leaderboard
           ═══════════════════════════════════════════ */}
-      <div
-        ref={bannerRef}
-        className="rounded-2xl overflow-hidden bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30"
-      >
-        <div className="flex items-center justify-between px-6 py-5 gap-4 flex-wrap">
-          {/* Left: Epoch info */}
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
-              <Trophy className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-semibold text-foreground">Current Epoch</span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-primary/10 text-primary border border-primary/20">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-                  </span>
-                  LIVE
-                </span>
-              </div>
-              <span className="text-xs font-mono text-primary">{currentEpoch.id}</span>
-            </div>
+      <div ref={bannerRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="surface-card p-6 border-primary/20 dark:border-primary/30">
+          <div className="label-upper mb-2 flex items-center gap-1.5">
+            <Trophy className="w-3.5 h-3.5" />
+            {currentEpoch.id}
           </div>
-
-          {/* Center: Key metrics inline */}
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="text-center">
-              <div className="label-upper mb-0.5">Prize Pool</div>
-              <div className="stat-value text-base font-bold text-amber-500 dark:text-amber-400 inline-flex items-center gap-1.5">
-                <Coins className="w-4 h-4" />
-                {currentEpoch.totalPool}
-              </div>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center">
-              <div className="label-upper mb-0.5">Time Left</div>
-              <div className={`stat-value text-base font-bold font-mono tabular-nums ${countdown.isUrgent ? "text-destructive animate-pulse" : "text-destructive"}`}>
-                {countdown.display}
-              </div>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center">
-              <div className="label-upper mb-0.5">Qualified</div>
-              <div className="stat-value text-base font-bold text-foreground">
-                {currentEpoch.qualifiedFactors}<span className="text-xs font-normal text-muted-foreground"> / {currentEpoch.totalSubmissions}</span>
-              </div>
-            </div>
+          <div className="stat-value text-xl font-bold text-primary flex items-center gap-2">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+            </span>
+            LIVE
           </div>
-
-          {/* Right: Campaign stickers + CTA */}
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
-                <Flame className="w-3 h-3" /> 2x REWARDS
-              </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide bg-purple-500/10 text-purple-500 dark:text-purple-400 border border-purple-500/20">
-                <Star className="w-3 h-3" /> SEASON 3
-              </span>
-            </div>
-            <Link href="/leaderboard">
-              <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce">
-                Leaderboard
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
+          <div className="text-xs mt-1 text-muted-foreground">
+            {currentEpoch.startDate} — {currentEpoch.endDate}
           </div>
+        </div>
+        <div className="surface-card p-6">
+          <div className="label-upper mb-2 flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5" /> Prize Pool
+          </div>
+          <div className={`stat-value text-xl font-bold ${goldGradient}`}>
+            {stripUSDT(currentEpoch.totalPool)} <span className="text-sm font-medium">USDT</span>
+          </div>
+          <div className="text-xs mt-1 text-muted-foreground">
+            distributed proportionally
+          </div>
+        </div>
+        <div className="surface-card p-6">
+          <div className="label-upper mb-2 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5" />
+            Time Remaining
+          </div>
+          <div className="stat-value text-xl font-bold font-mono tabular-nums text-foreground">
+            {countdown.display}
+          </div>
+          <div className="text-xs mt-1 text-muted-foreground">
+            until epoch ends
+          </div>
+        </div>
+        <div className="surface-card p-6">
+          <div className="label-upper mb-2 flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5" /> Submissions
+          </div>
+          <div className="stat-value text-xl font-bold text-foreground">{currentEpoch.totalSubmissions}</div>
+          <div className="text-xs mt-1 text-muted-foreground">{currentEpoch.qualifiedFactors} qualified</div>
         </div>
       </div>
 
@@ -299,7 +283,7 @@ export default function Dashboard() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          4. SKILL HUB
+          4. SKILL HUB — Hierarchical layout
           ═══════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-3 gap-4">
         <div className={`lg:col-span-2 surface-card ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
@@ -332,7 +316,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-5">
             {/* Connected state: Agent cards */}
             {isAnyConnected && (
               <div className="grid md:grid-cols-3 gap-4">
@@ -381,102 +365,111 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Installation Guide */}
-            {isAnyConnected ? (
-              <button
-                onClick={() => setGuideExpanded(!guideExpanded)}
-                className="flex items-center gap-2 w-full py-2.5 px-4 rounded-2xl transition-colors duration-200 ease-in-out text-sm bg-accent border border-border hover:bg-slate-200 dark:hover:bg-slate-800"
-              >
-                <BookOpen className="w-4 h-4 text-muted-foreground" />
-                <span className="font-medium text-muted-foreground">Skill Installation Guide</span>
-                <span className="text-xs ml-1 text-muted-foreground/60">— Set up more AI agents</span>
-                <div className="ml-auto">
-                  {guideExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                </div>
-              </button>
-            ) : (
-              <div className="rounded-2xl p-6 bg-primary/5 dark:bg-primary/10 border border-primary/20">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary">
-                    <Sparkles className="w-4 h-4 text-primary-foreground" />
+            {/* Skill Installation Guide — hierarchical structure */}
+            <div className="space-y-3">
+              {/* Section header / toggle */}
+              {isAnyConnected ? (
+                <button
+                  onClick={() => setGuideExpanded(!guideExpanded)}
+                  className="flex items-center gap-2 w-full py-2.5 px-4 rounded-2xl transition-colors duration-200 ease-in-out text-sm bg-accent border border-border hover:bg-slate-200 dark:hover:bg-slate-800"
+                >
+                  <BookOpen className="w-4 h-4 text-muted-foreground" />
+                  <span className="font-medium text-muted-foreground">Skill Installation Guide</span>
+                  <span className="text-xs ml-1 text-muted-foreground/60">— Set up more AI agents</span>
+                  <div className="ml-auto">
+                    {guideExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
-                  <div>
-                    <div className="text-sm font-semibold text-foreground">Get Started — Connect Your First AI Agent</div>
-                    <div className="text-xs text-muted-foreground">Install the Otter skill to start mining factors automatically</div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Guide content */}
-            {(guideExpanded || !isAnyConnected) && (
-              <div className="space-y-4">
-                <div className="flex gap-1 p-1 rounded-2xl bg-accent border border-border">
-                  {installSteps.map((guide) => (
-                    <button
-                      key={guide.id}
-                      onClick={() => setActiveGuide(guide.id)}
-                      className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-medium transition-all duration-200 ease-in-out border ${
-                        activeGuide === guide.id
-                          ? "bg-primary/10 text-primary border-primary/20"
-                          : "text-muted-foreground border-transparent hover:text-foreground"
-                      }`}
-                    >
-                      {guide.title}
-                    </button>
-                  ))}
-                </div>
-
-                {installSteps
-                  .filter((g) => g.id === activeGuide)
-                  .map((guide) => (
-                    <div key={guide.id} className="space-y-2">
-                      <div className="rounded-2xl overflow-hidden bg-background border border-border">
-                        <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-accent">
-                          <Terminal className="w-3.5 h-3.5 text-primary" />
-                          <span className="text-xs font-mono text-muted-foreground">terminal</span>
-                        </div>
-                        <div className="p-4 space-y-1">
-                          {guide.steps.map((step, idx) => (
-                            <div key={idx} className="flex items-start gap-2 group">
-                              <code className="text-xs font-mono flex-1">
-                                {step.startsWith("#") ? (
-                                  <span className="text-muted-foreground">{step}</span>
-                                ) : (
-                                  <>
-                                    <span className="text-primary">$ </span>
-                                    <span className="text-foreground">{step}</span>
-                                  </>
-                                )}
-                              </code>
-                              {!step.startsWith("#") && (
-                                <div className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                                  <CopyButton text={step} />
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs px-1 text-muted-foreground">
-                        <ExternalLink className="w-3 h-3" />
-                        <span>Full documentation at</span>
-                        <span className="font-mono text-primary cursor-pointer hover:underline">docs.alphaforge.io/skills/{guide.id}</span>
-                      </div>
+                </button>
+              ) : (
+                <div className="rounded-2xl p-5 bg-primary/5 dark:bg-primary/10 border border-primary/20">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary">
+                      <Sparkles className="w-4 h-4 text-primary-foreground" />
                     </div>
-                  ))}
-
-                <div className="rounded-2xl p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20">
-                  <div className="text-xs font-medium mb-1.5 text-primary">Quick Start</div>
-                  <ol className="text-xs space-y-1 list-decimal list-inside text-muted-foreground">
-                    <li>Install the Otter skill in your preferred AI coding agent</li>
-                    <li>Configure your API key in the account settings page</li>
-                    <li>Start a conversation: <code className="font-mono px-1 rounded-lg text-primary bg-accent">"Mine alpha factors for BTC/USDT on Binance"</code></li>
-                    <li>The agent will generate factors, backtest, and submit results automatically</li>
-                  </ol>
+                    <div>
+                      <div className="text-sm font-semibold text-foreground">Skill Installation Guide</div>
+                      <div className="text-xs text-muted-foreground">Install the Otter skill to start mining factors automatically</div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Guide content — Agent tabs → Terminal → Quickstart (descending hierarchy) */}
+              {(guideExpanded || !isAnyConnected) && (
+                <div className="space-y-3 pl-4 border-l-2 border-primary/20">
+                  {/* Agent selector tabs (subordinate to Skill Installation Guide) */}
+                  <div>
+                    <div className="label-upper mb-2 text-muted-foreground">Select Agent</div>
+                    <div className="flex gap-1 p-1 rounded-2xl bg-accent border border-border">
+                      {installSteps.map((guide) => (
+                        <button
+                          key={guide.id}
+                          onClick={() => setActiveGuide(guide.id)}
+                          className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-medium transition-all duration-200 ease-in-out border ${
+                            activeGuide === guide.id
+                              ? "bg-primary/10 text-primary border-primary/20"
+                              : "text-muted-foreground border-transparent hover:text-foreground"
+                          }`}
+                        >
+                          {guide.title}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Terminal block (subordinate to Agent, highest info priority) */}
+                  {installSteps
+                    .filter((g) => g.id === activeGuide)
+                    .map((guide) => (
+                      <div key={guide.id} className="space-y-3">
+                        <div className="rounded-2xl overflow-hidden bg-background border border-border">
+                          {/* Terminal title bar with copy button on the right */}
+                          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-accent">
+                            <div className="flex items-center gap-2">
+                              <Terminal className="w-3.5 h-3.5 text-primary" />
+                              <span className="text-xs font-mono text-muted-foreground">terminal</span>
+                            </div>
+                            <TerminalCopyButton steps={guide.steps} />
+                          </div>
+                          <div className="p-4 space-y-1">
+                            {guide.steps.map((step, idx) => (
+                              <div key={idx} className="flex items-start gap-2">
+                                <code className="text-xs font-mono flex-1">
+                                  {step.startsWith("#") ? (
+                                    <span className="text-muted-foreground">{step}</span>
+                                  ) : (
+                                    <>
+                                      <span className="text-primary">$ </span>
+                                      <span className="text-foreground">{step}</span>
+                                    </>
+                                  )}
+                                </code>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Quickstart — lowest info priority, subdued style */}
+                        <div className="rounded-xl px-4 py-3 bg-accent/50 border border-border/50">
+                          <div className="text-[10px] font-mono tracking-[0.15em] uppercase text-muted-foreground/60 mb-1.5">Quickstart</div>
+                          <ol className="text-[11px] space-y-0.5 list-decimal list-inside text-muted-foreground/80">
+                            <li>Install the Otter skill in your preferred AI coding agent</li>
+                            <li>Configure your API key in the account settings page</li>
+                            <li>Start a conversation: <code className="font-mono px-1 rounded text-primary/70 bg-accent text-[10px]">"Mine alpha factors for BTC/USDT"</code></li>
+                            <li>The agent will generate, backtest, and submit results automatically</li>
+                          </ol>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-[11px] px-1 text-muted-foreground/60">
+                          <ExternalLink className="w-3 h-3" />
+                          <span>Full documentation at</span>
+                          <span className="font-mono text-primary/60 cursor-pointer hover:underline hover:text-primary">docs.otter.io/skills/{guide.id}</span>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
