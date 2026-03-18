@@ -112,6 +112,7 @@ export default function MyAlphas() {
   const [filterReturnsMin, setFilterReturnsMin] = useState("");
   const [filterTurnoverMin, setFilterTurnoverMin] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
+  const [cardFilter, setCardFilter] = useState<"all" | "passed" | "in_progress" | "failed">("all");
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
@@ -154,6 +155,9 @@ export default function MyAlphas() {
       if (filterName && !r.name.toLowerCase().includes(filterName.toLowerCase()) && !r.id.toLowerCase().includes(filterName.toLowerCase())) return false;
       if (filterMarket !== "all" && r.market !== filterMarket) return false;
       if (filterStatus !== "all" && r.submissionStatus !== filterStatus) return false;
+      if (cardFilter === "passed" && r.submissionStatus !== "passed") return false;
+      if (cardFilter === "in_progress" && !["queued", "backtesting", "is_testing", "os_testing"].includes(r.submissionStatus)) return false;
+      if (cardFilter === "failed" && r.submissionStatus !== "failed" && r.submissionStatus !== "rejected") return false;
       if (filterType !== "all" && r.status !== filterType) return false;
       if (filterSharpeMin && r.osSharpe < parseFloat(filterSharpeMin)) return false;
       if (filterReturnsMin) {
@@ -166,7 +170,7 @@ export default function MyAlphas() {
       }
       return true;
     });
-  }, [alphaRows, filterName, filterMarket, filterStatus, filterType, filterSharpeMin, filterReturnsMin, filterTurnoverMin]);
+  }, [alphaRows, filterName, filterMarket, filterStatus, filterType, filterSharpeMin, filterReturnsMin, filterTurnoverMin, cardFilter]);
 
   const sorted = useMemo(() => {
     if (!sortDir || !sortKey) return filtered;
@@ -381,36 +385,56 @@ export default function MyAlphas() {
         </div>
       </div>
 
-      {/* Pipeline Stats */}
+      {/* Pipeline Stats — clickable filter cards */}
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
-        <div className="fade-item surface-card p-6">
+        <button
+          onClick={() => { setCardFilter(cardFilter === "all" ? "all" : "all"); setCardFilter("all"); setPage(1); }}
+          className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
+            cardFilter === "all" ? "ring-2 ring-primary border-primary/30" : "hover:border-slate-300 dark:hover:border-slate-600"
+          }`}
+        >
           <div className="flex items-center gap-2 label-upper mb-2">
             <BarChart3 className="w-3.5 h-3.5" /> Total
           </div>
           <div className="stat-value text-2xl font-bold text-foreground truncate">{submissionStats.total}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate">submissions</div>
-        </div>
-        <div className="fade-item surface-card p-6">
+        </button>
+        <button
+          onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
+          className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
+            cardFilter === "passed" ? "ring-2 ring-success border-success/30" : "hover:border-slate-300 dark:hover:border-slate-600"
+          }`}
+        >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-success">
             <CheckCircle className="w-3.5 h-3.5" /> Passed
           </div>
           <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate">pass rate: {submissionStats.passRate}</div>
-        </div>
-        <div className="fade-item surface-card p-6">
+        </button>
+        <button
+          onClick={() => { setCardFilter(cardFilter === "in_progress" ? "all" : "in_progress"); setPage(1); }}
+          className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
+            cardFilter === "in_progress" ? "ring-2 ring-secondary border-secondary/30" : "hover:border-slate-300 dark:hover:border-slate-600"
+          }`}
+        >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-secondary">
             <Loader2 className="w-3.5 h-3.5" /> In Progress
           </div>
           <div className="stat-value text-2xl font-bold text-secondary truncate">{submissionStats.inProgress}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate">avg time: {submissionStats.avgProcessingTime}</div>
-        </div>
-        <div className="fade-item surface-card p-6">
+        </button>
+        <button
+          onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
+          className={`fade-item surface-card p-6 text-left transition-all duration-200 ease-in-out cursor-pointer ${
+            cardFilter === "failed" ? "ring-2 ring-destructive border-destructive/30" : "hover:border-slate-300 dark:hover:border-slate-600"
+          }`}
+        >
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-destructive">
             <XCircle className="w-3.5 h-3.5" /> Failed
           </div>
           <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + 1}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate">{submissionStats.rejected} rejected</div>
-        </div>
+        </button>
       </div>
 
       {/* ═══════════════════════════════════════════
