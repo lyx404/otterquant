@@ -117,11 +117,11 @@ const SilverTrophy = () => (
     <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="silver-body" x1="8" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#F1F5F9" />
-          <stop offset="25%" stopColor="#CBD5E1" />
-          <stop offset="50%" stopColor="#94A3B8" />
-          <stop offset="75%" stopColor="#64748B" />
-          <stop offset="100%" stopColor="#475569" />
+          <stop offset="0%" stopColor="#E2E8F0" />
+          <stop offset="25%" stopColor="#94A3B8" />
+          <stop offset="50%" stopColor="#64748B" />
+          <stop offset="75%" stopColor="#475569" />
+          <stop offset="100%" stopColor="#334155" />
         </linearGradient>
         <linearGradient id="silver-shine" x1="12" y1="4" x2="20" y2="18" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.6" />
@@ -181,7 +181,7 @@ const BronzeTrophy = () => (
 /* ── Rank-based text color classes ── */
 const rankTextColor = (rank: number): string => {
   if (rank === 1) return "text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500";
-  if (rank === 2) return "text-transparent bg-clip-text bg-gradient-to-r from-slate-300 via-slate-200 to-slate-400";
+  if (rank === 2) return "text-transparent bg-clip-text bg-gradient-to-r from-slate-500 via-slate-400 to-slate-600 dark:from-slate-300 dark:via-slate-200 dark:to-slate-400";
   if (rank === 3) return "text-transparent bg-clip-text bg-gradient-to-r from-amber-600 via-amber-500 to-amber-700";
   return "text-foreground";
 };
@@ -421,7 +421,7 @@ export default function Leaderboard() {
               </div>
               <div className="text-center">
                 <div className="label-upper mb-0.5">Reward</div>
-                <div className={`text-sm font-bold font-mono ${rewardStyle}`}>540</div>
+                <div className={`text-sm font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>540</div>
               </div>
               <div className="text-center">
                 <div className="label-upper mb-0.5">Best Factor</div>
@@ -517,7 +517,7 @@ export default function Leaderboard() {
                       <TableCell className="text-right font-mono text-sm text-foreground">{entry.osFitness.toFixed(2)}</TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">{entry.osReturns}</TableCell>
                       <TableCell className="text-right">
-                        <span className="font-mono text-sm font-bold text-success">{entry.compositeScore.toFixed(1)}</span>
+                        <span className="font-mono text-sm font-bold text-foreground">{entry.compositeScore.toFixed(1)}</span>
                       </TableCell>
                       <TableCell className="text-right pr-4">
                         <span className={rewardStyle}>
