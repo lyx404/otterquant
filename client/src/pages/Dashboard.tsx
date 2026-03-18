@@ -1,7 +1,7 @@
 /*
  * Dashboard — Indigo/Sky + Slate Design System
- * Epoch Banner: aligned with Leaderboard 4-card style
- * Skill Guide: hierarchical layout with single copy button per terminal
+ * Epoch Banner: single banner entry with inline metrics
+ * Skill Guide: agent tabs + terminal fused into one block
  * Pure Tailwind classes — zero inline styles
  */
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,6 @@ import {
   ChevronUp,
   ExternalLink,
   Cpu,
-  Flame,
-  Star,
   Sparkles,
   Clock,
 } from "lucide-react";
@@ -184,60 +182,72 @@ export default function Dashboard() {
     );
   }, []);
 
-  /* ── Gold gradient reward style (same as Leaderboard) ── */
   const goldGradient = "text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500";
 
   return (
     <div className="space-y-8">
       {/* ═══════════════════════════════════════════
-          1. CURRENT EPOCH BANNER — 4-card grid matching Leaderboard
+          1. CURRENT EPOCH — Single Banner Entry
           ═══════════════════════════════════════════ */}
-      <div ref={bannerRef} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="surface-card p-6 border-primary/20 dark:border-primary/30">
-          <div className="label-upper mb-2 flex items-center gap-1.5">
-            <Trophy className="w-3.5 h-3.5" />
-            {currentEpoch.id}
+      <div
+        ref={bannerRef}
+        className="surface-card overflow-hidden border-primary/20 dark:border-primary/30"
+      >
+        <div className="flex items-center justify-between px-6 py-5 gap-6 flex-wrap">
+          {/* Left: Epoch identity */}
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
+              <Trophy className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base font-semibold text-foreground">{currentEpoch.id}</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-primary/10 text-primary border border-primary/20">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                  </span>
+                  LIVE
+                </span>
+              </div>
+              <span className="text-xs text-muted-foreground">{currentEpoch.startDate} — {currentEpoch.endDate}</span>
+            </div>
           </div>
-          <div className="stat-value text-xl font-bold text-primary flex items-center gap-2">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-            </span>
-            LIVE
+
+          {/* Center: Key metrics inline */}
+          <div className="flex items-center gap-6 flex-wrap">
+            <div className="text-center">
+              <div className="label-upper mb-0.5">Prize Pool</div>
+              <div className={`stat-value text-base font-bold ${goldGradient}`}>
+                {stripUSDT(currentEpoch.totalPool)} <span className="text-xs font-medium">USDT</span>
+              </div>
+            </div>
+            <div className="w-px h-8 bg-border" />
+            <div className="text-center">
+              <div className="label-upper mb-0.5 flex items-center justify-center gap-1">
+                <Clock className="w-3 h-3" />
+                Time Remaining
+              </div>
+              <div className="stat-value text-base font-bold font-mono tabular-nums text-foreground">
+                {countdown.display}
+              </div>
+            </div>
+            <div className="w-px h-8 bg-border" />
+            <div className="text-center">
+              <div className="label-upper mb-0.5">Qualified</div>
+              <div className="stat-value text-base font-bold text-foreground">
+                {currentEpoch.qualifiedFactors}<span className="text-xs font-normal text-muted-foreground"> / {currentEpoch.totalSubmissions}</span>
+              </div>
+            </div>
           </div>
-          <div className="text-xs mt-1 text-muted-foreground">
-            {currentEpoch.startDate} — {currentEpoch.endDate}
-          </div>
-        </div>
-        <div className="surface-card p-6">
-          <div className="label-upper mb-2 flex items-center gap-1.5">
-            <Award className="w-3.5 h-3.5" /> Prize Pool
-          </div>
-          <div className={`stat-value text-xl font-bold ${goldGradient}`}>
-            {stripUSDT(currentEpoch.totalPool)} <span className="text-sm font-medium">USDT</span>
-          </div>
-          <div className="text-xs mt-1 text-muted-foreground">
-            distributed proportionally
-          </div>
-        </div>
-        <div className="surface-card p-6">
-          <div className="label-upper mb-2 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" />
-            Time Remaining
-          </div>
-          <div className="stat-value text-xl font-bold font-mono tabular-nums text-foreground">
-            {countdown.display}
-          </div>
-          <div className="text-xs mt-1 text-muted-foreground">
-            until epoch ends
-          </div>
-        </div>
-        <div className="surface-card p-6">
-          <div className="label-upper mb-2 flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" /> Submissions
-          </div>
-          <div className="stat-value text-xl font-bold text-foreground">{currentEpoch.totalSubmissions}</div>
-          <div className="text-xs mt-1 text-muted-foreground">{currentEpoch.qualifiedFactors} qualified</div>
+
+          {/* Right: CTA */}
+          <Link href="/leaderboard">
+            <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce">
+              Leaderboard
+              <ArrowUpRight className="w-3.5 h-3.5" />
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -283,7 +293,7 @@ export default function Dashboard() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          4. SKILL HUB — Hierarchical layout
+          4. SKILL HUB — Agent + Terminal fused
           ═══════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-3 gap-4">
         <div className={`lg:col-span-2 surface-card ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
@@ -365,7 +375,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Skill Installation Guide — hierarchical structure */}
+            {/* Skill Installation Guide — fused agent + terminal */}
             <div className="space-y-3">
               {/* Section header / toggle */}
               {isAnyConnected ? (
@@ -394,79 +404,68 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Guide content — Agent tabs → Terminal → Quickstart (descending hierarchy) */}
+              {/* Fused block: Agent tabs as terminal header → code body → quickstart footer */}
               {(guideExpanded || !isAnyConnected) && (
-                <div className="space-y-3 pl-4 border-l-2 border-primary/20">
-                  {/* Agent selector tabs (subordinate to Skill Installation Guide) */}
-                  <div>
-                    <div className="label-upper mb-2 text-muted-foreground">Select Agent</div>
-                    <div className="flex gap-1 p-1 rounded-2xl bg-accent border border-border">
+                <div className="rounded-2xl overflow-hidden bg-background border border-border">
+                  {/* Agent tabs + copy button in terminal header bar */}
+                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-accent">
+                    <div className="flex items-center gap-1">
+                      <Terminal className="w-3.5 h-3.5 text-primary mr-1" />
                       {installSteps.map((guide) => (
                         <button
                           key={guide.id}
                           onClick={() => setActiveGuide(guide.id)}
-                          className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-medium transition-all duration-200 ease-in-out border ${
+                          className={`py-1 px-2.5 rounded-lg text-[11px] font-medium transition-all duration-200 ease-in-out ${
                             activeGuide === guide.id
-                              ? "bg-primary/10 text-primary border-primary/20"
-                              : "text-muted-foreground border-transparent hover:text-foreground"
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:text-foreground"
                           }`}
                         >
                           {guide.title}
                         </button>
                       ))}
                     </div>
+                    <TerminalCopyButton steps={installSteps.find(g => g.id === activeGuide)?.steps ?? []} />
                   </div>
 
-                  {/* Terminal block (subordinate to Agent, highest info priority) */}
+                  {/* Terminal code body */}
                   {installSteps
                     .filter((g) => g.id === activeGuide)
                     .map((guide) => (
-                      <div key={guide.id} className="space-y-3">
-                        <div className="rounded-2xl overflow-hidden bg-background border border-border">
-                          {/* Terminal title bar with copy button on the right */}
-                          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-accent">
-                            <div className="flex items-center gap-2">
-                              <Terminal className="w-3.5 h-3.5 text-primary" />
-                              <span className="text-xs font-mono text-muted-foreground">terminal</span>
-                            </div>
-                            <TerminalCopyButton steps={guide.steps} />
+                      <div key={guide.id} className="p-4 space-y-1">
+                        {guide.steps.map((step, idx) => (
+                          <div key={idx} className="flex items-start gap-2">
+                            <code className="text-xs font-mono flex-1">
+                              {step.startsWith("#") ? (
+                                <span className="text-muted-foreground">{step}</span>
+                              ) : (
+                                <>
+                                  <span className="text-primary">$ </span>
+                                  <span className="text-foreground">{step}</span>
+                                </>
+                              )}
+                            </code>
                           </div>
-                          <div className="p-4 space-y-1">
-                            {guide.steps.map((step, idx) => (
-                              <div key={idx} className="flex items-start gap-2">
-                                <code className="text-xs font-mono flex-1">
-                                  {step.startsWith("#") ? (
-                                    <span className="text-muted-foreground">{step}</span>
-                                  ) : (
-                                    <>
-                                      <span className="text-primary">$ </span>
-                                      <span className="text-foreground">{step}</span>
-                                    </>
-                                  )}
-                                </code>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Quickstart — lowest info priority, subdued style */}
-                        <div className="rounded-xl px-4 py-3 bg-accent/50 border border-border/50">
-                          <div className="text-[10px] font-mono tracking-[0.15em] uppercase text-muted-foreground/60 mb-1.5">Quickstart</div>
-                          <ol className="text-[11px] space-y-0.5 list-decimal list-inside text-muted-foreground/80">
-                            <li>Install the Otter skill in your preferred AI coding agent</li>
-                            <li>Configure your API key in the account settings page</li>
-                            <li>Start a conversation: <code className="font-mono px-1 rounded text-primary/70 bg-accent text-[10px]">"Mine alpha factors for BTC/USDT"</code></li>
-                            <li>The agent will generate, backtest, and submit results automatically</li>
-                          </ol>
-                        </div>
-
-                        <div className="flex items-center gap-2 text-[11px] px-1 text-muted-foreground/60">
-                          <ExternalLink className="w-3 h-3" />
-                          <span>Full documentation at</span>
-                          <span className="font-mono text-primary/60 cursor-pointer hover:underline hover:text-primary">docs.otter.io/skills/{guide.id}</span>
-                        </div>
+                        ))}
                       </div>
                     ))}
+
+                  {/* Quickstart as footer — lowest priority */}
+                  <div className="px-4 py-3 border-t border-border/50 bg-accent/30">
+                    <ol className="text-[11px] space-y-0.5 list-decimal list-inside text-muted-foreground/70">
+                      <li>Install the Otter skill in your preferred AI coding agent</li>
+                      <li>Configure your API key in <span className="text-primary/70 font-medium">Account → API Keys</span></li>
+                      <li>Start a conversation: <code className="font-mono px-1 rounded text-primary/70 bg-accent text-[10px]">"Mine alpha factors for BTC/USDT"</code></li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              {(guideExpanded || !isAnyConnected) && (
+                <div className="flex items-center gap-2 text-[11px] px-1 text-muted-foreground/60">
+                  <ExternalLink className="w-3 h-3" />
+                  <span>Full documentation at</span>
+                  <span className="font-mono text-primary/60 cursor-pointer hover:underline hover:text-primary">docs.otter.io/skills/{activeGuide}</span>
                 </div>
               )}
             </div>
