@@ -135,7 +135,7 @@ export default function LaunchGuide() {
   /* ── Can proceed check ── */
   const canProceed = () => {
     switch (currentStep) {
-      case 0: return teamName.trim().length >= 2 && experience !== "";
+      case 0: return experience !== "";
       case 1: return true;
       case 2: return verifyStatus === "success" || verifyStatus === "partial";
       case 3: return true;
