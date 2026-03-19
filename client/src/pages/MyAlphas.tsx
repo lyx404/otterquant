@@ -71,7 +71,8 @@ interface ColumnDef {
 
 const dataColumns: ColumnDef[] = [
   { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
-  { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "110px" },
+  { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "epochStatus", label: "Epoch Status", defaultVisible: true, sortable: true, width: "120px" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
@@ -79,7 +80,6 @@ const dataColumns: ColumnDef[] = [
   { key: "returns", label: "Returns", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "turnover", label: "Turnover", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "drawdown", label: "Drawdown", defaultVisible: true, sortable: true, width: "90px", align: "right" },
-  { key: "epochStatus", label: "Epoch Status", defaultVisible: false, sortable: true, width: "120px" },
   { key: "id", label: "ID", defaultVisible: false, sortable: true, width: "80px" },
   { key: "testsPassed", label: "Tests", defaultVisible: false, sortable: true, width: "72px", align: "right" },
   { key: "submittedAt", label: "Date Submitted", defaultVisible: false, sortable: true, width: "120px" },
@@ -87,15 +87,11 @@ const dataColumns: ColumnDef[] = [
 
 type SortDir = "asc" | "desc" | null;
 
-/* Status badge config — removed "in progress" and "unsubmitted" */
+/* Status badge config — only passed/failed shown as badges */
 const statusConfig: Record<string, { label: string; colorClass: string; bgClass: string; borderClass: string }> = {
-  queued: { label: "QUEUED", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
-  backtesting: { label: "BACKTESTING", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
-  is_testing: { label: "IS TESTING", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
-  os_testing: { label: "OS TESTING", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
   passed: { label: "PASSED", colorClass: "text-success", bgClass: "bg-success/10", borderClass: "border-success/20" },
   failed: { label: "FAILED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
-  rejected: { label: "REJECTED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
+  rejected: { label: "FAILED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
 };
 
 /* Build epoch status lookup from leaderboard data */
@@ -266,14 +262,18 @@ export default function MyAlphas() {
   const visibleCols = dataColumns.filter((c) => visibleColumns.has(c.key));
   const hasActiveFilters = filterName || filterStatus !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin;
 
-  /* ── Status badge renderer ── */
+  /* ── Status badge renderer — only passed/failed get badges, others show plain text ── */
   const renderStatusBadge = (status: AlphaRow["submissionStatus"]) => {
-    const s = statusConfig[status] || statusConfig.queued;
-    return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${s.bgClass} ${s.colorClass} ${s.borderClass}`}>
-        {s.label}
-      </span>
-    );
+    const s = statusConfig[status];
+    if (s) {
+      return (
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${s.bgClass} ${s.colorClass} ${s.borderClass}`}>
+          {s.label}
+        </span>
+      );
+    }
+    // Non-badge statuses: show as plain muted text
+    return <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{status.replace(/_/g, " ").toUpperCase()}</span>;
   };
 
   /* ── Cell renderer ── */
@@ -286,6 +286,9 @@ export default function MyAlphas() {
       case "name":
         return (
           <div className="flex items-center gap-2 min-w-0 max-w-[200px]">
+            <button onClick={(e) => { e.stopPropagation(); toggleStar(row.id); }} className="shrink-0 transition-transform duration-200 hover:scale-125">
+              <Star className={`w-3.5 h-3.5 transition-colors duration-200 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`} />
+            </button>
             <span className="truncate text-sm text-foreground">{row.name}</span>
           </div>
         );
@@ -370,7 +373,6 @@ export default function MyAlphas() {
 
   const ColGroup = () => (
     <colgroup>
-      <col style={{ width: "36px" }} />
       {visibleCols.map((col) => (
         <col key={col.key} style={{ width: col.width }} />
       ))}
@@ -390,7 +392,7 @@ export default function MyAlphas() {
 
       </div>
 
-      {/* Pipeline Stats — Total / Passed / Starred / Failed */}
+      {/* Pipeline Stats — Total / Starred / Passed / Failed */}
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
           onClick={() => { setCardFilter("all"); setPage(1); }}
@@ -403,18 +405,6 @@ export default function MyAlphas() {
           <div className="text-sm mt-1 text-muted-foreground truncate">submissions</div>
         </button>
         <button
-          onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
-          className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
-            cardFilter === "passed" ? "border-success/40" : "hover:border-slate-300 dark:hover:border-slate-600"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-success">
-            <CheckCircle className="w-3.5 h-3.5" /> Passed
-          </div>
-          <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate">pass rate: {submissionStats.passRate}</div>
-        </button>
-        <button
           onClick={() => { setCardFilter(cardFilter === "starred" ? "all" : "starred"); setPage(1); }}
           className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
             cardFilter === "starred" ? "border-amber-400/40" : "hover:border-slate-300 dark:hover:border-slate-600"
@@ -425,6 +415,18 @@ export default function MyAlphas() {
           </div>
           <div className="stat-value text-2xl font-bold text-amber-500 dark:text-amber-400 truncate">{starred.size}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate">favorites</div>
+        </button>
+        <button
+          onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
+          className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
+            cardFilter === "passed" ? "border-success/40" : "hover:border-slate-300 dark:hover:border-slate-600"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-success">
+            <CheckCircle className="w-3.5 h-3.5" /> Passed
+          </div>
+          <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate">pass rate: {submissionStats.passRate}</div>
         </button>
         <button
           onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
@@ -562,9 +564,6 @@ export default function MyAlphas() {
             <ColGroup />
             <thead>
               <tr className="bg-accent dark:bg-slate-900/50">
-                <th className="px-2 py-2.5 text-center">
-                  <Star className="w-3 h-3 text-muted-foreground mx-auto" />
-                </th>
                 {visibleCols.map((col) => (
                   <th
                     key={col.key}
@@ -589,11 +588,6 @@ export default function MyAlphas() {
                   key={row.id}
                   className={`transition-all duration-200 ease-in-out group border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
                 >
-                  <td className="px-2 py-2.5 text-center">
-                    <button onClick={() => toggleStar(row.id)} className="transition-transform duration-200 hover:scale-125">
-                      <Star className={`w-3.5 h-3.5 transition-colors duration-200 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`} />
-                    </button>
-                  </td>
                   {visibleCols.map((col) => (
                     <td key={col.key} className={`px-3 py-2.5 ${col.align === "right" ? "text-right" : ""}`}>
                       {renderCell(row, col.key)}
@@ -611,7 +605,7 @@ export default function MyAlphas() {
               ))}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={visibleCols.length + 2} className="text-center py-12 text-sm text-muted-foreground">
+                  <td colSpan={visibleCols.length + 1} className="text-center py-12 text-sm text-muted-foreground">
                     No alphas match the current filters.
                   </td>
                 </tr>
