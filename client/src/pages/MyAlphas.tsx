@@ -262,18 +262,16 @@ export default function MyAlphas() {
   const visibleCols = dataColumns.filter((c) => visibleColumns.has(c.key));
   const hasActiveFilters = filterName || filterStatus !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin;
 
-  /* ── Status badge renderer — only passed/failed get badges, others show plain text ── */
+  /* ── Status badge renderer — only passed/failed shown ── */
   const renderStatusBadge = (status: AlphaRow["submissionStatus"]) => {
-    const s = statusConfig[status];
-    if (s) {
-      return (
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${s.bgClass} ${s.colorClass} ${s.borderClass}`}>
-          {s.label}
-        </span>
-      );
-    }
-    // Non-badge statuses: show as plain muted text
-    return <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">{status.replace(/_/g, " ").toUpperCase()}</span>;
+    // Map all statuses to passed or failed
+    const mappedStatus = (status === "passed") ? "passed" : "failed";
+    const s = statusConfig[mappedStatus];
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${s.bgClass} ${s.colorClass} ${s.borderClass}`}>
+        {s.label}
+      </span>
+    );
   };
 
   /* ── Cell renderer ── */
@@ -289,16 +287,16 @@ export default function MyAlphas() {
             <button onClick={(e) => { e.stopPropagation(); toggleStar(row.id); }} className="shrink-0 transition-transform duration-200 hover:scale-125">
               <Star className={`w-3.5 h-3.5 transition-colors duration-200 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`} />
             </button>
-            <span className="truncate text-sm text-foreground">{row.name}</span>
+            <span className="truncate text-xs text-foreground">{row.name}</span>
           </div>
         );
       case "createdAt":
         return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{row.createdAt}</span>;
       case "sharpe":
-        return <span className="font-mono text-sm tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
+        return <span className="font-mono text-xs tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
       case "osSharpe":
         return (
-          <span className={`font-mono text-sm tabular-nums ${
+          <span className={`font-mono text-xs tabular-nums ${
             row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
           }`}>
             {row.osSharpe.toFixed(2)}
@@ -306,18 +304,18 @@ export default function MyAlphas() {
         );
       case "fitness":
         return (
-          <span className={`font-mono text-sm tabular-nums ${
+          <span className={`font-mono text-xs tabular-nums ${
             row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"
           }`}>
             {row.fitness.toFixed(2)}
           </span>
         );
       case "returns":
-        return <span className="font-mono text-sm tabular-nums text-foreground whitespace-nowrap">{row.returns}</span>;
+        return <span className="font-mono text-xs tabular-nums text-foreground whitespace-nowrap">{row.returns}</span>;
       case "turnover":
-        return <span className="font-mono text-sm tabular-nums text-foreground whitespace-nowrap">{row.turnover}</span>;
+        return <span className="font-mono text-xs tabular-nums text-foreground whitespace-nowrap">{row.turnover}</span>;
       case "drawdown":
-        return <span className="font-mono text-sm tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
+        return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "epochStatus": {
         const es = row.epochStatus || "Not Entered";
         const isRanked = es.startsWith("Ranked") || es.startsWith("#");
@@ -567,7 +565,7 @@ export default function MyAlphas() {
                 {visibleCols.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.sortable ? "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50" : ""} ${col.align === "right" ? "text-right" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.key === "name" ? "pl-10" : ""} ${col.sortable ? "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50" : ""} ${col.align === "right" ? "text-right" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
                     onClick={() => col.sortable && handleSort(col.key)}
                   >
                     <span className={`flex items-center gap-1.5 label-upper whitespace-nowrap select-none ${col.align === "right" ? "justify-end" : ""}`}>
