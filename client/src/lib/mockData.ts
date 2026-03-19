@@ -409,14 +409,14 @@ export const dashboardStats = {
 
 // --- Recent Activity ---
 export const recentActivity = [
-  { id: 1, type: "factor_created", message: "New factor 'BTC Momentum RSI Cross' created", time: "2 min ago", icon: "plus" },
-  { id: 2, type: "test_passed", message: "Factor AF-004 passed all IS tests", time: "15 min ago", icon: "check" },
-  { id: 3, type: "reward", message: "Epoch EP-2026-031 rewards distributed: 320 USDT", time: "1 hour ago", icon: "trophy" },
-  { id: 4, type: "trade", message: "Strategy 'Cross-Exchange Arb Pro' executed 12 trades", time: "2 hours ago", icon: "activity" },
-  { id: 5, type: "factor_failed", message: "Factor AF-006 failed fitness test (0.22 < 1.0)", time: "3 hours ago", icon: "x" },
-  { id: 6, type: "subscription", message: "New subscriber joined 'BTC Alpha Composite'", time: "4 hours ago", icon: "user" },
-  { id: 7, type: "factor_created", message: "New factor 'MEV Sandwich Detect' submitted for testing", time: "5 hours ago", icon: "plus" },
-  { id: 8, type: "trade", message: "Strategy 'Stable Yield Optimizer' rebalanced positions", time: "6 hours ago", icon: "activity" },
+  { id: 1, type: "submit_success", message: "Factor 'BTC Momentum RSI Cross' submitted successfully", time: "2 min ago", icon: "check" },
+  { id: 2, type: "submit_success", message: "Factor 'ETH Volatility Breakout' submitted successfully", time: "15 min ago", icon: "check" },
+  { id: 3, type: "submit_failed", message: "Factor 'SOL Arb Signal' submission failed — expression syntax error", time: "1 hour ago", icon: "x" },
+  { id: 4, type: "submit_success", message: "Factor 'BNB Mean Reversion' submitted successfully", time: "2 hours ago", icon: "check" },
+  { id: 5, type: "submit_failed", message: "Factor 'DOGE Sentiment Alpha' submission failed — insufficient backtest data", time: "3 hours ago", icon: "x" },
+  { id: 6, type: "submit_success", message: "Factor 'ARB Funding Rate Spread' submitted successfully", time: "4 hours ago", icon: "check" },
+  { id: 7, type: "submit_success", message: "Factor 'MEV Sandwich Detect' submitted successfully", time: "5 hours ago", icon: "check" },
+  { id: 8, type: "submit_failed", message: "Factor 'XRP Whale Tracker' submission failed — correlation too high (0.92)", time: "6 hours ago", icon: "x" },
 ];
 
 // --- Correlation Data ---

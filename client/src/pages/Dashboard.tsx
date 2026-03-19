@@ -296,7 +296,7 @@ export default function Dashboard() {
       </Link>
 
       {/* ═══════════════════════════════════════════
-          4. SKILL HUB — Agent + Terminal fused
+          4. AGENT HUB — Agent + Terminal fused
           ═══════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-3 gap-6">
         <div className={`lg:col-span-2 surface-card cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40 ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
@@ -305,7 +305,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Cpu className={`w-4 h-4 ${isAnyConnected ? "text-success" : "text-primary"}`} />
-                <h3 className="text-foreground">Skill Hub</h3>
+                <h3 className="text-foreground">Agent Hub</h3>
               </div>
               <div className="flex items-center gap-2">
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] uppercase border ${
