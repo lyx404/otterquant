@@ -37,8 +37,8 @@ import { toast } from "sonner";
 const STEPS = [
   { id: "welcome", label: "Welcome", icon: Zap },
   { id: "install", label: "Install Skill", icon: Terminal },
-  { id: "verify", label: "Verify", icon: Cpu },
   { id: "first-run", label: "First Run", icon: Rocket },
+  { id: "verify", label: "Verify", icon: Cpu },
 ] as const;
 
 type StepId = (typeof STEPS)[number]["id"];
@@ -141,8 +141,8 @@ export default function LaunchGuide() {
     switch (currentStep) {
       case 0: return experience !== "";
       case 1: return true;
-      case 2: return verifyStatus === "success" || verifyStatus === "partial";
-      case 3: return true;
+      case 2: return true;
+      case 3: return verifyStatus === "success" || verifyStatus === "partial";
       default: return false;
     }
   };
@@ -424,8 +424,77 @@ npm install && npm start`}
               </div>
             )}
 
-            {/* ═══ STEP 2: Verify ═══ */}
+            {/* ═══ STEP 2: First Run — Prompt Use Cases ═══ */}
             {currentStep === 2 && (
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="mb-1 text-foreground">First Run</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Try these example prompts in your AI coding agent to test the Otter skill. Copy any prompt and paste it into your agent.
+                  </p>
+                </div>
+
+                {/* Prompt use case cards */}
+                <div className="space-y-4">
+                  {[
+                    {
+                      category: "Factor Creation",
+                      icon: FlaskConical,
+                      prompt: "Create a BTC momentum factor using RSI(14) and MACD crossover signals. Target market: BTC/USDT, lookback period: 30 days. Submit it to Otter for backtesting.",
+                      desc: "Tests the factor creation and submission pipeline",
+                    },
+                    {
+                      category: "Backtest Analysis",
+                      icon: BarChart3,
+                      prompt: "Analyze my latest backtest results for factor AF-001. Show me the Sharpe ratio, max drawdown, and return distribution. Suggest improvements if Sharpe < 1.5.",
+                      desc: "Tests the backtest retrieval and analysis capabilities",
+                    },
+                    {
+                      category: "Portfolio Optimization",
+                      icon: Trophy,
+                      prompt: "Review my current factor portfolio and suggest optimal weight allocation across my top 5 factors to maximize risk-adjusted returns while keeping correlation below 0.3.",
+                      desc: "Tests multi-factor portfolio optimization",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.category}
+                      className="p-5 rounded-2xl border border-border bg-accent hover:border-primary/30 transition-all duration-200 ease-in-out"
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <item.icon className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
+                      </div>
+                      <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 mb-3">
+                        <pre className="p-4 pr-12 text-xs font-mono leading-relaxed overflow-x-auto text-slate-800 dark:text-slate-100 whitespace-pre-wrap">
+                          {item.prompt}
+                        </pre>
+                        <button
+                          onClick={() => copyCode(item.prompt, item.category)}
+                          className={`absolute top-2.5 right-2.5 p-1.5 rounded-lg border transition-all duration-200 ease-in-out ${
+                            copiedCode === item.category
+                              ? "border-success/30 text-success bg-slate-200 dark:bg-slate-800"
+                              : "border-slate-300 dark:border-slate-700 text-slate-500 bg-slate-200 dark:bg-slate-800 hover:border-primary hover:text-primary"
+                          }`}
+                        >
+                          {copiedCode === item.category ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-start gap-2 p-3 rounded-2xl text-xs bg-primary/5 text-primary border border-primary/20">
+                  <Zap className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    Tip: You can modify these prompts or create your own. The skill supports natural language instructions for all Otter platform operations.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ STEP 3: Verify ═══ */}
+            {currentStep === 3 && (
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
                   <h2 className="mb-1 text-foreground">Verify Installation</h2>
@@ -541,87 +610,6 @@ npm install && npm start`}
                       </button>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* ═══ STEP 3: First Run ═══ */}
-            {currentStep === 3 && (
-              <div className="space-y-8 animate-in fade-in duration-300">
-                <div>
-                  <h2 className="mb-1 text-foreground">First Run</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Create your first Alpha factor and submit it for backtesting. Here's a quick walkthrough.
-                  </p>
-                </div>
-
-                {/* Quick start cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {[
-                    { icon: FlaskConical, title: "Create Factor", desc: "Define your trading signal using our expression builder or Python SDK", step: "01" },
-                    { icon: BarChart3, title: "Run Backtest", desc: "Submit to our cloud backtesting engine with 5+ years of historical data", step: "02" },
-                    { icon: Trophy, title: "Compete & Earn", desc: "Qualified factors enter the Epoch leaderboard for prize pool rewards", step: "03" },
-                  ].map((card) => (
-                    <div
-                      key={card.step}
-                      className="p-6 rounded-2xl border border-border bg-accent hover:border-primary/30 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all duration-200 ease-in-out"
-                    >
-                      <div className="flex items-center gap-2.5 mb-3">
-                        <span className="text-[10px] font-mono font-bold text-muted-foreground">{card.step}</span>
-                        <card.icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <h3 className="text-sm font-semibold mb-1.5 text-foreground">{card.title}</h3>
-                      <p className="text-xs leading-relaxed text-muted-foreground">{card.desc}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Quick factor form */}
-                <div className="p-6 rounded-2xl border border-border bg-accent space-y-5">
-                  <div className="flex items-center gap-2 mb-1">
-                    <FlaskConical className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-semibold text-foreground">
-                      Quick Start — Create Your First Factor
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Factor Name</label>
-                      <input
-                        type="text"
-                        value={factorName}
-                        onChange={(e) => setFactorName(e.target.value)}
-                        placeholder="e.g. BTC Momentum RSI"
-                        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all duration-200 ease-in-out bg-card border border-border text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Target Market</label>
-                      <select
-                        value={factorMarket}
-                        onChange={(e) => setFactorMarket(e.target.value)}
-                        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all duration-200 ease-in-out appearance-none bg-card border border-border text-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                      >
-                        <option value="">Select market</option>
-                        {MARKETS.map((m) => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">
-                      Description
-                      <span className="font-normal ml-1 text-muted-foreground/60">(optional)</span>
-                    </label>
-                    <textarea
-                      value={factorDescription}
-                      onChange={(e) => setFactorDescription(e.target.value)}
-                      placeholder="Briefly describe your factor's trading logic..."
-                      rows={3}
-                      className="w-full px-3 py-2.5 rounded-lg text-sm outline-none transition-all duration-200 ease-in-out resize-none bg-card border border-border text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                    />
-                  </div>
                 </div>
               </div>
             )}
