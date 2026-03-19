@@ -591,8 +591,6 @@ export const submissionStats = {
   passed: 5,
   failed: 2,
   rejected: 1,
-  inProgress: 4,
-  avgProcessingTime: "45 min",
+  starred: 2,
   passRate: "41.7%",
-  currentQueueSize: 3,
 };

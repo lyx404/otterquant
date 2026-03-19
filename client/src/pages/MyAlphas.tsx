@@ -41,19 +41,23 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
+  Trophy,
 } from "lucide-react";
 import {
   factors,
   submissions,
   submissionStats,
+  leaderboardByFactorByEpoch,
+  currentEpoch,
   type Factor,
 } from "@/lib/mockData";
 
 type AlphaRow = Factor & {
-  submissionStatus: "unsubmitted" | "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
+  submissionStatus: "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
   submittedAt?: string;
   osFitness?: number;
   compositeScore?: number;
+  epochStatus?: string; // e.g. "Ranked #1", "Qualified", "Not Entered", "Eliminated"
 };
 
 interface ColumnDef {
@@ -66,35 +70,54 @@ interface ColumnDef {
 }
 
 const dataColumns: ColumnDef[] = [
-  { key: "id", label: "ID", defaultVisible: true, sortable: true, width: "80px" },
-  { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "180px" },
-  { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "120px" },
-  { key: "market", label: "Market", defaultVisible: true, sortable: true, width: "72px" },
-  { key: "type", label: "Type", defaultVisible: true, sortable: true, width: "80px" },
+  { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
+  { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "110px" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
-  { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
+  { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "returns", label: "Returns", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "turnover", label: "Turnover", defaultVisible: true, sortable: true, width: "80px", align: "right" },
-  { key: "drawdown", label: "Drawdown", defaultVisible: false, sortable: true, width: "90px", align: "right" },
-  { key: "testsPassed", label: "Tests", defaultVisible: true, sortable: true, width: "72px", align: "right" },
+  { key: "drawdown", label: "Drawdown", defaultVisible: true, sortable: true, width: "90px", align: "right" },
+  { key: "epochStatus", label: "Epoch Status", defaultVisible: false, sortable: true, width: "120px" },
+  { key: "id", label: "ID", defaultVisible: false, sortable: true, width: "80px" },
+  { key: "testsPassed", label: "Tests", defaultVisible: false, sortable: true, width: "72px", align: "right" },
   { key: "submittedAt", label: "Date Submitted", defaultVisible: false, sortable: true, width: "120px" },
 ];
 
 type SortDir = "asc" | "desc" | null;
 
-/* Status badge config */
+/* Status badge config — removed "in progress" and "unsubmitted" */
 const statusConfig: Record<string, { label: string; colorClass: string; bgClass: string; borderClass: string }> = {
-  unsubmitted: { label: "UNSUBMITTED", colorClass: "text-amber-500 dark:text-amber-400", bgClass: "bg-amber-500/10", borderClass: "border-amber-500/25" },
-  queued: { label: "IN PROGRESS", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
-  backtesting: { label: "IN PROGRESS", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
-  is_testing: { label: "IN PROGRESS", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
-  os_testing: { label: "IN PROGRESS", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
+  queued: { label: "QUEUED", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
+  backtesting: { label: "BACKTESTING", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
+  is_testing: { label: "IS TESTING", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
+  os_testing: { label: "OS TESTING", colorClass: "text-secondary", bgClass: "bg-secondary/10", borderClass: "border-secondary/25" },
   passed: { label: "PASSED", colorClass: "text-success", bgClass: "bg-success/10", borderClass: "border-success/20" },
   failed: { label: "FAILED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
-  rejected: { label: "FAILED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
+  rejected: { label: "REJECTED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
 };
+
+/* Build epoch status lookup from leaderboard data */
+function getEpochStatus(factorId: string): string {
+  // Check current epoch
+  const currentEntries = leaderboardByFactorByEpoch[currentEpoch.id] || [];
+  const currentEntry = currentEntries.find(e => e.factorId === factorId);
+  if (currentEntry) {
+    return `Ranked #${currentEntry.rank}`;
+  }
+
+  // Check historical epochs
+  for (const [epochId, entries] of Object.entries(leaderboardByFactorByEpoch)) {
+    if (epochId === currentEpoch.id) continue;
+    const entry = entries.find(e => e.factorId === factorId);
+    if (entry) {
+      return `#${entry.rank} (${epochId.replace("EP-", "")})`;
+    }
+  }
+
+  return "Not Entered";
+}
 
 export default function MyAlphas() {
   const [sortKey, setSortKey] = useState<string>("createdAt");
@@ -105,14 +128,12 @@ export default function MyAlphas() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [filterName, setFilterName] = useState("");
-  const [filterMarket, setFilterMarket] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterType, setFilterType] = useState("all");
   const [filterSharpeMin, setFilterSharpeMin] = useState("");
   const [filterReturnsMin, setFilterReturnsMin] = useState("");
   const [filterTurnoverMin, setFilterTurnoverMin] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
-  const [cardFilter, setCardFilter] = useState<"all" | "passed" | "in_progress" | "failed">("all");
+  const [cardFilter, setCardFilter] = useState<"all" | "passed" | "starred" | "failed">("all");
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
@@ -129,7 +150,6 @@ export default function MyAlphas() {
   useEffect(() => {
     if (!statsRef.current) return;
     const items = statsRef.current.querySelectorAll(".fade-item");
-    /* Card entrance: fade-in + slide-up with bouncy easing */
     gsap.set(items, { y: 16, opacity: 0, scale: 0.97 });
     gsap.to(items, {
       y: 0, opacity: 1, scale: 1,
@@ -139,16 +159,18 @@ export default function MyAlphas() {
     });
   }, []);
 
-  /* ── Data ── */
+  /* ── Data — build rows, assign submission status, epoch status ── */
   const alphaRows: AlphaRow[] = useMemo(() => {
     return factors.map((f) => {
       const sub = submissions.find((s) => s.factorId === f.id);
+      const submissionStatus = sub ? sub.status as AlphaRow["submissionStatus"] : "queued";
       return {
         ...f,
-        submissionStatus: sub ? sub.status as AlphaRow["submissionStatus"] : "unsubmitted",
+        submissionStatus,
         submittedAt: sub?.submittedAt,
         osFitness: sub?.fitness,
         compositeScore: sub?.osSharpe ? sub.osSharpe * 40 + (sub.fitness || 0) * 30 : undefined,
+        epochStatus: getEpochStatus(f.id),
       };
     });
   }, []);
@@ -156,12 +178,10 @@ export default function MyAlphas() {
   const filtered = useMemo(() => {
     return alphaRows.filter((r) => {
       if (filterName && !r.name.toLowerCase().includes(filterName.toLowerCase()) && !r.id.toLowerCase().includes(filterName.toLowerCase())) return false;
-      if (filterMarket !== "all" && r.market !== filterMarket) return false;
       if (filterStatus !== "all" && r.submissionStatus !== filterStatus) return false;
       if (cardFilter === "passed" && r.submissionStatus !== "passed") return false;
-      if (cardFilter === "in_progress" && !["queued", "backtesting", "is_testing", "os_testing"].includes(r.submissionStatus)) return false;
+      if (cardFilter === "starred" && !starred.has(r.id)) return false;
       if (cardFilter === "failed" && r.submissionStatus !== "failed" && r.submissionStatus !== "rejected") return false;
-      if (filterType !== "all" && r.status !== filterType) return false;
       if (filterSharpeMin && r.osSharpe < parseFloat(filterSharpeMin)) return false;
       if (filterReturnsMin) {
         const rv = parseFloat(r.returns);
@@ -173,7 +193,7 @@ export default function MyAlphas() {
       }
       return true;
     });
-  }, [alphaRows, filterName, filterMarket, filterStatus, filterType, filterSharpeMin, filterReturnsMin, filterTurnoverMin, cardFilter]);
+  }, [alphaRows, filterName, filterStatus, filterSharpeMin, filterReturnsMin, filterTurnoverMin, cardFilter, starred]);
 
   const sorted = useMemo(() => {
     if (!sortDir || !sortKey) return filtered;
@@ -186,9 +206,18 @@ export default function MyAlphas() {
         av = parseFloat(String(a[sortKey as keyof AlphaRow])) || 0;
         bv = parseFloat(String(b[sortKey as keyof AlphaRow])) || 0;
       } else if (sortKey === "submissionStatus" || sortKey === "status_col") {
-        const order = { passed: 0, os_testing: 1, is_testing: 2, backtesting: 3, queued: 4, unsubmitted: 5, failed: 6, rejected: 7 };
+        const order = { passed: 0, os_testing: 1, is_testing: 2, backtesting: 3, queued: 4, failed: 5, rejected: 6 };
         av = order[a.submissionStatus] ?? 99;
         bv = order[b.submissionStatus] ?? 99;
+      } else if (sortKey === "epochStatus") {
+        // Sort by rank number, "Not Entered" last
+        const extractRank = (s?: string) => {
+          if (!s || s === "Not Entered") return 999;
+          const m = s.match(/#(\d+)/);
+          return m ? parseInt(m[1]) : 999;
+        };
+        av = extractRank(a.epochStatus);
+        bv = extractRank(b.epochStatus);
       } else {
         av = a[sortKey as keyof AlphaRow] ?? 0;
         bv = b[sortKey as keyof AlphaRow] ?? 0;
@@ -201,15 +230,9 @@ export default function MyAlphas() {
     });
   }, [filtered, sortKey, sortDir]);
 
-  /* ── Starred items pinned to top ── */
-  const starSorted = useMemo(() => {
-    const starredItems = sorted.filter((r) => starred.has(r.id));
-    const unstarredItems = sorted.filter((r) => !starred.has(r.id));
-    return [...starredItems, ...unstarredItems];
-  }, [sorted, starred]);
-
-  const totalPages = Math.max(1, Math.ceil(starSorted.length / pageSize));
-  const paginated = starSorted.slice((page - 1) * pageSize, page * pageSize);
+  /* ── No more pinning starred to top — just use sorted order ── */
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const paginated = sorted.slice((page - 1) * pageSize, page * pageSize);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -241,25 +264,15 @@ export default function MyAlphas() {
   };
 
   const visibleCols = dataColumns.filter((c) => visibleColumns.has(c.key));
-  const hasActiveFilters = filterName || filterMarket !== "all" || filterStatus !== "all" || filterType !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin;
+  const hasActiveFilters = filterName || filterStatus !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin;
 
   /* ── Status badge renderer ── */
   const renderStatusBadge = (status: AlphaRow["submissionStatus"]) => {
-    const s = statusConfig[status] || statusConfig.unsubmitted;
-    let detail = "";
-    if (["queued", "backtesting", "is_testing", "os_testing"].includes(status)) {
-      const detailMap: Record<string, string> = { queued: "Queued", backtesting: "Backtest", is_testing: "IS Test", os_testing: "OS Test" };
-      detail = detailMap[status] || "";
-    }
+    const s = statusConfig[status] || statusConfig.queued;
     return (
-      <div className="flex flex-col items-start gap-0.5">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${s.bgClass} ${s.colorClass} ${s.borderClass}`}>
-          {s.label}
-        </span>
-        {detail && (
-          <span className="text-[9px] font-mono pl-2 text-muted-foreground">{detail}</span>
-        )}
-      </div>
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${s.bgClass} ${s.colorClass} ${s.borderClass}`}>
+        {s.label}
+      </span>
     );
   };
 
@@ -272,30 +285,14 @@ export default function MyAlphas() {
         return renderStatusBadge(row.submissionStatus);
       case "name":
         return (
-          <div className="flex items-center gap-2 min-w-0 max-w-[180px]">
+          <div className="flex items-center gap-2 min-w-0 max-w-[200px]">
             <span className="truncate text-sm text-foreground">{row.name}</span>
           </div>
         );
-      case "market":
-        return (
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] border ${
-            row.market === "CEX"
-              ? "bg-primary/10 text-primary border-primary/20"
-              : "bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/25"
-          }`}>
-            {row.market}
-          </span>
-        );
-      case "type":
-        return (
-          <span className={`text-xs capitalize ${
-            row.status === "active" ? "text-success" : row.status === "testing" ? "text-amber-500 dark:text-amber-400" : "text-muted-foreground"
-          }`}>
-            {row.status === "active" ? "Regular" : row.status === "testing" ? "Testing" : "Archived"}
-          </span>
-        );
       case "createdAt":
         return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{row.createdAt}</span>;
+      case "sharpe":
+        return <span className="font-mono text-sm tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
       case "osSharpe":
         return (
           <span className={`font-mono text-sm tabular-nums ${
@@ -304,8 +301,6 @@ export default function MyAlphas() {
             {row.osSharpe.toFixed(2)}
           </span>
         );
-      case "sharpe":
-        return <span className="font-mono text-sm tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
       case "fitness":
         return (
           <span className={`font-mono text-sm tabular-nums ${
@@ -320,6 +315,17 @@ export default function MyAlphas() {
         return <span className="font-mono text-sm tabular-nums text-foreground whitespace-nowrap">{row.turnover}</span>;
       case "drawdown":
         return <span className="font-mono text-sm tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
+      case "epochStatus": {
+        const es = row.epochStatus || "Not Entered";
+        const isRanked = es.startsWith("Ranked") || es.startsWith("#");
+        return (
+          <span className={`text-xs font-mono whitespace-nowrap ${
+            isRanked ? "text-primary" : "text-muted-foreground"
+          }`}>
+            {es}
+          </span>
+        );
+      }
       case "testsPassed":
         return (
           <div className="flex items-center gap-1 font-mono text-xs tabular-nums justify-end">
@@ -384,7 +390,7 @@ export default function MyAlphas() {
 
       </div>
 
-      {/* Pipeline Stats — clickable filter cards */}
+      {/* Pipeline Stats — Total / Passed / Starred / Failed */}
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
           onClick={() => { setCardFilter("all"); setPage(1); }}
@@ -409,16 +415,16 @@ export default function MyAlphas() {
           <div className="text-sm mt-1 text-muted-foreground truncate">pass rate: {submissionStats.passRate}</div>
         </button>
         <button
-          onClick={() => { setCardFilter(cardFilter === "in_progress" ? "all" : "in_progress"); setPage(1); }}
+          onClick={() => { setCardFilter(cardFilter === "starred" ? "all" : "starred"); setPage(1); }}
           className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
-            cardFilter === "in_progress" ? "border-secondary/40" : "hover:border-slate-300 dark:hover:border-slate-600"
+            cardFilter === "starred" ? "border-amber-400/40" : "hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-secondary">
-            <Loader2 className="w-3.5 h-3.5" /> In Progress
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-amber-500 dark:text-amber-400">
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> Starred
           </div>
-          <div className="stat-value text-2xl font-bold text-secondary truncate">{submissionStats.inProgress}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate">avg time: {submissionStats.avgProcessingTime}</div>
+          <div className="stat-value text-2xl font-bold text-amber-500 dark:text-amber-400 truncate">{starred.size}</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate">favorites</div>
         </button>
         <button
           onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
@@ -429,7 +435,7 @@ export default function MyAlphas() {
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-destructive">
             <XCircle className="w-3.5 h-3.5" /> Failed
           </div>
-          <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + 1}</div>
+          <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + submissionStats.rejected}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate">{submissionStats.rejected} rejected</div>
         </button>
       </div>
@@ -450,19 +456,6 @@ export default function MyAlphas() {
             />
           </div>
 
-          <Select value={filterMarket} onValueChange={(v) => { setFilterMarket(v); setPage(1); }}>
-            <SelectTrigger className={`h-8 w-auto min-w-[80px] text-xs gap-1 rounded-full border ${
-              filterMarket !== "all" ? "bg-primary/10 border-primary/20 text-primary" : "bg-card border-border text-muted-foreground"
-            }`}>
-              <SelectValue placeholder="Market" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Markets</SelectItem>
-              <SelectItem value="CEX">CEX</SelectItem>
-              <SelectItem value="DEX">DEX</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
             <SelectTrigger className={`h-8 w-auto min-w-[100px] text-xs gap-1 rounded-full border ${
               filterStatus !== "all" ? "bg-primary/10 border-primary/20 text-primary" : "bg-card border-border text-muted-foreground"
@@ -471,7 +464,6 @@ export default function MyAlphas() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="unsubmitted">Unsubmitted</SelectItem>
               <SelectItem value="queued">Queued</SelectItem>
               <SelectItem value="backtesting">Backtesting</SelectItem>
               <SelectItem value="is_testing">IS Testing</SelectItem>
@@ -479,20 +471,6 @@ export default function MyAlphas() {
               <SelectItem value="passed">Passed</SelectItem>
               <SelectItem value="failed">Failed</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterType} onValueChange={(v) => { setFilterType(v); setPage(1); }}>
-            <SelectTrigger className={`h-8 w-auto min-w-[80px] text-xs gap-1 rounded-full border ${
-              filterType !== "all" ? "bg-primary/10 border-primary/20 text-primary" : "bg-card border-border text-muted-foreground"
-            }`}>
-              <SelectValue placeholder="Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="active">Regular</SelectItem>
-              <SelectItem value="testing">Testing</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
 
@@ -544,7 +522,7 @@ export default function MyAlphas() {
             <button
               className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-destructive/10 border border-destructive/20 text-destructive hover:bg-destructive/15"
               onClick={() => {
-                setFilterName(""); setFilterMarket("all"); setFilterStatus("all"); setFilterType("all");
+                setFilterName(""); setFilterStatus("all");
                 setFilterSharpeMin(""); setFilterReturnsMin(""); setFilterTurnoverMin(""); setPage(1);
               }}
             >
@@ -646,7 +624,7 @@ export default function MyAlphas() {
         <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="font-mono tabular-nums">
-              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, starSorted.length)} of {starSorted.length}
+              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
             </span>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-1.5">
