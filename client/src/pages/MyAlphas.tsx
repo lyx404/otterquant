@@ -57,7 +57,8 @@ type AlphaRow = Factor & {
   submittedAt?: string;
   osFitness?: number;
   compositeScore?: number;
-  epochStatus?: string; // e.g. "Ranked #1", "Qualified", "Not Entered", "Eliminated"
+  epochStatus?: string; // e.g. "EP-2026-03 #1"
+  epochId?: string; // e.g. "EP-2026-03" for linking to leaderboard
 };
 
 interface ColumnDef {
@@ -94,13 +95,13 @@ const statusConfig: Record<string, { label: string; colorClass: string; bgClass:
   rejected: { label: "FAILED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
 };
 
-/* Build epoch status lookup from leaderboard data */
-function getEpochStatus(factorId: string): string {
-  // Check current epoch
+/* Build epoch status lookup from leaderboard data — returns { display, epochId } */
+function getEpochStatus(factorId: string): { display: string; epochId: string | null } {
+  // Check current epoch first
   const currentEntries = leaderboardByFactorByEpoch[currentEpoch.id] || [];
   const currentEntry = currentEntries.find(e => e.factorId === factorId);
   if (currentEntry) {
-    return `Ranked #${currentEntry.rank}`;
+    return { display: `${currentEpoch.id} #${currentEntry.rank}`, epochId: currentEpoch.id };
   }
 
   // Check historical epochs
@@ -108,11 +109,11 @@ function getEpochStatus(factorId: string): string {
     if (epochId === currentEpoch.id) continue;
     const entry = entries.find(e => e.factorId === factorId);
     if (entry) {
-      return `#${entry.rank} (${epochId.replace("EP-", "")})`;
+      return { display: `${epochId} #${entry.rank}`, epochId };
     }
   }
 
-  return "Not Entered";
+  return { display: "Not Entered", epochId: null };
 }
 
 export default function MyAlphas() {
@@ -166,7 +167,8 @@ export default function MyAlphas() {
         submittedAt: sub?.submittedAt,
         osFitness: sub?.fitness,
         compositeScore: sub?.osSharpe ? sub.osSharpe * 40 + (sub.fitness || 0) * 30 : undefined,
-        epochStatus: getEpochStatus(f.id),
+        epochStatus: getEpochStatus(f.id).display,
+        epochId: getEpochStatus(f.id).epochId ?? undefined,
       };
     });
   }, []);
@@ -318,11 +320,18 @@ export default function MyAlphas() {
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "epochStatus": {
         const es = row.epochStatus || "Not Entered";
-        const isRanked = es.startsWith("Ranked") || es.startsWith("#");
+        const isRanked = es !== "Not Entered";
+        if (isRanked && row.epochId) {
+          return (
+            <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
+              <span className="text-xs font-mono whitespace-nowrap text-primary hover:underline cursor-pointer transition-colors duration-200 hover:text-primary/80">
+                {es}
+              </span>
+            </Link>
+          );
+        }
         return (
-          <span className={`text-xs font-mono whitespace-nowrap ${
-            isRanked ? "text-primary" : "text-muted-foreground"
-          }`}>
+          <span className="text-xs font-mono whitespace-nowrap text-muted-foreground">
             {es}
           </span>
         );

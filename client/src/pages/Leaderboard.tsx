@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useSearch } from "wouter";
 import gsap from "gsap";
 import {
   Trophy,
@@ -187,8 +188,16 @@ const rankTextColor = (rank: number): string => {
 };
 
 export default function Leaderboard() {
+  const searchString = useSearch();
   const [viewMode, setViewMode] = useState<ViewMode>("factor");
-  const [selectedEpochId, setSelectedEpochId] = useState(allEpochs[0].id);
+  const [selectedEpochId, setSelectedEpochId] = useState(() => {
+    const params = new URLSearchParams(searchString);
+    const epochParam = params.get("epoch");
+    if (epochParam && allEpochs.some(e => e.id === epochParam)) {
+      return epochParam;
+    }
+    return allEpochs[0].id;
+  });
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
