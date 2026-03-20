@@ -259,7 +259,7 @@ export default function Leaderboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header with Epoch Selector */}
+      {/* Header with Round Selector */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div ref={headerRef} className="reveal-clip">
           <div className="reveal-line">
@@ -269,14 +269,14 @@ export default function Leaderboard() {
           </div>
           <div className="reveal-line mt-2">
             <p className="text-base text-muted-foreground">
-              Epoch rankings and reward distribution
+              Arena round rankings and reward distribution
             </p>
           </div>
         </div>
 
         {/* Epoch Selector */}
         <div className="flex items-center gap-3">
-          <span className="label-upper shrink-0">Epoch</span>
+          <span className="label-upper shrink-0">Round</span>
           <Select value={selectedEpochId} onValueChange={setSelectedEpochId}>
             <SelectTrigger className="w-[260px] h-9 text-sm font-mono rounded-lg bg-card border-border">
               <SelectValue />
@@ -308,7 +308,7 @@ export default function Leaderboard() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          Epoch Overview — Unified operational banner
+          Round Overview — Unified operational banner
           ═══════════════════════════════════════════ */}
       <div ref={statsRef} className="relative overflow-hidden rounded-2xl border border-primary/20 dark:border-primary/30 bg-gradient-to-br from-primary/5 via-card to-secondary/5 dark:from-primary/10 dark:via-card dark:to-secondary/10">
         {/* Decorative background elements */}
@@ -475,7 +475,6 @@ export default function Leaderboard() {
                   <TableHead className="label-upper w-[70px] pl-4">Rank</TableHead>
                   <TableHead className="label-upper">User</TableHead>
                   <TableHead className="label-upper">Alpha</TableHead>
-                  <TableHead className="label-upper">Market</TableHead>
                   <TableHead className="label-upper text-right">OS Sharpe</TableHead>
                   <TableHead className="label-upper text-right">OS Fitness</TableHead>
                   <TableHead className="label-upper text-right">Returns</TableHead>
@@ -505,21 +504,9 @@ export default function Leaderboard() {
                       </TableCell>
                       <TableCell>
                         <span className={`text-sm font-semibold ${nameColor}`}>{entry.factorName}</span>
-                        <span className="text-[10px] font-mono ml-2 text-muted-foreground">{entry.factorId}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] border ${
-                          entry.market === "CEX"
-                            ? "bg-primary/10 text-primary border-primary/20"
-                            : "bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/25"
-                        }`}>
-                          {entry.market}
-                        </span>
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className={`font-mono text-sm ${
-                          entry.osSharpe >= 1 ? "text-success" : entry.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
-                        }`}>
+                        <span className="font-mono text-sm text-foreground">
                           {entry.osSharpe.toFixed(2)}
                         </span>
                       </TableCell>
@@ -576,9 +563,7 @@ export default function Leaderboard() {
                       <TableCell className="text-right font-mono text-sm text-foreground">{entry.totalFactors}</TableCell>
                       <TableCell className="text-right font-mono text-sm text-success">{entry.qualifiedFactors}</TableCell>
                       <TableCell className="text-right">
-                        <span className={`font-mono text-sm ${
-                          entry.avgOsSharpe >= 1 ? "text-success" : entry.avgOsSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
-                        }`}>
+                        <span className="font-mono text-sm text-foreground">
                           {entry.avgOsSharpe.toFixed(2)}
                         </span>
                       </TableCell>

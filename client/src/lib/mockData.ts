@@ -263,7 +263,7 @@ export interface EpochInfo {
 }
 
 export const allEpochs: EpochInfo[] = [
-  { id: "EP-2026-032", startDate: "2026-03-15", endDate: "2026-03-18", totalPool: "5,000 USDT", qualifiedFactors: 23, totalSubmissions: 156, timeRemaining: "1d 14h 32m" },
+  { id: "EP-2026-032", startDate: "2026-03-18", endDate: "2026-03-22", totalPool: "5,000 USDT", qualifiedFactors: 23, totalSubmissions: 156, timeRemaining: "1d 14h 32m" },
   { id: "EP-2026-031", startDate: "2026-03-12", endDate: "2026-03-15", totalPool: "5,000 USDT", qualifiedFactors: 20, totalSubmissions: 142, distributed: true, winners: 18 },
   { id: "EP-2026-030", startDate: "2026-03-09", endDate: "2026-03-12", totalPool: "5,000 USDT", qualifiedFactors: 25, totalSubmissions: 168, distributed: true, winners: 21 },
   { id: "EP-2026-029", startDate: "2026-03-06", endDate: "2026-03-09", totalPool: "5,000 USDT", qualifiedFactors: 17, totalSubmissions: 131, distributed: true, winners: 15 },
