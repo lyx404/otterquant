@@ -244,6 +244,13 @@ export default function Leaderboard() {
     [selectedEpochId]
   );
 
+  /* ── Current user's alphas in the selected round ── */
+  const CURRENT_USER_ID = "U-004"; // Otter User = AlphaSeeker_88
+  const userAlphasInRound = useMemo(
+    () => factorData.filter((e) => e.userId === CURRENT_USER_ID),
+    [factorData]
+  );
+
   const rankBadge = (rank: number) => {
     if (rank === 1) return <GoldTrophy />;
     if (rank === 2) return <SilverTrophy />;
@@ -310,22 +317,27 @@ export default function Leaderboard() {
       {/* ═══════════════════════════════════════════
           Round Overview — Unified operational banner
           ═══════════════════════════════════════════ */}
-      <div ref={statsRef} className="relative overflow-hidden rounded-2xl border border-primary/20 dark:border-primary/30 bg-gradient-to-br from-primary/5 via-card to-secondary/5 dark:from-primary/10 dark:via-card dark:to-secondary/10">
-        {/* Decorative background elements */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-primary/5 dark:bg-primary/10 blur-3xl" />
-          <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-secondary/5 dark:bg-secondary/10 blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-32 bg-gradient-to-r from-amber-500/3 via-yellow-400/5 to-amber-500/3 dark:from-amber-400/5 dark:via-yellow-300/8 dark:to-amber-400/5 blur-2xl rotate-12" />
-          {/* Grid pattern overlay */}
-          <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="lb-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#lb-grid)" />
-          </svg>
-        </div>
+      <div ref={statsRef} className={`relative overflow-hidden rounded-2xl border ${
+        isCurrent
+          ? "border-primary/30 dark:border-primary/40 bg-gradient-to-br from-primary/5 via-card to-secondary/5 dark:from-primary/10 dark:via-card dark:to-secondary/10"
+          : "border-border bg-card"
+      }`}>
+        {/* Decorative background elements — only for LIVE rounds */}
+        {isCurrent && (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-primary/5 dark:bg-primary/10 blur-3xl" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-secondary/5 dark:bg-secondary/10 blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-32 bg-gradient-to-r from-amber-500/3 via-yellow-400/5 to-amber-500/3 dark:from-amber-400/5 dark:via-yellow-300/8 dark:to-amber-400/5 blur-2xl rotate-12" />
+            <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="lb-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+                  <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#lb-grid)" />
+            </svg>
+          </div>
+        )}
 
         {/* Main content */}
         <div className="relative z-10 p-6">
@@ -407,37 +419,49 @@ export default function Leaderboard() {
           </div>
         </div>
 
-        {/* ── Your Ranking ── */}
+        {/* ── Your Ranking — show all alphas in this round ── */}
         <div className="relative z-10 px-6 py-4 border-t border-border/50 bg-card/40">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-mono text-primary font-bold">
-                OU
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-foreground">Your Ranking</div>
-                <span className="text-xs text-muted-foreground">Otter User</span>
-              </div>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-mono text-primary font-bold">
+              OU
             </div>
-            <div className="flex items-center gap-6">
-              <div className="text-center">
-                <div className="label-upper mb-0.5">Rank</div>
-                <div className="text-sm font-bold font-mono text-primary">#4</div>
-              </div>
-              <div className="text-center">
-                <div className="label-upper mb-0.5">Score</div>
-                <div className="text-sm font-bold font-mono text-foreground">75.1</div>
-              </div>
-              <div className="text-center">
-                <div className="label-upper mb-0.5">Reward</div>
-                <div className={`text-sm font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>540</div>
-              </div>
-              <div className="text-center">
-                <div className="label-upper mb-0.5">Best Alpha</div>
-                <div className="text-sm font-semibold text-foreground">BTC Momentum RSI</div>
-              </div>
+            <div>
+              <div className="text-sm font-semibold text-foreground">Your Alphas in {selectedEpoch.id}</div>
+              <span className="text-xs text-muted-foreground">Otter User — {userAlphasInRound.length} alpha{userAlphasInRound.length !== 1 ? "s" : ""} entered</span>
             </div>
           </div>
+          {userAlphasInRound.length > 0 ? (
+            <div className="space-y-2">
+              {userAlphasInRound.map((entry) => (
+                <div key={entry.factorId} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl bg-background/50 border border-border/50">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs font-mono font-bold text-primary w-8 text-center">#{entry.rank}</span>
+                    <span className="text-sm font-semibold text-foreground truncate">{entry.factorName}</span>
+                  </div>
+                  <div className="flex items-center gap-5 shrink-0">
+                    <div className="text-center">
+                      <div className="label-upper mb-0.5 text-[8px]">Score</div>
+                      <div className="text-xs font-bold font-mono text-foreground">{entry.compositeScore.toFixed(1)}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="label-upper mb-0.5 text-[8px]">OS Sharpe</div>
+                      <div className="text-xs font-bold font-mono text-foreground">{entry.osSharpe.toFixed(2)}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="label-upper mb-0.5 text-[8px]">Returns</div>
+                      <div className="text-xs font-bold font-mono text-foreground">{entry.osReturns}</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="label-upper mb-0.5 text-[8px]">Reward</div>
+                      <div className={`text-xs font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>{stripUSDT(entry.reward)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground py-2">No alphas entered in this round</div>
+          )}
         </div>
       </div>
 

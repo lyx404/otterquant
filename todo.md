@@ -1,6 +1,4 @@
-# 赛段名称替换 EP-2026-0XX → Round N
+# Alpha Arena 页面修改
 
-- [ ] mockData.ts: 替换 allEpochs 中的 id 字段和所有 leaderboard 数据的 epoch key
-- [ ] Leaderboard.tsx: 确认 epoch.id 显示正确
-- [ ] MyAlphas.tsx: Arena Round 列中的赛段名称
-- [ ] Dashboard.tsx: 如有引用 epoch ID
+- [ ] 区分当前 Round 和历史 Round 的视觉样式（如 LIVE 标签、颜色区分）
+- [ ] Your Ranking 区域显示对应 Round 中所有参赛的 Alphas（不仅仅是最佳排名）
