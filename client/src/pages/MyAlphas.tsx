@@ -57,8 +57,8 @@ type AlphaRow = Factor & {
   submittedAt?: string;
   osFitness?: number;
   compositeScore?: number;
-  epochStatus?: string; // e.g. "Round 2 #1"
-  epochId?: string; // e.g. "Round 2" for linking to leaderboard
+  epochStatus?: string; // e.g. "Round 4 #1"
+  epochId?: string; // e.g. "Round 4" for linking to leaderboard
 };
 
 interface ColumnDef {
