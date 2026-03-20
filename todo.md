@@ -1,14 +1,6 @@
-# 文本替换任务
+# 赛段名称替换 EP-2026-0XX → Round N
 
-## Leaderboard → Alpha Arena（用户可见文本）
-- [ ] Dashboard.tsx: "Leaderboard" 文本
-- [ ] Leaderboard.tsx: 页面标题 "Leaderboard"
-- [ ] mockData.ts: 注释
-
-## Factor → Alpha（用户可见文本，不改变量名/接口名）
-- [ ] mockData.ts: recentActivity "Factor 'xxx'" → "Alpha 'xxx'"
-- [ ] Dashboard.tsx: "TOTAL FACTORS" → "TOTAL ALPHAS", "Factors Mined" → "Alphas Mined"
-- [ ] Leaderboard.tsx: "qualified factors", "Best Factor", "By Factor", 表头 "Factor", "Total Factors", "Top Factor"
-- [ ] AlphaDetail.tsx: 注释 "Factor Expression"
-- [ ] Account.tsx: "Factor Test Results" → "Alpha Test Results" (保留 Two-Factor Auth)
-- [ ] LaunchGuide.tsx: "Factor Mining Engine", "Factor Creation"
+- [ ] mockData.ts: 替换 allEpochs 中的 id 字段和所有 leaderboard 数据的 epoch key
+- [ ] Leaderboard.tsx: 确认 epoch.id 显示正确
+- [ ] MyAlphas.tsx: Arena Round 列中的赛段名称
+- [ ] Dashboard.tsx: 如有引用 epoch ID
