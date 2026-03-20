@@ -358,6 +358,22 @@
     }
   }
 
+  /* ── LIVE Round micro-animations ── */
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.15); }
+  }
+  @keyframes drift-x {
+    0%, 100% { transform: translate(-50%, -50%) translateX(-8%); }
+    50% { transform: translate(-50%, -50%) translateX(8%); }
+  }
+  @keyframes scan-y {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
   /* ── Custom cursor — hide default ── */
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),

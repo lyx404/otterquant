@@ -284,6 +284,8 @@ export const leaderboardByFactorByEpoch: Record<string, LeaderboardEntry[]> = {
     { rank: 8, userId: "U-008", username: "SatoshiAlpha", avatar: "SA", factorId: "AF-003", factorName: "DeFi TVL Alpha", osSharpe: 0.62, osFitness: 0.45, osReturns: "8.9%", compositeScore: 45.8, reward: "190 USDT", market: "DEX" },
     { rank: 9, userId: "U-009", username: "BlockResearch", avatar: "BR", factorId: "AF-006", factorName: "Uniswap LP Flow", osSharpe: 0.38, osFitness: 0.22, osReturns: "5.2%", compositeScore: 32.4, reward: "150 USDT", market: "DEX" },
     { rank: 10, userId: "U-010", username: "ChainAnalyst", avatar: "CA", factorId: "AF-008", factorName: "Gas Fee Sentiment", osSharpe: 0.15, osFitness: 0.08, osReturns: "2.1%", compositeScore: 18.9, reward: "120 USDT", market: "DEX" },
+    { rank: 11, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", factorId: "AF-011", factorName: "Liquidation Cascade", osSharpe: 0.52, osFitness: 0.38, osReturns: "7.8%", compositeScore: 42.3, reward: "95 USDT", market: "CEX" },
+    { rank: 14, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", factorId: "AF-012", factorName: "Perp Basis Arb", osSharpe: 0.28, osFitness: 0.18, osReturns: "3.5%", compositeScore: 22.7, reward: "60 USDT", market: "CEX" },
   ],
   "Round 3": [
     { rank: 1, userId: "U-003", username: "NeuralTrader", avatar: "NT", factorId: "AF-005", factorName: "Funding Rate Mean Rev", osSharpe: 1.78, osFitness: 1.42, osReturns: "27.1%", compositeScore: 96.5, reward: "1,250 USDT", market: "CEX" },
