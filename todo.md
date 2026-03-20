@@ -1,18 +1,14 @@
-# MyAlphas 页面修改
+# 文本替换任务
 
-## Pipeline Stats 卡片
-- [ ] 删除 "In Progress" 卡片
-- [ ] 新增 "Starred" (标星) 卡片
+## Leaderboard → Alpha Arena（用户可见文本）
+- [ ] Dashboard.tsx: "Leaderboard" 文本
+- [ ] Leaderboard.tsx: 页面标题 "Leaderboard"
+- [ ] mockData.ts: 注释
 
-## 表格字段调整
-- [ ] 删除 market 列
-- [ ] 删除 type 列
-- [ ] IS 优先于 OS（顺序变更）
-- [ ] status 删除 "in progress" 和 "unsubmitted" 状态
-- [ ] 新增 "epoch status" 列（数据来源于 leaderboard 当前/历史 epoch）
-
-## 默认展示字段
-- [ ] name, status, date created, IS, OS, fitness, returns, turnover, drawdown
-
-## 标星逻辑
-- [ ] 仅纳入标星分类，删除置顶逻辑
+## Factor → Alpha（用户可见文本，不改变量名/接口名）
+- [ ] mockData.ts: recentActivity "Factor 'xxx'" → "Alpha 'xxx'"
+- [ ] Dashboard.tsx: "TOTAL FACTORS" → "TOTAL ALPHAS", "Factors Mined" → "Alphas Mined"
+- [ ] Leaderboard.tsx: "qualified factors", "Best Factor", "By Factor", 表头 "Factor", "Total Factors", "Top Factor"
+- [ ] AlphaDetail.tsx: 注释 "Factor Expression"
+- [ ] Account.tsx: "Factor Test Results" → "Alpha Test Results" (保留 Two-Factor Auth)
+- [ ] LaunchGuide.tsx: "Factor Mining Engine", "Factor Creation"

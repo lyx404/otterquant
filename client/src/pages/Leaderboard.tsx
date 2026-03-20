@@ -1,7 +1,7 @@
 /*
- * Leaderboard — Indigo/Sky + Slate Design System
+ * Alpha Arena — Indigo/Sky + Slate Design System
  * Top 1-3: Refined trophy SVGs with metallic sheen (gold/silver/bronze)
- * Top 1-3 text: username & factor in matching gold/silver/bronze colors
+ * Top 1-3 text: username & alpha in matching gold/silver/bronze colors
  * Reward: rich gold gradient text, USDT only in table header
  * Pure Tailwind classes — zero inline styles
  */
@@ -264,7 +264,7 @@ export default function Leaderboard() {
         <div ref={headerRef} className="reveal-clip">
           <div className="reveal-line">
             <h1 className="text-foreground">
-              Leaderboard
+              Alpha Arena
             </h1>
           </div>
           <div className="reveal-line mt-2">
@@ -393,7 +393,7 @@ export default function Leaderboard() {
                 <Users className="w-3 h-3" /> Submissions
               </div>
               <div className="stat-value text-2xl font-bold text-foreground">{selectedEpoch.totalSubmissions}</div>
-              <div className="text-xs mt-0.5 text-muted-foreground">{selectedEpoch.qualifiedFactors} qualified factors</div>
+              <div className="text-xs mt-0.5 text-muted-foreground">{selectedEpoch.qualifiedFactors} qualified alphas</div>
             </div>
             <div className="fade-item">
               <div className="label-upper mb-1.5 flex items-center gap-1.5">
@@ -433,7 +433,7 @@ export default function Leaderboard() {
                 <div className={`text-sm font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>540</div>
               </div>
               <div className="text-center">
-                <div className="label-upper mb-0.5">Best Factor</div>
+                <div className="label-upper mb-0.5">Best Alpha</div>
                 <div className="text-sm font-semibold text-foreground">BTC Momentum RSI</div>
               </div>
             </div>
@@ -451,7 +451,7 @@ export default function Leaderboard() {
           }`}
           onClick={() => setViewMode("factor")}
         >
-          By Factor
+          By Alpha
         </button>
         <button
           className={`h-8 text-xs px-4 rounded-xl font-medium transition-all duration-200 ease-in-out border ${
@@ -465,7 +465,7 @@ export default function Leaderboard() {
         </button>
       </div>
 
-      {/* Leaderboard Table */}
+      {/* Alpha Arena Table */}
       <div className="surface-card overflow-hidden px-2 sm:px-4">
         {viewMode === "factor" ? (
           <div key={`factor-${selectedEpochId}`}>
@@ -474,7 +474,7 @@ export default function Leaderboard() {
                 <TableRow className="border-border">
                   <TableHead className="label-upper w-[70px] pl-4">Rank</TableHead>
                   <TableHead className="label-upper">User</TableHead>
-                  <TableHead className="label-upper">Factor</TableHead>
+                  <TableHead className="label-upper">Alpha</TableHead>
                   <TableHead className="label-upper">Market</TableHead>
                   <TableHead className="label-upper text-right">OS Sharpe</TableHead>
                   <TableHead className="label-upper text-right">OS Fitness</TableHead>
@@ -546,10 +546,10 @@ export default function Leaderboard() {
                 <TableRow className="border-border">
                   <TableHead className="label-upper w-[70px] pl-4">Rank</TableHead>
                   <TableHead className="label-upper">User</TableHead>
-                  <TableHead className="label-upper text-right">Total Factors</TableHead>
+                  <TableHead className="label-upper text-right">Total Alphas</TableHead>
                   <TableHead className="label-upper text-right">Qualified</TableHead>
                   <TableHead className="label-upper text-right">Avg OS Sharpe</TableHead>
-                  <TableHead className="label-upper">Top Factor</TableHead>
+                  <TableHead className="label-upper">Top Alpha</TableHead>
                   <TableHead className="label-upper text-right pr-4">
                     Total Reward <span className="text-muted-foreground font-normal">(USDT)</span>
                   </TableHead>

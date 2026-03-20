@@ -411,12 +411,12 @@ export default function Account() {
           </div>
           <div className="p-6 space-y-4">
             {[
-              { label: "Factor Test Results", desc: "Get notified when IS/OS tests complete", defaultChecked: true },
+              { label: "Alpha Test Results", desc: "Get notified when IS/OS tests complete", defaultChecked: true },
               { label: "Epoch Rewards", desc: "Reward distribution notifications", defaultChecked: true },
               { label: "Trade Execution", desc: "Real-time trade execution alerts", defaultChecked: false },
               { label: "New Subscribers", desc: "When someone subscribes to your strategies", defaultChecked: true },
               { label: "System Maintenance", desc: "Platform maintenance and downtime alerts", defaultChecked: true },
-              { label: "Weekly Digest", desc: "Weekly summary of your factor performance", defaultChecked: false },
+              { label: "Weekly Digest", desc: "Weekly summary of your alpha performance", defaultChecked: false },
             ].map((item, i) => (
               <div key={i} className="flex items-center justify-between py-2 last:border-0 border-b border-border">
                 <div>

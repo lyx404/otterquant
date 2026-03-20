@@ -165,7 +165,7 @@ export const testingStatus: TestItem[] = [
   { text: "Self-correlation check pending.", status: "pending" },
 ];
 
-// --- Factor List ---
+// --- Alpha List ---
 export interface Factor {
   id: string;
   name: string;
@@ -224,7 +224,7 @@ export const strategies: Strategy[] = [
   { id: "STR-006", name: "MEV Protection Alpha", description: "Generates alpha by detecting and avoiding MEV attacks while capturing sandwich-resistant opportunities.", factorCount: 3, market: "DEX", annualReturn: "22.1%", sharpe: 1.68, maxDrawdown: "10.5%", winRate: "60.1%", status: "new", subscribers: 45, author: "Community", updatedAt: "2026-03-08", tags: ["MEV", "Protection", "DEX"] },
 ];
 
-// --- Leaderboard ---
+// --- Alpha Arena ---
 export interface LeaderboardEntry {
   rank: number;
   userId: string;
@@ -271,7 +271,7 @@ export const allEpochs: EpochInfo[] = [
 
 export const previousEpochs = allEpochs.filter(e => e.distributed);
 
-// Leaderboard data keyed by epoch ID
+// Alpha Arena data keyed by epoch ID
 export const leaderboardByFactorByEpoch: Record<string, LeaderboardEntry[]> = {
   "EP-2026-032": [
     { rank: 1, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", factorId: "AF-004", factorName: "Cross-Exchange Spread", osSharpe: 1.85, osFitness: 1.35, osReturns: "25.8%", compositeScore: 95.2, reward: "1,250 USDT", market: "CEX" },
@@ -409,14 +409,14 @@ export const dashboardStats = {
 
 // --- Recent Activity ---
 export const recentActivity = [
-  { id: 1, type: "submit_success", message: "Factor 'BTC Momentum RSI Cross' submitted successfully", time: "2 min ago", icon: "check" },
-  { id: 2, type: "submit_success", message: "Factor 'ETH Volatility Breakout' submitted successfully", time: "15 min ago", icon: "check" },
-  { id: 3, type: "submit_failed", message: "Factor 'SOL Arb Signal' submission failed — expression syntax error", time: "1 hour ago", icon: "x" },
-  { id: 4, type: "submit_success", message: "Factor 'BNB Mean Reversion' submitted successfully", time: "2 hours ago", icon: "check" },
-  { id: 5, type: "submit_failed", message: "Factor 'DOGE Sentiment Alpha' submission failed — insufficient backtest data", time: "3 hours ago", icon: "x" },
-  { id: 6, type: "submit_success", message: "Factor 'ARB Funding Rate Spread' submitted successfully", time: "4 hours ago", icon: "check" },
-  { id: 7, type: "submit_success", message: "Factor 'MEV Sandwich Detect' submitted successfully", time: "5 hours ago", icon: "check" },
-  { id: 8, type: "submit_failed", message: "Factor 'XRP Whale Tracker' submission failed — correlation too high (0.92)", time: "6 hours ago", icon: "x" },
+  { id: 1, type: "submit_success", message: "Alpha 'BTC Momentum RSI Cross' submitted successfully", time: "2 min ago", icon: "check" },
+  { id: 2, type: "submit_success", message: "Alpha 'ETH Volatility Breakout' submitted successfully", time: "15 min ago", icon: "check" },
+  { id: 3, type: "submit_failed", message: "Alpha 'SOL Arb Signal' submission failed — expression syntax error", time: "1 hour ago", icon: "x" },
+  { id: 4, type: "submit_success", message: "Alpha 'BNB Mean Reversion' submitted successfully", time: "2 hours ago", icon: "check" },
+  { id: 5, type: "submit_failed", message: "Alpha 'DOGE Sentiment Alpha' submission failed — insufficient backtest data", time: "3 hours ago", icon: "x" },
+  { id: 6, type: "submit_success", message: "Alpha 'ARB Funding Rate Spread' submitted successfully", time: "4 hours ago", icon: "check" },
+  { id: 7, type: "submit_success", message: "Alpha 'MEV Sandwich Detect' submitted successfully", time: "5 hours ago", icon: "check" },
+  { id: 8, type: "submit_failed", message: "Alpha 'XRP Whale Tracker' submission failed — correlation too high (0.92)", time: "6 hours ago", icon: "x" },
 ];
 
 // --- Correlation Data ---

@@ -141,7 +141,7 @@ export default function AlphaDetail() {
         </div>
       </div>
 
-      {/* Factor Expression */}
+      {/* Alpha Expression */}
       <div className="surface-card py-4 px-6">
         <div className="flex items-center gap-2">
           <span className="label-upper">Expression:</span>

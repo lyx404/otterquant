@@ -127,7 +127,7 @@ export default function LaunchGuide() {
         connection: true,
         version: "v2.4.1",
         skills: [
-          { name: "Factor Mining Engine", status: "ok" },
+          { name: "Alpha Mining Engine", status: "ok" },
           { name: "Backtest Runtime", status: "ok" },
           { name: "Live Trading Bridge", status: "warn" },
         ],
@@ -438,22 +438,22 @@ npm install && npm start`}
                 <div className="space-y-4">
                   {[
                     {
-                      category: "Factor Creation",
+                      category: "Alpha Creation",
                       icon: FlaskConical,
-                      prompt: "Create a BTC momentum factor using RSI(14) and MACD crossover signals. Target market: BTC/USDT, lookback period: 30 days. Submit it to Otter for backtesting.",
-                      desc: "Tests the factor creation and submission pipeline",
+                      prompt: "Create a BTC momentum alpha using RSI(14) and MACD crossover signals. Target market: BTC/USDT, lookback period: 30 days. Submit it to Otter for backtesting.",
+                      desc: "Tests the alpha creation and submission pipeline",
                     },
                     {
                       category: "Backtest Analysis",
                       icon: BarChart3,
-                      prompt: "Analyze my latest backtest results for factor AF-001. Show me the Sharpe ratio, max drawdown, and return distribution. Suggest improvements if Sharpe < 1.5.",
+                      prompt: "Analyze my latest backtest results for alpha AF-001. Show me the Sharpe ratio, max drawdown, and return distribution. Suggest improvements if Sharpe < 1.5.",
                       desc: "Tests the backtest retrieval and analysis capabilities",
                     },
                     {
                       category: "Portfolio Optimization",
                       icon: Trophy,
-                      prompt: "Review my current factor portfolio and suggest optimal weight allocation across my top 5 factors to maximize risk-adjusted returns while keeping correlation below 0.3.",
-                      desc: "Tests multi-factor portfolio optimization",
+                      prompt: "Review my current alpha portfolio and suggest optimal weight allocation across my top 5 alphas to maximize risk-adjusted returns while keeping correlation below 0.3.",
+                      desc: "Tests multi-alpha portfolio optimization",
                     },
                   ].map((item) => (
                     <div

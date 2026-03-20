@@ -34,9 +34,9 @@ import {
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
 
 const statCards = [
-  { label: "TOTAL FACTORS", value: dashboardStats.totalFactors.toString(), sub: `${dashboardStats.activeFactors} active`, icon: FlaskConical, highlight: false },
+  { label: "TOTAL ALPHAS", value: dashboardStats.totalFactors.toString(), sub: `${dashboardStats.activeFactors} active`, icon: FlaskConical, highlight: false },
   { label: "AVG SHARPE (OS)", value: dashboardStats.avgSharpe.toFixed(2), sub: "Out-of-Sample", icon: TrendingUp, highlight: true },
-  { label: "PASS RATE", value: dashboardStats.passRate, sub: `${dashboardStats.activeFactors}/${dashboardStats.totalFactors}`, icon: CheckCircle, highlight: false },
+  { label: "PASS RATE", value: dashboardStats.passRate, sub: `${dashboardStats.activeFactors}/${dashboardStats.totalFactors} alphas`, icon: CheckCircle, highlight: false },
   { label: "ACTIVE TRADES", value: dashboardStats.activeTrades.toString(), sub: "Running now", icon: Zap, highlight: false },
   { label: "SUBSCRIBERS", value: dashboardStats.subscriberCount.toLocaleString(), sub: "Platform total", icon: Users, highlight: false },
 ];
@@ -244,7 +244,7 @@ export default function Dashboard() {
           {/* Right: CTA */}
           <Link href="/leaderboard">
             <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce">
-              Leaderboard
+              Alpha Arena
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Button>
           </Link>
@@ -262,7 +262,7 @@ export default function Dashboard() {
         </div>
         <div className="reveal-line mt-2">
           <p className="text-base text-muted-foreground">
-            AI-powered factor mining platform — monitor your agents, track performance, compete for rewards.
+            AI-powered alpha mining platform — monitor your agents, track performance, compete for rewards.
           </p>
         </div>
       </div>
@@ -365,7 +365,7 @@ export default function Dashboard() {
                         <span className="font-mono text-foreground">{skill.lastSync}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Factors Mined</span>
+                        <span className="text-muted-foreground">Alphas Mined</span>
                         <span className={`font-mono ${skill.factorsGenerated > 0 ? "text-success" : "text-muted-foreground"}`}>{skill.factorsGenerated}</span>
                       </div>
                       <div className="flex justify-between">
@@ -401,7 +401,7 @@ export default function Dashboard() {
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-foreground">Skill Installation Guide</div>
-                      <div className="text-xs text-muted-foreground">Install the Otter skill to start mining factors automatically</div>
+                      <div className="text-xs text-muted-foreground">Install the Otter skill to start mining alphas automatically</div>
                     </div>
                   </div>
                 </div>
