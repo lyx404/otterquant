@@ -73,7 +73,7 @@ interface ColumnDef {
 const dataColumns: ColumnDef[] = [
   { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
   { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "90px" },
-  { key: "epochStatus", label: "Epoch Status", defaultVisible: true, sortable: true, width: "120px" },
+  { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
