@@ -393,23 +393,11 @@ export default function Landing() {
           <div className="flex h-14 items-center justify-between">
             {/* Logo */}
             <Link href="/landing">
-              <div className="flex items-center gap-2 cursor-none">
-                <div
-                  className="w-7 h-7 flex items-center justify-center"
-                  style={{
-                    borderRadius: "6px",
-                    background: T.neuralGradient,
-                  }}
-                >
-                  <Zap className="w-3.5 h-3.5 text-white" />
+              <div className="flex items-center gap-2.5 cursor-none">
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary/10">
+                  <Zap className="w-4 h-4 text-primary" />
                 </div>
-                <span
-                  className="font-semibold text-[15px]"
-                  style={{
-                    color: textHigh,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
+                <span className="font-semibold text-base tracking-tight" style={{ color: textHigh }}>
                   Otter
                 </span>
               </div>
@@ -434,7 +422,7 @@ export default function Landing() {
                     className="h-8 px-4 text-xs font-medium inline-flex items-center gap-1.5 transition-all"
                     style={{
                       borderRadius: "6px",
-                      background: T.neuralGradient,
+                      background: T.indigo,
                       color: "#FFFFFF",
                       boxShadow: T.indigoShadow,
                       transitionTimingFunction: EASE,
@@ -450,7 +438,7 @@ export default function Landing() {
                     className="h-8 px-4 text-xs font-medium inline-flex items-center gap-1.5 transition-all"
                     style={{
                       borderRadius: "6px",
-                      background: T.neuralGradient,
+                      background: T.indigo,
                       color: "#FFFFFF",
                       boxShadow: T.indigoShadow,
                       transitionTimingFunction: EASE,
@@ -1024,20 +1012,11 @@ export default function Landing() {
         }}
       >
         <div className="mx-auto max-w-[1120px] px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-6 h-6 flex items-center justify-center"
-              style={{
-                borderRadius: "4px",
-                background: T.neuralGradient,
-              }}
-            >
-              <Zap className="w-3 h-3 text-white" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-primary/10">
+              <Zap className="w-3.5 h-3.5 text-primary" />
             </div>
-            <span
-              className="text-sm font-medium"
-              style={{ color: textHigh }}
-            >
+            <span className="text-sm font-semibold tracking-tight" style={{ color: textHigh }}>
               Otter
             </span>
           </div>
