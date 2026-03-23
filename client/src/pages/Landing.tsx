@@ -191,7 +191,7 @@ function IndigoButton({
         padding: "0 28px",
         borderRadius: "8px",
         fontSize: "14px",
-        background: isFilled ? T.neuralGradient : "transparent",
+        background: isFilled ? T.indigo : "transparent",
         color: isFilled ? "#FFFFFF" : T.indigo,
         border: isFilled ? "none" : `1px solid ${T.indigo}`,
         boxShadow: isFilled ? T.indigoShadow : "none",
