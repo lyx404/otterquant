@@ -37,7 +37,8 @@ import {
   leaderboardByFactorByEpoch,
   leaderboardByUserByEpoch,
 } from "@/lib/mockData";
-import Aurora from "@/components/Aurora";
+import { LightRays } from "@/components/LightRays";
+import { useTheme } from "@/contexts/ThemeContext";
 
 type ViewMode = "factor" | "user";
 
@@ -190,6 +191,8 @@ const rankTextColor = (rank: number): string => {
 
 export default function Leaderboard() {
   const searchString = useSearch();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [viewMode, setViewMode] = useState<ViewMode>("factor");
   const [selectedEpochId, setSelectedEpochId] = useState(() => {
     const params = new URLSearchParams(searchString);
@@ -323,13 +326,15 @@ export default function Leaderboard() {
           ? "border-primary/30 dark:border-primary/40 bg-gradient-to-br from-primary/5 via-card to-secondary/5 dark:from-primary/10 dark:via-card dark:to-secondary/10"
           : "border-border bg-card"
       }`}>
-        {/* Aurora background — only for LIVE rounds */}
+        {/* LightRays background — only for LIVE rounds */}
         {isCurrent && (
-          <Aurora
-            colorStops={["#6678ff", "#B19EEF", "#5227FF"]}
-            blend={0.5}
-            amplitude={1.0}
-            speed={0.5}
+          <LightRays
+            color={isDark ? "rgba(79, 71, 230, 0.25)" : "rgba(129, 140, 248, 0.18)"}
+            count={8}
+            blur={isDark ? 36 : 28}
+            opacity={isDark ? 0.7 : 0.4}
+            speed={14}
+            length="70vh"
           />
         )}
 
