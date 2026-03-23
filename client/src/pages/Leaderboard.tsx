@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { useSearch } from "wouter";
+import { useSearch, Link } from "wouter";
 import gsap from "gsap";
 import {
   Trophy,
@@ -37,6 +37,7 @@ import {
   leaderboardByFactorByEpoch,
   leaderboardByUserByEpoch,
 } from "@/lib/mockData";
+import Aurora from "@/components/Aurora";
 
 type ViewMode = "factor" | "user";
 
@@ -322,26 +323,14 @@ export default function Leaderboard() {
           ? "border-primary/30 dark:border-primary/40 bg-gradient-to-br from-primary/5 via-card to-secondary/5 dark:from-primary/10 dark:via-card dark:to-secondary/10"
           : "border-border bg-card"
       }`}>
-        {/* Decorative background elements with micro-animations — only for LIVE rounds */}
+        {/* Aurora background — only for LIVE rounds */}
         {isCurrent && (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {/* Pulsing glow orbs */}
-            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-primary/5 dark:bg-primary/10 blur-3xl animate-[pulse-glow_4s_ease-in-out_infinite]" />
-            <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-secondary/5 dark:bg-secondary/10 blur-3xl animate-[pulse-glow_5s_ease-in-out_infinite_1s]" />
-            {/* Slow drifting gradient band */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-32 bg-gradient-to-r from-transparent via-primary/[0.04] to-transparent dark:via-primary/[0.08] blur-2xl animate-[drift-x_8s_ease-in-out_infinite]" />
-            {/* Subtle scanning line */}
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent animate-[scan-y_6s_ease-in-out_infinite]" />
-            {/* Grid pattern overlay */}
-            <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.05]" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="lb-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-                  <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#lb-grid)" />
-            </svg>
-          </div>
+          <Aurora
+            colorStops={["#6678ff", "#B19EEF", "#5227FF"]}
+            blend={0.5}
+            amplitude={1.0}
+            speed={0.5}
+          />
         )}
 
         {/* Main content */}
@@ -438,10 +427,10 @@ export default function Leaderboard() {
           {userAlphasInRound.length > 0 ? (
             <div className="space-y-2">
               {userAlphasInRound.map((entry) => (
-                <div key={entry.factorId} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl bg-background/50 border border-border/50">
+                <Link key={entry.factorId} href={`/alphas/${entry.factorId}`} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl bg-background/50 border border-border/50 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 cursor-pointer group">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="text-xs font-mono font-bold text-primary w-8 text-center">#{entry.rank}</span>
-                    <span className="text-sm font-semibold text-foreground truncate">{entry.factorName}</span>
+                    <span className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors duration-200">{entry.factorName}</span>
                   </div>
                   <div className="flex items-center gap-5 shrink-0">
                     <div className="text-center">
@@ -461,7 +450,7 @@ export default function Leaderboard() {
                       <div className={`text-xs font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>{stripUSDT(entry.reward)}</div>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (

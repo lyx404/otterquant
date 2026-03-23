@@ -374,6 +374,16 @@
     100% { top: 100%; opacity: 0; }
   }
 
+  /* ── Aurora background animations ── */
+  @keyframes aurora-drift {
+    0%, 100% { transform: translateX(-15%) scaleY(var(--aurora-scale, 1)); }
+    50% { transform: translateX(15%) scaleY(var(--aurora-scale, 1)); }
+  }
+  @keyframes aurora-pulse {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+
   /* ── Custom cursor — hide default ── */
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
