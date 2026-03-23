@@ -541,7 +541,8 @@ export default function Landing() {
               color: textHigh,
             }}
           >
-            Mine Alphas with{" "}
+            Mine Alphas with
+            <br />
             <EncryptedText
               text="AI Coding Agents"
               encryptedClassName={isDark ? "text-[#818cf8]" : "text-[#a5b4fc]"}
