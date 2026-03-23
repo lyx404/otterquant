@@ -239,6 +239,7 @@ export default function Landing() {
   const { isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scrolled, setScrolled] = useState(false);
 
   const isDark = theme === "dark";
@@ -252,6 +253,65 @@ export default function Landing() {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  /* ── Particle Background ── */
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let animationFrameId: number;
+
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
+    const particleCount = 150;
+    const particles: Array<{
+      x: number; y: number; vx: number; vy: number;
+      size: number; alpha: number;
+    }> = [];
+    const color = "#4F47E6";
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        size: Math.random() * 1.5 + 0.5,
+        alpha: Math.random() * 0.5 + 0.1,
+      });
+    }
+
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.globalAlpha = p.alpha;
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      animationFrameId = requestAnimationFrame(render);
+    };
+    render();
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   /* ── GSAP-style entrance (CSS-only for perf) ── */
@@ -411,26 +471,18 @@ export default function Landing() {
         </div>
       </header>
 
+      {/* ═══════════ PARTICLE BACKGROUND (full page) ═══════════ */}
+      <canvas
+        ref={canvasRef}
+        className="fixed top-0 left-0 w-full h-full pointer-events-none z-0"
+        style={{
+          maskImage: "radial-gradient(circle at center, white, transparent 80%)",
+          WebkitMaskImage: "radial-gradient(circle at center, white, transparent 80%)",
+        }}
+      />
+
       {/* ═══════════ HERO ═══════════ */}
       <section className="relative pt-14 overflow-hidden">
-        {/* Hero background image */}
-        <div className="absolute inset-0">
-          <img
-            src={HERO_BG}
-            alt=""
-            className="w-full h-full object-cover"
-            style={{ opacity: isDark ? 0.4 : 0.15 }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: isDark
-                ? `linear-gradient(to bottom, transparent 0%, ${T.surfaceDark} 85%)`
-                : `linear-gradient(to bottom, transparent 0%, ${T.surfaceLight} 85%)`,
-            }}
-          />
-        </div>
-
         {/* Radial indigo glow */}
         <div
           className="absolute pointer-events-none"
