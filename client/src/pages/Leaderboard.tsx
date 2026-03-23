@@ -435,7 +435,10 @@ export default function Leaderboard() {
           {userAlphasInRound.length > 0 ? (
             <>
               <div className="space-y-2">
-                {(userAlphasExpanded ? userAlphasInRound : userAlphasInRound.slice(0, 3)).map((entry) => (
+                {(userAlphasExpanded ? userAlphasInRound : userAlphasInRound.slice(0, 3)).map((entry) => {
+                  const rewardNum = parseInt(stripUSDT(entry.reward).replace(/,/g, ""), 10);
+                  const isZeroReward = rewardNum === 0;
+                  return (
                   <Link key={entry.factorId} href={`/alphas/${entry.factorId}`} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl bg-background/50 border border-border/50 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 cursor-pointer group">
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="text-xs font-mono font-bold text-primary w-8 text-center">#{entry.rank}</span>
@@ -455,12 +458,17 @@ export default function Leaderboard() {
                         <div className="text-xs font-bold font-mono text-foreground">{entry.osReturns}</div>
                       </div>
                       <div className="text-center">
-                        <div className="label-upper mb-0.5 text-[8px]">Reward</div>
-                        <div className={`text-xs font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>{stripUSDT(entry.reward)}</div>
+                        <div className="label-upper mb-0.5 text-[8px]">{isCurrent ? "Est. Reward" : "Reward"}</div>
+                        {isZeroReward ? (
+                          <div className="text-xs font-bold font-mono tabular-nums text-muted-foreground/50">0</div>
+                        ) : (
+                          <div className={`text-xs font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>{isCurrent ? "~" : ""}{stripUSDT(entry.reward)}</div>
+                        )}
                       </div>
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
               </div>
               {userAlphasInRound.length > 3 && (
                 <button
@@ -480,6 +488,26 @@ export default function Leaderboard() {
                   )}
                 </button>
               )}
+              {/* Reward Summary */}
+              {(() => {
+                const totalReward = userAlphasInRound.reduce((sum, e) => {
+                  const num = parseInt(stripUSDT(e.reward).replace(/,/g, ""), 10);
+                  return sum + (isNaN(num) ? 0 : num);
+                }, 0);
+                return (
+                  <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted-foreground">{isCurrent ? "Est. Total Reward" : "Total Reward"}</span>
+                    <div className="flex items-center gap-1">
+                      {totalReward > 0 ? (
+                        <span className="text-sm font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500">{isCurrent ? "~" : ""}{totalReward.toLocaleString()}</span>
+                      ) : (
+                        <span className="text-sm font-bold font-mono tabular-nums text-muted-foreground/50">0</span>
+                      )}
+                      <span className="text-xs text-muted-foreground">USDT</span>
+                    </div>
+                  </div>
+                );
+              })()}
             </>
           ) : (
             <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground/50">
