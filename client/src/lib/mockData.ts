@@ -321,8 +321,7 @@ export const leaderboardByFactorByEpoch: Record<string, LeaderboardEntry[]> = {
     { rank: 3, userId: "U-001", username: "CryptoQuant_Pro", avatar: "CQ", factorId: "AF-004", factorName: "Cross-Exchange Spread", osSharpe: 1.48, osFitness: 1.05, osReturns: "20.8%", compositeScore: 82.7, reward: "720 USDT", market: "CEX" },
     { rank: 4, userId: "U-006", username: "DeFi_Miner", avatar: "DM", factorId: "AF-002", factorName: "ETH Volume Divergence", osSharpe: 1.18, osFitness: 0.88, osReturns: "17.2%", compositeScore: 73.5, reward: "540 USDT", market: "CEX" },
     { rank: 5, userId: "U-002", username: "DeepAlpha", avatar: "DA", factorId: "AF-009", factorName: "OI Delta Momentum", osSharpe: 0.95, osFitness: 0.72, osReturns: "14.1%", compositeScore: 65.8, reward: "410 USDT", market: "CEX" },
-    { rank: 6, userId: "U-004", username: "AlphaSeeker_88", avatar: "AS", factorId: "AF-001", factorName: "BTC Momentum RSI Cross", osSharpe: 0.78, osFitness: 0.58, osReturns: "11.5%", compositeScore: 55.2, reward: "320 USDT", market: "CEX" },
-    { rank: 7, userId: "U-010", username: "ChainAnalyst", avatar: "CA", factorId: "AF-008", factorName: "Gas Fee Sentiment", osSharpe: 0.52, osFitness: 0.38, osReturns: "6.8%", compositeScore: 42.1, reward: "250 USDT", market: "DEX" },
+    { rank: 6, userId: "U-010", username: "ChainAnalyst", avatar: "CA", factorId: "AF-008", factorName: "Gas Fee Sentiment", osSharpe: 0.52, osFitness: 0.38, osReturns: "6.8%", compositeScore: 42.1, reward: "250 USDT", market: "DEX" },
   ],
 };
 

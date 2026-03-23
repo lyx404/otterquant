@@ -482,7 +482,18 @@ export default function Leaderboard() {
               )}
             </>
           ) : (
-            <div className="text-sm text-muted-foreground py-2">No alphas entered in this round</div>
+            <div className="flex flex-col items-center justify-center py-6 gap-3">
+              <div className="w-12 h-12 rounded-full bg-muted/50 border border-border/50 flex items-center justify-center">
+                <Trophy className="w-5 h-5 text-muted-foreground/60" />
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-muted-foreground">No alphas entered</div>
+                <div className="text-xs text-muted-foreground/60 mt-0.5">You didn't participate in this round</div>
+              </div>
+              <Link href="/alphas" className="mt-1 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 transition-all duration-200">
+                Submit an Alpha
+              </Link>
+            </div>
           )}
             </div>
           </div>
