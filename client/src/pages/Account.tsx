@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   User, Key, Link2, Shield, Bell, Copy, Check,
   Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle, Compass,
@@ -43,9 +44,12 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 export default function Account() {
+  const { user, updateUser } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [showApiKey, setShowApiKey] = useState(false);
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
+  const [username, setUsername] = useState(user?.displayName || "");
+  const [email, setEmail] = useState(user?.email || "");
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -140,31 +144,25 @@ export default function Account() {
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="label-upper">Username</Label>
-                  <Input defaultValue="CryptoQuant_Pro" className="rounded-lg bg-card border-border" />
+                  <Input value={username} onChange={(e) => setUsername(e.target.value)} className="rounded-lg bg-card border-border" />
                 </div>
-                <div className="space-y-2">
-                  <Label className="label-upper">Display Name</Label>
-                  <Input defaultValue="CryptoQuant Pro" className="rounded-lg bg-card border-border" />
-                </div>
+
                 <div className="space-y-2">
                   <Label className="label-upper">Email</Label>
-                  <Input defaultValue="quant@example.com" className="rounded-lg bg-card border-border" />
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-lg bg-card border-border" />
                 </div>
                 <div className="space-y-2">
                   <Label className="label-upper">Timezone</Label>
                   <Input defaultValue="UTC+8" className="rounded-lg bg-card border-border" />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label className="label-upper">Bio</Label>
-                <textarea
-                  defaultValue="Quantitative researcher specializing in crypto alpha factor mining. Building systematic strategies using AI-powered tools."
-                  className="w-full h-20 px-3 py-2 rounded-lg text-sm resize-none focus:outline-none transition-all duration-200 ease-in-out bg-card border border-border text-foreground focus:border-primary/40 focus:ring-1 focus:ring-primary/20"
-                />
-              </div>
+
               <button
                 className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                onClick={() => toast.success("Profile updated")}
+                onClick={() => {
+                  updateUser({ displayName: username, email });
+                  toast.success("Profile updated");
+                }}
               >
                 Save Changes
               </button>
