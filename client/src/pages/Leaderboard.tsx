@@ -38,6 +38,7 @@ import {
   leaderboardByUserByEpoch,
 } from "@/lib/mockData";
 import { LightRays } from "@/components/LightRays";
+import { ShineBorder } from "@/components/ShineBorder";
 import { useTheme } from "@/contexts/ThemeContext";
 
 type ViewMode = "factor" | "user";
@@ -321,25 +322,24 @@ export default function Leaderboard() {
       {/* ═══════════════════════════════════════════
           Round Overview — Unified operational banner
           ═══════════════════════════════════════════ */}
-      <div ref={statsRef} className={`relative overflow-hidden rounded-2xl border ${
-        isCurrent
-          ? "border-primary/30 dark:border-primary/40 bg-gradient-to-br from-primary/5 via-card to-secondary/5 dark:from-primary/10 dark:via-card dark:to-secondary/10"
-          : "border-border bg-card"
-      }`}>
-        {/* LightRays background — only for LIVE rounds */}
-        {isCurrent && (
-          <LightRays
-            color={isDark ? "rgba(79, 71, 230, 0.25)" : "rgba(129, 140, 248, 0.18)"}
-            count={8}
-            blur={isDark ? 36 : 28}
-            opacity={isDark ? 0.7 : 0.4}
-            speed={14}
-            length="70vh"
-          />
-        )}
-
-        {/* Main content */}
-        <div className="relative z-10 p-6">
+      {(() => {
+        const roundContent = (
+          <div ref={statsRef} className={`relative overflow-hidden ${
+            isCurrent
+              ? "rounded-[14.5px] bg-gradient-to-br from-primary/5 via-card to-secondary/5 dark:from-primary/10 dark:via-card dark:to-secondary/10"
+              : "rounded-2xl border border-border bg-card"
+          }`}>
+            {isCurrent && (
+              <LightRays
+                color={isDark ? "rgba(79, 71, 230, 0.25)" : "rgba(129, 140, 248, 0.18)"}
+                count={8}
+                blur={isDark ? 36 : 28}
+                opacity={isDark ? 0.7 : 0.4}
+                speed={14}
+                length="70vh"
+              />
+            )}
+            <div className="relative z-10 p-6">
           {/* Top row: Epoch ID + Status + Timer */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
@@ -461,8 +461,20 @@ export default function Leaderboard() {
           ) : (
             <div className="text-sm text-muted-foreground py-2">No alphas entered in this round</div>
           )}
-        </div>
-      </div>
+            </div>
+          </div>
+        );
+        return isCurrent ? (
+          <ShineBorder
+            borderRadius={16}
+            borderWidth={1.5}
+            duration={8}
+            shineColor={isDark ? ["#4f47e6", "#a855f7", "#ffffff"] : ["#818cf8", "#a78bfa", "#93c5fd"]}
+          >
+            {roundContent}
+          </ShineBorder>
+        ) : roundContent;
+      })()}
 
       {/* View Mode Toggle */}
       <div className="flex items-center gap-1 p-1 rounded-2xl w-fit bg-accent border border-border">
