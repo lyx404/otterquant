@@ -14,6 +14,7 @@ import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { EncryptedText } from "@/components/ui/encrypted-text";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
   Zap,
   ArrowRight,
@@ -416,8 +417,7 @@ export default function Landing() {
 
             {/* Right */}
             <div className="flex items-center gap-2.5">
-              <button
-                onClick={toggleTheme}
+              <AnimatedThemeToggler
                 className="w-8 h-8 flex items-center justify-center transition-colors"
                 style={{
                   borderRadius: "6px",
@@ -426,13 +426,7 @@ export default function Landing() {
                   transitionTimingFunction: EASE,
                 }}
                 title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {isDark ? (
-                  <Sun className="w-3.5 h-3.5" style={{ color: textMuted }} />
-                ) : (
-                  <Moon className="w-3.5 h-3.5" style={{ color: textMuted }} />
-                )}
-              </button>
+              />
 
               {isAuthenticated ? (
                 <Link href="/">

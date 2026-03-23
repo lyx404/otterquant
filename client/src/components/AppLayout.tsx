@@ -27,6 +27,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -139,17 +140,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Right side — theme toggle + user indicator / login button */}
             <div className="hidden md:flex items-center gap-2.5">
               {/* Theme Toggle Button */}
-              <button
-                onClick={toggleTheme}
+              <AnimatedThemeToggler
                 className="relative w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-200 ease-in-out"
                 title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {theme === "dark" ? (
-                  <Sun className="w-3.5 h-3.5 text-slate-400" />
-                ) : (
-                  <Moon className="w-3.5 h-3.5 text-slate-500" />
-                )}
-              </button>
+              />
 
               {!isAuthPage && (
                 <>
@@ -199,16 +193,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* Mobile menu button */}
             <div className="md:hidden flex items-center gap-2">
-              <button
-                onClick={toggleTheme}
+              <AnimatedThemeToggler
                 className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-200"
-              >
-                {theme === "dark" ? (
-                  <Sun className="w-4.5 h-4.5" />
-                ) : (
-                  <Moon className="w-4.5 h-4.5" />
-                )}
-              </button>
+              />
               {!isAuthPage && (
                 <button
                   className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-200"
