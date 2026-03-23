@@ -43,6 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const ticking = useRef(false);
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated, user, logout } = useAuth();
+  const isAuthPage = location === "/auth" || location.startsWith("/auth");
 
   useEffect(() => {
     const THRESHOLD = 8;
@@ -109,29 +110,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </Link>
 
-            {/* Desktop Navigation — Account entry hidden, accessible via user pill */}
-            <nav className="hidden md:flex items-center gap-0.5">
-              {navItems
-                .filter((item) => item.path !== "/account")
-                .map((item) => {
-                  const active = isActive(item.path);
-                  const Icon = item.icon;
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => handleNavClick(item.path)}
-                      className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ease-in-out ${
-                        active
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-            </nav>
+            {/* Desktop Navigation — hidden on auth page */}
+            {!isAuthPage && (
+              <nav className="hidden md:flex items-center gap-0.5">
+                {navItems
+                  .filter((item) => item.path !== "/account")
+                  .map((item) => {
+                    const active = isActive(item.path);
+                    const Icon = item.icon;
+                    return (
+                      <button
+                        key={item.path}
+                        onClick={() => handleNavClick(item.path)}
+                        className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ease-in-out ${
+                          active
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+              </nav>
+            )}
 
             {/* Right side — theme toggle + user indicator / login button */}
             <div className="hidden md:flex items-center gap-2.5">
@@ -148,45 +151,49 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 )}
               </button>
 
-              {isAuthenticated ? (
-                /* User Info — clickable, links to Account page */
-                <div className="flex items-center gap-2">
-                  <Link href="/account">
-                    <div
-                      className={`flex items-center gap-2 px-2.5 py-1 rounded-full border cursor-pointer transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-sm ${
-                        isActive("/account")
-                          ? "bg-primary/10 border-primary/20"
-                          : "bg-accent border-border hover:bg-slate-200 dark:hover:bg-slate-800 hover:border-primary/20"
-                      }`}
-                    >
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
-                        {user?.displayName?.charAt(0)?.toUpperCase() || "U"}
-                      </div>
-                      <span className="text-xs font-medium text-foreground">
-                        {user?.displayName || "User"}
-                      </span>
+              {!isAuthPage && (
+                <>
+                  {isAuthenticated ? (
+                    /* User Info — clickable, links to Account page */
+                    <div className="flex items-center gap-2">
+                      <Link href="/account">
+                        <div
+                          className={`flex items-center gap-2 px-2.5 py-1 rounded-full border cursor-pointer transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-sm ${
+                            isActive("/account")
+                              ? "bg-primary/10 border-primary/20"
+                              : "bg-accent border-border hover:bg-slate-200 dark:hover:bg-slate-800 hover:border-primary/20"
+                          }`}
+                        >
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
+                            {user?.displayName?.charAt(0)?.toUpperCase() || "U"}
+                          </div>
+                          <span className="text-xs font-medium text-foreground">
+                            {user?.displayName || "User"}
+                          </span>
+                        </div>
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-destructive/10 hover:border-destructive/20 hover:text-destructive transition-all duration-200 text-muted-foreground"
+                        title="Log out"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-destructive/10 hover:border-destructive/20 hover:text-destructive transition-all duration-200 text-muted-foreground"
-                    title="Log out"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ) : (
-                /* Login / Register button */
-                <Link href="/auth">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    className="h-8 text-xs font-medium px-4 gap-1.5"
-                  >
-                    <LogIn className="w-3.5 h-3.5" />
-                    Log In / Sign Up
-                  </Button>
-                </Link>
+                  ) : (
+                    /* Login / Register button */
+                    <Link href="/auth">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-8 text-xs font-medium px-4 gap-1.5"
+                      >
+                        <LogIn className="w-3.5 h-3.5" />
+                        Log In / Sign Up
+                      </Button>
+                    </Link>
+                  )}
+                </>
               )}
             </div>
 
@@ -202,22 +209,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Moon className="w-4.5 h-4.5" />
                 )}
               </button>
-              <button
-                className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-200"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                {mobileMenuOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
-                )}
-              </button>
+              {!isAuthPage && (
+                <button
+                  className="p-2 text-muted-foreground hover:text-foreground transition-colors duration-200"
+                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                >
+                  {mobileMenuOpen ? (
+                    <X className="w-5 h-5" />
+                  ) : (
+                    <Menu className="w-5 h-5" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
+        {/* Mobile Navigation — hidden on auth page */}
+        {mobileMenuOpen && !isAuthPage && (
           <div className="md:hidden bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-border">
             <nav className="px-4 py-3 space-y-1">
               {navItems
