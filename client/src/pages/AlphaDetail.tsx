@@ -11,7 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useParams, Link } from "wouter";
+import { useParams } from "wouter";
 import { useState, useMemo, useEffect, useRef } from "react";
 import gsap from "gsap";
 import {
@@ -109,12 +109,10 @@ export default function AlphaDetail() {
     <div className="space-y-6">
       {/* Back + Header */}
       <div className="flex items-center gap-4">
-        <Link href="/alphas">
-          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground">
+          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.history.length > 1 ? window.history.back() : window.location.assign('/alphas')}>
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
-        </Link>
         <div className="flex-1" ref={headerRef}>
           <div className="reveal-line flex items-center gap-3 flex-wrap">
             <h1 className="text-foreground">{factor.name}</h1>
