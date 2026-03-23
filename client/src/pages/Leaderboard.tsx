@@ -31,6 +31,8 @@ import {
   Users,
   CheckCircle2,
   Timer,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   allEpochs,
@@ -203,6 +205,7 @@ export default function Leaderboard() {
     }
     return allEpochs[0].id;
   });
+  const [userAlphasExpanded, setUserAlphasExpanded] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
@@ -430,34 +433,54 @@ export default function Leaderboard() {
             </div>
           </div>
           {userAlphasInRound.length > 0 ? (
-            <div className="space-y-2">
-              {userAlphasInRound.map((entry) => (
-                <Link key={entry.factorId} href={`/alphas/${entry.factorId}`} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl bg-background/50 border border-border/50 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 cursor-pointer group">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-xs font-mono font-bold text-primary w-8 text-center">#{entry.rank}</span>
-                    <span className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors duration-200">{entry.factorName}</span>
-                  </div>
-                  <div className="flex items-center gap-5 shrink-0">
-                    <div className="text-center">
-                      <div className="label-upper mb-0.5 text-[8px]">Score</div>
-                      <div className="text-xs font-bold font-mono text-foreground">{entry.compositeScore.toFixed(1)}</div>
+            <>
+              <div className="space-y-2">
+                {(userAlphasExpanded ? userAlphasInRound : userAlphasInRound.slice(0, 3)).map((entry) => (
+                  <Link key={entry.factorId} href={`/alphas/${entry.factorId}`} className="flex items-center justify-between gap-4 px-3 py-2 rounded-xl bg-background/50 border border-border/50 hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 cursor-pointer group">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xs font-mono font-bold text-primary w-8 text-center">#{entry.rank}</span>
+                      <span className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors duration-200">{entry.factorName}</span>
                     </div>
-                    <div className="text-center">
-                      <div className="label-upper mb-0.5 text-[8px]">OS Sharpe</div>
-                      <div className="text-xs font-bold font-mono text-foreground">{entry.osSharpe.toFixed(2)}</div>
+                    <div className="flex items-center gap-5 shrink-0">
+                      <div className="text-center">
+                        <div className="label-upper mb-0.5 text-[8px]">Score</div>
+                        <div className="text-xs font-bold font-mono text-foreground">{entry.compositeScore.toFixed(1)}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="label-upper mb-0.5 text-[8px]">OS Sharpe</div>
+                        <div className="text-xs font-bold font-mono text-foreground">{entry.osSharpe.toFixed(2)}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="label-upper mb-0.5 text-[8px]">Returns</div>
+                        <div className="text-xs font-bold font-mono text-foreground">{entry.osReturns}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="label-upper mb-0.5 text-[8px]">Reward</div>
+                        <div className={`text-xs font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>{stripUSDT(entry.reward)}</div>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="label-upper mb-0.5 text-[8px]">Returns</div>
-                      <div className="text-xs font-bold font-mono text-foreground">{entry.osReturns}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="label-upper mb-0.5 text-[8px]">Reward</div>
-                      <div className={`text-xs font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>{stripUSDT(entry.reward)}</div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+              {userAlphasInRound.length > 3 && (
+                <button
+                  onClick={() => setUserAlphasExpanded(!userAlphasExpanded)}
+                  className="mt-2 w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 border border-transparent hover:border-primary/20 transition-all duration-200"
+                >
+                  {userAlphasExpanded ? (
+                    <>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                      Collapse ({userAlphasInRound.length - 3} hidden)
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                      Show all {userAlphasInRound.length} alphas ({userAlphasInRound.length - 3} more)
+                    </>
+                  )}
+                </button>
+              )}
+            </>
           ) : (
             <div className="text-sm text-muted-foreground py-2">No alphas entered in this round</div>
           )}
