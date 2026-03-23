@@ -38,7 +38,6 @@ import {
   leaderboardByUserByEpoch,
 } from "@/lib/mockData";
 import Aurora from "@/components/Aurora";
-import { useTheme } from "@/contexts/ThemeContext";
 
 type ViewMode = "factor" | "user";
 
@@ -191,8 +190,6 @@ const rankTextColor = (rank: number): string => {
 
 export default function Leaderboard() {
   const searchString = useSearch();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
   const [viewMode, setViewMode] = useState<ViewMode>("factor");
   const [selectedEpochId, setSelectedEpochId] = useState(() => {
     const params = new URLSearchParams(searchString);
@@ -329,8 +326,8 @@ export default function Leaderboard() {
         {/* Aurora background — only for LIVE rounds */}
         {isCurrent && (
           <Aurora
-            colorStops={isDark ? ["#4f47e6", "#2dd4bf", "#7c3aed"] : ["#818cf8", "#c084fc", "#e0e7ff"]}
-            blend={isDark ? 0.5 : 0.4}
+            colorStops={["#6678ff", "#B19EEF", "#5227FF"]}
+            blend={0.5}
             amplitude={1.0}
             speed={0.5}
           />
