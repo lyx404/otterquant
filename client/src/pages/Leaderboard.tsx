@@ -423,14 +423,33 @@ export default function Leaderboard() {
 
         {/* ── Your Ranking — show all alphas in this round ── */}
         <div className="relative z-10 px-6 py-4 border-t border-border/50 bg-card/40">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-mono text-primary font-bold">
-              OU
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-mono text-primary font-bold">
+                OU
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-foreground">Your Alphas in {selectedEpoch.id}</div>
+                <span className="text-xs text-muted-foreground">Otter User — {userAlphasInRound.length} alpha{userAlphasInRound.length !== 1 ? "s" : ""} entered</span>
+              </div>
             </div>
-            <div>
-              <div className="text-sm font-semibold text-foreground">Your Alphas in {selectedEpoch.id}</div>
-              <span className="text-xs text-muted-foreground">Otter User — {userAlphasInRound.length} alpha{userAlphasInRound.length !== 1 ? "s" : ""} entered</span>
-            </div>
+            {userAlphasInRound.length > 0 && (() => {
+              const totalReward = userAlphasInRound.reduce((sum, e) => {
+                const num = parseInt(stripUSDT(e.reward).replace(/,/g, ""), 10);
+                return sum + (isNaN(num) ? 0 : num);
+              }, 0);
+              return (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{isCurrent ? "Est. Total" : "Total"}</span>
+                  {totalReward > 0 ? (
+                    <span className="text-sm font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500">{totalReward.toLocaleString()}</span>
+                  ) : (
+                    <span className="text-sm font-bold font-mono tabular-nums text-muted-foreground/50">0</span>
+                  )}
+                  <span className="text-[10px] text-muted-foreground">USDT</span>
+                </div>
+              );
+            })()}
           </div>
           {userAlphasInRound.length > 0 ? (
             <>
@@ -462,7 +481,7 @@ export default function Leaderboard() {
                         {isZeroReward ? (
                           <div className="text-xs font-bold font-mono tabular-nums text-muted-foreground/50">0</div>
                         ) : (
-                          <div className={`text-xs font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>{isCurrent ? "~" : ""}{stripUSDT(entry.reward)}</div>
+                          <div className={`text-xs font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>{stripUSDT(entry.reward)}</div>
                         )}
                       </div>
                     </div>
@@ -488,26 +507,7 @@ export default function Leaderboard() {
                   )}
                 </button>
               )}
-              {/* Reward Summary */}
-              {(() => {
-                const totalReward = userAlphasInRound.reduce((sum, e) => {
-                  const num = parseInt(stripUSDT(e.reward).replace(/,/g, ""), 10);
-                  return sum + (isNaN(num) ? 0 : num);
-                }, 0);
-                return (
-                  <div className="mt-3 pt-3 border-t border-border/40 flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">{isCurrent ? "Est. Total Reward" : "Total Reward"}</span>
-                    <div className="flex items-center gap-1">
-                      {totalReward > 0 ? (
-                        <span className="text-sm font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500">{isCurrent ? "~" : ""}{totalReward.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-sm font-bold font-mono tabular-nums text-muted-foreground/50">0</span>
-                      )}
-                      <span className="text-xs text-muted-foreground">USDT</span>
-                    </div>
-                  </div>
-                );
-              })()}
+
             </>
           ) : (
             <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground/50">
