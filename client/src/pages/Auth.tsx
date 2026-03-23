@@ -121,7 +121,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+    <div className="min-h-[calc(100vh-44px)] bg-background flex items-center justify-center px-4 py-12">
       {/* Subtle background pattern */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-primary/[0.03] blur-3xl" />

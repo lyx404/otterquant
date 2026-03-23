@@ -138,7 +138,7 @@ function Router() {
 /* ── Layout wrapper that hides nav during onboarding, landing, and auth ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/launch-guide", "/landing", "/auth"];
+  const noLayoutPaths = ["/launch-guide", "/landing"];
   const hideLayout = noLayoutPaths.some(
     (p) => location === p || location.startsWith(p)
   );
