@@ -166,13 +166,13 @@ export default function CustomCursor() {
       {/* Outer ring — NO mix-blend-mode to preserve true Indigo color */}
       <div
         ref={cursorRef}
-        className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border-2 will-change-transform"
+        className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border will-change-transform"
         style={{
           width: 32,
           height: 32,
           transform: "translate(-50%, -50%)",
           borderColor: "var(--primary)",
-          opacity: 0.6,
+          opacity: 0.5,
         }}
       />
       {/* Inner dot */}
