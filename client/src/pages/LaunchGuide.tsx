@@ -32,6 +32,7 @@ import {
   Moon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 /* ── Step definitions ── */
 const STEPS = [
@@ -176,17 +177,10 @@ export default function LaunchGuide() {
           </span>
         </div>
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={toggleTheme}
+          <AnimatedThemeToggler
             className="relative w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-slate-200 dark:hover:bg-slate-800 transition-all duration-200 ease-in-out"
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {theme === "dark" ? (
-              <Sun className="w-3.5 h-3.5 text-slate-400" />
-            ) : (
-              <Moon className="w-3.5 h-3.5 text-slate-500" />
-            )}
-          </button>
+          />
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border bg-accent border-border">
             <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
               O

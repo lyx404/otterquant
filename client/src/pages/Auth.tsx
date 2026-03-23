@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOnboarding } from "@/App";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import gsap from "gsap";
@@ -36,6 +37,7 @@ export default function Auth() {
   const [countdown, setCountdown] = useState(0);
 
   const { login } = useAuth();
+  const { onboarded } = useOnboarding();
   const [, navigate] = useLocation();
   const formRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -108,9 +110,16 @@ export default function Auth() {
       toast.success(
         mode === "login" ? "Welcome back!" : "Account created successfully!"
       );
-      navigate("/");
+
+      // Register → always go to Launch Guide
+      // Login → go to Launch Guide if not onboarded, otherwise Dashboard
+      if (mode === "register") {
+        navigate("/launch-guide");
+      } else {
+        navigate(onboarded ? "/" : "/launch-guide");
+      }
     },
-    [email, password, verifyCode, mode, login, navigate]
+    [email, password, verifyCode, mode, login, navigate, onboarded]
   );
 
   const switchMode = (newMode: AuthMode) => {
