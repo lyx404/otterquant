@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { EncryptedText } from "@/components/ui/encrypted-text";
 import {
   Zap,
   ArrowRight,
@@ -541,16 +542,13 @@ export default function Landing() {
             }}
           >
             Mine Alphas with{" "}
-            <span
-              style={{
-                background: T.neuralGradient,
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              AI Coding Agents
-            </span>
+            <EncryptedText
+              text="AI Coding Agents"
+              encryptedClassName={isDark ? "text-[#818cf8]" : "text-[#a5b4fc]"}
+              revealedClassName={isDark ? "text-[#8B83F0]" : "text-[#4F47E6]"}
+              revealDelayMs={50}
+              animateOnMount
+            />
           </h1>
 
           <p
