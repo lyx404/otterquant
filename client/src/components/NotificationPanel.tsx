@@ -140,7 +140,7 @@ export default function NotificationPanel() {
                   <button
                     key={n.id}
                     onClick={() => handleClick(n)}
-                    className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors duration-150 hover:bg-accent/60 border-b border-border/50 last:border-0 ${
+                    className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-colors duration-150 hover:bg-accent/60 border-b border-border/50 last:border-0 ${
                       !isRead ? "bg-primary/[0.03]" : ""
                     }`}
                   >

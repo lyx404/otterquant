@@ -6,26 +6,24 @@
  */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useState, useEffect, useRef } from "react";
 import gsap from "gsap";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  User, Key, Link2, Shield, Bell, Copy, Check,
+  User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle, Compass,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { exchanges, type Exchange } from "@/lib/mockData";
 
-type TabId = "profile" | "api" | "exchanges" | "notifications";
+type TabId = "profile" | "api" | "exchanges";
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "profile", label: "Profile", icon: User },
   { id: "api", label: "API Keys", icon: Key },
   { id: "exchanges", label: "Exchanges", icon: Link2 },
-  { id: "notifications", label: "Notifications", icon: Bell },
 ];
 
 function CopyBtn({ text }: { text: string }) {
@@ -398,31 +396,6 @@ export default function Account() {
         </div>
       )}
 
-      {/* Notifications Tab */}
-      {activeTab === "notifications" && (
-        <div className="surface-card">
-          <div className="px-6 py-4 pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-primary" />
-              <span className="text-base font-semibold text-foreground">Notification Preferences</span>
-            </div>
-          </div>
-          <div className="p-6 space-y-4">
-            {[
-              { label: "Alpha Test Results", desc: "Get notified when IS/OS tests complete", defaultChecked: true },
-              { label: "Epoch Rewards", desc: "Reward distribution notifications", defaultChecked: true },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center justify-between py-2 last:border-0 border-b border-border">
-                <div>
-                  <div className="text-sm font-medium text-foreground">{item.label}</div>
-                  <div className="text-xs text-muted-foreground">{item.desc}</div>
-                </div>
-                <Switch defaultChecked={item.defaultChecked} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
