@@ -187,6 +187,22 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* ═══════════════════════════════════════════
+          2. PAGE HEADER (moved above banner)
+          ═══════════════════════════════════════════ */}
+      <div ref={headerRef} className="reveal-clip">
+        <div className="reveal-line">
+          <h1 className="text-foreground">
+            Dashboard
+          </h1>
+        </div>
+        <div className="reveal-line mt-2">
+          <p className="text-base text-muted-foreground">
+            AI-powered alpha mining platform — monitor your agents, track performance, compete for rewards.
+          </p>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════
           1. CURRENT EPOCH — Single Banner Entry
           ═══════════════════════════════════════════ */}
       <div
@@ -248,22 +264,6 @@ export default function Dashboard() {
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Button>
           </Link>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════
-          2. PAGE HEADER
-          ═══════════════════════════════════════════ */}
-      <div ref={headerRef} className="reveal-clip">
-        <div className="reveal-line">
-          <h1 className="text-foreground">
-            Dashboard
-          </h1>
-        </div>
-        <div className="reveal-line mt-2">
-          <p className="text-base text-muted-foreground">
-            AI-powered alpha mining platform — monitor your agents, track performance, compete for rewards.
-          </p>
         </div>
       </div>
 

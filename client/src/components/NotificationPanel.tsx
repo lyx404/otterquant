@@ -8,7 +8,6 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import {
   Bell,
-  FlaskConical,
   Trophy,
   CheckCircle2,
   XCircle,
@@ -141,12 +140,12 @@ export default function NotificationPanel() {
                   <button
                     key={n.id}
                     onClick={() => handleClick(n)}
-                    className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors duration-150 hover:bg-accent/60 border-b border-border/50 last:border-0 ${
+                    className={`w-full text-left px-4 py-2 flex items-center gap-3 transition-colors duration-150 hover:bg-accent/60 border-b border-border/50 last:border-0 ${
                       !isRead ? "bg-primary/[0.03]" : ""
                     }`}
                   >
                     {/* Icon */}
-                    <div className={`mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
                       isTestResult
                         ? isPassed
                           ? "bg-emerald-500/10 text-emerald-500"
@@ -169,21 +168,11 @@ export default function NotificationPanel() {
                         <span className={`text-xs font-semibold truncate ${!isRead ? "text-foreground" : "text-muted-foreground"}`}>
                           {n.title}
                         </span>
+                        <span className="text-[10px] text-muted-foreground/50 shrink-0 ml-auto">{n.time}</span>
                       </div>
-                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
+                      <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1 leading-snug">
                         {n.message}
                       </p>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md ${
-                          isTestResult
-                            ? "bg-primary/5 text-primary"
-                            : "bg-amber-500/5 text-amber-600 dark:text-amber-400"
-                        }`}>
-                          {isTestResult ? <FlaskConical className="w-2.5 h-2.5" /> : <Trophy className="w-2.5 h-2.5" />}
-                          {isTestResult ? "Test Result" : "Reward"}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground/60">{n.time}</span>
-                      </div>
                     </div>
 
                     {/* Arrow */}
