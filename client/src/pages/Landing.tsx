@@ -517,7 +517,7 @@ export default function Landing() {
           {/* Display XL — text loop */}
           <h1
             data-anim
-            className="mx-auto max-w-3xl"
+            className="mx-auto max-w-3xl whitespace-nowrap"
             style={{
               fontSize: "clamp(2.5rem, 6vw, 4rem)",
               fontWeight: 700,
@@ -867,7 +867,7 @@ export default function Landing() {
                     cycles={10}
                     characters="0123456789$%+."
                     repeatInterval={5000}
-                    initialDelay={800 + idx * 50}
+                    initialDelay={800 + idx * 200}
                     style={{ color: "inherit", font: "inherit" }}
                   />
                 </p>
