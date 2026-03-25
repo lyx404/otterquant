@@ -182,7 +182,7 @@ export default function Dashboard() {
     if (!bannerRef.current) return;
     gsap.fromTo(bannerRef.current,
       { y: -20, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }
+      { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }
     );
   }, []);
 
