@@ -2,7 +2,7 @@
  * TextLoop — GSAP-powered vertical text carousel
  * Animates between multiple text strings with vertical slide + blur transitions.
  * Container width dynamically adapts to current text width via GSAP animation.
- * Text is bottom-aligned with the surrounding baseline.
+ * Text is baseline-aligned with surrounding text.
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
@@ -28,7 +28,6 @@ export function TextLoop({
   const isFirstRef = useRef(true);
   const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
-  const measureRef = useRef<HTMLSpanElement>(null);
 
   // Find the longest text for initial sizing
   const longestText = useMemo(
@@ -42,7 +41,6 @@ export function TextLoop({
     const textNode = textRef.current;
     if (!container || !textNode) return;
 
-    // Use requestAnimationFrame to ensure text is rendered before measuring
     requestAnimationFrame(() => {
       const targetWidth = textNode.scrollWidth;
 
@@ -70,7 +68,6 @@ export function TextLoop({
       return;
     }
 
-    // Animate in new text
     gsap.fromTo(
       node,
       { yPercent: 50, opacity: 0, filter: "blur(8px)" },
@@ -95,13 +92,11 @@ export function TextLoop({
       const node = textRef.current;
       const container = containerRef.current;
       if (node && container) {
-        // Freeze container width before exit
         container.style.width = `${container.offsetWidth}px`;
 
-        // Clone for exit animation
         const clone = node.cloneNode(true) as HTMLSpanElement;
         clone.style.position = "absolute";
-        clone.style.top = "0";
+        clone.style.bottom = "0";
         clone.style.left = "0";
         clone.style.width = "auto";
         container.appendChild(clone);
@@ -125,32 +120,29 @@ export function TextLoop({
   return (
     <span
       ref={containerRef}
-      className="relative inline-block align-bottom"
+      className="relative inline-flex align-baseline"
       style={{
         clipPath: "inset(-100vh 0 -100vh 0)",
-        marginTop: "22px",
-        paddingTop: "9px",
         overflow: "visible",
         ...style,
       }}
     >
-      {/* Hidden measurer: renders longest text to establish minimum height */}
+      {/* Hidden measurer: same font to establish correct height for baseline */}
       <span
-        ref={measureRef}
         aria-hidden="true"
-        className={`invisible inline-block w-0 whitespace-nowrap ${className}`}
-        style={{ overflow: "hidden" }}
+        className={`invisible whitespace-nowrap ${className}`}
+        style={{ display: "inline-block", width: 0, overflow: "hidden" }}
       >
         {longestText}
       </span>
 
-      {/* Visible animated text, absolutely positioned */}
+      {/* Visible animated text, bottom-aligned to match baseline */}
       <span
         ref={textRef}
         className={`whitespace-nowrap ${className}`}
         style={{
           position: "absolute",
-          top: 0,
+          bottom: 0,
           left: 0,
           display: "inline-block",
         }}
