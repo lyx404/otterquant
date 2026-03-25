@@ -48,6 +48,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isAuthPage = location === "/auth" || location.startsWith("/auth");
 
   useEffect(() => {
+    // On auth pages, navbar is always fixed/visible — no scroll hide
+    if (isAuthPage) {
+      setHeaderVisible(true);
+      return;
+    }
     const THRESHOLD = 8;
     const handleScroll = () => {
       if (ticking.current) return;
@@ -69,7 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [isAuthPage]);
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
