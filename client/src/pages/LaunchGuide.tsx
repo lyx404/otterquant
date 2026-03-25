@@ -166,9 +166,7 @@ export default function LaunchGuide() {
       {/* ── Minimal header ── */}
       <header className="shrink-0 h-11 px-6 sm:px-10 border-b border-border bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-primary/10">
-            <Zap className="w-4 h-4 text-primary" />
-          </div>
+          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-7 h-7 rounded-full object-cover" />
           <span className="font-semibold text-base tracking-tight text-foreground">
             Otter
           </span>

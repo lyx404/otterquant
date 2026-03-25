@@ -140,9 +140,7 @@ export default function Auth() {
       <div ref={cardRef} className="w-full max-w-[400px] relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary/10">
-            <Zap className="w-5 h-5 text-primary" />
-          </div>
+          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-10 h-10 rounded-full object-cover" />
           <span className="font-semibold text-xl tracking-tight text-foreground">
             Otter
           </span>

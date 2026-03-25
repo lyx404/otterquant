@@ -103,9 +103,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Logo — links to landing page */}
             <Link href="/landing">
               <div className="flex items-center gap-2.5 shrink-0">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary/10">
-                  <Zap className="w-4 h-4 text-primary" />
-                </div>
+                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-8 h-8 rounded-full object-cover" />
                 <span className="font-semibold text-base tracking-tight text-foreground">
                   Otter
                 </span>

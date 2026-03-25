@@ -394,9 +394,7 @@ export default function Landing() {
             {/* Logo */}
             <Link href="/landing">
               <div className="flex items-center gap-2.5 cursor-none">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary/10">
-                  <Zap className="w-4 h-4 text-primary" />
-                </div>
+                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-8 h-8 rounded-full object-cover" />
                 <span className="font-semibold text-base tracking-tight" style={{ color: textHigh }}>
                   Otter
                 </span>
@@ -1013,9 +1011,7 @@ export default function Landing() {
       >
         <div className="mx-auto max-w-[1120px] px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-primary/10">
-              <Zap className="w-3.5 h-3.5 text-primary" />
-            </div>
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-7 h-7 rounded-full object-cover" />
             <span className="text-sm font-semibold tracking-tight" style={{ color: textHigh }}>
               Otter
             </span>
