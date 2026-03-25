@@ -15,6 +15,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { EncryptedText } from "@/components/ui/encrypted-text";
 import { ScrambleText } from "@/components/ui/scramble-text";
+import { TextLoop } from "@/components/ui/text-loop";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
   Zap,
@@ -251,22 +252,8 @@ export default function Landing() {
   const textMuted = isDark ? T.textMutedDark : T.textMutedLight;
   const border = isDark ? T.borderDark : T.borderLight;
 
-  /* ── Hero headline carousel ── */
-  const heroLines = [
-    "AI Coding Agents",
-    "Quantitative Strategies",
-    "Alpha Arena Rewards",
-    "Smart Factor Mining",
-  ];
-  const [heroIdx, setHeroIdx] = useState(0);
-  const [heroKey, setHeroKey] = useState(0);
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setHeroIdx((prev) => (prev + 1) % heroLines.length);
-      setHeroKey((k) => k + 1);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [heroLines.length]);
+  /* ── Hero headline text loop ── */
+  const heroLoopTexts = ["AI Coding", "Arena Rewards"];
 
   /* ── Scroll listener ── */
   useEffect(() => {
@@ -527,7 +514,7 @@ export default function Landing() {
             </span>
           </div>
 
-          {/* Display XL — auto-carousel every 5s */}
+          {/* Display XL — text loop */}
           <h1
             data-anim
             className="mx-auto max-w-3xl"
@@ -539,15 +526,12 @@ export default function Landing() {
               color: textHigh,
             }}
           >
-            Mine Alphas with
-            <br />
-            <EncryptedText
-              key={heroKey}
-              text={heroLines[heroIdx]}
-              encryptedClassName={isDark ? "text-[#818cf8]" : "text-[#a5b4fc]"}
-              revealedClassName={isDark ? "text-[#8B83F0]" : "text-[#4F47E6]"}
-              revealDelayMs={50}
-              animateOnMount
+            Mine Alphas with{" "}
+            <TextLoop
+              texts={heroLoopTexts}
+              interval={2500}
+              className=""
+              style={{ color: isDark ? "#818CF8" : "#4F47E6" }}
             />
           </h1>
 
