@@ -250,6 +250,23 @@ export default function Landing() {
   const textMuted = isDark ? T.textMutedDark : T.textMutedLight;
   const border = isDark ? T.borderDark : T.borderLight;
 
+  /* ── Hero headline carousel ── */
+  const heroLines = [
+    "AI Coding Agents",
+    "Quantitative Strategies",
+    "Alpha Arena Rewards",
+    "Smart Factor Mining",
+  ];
+  const [heroIdx, setHeroIdx] = useState(0);
+  const [heroKey, setHeroKey] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroIdx((prev) => (prev + 1) % heroLines.length);
+      setHeroKey((k) => k + 1);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [heroLines.length]);
+
   /* ── Scroll listener ── */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -509,7 +526,7 @@ export default function Landing() {
             </span>
           </div>
 
-          {/* Display XL */}
+          {/* Display XL — auto-carousel every 5s */}
           <h1
             data-anim
             className="mx-auto max-w-3xl"
@@ -524,7 +541,8 @@ export default function Landing() {
             Mine Alphas with
             <br />
             <EncryptedText
-              text="AI Coding Agents"
+              key={heroKey}
+              text={heroLines[heroIdx]}
               encryptedClassName={isDark ? "text-[#818cf8]" : "text-[#a5b4fc]"}
               revealedClassName={isDark ? "text-[#8B83F0]" : "text-[#4F47E6]"}
               revealDelayMs={50}
@@ -852,10 +870,7 @@ export default function Landing() {
                   className="text-3xl sm:text-4xl font-bold mb-1.5"
                   style={{
                     fontFamily: "'Geist Mono', monospace",
-                    background: T.neuralGradient,
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                    backgroundClip: "text",
+                    color: T.indigo,
                     letterSpacing: "-0.02em",
                     fontVariantNumeric: "tabular-nums",
                   }}
