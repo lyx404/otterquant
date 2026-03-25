@@ -1,9 +1,10 @@
 /**
  * TextLoop — GSAP-powered vertical text carousel
  * Animates between multiple text strings with vertical slide + blur transitions.
- * Uses a hidden sizer element to maintain stable container dimensions.
+ * Container width dynamically adapts to current text width via GSAP animation.
+ * Text is bottom-aligned with the surrounding baseline.
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import gsap from "gsap";
 
 interface TextLoopProps {
@@ -13,7 +14,7 @@ interface TextLoopProps {
   interval?: number;
   /** Additional className for the rotating text */
   className?: string;
-  /** Inline style for the rotating text */
+  /** Inline style for the container */
   style?: React.CSSProperties;
 }
 
@@ -25,10 +26,37 @@ export function TextLoop({
 }: TextLoopProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const isFirstRef = useRef(true);
+  const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
+  const measureRef = useRef<HTMLSpanElement>(null);
 
-  // Find the longest text for sizing
-  const longestText = texts.reduce((a, b) => (a.length > b.length ? a : b), "");
+  // Find the longest text for initial sizing
+  const longestText = useMemo(
+    () => texts.reduce((a, b) => (a.length > b.length ? a : b), ""),
+    [texts]
+  );
+
+  // Measure actual width of current text and animate container
+  const animateWidth = useCallback(() => {
+    const container = containerRef.current;
+    const textNode = textRef.current;
+    if (!container || !textNode) return;
+
+    // Use requestAnimationFrame to ensure text is rendered before measuring
+    requestAnimationFrame(() => {
+      const targetWidth = textNode.scrollWidth;
+
+      if (isFirstRef.current) {
+        gsap.set(container, { width: targetWidth });
+      } else {
+        gsap.to(container, {
+          width: targetWidth,
+          duration: 0.35,
+          ease: "power2.inOut",
+        });
+      }
+    });
+  }, []);
 
   // Transition animation when index changes
   useEffect(() => {
@@ -37,11 +65,12 @@ export function TextLoop({
 
     if (isFirstRef.current) {
       gsap.set(node, { yPercent: 0, opacity: 1, filter: "blur(0px)" });
+      animateWidth();
       isFirstRef.current = false;
       return;
     }
 
-    // Animate in
+    // Animate in new text
     gsap.fromTo(
       node,
       { yPercent: 50, opacity: 0, filter: "blur(8px)" },
@@ -49,12 +78,14 @@ export function TextLoop({
         yPercent: 0,
         opacity: 1,
         filter: "blur(0px)",
-        duration: 0.4,
-        delay: 0.1,
+        duration: 0.3,
+        delay: 0.25,
         ease: "back.out(1.2)",
       }
     );
-  }, [currentIndex]);
+
+    animateWidth();
+  }, [currentIndex, animateWidth]);
 
   // Interval loop with exit animation
   useEffect(() => {
@@ -62,25 +93,27 @@ export function TextLoop({
       if (document.hidden) return;
 
       const node = textRef.current;
-      if (node) {
-        // Clone for exit animation
-        const parent = node.parentElement;
-        if (parent) {
-          const clone = node.cloneNode(true) as HTMLSpanElement;
-          clone.style.position = "absolute";
-          clone.style.top = "0";
-          clone.style.left = "0";
-          parent.appendChild(clone);
+      const container = containerRef.current;
+      if (node && container) {
+        // Freeze container width before exit
+        container.style.width = `${container.offsetWidth}px`;
 
-          gsap.to(clone, {
-            yPercent: -50,
-            opacity: 0,
-            filter: "blur(6px)",
-            duration: 0.3,
-            ease: "power2.in",
-            onComplete: () => clone.remove(),
-          });
-        }
+        // Clone for exit animation
+        const clone = node.cloneNode(true) as HTMLSpanElement;
+        clone.style.position = "absolute";
+        clone.style.top = "0";
+        clone.style.left = "0";
+        clone.style.width = "auto";
+        container.appendChild(clone);
+
+        gsap.to(clone, {
+          yPercent: -50,
+          opacity: 0,
+          filter: "blur(6px)",
+          duration: 0.2,
+          ease: "power2.in",
+          onComplete: () => clone.remove(),
+        });
       }
 
       setCurrentIndex((prev) => (prev + 1) % texts.length);
@@ -91,24 +124,27 @@ export function TextLoop({
 
   return (
     <span
-      className="relative inline-block align-baseline"
+      ref={containerRef}
+      className="relative inline-block align-bottom"
       style={{
-        overflow: "hidden",
-        clipPath: "inset(-10% 0 -10% 0)",
-        verticalAlign: "baseline",
+        clipPath: "inset(-100vh 0 -100vh 0)",
+        marginTop: "10px",
+        paddingTop: "9px",
+        overflow: "visible",
         ...style,
       }}
     >
-      {/* Invisible sizer: takes up space of the longest text */}
+      {/* Hidden measurer: renders longest text to establish minimum height */}
       <span
+        ref={measureRef}
         aria-hidden="true"
-        className={`invisible whitespace-nowrap ${className}`}
-        style={{ display: "inline-block" }}
+        className={`invisible inline-block w-0 whitespace-nowrap ${className}`}
+        style={{ overflow: "hidden" }}
       >
         {longestText}
       </span>
 
-      {/* Visible animated text, positioned absolutely over the sizer */}
+      {/* Visible animated text, absolutely positioned */}
       <span
         ref={textRef}
         className={`whitespace-nowrap ${className}`}

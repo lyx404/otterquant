@@ -517,7 +517,7 @@ export default function Landing() {
           {/* Display XL — text loop */}
           <h1
             data-anim
-            className="mx-auto max-w-3xl whitespace-nowrap"
+            className="mx-auto whitespace-nowrap flex items-baseline justify-center gap-[0.25em]"
             style={{
               fontSize: "clamp(2.5rem, 6vw, 4rem)",
               fontWeight: 700,
@@ -526,7 +526,7 @@ export default function Landing() {
               color: textHigh,
             }}
           >
-            My Alpha with{" "}
+            <span>My Alpha with</span>
             <TextLoop
               texts={heroLoopTexts}
               interval={2500}
