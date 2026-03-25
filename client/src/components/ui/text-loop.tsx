@@ -128,7 +128,7 @@ export function TextLoop({
       className="relative inline-block align-bottom"
       style={{
         clipPath: "inset(-100vh 0 -100vh 0)",
-        marginTop: "10px",
+        marginTop: "22px",
         paddingTop: "9px",
         overflow: "visible",
         ...style,

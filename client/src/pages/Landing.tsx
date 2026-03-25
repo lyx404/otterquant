@@ -253,7 +253,7 @@ export default function Landing() {
   const border = isDark ? T.borderDark : T.borderLight;
 
   /* ── Hero headline text loop ── */
-  const heroLoopTexts = ["AI Coding", "Arena Rewards"];
+  const heroLoopTexts = ["AI Coding", "Rewards"];
 
   /* ── Scroll listener ── */
   useEffect(() => {
