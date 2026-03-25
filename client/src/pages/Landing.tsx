@@ -14,6 +14,7 @@ import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { EncryptedText } from "@/components/ui/encrypted-text";
+import { ScrambleText } from "@/components/ui/scramble-text";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
   Zap,
@@ -875,7 +876,15 @@ export default function Landing() {
                     fontVariantNumeric: "tabular-nums",
                   }}
                 >
-                  {stat.value}
+                  <ScrambleText
+                    text={stat.value}
+                    scrambleDuration={0.5}
+                    stagger={0.02}
+                    cycles={10}
+                    characters="0123456789$%+."
+                    repeatInterval={5000}
+                    style={{ color: "inherit", font: "inherit" }}
+                  />
                 </p>
                 <p
                   className="text-[11px] font-medium uppercase"

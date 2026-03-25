@@ -104,6 +104,10 @@
   --sidebar-border: #E2E8F0;
   --sidebar-ring: #4F46E5;
 
+  /* Brand scramble effect */
+  --brand-scramble: #4F47E6;
+  --brand-glow: none;
+
   /* Elevation shadows — light */
   --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
   --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
@@ -149,6 +153,10 @@
   --sidebar-accent-foreground: #F8FAFC;
   --sidebar-border: #1E293B;
   --sidebar-ring: #818CF8;
+
+  /* Brand scramble effect — dark */
+  --brand-scramble: #818CF8;
+  --brand-glow: 0 0 10px rgba(79, 71, 230, 0.3);
 
   /* Elevation — dark: no shadows, use border + bg-step */
   --shadow-card: none;
