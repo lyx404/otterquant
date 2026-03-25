@@ -427,6 +427,34 @@ export const recentActivity = [
   { id: 8, type: "submit_failed", message: "Alpha 'XRP Whale Tracker' submission failed — correlation too high (0.92)", time: "6 hours ago", icon: "x" },
 ];
 
+// --- Notifications / Messages ---
+export interface Notification {
+  id: number;
+  type: "alpha_test_result" | "epoch_reward";
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  // For alpha_test_result: link to /alphas with factorId
+  factorId?: string;
+  factorName?: string;
+  testResult?: "passed" | "failed";
+  // For epoch_reward: link to /leaderboard with epochId
+  epochId?: string;
+  rewardAmount?: string;
+}
+
+export const notifications: Notification[] = [
+  { id: 1, type: "alpha_test_result", title: "Test Passed", message: "BTC Momentum RSI Cross passed OS testing with Sharpe 1.15", time: "5 min ago", read: false, factorId: "AF-001", factorName: "BTC Momentum RSI Cross", testResult: "passed" },
+  { id: 2, type: "epoch_reward", title: "Reward Distributed", message: "Round 3 rewards distributed — you earned 720 USDT", time: "1 hour ago", read: false, epochId: "Round 3", rewardAmount: "720 USDT" },
+  { id: 3, type: "alpha_test_result", title: "Test Failed", message: "DeFi TVL Alpha failed IS testing — Sharpe below threshold", time: "2 hours ago", read: false, factorId: "AF-003", factorName: "DeFi TVL Alpha", testResult: "failed" },
+  { id: 4, type: "epoch_reward", title: "Reward Distributed", message: "Round 2 rewards distributed — you earned 450 USDT", time: "3 hours ago", read: true, epochId: "Round 2", rewardAmount: "450 USDT" },
+  { id: 5, type: "alpha_test_result", title: "Test Passed", message: "Cross-Exchange Spread passed all tests with Sharpe 1.85", time: "5 hours ago", read: true, factorId: "AF-004", factorName: "Cross-Exchange Spread", testResult: "passed" },
+  { id: 6, type: "alpha_test_result", title: "Test Failed", message: "Uniswap LP Flow failed OS testing — high drawdown", time: "8 hours ago", read: true, factorId: "AF-006", factorName: "Uniswap LP Flow", testResult: "failed" },
+  { id: 7, type: "epoch_reward", title: "Reward Distributed", message: "Round 1 rewards distributed — you earned 310 USDT", time: "1 day ago", read: true, epochId: "Round 1", rewardAmount: "310 USDT" },
+  { id: 8, type: "alpha_test_result", title: "Test Passed", message: "OI Delta Momentum passed OS testing with Sharpe 1.55", time: "1 day ago", read: true, factorId: "AF-009", factorName: "OI Delta Momentum", testResult: "passed" },
+];
+
 // --- Correlation Data ---
 export const correlationData = {
   selfCorrelation: { maximum: 0.85, minimum: -0.12 },

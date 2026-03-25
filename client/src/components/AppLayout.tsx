@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import NotificationPanel from "@/components/NotificationPanel";
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -147,6 +148,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
               {!isAuthPage && (
                 <>
+                  {isAuthenticated && <NotificationPanel />}
                   {isAuthenticated ? (
                     /* User Info — clickable, links to Account page */
                     <div className="flex items-center gap-2">
