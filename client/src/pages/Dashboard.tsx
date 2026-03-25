@@ -32,8 +32,6 @@ import {
   Clock,
 } from "lucide-react";
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
-import { ShineBorder } from "@/components/ShineBorder";
-import { useTheme } from "@/contexts/ThemeContext";
 
 const statCards = [
   { label: "TOTAL ALPHAS", value: dashboardStats.totalFactors.toString(), sub: `${dashboardStats.activeFactors} active`, icon: FlaskConical, highlight: false },
@@ -155,8 +153,6 @@ export default function Dashboard() {
   const statsRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
   const countdown = useCountdown(currentEpoch.timeRemaining);
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
 
   useEffect(() => {
     if (!headerRef.current) return;
@@ -209,17 +205,11 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════
           1. CURRENT EPOCH — Single Banner Entry
           ═══════════════════════════════════════════ */}
-      <ShineBorder
-        borderRadius={16}
-        borderWidth={1.5}
-        duration={8}
-        shineColor={isDark ? ["#4f47e6", "#a855f7", "#ffffff"] : ["#818cf8", "#a78bfa", "#93c5fd"]}
+      <div
+        ref={bannerRef}
+        className="surface-card overflow-hidden border-primary/20 dark:border-primary/30"
       >
-        <div
-          ref={bannerRef}
-          className="overflow-hidden rounded-[14.5px]"
-        >
-          <div className="flex items-center justify-between px-6 py-5 gap-6 flex-wrap">
+        <div className="flex items-center justify-between px-6 py-5 gap-6 flex-wrap">
           {/* Left: Epoch identity */}
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
@@ -275,8 +265,7 @@ export default function Dashboard() {
             </Button>
           </Link>
         </div>
-        </div>
-      </ShineBorder>
+      </div>
 
       {/* ═══════════════════════════════════════════
           3. STATS — Single fused module → My Alphas
