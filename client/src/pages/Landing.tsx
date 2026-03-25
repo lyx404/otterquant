@@ -526,7 +526,7 @@ export default function Landing() {
               color: textHigh,
             }}
           >
-            Mine Alphas with{" "}
+            My Alpha with{" "}
             <TextLoop
               texts={heroLoopTexts}
               interval={2500}
@@ -537,7 +537,7 @@ export default function Landing() {
 
           <p
             data-anim
-            className="mx-auto max-w-lg mt-6 mb-10"
+            className="mx-auto max-w-2xl mt-6 mb-10"
             style={{
               fontSize: "0.9375rem",
               lineHeight: 1.6,
@@ -849,7 +849,7 @@ export default function Landing() {
       >
         <div className="mx-auto max-w-[1120px] px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-            {stats.map((stat) => (
+            {stats.map((stat, idx) => (
               <div key={stat.label} data-reveal className="text-center">
                 <p
                   className="text-3xl sm:text-4xl font-bold mb-1.5"
@@ -867,6 +867,7 @@ export default function Landing() {
                     cycles={10}
                     characters="0123456789$%+."
                     repeatInterval={5000}
+                    initialDelay={800 + idx * 50}
                     style={{ color: "inherit", font: "inherit" }}
                   />
                 </p>

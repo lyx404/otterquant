@@ -21,6 +21,8 @@ interface ScrambleTextProps {
   characters?: string;
   /** Auto-repeat interval in milliseconds (0 = no repeat) */
   repeatInterval?: number;
+  /** Initial delay before first scramble in ms */
+  initialDelay?: number;
   /** Additional className for the wrapper span */
   className?: string;
   /** Inline style to preserve existing styling */
@@ -34,6 +36,7 @@ export function ScrambleText({
   cycles = 10,
   characters = "01$&#%@*+=-",
   repeatInterval = 5000,
+  initialDelay = 800,
   className = "",
   style,
 }: ScrambleTextProps) {
@@ -138,8 +141,8 @@ export function ScrambleText({
   useEffect(() => {
     if (repeatInterval <= 0) return;
 
-    // Run initial scramble after a short delay
-    const initialTimer = setTimeout(runScramble, 800);
+    // Run initial scramble after configured delay
+    const initialTimer = setTimeout(runScramble, initialDelay);
 
     const interval = setInterval(runScramble, repeatInterval);
 
