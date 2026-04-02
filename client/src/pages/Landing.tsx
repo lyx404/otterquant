@@ -496,7 +496,7 @@ export default function Landing() {
           className="absolute pointer-events-none"
           style={{
             top: "30%",
-            left: "50%",
+            left: "30%",
             transform: "translate(-50%, -50%)",
             width: "700px",
             height: "700px",
@@ -508,78 +508,157 @@ export default function Landing() {
 
         <div
           ref={heroRef}
-          className="relative mx-auto max-w-[1120px] px-6 pt-28 sm:pt-40 pb-24 sm:pb-36 text-center"
+          className="relative mx-auto max-w-[1120px] px-6 pt-28 sm:pt-36 pb-20 sm:pb-28"
         >
-          {/* Badge */}
-          <div
-            data-anim
-            className="inline-flex items-center gap-2 px-3 py-1.5 mb-8"
-            style={{
-              borderRadius: "8px",
-              background: isDark ? T.indigoGlow : T.indigoGlowLight,
-              border: `1px solid ${T.indigoBorder}`,
-            }}
-          >
-            <span
-              className="w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{ background: T.indigo }}
-            />
-            <span
-              className="text-[11px] font-medium uppercase"
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                color: T.indigo,
-                letterSpacing: "0.05em",
-              }}
-            >
-              AI-Driven Factor Factory
-            </span>
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* ── Left Column: Text Content ── */}
+            <div className="flex flex-col items-start">
+              {/* Badge */}
+              <div
+                data-anim
+                className="inline-flex items-center gap-2 px-3 py-1.5 mb-8"
+                style={{
+                  borderRadius: "8px",
+                  background: isDark ? T.indigoGlow : T.indigoGlowLight,
+                  border: `1px solid ${T.indigoBorder}`,
+                }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{ background: T.indigo }}
+                />
+                <span
+                  className="text-[11px] font-medium uppercase"
+                  style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    color: T.indigo,
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  AI-Driven Factor Factory
+                </span>
+              </div>
 
-          {/* Display XL — text loop */}
-          <h1
-            data-anim
-            className="mx-auto flex flex-wrap items-baseline justify-center gap-[0.25em]"
-            style={{
-              fontSize: "clamp(2rem, 4.5vw, 3.25rem)",
-              fontWeight: 700,
-              lineHeight: 1.1,
-              letterSpacing: "-0.04em",
-              color: textHigh,
-            }}
-          >
-            <span>Conversations into</span>
-            <TextLoop
-              texts={heroLoopTexts}
-              interval={2500}
-              className=""
-              style={{ color: isDark ? "#818CF8" : "#4F47E6" }}
-            />
-          </h1>
+              {/* Display XL — text loop */}
+              <h1
+                data-anim
+                className="flex flex-wrap items-baseline gap-[0.25em]"
+                style={{
+                  fontSize: "clamp(2rem, 4.5vw, 3.25rem)",
+                  fontWeight: 700,
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.04em",
+                  color: textHigh,
+                }}
+              >
+                <span>Conversations into</span>
+                <TextLoop
+                  texts={heroLoopTexts}
+                  interval={2500}
+                  className=""
+                  style={{ color: isDark ? "#818CF8" : "#4F47E6" }}
+                />
+              </h1>
 
-          <p
-            data-anim
-            className="mx-auto max-w-2xl mt-6 mb-10"
-            style={{
-              fontSize: "0.9375rem",
-              lineHeight: 1.6,
-              color: textMuted,
-            }}
-          >
-            Bridge the gap between Generative AI and professional quantitative research.
-            Deploy our Quant-Skills to your favorite AI (ChatGPT / Claude / DeepSeek) to
-            automatically sync, backtest, and monetize your trading signals.
-          </p>
+              <p
+                data-anim
+                className="max-w-lg mt-6 mb-10"
+                style={{
+                  fontSize: "0.9375rem",
+                  lineHeight: 1.7,
+                  color: textMuted,
+                }}
+              >
+                Bridge the gap between Generative AI and professional quantitative research.
+                Deploy our Quant-Skills to your favorite AI (ChatGPT / Claude / DeepSeek) to
+                automatically sync, backtest, and monetize your trading signals.
+              </p>
 
-          {/* CTA */}
-          <div data-anim className="flex flex-wrap justify-center gap-3">
-            <IndigoButton onClick={handleCTA}>
-              Get Your Skill Key
-              <ArrowRight className="w-4 h-4" />
-            </IndigoButton>
-            <IndigoButton variant="ghost" onClick={handleExplorePrize}>
-              Explore Prize Pools
-            </IndigoButton>
+              {/* CTA */}
+              <div data-anim className="flex flex-wrap gap-3 mb-10">
+                <IndigoButton onClick={handleCTA}>
+                  Get Your Skill Key
+                  <ArrowRight className="w-4 h-4" />
+                </IndigoButton>
+                <IndigoButton variant="ghost" onClick={handleExplorePrize}>
+                  Explore Prize Pools
+                </IndigoButton>
+              </div>
+
+              {/* Works with */}
+              <div data-anim className="flex flex-col gap-3">
+                <span
+                  className="text-[11px] font-medium uppercase"
+                  style={{
+                    fontFamily: "'Geist Mono', monospace",
+                    color: textMuted,
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Works with
+                </span>
+                <div className="flex items-center gap-3">
+                  {[
+                    { name: "ChatGPT", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M20.562 10.188c.25-.688.313-1.376.25-2.063c-.062-.687-.312-1.375-.625-2c-.562-.937-1.375-1.687-2.312-2.125c-1-.437-2.063-.562-3.125-.312c-.5-.5-1.063-.938-1.688-1.25S11.687 2 11 2a5.17 5.17 0 0 0-3 .938c-.875.624-1.5 1.5-1.813 2.5c-.75.187-1.375.5-2 .875c-.562.437-1 1-1.375 1.562c-.562.938-.75 2-.625 3.063a5.44 5.44 0 0 0 1.25 2.874a4.7 4.7 0 0 0-.25 2.063c.063.688.313 1.375.625 2c.563.938 1.375 1.688 2.313 2.125c1 .438 2.062.563 3.125.313c.5.5 1.062.937 1.687 1.25S12.312 22 13 22a5.17 5.17 0 0 0 3-.937c.875-.625 1.5-1.5 1.812-2.5a4.54 4.54 0 0 0 1.938-.875c.562-.438 1.062-.938 1.375-1.563c.562-.937.75-2 .625-3.062c-.125-1.063-.5-2.063-1.188-2.876m-7.5 10.5c-1 0-1.75-.313-2.437-.875c0 0 .062-.063.125-.063l4-2.312a.5.5 0 0 0 .25-.25a.57.57 0 0 0 .062-.313V11.25l1.688 1v4.625a3.685 3.685 0 0 1-3.688 3.813M5 17.25c-.438-.75-.625-1.625-.438-2.5c0 0 .063.063.125.063l4 2.312a.56.56 0 0 0 .313.063c.125 0 .25 0 .312-.063l4.875-2.812v1.937l-4.062 2.375A3.7 3.7 0 0 1 7.312 19c-1-.25-1.812-.875-2.312-1.75M3.937 8.563a3.8 3.8 0 0 1 1.938-1.626v4.751c0 .124 0 .25.062.312a.5.5 0 0 0 .25.25l4.875 2.813l-1.687 1l-4-2.313a3.7 3.7 0 0 1-1.75-2.25c-.25-.937-.188-2.062.312-2.937M17.75 11.75l-4.875-2.812l1.687-1l4 2.312c.625.375 1.125.875 1.438 1.5s.5 1.313.437 2.063a3.7 3.7 0 0 1-.75 1.937c-.437.563-1 1-1.687 1.25v-4.75c0-.125 0-.25-.063-.312c0 0-.062-.126-.187-.188m1.687-2.5s-.062-.062-.125-.062l-4-2.313c-.125-.062-.187-.062-.312-.062s-.25 0-.313.062L9.812 9.688V7.75l4.063-2.375c.625-.375 1.312-.5 2.062-.5c.688 0 1.375.25 2 .688c.563.437 1.063 1 1.313 1.625s.312 1.375.187 2.062m-10.5 3.5l-1.687-1V7.063c0-.688.187-1.438.562-2C8.187 4.438 8.75 4 9.375 3.688a3.37 3.37 0 0 1 2.062-.313c.688.063 1.375.375 1.938.813c0 0-.063.062-.125.062l-4 2.313a.5.5 0 0 0-.25.25c-.063.125-.063.187-.063.312zm.875-2L12 9.5l2.187 1.25v2.5L12 14.5l-2.188-1.25z"/></svg>' },
+                    { name: "Claude", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M16.765 5h-3.308l5.923 15h3.23zM7.226 5L1.38 20h3.308l1.307-3.154h6.154l1.23 3.077h3.309L10.688 5zm-.308 9.077l2-5.308l2.077 5.308z"/></svg>' },
+                    { name: "DeepSeek", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M23.75 4.927c-.245-.12-.34.108-.482.224c-.049.038-.09.087-.131.13c-.357.384-.773.634-1.315.604c-.796-.044-1.474.207-2.074.818c-.127-.754-.551-1.203-1.195-1.492c-.338-.15-.68-.3-.915-.626c-.165-.231-.21-.49-.293-.744c-.052-.153-.105-.31-.28-.337c-.192-.03-.266.13-.341.265c-.3.55-.416 1.158-.406 1.772c.027 1.382.608 2.482 1.762 3.266c.132.09.166.18.124.311c-.079.27-.172.531-.255.8c-.052.173-.13.211-.314.135A5.3 5.3 0 0 1 15.97 8.92c-.82-.797-1.563-1.677-2.489-2.366a11 11 0 0 0-.66-.454c-.944-.922.125-1.679.372-1.768c.259-.093.09-.416-.747-.412c-.835.004-1.6.285-2.574.659c-.143.057-.326.153-.446.13a9.2 9.2 0 0 0-2.763-.096c-1.806.203-3.25 1.06-4.31 2.525c-1.275 1.76-1.574 3.759-1.207 5.846c.385 2.197 1.502 4.019 3.22 5.442c1.78 1.474 3.83 2.197 6.169 2.058c1.42-.081 3.003-.273 4.786-1.789c.45.224.922.313 1.707.381c.603.057 1.184-.03 1.634-.123c.704-.15.655-.804.4-.926c-2.065-.966-1.612-.573-2.024-.89c1.05-1.248 2.632-2.544 3.25-6.741c.049-.334.007-.543 0-.814c-.003-.163.034-.228.22-.247a4 4 0 0 0 1.482-.457c1.338-.734 1.867-1.939 1.995-3.385c.019-.22-.004-.45-.236-.565m-11.652 13.01c-2.002-1.58-2.972-2.1-3.373-2.078c-.375.021-.308.452-.225.733c.086.277.198.468.356.711c.109.162.184.402-.108.58c-.645.403-1.766-.134-1.82-.16c-1.303-.77-2.394-1.79-3.163-3.182c-.741-1.342-1.172-2.78-1.243-4.315c-.02-.372.09-.503.456-.57a4.5 4.5 0 0 1 1.466-.037c2.043.3 3.782 1.218 5.24 2.67c.832.829 1.462 1.817 2.11 2.783c.69 1.027 1.432 2.004 2.377 2.804c.333.281.6.495.854.653c-.768.085-2.05.104-2.927-.592m.96-6.199a.294.294 0 1 1 .588 0a.294.294 0 0 1-.296.296a.29.29 0 0 1-.293-.296m2.98 1.537c-.192.078-.383.146-.566.154a1.2 1.2 0 0 1-.765-.245c-.262-.22-.45-.343-.53-.73a1.7 1.7 0 0 1 .016-.566c.068-.315-.008-.516-.228-.7c-.18-.15-.408-.19-.66-.19a.5.5 0 0 1-.244-.076c-.105-.053-.191-.184-.109-.345a1 1 0 0 1 .185-.201c.34-.195.734-.13 1.098.015c.337.139.592.393.959.752c.375.434.442.555.656.88c.168.256.323.518.428.818c.063.186-.02.34-.24.434"/></svg>' },
+                    { name: "Cursor", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M11.503.131L1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>' },
+                    { name: "Windsurf", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M23.55 5.067a2.177 2.177 0 0 0-2.18 2.177v4.867a1.77 1.77 0 0 1-1.76 1.76a1.82 1.82 0 0 1-1.472-.766l-4.971-7.1a2.2 2.2 0 0 0-1.81-.942c-1.134 0-2.154.964-2.154 2.153v4.896c0 .972-.797 1.76-1.76 1.76c-.57 0-1.136-.287-1.472-.766L.408 5.16A.224.224 0 0 0 0 5.288v4.245c0 .215.066.423.188.6l5.475 7.818c.324.462.8.805 1.351.93a2.164 2.164 0 0 0 2.645-2.098V11.89c0-.972.787-1.76 1.76-1.76h.002a1.8 1.8 0 0 1 1.472.766l4.972 7.1a2.172 2.172 0 0 0 3.96-1.212v-4.895a1.76 1.76 0 0 1 1.76-1.76h.195a.22.22 0 0 0 .22-.22V5.287a.22.22 0 0 0-.22-.22Z"/></svg>' },
+                  ].map((ai) => (
+                    <div
+                      key={ai.name}
+                      className="flex items-center justify-center w-9 h-9 rounded-lg transition-all hover:scale-110 cursor-default"
+                      style={{
+                        background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                        border: `1px solid ${border}`,
+                        color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)",
+                      }}
+                      title={ai.name}
+                      dangerouslySetInnerHTML={{ __html: ai.svg }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── Right Column: Dynamic Visual ── */}
+            <div data-anim className="relative flex items-center justify-center">
+              <div
+                className="relative w-full overflow-hidden"
+                style={{
+                  borderRadius: "16px",
+                  border: `1px solid ${isDark ? T.indigoBorder : T.borderLight}`,
+                  background: isDark ? T.containerDark : T.containerLight,
+                  aspectRatio: "4 / 3",
+                }}
+              >
+                {/* Decorative glow behind the card */}
+                <div
+                  className="absolute -inset-4 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(ellipse at center, ${isDark ? "rgba(79,71,230,0.12)" : "rgba(79,71,230,0.06)"} 0%, transparent 70%)`,
+                    filter: "blur(40px)",
+                    zIndex: 0,
+                  }}
+                />
+                {/* Dashboard preview image */}
+                <img
+                  src={HERO_BG}
+                  alt="Otter Platform Preview"
+                  className="relative z-10 w-full h-full object-cover"
+                  style={{ opacity: 0.9 }}
+                />
+                {/* Subtle overlay gradient */}
+                <div
+                  className="absolute inset-0 z-20 pointer-events-none"
+                  style={{
+                    background: isDark
+                      ? "linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.4) 100%)"
+                      : "linear-gradient(180deg, transparent 60%, rgba(255,255,255,0.3) 100%)",
+                  }}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
