@@ -13,24 +13,22 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { EncryptedText } from "@/components/ui/encrypted-text";
 import { ScrambleText } from "@/components/ui/scramble-text";
 import { TextLoop } from "@/components/ui/text-loop";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
-  Zap,
   ArrowRight,
-  FlaskConical,
+  MessageSquare,
+  BarChart3,
   Trophy,
-  Bot,
-  TrendingUp,
   Shield,
-  Download,
-  Sun,
-  Moon,
+  Zap,
+  Lock,
+  Database,
   Terminal,
-  Cpu,
-  Sparkles,
+  RefreshCw,
+  CheckCircle,
+  Award,
 } from "lucide-react";
 
 /* ── CDN Assets ── */
@@ -45,7 +43,6 @@ const IMG_DEPLOY =
 
 /* ── Design Tokens ── */
 const T = {
-  // Dark
   indigo: "#4F47E6",
   indigoGlow: "rgba(79, 71, 230, 0.15)",
   indigoGlowSubtle: "rgba(79, 71, 230, 0.08)",
@@ -57,7 +54,6 @@ const T = {
   borderDark: "rgba(255, 255, 255, 0.06)",
   textHighDark: "#FFFFFF",
   textMutedDark: "#707070",
-  // Light
   surfaceLight: "#FFFFFF",
   containerLight: "#F5F5F7",
   borderLight: "rgba(0, 0, 0, 0.06)",
@@ -66,82 +62,109 @@ const T = {
   indigoGlowLight: "rgba(79, 71, 230, 0.08)",
 };
 
-/* ── Easing ── */
 const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 
-/* ── Steps data ── */
-const steps = [
+/* ── Workflow Steps (Section IV) ── */
+const workflowSteps = [
   {
     num: "01",
-    title: "Install AI Agent Skill",
-    desc: "Load our pre-built skill into your Cursor or Claude Code IDE. The agent understands market microstructure and factor engineering out of the box.",
+    title: "Deploy Skill",
+    desc: "Obtain your unique AI Agent credentials from the dashboard. Load the optimized Quant-Skill into your favorite AI assistant.",
     icon: Terminal,
   },
   {
     num: "02",
-    title: "Mine & Backtest Alphas",
-    desc: "Describe your trading intuition in natural language. The AI agent writes, tests, and iterates on quantitative factors automatically.",
-    icon: Cpu,
+    title: "Iterate via Chat",
+    desc: 'Ask your AI: "Generate a mean-reversion factor based on RSI divergence." The Skill template enforces standardized output schemas.',
+    icon: MessageSquare,
   },
   {
     num: "03",
-    title: "Compete & Earn",
-    desc: "Submit your best alphas to the Alpha Arena. Compete against other quants in periodic rounds, climb the leaderboard, and earn rewards.",
-    icon: Trophy,
+    title: "Instant Sync",
+    desc: "No manual coding required — the factor appears in your platform library in real-time, with pre-calculations against historical data.",
+    icon: RefreshCw,
+  },
+  {
+    num: "04",
+    title: "Validate & Win",
+    desc: "Filter for factors with Sharpe > 2.0 and submit to the global leaderboard to earn rewards.",
+    icon: CheckCircle,
   },
 ];
 
-/* ── Bento feature cards ── */
-const bentoCards = [
+/* ── Core Feature Modules (Section II) ── */
+const coreFeatures = [
   {
-    title: "AI-Powered Factor Mining",
-    desc: "Use natural language prompts to discover quantitative trading factors. Our AI agents handle the heavy lifting — from data processing to statistical validation.",
+    title: "NL2Factor Sync",
+    subtitle: "Seamless Cross-Platform Integration",
+    desc: "Copy our optimized Quant-Skill to your AI assistant. As you describe trading logic in natural language, the AI generates standardized factor expressions that sync instantly to your private cloud library via API.",
     img: IMG_MINING,
-    icon: FlaskConical,
+    icon: MessageSquare,
+    details: [
+      { label: "Input", text: 'Natural language prompts (e.g., "Find stocks with price momentum and decreasing volatility")' },
+      { label: "Processing", text: "The Skill template enforces the AI to output JSON/Expression schemas compatible with our engine" },
+      { label: "Output", text: "The platform automatically parses the expression and initiates pre-calculations against historical data" },
+    ],
   },
   {
-    title: "Alpha Arena",
-    desc: "Periodic competition rounds where quants submit their best alphas. Real-time leaderboards and reward distribution.",
+    title: "Alpha Dashboard",
+    subtitle: "Professional Portfolio Management",
+    desc: "Every synced factor receives a comprehensive Lifecycle Report. Transform scattered AI inspirations into structured, actionable quantitative assets.",
+    img: IMG_DEPLOY,
+    icon: BarChart3,
+    details: [
+      { label: "Predictive Power", text: "Automated IC/IR (Information Coefficient/Ratio) and T-Stats" },
+      { label: "Risk Metrics", text: "Sharpe Ratio, Turnover Rate, and Max Drawdown (MDD)" },
+      { label: "Version Control", text: "Track every iteration to prevent strategy drift and over-optimization" },
+    ],
+  },
+  {
+    title: "Alpha Competition",
+    subtitle: "Incentivized Ecosystem",
+    desc: "A crowdsourced alpha discovery engine that rewards high-quality, non-correlated signals. Submit your best factors to periodic tournaments validated using Out-of-Sample testing.",
     img: IMG_ARENA,
     icon: Trophy,
-  },
-  {
-    title: "Automated Deployment",
-    desc: "Connect exchange accounts and deploy winning strategies directly. Download strategy files or enable automated execution.",
-    img: IMG_DEPLOY,
-    icon: TrendingUp,
+    details: [
+      { label: "Ranking", text: "Ranked by risk-adjusted returns and decay stability" },
+      { label: "Prize Pool", text: "Top-tier participants share USDT/Cash prize pool every epoch" },
+      { label: "Incubation", text: "Elite factors qualify for the Seed Fund with performance fee-sharing (Carry)" },
+    ],
   },
 ];
 
 /* ── Stats ── */
 const stats = [
-  { value: "2,400+", label: "Alphas Mined" },
+  { value: "2,400+", label: "Factors Synced" },
   { value: "580+", label: "Active Quants" },
-  { value: "12", label: "Arena Rounds" },
+  { value: "12", label: "Arena Epochs" },
   { value: "99.8%", label: "Uptime" },
 ];
 
-/* ── Why Otter items ── */
-const whyItems = [
+/* ── Technical Moat (Section III) ── */
+const moatItems = [
   {
-    icon: Bot,
-    title: "Agent-Native",
-    desc: "Purpose-built for AI coding agents like Cursor and Claude Code.",
+    icon: Database,
+    dimension: "Data Integrity",
+    implementation: "Strict Point-in-Time data alignment",
+    value: "Eliminates look-ahead bias and ensures backtest validity.",
   },
   {
-    icon: Shield,
-    title: "Rigorous Validation",
-    desc: "In-sample and out-of-sample testing with Sharpe, returns, turnover metrics.",
+    icon: Zap,
+    dimension: "Execution Fidelity",
+    implementation: "Advanced matching engine with Slippage & commissions",
+    value: 'Prevents "Paper Alpha" that fails in real-world liquidity.',
   },
   {
-    icon: Download,
-    title: "Strategy Export",
-    desc: "Download strategy files or connect exchange accounts for automated execution.",
+    icon: BarChart3,
+    dimension: "Compute Power",
+    implementation: "High-performance Vectorized calculation engine",
+    value: "Enables rapid validation across high-frequency datasets.",
   },
   {
-    icon: Sparkles,
-    title: "Competitive Rewards",
-    desc: "Periodic Alpha Arena rounds with real rewards for top-performing strategies.",
+    icon: Lock,
+    dimension: "Privacy & IP",
+    implementation: "Non-asymmetric encryption for Skill transfers",
+    value: "Your proprietary Alpha logic remains confidential.",
   },
 ];
 
@@ -253,7 +276,7 @@ export default function Landing() {
   const border = isDark ? T.borderDark : T.borderLight;
 
   /* ── Hero headline text loop ── */
-  const heroLoopTexts = ["AI Coding", "Rewards"];
+  const heroLoopTexts = ["Tradable Alpha", "Quant Signals"];
 
   /* ── Scroll listener ── */
   useEffect(() => {
@@ -362,6 +385,8 @@ export default function Landing() {
   }, []);
 
   const handleCTA = () => navigate(isAuthenticated ? "/" : "/auth");
+  const handleExplorePrize = () =>
+    document.getElementById("alpha-competition")?.scrollIntoView({ behavior: "smooth" });
 
   return (
     <div
@@ -396,9 +421,8 @@ export default function Landing() {
       >
         <div className="mx-auto max-w-[1120px] px-6">
           <div className="flex h-14 items-center justify-between">
-            {/* Logo */}
             <Link href="/landing">
-              <div className="flex items-center gap-2.5 cursor-none">
+              <div className="flex items-center gap-2.5 cursor-pointer">
                 <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-8 h-8 rounded-full object-cover" />
                 <span className="font-semibold text-base tracking-tight" style={{ color: textHigh }}>
                   Otter
@@ -406,7 +430,6 @@ export default function Landing() {
               </div>
             </Link>
 
-            {/* Right */}
             <div className="flex items-center gap-2.5">
               <AnimatedThemeToggler
                 className="w-8 h-8 flex items-center justify-center transition-colors"
@@ -457,7 +480,7 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* ═══════════ PARTICLE BACKGROUND (full page) ═══════════ */}
+      {/* ═══════════ PARTICLE BACKGROUND ═══════════ */}
       <canvas
         ref={canvasRef}
         className="fixed top-0 left-0 w-full h-full pointer-events-none z-0"
@@ -467,9 +490,8 @@ export default function Landing() {
         }}
       />
 
-      {/* ═══════════ HERO ═══════════ */}
+      {/* ═══════════ HERO (Section I) ═══════════ */}
       <section className="relative pt-14 overflow-hidden">
-        {/* Radial indigo glow */}
         <div
           className="absolute pointer-events-none"
           style={{
@@ -510,23 +532,23 @@ export default function Landing() {
                 letterSpacing: "0.05em",
               }}
             >
-              AI-Powered Quant Platform
+              AI-Driven Factor Factory
             </span>
           </div>
 
           {/* Display XL — text loop */}
           <h1
             data-anim
-            className="mx-auto whitespace-nowrap flex items-baseline justify-center gap-[0.25em]"
+            className="mx-auto flex flex-wrap items-baseline justify-center gap-[0.25em]"
             style={{
-              fontSize: "clamp(2.5rem, 6vw, 4rem)",
+              fontSize: "clamp(2rem, 4.5vw, 3.25rem)",
               fontWeight: 700,
               lineHeight: 1.1,
               letterSpacing: "-0.04em",
               color: textHigh,
             }}
           >
-            <span>My Alpha with</span>
+            <span>Conversations into</span>
             <TextLoop
               texts={heroLoopTexts}
               interval={2500}
@@ -544,39 +566,31 @@ export default function Landing() {
               color: textMuted,
             }}
           >
-            Discover quantitative trading factors using natural language.
-            Compete in Alpha Arena, climb the leaderboard, and deploy
-            winning strategies to live markets.
+            Bridge the gap between Generative AI and professional quantitative research.
+            Deploy our Quant-Skills to your favorite AI (ChatGPT / Claude / DeepSeek) to
+            automatically sync, backtest, and monetize your trading signals.
           </p>
 
           {/* CTA */}
           <div data-anim className="flex flex-wrap justify-center gap-3">
             <IndigoButton onClick={handleCTA}>
-              Get Started
+              Get Your Skill Key
               <ArrowRight className="w-4 h-4" />
             </IndigoButton>
-            <IndigoButton
-              variant="ghost"
-              onClick={() =>
-                document
-                  .getElementById("how-it-works")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
-            >
-              How It Works
+            <IndigoButton variant="ghost" onClick={handleExplorePrize}>
+              Explore Prize Pools
             </IndigoButton>
           </div>
         </div>
       </section>
 
-      {/* ═══════════ HOW IT WORKS — 3 Steps ═══════════ */}
+      {/* ═══════════ WORKFLOW — 4 Steps (Section IV) ═══════════ */}
       <section
         id="how-it-works"
         className="py-24 sm:py-32"
         style={{ background: bg }}
       >
         <div className="mx-auto max-w-[1120px] px-6">
-          {/* Section header */}
           <div className="text-center mb-16" data-reveal>
             <p
               className="text-[11px] font-medium uppercase mb-3"
@@ -597,12 +611,12 @@ export default function Landing() {
                 color: textHigh,
               }}
             >
-              From idea to profit in three steps
+              From chat to profit in four steps
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {steps.map((step) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {workflowSteps.map((step) => {
               const Icon = step.icon;
               return (
                 <HoverCard key={step.num} isDark={isDark} className="p-6">
@@ -651,7 +665,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ═══════════ BENTO GRID — Core Features ═══════════ */}
+      {/* ═══════════ CORE FEATURES — 3 Modules (Section II) ═══════════ */}
       <section className="py-24 sm:py-32" style={{ background: bg }}>
         <div className="mx-auto max-w-[1120px] px-6">
           <div className="text-center mb-16" data-reveal>
@@ -674,19 +688,15 @@ export default function Landing() {
                 color: textHigh,
               }}
             >
-              Everything you need to mine, compete, and trade
+              Sync, manage, and compete — all in one platform
             </h2>
           </div>
 
-          {/* Bento: 2-col top (large + small), 1-col bottom full */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-            {/* Large card — AI Mining (3/5) */}
-            <HoverCard
-              isDark={isDark}
-              className="lg:col-span-3 overflow-hidden group"
-            >
-              <div data-reveal>
-                <div className="p-6 pb-0">
+          {/* Feature 1: NL2Factor Sync — Full width with IPO model */}
+          <div className="mb-5" data-reveal>
+            <HoverCard isDark={isDark} className="overflow-hidden group">
+              <div className="grid grid-cols-1 lg:grid-cols-2">
+                <div className="p-8">
                   <div
                     className="w-10 h-10 flex items-center justify-center mb-4"
                     style={{
@@ -694,33 +704,58 @@ export default function Landing() {
                       background: isDark ? T.indigoGlow : T.indigoGlowLight,
                     }}
                   >
-                    <FlaskConical
-                      className="w-5 h-5"
-                      style={{ color: T.indigo }}
-                    />
+                    <MessageSquare className="w-5 h-5" style={{ color: T.indigo }} />
                   </div>
-                  <h3
-                    className="text-lg font-semibold mb-2"
-                    style={{ color: textHigh, letterSpacing: "-0.01em" }}
-                  >
-                    {bentoCards[0].title}
-                  </h3>
                   <p
-                    className="max-w-md"
+                    className="text-[11px] font-medium uppercase mb-2"
                     style={{
-                      fontSize: "0.875rem",
-                      lineHeight: 1.6,
-                      color: textMuted,
+                      fontFamily: "'Geist Mono', monospace",
+                      color: T.indigo,
+                      letterSpacing: "0.05em",
                     }}
                   >
-                    {bentoCards[0].desc}
+                    {coreFeatures[0].subtitle}
                   </p>
+                  <h3
+                    className="text-lg font-semibold mb-3"
+                    style={{ color: textHigh, letterSpacing: "-0.01em" }}
+                  >
+                    {coreFeatures[0].title}
+                  </h3>
+                  <p
+                    className="mb-6"
+                    style={{ fontSize: "0.875rem", lineHeight: 1.6, color: textMuted }}
+                  >
+                    {coreFeatures[0].desc}
+                  </p>
+
+                  {/* IPO Model */}
+                  <div className="space-y-3">
+                    {coreFeatures[0].details.map((d) => (
+                      <div key={d.label} className="flex gap-3">
+                        <span
+                          className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-2 py-0.5 rounded"
+                          style={{
+                            background: isDark ? T.indigoGlow : T.indigoGlowLight,
+                            color: T.indigo,
+                            fontFamily: "'Geist Mono', monospace",
+                            letterSpacing: "0.05em",
+                          }}
+                        >
+                          {d.label}
+                        </span>
+                        <p style={{ fontSize: "0.8125rem", lineHeight: 1.5, color: textMuted }}>
+                          {d.text}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-6 px-6">
-                  <div style={{ borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
+                <div className="flex items-end p-6 pt-0 lg:pt-6">
+                  <div style={{ borderRadius: "10px", overflow: "hidden" }}>
                     <img
-                      src={bentoCards[0].img}
-                      alt={bentoCards[0].title}
+                      src={coreFeatures[0].img}
+                      alt={coreFeatures[0].title}
                       className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                       style={{ transitionTimingFunction: EASE }}
                       loading="lazy"
@@ -729,111 +764,85 @@ export default function Landing() {
                 </div>
               </div>
             </HoverCard>
+          </div>
 
-            {/* Right column — 2 stacked cards (2/5) */}
-            <div className="lg:col-span-2 flex flex-col gap-5">
-              {/* Arena */}
-              <HoverCard isDark={isDark} className="overflow-hidden group flex-1">
-                <div data-reveal>
-                  <div className="p-6 pb-0">
-                    <div
-                      className="w-10 h-10 flex items-center justify-center mb-4"
-                      style={{
-                        borderRadius: "8px",
-                        background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                      }}
-                    >
-                      <Trophy
-                        className="w-5 h-5"
-                        style={{ color: T.indigo }}
-                      />
-                    </div>
-                    <h3
-                      className="text-[15px] font-semibold mb-1.5"
-                      style={{ color: textHigh, letterSpacing: "-0.01em" }}
-                    >
-                      {bentoCards[1].title}
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: "0.8125rem",
-                        lineHeight: 1.6,
-                        color: textMuted,
-                      }}
-                    >
-                      {bentoCards[1].desc}
-                    </p>
-                  </div>
-                  <div className="mt-4 px-6">
-                    <div
-                      style={{
-                        borderRadius: "10px 10px 0 0",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <img
-                        src={bentoCards[1].img}
-                        alt={bentoCards[1].title}
-                        className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                        style={{ transitionTimingFunction: EASE }}
-                        loading="lazy"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </HoverCard>
+          {/* Feature 2 & 3: Side by side */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {coreFeatures.slice(1).map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <HoverCard key={feature.title} isDark={isDark} className="overflow-hidden group" >
+                  <div data-reveal>
+                    <div className="p-6 pb-0">
+                      <div
+                        className="w-10 h-10 flex items-center justify-center mb-4"
+                        style={{
+                          borderRadius: "8px",
+                          background: isDark ? T.indigoGlow : T.indigoGlowLight,
+                        }}
+                      >
+                        <Icon className="w-5 h-5" style={{ color: T.indigo }} />
+                      </div>
+                      <p
+                        className="text-[11px] font-medium uppercase mb-2"
+                        style={{
+                          fontFamily: "'Geist Mono', monospace",
+                          color: T.indigo,
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        {feature.subtitle}
+                      </p>
+                      <h3
+                        className="text-[15px] font-semibold mb-2"
+                        style={{ color: textHigh, letterSpacing: "-0.01em" }}
+                      >
+                        {feature.title}
+                      </h3>
+                      <p
+                        className="mb-4"
+                        style={{ fontSize: "0.8125rem", lineHeight: 1.6, color: textMuted }}
+                      >
+                        {feature.desc}
+                      </p>
 
-              {/* Deploy */}
-              <HoverCard isDark={isDark} className="overflow-hidden group flex-1">
-                <div data-reveal>
-                  <div className="p-6 pb-0">
-                    <div
-                      className="w-10 h-10 flex items-center justify-center mb-4"
-                      style={{
-                        borderRadius: "8px",
-                        background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                      }}
-                    >
-                      <TrendingUp
-                        className="w-5 h-5"
-                        style={{ color: T.indigo }}
-                      />
+                      {/* Detail bullets */}
+                      <div className="space-y-2 mb-4">
+                        {feature.details.map((d) => (
+                          <div key={d.label} className="flex gap-2.5">
+                            <span
+                              className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+                              style={{
+                                background: isDark ? T.indigoGlow : T.indigoGlowLight,
+                                color: T.indigo,
+                                fontFamily: "'Geist Mono', monospace",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              {d.label}
+                            </span>
+                            <p style={{ fontSize: "0.75rem", lineHeight: 1.5, color: textMuted }}>
+                              {d.text}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <h3
-                      className="text-[15px] font-semibold mb-1.5"
-                      style={{ color: textHigh, letterSpacing: "-0.01em" }}
-                    >
-                      {bentoCards[2].title}
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: "0.8125rem",
-                        lineHeight: 1.6,
-                        color: textMuted,
-                      }}
-                    >
-                      {bentoCards[2].desc}
-                    </p>
-                  </div>
-                  <div className="mt-4 px-6">
-                    <div
-                      style={{
-                        borderRadius: "10px 10px 0 0",
-                        overflow: "hidden",
-                      }}
-                    >
-                      <img
-                        src={bentoCards[2].img}
-                        alt={bentoCards[2].title}
-                        className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                        style={{ transitionTimingFunction: EASE }}
-                        loading="lazy"
-                      />
+                    <div className="px-6">
+                      <div style={{ borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
+                        <img
+                          src={feature.img}
+                          alt={feature.title}
+                          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                          style={{ transitionTimingFunction: EASE }}
+                          loading="lazy"
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </HoverCard>
-            </div>
+                </HoverCard>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -887,7 +896,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ═══════════ WHY OTTER — 4 cards ═══════════ */}
+      {/* ═══════════ TECHNICAL MOAT (Section III) ═══════════ */}
       <section className="py-24 sm:py-32" style={{ background: bg }}>
         <div className="mx-auto max-w-[1120px] px-6">
           <div className="text-center mb-16" data-reveal>
@@ -899,7 +908,7 @@ export default function Landing() {
                 letterSpacing: "0.05em",
               }}
             >
-              Why Otter
+              Technical Moat
             </p>
             <h2
               style={{
@@ -910,15 +919,15 @@ export default function Landing() {
                 color: textHigh,
               }}
             >
-              Built for the next generation of quants
+              Precision & reliability at every layer
             </h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {whyItems.map((item) => {
+            {moatItems.map((item) => {
               const Icon = item.icon;
               return (
-                <HoverCard key={item.title} isDark={isDark} className="p-5">
+                <HoverCard key={item.dimension} isDark={isDark} className="p-5">
                   <div data-reveal>
                     <div
                       className="w-9 h-9 flex items-center justify-center mb-3"
@@ -927,17 +936,25 @@ export default function Landing() {
                         background: isDark ? T.indigoGlow : T.indigoGlowLight,
                       }}
                     >
-                      <Icon
-                        className="w-4 h-4"
-                        style={{ color: T.indigo }}
-                      />
+                      <Icon className="w-4 h-4" style={{ color: T.indigo }} />
                     </div>
                     <h4
-                      className="text-sm font-semibold mb-1.5"
+                      className="text-sm font-semibold mb-1"
                       style={{ color: textHigh }}
                     >
-                      {item.title}
+                      {item.dimension}
                     </h4>
+                    <p
+                      className="mb-2"
+                      style={{
+                        fontSize: "0.8125rem",
+                        lineHeight: 1.5,
+                        color: T.indigo,
+                        fontFamily: "'Geist Mono', monospace",
+                      }}
+                    >
+                      {item.implementation}
+                    </p>
                     <p
                       style={{
                         fontSize: "0.8125rem",
@@ -945,7 +962,7 @@ export default function Landing() {
                         color: textMuted,
                       }}
                     >
-                      {item.desc}
+                      {item.value}
                     </p>
                   </div>
                 </HoverCard>
@@ -957,10 +974,10 @@ export default function Landing() {
 
       {/* ═══════════ CTA ═══════════ */}
       <section
+        id="alpha-competition"
         className="py-24 sm:py-32 relative overflow-hidden"
         style={{ background: bg }}
       >
-        {/* Ambient glow */}
         <div
           className="absolute pointer-events-none"
           style={{
@@ -987,23 +1004,23 @@ export default function Landing() {
               marginBottom: "12px",
             }}
           >
-            Ready to mine your first alpha?
+            Ready to turn conversations into alpha?
           </h2>
           <p
             data-reveal
-            className="mx-auto max-w-md mb-10"
+            className="mx-auto max-w-lg mb-10"
             style={{
               fontSize: "0.9375rem",
               lineHeight: 1.6,
               color: textMuted,
             }}
           >
-            Join the platform, install the AI agent skill, and start
-            discovering profitable trading factors today.
+            Deploy the Quant-Skill, start chatting with your AI, and watch
+            tradable factors sync to your library in real-time.
           </p>
           <div data-reveal>
             <IndigoButton onClick={handleCTA}>
-              {isAuthenticated ? "Go to Dashboard" : "Create Free Account"}
+              {isAuthenticated ? "Go to Dashboard" : "Get Your Skill Key"}
               <ArrowRight className="w-4 h-4" />
             </IndigoButton>
           </div>
