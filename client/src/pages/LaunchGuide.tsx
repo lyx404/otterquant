@@ -456,7 +456,7 @@ npm install && npm start`}
                         <item.icon className="w-4 h-4 text-primary" />
                         <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
                       </div>
-                      <div className="relative rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 mb-3">
+                      <div className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 mb-3">
                         <pre className="p-4 pr-12 text-xs font-mono leading-relaxed overflow-x-auto text-slate-800 dark:text-slate-100 whitespace-pre-wrap">
                           {item.prompt}
                         </pre>
@@ -702,7 +702,7 @@ function CodeBlock({
   code: string; id: string; copiedCode: string | null; onCopy: (code: string, id: string) => void;
 }) {
   return (
-    <div className="relative rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50">
+    <div className="relative rounded-2xl overflow-hidden bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50">
       <pre className="p-4 pr-12 text-xs font-mono leading-relaxed overflow-x-auto text-slate-800 dark:text-slate-100">
         {code}
       </pre>
