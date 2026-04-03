@@ -1,12 +1,12 @@
 /*
  * Landing Page — Otter Platform Introduction
- * Design System: "The Synthetic Neural" — Indigo Intelligence & Command Precision
- * Surface Base: #000000 dark / #FFFFFF light
- * Primary: #4F47E6 (Indigo) — the only chromatic accent
- * Typography: Geist + Inter + Geist Mono
- * Borders: 1px rgba(255,255,255,0.06) → hover rgba(79,71,230,0.4)
- * Max border-radius: 12px
- * Easing: cubic-bezier(0.16, 1, 0.3, 1)
+ * Design System: "The Obsidian Shield" — Neuro-morphic Security Visual Language
+ * Surface Base: #0B0E11 dark / #FFFFFF light
+ * Primary: #00FAD9 (Cyber Green) — the only chromatic accent
+ * Typography: Space Grotesk (display) + Inter (body) + Roboto Mono (data)
+ * Borders: 1px rgba(255,255,255,0.05) ghost borders
+ * Radius: unified 12px
+ * Easing: cubic-bezier(0.4, 0, 0.2, 1) 250ms
  * Landing has its OWN nav (not AppLayout)
  */
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -47,30 +47,34 @@ const IMG_ARENA =
 const IMG_DEPLOY =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/indigo-feature-deploy-kmY3yFB94jLwDy7MwSrQkH.webp";
 
-/* ── Design Tokens ── */
+/* ── Design Tokens — Obsidian Shield ── */
 const T = {
-  indigo: "#4F47E6",
-  indigoGlow: "rgba(79, 71, 230, 0.15)",
-  indigoGlowSubtle: "rgba(79, 71, 230, 0.08)",
-  indigoBorder: "rgba(79, 71, 230, 0.4)",
-  indigoShadow: "0 0 20px rgba(79, 71, 230, 0.2)",
-  neuralGradient: "linear-gradient(135deg, #4F47E6 0%, #312E81 100%)",
-  surfaceDark: "#000000",
-  containerDark: "#121212",
-  borderDark: "rgba(255, 255, 255, 0.06)",
+  // Primary — Cyber Green
+  primary: "#00FAD9",
+  primaryMuted: "#00C4AA",
+  primaryGlow: "rgba(0, 250, 217, 0.15)",
+  primaryGlowSubtle: "rgba(0, 250, 217, 0.08)",
+  primaryBorder: "rgba(0, 250, 217, 0.4)",
+  primaryShadow: "0 0 20px rgba(0, 250, 217, 0.2)",
+  energyGradient: "linear-gradient(135deg, #00FAD9 0%, #00C4AA 100%)",
+  // Surfaces — Dark
+  surfaceDark: "#0B0E11",
+  containerDark: "#161A1E",
+  borderDark: "rgba(255, 255, 255, 0.05)",
   textHighDark: "#FFFFFF",
-  textMutedDark: "#707070",
+  textMutedDark: "rgba(255, 255, 255, 0.6)",
+  // Surfaces — Light
   surfaceLight: "#FFFFFF",
-  containerLight: "#F5F5F7",
-  borderLight: "rgba(0, 0, 0, 0.06)",
-  textHighLight: "#1A1A1E",
-  textMutedLight: "#86868B",
-  indigoGlowLight: "rgba(79, 71, 230, 0.08)",
+  containerLight: "#F5F7FA",
+  borderLight: "rgba(0, 0, 0, 0.08)",
+  textHighLight: "#0B0E11",
+  textMutedLight: "#5A6270",
+  primaryGlowLight: "rgba(0, 196, 170, 0.08)",
 };
 
-const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
+const EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
 
-/* ── Workflow Steps (Section IV) ── */
+/* ── Workflow Steps ── */
 const workflowSteps = [
   {
     num: "01",
@@ -98,7 +102,7 @@ const workflowSteps = [
   },
 ];
 
-/* ── Core Feature Modules (Section II) ── */
+/* ── Core Feature Modules ── */
 const coreFeatures = [
   {
     title: "NL2Factor Sync",
@@ -146,7 +150,7 @@ const stats = [
   { value: "99.8%", label: "Uptime" },
 ];
 
-/* ── Technical Moat (Section III) ── */
+/* ── Technical Moat ── */
 const moatItems = [
   {
     icon: Database,
@@ -174,8 +178,8 @@ const moatItems = [
   },
 ];
 
-/* ── Ripple Button Component ── */
-function IndigoButton({
+/* ── CTA Button — Obsidian Shield ── */
+function CTAButton({
   children,
   onClick,
   variant = "filled",
@@ -198,7 +202,7 @@ function IndigoButton({
         const ripple = document.createElement("span");
         ripple.style.cssText = `
           position:absolute;left:${x}px;top:${y}px;width:0;height:0;
-          border-radius:50%;background:rgba(79,71,230,0.35);
+          border-radius:50%;background:rgba(0,250,217,0.3);
           transform:translate(-50%,-50%);pointer-events:none;
           animation:indigo-ripple 300ms ${EASE} forwards;
         `;
@@ -216,18 +220,17 @@ function IndigoButton({
     <button
       ref={btnRef}
       onClick={handleClick}
-      className={`relative overflow-hidden inline-flex items-center gap-2 font-semibold transition-all ${className}`}
+      className={`relative overflow-hidden inline-flex items-center gap-2 font-semibold btn-bounce ${className}`}
       style={{
         height: "44px",
         padding: "0 28px",
-        borderRadius: "8px",
+        borderRadius: "12px",
         fontSize: "14px",
-        background: isFilled ? T.indigo : "transparent",
-        color: isFilled ? "#FFFFFF" : T.indigo,
-        border: isFilled ? "none" : `1px solid ${T.indigo}`,
-        boxShadow: isFilled ? T.indigoShadow : "none",
-        transitionTimingFunction: EASE,
-        transitionDuration: "200ms",
+        background: isFilled ? T.primary : "transparent",
+        color: isFilled ? "#0B0E11" : T.primary,
+        border: isFilled ? "none" : `1px solid ${T.primaryBorder}`,
+        boxShadow: isFilled ? T.primaryShadow : "none",
+        fontWeight: 600,
       }}
     >
       {children}
@@ -235,7 +238,7 @@ function IndigoButton({
   );
 }
 
-/* ── Hover Card Wrapper ── */
+/* ── Hover Card — Glassmorphism ── */
 function HoverCard({
   children,
   className = "",
@@ -253,10 +256,15 @@ function HoverCard({
       style={{
         borderRadius: "12px",
         background: isDark ? T.containerDark : T.containerLight,
-        border: `1px solid ${hovered ? T.indigoBorder : isDark ? T.borderDark : T.borderLight}`,
-        boxShadow: hovered ? T.indigoShadow : "none",
+        border: `1px solid ${hovered ? T.primaryBorder : isDark ? T.borderDark : T.borderLight}`,
+        boxShadow: hovered
+          ? isDark
+            ? `0 12px 24px rgba(0,0,0,0.3), 0 0 20px rgba(0,250,217,0.05)`
+            : `0 12px 24px rgba(0,0,0,0.08)`
+          : "none",
+        transform: hovered ? "translateY(-4px)" : "translateY(0)",
         transitionTimingFunction: EASE,
-        transitionDuration: "200ms",
+        transitionDuration: "250ms",
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
@@ -291,213 +299,222 @@ export default function Landing() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* ── Particle Background ── */
+  /* ── Particle Background — Cyber Green ── */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    let animationFrameId: number;
+    let animId: number;
+    const particles: { x: number; y: number; vx: number; vy: number; r: number; o: number }[] = [];
+    const COUNT = 50;
 
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+    const resize = () => {
+      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+      canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
-    window.addEventListener("resize", handleResize);
-    handleResize();
+    resize();
+    window.addEventListener("resize", resize);
 
-    const particleCount = 150;
-    const particles: Array<{
-      x: number; y: number; vx: number; vy: number;
-      size: number; alpha: number;
-    }> = [];
-    const color = "#4F47E6";
-
-    for (let i = 0; i < particleCount; i++) {
+    for (let i = 0; i < COUNT; i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 1.5 + 0.5,
-        alpha: Math.random() * 0.5 + 0.1,
+        x: Math.random() * canvas.offsetWidth,
+        y: Math.random() * canvas.offsetHeight,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: Math.random() * 1.5 + 0.5,
+        o: Math.random() * 0.3 + 0.05,
       });
     }
 
-    const render = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p) => {
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      const currentTheme = document.documentElement.classList.contains("dark");
+      for (const p of particles) {
         p.x += p.vx;
         p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
+        if (p.x < 0 || p.x > canvas.offsetWidth) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.offsetHeight) p.vy *= -1;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = p.alpha;
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = currentTheme
+          ? `rgba(0, 250, 217, ${p.o})`
+          : `rgba(0, 196, 170, ${p.o * 0.6})`;
         ctx.fill();
-      });
-      ctx.globalAlpha = 1;
-      animationFrameId = requestAnimationFrame(render);
-    };
-    render();
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  /* ── GSAP-style entrance (CSS-only for perf) ── */
-  useEffect(() => {
-    if (!heroRef.current) return;
-    const els = heroRef.current.querySelectorAll<HTMLElement>("[data-anim]");
-    els.forEach((el, i) => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(40px)";
-      el.style.transition = `opacity 0.7s ${EASE} ${i * 0.1}s, transform 0.7s ${EASE} ${i * 0.1}s`;
-      requestAnimationFrame(() => {
-        el.style.opacity = "1";
-        el.style.transform = "translateY(0)";
-      });
-    });
-  }, []);
-
-  /* ── Scroll reveal ── */
-  useEffect(() => {
-    const items = document.querySelectorAll<HTMLElement>("[data-reveal]");
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0)";
-            obs.unobserve(el);
+      }
+      // Connection lines
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = currentTheme
+              ? `rgba(0, 250, 217, ${0.06 * (1 - dist / 120)})`
+              : `rgba(0, 196, 170, ${0.04 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
           }
-        });
-      },
-      { threshold: 0.08 }
-    );
-    items.forEach((el) => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(32px)";
-      el.style.transition = `opacity 0.6s ${EASE}, transform 0.6s ${EASE}`;
-      obs.observe(el);
-    });
-    return () => obs.disconnect();
+        }
+      }
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+    };
   }, []);
 
-  const handleCTA = () => navigate(isAuthenticated ? "/" : "/auth");
-  const handleExplorePrize = () =>
-    document.getElementById("alpha-competition")?.scrollIntoView({ behavior: "smooth" });
+  /* ── GSAP Entrance — Hero only ── */
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    import("gsap").then(({ gsap }) => {
+      const heroEl = heroRef.current;
+      if (!heroEl) return;
+      const items = heroEl.querySelectorAll("[data-anim]");
+      items.forEach((el, i) => {
+        gsap.fromTo(
+          el,
+          { y: 40, opacity: 0, filter: "blur(4px)" },
+          {
+            y: 0,
+            opacity: 1,
+            filter: "blur(0px)",
+            duration: 0.7,
+            delay: 0.15 + i * 0.12,
+            ease: "power4.out",
+          }
+        );
+      });
+      /* Scroll reveal for sections below hero */
+      const revealEls = document.querySelectorAll("[data-reveal]");
+      const obs = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const el = entry.target as HTMLElement;
+              el.style.opacity = "1";
+              el.style.transform = "translateY(0)";
+              el.style.filter = "blur(0px)";
+              obs.unobserve(el);
+            }
+          });
+        },
+        { threshold: 0.15 }
+      );
+      revealEls.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.opacity = "0";
+        htmlEl.style.transform = "translateY(24px)";
+        htmlEl.style.filter = "blur(2px)";
+        htmlEl.style.transition = `opacity 0.6s ${EASE}, transform 0.6s ${EASE}, filter 0.6s ${EASE}`;
+        obs.observe(htmlEl);
+      });
+      cleanup = () => obs.disconnect();
+    });
+    return () => cleanup?.();
+  }, []);
+
+  /* ── Navigation ── */
+  const handleCTA = useCallback(() => {
+    navigate(isAuthenticated ? "/" : "/auth");
+  }, [isAuthenticated, navigate]);
+
+  const handleExplorePrize = useCallback(() => {
+    navigate(isAuthenticated ? "/leaderboard" : "/auth");
+  }, [isAuthenticated, navigate]);
 
   return (
-    <div
-      style={{
-        background: bg,
-        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-        color: textHigh,
-        minHeight: "100vh",
-      }}
-    >
-      {/* Ripple keyframes */}
-      <style>{`
-        @keyframes indigo-ripple {
-          to { width: 300px; height: 300px; opacity: 0; }
-        }
-      `}</style>
-
-      {/* ═══════════ NAVIGATION ═══════════ */}
-      <header
-        className="fixed top-0 left-0 right-0 z-50"
+    <div style={{ background: bg, minHeight: "100vh" }}>
+      {/* ═══════════ LANDING NAV ═══════════ */}
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 transition-all"
         style={{
           background: scrolled
             ? isDark
-              ? "rgba(0,0,0,0.8)"
-              : "rgba(255,255,255,0.8)"
+              ? "rgba(11, 14, 17, 0.85)"
+              : "rgba(255, 255, 255, 0.85)"
             : "transparent",
-          backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
+          backdropFilter: scrolled ? "blur(16px)" : "none",
+          WebkitBackdropFilter: scrolled ? "blur(16px)" : "none",
           borderBottom: scrolled ? `1px solid ${border}` : "1px solid transparent",
-          transition: `all 200ms ${EASE}`,
+          transitionTimingFunction: EASE,
+          transitionDuration: "250ms",
         }}
       >
-        <div className="mx-auto max-w-[1120px] px-6">
-          <div className="flex h-14 items-center justify-between">
-            <Link href="/landing">
-              <div className="flex items-center gap-2.5 cursor-pointer">
-                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-8 h-8 rounded-full object-cover" />
-                <span className="font-semibold text-base tracking-tight" style={{ color: textHigh }}>
-                  Otter
-                </span>
-              </div>
-            </Link>
+        <div className="mx-auto max-w-[1200px] px-6 h-16 flex items-center justify-between">
+          <Link href="/landing" className="flex items-center gap-2.5 no-underline">
+            <img
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
+              alt="Otter"
+              className="w-7 h-7 rounded-full object-cover"
+            />
+            <span
+              className="text-sm font-semibold tracking-tight font-heading"
+              style={{ color: textHigh }}
+            >
+              Otter
+            </span>
+          </Link>
 
-            <div className="flex items-center gap-2.5">
-              <AnimatedThemeToggler
-                className="w-8 h-8 flex items-center justify-center transition-colors"
-                style={{
-                  borderRadius: "6px",
-                  border: `1px solid ${border}`,
-                  background: "transparent",
-                  transitionTimingFunction: EASE,
-                }}
-                title={isDark ? "Switch to light mode" : "Switch to dark mode"}
-              />
-
-              {isAuthenticated ? (
-                <Link href="/">
-                  <span
-                    className="h-8 px-4 text-xs font-medium inline-flex items-center gap-1.5 transition-all"
-                    style={{
-                      borderRadius: "6px",
-                      background: T.indigo,
-                      color: "#FFFFFF",
-                      boxShadow: T.indigoShadow,
-                      transitionTimingFunction: EASE,
-                    }}
-                  >
-                    Dashboard
-                    <ArrowRight className="w-3 h-3" />
-                  </span>
-                </Link>
-              ) : (
-                <Link href="/auth">
-                  <span
-                    className="h-8 px-4 text-xs font-medium inline-flex items-center gap-1.5 transition-all"
-                    style={{
-                      borderRadius: "6px",
-                      background: T.indigo,
-                      color: "#FFFFFF",
-                      boxShadow: T.indigoShadow,
-                      transitionTimingFunction: EASE,
-                    }}
-                  >
-                    Log In
-                    <ArrowRight className="w-3 h-3" />
-                  </span>
-                </Link>
-              )}
-            </div>
+          <div className="flex items-center gap-5">
+            <a
+              href="#how-it-works"
+              className="hidden sm:block text-[13px] font-medium no-underline transition-colors"
+              style={{ color: textMuted, transitionDuration: "250ms" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = isDark ? T.primary : T.primaryMuted)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = textMuted)}
+            >
+              How It Works
+            </a>
+            <a
+              href="#features"
+              className="hidden sm:block text-[13px] font-medium no-underline transition-colors"
+              style={{ color: textMuted, transitionDuration: "250ms" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = isDark ? T.primary : T.primaryMuted)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = textMuted)}
+            >
+              Features
+            </a>
+            <a
+              href="#alpha-competition"
+              className="hidden sm:block text-[13px] font-medium no-underline transition-colors"
+              style={{ color: textMuted, transitionDuration: "250ms" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = isDark ? T.primary : T.primaryMuted)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = textMuted)}
+            >
+              Competition
+            </a>
+            <AnimatedThemeToggler />
+            <button
+              onClick={handleCTA}
+              className="h-9 px-5 text-[13px] font-semibold btn-bounce"
+              style={{
+                borderRadius: "12px",
+                background: isDark ? T.primary : T.primaryMuted,
+                color: "#0B0E11",
+              }}
+            >
+              {isAuthenticated ? "Dashboard" : "Get Started"}
+            </button>
           </div>
         </div>
-      </header>
+      </nav>
 
-      {/* ═══════════ PARTICLE BACKGROUND ═══════════ */}
-      <canvas
-        ref={canvasRef}
-        className="fixed top-0 left-0 w-full h-full pointer-events-none z-0"
-        style={{
-          maskImage: "radial-gradient(circle at center, white, transparent 80%)",
-          WebkitMaskImage: "radial-gradient(circle at center, white, transparent 80%)",
-        }}
-      />
-
-      {/* ═══════════ HERO (Section I) ═══════════ */}
-      <section className="relative pt-14 overflow-hidden">
+      {/* ═══════════ HERO ═══════════ */}
+      <section className="relative overflow-hidden" style={{ background: bg }}>
+        {/* Particle canvas */}
+        <canvas
+          ref={canvasRef}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          style={{ opacity: 0.7 }}
+        />
+        {/* Ambient glow */}
         <div
           className="absolute pointer-events-none"
           style={{
@@ -507,29 +524,27 @@ export default function Landing() {
             width: "700px",
             height: "700px",
             borderRadius: "50%",
-            background: `radial-gradient(circle, ${isDark ? "rgba(79,71,230,0.08)" : "rgba(79,71,230,0.04)"} 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${isDark ? "rgba(0,250,217,0.06)" : "rgba(0,196,170,0.04)"} 0%, transparent 70%)`,
             filter: "blur(60px)",
           }}
         />
 
         <div
           ref={heroRef}
-          className="relative mx-auto max-w-[1120px] px-6 pt-28 sm:pt-36 pb-20 sm:pb-28"
+          className="relative mx-auto max-w-[1200px] px-6 pt-28 sm:pt-36 pb-20 sm:pb-28"
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* ── Left Column: Text Content ── */}
+            {/* ── Left Column ── */}
             <div className="flex flex-col items-start">
-
-
-              {/* Display XL — text loop */}
+              {/* Display — Space Grotesk + text loop */}
               <h1
                 data-anim
-                className="flex flex-wrap items-baseline gap-[0.25em]"
+                className="flex flex-wrap items-baseline gap-[0.25em] font-heading"
                 style={{
-                  fontSize: "clamp(2rem, 4.5vw, 3.25rem)",
+                  fontSize: "clamp(2rem, 4.5vw, 3rem)",
                   fontWeight: 700,
                   lineHeight: 1.1,
-                  letterSpacing: "-0.04em",
+                  letterSpacing: "-0.02em",
                   color: textHigh,
                 }}
               >
@@ -538,16 +553,16 @@ export default function Landing() {
                   texts={heroLoopTexts}
                   interval={2500}
                   className=""
-                  style={{ color: isDark ? "#818CF8" : "#4F47E6" }}
+                  style={{ color: isDark ? T.primary : T.primaryMuted }}
                 />
               </h1>
 
               <p
                 data-anim
-                className="max-w-lg mt-6 mb-10"
+                className="max-w-2xl mt-6 mb-10"
                 style={{
                   fontSize: "0.9375rem",
-                  lineHeight: 1.7,
+                  lineHeight: 1.6,
                   color: textMuted,
                 }}
               >
@@ -558,24 +573,20 @@ export default function Landing() {
 
               {/* CTA */}
               <div data-anim className="flex flex-wrap gap-3 mb-10">
-                <IndigoButton onClick={handleCTA}>
+                <CTAButton onClick={handleCTA}>
                   Get Your Skill Key
                   <ArrowRight className="w-4 h-4" />
-                </IndigoButton>
-                <IndigoButton variant="ghost" onClick={handleExplorePrize}>
+                </CTAButton>
+                <CTAButton variant="ghost" onClick={handleExplorePrize}>
                   Explore Prize Pools
-                </IndigoButton>
+                </CTAButton>
               </div>
 
               {/* Works with */}
               <div data-anim className="flex flex-col gap-3">
                 <span
-                  className="text-[11px] font-medium uppercase"
-                  style={{
-                    fontFamily: "'Geist Mono', monospace",
-                    color: textMuted,
-                    letterSpacing: "0.05em",
-                  }}
+                  className="label-upper"
+                  style={{ fontFamily: "'Roboto Mono', monospace" }}
                 >
                   Works with
                 </span>
@@ -591,11 +602,14 @@ export default function Landing() {
                       <Tooltip key={ai.name}>
                         <TooltipTrigger asChild>
                           <div
-                            className="flex items-center justify-center w-9 h-9 rounded-lg transition-all hover:scale-110 cursor-default"
+                            className="flex items-center justify-center w-9 h-9 transition-all hover:scale-110 cursor-default"
                             style={{
-                              background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+                              borderRadius: "12px",
+                              background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
                               border: `1px solid ${border}`,
                               color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)",
+                              transitionDuration: "250ms",
+                              transitionTimingFunction: EASE,
                             }}
                             dangerouslySetInnerHTML={{ __html: ai.svg }}
                           />
@@ -615,34 +629,32 @@ export default function Landing() {
               <div
                 className="relative w-full overflow-hidden"
                 style={{
-                  borderRadius: "16px",
-                  border: `1px solid ${isDark ? T.indigoBorder : T.borderLight}`,
+                  borderRadius: "12px",
+                  border: `1px solid ${isDark ? T.primaryBorder : T.borderLight}`,
                   background: isDark ? T.containerDark : T.containerLight,
                   aspectRatio: "4 / 3",
                 }}
               >
-                {/* Decorative glow behind the card */}
+                {/* Decorative glow */}
                 <div
                   className="absolute -inset-4 pointer-events-none"
                   style={{
-                    background: `radial-gradient(ellipse at center, ${isDark ? "rgba(79,71,230,0.12)" : "rgba(79,71,230,0.06)"} 0%, transparent 70%)`,
+                    background: `radial-gradient(ellipse at center, ${isDark ? "rgba(0,250,217,0.08)" : "rgba(0,196,170,0.04)"} 0%, transparent 70%)`,
                     filter: "blur(40px)",
                     zIndex: 0,
                   }}
                 />
-                {/* Dashboard preview image */}
                 <img
                   src={HERO_BG}
                   alt="Otter Platform Preview"
                   className="relative z-10 w-full h-full object-cover"
                   style={{ opacity: 0.9 }}
                 />
-                {/* Subtle overlay gradient */}
                 <div
                   className="absolute inset-0 z-20 pointer-events-none"
                   style={{
                     background: isDark
-                      ? "linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.4) 100%)"
+                      ? "linear-gradient(180deg, transparent 60%, rgba(11,14,17,0.4) 100%)"
                       : "linear-gradient(180deg, transparent 60%, rgba(255,255,255,0.3) 100%)",
                   }}
                 />
@@ -652,30 +664,30 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ═══════════ WORKFLOW — 4 Steps (Section IV) ═══════════ */}
+      {/* ═══════════ WORKFLOW — 4 Steps ═══════════ */}
       <section
         id="how-it-works"
         className="py-24 sm:py-32"
         style={{ background: bg }}
       >
-        <div className="mx-auto max-w-[1120px] px-6">
+        <div className="mx-auto max-w-[1200px] px-6">
           <div className="text-center mb-16" data-reveal>
             <p
-              className="text-[11px] font-medium uppercase mb-3"
+              className="label-upper mb-3"
               style={{
-                fontFamily: "'Geist Mono', monospace",
-                color: T.indigo,
-                letterSpacing: "0.05em",
+                fontFamily: "'Roboto Mono', monospace",
+                color: isDark ? T.primary : T.primaryMuted,
               }}
             >
               How It Works
             </p>
             <h2
+              className="font-heading"
               style={{
                 fontSize: "1.5rem",
                 fontWeight: 600,
                 lineHeight: 1.3,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.01em",
                 color: textHigh,
               }}
             >
@@ -689,36 +701,38 @@ export default function Landing() {
               return (
                 <HoverCard key={step.num} isDark={isDark} className="p-6">
                   <div data-reveal>
-                    <span
-                      className="text-[11px] font-medium uppercase"
-                      style={{
-                        fontFamily: "'Geist Mono', monospace",
-                        color: textMuted,
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      Step {step.num}
-                    </span>
-
-                    <div
-                      className="mt-4 mb-3 w-10 h-10 flex items-center justify-center"
-                      style={{
-                        borderRadius: "8px",
-                        background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                      }}
-                    >
-                      <Icon className="w-5 h-5" style={{ color: T.indigo }} />
+                    <div className="flex items-center gap-3 mb-4">
+                      <span
+                        className="font-mono text-xs font-bold"
+                        style={{
+                          color: isDark ? T.primary : T.primaryMuted,
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {step.num}
+                      </span>
+                      <div
+                        className="w-8 h-8 flex items-center justify-center"
+                        style={{
+                          borderRadius: "12px",
+                          background: isDark ? T.primaryGlow : T.primaryGlowLight,
+                        }}
+                      >
+                        <Icon
+                          className="w-4 h-4"
+                          style={{ color: isDark ? T.primary : T.primaryMuted }}
+                        />
+                      </div>
                     </div>
-
                     <h3
-                      className="text-[15px] font-semibold mb-2"
+                      className="text-sm font-semibold mb-2 font-heading"
                       style={{ color: textHigh, letterSpacing: "-0.01em" }}
                     >
                       {step.title}
                     </h3>
                     <p
                       style={{
-                        fontSize: "0.875rem",
+                        fontSize: "0.8125rem",
                         lineHeight: 1.6,
                         color: textMuted,
                       }}
@@ -733,80 +747,92 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ═══════════ CORE FEATURES — 3 Modules (Section II) ═══════════ */}
-      <section className="py-24 sm:py-32" style={{ background: bg }}>
-        <div className="mx-auto max-w-[1120px] px-6">
+      {/* ═══════════ CORE FEATURES ═══════════ */}
+      <section
+        id="features"
+        className="py-24 sm:py-32"
+        style={{ background: bg }}
+      >
+        <div className="mx-auto max-w-[1200px] px-6">
           <div className="text-center mb-16" data-reveal>
             <p
-              className="text-[11px] font-medium uppercase mb-3"
+              className="label-upper mb-3"
               style={{
-                fontFamily: "'Geist Mono', monospace",
-                color: T.indigo,
-                letterSpacing: "0.05em",
+                fontFamily: "'Roboto Mono', monospace",
+                color: isDark ? T.primary : T.primaryMuted,
               }}
             >
               Core Features
             </p>
             <h2
+              className="font-heading"
               style={{
                 fontSize: "1.5rem",
                 fontWeight: 600,
                 lineHeight: 1.3,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.01em",
                 color: textHigh,
               }}
             >
-              Sync, manage, and compete — all in one platform
+              Everything you need to mine alpha
             </h2>
           </div>
 
-          {/* Feature 1: NL2Factor Sync — Full width with IPO model */}
-          <div className="mb-5" data-reveal>
+          {/* Feature 1: Full width */}
+          <div className="mb-5">
             <HoverCard isDark={isDark} className="overflow-hidden group">
-              <div className="grid grid-cols-1 lg:grid-cols-2">
-                <div className="p-8">
+              <div
+                data-reveal
+                className="grid grid-cols-1 lg:grid-cols-2"
+              >
+                <div className="p-6 lg:p-8 flex flex-col justify-center">
                   <div
                     className="w-10 h-10 flex items-center justify-center mb-4"
                     style={{
-                      borderRadius: "8px",
-                      background: isDark ? T.indigoGlow : T.indigoGlowLight,
+                      borderRadius: "12px",
+                      background: isDark ? T.primaryGlow : T.primaryGlowLight,
                     }}
                   >
-                    <MessageSquare className="w-5 h-5" style={{ color: T.indigo }} />
+                    <MessageSquare
+                      className="w-5 h-5"
+                      style={{ color: isDark ? T.primary : T.primaryMuted }}
+                    />
                   </div>
                   <p
-                    className="text-[11px] font-medium uppercase mb-2"
+                    className="label-upper mb-2"
                     style={{
-                      fontFamily: "'Geist Mono', monospace",
-                      color: T.indigo,
-                      letterSpacing: "0.05em",
+                      fontFamily: "'Roboto Mono', monospace",
+                      color: isDark ? T.primary : T.primaryMuted,
                     }}
                   >
                     {coreFeatures[0].subtitle}
                   </p>
                   <h3
-                    className="text-lg font-semibold mb-3"
+                    className="text-lg font-semibold mb-3 font-heading"
                     style={{ color: textHigh, letterSpacing: "-0.01em" }}
                   >
                     {coreFeatures[0].title}
                   </h3>
                   <p
-                    className="mb-6"
-                    style={{ fontSize: "0.875rem", lineHeight: 1.6, color: textMuted }}
+                    className="mb-5"
+                    style={{
+                      fontSize: "0.875rem",
+                      lineHeight: 1.6,
+                      color: textMuted,
+                    }}
                   >
                     {coreFeatures[0].desc}
                   </p>
 
-                  {/* IPO Model */}
                   <div className="space-y-3">
                     {coreFeatures[0].details.map((d) => (
                       <div key={d.label} className="flex gap-3">
                         <span
-                          className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-2 py-0.5 rounded"
+                          className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-2 py-0.5 font-mono"
                           style={{
-                            background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                            color: T.indigo,
-                            fontFamily: "'Geist Mono', monospace",
+                            borderRadius: "12px",
+                            background: isDark ? T.primaryGlow : T.primaryGlowLight,
+                            color: isDark ? T.primary : T.primaryMuted,
                             letterSpacing: "0.05em",
                           }}
                         >
@@ -820,7 +846,7 @@ export default function Landing() {
                   </div>
                 </div>
                 <div className="flex items-end p-6 pt-0 lg:pt-6">
-                  <div style={{ borderRadius: "10px", overflow: "hidden" }}>
+                  <div style={{ borderRadius: "12px", overflow: "hidden" }}>
                     <img
                       src={coreFeatures[0].img}
                       alt={coreFeatures[0].title}
@@ -839,30 +865,32 @@ export default function Landing() {
             {coreFeatures.slice(1).map((feature) => {
               const Icon = feature.icon;
               return (
-                <HoverCard key={feature.title} isDark={isDark} className="overflow-hidden group" >
+                <HoverCard key={feature.title} isDark={isDark} className="overflow-hidden group">
                   <div data-reveal>
                     <div className="p-6 pb-0">
                       <div
                         className="w-10 h-10 flex items-center justify-center mb-4"
                         style={{
-                          borderRadius: "8px",
-                          background: isDark ? T.indigoGlow : T.indigoGlowLight,
+                          borderRadius: "12px",
+                          background: isDark ? T.primaryGlow : T.primaryGlowLight,
                         }}
                       >
-                        <Icon className="w-5 h-5" style={{ color: T.indigo }} />
+                        <Icon
+                          className="w-5 h-5"
+                          style={{ color: isDark ? T.primary : T.primaryMuted }}
+                        />
                       </div>
                       <p
-                        className="text-[11px] font-medium uppercase mb-2"
+                        className="label-upper mb-2"
                         style={{
-                          fontFamily: "'Geist Mono', monospace",
-                          color: T.indigo,
-                          letterSpacing: "0.05em",
+                          fontFamily: "'Roboto Mono', monospace",
+                          color: isDark ? T.primary : T.primaryMuted,
                         }}
                       >
                         {feature.subtitle}
                       </p>
                       <h3
-                        className="text-[15px] font-semibold mb-2"
+                        className="text-[15px] font-semibold mb-2 font-heading"
                         style={{ color: textHigh, letterSpacing: "-0.01em" }}
                       >
                         {feature.title}
@@ -874,16 +902,15 @@ export default function Landing() {
                         {feature.desc}
                       </p>
 
-                      {/* Detail bullets */}
                       <div className="space-y-2 mb-4">
                         {feature.details.map((d) => (
                           <div key={d.label} className="flex gap-2.5">
                             <span
-                              className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+                              className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-1.5 py-0.5 font-mono"
                               style={{
-                                background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                                color: T.indigo,
-                                fontFamily: "'Geist Mono', monospace",
+                                borderRadius: "12px",
+                                background: isDark ? T.primaryGlow : T.primaryGlowLight,
+                                color: isDark ? T.primary : T.primaryMuted,
                                 letterSpacing: "0.04em",
                               }}
                             >
@@ -897,7 +924,7 @@ export default function Landing() {
                       </div>
                     </div>
                     <div className="px-6">
-                      <div style={{ borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
+                      <div style={{ borderRadius: "12px 12px 0 0", overflow: "hidden" }}>
                         <img
                           src={feature.img}
                           alt={feature.title}
@@ -924,15 +951,14 @@ export default function Landing() {
           borderBottom: `1px solid ${border}`,
         }}
       >
-        <div className="mx-auto max-w-[1120px] px-6">
+        <div className="mx-auto max-w-[1200px] px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
             {stats.map((stat, idx) => (
               <div key={stat.label} data-reveal className="text-center">
                 <p
-                  className="text-3xl sm:text-4xl font-bold mb-1.5"
+                  className="text-3xl sm:text-4xl font-bold mb-1.5 font-mono"
                   style={{
-                    fontFamily: "'Geist Mono', monospace",
-                    color: T.indigo,
+                    color: isDark ? T.primary : T.primaryMuted,
                     letterSpacing: "-0.02em",
                     fontVariantNumeric: "tabular-nums",
                   }}
@@ -949,11 +975,10 @@ export default function Landing() {
                   />
                 </p>
                 <p
-                  className="text-[11px] font-medium uppercase"
+                  className="label-upper"
                   style={{
-                    fontFamily: "'Geist Mono', monospace",
+                    fontFamily: "'Roboto Mono', monospace",
                     color: textMuted,
-                    letterSpacing: "0.05em",
                   }}
                 >
                   {stat.label}
@@ -964,26 +989,26 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ═══════════ TECHNICAL MOAT (Section III) ═══════════ */}
+      {/* ═══════════ TECHNICAL MOAT ═══════════ */}
       <section className="py-24 sm:py-32" style={{ background: bg }}>
-        <div className="mx-auto max-w-[1120px] px-6">
+        <div className="mx-auto max-w-[1200px] px-6">
           <div className="text-center mb-16" data-reveal>
             <p
-              className="text-[11px] font-medium uppercase mb-3"
+              className="label-upper mb-3"
               style={{
-                fontFamily: "'Geist Mono', monospace",
-                color: T.indigo,
-                letterSpacing: "0.05em",
+                fontFamily: "'Roboto Mono', monospace",
+                color: isDark ? T.primary : T.primaryMuted,
               }}
             >
               Technical Moat
             </p>
             <h2
+              className="font-heading"
               style={{
                 fontSize: "1.5rem",
                 fontWeight: 600,
                 lineHeight: 1.3,
-                letterSpacing: "-0.02em",
+                letterSpacing: "-0.01em",
                 color: textHigh,
               }}
             >
@@ -1000,25 +1025,27 @@ export default function Landing() {
                     <div
                       className="w-9 h-9 flex items-center justify-center mb-3"
                       style={{
-                        borderRadius: "8px",
-                        background: isDark ? T.indigoGlow : T.indigoGlowLight,
+                        borderRadius: "12px",
+                        background: isDark ? T.primaryGlow : T.primaryGlowLight,
                       }}
                     >
-                      <Icon className="w-4 h-4" style={{ color: T.indigo }} />
+                      <Icon
+                        className="w-4 h-4"
+                        style={{ color: isDark ? T.primary : T.primaryMuted }}
+                      />
                     </div>
                     <h4
-                      className="text-sm font-semibold mb-1"
+                      className="text-sm font-semibold mb-1 font-heading"
                       style={{ color: textHigh }}
                     >
                       {item.dimension}
                     </h4>
                     <p
-                      className="mb-2"
+                      className="mb-2 font-mono"
                       style={{
                         fontSize: "0.8125rem",
                         lineHeight: 1.5,
-                        color: T.indigo,
-                        fontFamily: "'Geist Mono', monospace",
+                        color: isDark ? T.primary : T.primaryMuted,
                       }}
                     >
                       {item.implementation}
@@ -1055,19 +1082,20 @@ export default function Landing() {
             width: "500px",
             height: "500px",
             borderRadius: "50%",
-            background: `radial-gradient(circle, ${isDark ? "rgba(79,71,230,0.06)" : "rgba(79,71,230,0.03)"} 0%, transparent 70%)`,
+            background: `radial-gradient(circle, ${isDark ? "rgba(0,250,217,0.06)" : "rgba(0,196,170,0.03)"} 0%, transparent 70%)`,
             filter: "blur(60px)",
           }}
         />
 
-        <div className="relative mx-auto max-w-[1120px] px-6 text-center">
+        <div className="relative mx-auto max-w-[1200px] px-6 text-center">
           <h2
             data-reveal
+            className="font-heading"
             style={{
               fontSize: "1.5rem",
               fontWeight: 600,
               lineHeight: 1.3,
-              letterSpacing: "-0.02em",
+              letterSpacing: "-0.01em",
               color: textHigh,
               marginBottom: "12px",
             }}
@@ -1087,10 +1115,10 @@ export default function Landing() {
             tradable factors sync to your library in real-time.
           </p>
           <div data-reveal>
-            <IndigoButton onClick={handleCTA}>
+            <CTAButton onClick={handleCTA}>
               {isAuthenticated ? "Go to Dashboard" : "Get Your Skill Key"}
               <ArrowRight className="w-4 h-4" />
-            </IndigoButton>
+            </CTAButton>
           </div>
         </div>
       </section>
@@ -1103,10 +1131,10 @@ export default function Landing() {
           borderTop: `1px solid ${border}`,
         }}
       >
-        <div className="mx-auto max-w-[1120px] px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mx-auto max-w-[1200px] px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-7 h-7 rounded-full object-cover" />
-            <span className="text-sm font-semibold tracking-tight" style={{ color: textHigh }}>
+            <span className="text-sm font-semibold tracking-tight font-heading" style={{ color: textHigh }}>
               Otter
             </span>
           </div>
@@ -1118,6 +1146,13 @@ export default function Landing() {
           </p>
         </div>
       </footer>
+
+      {/* Ripple keyframe */}
+      <style>{`
+        @keyframes indigo-ripple {
+          to { width: 300px; height: 300px; opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
