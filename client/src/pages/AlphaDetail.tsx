@@ -116,21 +116,12 @@ export default function AlphaDetail() {
         <div className="flex-1" ref={headerRef}>
           <div className="reveal-line flex items-center gap-3 flex-wrap">
             <h1 className="text-foreground">{factor.name}</h1>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] border ${
-              factor.market === "CEX"
-                ? "bg-primary/10 text-primary border-primary/20"
-                : "bg-purple-500/10 text-purple-500 dark:text-purple-400 border-purple-500/25"
-            }`}>
-              {factor.market}
-            </span>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] border ${
-              factor.status === "active"
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
+              factor.status === "active" || factor.status === "testing"
                 ? "bg-success/10 text-success border-success/20"
-                : factor.status === "testing"
-                  ? "bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/20"
-                  : "bg-muted text-muted-foreground border-border"
+                : "bg-destructive/10 text-destructive border-destructive/20"
             }`}>
-              {factor.status}
+              {factor.status === "active" || factor.status === "testing" ? "PASSED" : "FAILED"}
             </span>
           </div>
           <div className="reveal-line">
