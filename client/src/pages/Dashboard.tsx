@@ -1,8 +1,10 @@
 /*
- * Dashboard — Indigo/Sky + Slate Design System
- * Epoch Banner: single banner entry with inline metrics
- * Skill Guide: agent tabs + terminal fused into one block
- * Pure Tailwind classes — zero inline styles
+ * Dashboard — ChainGPT Staking DNA Design System
+ * Background: #09090e (Cinder) | Card: #14141c | Elevated: #1c1c26
+ * Primary: #6c5ae6 (Royal Blue) | Accent: #f8cf3e (Bright Sun)
+ * Glassmorphic cards with subtle inner glow
+ * Font: Inter + Space Mono (financial data)
+ * Pure Tailwind classes — zero inline styles except scoped CSS vars
  */
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -42,12 +44,12 @@ const statCards = [
 ];
 
 const iconMap: Record<string, React.ReactNode> = {
-  plus: <Zap className="w-3.5 h-3.5 text-primary" />,
-  check: <CheckCircle className="w-3.5 h-3.5 text-success" />,
-  trophy: <Award className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />,
-  activity: <Activity className="w-3.5 h-3.5 text-secondary" />,
-  x: <XCircle className="w-3.5 h-3.5 text-destructive" />,
-  user: <Users className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />,
+  plus: <Zap className="w-3.5 h-3.5 text-[#6c5ae6]" />,
+  check: <CheckCircle className="w-3.5 h-3.5 text-[#00ffa3]" />,
+  trophy: <Award className="w-3.5 h-3.5 text-[#f8cf3e]" />,
+  activity: <Activity className="w-3.5 h-3.5 text-[#6c5ae6]" />,
+  x: <XCircle className="w-3.5 h-3.5 text-[#ff4d4d]" />,
+  user: <Users className="w-3.5 h-3.5 text-[#6c5ae6]" />,
 };
 
 const agentSkills = [
@@ -99,8 +101,8 @@ function TerminalCopyButton({ steps }: { steps: string[] }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="p-1 rounded-lg transition-colors text-muted-foreground hover:text-foreground" title="Copy all commands">
-      {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+    <button onClick={handleCopy} className="p-1 rounded-[4px] transition-colors text-white/40 hover:text-white/80" title="Copy all commands">
+      {copied ? <Check className="w-3.5 h-3.5 text-[#00ffa3]" /> : <Copy className="w-3.5 h-3.5" />}
     </button>
   );
 }
@@ -146,6 +148,22 @@ function stripUSDT(s: string) {
   return s.replace(/\s*USDT$/i, "");
 }
 
+/* ── Dashboard-scoped CSS variables ── */
+const dashboardScopedStyle: React.CSSProperties = {
+  /* @ts-ignore */ 
+  '--db-bg': '#09090e',
+  '--db-card': '#14141c',
+  '--db-elevated': '#1c1c26',
+  '--db-primary': '#6c5ae6',
+  '--db-accent': '#f8cf3e',
+  '--db-success': '#00ffa3',
+  '--db-warning': '#ff9900',
+  '--db-error': '#ff4d4d',
+  '--db-border': '#2a2a35',
+  '--db-text': '#f0f0f5',
+  '--db-text-muted': '#8a8a9a',
+} as React.CSSProperties;
+
 export default function Dashboard() {
   const [guideExpanded, setGuideExpanded] = useState(!isAnyConnected);
   const [activeGuide, setActiveGuide] = useState("codex");
@@ -182,21 +200,21 @@ export default function Dashboard() {
     );
   }, []);
 
-  const goldGradient = "text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500";
+  const goldGradient = "text-transparent bg-clip-text bg-gradient-to-r from-[#f8cf3e] via-[#ffe066] to-[#f8cf3e]";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={dashboardScopedStyle}>
       {/* ═══════════════════════════════════════════
           2. PAGE HEADER (moved above banner)
           ═══════════════════════════════════════════ */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-foreground">
+          <h1 className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white/90 to-[#6c5ae6]">
             Dashboard
           </h1>
         </div>
         <div className="reveal-line mt-2">
-          <p className="text-base text-muted-foreground">
+          <p className="text-base text-white/50">
             AI-powered alpha mining platform — monitor your agents, track performance, compete for rewards.
           </p>
         </div>
@@ -207,59 +225,60 @@ export default function Dashboard() {
           ═══════════════════════════════════════════ */}
       <div
         ref={bannerRef}
-        className="surface-card overflow-hidden border-primary/20 dark:border-primary/30"
+        className="overflow-hidden rounded-[12px] border border-[#6c5ae6]/30 bg-[#14141c]/80 backdrop-blur-[16px]"
+        style={{ boxShadow: '0 0 40px rgba(108, 90, 230, 0.08), inset 0 1px 0 rgba(255,255,255,0.05)' }}
       >
         <div className="flex items-center justify-between px-6 py-5 gap-6 flex-wrap">
           {/* Left: Epoch identity */}
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
-              <Trophy className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-[12px] flex items-center justify-center shrink-0 bg-[#6c5ae6]/15 border border-[#6c5ae6]/25">
+              <Trophy className="w-5 h-5 text-[#6c5ae6]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-base font-semibold text-foreground">{currentEpoch.id}</span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-primary/10 text-primary border border-primary/20">
+                <span className="text-base font-semibold text-white">{currentEpoch.id}</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] tracking-[0.15em] uppercase bg-[#00ffa3]/10 text-[#00ffa3] border border-[#00ffa3]/20" style={{ fontFamily: "'Space Mono', monospace" }}>
                   <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00ffa3] opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#00ffa3]" />
                   </span>
                   LIVE
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">{currentEpoch.startDate} — {currentEpoch.endDate}</span>
+              <span className="text-xs text-white/40">{currentEpoch.startDate} — {currentEpoch.endDate}</span>
             </div>
           </div>
 
           {/* Center: Key metrics inline */}
           <div className="flex items-center gap-6 flex-wrap">
             <div className="text-center">
-              <div className="label-upper mb-0.5">Prize Pool</div>
-              <div className={`stat-value text-base font-bold ${goldGradient}`}>
+              <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40 mb-0.5" style={{ fontFamily: "'Space Mono', monospace" }}>Prize Pool</div>
+              <div className={`text-base font-bold ${goldGradient}`} style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums' }}>
                 {stripUSDT(currentEpoch.totalPool)} <span className="text-xs font-medium">USDT</span>
               </div>
             </div>
-            <div className="w-px h-8 bg-border" />
+            <div className="w-px h-8 bg-[#2a2a35]" />
             <div className="text-center">
-              <div className="label-upper mb-0.5 flex items-center justify-center gap-1">
+              <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40 mb-0.5 flex items-center justify-center gap-1" style={{ fontFamily: "'Space Mono', monospace" }}>
                 <Clock className="w-3 h-3" />
                 Time Remaining
               </div>
-              <div className="stat-value text-base font-bold font-mono tabular-nums text-foreground">
+              <div className="text-base font-bold text-white" style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
                 {countdown.display}
               </div>
             </div>
-            <div className="w-px h-8 bg-border" />
+            <div className="w-px h-8 bg-[#2a2a35]" />
             <div className="text-center">
-              <div className="label-upper mb-0.5">Qualified</div>
-              <div className="stat-value text-base font-bold text-foreground">
-                {currentEpoch.qualifiedFactors}<span className="text-xs font-normal text-muted-foreground"> / {currentEpoch.totalSubmissions}</span>
+              <div className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40 mb-0.5" style={{ fontFamily: "'Space Mono', monospace" }}>Qualified</div>
+              <div className="text-base font-bold text-white" style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
+                {currentEpoch.qualifiedFactors}<span className="text-xs font-normal text-white/40"> / {currentEpoch.totalSubmissions}</span>
               </div>
             </div>
           </div>
 
           {/* Right: CTA */}
           <Link href="/leaderboard">
-            <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce">
+            <Button className="gap-1.5 rounded-full text-sm bg-[#6c5ae6] text-white hover:brightness-110 hover:scale-105 transition-all duration-300" style={{ boxShadow: '0 0 20px rgba(108, 90, 230, 0.3)' }}>
               Alpha Arena
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Button>
@@ -273,7 +292,8 @@ export default function Dashboard() {
       <Link href="/my-alphas">
         <div
           ref={statsRef}
-          className="surface-card p-6 mb-6 cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
+          className="rounded-[12px] border border-[#2a2a35] bg-[#14141c]/80 backdrop-blur-[16px] p-6 mb-6 cursor-pointer group transition-all duration-300 hover:border-[#6c5ae6]/40"
+          style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
         >
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
             {statCards.map((stat) => {
@@ -281,13 +301,13 @@ export default function Dashboard() {
               return (
                 <div key={stat.label} className="fade-item min-w-0">
                   <div className="flex items-center gap-1.5 mb-2">
-                    <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <span className="label-upper truncate">{stat.label}</span>
+                    <Icon className="w-3.5 h-3.5 text-white/30 shrink-0" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-white/40 truncate" style={{ fontFamily: "'Space Mono', monospace" }}>{stat.label}</span>
                   </div>
-                  <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-foreground"}`}>
+                  <div className={`text-2xl font-bold truncate ${stat.highlight ? "text-[#00ffa3]" : "text-white"}`} style={{ fontFamily: "'Space Mono', monospace", fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em' }}>
                     {stat.value}
                   </div>
-                  <div className="text-sm mt-1 text-muted-foreground truncate">{stat.sub}</div>
+                  <div className="text-sm mt-1 text-white/40 truncate">{stat.sub}</div>
                 </div>
               );
             })}
@@ -299,27 +319,27 @@ export default function Dashboard() {
           4. AGENT HUB — Agent + Terminal fused
           ═══════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className={`lg:col-span-2 surface-card cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40 ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
+        <div className={`lg:col-span-2 rounded-[12px] border bg-[#14141c]/80 backdrop-blur-[16px] cursor-pointer group transition-all duration-300 hover:border-[#6c5ae6]/40 ${!isAnyConnected ? "border-[#6c5ae6]/30" : "border-[#2a2a35]"}`} style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
           {/* Header */}
-          <div className="px-6 py-4 border-b border-border">
+          <div className="px-6 py-4 border-b border-[#2a2a35]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Cpu className={`w-4 h-4 ${isAnyConnected ? "text-success" : "text-primary"}`} />
-                <h3 className="text-foreground">Agent Hub</h3>
+                <Cpu className={`w-4 h-4 ${isAnyConnected ? "text-[#00ffa3]" : "text-[#6c5ae6]"}`} />
+                <h3 className="text-white">Agent Hub</h3>
               </div>
               <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] uppercase border ${
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] tracking-[0.15em] uppercase border ${
                   isAnyConnected
-                    ? "bg-success/10 text-success border-success/20"
-                    : "bg-destructive/10 text-destructive border-destructive/20"
-                }`}>
+                    ? "bg-[#00ffa3]/10 text-[#00ffa3] border-[#00ffa3]/20"
+                    : "bg-[#ff4d4d]/10 text-[#ff4d4d] border-[#ff4d4d]/20"
+                }`} style={{ fontFamily: "'Space Mono', monospace" }}>
                   {connectedCount}/{agentSkills.length} CONNECTED
                 </span>
                 <Link href="/account?tab=api">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
+                    className="h-7 text-xs gap-1 rounded-full border-[#2a2a35] text-white/40 hover:text-white hover:border-[#6c5ae6]/40 bg-transparent"
                   >
                     <ExternalLink className="w-3 h-3" />
                     API Keys
@@ -336,41 +356,41 @@ export default function Dashboard() {
                 {agentSkills.map((skill) => (
                   <div
                     key={skill.id}
-                    className={`rounded-2xl p-4 transition-all duration-200 ease-in-out border ${
+                    className={`rounded-[12px] p-4 transition-all duration-300 border ${
                       skill.status === "connected"
-                        ? "bg-success/5 dark:bg-success/10 border-success/20"
-                        : "bg-card border-border"
+                        ? "bg-[#00ffa3]/5 border-[#00ffa3]/15 hover:border-[#00ffa3]/30"
+                        : "bg-[#1c1c26] border-[#2a2a35] hover:border-white/15"
                     }`}
                   >
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-foreground">{skill.name}</span>
+                      <span className="text-sm font-medium text-white">{skill.name}</span>
                       {skill.status === "connected" ? (
                         <div className="flex items-center gap-1.5">
                           <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-success" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-[#00ffa3]" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00ffa3]" />
                           </span>
-                          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-success">ONLINE</span>
+                          <span className="text-[10px] tracking-[0.2em] uppercase text-[#00ffa3]" style={{ fontFamily: "'Space Mono', monospace" }}>ONLINE</span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          <WifiOff className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">OFFLINE</span>
+                          <WifiOff className="w-3 h-3 text-white/30" />
+                          <span className="text-[10px] tracking-[0.2em] uppercase text-white/30" style={{ fontFamily: "'Space Mono', monospace" }}>OFFLINE</span>
                         </div>
                       )}
                     </div>
                     <div className="space-y-1.5 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Last Sync</span>
-                        <span className="font-mono text-foreground">{skill.lastSync}</span>
+                        <span className="text-white/40">Last Sync</span>
+                        <span className="text-white" style={{ fontFamily: "'Space Mono', monospace" }}>{skill.lastSync}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Alphas Mined</span>
-                        <span className={`font-mono ${skill.factorsGenerated > 0 ? "text-success" : "text-muted-foreground"}`}>{skill.factorsGenerated}</span>
+                        <span className="text-white/40">Alphas Mined</span>
+                        <span className={`${skill.factorsGenerated > 0 ? "text-[#00ffa3]" : "text-white/30"}`} style={{ fontFamily: "'Space Mono', monospace" }}>{skill.factorsGenerated}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Skill Version</span>
-                        <span className="font-mono text-muted-foreground">{skill.version}</span>
+                        <span className="text-white/40">Skill Version</span>
+                        <span className="text-white/30" style={{ fontFamily: "'Space Mono', monospace" }}>{skill.version}</span>
                       </div>
                     </div>
                   </div>
@@ -384,24 +404,24 @@ export default function Dashboard() {
               {isAnyConnected ? (
                 <button
                   onClick={() => setGuideExpanded(!guideExpanded)}
-                  className="flex items-center gap-2 w-full py-2.5 px-4 rounded-2xl transition-colors duration-200 ease-in-out text-sm bg-accent border border-border hover:bg-slate-200 dark:hover:bg-slate-800"
+                  className="flex items-center gap-2 w-full py-2.5 px-4 rounded-[12px] transition-all duration-300 text-sm bg-[#1c1c26] border border-[#2a2a35] hover:border-[#6c5ae6]/30"
                 >
-                  <BookOpen className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-muted-foreground">Skill Installation Guide</span>
-                  <span className="text-xs ml-1 text-muted-foreground/60">— Set up more AI agents</span>
+                  <BookOpen className="w-4 h-4 text-white/40" />
+                  <span className="font-medium text-white/60">Skill Installation Guide</span>
+                  <span className="text-xs ml-1 text-white/30">— Set up more AI agents</span>
                   <div className="ml-auto">
-                    {guideExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                    {guideExpanded ? <ChevronUp className="w-4 h-4 text-white/40" /> : <ChevronDown className="w-4 h-4 text-white/40" />}
                   </div>
                 </button>
               ) : (
-                <div className="rounded-2xl p-5 bg-primary/5 dark:bg-primary/10 border border-primary/20">
+                <div className="rounded-[12px] p-5 bg-[#6c5ae6]/10 border border-[#6c5ae6]/25">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary">
-                      <Sparkles className="w-4 h-4 text-primary-foreground" />
+                    <div className="w-8 h-8 rounded-[8px] flex items-center justify-center bg-[#6c5ae6]">
+                      <Sparkles className="w-4 h-4 text-white" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-foreground">Skill Installation Guide</div>
-                      <div className="text-xs text-muted-foreground">Install the Otter skill to start mining alphas automatically</div>
+                      <div className="text-sm font-semibold text-white">Skill Installation Guide</div>
+                      <div className="text-xs text-white/40">Install the Otter skill to start mining alphas automatically</div>
                     </div>
                   </div>
                 </div>
@@ -409,19 +429,19 @@ export default function Dashboard() {
 
               {/* Fused block: Agent tabs as terminal header → code body → quickstart footer */}
               {(guideExpanded || !isAnyConnected) && (
-                <div className="rounded-2xl overflow-hidden bg-background border border-border">
+                <div className="rounded-[12px] overflow-hidden bg-[#09090e] border border-[#2a2a35]">
                   {/* Agent tabs + copy button in terminal header bar */}
-                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-accent">
+                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#2a2a35] bg-[#1c1c26]">
                     <div className="flex items-center gap-1">
-                      <Terminal className="w-3.5 h-3.5 text-primary mr-1" />
+                      <Terminal className="w-3.5 h-3.5 text-[#6c5ae6] mr-1" />
                       {installSteps.map((guide) => (
                         <button
                           key={guide.id}
                           onClick={() => setActiveGuide(guide.id)}
-                          className={`py-1 px-2.5 rounded-lg text-[11px] font-medium transition-all duration-200 ease-in-out ${
+                          className={`py-1 px-2.5 rounded-[4px] text-[11px] font-medium transition-all duration-300 ${
                             activeGuide === guide.id
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:text-foreground"
+                              ? "bg-[#6c5ae6]/15 text-[#6c5ae6]"
+                              : "text-white/40 hover:text-white/70"
                           }`}
                         >
                           {guide.title}
@@ -438,13 +458,13 @@ export default function Dashboard() {
                       <div key={guide.id} className="p-4 space-y-1">
                         {guide.steps.map((step, idx) => (
                           <div key={idx} className="flex items-start gap-2">
-                            <code className="text-xs font-mono flex-1">
+                            <code className="text-xs flex-1" style={{ fontFamily: "'Space Mono', monospace" }}>
                               {step.startsWith("#") ? (
-                                <span className="text-muted-foreground">{step}</span>
+                                <span className="text-white/30">{step}</span>
                               ) : (
                                 <>
-                                  <span className="text-primary">$ </span>
-                                  <span className="text-foreground">{step}</span>
+                                  <span className="text-[#6c5ae6]">$ </span>
+                                  <span className="text-white/80">{step}</span>
                                 </>
                               )}
                             </code>
@@ -454,21 +474,21 @@ export default function Dashboard() {
                     ))}
 
                   {/* Quickstart as footer — lowest priority */}
-                  <div className="px-4 py-3 border-t border-border/50 bg-accent/30">
-                    <ol className="text-[11px] space-y-0.5 list-decimal list-inside text-muted-foreground/70">
+                  <div className="px-4 py-3 border-t border-[#2a2a35]/50 bg-[#1c1c26]/50">
+                    <ol className="text-[11px] space-y-0.5 list-decimal list-inside text-white/30">
                       <li>Install the Otter skill in your preferred AI coding agent</li>
-                      <li>Configure your API key in <span className="text-primary/70 font-medium">Account → API Keys</span></li>
-                      <li>Start a conversation: <code className="font-mono px-1 rounded text-primary/70 bg-accent text-[10px]">"Mine alpha factors for BTC/USDT"</code></li>
+                      <li>Configure your API key in <span className="text-[#6c5ae6]/80 font-medium">Account → API Keys</span></li>
+                      <li>Start a conversation: <code className="px-1 rounded-[4px] text-[#6c5ae6]/80 bg-[#1c1c26] text-[10px]" style={{ fontFamily: "'Space Mono', monospace" }}>"Mine alpha factors for BTC/USDT"</code></li>
                     </ol>
                   </div>
                 </div>
               )}
 
               {(guideExpanded || !isAnyConnected) && (
-                <div className="flex items-center gap-2 text-[11px] px-1 text-muted-foreground/60">
+                <div className="flex items-center gap-2 text-[11px] px-1 text-white/30">
                   <ExternalLink className="w-3 h-3" />
                   <span>Full documentation at</span>
-                  <span className="font-mono text-primary/60 cursor-pointer hover:underline hover:text-primary">docs.otter.io/skills/{activeGuide}</span>
+                  <span className="text-[#6c5ae6]/60 cursor-pointer hover:underline hover:text-[#6c5ae6]" style={{ fontFamily: "'Space Mono', monospace" }}>docs.otter.io/skills/{activeGuide}</span>
                 </div>
               )}
             </div>
@@ -478,11 +498,11 @@ export default function Dashboard() {
         {/* ═══════════════════════════════════════════
             5. RECENT ACTIVITY
             ═══════════════════════════════════════════ */}
-        <div className="lg:col-span-1 surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
-          <div className="px-6 py-4 border-b border-border">
+        <div className="lg:col-span-1 rounded-[12px] border border-[#2a2a35] bg-[#14141c]/80 backdrop-blur-[16px] group transition-all duration-300 hover:border-[#6c5ae6]/40" style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}>
+          <div className="px-6 py-4 border-b border-[#2a2a35]">
             <div className="flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Recent Activity</span>
+              <Activity className="w-3.5 h-3.5 text-white/30" />
+              <span className="text-sm font-medium text-white/50">Recent Activity</span>
             </div>
           </div>
           <div className="px-4 pb-4">
@@ -490,14 +510,14 @@ export default function Dashboard() {
               {recentActivity.slice(0, 8).map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 ease-in-out hover:bg-accent"
+                  className="flex items-start gap-2.5 py-2 px-2 rounded-[8px] transition-all duration-300 hover:bg-white/[0.03]"
                 >
-                  <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-accent">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-white/[0.05]">
                     {iconMap[item.icon]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-xs leading-snug block truncate text-muted-foreground">{item.message}</span>
-                    <span className="text-[10px] font-mono text-muted-foreground/60">{item.time}</span>
+                    <span className="text-xs leading-snug block truncate text-white/50">{item.message}</span>
+                    <span className="text-[10px] text-white/25" style={{ fontFamily: "'Space Mono', monospace" }}>{item.time}</span>
                   </div>
                 </div>
               ))}

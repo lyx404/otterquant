@@ -12,3 +12,17 @@
 - [ ] **Technical Moat Section**: 4 维度表格
 - [ ] **Workflow Section**: 4 步流程
 - [ ] 保持现有动效和主题适配
+
+# Dashboard 页面样式更新 — Design Tokens
+
+## 任务要求
+- [ ] 仅修改 Dashboard 页面样式
+- [ ] 严禁修改 HTML 结构或组件逻辑
+- [ ] 按照 pasted_content_4.txt 中的 Design Tokens 更新
+
+## 待办
+- [ ] 阅读 Dashboard.tsx 完整代码
+- [ ] 分析 Design Tokens 差异
+- [ ] 修改 Dashboard 内联样式（颜色、字体、间距等）
+- [ ] 验证页面效果
+- [ ] 保存检查点
