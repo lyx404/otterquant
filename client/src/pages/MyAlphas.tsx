@@ -83,7 +83,7 @@ const dataColumns: ColumnDef[] = [
   { key: "drawdown", label: "Drawdown", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "id", label: "ID", defaultVisible: false, sortable: true, width: "80px" },
   { key: "testsPassed", label: "Tests", defaultVisible: false, sortable: true, width: "72px", align: "right" },
-  { key: "submittedAt", label: "Date Submitted", defaultVisible: false, sortable: true, width: "120px" },
+
 ];
 
 type SortDir = "asc" | "desc" | null;
@@ -197,7 +197,7 @@ export default function MyAlphas() {
     if (!sortDir || !sortKey) return filtered;
     return [...filtered].sort((a, b) => {
       let av: any, bv: any;
-      if (sortKey === "createdAt" || sortKey === "submittedAt") {
+      if (sortKey === "createdAt") {
         av = a[sortKey as keyof AlphaRow] ? new Date(a[sortKey as keyof AlphaRow] as string).getTime() : 0;
         bv = b[sortKey as keyof AlphaRow] ? new Date(b[sortKey as keyof AlphaRow] as string).getTime() : 0;
       } else if (sortKey === "returns" || sortKey === "turnover" || sortKey === "drawdown") {
@@ -350,8 +350,7 @@ export default function MyAlphas() {
             )}
           </div>
         );
-      case "submittedAt":
-        return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{row.submittedAt || "\u2014"}</span>;
+
       default:
         return null;
     }
