@@ -36,7 +36,7 @@ import {
   CheckCircle,
   Award,
 } from "lucide-react";
-import { AsciiHero } from "@/components/AsciiHero";
+import AsciiVisionExport from "@/components/AsciiVisionExport";
 
 /* ── CDN Assets ── */
 const HERO_BG =
@@ -631,11 +631,10 @@ export default function Landing() {
                     zIndex: 0,
                   }}
                 />
-                {/* Interactive ASCII Animation */}
-                <AsciiHero
-                  isDark={isDark}
-                  className="relative z-10 w-full h-full"
-                />
+                {/* Interactive ASCII Vision Animation */}
+                <div className="relative z-10 w-full h-full">
+                  <AsciiVisionExport />
+                </div>
                 {/* Subtle overlay gradient */}
                 <div
                   className="absolute inset-0 z-20 pointer-events-none"
