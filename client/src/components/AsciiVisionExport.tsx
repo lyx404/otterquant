@@ -7,6 +7,7 @@ interface Point {
 
 export default function AsciiVisionExport() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState<Point>({ x: -1000, y: -1000 });
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
 
@@ -44,12 +45,12 @@ export default function AsciiVisionExport() {
       const render = () => {
         const dpr = window.devicePixelRatio || 1;
         const imgAspect = img.width / img.height;
-        let displayW = window.innerWidth;
-        let displayH = displayW / imgAspect;
-        if (displayH > window.innerHeight) {
-          displayH = window.innerHeight;
-          displayW = displayH * imgAspect;
-        }
+        // Use container dimensions instead of window for proper scaling
+        const container = containerRef.current;
+        const containerW = container ? container.clientWidth : window.innerWidth;
+        const containerH = container ? container.clientHeight : window.innerHeight;
+        let displayW = containerW;
+        let displayH = containerH;
         displayW = Math.max(1, Math.round(displayW));
         displayH = Math.max(1, Math.round(displayH));
         const renderW = Math.max(1, Math.round(displayW * dpr));
@@ -219,6 +220,7 @@ export default function AsciiVisionExport() {
 
   return (
     <div
+      ref={containerRef}
       className="w-full h-full overflow-hidden"
       style={{ backgroundColor: CANVAS_BG }}
       onMouseMove={(e) => {
@@ -232,8 +234,3 @@ export default function AsciiVisionExport() {
     </div>
   );
 }
-
-export const metadata = {
-  title: 'ASCII Vision Export',
-  description: 'Exported ASCII art from ASCII Vision Pro',
-};

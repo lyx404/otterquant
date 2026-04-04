@@ -617,7 +617,6 @@ export default function Landing() {
                 className="relative w-full overflow-hidden"
                 style={{
                   borderRadius: "16px",
-                  border: `1px solid ${isDark ? T.indigoBorder : T.borderLight}`,
                   background: isDark ? T.containerDark : T.containerLight,
                   aspectRatio: "4 / 3",
                 }}
