@@ -36,6 +36,7 @@ import {
   CheckCircle,
   Award,
 } from "lucide-react";
+import { AsciiHero } from "@/components/AsciiHero";
 
 /* ── CDN Assets ── */
 const HERO_BG =
@@ -630,12 +631,10 @@ export default function Landing() {
                     zIndex: 0,
                   }}
                 />
-                {/* Dashboard preview image */}
-                <img
-                  src={HERO_BG}
-                  alt="Otter Platform Preview"
-                  className="relative z-10 w-full h-full object-cover"
-                  style={{ opacity: 0.9 }}
+                {/* Interactive ASCII Animation */}
+                <AsciiHero
+                  isDark={isDark}
+                  className="relative z-10 w-full h-full"
                 />
                 {/* Subtle overlay gradient */}
                 <div
