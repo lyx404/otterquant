@@ -22,6 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import AsciiVisionExport from "@/components/AsciiVisionExport";
 import {
   ArrowRight,
   MessageSquare,
@@ -516,7 +517,7 @@ export default function Landing() {
           ref={heroRef}
           className="relative mx-auto max-w-[1120px] px-6 pt-28 sm:pt-36 pb-20 sm:pb-28"
         >
-          <div className="grid grid-cols-1 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* ── Left Column: Text Content ── */}
             <div className="flex flex-col items-start">
 
@@ -608,6 +609,13 @@ export default function Landing() {
                   </div>
                 </TooltipProvider>
               </div>
+            </div>
+
+            {/* ── Right Column: ASCII Art ── */}
+            <div
+              className="relative w-full aspect-[4/3] rounded-xl overflow-hidden hidden lg:block"
+            >
+              <AsciiVisionExport />
             </div>
 
           </div>
