@@ -301,7 +301,7 @@ export default function AsciiVisionExport() {
       }}
       onClick={handleClick}
     >
-      <canvas ref={canvasRef} className="block cursor-crosshair" />
+      <canvas ref={canvasRef} className="block cursor-crosshair" style={{ transform: 'scale(1.5)', transformOrigin: 'center center' }} />
     </div>
   );
 }
