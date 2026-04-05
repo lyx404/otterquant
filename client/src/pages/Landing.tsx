@@ -516,7 +516,7 @@ export default function Landing() {
           ref={heroRef}
           className="relative mx-auto max-w-[1120px] px-6 pt-28 sm:pt-36 pb-20 sm:pb-28"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="grid grid-cols-1 gap-12 items-center">
             {/* ── Left Column: Text Content ── */}
             <div className="flex flex-col items-start">
 
@@ -610,37 +610,6 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* ── Right Column: Dynamic Visual ── */}
-            <div data-anim className="relative flex items-center justify-center">
-              <div
-                className="relative w-full overflow-hidden"
-                style={{
-                  borderRadius: "16px",
-                  background: isDark ? T.containerDark : T.containerLight,
-                  aspectRatio: "4 / 3",
-                }}
-              >
-                {/* Decorative glow behind the card */}
-                <div
-                  className="absolute -inset-4 pointer-events-none"
-                  style={{
-                    background: `radial-gradient(ellipse at center, ${isDark ? "rgba(79,71,230,0.12)" : "rgba(79,71,230,0.06)"} 0%, transparent 70%)`,
-                    filter: "blur(40px)",
-                    zIndex: 0,
-                  }}
-                />
-
-                {/* Subtle overlay gradient */}
-                <div
-                  className="absolute inset-0 z-20 pointer-events-none"
-                  style={{
-                    background: isDark
-                      ? "linear-gradient(180deg, transparent 60%, rgba(0,0,0,0.4) 100%)"
-                      : "linear-gradient(180deg, transparent 60%, rgba(255,255,255,0.3) 100%)",
-                  }}
-                />
-              </div>
-            </div>
           </div>
         </div>
       </section>
