@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
 
 interface Point {
   x: number;
@@ -16,8 +15,6 @@ interface ColorWave {
 }
 
 export default function AsciiVisionExport() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mousePosRef = useRef<Point>({ x: -1000, y: -1000 });
@@ -31,9 +28,7 @@ export default function AsciiVisionExport() {
   const CONTRAST = 1.5;
   const CHARS = " .oO0";
   const CUSTOM_COLOR = "#4c48e7";
-  const CANVAS_BG = isDark ? "#0b0b0b" : "#ffffff";
-  const canvasBgRef = useRef(CANVAS_BG);
-  canvasBgRef.current = CANVAS_BG;
+  const CANVAS_BG = "#000000";
   const CELL_PX = 6;
   const CELL_WH = 0.6;
   const PARTICLE_SPACING = 1;
@@ -48,7 +43,7 @@ export default function AsciiVisionExport() {
     const img = new Image();
     if (/^https?:\/\//i.test(IMG_SRC)) img.crossOrigin = 'anonymous';
     img.onerror = () => {
-      ctx.fillStyle = canvasBgRef.current;
+      ctx.fillStyle = CANVAS_BG;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#ff7d6a';
       ctx.globalAlpha = 1;
@@ -119,7 +114,7 @@ export default function AsciiVisionExport() {
         const offsetX = (sampleCols - destW) / 2;
         const offsetY = (sampleRows - destH) / 2;
 
-        offCtx.fillStyle = canvasBgRef.current;
+        offCtx.fillStyle = CANVAS_BG;
         offCtx.fillRect(0, 0, sampleCols, sampleRows);
         offCtx.drawImage(img, 0, 0, img.width, img.height, offsetX, offsetY, destW, destH);
 
@@ -127,7 +122,7 @@ export default function AsciiVisionExport() {
         try {
           imageData = offCtx.getImageData(0, 0, sampleCols, sampleRows).data;
         } catch {
-          ctx.fillStyle = canvasBgRef.current;
+          ctx.fillStyle = CANVAS_BG;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.fillStyle = '#ff7d6a';
           ctx.globalAlpha = 1;
@@ -138,7 +133,7 @@ export default function AsciiVisionExport() {
           return;
         }
 
-        ctx.fillStyle = canvasBgRef.current;
+        ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.font = `${charHeight}px "JetBrains Mono", monospace`;
@@ -258,7 +253,7 @@ export default function AsciiVisionExport() {
         cancelAnimationFrame(animFrameRef.current);
       }
     };
-  }, [isDark]);
+  }, []);
 
   const getCanvasPoint = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
@@ -290,7 +285,7 @@ export default function AsciiVisionExport() {
   return (
     <div
       ref={containerRef}
-      className="w-full h-full flex items-center justify-center"
+      className="w-full h-full overflow-hidden flex items-center justify-center"
       style={{ backgroundColor: CANVAS_BG }}
       onMouseMove={(e) => {
         const point = getCanvasPoint(e.clientX, e.clientY);
