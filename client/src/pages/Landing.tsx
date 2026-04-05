@@ -614,7 +614,7 @@ export default function Landing() {
             {/* ── Right Column: Dynamic Visual ── */}
             <div data-anim className="relative flex items-center justify-center">
               <div
-                className="relative w-full overflow-hidden"
+                className="relative w-full"
                 style={{
                   borderRadius: "16px",
                   background: isDark ? T.containerDark : T.containerLight,
