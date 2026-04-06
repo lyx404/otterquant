@@ -163,8 +163,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                               : "bg-accent border-border hover:bg-slate-200 dark:hover:bg-slate-800 hover:border-primary/20"
                           }`}
                         >
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
-                            {user?.displayName?.charAt(0)?.toUpperCase() || "U"}
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold overflow-hidden">
+                            {user?.avatar ? (
+                              <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                            ) : (
+                              user?.displayName?.charAt(0)?.toUpperCase() || "U"
+                            )}
                           </div>
                           <span className="text-xs font-medium text-foreground">
                             {user?.displayName || "User"}

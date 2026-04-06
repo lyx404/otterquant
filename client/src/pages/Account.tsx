@@ -49,7 +49,7 @@ export default function Account() {
   const [username, setUsername] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [nickname, setNickname] = useState(user?.displayName || "AlphaTrader");
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar || null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [passwordVerCode, setPasswordVerCode] = useState("");
   const [passwordCodeSent, setPasswordCodeSent] = useState(false);
@@ -267,11 +267,13 @@ export default function Account() {
                     <button
                       className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce mt-2"
                       onClick={() => {
-                        if (!nickname.trim()) { toast.error("Nickname cannot be empty"); return; }
-                        updateUser({ displayName: nickname });
-                        setOriginalNickname(nickname);
-                        toast.success("Profile updated successfully");
-                        setEditingProfile(false);
+                      if (!nickname.trim()) { toast.error("Nickname cannot be empty"); return; }
+                      const profileUpdates: Partial<{displayName: string; avatar: string}> = { displayName: nickname };
+                      if (avatarPreview) { profileUpdates.avatar = avatarPreview; }
+                      updateUser(profileUpdates);
+                      setOriginalNickname(nickname);
+                      toast.success("Profile updated successfully");
+                      setEditingProfile(false);
                       }}
                     >
                       Save Profile
@@ -471,11 +473,7 @@ export default function Account() {
                   Save Password
                 </button>
               </div>
-            ) : (
-              <div className="px-6 pb-5">
-                <p className="text-xs text-muted-foreground">Click "Edit" to change your password</p>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}
