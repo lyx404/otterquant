@@ -5,7 +5,7 @@
  * Stepper: horizontal, Indigo progress line
  * Pure Tailwind classes — zero inline styles (except progress width)
  */
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useOnboarding } from "@/App";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -39,7 +39,7 @@ import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 /* ── Step definitions ── */
 const STEPS = [
   { id: "welcome", label: "Welcome", icon: Zap },
-  { id: "agent-api", label: "Agent API", icon: Key },
+  { id: "agent-api", label: "Agent API & Skill", icon: Key },
   { id: "first-run", label: "First Run", icon: Rocket },
   { id: "verify", label: "Verify", icon: Cpu },
 ] as const;
@@ -81,9 +81,15 @@ export default function LaunchGuide() {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let key = "ot_sk_";
     for (let i = 0; i < 32; i++) key += chars.charAt(Math.floor(Math.random() * chars.length));
-    setGeneratedApiKey(key);
-    toast.success("API key generated!");
+    return key;
   };
+
+  // Auto-generate API key when entering step 1
+  useEffect(() => {
+    if (currentStep === 1 && !generatedApiKey) {
+      setGeneratedApiKey(generateApiKey());
+    }
+  }, [currentStep]);
 
   const buildGuidePrompt = (key: string) => `# Otter Trading Skill Configuration\n\n## API Key\n\`${key}\`\n\n## Skill Version\nv2.4.1\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.\n\nYour agent will be able to:\n- Mine and backtest alpha factors automatically\n- Access real-time market data (CEX & DEX)\n- Submit strategies to the Otter Arena\n- Monitor portfolio performance\n\n## Connection Endpoint\nhttps://api.otter.trade/v1/agent\n\n## Authentication\nInclude the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
 
@@ -349,34 +355,19 @@ export default function LaunchGuide() {
                 </div>
 
                 {/* API Name */}
-                <div className="space-y-4 p-5 rounded-2xl border border-border bg-accent">
-                  <div className="space-y-2">
-                    <Label className="label-upper">API Name</Label>
+                <div className="space-y-3 p-4 rounded-2xl border border-border bg-accent">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs font-normal text-muted-foreground whitespace-nowrap">API Name</label>
                     <Input
                       placeholder="e.g., My Trading Bot, Research Agent..."
                       value={apiName}
                       onChange={(e) => setApiName(e.target.value)}
-                      className="rounded-lg bg-white dark:bg-slate-950 border-border"
+                      className="rounded-lg bg-white dark:bg-slate-950 border-border h-8 text-sm"
                     />
-                    <p className="text-[10px] text-muted-foreground/60">You can rename this later in Account → Agent API.</p>
-                  </div>
-
-                  <div className="flex items-center justify-end">
-                    <button
-                      className={`h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ${
-                        apiName.trim()
-                          ? "bg-primary text-primary-foreground hover:brightness-110 btn-bounce cursor-pointer"
-                          : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
-                      }`}
-                      disabled={!apiName.trim()}
-                      onClick={generateApiKey}
-                    >
-                      {generatedApiKey ? "Regenerate Key" : "Generate API Key"}
-                    </button>
                   </div>
                 </div>
 
-                {/* Prompt Preview — always visible after key generated */}
+                {/* Prompt Preview — always visible */}
                 {generatedApiKey && (
                   <div className="space-y-4 p-5 rounded-2xl border border-border bg-accent">
                     <div className="flex items-center justify-between">
