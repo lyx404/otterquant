@@ -849,22 +849,7 @@ export default function Account() {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
-                  <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-500" />
-                    <p className="text-xs text-muted-foreground">
-                      <span className="font-medium text-amber-500">Important:</span> Save this prompt now. The API key will be masked after you close this dialog.
-                    </p>
-                  </div>
-                </div>
-
                 <div className="flex items-center justify-end gap-3 pt-2">
-                  <button
-                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
-                    onClick={handleFinishCreate}
-                  >
-                    Done
-                  </button>
                   <button
                     className="h-9 px-6 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce flex items-center gap-2"
                     onClick={() => {
