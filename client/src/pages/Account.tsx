@@ -19,12 +19,11 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { exchanges, type Exchange } from "@/lib/mockData";
 
-type TabId = "profile" | "api" | "exchanges";
+type TabId = "profile" | "api";
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "profile", label: "Profile", icon: User },
   { id: "api", label: "API Keys", icon: Key },
-  { id: "exchanges", label: "Exchanges", icon: Link2 },
 ];
 
 function CopyBtn({ text }: { text: string }) {
@@ -142,12 +141,12 @@ export default function Account() {
       {/* Profile Tab */}
       {activeTab === "profile" && (
         <div className="space-y-8">
-          {/* Password Section */}
+          {/* Account Settings — merged Password + Email */}
           <div className="surface-card">
             <div className="px-6 py-4 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">Change Password</span>
+                <span className="text-base font-semibold text-foreground">Account Settings</span>
               </div>
             </div>
             <div className="p-6 space-y-4">
@@ -199,9 +198,7 @@ export default function Account() {
                   {confirmPassword && newPassword !== confirmPassword && (
                     <p className="text-xs text-destructive">Passwords do not match</p>
                   )}
-                  {confirmPassword && newPassword === confirmPassword && confirmPassword.length > 0 && (
-                    <p className="text-xs text-success">Passwords match</p>
-                  )}
+
                 </div>
               </div>
               <button
@@ -221,17 +218,15 @@ export default function Account() {
                 Save Password
               </button>
             </div>
-          </div>
 
-          {/* Email Section */}
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
+            {/* Email Sub-section */}
+            <div className="px-6 py-4 pb-3 border-t border-border">
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">Change Email</span>
+                <span className="text-sm font-semibold text-foreground">Change Email</span>
               </div>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="px-6 pb-6 space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="label-upper">Current Email</Label>
@@ -267,6 +262,9 @@ export default function Account() {
                     onChange={(e) => setNewEmail(e.target.value)}
                     className="rounded-lg bg-card border-border md:max-w-md"
                   />
+                  {newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) && (
+                    <p className="text-xs text-destructive">Please enter a valid email address</p>
+                  )}
                 </div>
               </div>
               <button
@@ -412,118 +410,6 @@ export default function Account() {
         </div>
       )}
 
-      {/* Exchanges Tab */}
-      {activeTab === "exchanges" && (
-        <div className="space-y-6">
-          <div>
-            <h3 className="label-upper mb-3 text-primary">Centralized Exchanges (CEX)</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {exchangeList
-                .filter((ex) => ex.type === "CEX")
-                .map((ex) => {
-                  const connected = ex.status === "connected";
-                  return (
-                    <div
-                      key={ex.id}
-                      className={`surface-card p-6 transition-all duration-200 ease-in-out ${
-                        connected ? "border-success/20 dark:border-success/30" : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-mono font-bold border ${
-                            connected
-                              ? "bg-success/10 text-success border-success/20"
-                              : "bg-accent text-muted-foreground border-border"
-                          }`}>
-                            {ex.logo}
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{ex.name}</div>
-                            <div className="text-[10px] text-muted-foreground">{ex.supportedPairs} pairs</div>
-                          </div>
-                        </div>
-                        {connected ? (
-                          <div className="flex items-center gap-1">
-                            <Wifi className="w-3 h-3 text-success" />
-                            <span className="text-[10px] font-mono text-success">LIVE</span>
-                          </div>
-                        ) : (
-                          <WifiOff className="w-3 h-3 text-muted-foreground" />
-                        )}
-                      </div>
-                      <p className="text-xs mb-3 line-clamp-2 text-muted-foreground">{ex.description}</p>
-                      <button
-                        className={`w-full h-7 text-xs rounded-full font-medium transition-all duration-200 ease-in-out ${
-                          connected
-                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
-                            : "bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                        }`}
-                        onClick={() => handleConnect(ex.id)}
-                      >
-                        {connected ? "Disconnect" : "Connect"}
-                      </button>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="label-upper mb-3 text-purple-500 dark:text-purple-400">Decentralized Exchanges (DEX)</h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {exchangeList
-                .filter((ex) => ex.type === "DEX")
-                .map((ex) => {
-                  const connected = ex.status === "connected";
-                  return (
-                    <div
-                      key={ex.id}
-                      className={`surface-card p-6 transition-all duration-200 ease-in-out ${
-                        connected ? "border-success/20 dark:border-success/30" : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-mono font-bold border ${
-                            connected
-                              ? "bg-success/10 text-success border-success/20"
-                              : "bg-accent text-muted-foreground border-border"
-                          }`}>
-                            {ex.logo}
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-foreground">{ex.name}</div>
-                            <div className="text-[10px] text-muted-foreground">{ex.supportedPairs} pairs</div>
-                          </div>
-                        </div>
-                        {connected ? (
-                          <div className="flex items-center gap-1">
-                            <Wifi className="w-3 h-3 text-success" />
-                            <span className="text-[10px] font-mono text-success">LIVE</span>
-                          </div>
-                        ) : (
-                          <WifiOff className="w-3 h-3 text-muted-foreground" />
-                        )}
-                      </div>
-                      <p className="text-xs mb-3 line-clamp-2 text-muted-foreground">{ex.description}</p>
-                      <button
-                        className={`w-full h-7 text-xs rounded-full font-medium transition-all duration-200 ease-in-out ${
-                          connected
-                            ? "border border-border text-muted-foreground bg-transparent hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
-                            : "bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                        }`}
-                        onClick={() => handleConnect(ex.id)}
-                      >
-                        {connected ? "Disconnect" : "Connect"}
-                      </button>
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
