@@ -210,55 +210,51 @@ export default function LaunchGuide() {
       {/* ── Content area ── */}
       <div className="flex-1 overflow-y-auto" ref={contentRef}>
         <div className="mx-auto max-w-[860px] px-6 sm:px-10 py-10">
-          {/* Title */}
-          <h1 className="mb-10 text-foreground">
-            Launch Guide
-          </h1>
+          {/* Title + Stepper Row */}
+          <div className="mb-10 flex items-center justify-between gap-6">
+            <h1 className="text-foreground whitespace-nowrap">Launch Guide</h1>
 
-          {/* ── Horizontal Stepper ── */}
-          <div className="mb-12">
-            <div className="flex items-center justify-between relative">
-              {/* Background line */}
-              <div className="absolute top-4 left-0 right-0 h-[2px] bg-border" />
-              {/* Progress line */}
-              <div
-                className="absolute top-4 left-0 h-[2px] transition-all duration-500 bg-primary"
-                style={{ width: `${(currentStep / (STEPS.length - 1)) * 100}%` }}
-              />
-
+            {/* ── Compact Horizontal Stepper ── */}
+            <div className="flex items-center gap-1 sm:gap-2">
               {STEPS.map((step, i) => {
                 const isCompleted = completedSteps.has(i);
                 const isCurrent = i === currentStep;
                 return (
-                  <div
-                    key={step.id}
-                    className={`relative z-10 flex flex-col items-center ${isCompleted ? "cursor-pointer" : "cursor-default"}`}
-                    onClick={() => { if (isCompleted || i < currentStep) setCurrentStep(i); }}
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out ${
-                      isCompleted
-                        ? "bg-primary border-2 border-primary"
-                        : isCurrent
-                        ? "bg-primary border-2 border-primary shadow-[0_0_0_4px_rgba(79,70,229,0.15)] dark:shadow-[0_0_0_4px_rgba(129,140,248,0.15)]"
-                        : "bg-background border-2 border-slate-300 dark:border-slate-600"
-                    }`}>
-                      {isCompleted ? (
-                        <Check className="w-4 h-4 text-primary-foreground" />
-                      ) : (
-                        <span className={`text-xs font-bold ${isCurrent ? "text-primary-foreground" : "text-muted-foreground"}`}>
-                          {i + 1}
-                        </span>
-                      )}
+                  <div key={step.id} className="flex items-center gap-1 sm:gap-2">
+                    <div
+                      className={`flex items-center gap-1.5 ${isCompleted ? "cursor-pointer" : "cursor-default"}`}
+                      onClick={() => { if (isCompleted || i < currentStep) setCurrentStep(i); }}
+                    >
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${
+                        isCompleted
+                          ? "bg-primary"
+                          : isCurrent
+                          ? "bg-primary shadow-[0_0_0_3px_rgba(79,70,229,0.15)] dark:shadow-[0_0_0_3px_rgba(129,140,248,0.15)]"
+                          : "bg-background border border-slate-300 dark:border-slate-600"
+                      }`}>
+                        {isCompleted ? (
+                          <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                        ) : (
+                          <span className={`text-[9px] font-bold ${isCurrent ? "text-primary-foreground" : "text-muted-foreground"}`}>
+                            {i + 1}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-[10px] font-medium hidden sm:inline ${
+                        isCurrent
+                          ? "text-foreground"
+                          : isCompleted
+                          ? "text-primary"
+                          : "text-muted-foreground/60"
+                      }`}>
+                        {step.label}
+                      </span>
                     </div>
-                    <span className={`mt-2.5 text-[11px] font-medium tracking-wide ${
-                      isCurrent
-                        ? "text-foreground"
-                        : isCompleted
-                        ? "text-primary"
-                        : "text-muted-foreground"
-                    }`}>
-                      {step.label}
-                    </span>
+                    {i < STEPS.length - 1 && (
+                      <div className={`w-4 sm:w-6 h-px ${
+                        i < currentStep ? "bg-primary" : "bg-border"
+                      }`} />
+                    )}
                   </div>
                 );
               })}
