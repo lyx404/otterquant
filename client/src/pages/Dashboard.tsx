@@ -29,14 +29,17 @@ import {
   EyeOff,
   GripVertical,
   X,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
 
 const statCards = [
-  { label: "TOTAL ALPHAS", value: dashboardStats.totalFactors.toString(), sub: `${dashboardStats.activeFactors} active`, icon: FlaskConical, highlight: false },
-  { label: "AVG SHARPE (OS)", value: dashboardStats.avgSharpe.toFixed(2), sub: "Out-of-Sample", icon: TrendingUp, highlight: true },
-  { label: "PASS RATE", value: dashboardStats.passRate, sub: `${dashboardStats.activeFactors}/${dashboardStats.totalFactors} alphas`, icon: CheckCircle, highlight: false },
+  { label: "TOTAL ALPHAS", value: dashboardStats.totalFactors.toString(), highlight: false },
+  { label: "AVG SHARPE (OS)", value: dashboardStats.avgSharpe.toFixed(2), highlight: true },
+  { label: "PASS RATE", value: dashboardStats.passRate, highlight: false },
 ];
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -131,6 +134,17 @@ function stripUSDT(s: string) {
   return s.replace(/\s*USDT$/i, "");
 }
 
+/* ── Parse relative time string to hours ── */
+function parseTimeToHours(timeStr: string): number {
+  const minMatch = timeStr.match(/(\d+)\s*min/);
+  const hourMatch = timeStr.match(/(\d+)\s*hour/);
+  const dayMatch = timeStr.match(/(\d+)\s*day/);
+  if (minMatch) return parseInt(minMatch[1]) / 60;
+  if (hourMatch) return parseInt(hourMatch[1]);
+  if (dayMatch) return parseInt(dayMatch[1]) * 24;
+  return 0;
+}
+
 /* ── Section definitions ── */
 interface SectionDef {
   id: string;
@@ -182,6 +196,17 @@ export default function Dashboard() {
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const customizeRef = useRef<HTMLDivElement>(null);
 
+  /* ── Agent API refresh state ── */
+  const [apiKeys, setApiKeys] = useState(DASHBOARD_API_KEYS);
+  const [refreshingId, setRefreshingId] = useState<string | null>(null);
+
+  /* ── Recent Activity expand/collapse ── */
+  const [activityExpanded, setActivityExpanded] = useState(false);
+  const ACTIVITY_DEFAULT_COUNT = 3;
+
+  /* Filter activities within 48 hours */
+  const recentActivities48h = recentActivity.filter((item) => parseTimeToHours(item.time) <= 48);
+
   /* Close customize panel on outside click */
   useEffect(() => {
     if (!showCustomize) return;
@@ -212,6 +237,26 @@ export default function Dashboard() {
       saveSectionConfig(next, visibleSections);
       return next;
     });
+  };
+
+  const handleRefreshSkill = (itemId: string) => {
+    setRefreshingId(itemId);
+    setTimeout(() => {
+      setApiKeys((prev) =>
+        prev.map((k) =>
+          k.id === itemId
+            ? { ...k, skillVersion: SKILL_LATEST, updatedAt: new Date().toISOString().split("T")[0] }
+            : k
+        )
+      );
+      const item = apiKeys.find((k) => k.id === itemId);
+      if (item && item.skillVersion !== SKILL_LATEST) {
+        toast.success(`"${item.name}" updated to ${SKILL_LATEST}`);
+      } else {
+        toast.info("Already on the latest version");
+      }
+      setRefreshingId(null);
+    }, 800);
   };
 
   useEffect(() => {
@@ -315,21 +360,14 @@ export default function Dashboard() {
           <h3 className="text-foreground">My Alphas</h3>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-          {statCards.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <div key={stat.label} className="fade-item min-w-0">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                  <span className="label-upper truncate">{stat.label}</span>
-                </div>
-                <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-foreground"}`}>
-                  {stat.value}
-                </div>
-                <div className="text-sm mt-1 text-muted-foreground truncate">{stat.sub}</div>
+          {statCards.map((stat) => (
+            <div key={stat.label} className="fade-item min-w-0">
+              <span className="label-upper truncate block mb-2">{stat.label}</span>
+              <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-foreground"}`}>
+                {stat.value}
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
     </Link>
@@ -342,7 +380,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2">
             <Key className="w-4 h-4 text-primary" />
             <h3 className="text-foreground">Agent API</h3>
-            <span className="text-xs text-muted-foreground ml-1">({DASHBOARD_API_KEYS.length})</span>
+            <span className="text-xs text-muted-foreground ml-1">({apiKeys.length})</span>
           </div>
           <Link href="/account?tab=api">
             <Button
@@ -356,7 +394,7 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="p-6">
-        {DASHBOARD_API_KEYS.length === 0 ? (
+        {apiKeys.length === 0 ? (
           <div className="text-center py-8">
             <Key className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
             <p className="text-sm text-muted-foreground">No API keys yet</p>
@@ -368,7 +406,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="space-y-3">
-            {DASHBOARD_API_KEYS.map((item) => (
+            {apiKeys.map((item) => (
               <div
                 key={item.id}
                 className="rounded-2xl p-4 transition-all duration-200 ease-in-out border border-border bg-accent/50 hover:border-primary/20"
@@ -385,7 +423,16 @@ export default function Dashboard() {
                       <span className="text-amber-500 ml-0.5">(update available)</span>
                     )}
                   </span>
-                  <span className="border-l border-border pl-4">Updated {item.updatedAt}</span>
+                  <span className="border-l border-border pl-4 flex items-center gap-1.5">
+                    Updated {item.updatedAt}
+                    <button
+                      onClick={() => handleRefreshSkill(item.id)}
+                      className="p-0.5 rounded-md text-muted-foreground/60 hover:text-primary transition-colors"
+                      title="Check for updates"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${refreshingId === item.id ? "animate-spin" : ""}`} />
+                    </button>
+                  </span>
                 </div>
               </div>
             ))}
@@ -395,34 +442,71 @@ export default function Dashboard() {
     </div>
   );
 
-  const renderRecentActivity = () => (
-    <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
-      <div className="px-6 py-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <Activity className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">Recent Activity</span>
-        </div>
-      </div>
-      <div className="px-4 pb-4">
-        <div className="space-y-0">
-          {recentActivity.slice(0, 8).map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 ease-in-out hover:bg-accent"
-            >
-              <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-accent">
-                {iconMap[item.icon]}
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="text-xs leading-snug block truncate text-muted-foreground">{item.message}</span>
-                <span className="text-[10px] font-mono text-muted-foreground/60">{item.time}</span>
-              </div>
+  const renderRecentActivity = () => {
+    const displayItems = activityExpanded
+      ? recentActivities48h
+      : recentActivities48h.slice(0, ACTIVITY_DEFAULT_COUNT);
+    const hasMore = recentActivities48h.length > ACTIVITY_DEFAULT_COUNT;
+
+    return (
+      <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
+        <div className="px-6 py-4 border-b border-border">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Activity className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Recent Activity</span>
+              <span className="text-[10px] text-muted-foreground/50">48h</span>
             </div>
-          ))}
+          </div>
+        </div>
+        <div className="px-4 pb-4">
+          {recentActivities48h.length === 0 ? (
+            <div className="text-center py-6">
+              <Activity className="w-6 h-6 mx-auto mb-2 text-muted-foreground/30" />
+              <p className="text-xs text-muted-foreground">No activity in the last 48 hours</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-0">
+                {displayItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 ease-in-out hover:bg-accent"
+                  >
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-accent">
+                      {iconMap[item.icon]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs leading-snug block truncate text-muted-foreground">{item.message}</span>
+                      <span className="text-[10px] font-mono text-muted-foreground/60">{item.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {hasMore && (
+                <button
+                  onClick={() => setActivityExpanded(!activityExpanded)}
+                  className="w-full mt-2 py-1.5 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-accent"
+                >
+                  {activityExpanded ? (
+                    <>
+                      <ChevronUp className="w-3 h-3" />
+                      Collapse
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3 h-3" />
+                      Show all ({recentActivities48h.length})
+                    </>
+                  )}
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const sectionRenderers: Record<string, () => React.ReactNode> = {
     epoch: renderEpoch,
