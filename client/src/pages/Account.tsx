@@ -23,7 +23,7 @@ type TabId = "profile" | "api";
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "profile", label: "Profile", icon: User },
-  { id: "api", label: "API Keys", icon: Key },
+  { id: "api", label: "Agent API", icon: Key },
 ];
 
 /* ── API Key data model ── */
@@ -616,7 +616,7 @@ export default function Account() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">API Keys</span>
+                  <span className="text-base font-semibold text-foreground">Agent API</span>
                   <span className="text-xs text-muted-foreground ml-1">({apiKeys.length})</span>
                 </div>
                 <button
