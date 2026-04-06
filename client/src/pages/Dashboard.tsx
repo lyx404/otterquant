@@ -352,25 +352,26 @@ export default function Dashboard() {
   const renderMyAlphas = () => (
     <div
       ref={statsRef}
-      className="surface-card p-6 group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
+      className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <FlaskConical className="w-4 h-4 text-primary" />
-          <h3 className="text-foreground">My Alphas</h3>
+      <div className="px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">My Alphas</span>
+          </div>
+          <Link href="/my-alphas">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
+            >
+              More
+            </Button>
+          </Link>
         </div>
-        <Link href="/my-alphas">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
-          >
-            Details
-            <ArrowUpRight className="w-3 h-3" />
-          </Button>
-        </Link>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-6">
         {statCards.map((stat) => (
           <div key={stat.label} className="fade-item min-w-0">
             <span className="label-upper truncate block mb-2">{stat.label}</span>
