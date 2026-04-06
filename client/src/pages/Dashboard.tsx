@@ -34,12 +34,13 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
+import { dashboardStats, recentActivity, currentEpoch, submissionStats } from "@/lib/mockData";
 
 const statCards = [
-  { label: "TOTAL ALPHAS", value: dashboardStats.totalFactors.toString(), highlight: false },
-  { label: "AVG SHARPE (OS)", value: dashboardStats.avgSharpe.toFixed(2), highlight: true },
-  { label: "PASS RATE", value: dashboardStats.passRate, highlight: false },
+  { label: "TOTAL ALPHAS", value: submissionStats.total.toString(), highlight: false },
+  { label: "STARRED", value: submissionStats.starred.toString(), highlight: false, color: "text-amber-500 dark:text-amber-400" },
+  { label: "PASSED", value: submissionStats.passed.toString(), highlight: true },
+  { label: "FAILED", value: (submissionStats.failed + submissionStats.rejected).toString(), highlight: false, color: "text-destructive" },
 ];
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -372,11 +373,11 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className="p-6 grid grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
         {statCards.map((stat) => (
           <div key={stat.label} className="fade-item min-w-0">
             <span className="label-upper truncate block mb-2">{stat.label}</span>
-            <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-foreground"}`}>
+            <div className={`text-2xl stat-value font-bold truncate ${stat.color ? stat.color : stat.highlight ? "text-success" : "text-foreground"}`}>
               {stat.value}
             </div>
           </div>
