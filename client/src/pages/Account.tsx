@@ -841,22 +841,12 @@ export default function Account() {
                 </div>
 
                 {/* Prompt preview */}
-                <div className="relative">
+                <div>
                   <div className="p-4 rounded-xl bg-accent border border-border max-h-64 overflow-y-auto">
                     <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
                       {buildPrompt(createdApiKey, SKILL_LATEST)}
                     </pre>
                   </div>
-                  <button
-                    className="absolute top-2 right-2 h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110"
-                    onClick={() => {
-                      navigator.clipboard.writeText(buildPrompt(createdApiKey, SKILL_LATEST));
-                      toast.success("Prompt copied to clipboard");
-                    }}
-                  >
-                    <Copy className="w-3 h-3" />
-                    Copy Prompt
-                  </button>
                 </div>
 
                 <div className="p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
@@ -868,12 +858,22 @@ export default function Account() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-2 pt-2">
+                <div className="flex items-center justify-end gap-3 pt-2">
                   <button
-                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
                     onClick={handleFinishCreate}
                   >
                     Done
+                  </button>
+                  <button
+                    className="h-9 px-6 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce flex items-center gap-2"
+                    onClick={() => {
+                      navigator.clipboard.writeText(buildPrompt(createdApiKey, SKILL_LATEST));
+                      toast.success("Prompt copied to clipboard");
+                    }}
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy Prompt
                   </button>
                 </div>
               </div>
