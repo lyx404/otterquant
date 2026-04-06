@@ -73,10 +73,19 @@ export default function LaunchGuide() {
   const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set());
 
   // Step 2: Agent API
-  const [apiStep, setApiStep] = useState<1 | 2>(1);
-  const [apiName, setApiName] = useState("");
+  const [apiName, setApiName] = useState("My Trading Bot");
   const [generatedApiKey, setGeneratedApiKey] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const generateApiKey = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let key = "ot_sk_";
+    for (let i = 0; i < 32; i++) key += chars.charAt(Math.floor(Math.random() * chars.length));
+    setGeneratedApiKey(key);
+    toast.success("API key generated!");
+  };
+
+  const buildGuidePrompt = (key: string) => `# Otter Trading Skill Configuration\n\n## API Key\n\`${key}\`\n\n## Skill Version\nv2.4.1\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.\n\nYour agent will be able to:\n- Mine and backtest alpha factors automatically\n- Access real-time market data (CEX & DEX)\n- Submit strategies to the Otter Arena\n- Monitor portfolio performance\n\n## Connection Endpoint\nhttps://api.otter.trade/v1/agent\n\n## Authentication\nInclude the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
 
   // Step 3: Verify
   const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>("idle");
@@ -339,76 +348,41 @@ export default function LaunchGuide() {
                   </p>
                 </div>
 
-                {/* Steps indicator */}
-                <div className="flex items-center gap-3">
-                  <div className={`flex items-center gap-2 ${apiStep >= 1 ? "text-primary" : "text-muted-foreground"}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                      apiStep >= 1 ? "border-primary bg-primary/10" : "border-border"
-                    }`}>1</div>
-                    <span className="text-xs font-medium">Generate API</span>
+                {/* API Name */}
+                <div className="space-y-4 p-5 rounded-2xl border border-border bg-accent">
+                  <div className="space-y-2">
+                    <Label className="label-upper">API Name</Label>
+                    <Input
+                      placeholder="e.g., My Trading Bot, Research Agent..."
+                      value={apiName}
+                      onChange={(e) => setApiName(e.target.value)}
+                      className="rounded-lg bg-white dark:bg-slate-950 border-border"
+                    />
+                    <p className="text-[10px] text-muted-foreground/60">You can rename this later in Account → Agent API.</p>
                   </div>
-                  <div className={`flex-1 h-px ${apiStep >= 2 ? "bg-primary" : "bg-border"}`} />
-                  <div className={`flex items-center gap-2 ${apiStep >= 2 ? "text-primary" : "text-muted-foreground"}`}>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
-                      apiStep >= 2 ? "border-primary bg-primary/10" : "border-border"
-                    }`}>2</div>
-                    <span className="text-xs font-medium">Paste to Agent</span>
+
+                  <div className="flex items-center justify-end">
+                    <button
+                      className={`h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ${
+                        apiName.trim()
+                          ? "bg-primary text-primary-foreground hover:brightness-110 btn-bounce cursor-pointer"
+                          : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
+                      }`}
+                      disabled={!apiName.trim()}
+                      onClick={generateApiKey}
+                    >
+                      {generatedApiKey ? "Regenerate Key" : "Generate API Key"}
+                    </button>
                   </div>
                 </div>
 
-                {/* API Step 1: Name & Create */}
-                {apiStep === 1 && (
+                {/* Prompt Preview — always visible after key generated */}
+                {generatedApiKey && (
                   <div className="space-y-4 p-5 rounded-2xl border border-border bg-accent">
-                    <p className="text-xs text-muted-foreground">Give your API key a name to identify it later.</p>
-                    <div className="space-y-2">
-                      <Label className="label-upper">API Name</Label>
-                      <Input
-                        placeholder="e.g., My Trading Bot, Research Agent..."
-                        value={apiName}
-                        onChange={(e) => setApiName(e.target.value)}
-                        className="rounded-lg bg-white dark:bg-slate-950 border-border"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && apiName.trim()) {
-                            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-                            let key = "ot_sk_";
-                            for (let i = 0; i < 32; i++) key += chars.charAt(Math.floor(Math.random() * chars.length));
-                            setGeneratedApiKey(key);
-                            setApiStep(2);
-                            toast.success("API key generated!");
-                          }
-                        }}
-                      />
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek).</p>
                     </div>
-                    <div className="flex items-center justify-end gap-2 pt-2">
-                      <button
-                        className={`h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ${
-                          apiName.trim()
-                            ? "bg-primary text-primary-foreground hover:brightness-110 btn-bounce cursor-pointer"
-                            : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
-                        }`}
-                        disabled={!apiName.trim()}
-                        onClick={() => {
-                          const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-                          let key = "ot_sk_";
-                          for (let i = 0; i < 32; i++) key += chars.charAt(Math.floor(Math.random() * chars.length));
-                          setGeneratedApiKey(key);
-                          setApiStep(2);
-                          toast.success("API key generated!");
-                        }}
-                      >
-                        Create API Key
-                      </button>
-                    </div>
-                  </div>
-                )}
 
-                {/* API Step 2: Show Prompt */}
-                {apiStep === 2 && (
-                  <div className="space-y-4 p-5 rounded-2xl border border-border bg-accent">
-                    <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Otter Trading.</p>
-
-                    {/* Prompt preview */}
                     <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 max-h-64 overflow-y-auto">
                       <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
 {`# Otter Trading Skill Configuration
@@ -432,16 +406,15 @@ Your agent will be able to:
 https://api.otter.trade/v1/agent
 
 ## Authentication
-Include the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`}
+Include the API key in your agent's system prompt or environment configuration.`}
                       </pre>
                     </div>
 
-                    <div className="flex items-center justify-end gap-3 pt-2">
+                    <div className="flex items-center justify-end">
                       <button
                         className="h-9 px-6 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce flex items-center gap-2"
                         onClick={() => {
-                          const prompt = `# Otter Trading Skill Configuration\n\n## API Key\n\`${generatedApiKey}\`\n\n## Skill Version\nv2.4.1\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.\n\nYour agent will be able to:\n- Mine and backtest alpha factors automatically\n- Access real-time market data (CEX & DEX)\n- Submit strategies to the Otter Arena\n- Monitor portfolio performance\n\n## Connection Endpoint\nhttps://api.otter.trade/v1/agent\n\n## Authentication\nInclude the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
-                          navigator.clipboard.writeText(prompt);
+                          navigator.clipboard.writeText(buildGuidePrompt(generatedApiKey));
                           toast.success("Prompt copied to clipboard");
                         }}
                       >
