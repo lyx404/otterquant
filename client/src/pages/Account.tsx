@@ -778,8 +778,20 @@ export default function Account() {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateModal(false)} />
           {/* Modal */}
           <div className="relative w-full max-w-lg mx-4 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
-            {/* Steps indicator */}
-            <div className="px-6 pt-5 pb-3">
+            {/* Modal Header: Title + Close */}
+            <div className="px-6 pt-5 pb-0">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-foreground">
+                  {createStep === 1 ? "Create New API Key" : "Your API Key is Ready"}
+                </h3>
+                <button
+                  className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent hover:border-border"
+                  onClick={() => { if (createStep === 2) handleFinishCreate(); else setShowCreateModal(false); }}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              {/* Steps indicator */}
               <div className="flex items-center gap-3 mb-4">
                 <div className={`flex items-center gap-2 ${createStep >= 1 ? "text-primary" : "text-muted-foreground"}`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
@@ -800,10 +812,7 @@ export default function Account() {
             {/* Step 1: Name & Create */}
             {createStep === 1 && (
               <div className="px-6 pb-6 space-y-4">
-                <div>
-                  <h3 className="text-base font-semibold text-foreground mb-1">Create New API Key</h3>
-                  <p className="text-xs text-muted-foreground">Give your API key a name to identify it later.</p>
-                </div>
+                <p className="text-xs text-muted-foreground">Give your API key a name to identify it later.</p>
                 <div className="space-y-2">
                   <Label className="label-upper">API Name</Label>
                   <Input
@@ -817,12 +826,6 @@ export default function Account() {
                 </div>
                 <div className="flex items-center justify-end gap-2 pt-2">
                   <button
-                    className="h-9 px-4 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowCreateModal(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
                     className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                     onClick={handleCreateApi}
                   >
@@ -835,10 +838,7 @@ export default function Account() {
             {/* Step 2: Show Prompt */}
             {createStep === 2 && (
               <div className="px-6 pb-6 space-y-4">
-                <div>
-                  <h3 className="text-base font-semibold text-foreground mb-1">Your API Key is Ready</h3>
-                  <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Otter Trading.</p>
-                </div>
+                <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Otter Trading.</p>
 
                 {/* Prompt preview */}
                 <div>
