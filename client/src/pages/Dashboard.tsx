@@ -88,7 +88,7 @@ function DashCopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey:
       }`}
     >
       {copied ? <Check className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
-      {copied ? "Copied" : needsUpdate ? "Update & Copy" : "Copy Prompt"}
+      {copied ? "Copied" : needsUpdate ? "Copy Latest Prompt" : "Copy Prompt"}
     </button>
   );
 }
@@ -350,27 +350,37 @@ export default function Dashboard() {
   );
 
   const renderMyAlphas = () => (
-    <Link href="/my-alphas">
-      <div
-        ref={statsRef}
-        className="surface-card p-6 cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
-      >
-        <div className="flex items-center gap-2 mb-4">
+    <div
+      ref={statsRef}
+      className="surface-card p-6 group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
           <FlaskConical className="w-4 h-4 text-primary" />
           <h3 className="text-foreground">My Alphas</h3>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-          {statCards.map((stat) => (
-            <div key={stat.label} className="fade-item min-w-0">
-              <span className="label-upper truncate block mb-2">{stat.label}</span>
-              <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-foreground"}`}>
-                {stat.value}
-              </div>
-            </div>
-          ))}
-        </div>
+        <Link href="/my-alphas">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
+          >
+            Details
+            <ArrowUpRight className="w-3 h-3" />
+          </Button>
+        </Link>
       </div>
-    </Link>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+        {statCards.map((stat) => (
+          <div key={stat.label} className="fade-item min-w-0">
+            <span className="label-upper truncate block mb-2">{stat.label}</span>
+            <div className={`text-2xl stat-value font-bold truncate ${stat.highlight ? "text-success" : "text-foreground"}`}>
+              {stat.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 
   const renderAgentApi = () => (
@@ -378,9 +388,9 @@ export default function Dashboard() {
       <div className="px-6 py-4 border-b border-border">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Key className="w-4 h-4 text-primary" />
-            <h3 className="text-foreground">Agent API</h3>
-            <span className="text-xs text-muted-foreground ml-1">({apiKeys.length})</span>
+            <Key className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">Agent API</span>
+            <span className="text-[10px] text-muted-foreground/50">({apiKeys.length})</span>
           </div>
           <Link href="/account?tab=api">
             <Button
@@ -393,11 +403,11 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className="p-6">
+      <div className="px-4 pb-4">
         {apiKeys.length === 0 ? (
-          <div className="text-center py-8">
-            <Key className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">No API keys yet</p>
+          <div className="text-center py-6">
+            <Key className="w-6 h-6 mx-auto mb-2 text-muted-foreground/30" />
+            <p className="text-xs text-muted-foreground">No API keys yet</p>
             <Link href="/account?tab=api">
               <Button variant="outline" size="sm" className="mt-3 h-7 text-xs rounded-full">
                 Create API Key
@@ -405,34 +415,36 @@ export default function Dashboard() {
             </Link>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-0">
             {apiKeys.map((item) => (
               <div
                 key={item.id}
-                className="rounded-2xl p-4 transition-all duration-200 ease-in-out border border-border bg-accent/50 hover:border-primary/20"
+                className="flex items-start gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 ease-in-out hover:bg-accent"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-foreground">{item.name}</span>
-                  <DashCopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 bg-accent">
+                  <Key className="w-3 h-3 text-primary" />
                 </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <span className="uppercase tracking-wider font-medium">Skill</span>
-                    <span className="text-primary font-semibold">{item.skillVersion}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs leading-snug text-muted-foreground truncate">{item.name}</span>
+                    <DashCopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground/60 mt-0.5">
+                    <span>Skill {item.skillVersion}</span>
                     {item.skillVersion !== SKILL_LATEST && (
-                      <span className="text-amber-500 ml-0.5">(update available)</span>
+                      <span className="text-amber-500">(update)</span>
                     )}
-                  </span>
-                  <span className="border-l border-border pl-4 flex items-center gap-1.5">
-                    Updated {item.updatedAt}
-                    <button
-                      onClick={() => handleRefreshSkill(item.id)}
-                      className="p-0.5 rounded-md text-muted-foreground/60 hover:text-primary transition-colors"
-                      title="Check for updates"
-                    >
-                      <RefreshCw className={`w-3 h-3 ${refreshingId === item.id ? "animate-spin" : ""}`} />
-                    </button>
-                  </span>
+                    <span className="flex items-center gap-1">
+                      Updated {item.updatedAt}
+                      <button
+                        onClick={() => handleRefreshSkill(item.id)}
+                        className="p-0.5 rounded-md text-muted-foreground/60 hover:text-primary transition-colors"
+                        title="Check for updates"
+                      >
+                        <RefreshCw className={`w-3 h-3 ${refreshingId === item.id ? "animate-spin" : ""}`} />
+                      </button>
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
