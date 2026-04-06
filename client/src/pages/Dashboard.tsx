@@ -19,18 +19,14 @@ import {
   Users,
   ArrowUpRight,
   Zap,
-  Terminal,
   Copy,
   Check,
-  WifiOff,
-  BookOpen,
-  ChevronDown,
-  ChevronUp,
   ExternalLink,
-  Cpu,
-  Sparkles,
   Clock,
+  Key,
+  FileText,
 } from "lucide-react";
+import { toast } from "sonner";
 import { dashboardStats, recentActivity, currentEpoch } from "@/lib/mockData";
 
 const statCards = [
@@ -50,60 +46,49 @@ const iconMap: Record<string, React.ReactNode> = {
   user: <Users className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />,
 };
 
-const agentSkills = [
-  { id: "codex", name: "OpenAI Codex", status: "connected" as const, lastSync: "2 min ago", factorsGenerated: 42, version: "v2.4.1" },
-  { id: "claude", name: "Claude Code", status: "connected" as const, lastSync: "5 min ago", factorsGenerated: 38, version: "v1.8.0" },
-  { id: "cursor", name: "Cursor Agent", status: "disconnected" as const, lastSync: "Never", factorsGenerated: 0, version: "—" },
+const SKILL_LATEST = "v2.4.1";
+
+interface DashboardApiKey {
+  id: string;
+  name: string;
+  apiKey: string;
+  skillVersion: string;
+  updatedAt: string;
+}
+
+const DASHBOARD_API_KEYS: DashboardApiKey[] = [
+  { id: "1", name: "My Trading Bot", apiKey: "ot_sk_7x9kM2nP4qR8sT6uW3yA1bC5dE0fG2h", skillVersion: "v2.4.1", updatedAt: "2026-03-28" },
+  { id: "2", name: "Research Agent", apiKey: "ot_sk_hJ2kL4mN6pQ8rS0tU2vW4xY6zA8bC0dE", skillVersion: "v2.3.0", updatedAt: "2026-03-15" },
 ];
 
-const connectedCount = agentSkills.filter(s => s.status === "connected").length;
-const isAnyConnected = connectedCount > 0;
+function buildPrompt(apiKey: string, skillVersion: string): string {
+  return `# Otter Trading Skill Configuration\n\n## API Key\n\`${apiKey}\`\n\n## Skill Version\n${skillVersion}\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.`;
+}
 
-const installSteps = [
-  {
-    id: "codex",
-    title: "OpenAI Codex",
-    steps: [
-      'npx alphaforge-skill install --target codex',
-      '# Or manually: copy skill files to ~/.codex/skills/alphaforge/',
-      'codex skill enable alphaforge',
-    ],
-  },
-  {
-    id: "claude",
-    title: "Claude Code",
-    steps: [
-      'npx alphaforge-skill install --target claude-code',
-      '# Or manually: copy skill files to ~/.claude/skills/alphaforge/',
-      'claude skill activate alphaforge',
-    ],
-  },
-  {
-    id: "cursor",
-    title: "Cursor Agent",
-    steps: [
-      'npx alphaforge-skill install --target cursor',
-      '# Or: add to .cursor/skills/ directory',
-      'cursor settings → Skills → Enable Otter',
-    ],
-  },
-];
-
-/* ── Copy button for terminal title bar ── */
-function TerminalCopyButton({ steps }: { steps: string[] }) {
+/* ── Dashboard Copy Prompt button ── */
+function DashCopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey: string; skillVersion: string; itemSkillVersion: string }) {
   const [copied, setCopied] = useState(false);
+  const needsUpdate = itemSkillVersion !== skillVersion;
   const handleCopy = () => {
-    const text = steps.filter(s => !s.startsWith("#")).join("\n");
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(buildPrompt(apiKey, skillVersion));
     setCopied(true);
+    toast.success(needsUpdate ? "Updated to latest skill & prompt copied" : "Prompt copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button onClick={handleCopy} className="p-1 rounded-lg transition-colors text-muted-foreground hover:text-foreground" title="Copy all commands">
-      {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
+    <button
+      onClick={handleCopy}
+      className={`h-6 text-[10px] px-2 rounded-full flex items-center gap-1 transition-all duration-200 ease-in-out border ${
+        needsUpdate ? "border-amber-500/30 text-amber-500 hover:bg-amber-500/10" : "border-primary/20 text-primary hover:bg-primary/10"
+      }`}
+    >
+      {copied ? <Check className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
+      {copied ? "Copied" : needsUpdate ? "Update & Copy" : "Copy Prompt"}
     </button>
   );
 }
+
+
 
 /* ── Countdown Timer Hook ── */
 function useCountdown(timeStr: string) {
@@ -147,8 +132,7 @@ function stripUSDT(s: string) {
 }
 
 export default function Dashboard() {
-  const [guideExpanded, setGuideExpanded] = useState(!isAnyConnected);
-  const [activeGuide, setActiveGuide] = useState("codex");
+
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
@@ -296,182 +280,66 @@ export default function Dashboard() {
       </Link>
 
       {/* ═══════════════════════════════════════════
-          4. AGENT HUB — Agent + Terminal fused
+          4. AGENT API — synced with Account Agent API
           ═══════════════════════════════════════════ */}
       <div className="grid lg:grid-cols-3 gap-6">
-        <div className={`lg:col-span-2 surface-card cursor-pointer group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40 ${!isAnyConnected ? "border-primary/20 dark:border-primary/30" : ""}`}>
+        <div className="lg:col-span-2 surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
           {/* Header */}
           <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Cpu className={`w-4 h-4 ${isAnyConnected ? "text-success" : "text-primary"}`} />
-                <h3 className="text-foreground">Agent Hub</h3>
+                <Key className="w-4 h-4 text-primary" />
+                <h3 className="text-foreground">Agent API</h3>
+                <span className="text-xs text-muted-foreground ml-1">({DASHBOARD_API_KEYS.length})</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] uppercase border ${
-                  isAnyConnected
-                    ? "bg-success/10 text-success border-success/20"
-                    : "bg-destructive/10 text-destructive border-destructive/20"
-                }`}>
-                  {connectedCount}/{agentSkills.length} CONNECTED
-                </span>
-                <Link href="/account?tab=api">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
-                  >
-                    <ExternalLink className="w-3 h-3" />
-                    API Keys
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/account?tab=api">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
+                >
+                  Manage
+                </Button>
+              </Link>
             </div>
           </div>
 
-          <div className="p-6 space-y-5">
-            {/* Connected state: Agent cards */}
-            {isAnyConnected && (
-              <div className="grid md:grid-cols-3 gap-4">
-                {agentSkills.map((skill) => (
+          <div className="p-6">
+            {DASHBOARD_API_KEYS.length === 0 ? (
+              <div className="text-center py-8">
+                <Key className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">No API keys yet</p>
+                <Link href="/account?tab=api">
+                  <Button variant="outline" size="sm" className="mt-3 h-7 text-xs rounded-full">
+                    Create API Key
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {DASHBOARD_API_KEYS.map((item) => (
                   <div
-                    key={skill.id}
-                    className={`rounded-2xl p-4 transition-all duration-200 ease-in-out border ${
-                      skill.status === "connected"
-                        ? "bg-success/5 dark:bg-success/10 border-success/20"
-                        : "bg-card border-border"
-                    }`}
+                    key={item.id}
+                    className="rounded-2xl p-4 transition-all duration-200 ease-in-out border border-border bg-accent/50 hover:border-primary/20"
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-sm font-medium text-foreground">{skill.name}</span>
-                      {skill.status === "connected" ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-success" />
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
-                          </span>
-                          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-success">ONLINE</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          <WifiOff className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">OFFLINE</span>
-                        </div>
-                      )}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-foreground">{item.name}</span>
+                      <DashCopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
                     </div>
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Last Sync</span>
-                        <span className="font-mono text-foreground">{skill.lastSync}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Alphas Mined</span>
-                        <span className={`font-mono ${skill.factorsGenerated > 0 ? "text-success" : "text-muted-foreground"}`}>{skill.factorsGenerated}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Skill Version</span>
-                        <span className="font-mono text-muted-foreground">{skill.version}</span>
-                      </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <span className="uppercase tracking-wider font-medium">Skill</span>
+                        <span className="text-primary font-semibold">{item.skillVersion}</span>
+                        {item.skillVersion !== SKILL_LATEST && (
+                          <span className="text-amber-500 ml-0.5">(update available)</span>
+                        )}
+                      </span>
+                      <span className="border-l border-border pl-4">Updated {item.updatedAt}</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-
-            {/* Skill Installation Guide — fused agent + terminal */}
-            <div className="space-y-3">
-              {/* Section header / toggle */}
-              {isAnyConnected ? (
-                <button
-                  onClick={() => setGuideExpanded(!guideExpanded)}
-                  className="flex items-center gap-2 w-full py-2.5 px-4 rounded-2xl transition-colors duration-200 ease-in-out text-sm bg-accent border border-border hover:bg-slate-200 dark:hover:bg-slate-800"
-                >
-                  <BookOpen className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium text-muted-foreground">Skill Installation Guide</span>
-                  <span className="text-xs ml-1 text-muted-foreground/60">— Set up more AI agents</span>
-                  <div className="ml-auto">
-                    {guideExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                  </div>
-                </button>
-              ) : (
-                <div className="rounded-2xl p-5 bg-primary/5 dark:bg-primary/10 border border-primary/20">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-primary">
-                      <Sparkles className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-semibold text-foreground">Skill Installation Guide</div>
-                      <div className="text-xs text-muted-foreground">Install the Otter skill to start mining alphas automatically</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Fused block: Agent tabs as terminal header → code body → quickstart footer */}
-              {(guideExpanded || !isAnyConnected) && (
-                <div className="rounded-2xl overflow-hidden bg-background border border-border">
-                  {/* Agent tabs + copy button in terminal header bar */}
-                  <div className="flex items-center justify-between px-3 py-1.5 border-b border-border bg-accent">
-                    <div className="flex items-center gap-1">
-                      <Terminal className="w-3.5 h-3.5 text-primary mr-1" />
-                      {installSteps.map((guide) => (
-                        <button
-                          key={guide.id}
-                          onClick={() => setActiveGuide(guide.id)}
-                          className={`py-1 px-2.5 rounded-lg text-[11px] font-medium transition-all duration-200 ease-in-out ${
-                            activeGuide === guide.id
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          {guide.title}
-                        </button>
-                      ))}
-                    </div>
-                    <TerminalCopyButton steps={installSteps.find(g => g.id === activeGuide)?.steps ?? []} />
-                  </div>
-
-                  {/* Terminal code body */}
-                  {installSteps
-                    .filter((g) => g.id === activeGuide)
-                    .map((guide) => (
-                      <div key={guide.id} className="p-4 space-y-1">
-                        {guide.steps.map((step, idx) => (
-                          <div key={idx} className="flex items-start gap-2">
-                            <code className="text-xs font-mono flex-1">
-                              {step.startsWith("#") ? (
-                                <span className="text-muted-foreground">{step}</span>
-                              ) : (
-                                <>
-                                  <span className="text-primary">$ </span>
-                                  <span className="text-foreground">{step}</span>
-                                </>
-                              )}
-                            </code>
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-
-                  {/* Quickstart as footer — lowest priority */}
-                  <div className="px-4 py-3 border-t border-border/50 bg-accent/30">
-                    <ol className="text-[11px] space-y-0.5 list-decimal list-inside text-muted-foreground/70">
-                      <li>Install the Otter skill in your preferred AI coding agent</li>
-                      <li>Configure your API key in <span className="text-primary/70 font-medium">Account → API Keys</span></li>
-                      <li>Start a conversation: <code className="font-mono px-1 rounded text-primary/70 bg-accent text-[10px]">"Mine alpha factors for BTC/USDT"</code></li>
-                    </ol>
-                  </div>
-                </div>
-              )}
-
-              {(guideExpanded || !isAnyConnected) && (
-                <div className="flex items-center gap-2 text-[11px] px-1 text-muted-foreground/60">
-                  <ExternalLink className="w-3 h-3" />
-                  <span>Full documentation at</span>
-                  <span className="font-mono text-primary/60 cursor-pointer hover:underline hover:text-primary">docs.otter.io/skills/{activeGuide}</span>
-                </div>
-              )}
-            </div>
           </div>
         </div>
 
