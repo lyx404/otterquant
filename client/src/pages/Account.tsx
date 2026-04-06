@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle, Compass,
-  Bell, Mail, Send,
+  Bell, Mail, Send, Pencil, X,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,14 @@ export default function Account() {
   const [arenaNotify, setArenaNotify] = useState(true);
   const headerRef = useRef<HTMLDivElement>(null);
 
+  // Edit mode states for each subsection
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [editingPassword, setEditingPassword] = useState(false);
+
+  // Store original values to restore on cancel
+  const [originalNickname, setOriginalNickname] = useState(nickname);
+
   useEffect(() => {
     if (!headerRef.current) return;
     const lines = headerRef.current.querySelectorAll(".reveal-line");
@@ -90,6 +98,31 @@ export default function Account() {
     );
     toast.success("Exchange connection updated");
   };
+
+  const handleCancelProfile = () => {
+    setNickname(originalNickname);
+    setAvatarPreview(null);
+    setEditingProfile(false);
+  };
+
+  const handleCancelEmail = () => {
+    setEmailVerCode("");
+    setEmailCodeSent(false);
+    setNewEmail("");
+    setEditingEmail(false);
+  };
+
+  const handleCancelPassword = () => {
+    setPasswordVerCode("");
+    setPasswordCodeSent(false);
+    setNewPassword("");
+    setConfirmPassword("");
+    setEditingPassword(false);
+  };
+
+  // Shared disabled input style
+  const disabledInputCls = "rounded-lg bg-accent border-border opacity-60 cursor-not-allowed";
+  const activeInputCls = "rounded-lg bg-card border-border";
 
   return (
     <div className="space-y-6">
@@ -153,18 +186,45 @@ export default function Account() {
               </div>
             </div>
 
-            {/* 1. Nickname & Avatar */}
-            <div className="px-6 pt-5 pb-2">
-              <div className="flex items-center gap-2 mb-4">
-                <User className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Profile</span>
+            {/* 1. Profile (Nickname & Avatar) */}
+            <div className="px-6 pt-5 pb-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Profile</span>
+                </div>
+                {!editingProfile && (
+                  <button
+                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10"
+                    onClick={() => {
+                      setOriginalNickname(nickname);
+                      setEditingProfile(true);
+                    }}
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit
+                  </button>
+                )}
+                {editingProfile && (
+                  <button
+                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-border"
+                    onClick={handleCancelProfile}
+                  >
+                    <X className="w-3 h-3" />
+                    Cancel
+                  </button>
+                )}
               </div>
               <div className="flex items-start gap-6">
                 {/* Avatar */}
                 <div className="flex flex-col items-center gap-2 shrink-0">
                   <div
-                    className="w-20 h-20 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/40 transition-colors duration-200"
-                    onClick={() => avatarInputRef.current?.click()}
+                    className={`w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors duration-200 ${
+                      editingProfile
+                        ? "border-primary/40 cursor-pointer hover:border-primary/60"
+                        : "border-border cursor-default"
+                    }`}
+                    onClick={() => editingProfile && avatarInputRef.current?.click()}
                   >
                     {avatarPreview ? (
                       <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
@@ -189,7 +249,9 @@ export default function Account() {
                       }
                     }}
                   />
-                  <span className="text-[10px] text-muted-foreground">Click to upload</span>
+                  {editingProfile && (
+                    <span className="text-[10px] text-muted-foreground">Click to upload</span>
+                  )}
                 </div>
                 {/* Nickname */}
                 <div className="flex-1 space-y-2">
@@ -198,163 +260,222 @@ export default function Account() {
                     placeholder="Enter your nickname"
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
-                    className="rounded-lg bg-card border-border md:max-w-md"
+                    disabled={!editingProfile}
+                    className={`${editingProfile ? activeInputCls : disabledInputCls} md:max-w-md`}
                   />
-                  <button
-                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce mt-2"
-                    onClick={() => {
-                      if (!nickname.trim()) { toast.error("Nickname cannot be empty"); return; }
-                      updateUser({ displayName: nickname });
-                      toast.success("Profile updated successfully");
-                    }}
-                  >
-                    Save Profile
-                  </button>
+                  {editingProfile && (
+                    <button
+                      className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce mt-2"
+                      onClick={() => {
+                        if (!nickname.trim()) { toast.error("Nickname cannot be empty"); return; }
+                        updateUser({ displayName: nickname });
+                        setOriginalNickname(nickname);
+                        toast.success("Profile updated successfully");
+                        setEditingProfile(false);
+                      }}
+                    >
+                      Save Profile
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* 2. Change Email */}
-            <div className="px-6 py-4 pb-3 border-t border-border mt-4">
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Change Email</span>
+            <div className="px-6 py-4 pb-3 border-t border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Change Email</span>
+                </div>
+                {!editingEmail && (
+                  <button
+                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10"
+                    onClick={() => setEditingEmail(true)}
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit
+                  </button>
+                )}
+                {editingEmail && (
+                  <button
+                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-border"
+                    onClick={handleCancelEmail}
+                  >
+                    <X className="w-3 h-3" />
+                    Cancel
+                  </button>
+                )}
               </div>
             </div>
             <div className="px-6 pb-6 space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="label-upper">Current Email</Label>
-                  <Input value={email} disabled className="rounded-lg bg-accent border-border opacity-60 cursor-not-allowed" />
+                  <Input value={email} disabled className={disabledInputCls} />
                 </div>
-                <div className="space-y-2">
-                  <Label className="label-upper">Verification Code</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="Enter verification code"
-                      value={emailVerCode}
-                      onChange={(e) => setEmailVerCode(e.target.value)}
-                      className="rounded-lg bg-card border-border flex-1"
-                    />
-                    <button
-                      className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
-                      onClick={() => {
-                        setEmailCodeSent(true);
-                        toast.success("Verification code sent to your current email");
-                      }}
-                    >
-                      <Send className="w-3 h-3" />
-                      {emailCodeSent ? "Resend Code" : "Send Code"}
-                    </button>
+                {editingEmail && (
+                  <div className="space-y-2">
+                    <Label className="label-upper">Verification Code</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Enter verification code"
+                        value={emailVerCode}
+                        onChange={(e) => setEmailVerCode(e.target.value)}
+                        className={`${activeInputCls} flex-1`}
+                      />
+                      <button
+                        className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                        onClick={() => {
+                          setEmailCodeSent(true);
+                          toast.success("Verification code sent to your current email");
+                        }}
+                      >
+                        <Send className="w-3 h-3" />
+                        {emailCodeSent ? "Resend Code" : "Send Code"}
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="label-upper">New Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="Enter new email address"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="rounded-lg bg-card border-border md:max-w-md"
-                  />
-                  {newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) && (
-                    <p className="text-xs text-destructive">Please enter a valid email address</p>
-                  )}
-                </div>
+                )}
+                {editingEmail && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="label-upper">New Email</Label>
+                    <Input
+                      type="email"
+                      placeholder="Enter new email address"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      className={`${activeInputCls} md:max-w-md`}
+                    />
+                    {newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) && (
+                      <p className="text-xs text-destructive">Please enter a valid email address</p>
+                    )}
+                  </div>
+                )}
               </div>
-              <button
-                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                onClick={() => {
-                  if (!emailVerCode.trim()) { toast.error("Please enter the verification code"); return; }
-                  if (!newEmail.trim()) { toast.error("Please enter a new email address"); return; }
-                  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast.error("Please enter a valid email address"); return; }
-                  toast.success("Email updated successfully");
-                  setEmail(newEmail);
-                  updateUser({ email: newEmail });
-                  setEmailVerCode("");
-                  setEmailCodeSent(false);
-                  setNewEmail("");
-                }}
-              >
-                Save Email
-              </button>
+              {editingEmail && (
+                <button
+                  className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                  onClick={() => {
+                    if (!emailVerCode.trim()) { toast.error("Please enter the verification code"); return; }
+                    if (!newEmail.trim()) { toast.error("Please enter a new email address"); return; }
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast.error("Please enter a valid email address"); return; }
+                    toast.success("Email updated successfully");
+                    setEmail(newEmail);
+                    updateUser({ email: newEmail });
+                    setEmailVerCode("");
+                    setEmailCodeSent(false);
+                    setNewEmail("");
+                    setEditingEmail(false);
+                  }}
+                >
+                  Save Email
+                </button>
+              )}
             </div>
 
             {/* 3. Change Password */}
             <div className="px-6 py-4 pb-3 border-t border-border">
-              <div className="flex items-center gap-2">
-                <Key className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Change Password</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Key className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Change Password</span>
+                </div>
+                {!editingPassword && (
+                  <button
+                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10"
+                    onClick={() => setEditingPassword(true)}
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit
+                  </button>
+                )}
+                {editingPassword && (
+                  <button
+                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-border"
+                    onClick={handleCancelPassword}
+                  >
+                    <X className="w-3 h-3" />
+                    Cancel
+                  </button>
+                )}
               </div>
             </div>
-            <div className="px-6 pb-6 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="label-upper">Email</Label>
-                  <Input value={email} disabled className="rounded-lg bg-accent border-border opacity-60 cursor-not-allowed" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="label-upper">Verification Code</Label>
-                  <div className="flex items-center gap-2">
+            {editingPassword ? (
+              <div className="px-6 pb-6 space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="label-upper">Email</Label>
+                    <Input value={email} disabled className={disabledInputCls} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="label-upper">Verification Code</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Enter verification code"
+                        value={passwordVerCode}
+                        onChange={(e) => setPasswordVerCode(e.target.value)}
+                        className={`${activeInputCls} flex-1`}
+                      />
+                      <button
+                        className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                        onClick={() => {
+                          setPasswordCodeSent(true);
+                          toast.success("Verification code sent to your email");
+                        }}
+                      >
+                        <Send className="w-3 h-3" />
+                        {passwordCodeSent ? "Resend Code" : "Send Code"}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="label-upper">New Password</Label>
                     <Input
-                      placeholder="Enter verification code"
-                      value={passwordVerCode}
-                      onChange={(e) => setPasswordVerCode(e.target.value)}
-                      className="rounded-lg bg-card border-border flex-1"
+                      type="password"
+                      placeholder="Enter new password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className={activeInputCls}
                     />
-                    <button
-                      className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
-                      onClick={() => {
-                        setPasswordCodeSent(true);
-                        toast.success("Verification code sent to your email");
-                      }}
-                    >
-                      <Send className="w-3 h-3" />
-                      {passwordCodeSent ? "Resend Code" : "Send Code"}
-                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="label-upper">Confirm New Password</Label>
+                    <Input
+                      type="password"
+                      placeholder="Re-enter new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={activeInputCls}
+                    />
+                    {confirmPassword && newPassword !== confirmPassword && (
+                      <p className="text-xs text-destructive">Passwords do not match</p>
+                    )}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="label-upper">New Password</Label>
-                  <Input
-                    type="password"
-                    placeholder="Enter new password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="rounded-lg bg-card border-border"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="label-upper">Confirm New Password</Label>
-                  <Input
-                    type="password"
-                    placeholder="Re-enter new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="rounded-lg bg-card border-border"
-                  />
-                  {confirmPassword && newPassword !== confirmPassword && (
-                    <p className="text-xs text-destructive">Passwords do not match</p>
-                  )}
-                </div>
+                <button
+                  className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                  onClick={() => {
+                    if (!passwordVerCode.trim()) { toast.error("Please enter the verification code"); return; }
+                    if (!newPassword.trim()) { toast.error("Please enter a new password"); return; }
+                    if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+                    if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
+                    toast.success("Password updated successfully");
+                    setPasswordVerCode("");
+                    setPasswordCodeSent(false);
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    setEditingPassword(false);
+                  }}
+                >
+                  Save Password
+                </button>
               </div>
-              <button
-                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                onClick={() => {
-                  if (!passwordVerCode.trim()) { toast.error("Please enter the verification code"); return; }
-                  if (!newPassword.trim()) { toast.error("Please enter a new password"); return; }
-                  if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
-                  if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
-                  toast.success("Password updated successfully");
-                  setPasswordVerCode("");
-                  setPasswordCodeSent(false);
-                  setNewPassword("");
-                  setConfirmPassword("");
-                }}
-              >
-                Save Password
-              </button>
-            </div>
+            ) : (
+              <div className="px-6 pb-5">
+                <p className="text-xs text-muted-foreground">Click "Edit" to change your password</p>
+              </div>
+            )}
           </div>
         </div>
       )}
