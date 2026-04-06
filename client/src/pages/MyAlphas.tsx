@@ -395,19 +395,7 @@ export default function MyAlphas() {
             My Alphas
           </h1>
         </div>
-        <div className="reveal-line mt-4 flex items-center gap-6 flex-wrap">
-          {[
-            { label: "AVG IS SHARPE", value: "1.34" },
-            { label: "AVG OS SHARPE", value: "1.12" },
-            { label: "AVG FITNESS", value: "0.87" },
-            { label: "AVG RETURN", value: "+12.6%" },
-          ].map((item) => (
-            <div key={item.label} className="select-none cursor-default">
-              <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/50 block">{item.label}</span>
-              <span className="text-sm font-mono font-medium text-muted-foreground">{item.value}</span>
-            </div>
-          ))}
-        </div>
+
       </div>
 
       {/* Pipeline Stats — Total / Starred / Passed / Failed */}
