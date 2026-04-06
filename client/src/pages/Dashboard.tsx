@@ -549,19 +549,6 @@ export default function Dashboard() {
               AI-powered alpha mining platform — monitor your agents, track performance, compete for rewards.
             </p>
           </div>
-          <div className="reveal-line mt-4 flex items-center gap-6 flex-wrap">
-            {[
-              { label: "AVG SHARPE (IS)", value: "1.34" },
-              { label: "AVG SHARPE (OS)", value: dashboardStats.avgSharpe.toFixed(2) },
-              { label: "AVG FITNESS", value: "0.87" },
-              { label: "AVG RETURN", value: "+12.6%" },
-            ].map((item) => (
-              <div key={item.label} className="select-none cursor-default">
-                <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/50 block">{item.label}</span>
-                <span className="text-sm font-mono font-medium text-muted-foreground">{item.value}</span>
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Customize button */}
