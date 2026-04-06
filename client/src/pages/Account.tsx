@@ -49,8 +49,11 @@ export default function Account() {
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
   const [username, setUsername] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
-  const [showPasswordFlow, setShowPasswordFlow] = useState(false);
-  const [passwordStep, setPasswordStep] = useState<"idle" | "verify" | "reset">("idle");
+  const [passwordVerCode, setPasswordVerCode] = useState("");
+  const [passwordCodeSent, setPasswordCodeSent] = useState(false);
+  const [emailVerCode, setEmailVerCode] = useState("");
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -138,162 +141,150 @@ export default function Account() {
 
       {/* Profile Tab */}
       {activeTab === "profile" && (
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="surface-card lg:col-span-2">
+        <div className="space-y-8">
+          {/* Password Section */}
+          <div className="surface-card">
             <div className="px-6 py-4 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
-                <User className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">Profile Information</span>
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-base font-semibold text-foreground">Change Password</span>
               </div>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="label-upper">Username</Label>
-                  <Input value={username} onChange={(e) => setUsername(e.target.value)} className="rounded-lg bg-card border-border" />
-                </div>
-
-                <div className="space-y-2">
                   <Label className="label-upper">Email</Label>
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-lg bg-card border-border" />
+                  <Input value={email} disabled className="rounded-lg bg-accent border-border opacity-60 cursor-not-allowed" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="label-upper">Timezone</Label>
-                  <Input defaultValue="UTC+8" className="rounded-lg bg-card border-border" />
-                </div>
-              </div>
-
-              <button
-                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                onClick={() => {
-                  updateUser({ displayName: username, email });
-                  toast.success("Profile updated");
-                }}
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">Security</span>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <div className="text-sm font-medium text-foreground">Password</div>
-                  <div className="text-xs text-muted-foreground">Last changed 30 days ago</div>
-                </div>
-                {!showPasswordFlow && (
-                  <button
-                    className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
-                    onClick={() => { setShowPasswordFlow(true); setPasswordStep("verify"); }}
-                  >
-                    Change
-                  </button>
-                )}
-              </div>
-
-              {showPasswordFlow && passwordStep === "verify" && (
-                <div className="mt-3 p-4 rounded-2xl bg-accent border border-border space-y-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Mail className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium text-foreground">Verify Your Email</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">We'll send a verification code to your registered email address.</p>
+                  <Label className="label-upper">Verification Code</Label>
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder="Enter verification code"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
+                      value={passwordVerCode}
+                      onChange={(e) => setPasswordVerCode(e.target.value)}
                       className="rounded-lg bg-card border-border flex-1"
                     />
                     <button
                       className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
-                      onClick={() => toast.success("Verification code sent to your email")}
+                      onClick={() => {
+                        setPasswordCodeSent(true);
+                        toast.success("Verification code sent to your email");
+                      }}
                     >
                       <Send className="w-3 h-3" />
-                      Send Code
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      className="h-8 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                      onClick={() => {
-                        if (!verificationCode.trim()) { toast.error("Please enter the verification code"); return; }
-                        setPasswordStep("reset");
-                      }}
-                    >
-                      Verify
-                    </button>
-                    <button
-                      className="h-8 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground"
-                      onClick={() => { setShowPasswordFlow(false); setPasswordStep("idle"); setVerificationCode(""); }}
-                    >
-                      Cancel
+                      {passwordCodeSent ? "Resend Code" : "Send Code"}
                     </button>
                   </div>
                 </div>
-              )}
+                <div className="space-y-2">
+                  <Label className="label-upper">New Password</Label>
+                  <Input
+                    type="password"
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="rounded-lg bg-card border-border"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-upper">Confirm New Password</Label>
+                  <Input
+                    type="password"
+                    placeholder="Re-enter new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="rounded-lg bg-card border-border"
+                  />
+                  {confirmPassword && newPassword !== confirmPassword && (
+                    <p className="text-xs text-destructive">Passwords do not match</p>
+                  )}
+                  {confirmPassword && newPassword === confirmPassword && confirmPassword.length > 0 && (
+                    <p className="text-xs text-success">Passwords match</p>
+                  )}
+                </div>
+              </div>
+              <button
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                onClick={() => {
+                  if (!passwordVerCode.trim()) { toast.error("Please enter the verification code"); return; }
+                  if (!newPassword.trim()) { toast.error("Please enter a new password"); return; }
+                  if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+                  if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
+                  toast.success("Password updated successfully");
+                  setPasswordVerCode("");
+                  setPasswordCodeSent(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }}
+              >
+                Save Password
+              </button>
+            </div>
+          </div>
 
-              {showPasswordFlow && passwordStep === "reset" && (
-                <div className="mt-3 p-4 rounded-2xl bg-accent border border-border space-y-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Shield className="w-4 h-4 text-primary" />
-                    <span className="text-sm font-medium text-foreground">Set New Password</span>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label className="label-upper">New Password</Label>
-                      <Input
-                        type="password"
-                        placeholder="Enter new password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="rounded-lg bg-card border-border"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="label-upper">Confirm Password</Label>
-                      <Input
-                        type="password"
-                        placeholder="Confirm new password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="rounded-lg bg-card border-border"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 pt-1">
+          {/* Email Section */}
+          <div className="surface-card">
+            <div className="px-6 py-4 pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-primary" />
+                <span className="text-base font-semibold text-foreground">Change Email</span>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="label-upper">Current Email</Label>
+                  <Input value={email} disabled className="rounded-lg bg-accent border-border opacity-60 cursor-not-allowed" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="label-upper">Verification Code</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Enter verification code"
+                      value={emailVerCode}
+                      onChange={(e) => setEmailVerCode(e.target.value)}
+                      className="rounded-lg bg-card border-border flex-1"
+                    />
                     <button
-                      className="h-8 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                      className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
                       onClick={() => {
-                        if (!newPassword.trim()) { toast.error("Please enter a new password"); return; }
-                        if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
-                        if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
-                        toast.success("Password updated successfully");
-                        setShowPasswordFlow(false);
-                        setPasswordStep("idle");
-                        setVerificationCode("");
-                        setNewPassword("");
-                        setConfirmPassword("");
+                        setEmailCodeSent(true);
+                        toast.success("Verification code sent to your current email");
                       }}
                     >
-                      Save Password
-                    </button>
-                    <button
-                      className="h-8 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground"
-                      onClick={() => { setShowPasswordFlow(false); setPasswordStep("idle"); setVerificationCode(""); setNewPassword(""); setConfirmPassword(""); }}
-                    >
-                      Cancel
+                      <Send className="w-3 h-3" />
+                      {emailCodeSent ? "Resend Code" : "Send Code"}
                     </button>
                   </div>
                 </div>
-              )}
+                <div className="space-y-2 md:col-span-2">
+                  <Label className="label-upper">New Email</Label>
+                  <Input
+                    type="email"
+                    placeholder="Enter new email address"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="rounded-lg bg-card border-border md:max-w-md"
+                  />
+                </div>
+              </div>
+              <button
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                onClick={() => {
+                  if (!emailVerCode.trim()) { toast.error("Please enter the verification code"); return; }
+                  if (!newEmail.trim()) { toast.error("Please enter a new email address"); return; }
+                  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast.error("Please enter a valid email address"); return; }
+                  toast.success("Email updated successfully");
+                  setEmail(newEmail);
+                  updateUser({ email: newEmail });
+                  setEmailVerCode("");
+                  setEmailCodeSent(false);
+                  setNewEmail("");
+                }}
+              >
+                Save Email
+              </button>
             </div>
           </div>
         </div>
