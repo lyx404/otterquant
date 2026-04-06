@@ -160,6 +160,7 @@ export default function Account() {
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [editNameValue, setEditNameValue] = useState("");
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!headerRef.current) return;
@@ -654,7 +655,7 @@ export default function Account() {
                           <CopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} />
                           <button
                             className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5"
-                            onClick={() => handleDeleteApi(item.id)}
+                            onClick={() => setDeleteConfirmId(item.id)}
                             title="Delete API key"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -677,7 +678,7 @@ export default function Account() {
                       </div>
 
                       {/* Row 3: Meta info */}
-                      <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <span className="uppercase tracking-wider font-medium">Skill</span>
                           <span className="text-primary font-semibold">{item.skillVersion}</span>
@@ -695,31 +696,7 @@ export default function Account() {
             </div>
           </div>
 
-          {/* Usage & Rate Limits */}
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
-              <span className="text-base font-semibold text-foreground">Usage & Rate Limits</span>
-            </div>
-            <div className="p-6">
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl text-center bg-accent border border-border/60">
-                  <div className="label-upper mb-1">Requests Today</div>
-                  <div className="stat-value text-xl font-bold text-foreground">1,247</div>
-                  <div className="text-xs mt-1 text-muted-foreground">of 10,000</div>
-                </div>
-                <div className="p-4 rounded-2xl text-center bg-accent border border-border/60">
-                  <div className="label-upper mb-1">Rate Limit</div>
-                  <div className="stat-value text-xl font-bold text-foreground">100</div>
-                  <div className="text-xs mt-1 text-muted-foreground">req/min</div>
-                </div>
-                <div className="p-4 rounded-2xl text-center bg-accent border border-border/60">
-                  <div className="label-upper mb-1">Plan</div>
-                  <div className="stat-value text-xl font-bold text-primary">Pro</div>
-                  <div className="text-xs mt-1 text-muted-foreground">unlimited factors</div>
-                </div>
-              </div>
-            </div>
-          </div>
+
         </div>
       )}
 
@@ -755,6 +732,39 @@ export default function Account() {
                 onClick={() => { setArenaNotify(!arenaNotify); toast.success(arenaNotify ? "Arena notifications disabled" : "Arena notifications enabled"); }}
               >
                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${arenaNotify ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ Create API Modal ═══════════════ */}
+      {/* ═══════════════ Delete Confirm Modal ═══════════════ */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
+          <div className="relative w-full max-w-sm mx-4 bg-card border border-border rounded-2xl shadow-2xl p-6">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">Delete API Key</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Are you sure you want to delete <span className="font-medium text-foreground">"{apiKeys.find(k => k.id === deleteConfirmId)?.name}"</span>? This action cannot be undone and any agents using this key will lose access.
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 mt-5">
+              <button
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
+                onClick={() => setDeleteConfirmId(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-destructive text-destructive-foreground hover:brightness-110"
+                onClick={() => { handleDeleteApi(deleteConfirmId); setDeleteConfirmId(null); }}
+              >
+                Delete
               </button>
             </div>
           </div>
