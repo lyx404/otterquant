@@ -428,10 +428,7 @@ export default function Dashboard() {
                   <Key className="w-3 h-3 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs leading-snug text-muted-foreground truncate">{item.name}</span>
-                    <DashCopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
-                  </div>
+                  <span className="text-xs leading-snug text-muted-foreground truncate block">{item.name}</span>
                   <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground/60 mt-0.5">
                     <span>Skill {item.skillVersion}</span>
                     {item.skillVersion !== SKILL_LATEST && (
@@ -449,6 +446,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                 </div>
+                <DashCopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
               </div>
             ))}
           </div>
