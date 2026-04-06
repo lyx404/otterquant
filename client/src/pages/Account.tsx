@@ -123,7 +123,7 @@ function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey: str
       }`}
     >
       {copied ? <Check className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-      {copied ? "Copied" : needsUpdate ? "Update & Copy Prompt" : "Copy Prompt"}
+      {copied ? "Copied" : needsUpdate ? "Copy Latest Prompt" : "Copy Prompt"}
     </button>
   );
 }
