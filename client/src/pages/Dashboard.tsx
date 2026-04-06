@@ -139,7 +139,7 @@ interface SectionDef {
 }
 
 const ALL_SECTIONS: SectionDef[] = [
-  { id: "epoch", label: "Current Epoch", icon: Trophy },
+  { id: "epoch", label: "Alpha Arena", icon: Trophy },
   { id: "myAlphas", label: "My Alphas", icon: FlaskConical },
   { id: "agentApi", label: "Agent API", icon: Key },
   { id: "recentActivity", label: "Recent Activity", icon: Activity },
