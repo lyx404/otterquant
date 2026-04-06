@@ -14,7 +14,6 @@ import {
   ChevronDown,
   Check,
   Copy,
-  Terminal,
   Cpu,
   Zap,
   ArrowRight,
@@ -30,14 +29,17 @@ import {
   ExternalLink,
   Sun,
   Moon,
+  Key,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 /* ── Step definitions ── */
 const STEPS = [
   { id: "welcome", label: "Welcome", icon: Zap },
-  { id: "install", label: "Install Skill", icon: Terminal },
+  { id: "agent-api", label: "Agent API", icon: Key },
   { id: "first-run", label: "First Run", icon: Rocket },
   { id: "verify", label: "Verify", icon: Cpu },
 ] as const;
@@ -70,8 +72,10 @@ export default function LaunchGuide() {
   const [experience, setExperience] = useState("");
   const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set());
 
-  // Step 2: Install
-  const [expandedSection, setExpandedSection] = useState<string | null>("method-1");
+  // Step 2: Agent API
+  const [apiStep, setApiStep] = useState<1 | 2>(1);
+  const [apiName, setApiName] = useState("");
+  const [generatedApiKey, setGeneratedApiKey] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
   // Step 3: Verify
@@ -156,9 +160,7 @@ export default function LaunchGuide() {
     });
   };
 
-  const toggleSection = (id: string) => {
-    setExpandedSection(expandedSection === id ? null : id);
-  };
+
 
   /* ═══ RENDER ═══ */
   return (
@@ -327,92 +329,128 @@ export default function LaunchGuide() {
               </div>
             )}
 
-            {/* ═══ STEP 1: Install Skill ═══ */}
+            {/* ═══ STEP 1: Configure Agent API ═══ */}
             {currentStep === 1 && (
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
-                  <h2 className="mb-1 text-foreground">Install Skill</h2>
+                  <h2 className="mb-1 text-foreground">Configure Agent API</h2>
                   <p className="text-sm text-muted-foreground">
-                    Connect your AI agent to Otter by installing the mining skill. Choose one of the methods below.
+                    Generate an API key and paste the prompt into your AI agent to connect with Otter.
                   </p>
                 </div>
 
-                <AccordionSection
-                  id="method-1"
-                  title="Method 1 — pip install (Recommended)"
-                  subtitle="Install via Python package manager"
-                  expanded={expandedSection === "method-1"}
-                  onToggle={() => toggleSection("method-1")}
-                >
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Run the following command in your terminal to install the Otter skill package:
-                    </p>
-                    <CodeBlock code="pip install alphaforge-skill --upgrade" id="pip" copiedCode={copiedCode} onCopy={copyCode} />
-                    <p className="text-sm text-muted-foreground">Then configure your API key:</p>
-                    <CodeBlock
-                      code={`alphaforge-skill init \\
-  --api-key YOUR_API_KEY \\
-  --agent openai  # or "claude", "cursor"`}
-                      id="init" copiedCode={copiedCode} onCopy={copyCode}
-                    />
-                    <div className="flex items-start gap-2 p-3 rounded-2xl text-xs bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
-                      <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                      <span>
-                        Your API key can be found in <span className="font-mono">Account → API Keys</span>. Keep it private.
-                      </span>
+                {/* Steps indicator */}
+                <div className="flex items-center gap-3">
+                  <div className={`flex items-center gap-2 ${apiStep >= 1 ? "text-primary" : "text-muted-foreground"}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                      apiStep >= 1 ? "border-primary bg-primary/10" : "border-border"
+                    }`}>1</div>
+                    <span className="text-xs font-medium">Generate API</span>
+                  </div>
+                  <div className={`flex-1 h-px ${apiStep >= 2 ? "bg-primary" : "bg-border"}`} />
+                  <div className={`flex items-center gap-2 ${apiStep >= 2 ? "text-primary" : "text-muted-foreground"}`}>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                      apiStep >= 2 ? "border-primary bg-primary/10" : "border-border"
+                    }`}>2</div>
+                    <span className="text-xs font-medium">Paste to Agent</span>
+                  </div>
+                </div>
+
+                {/* API Step 1: Name & Create */}
+                {apiStep === 1 && (
+                  <div className="space-y-4 p-5 rounded-2xl border border-border bg-accent">
+                    <p className="text-xs text-muted-foreground">Give your API key a name to identify it later.</p>
+                    <div className="space-y-2">
+                      <Label className="label-upper">API Name</Label>
+                      <Input
+                        placeholder="e.g., My Trading Bot, Research Agent..."
+                        value={apiName}
+                        onChange={(e) => setApiName(e.target.value)}
+                        className="rounded-lg bg-white dark:bg-slate-950 border-border"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && apiName.trim()) {
+                            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                            let key = "ot_sk_";
+                            for (let i = 0; i < 32; i++) key += chars.charAt(Math.floor(Math.random() * chars.length));
+                            setGeneratedApiKey(key);
+                            setApiStep(2);
+                            toast.success("API key generated!");
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <button
+                        className={`h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ${
+                          apiName.trim()
+                            ? "bg-primary text-primary-foreground hover:brightness-110 btn-bounce cursor-pointer"
+                            : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
+                        }`}
+                        disabled={!apiName.trim()}
+                        onClick={() => {
+                          const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+                          let key = "ot_sk_";
+                          for (let i = 0; i < 32; i++) key += chars.charAt(Math.floor(Math.random() * chars.length));
+                          setGeneratedApiKey(key);
+                          setApiStep(2);
+                          toast.success("API key generated!");
+                        }}
+                      >
+                        Create API Key
+                      </button>
                     </div>
                   </div>
-                </AccordionSection>
+                )}
 
-                <AccordionSection
-                  id="method-2"
-                  title="Method 2 — Docker Container"
-                  subtitle="Run as a containerized service"
-                  expanded={expandedSection === "method-2"}
-                  onToggle={() => toggleSection("method-2")}
-                >
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">Pull and run the official Docker image:</p>
-                    <CodeBlock
-                      code={`docker pull alphaforge/skill:latest
-docker run -d \\
-  --name alphaforge-skill \\
-  -e API_KEY=YOUR_API_KEY \\
-  -e AGENT_TYPE=openai \\
-  alphaforge/skill:latest`}
-                      id="docker" copiedCode={copiedCode} onCopy={copyCode}
-                    />
-                  </div>
-                </AccordionSection>
+                {/* API Step 2: Show Prompt */}
+                {apiStep === 2 && (
+                  <div className="space-y-4 p-5 rounded-2xl border border-border bg-accent">
+                    <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Otter Trading.</p>
 
-                <AccordionSection
-                  id="method-3"
-                  title="Method 3 — Manual Configuration"
-                  subtitle="For custom agent setups"
-                  expanded={expandedSection === "method-3"}
-                  onToggle={() => toggleSection("method-3")}
-                >
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">Clone the repository and configure manually:</p>
-                    <CodeBlock
-                      code={`git clone https://github.com/alphaforge/skill.git
-cd skill
-cp .env.example .env
-# Edit .env with your API key and agent type
-npm install && npm start`}
-                      id="manual" copiedCode={copiedCode} onCopy={copyCode}
-                    />
-                    <a
-                      href="#"
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:opacity-80 transition-opacity"
-                      onClick={(e) => { e.preventDefault(); toast("Feature coming soon"); }}
-                    >
-                      View full documentation
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    {/* Prompt preview */}
+                    <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 max-h-64 overflow-y-auto">
+                      <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
+{`# Otter Trading Skill Configuration
+
+## API Key
+\`${generatedApiKey}\`
+
+## Skill Version
+v2.4.1
+
+## Setup Instructions
+Paste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.
+
+Your agent will be able to:
+- Mine and backtest alpha factors automatically
+- Access real-time market data (CEX & DEX)
+- Submit strategies to the Otter Arena
+- Monitor portfolio performance
+
+## Connection Endpoint
+https://api.otter.trade/v1/agent
+
+## Authentication
+Include the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`}
+                      </pre>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <button
+                        className="h-9 px-6 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce flex items-center gap-2"
+                        onClick={() => {
+                          const prompt = `# Otter Trading Skill Configuration\n\n## API Key\n\`${generatedApiKey}\`\n\n## Skill Version\nv2.4.1\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.\n\nYour agent will be able to:\n- Mine and backtest alpha factors automatically\n- Access real-time market data (CEX & DEX)\n- Submit strategies to the Otter Arena\n- Monitor portfolio performance\n\n## Connection Endpoint\nhttps://api.otter.trade/v1/agent\n\n## Authentication\nInclude the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
+                          navigator.clipboard.writeText(prompt);
+                          toast.success("Prompt copied to clipboard");
+                        }}
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        Copy Prompt
+                      </button>
+                    </div>
                   </div>
-                </AccordionSection>
+                )}
               </div>
             )}
 
