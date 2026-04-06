@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle, Compass,
+  Bell, Mail, Send,
 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,13 @@ export default function Account() {
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
   const [username, setUsername] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [showPasswordFlow, setShowPasswordFlow] = useState(false);
+  const [passwordStep, setPasswordStep] = useState<"idle" | "verify" | "reset">("idle");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [alphasNotify, setAlphasNotify] = useState(true);
+  const [arenaNotify, setArenaNotify] = useState(true);
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -177,31 +185,115 @@ export default function Account() {
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <div className="text-sm font-medium text-foreground">Two-Factor Auth</div>
-                  <div className="text-xs text-muted-foreground">TOTP authenticator</div>
-                </div>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] bg-success/10 text-success border border-success/20">
-                  ENABLED
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-t border-border">
-                <div>
                   <div className="text-sm font-medium text-foreground">Password</div>
                   <div className="text-xs text-muted-foreground">Last changed 30 days ago</div>
                 </div>
-                <button className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
-                  Change
-                </button>
+                {!showPasswordFlow && (
+                  <button
+                    className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
+                    onClick={() => { setShowPasswordFlow(true); setPasswordStep("verify"); }}
+                  >
+                    Change
+                  </button>
+                )}
               </div>
-              <div className="flex items-center justify-between py-2 border-t border-border">
-                <div>
-                  <div className="text-sm font-medium text-foreground">Sessions</div>
-                  <div className="text-xs text-muted-foreground">2 active sessions</div>
+
+              {showPasswordFlow && passwordStep === "verify" && (
+                <div className="mt-3 p-4 rounded-2xl bg-accent border border-border space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Mail className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Verify Your Email</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">We'll send a verification code to your registered email address.</p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Enter verification code"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      className="rounded-lg bg-card border-border flex-1"
+                    />
+                    <button
+                      className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                      onClick={() => toast.success("Verification code sent to your email")}
+                    >
+                      <Send className="w-3 h-3" />
+                      Send Code
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      className="h-8 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                      onClick={() => {
+                        if (!verificationCode.trim()) { toast.error("Please enter the verification code"); return; }
+                        setPasswordStep("reset");
+                      }}
+                    >
+                      Verify
+                    </button>
+                    <button
+                      className="h-8 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground"
+                      onClick={() => { setShowPasswordFlow(false); setPasswordStep("idle"); setVerificationCode(""); }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-                <button className="h-7 text-xs px-3 rounded-full transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
-                  Manage
-                </button>
-              </div>
+              )}
+
+              {showPasswordFlow && passwordStep === "reset" && (
+                <div className="mt-3 p-4 rounded-2xl bg-accent border border-border space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Shield className="w-4 h-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Set New Password</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="label-upper">New Password</Label>
+                      <Input
+                        type="password"
+                        placeholder="Enter new password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="rounded-lg bg-card border-border"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="label-upper">Confirm Password</Label>
+                      <Input
+                        type="password"
+                        placeholder="Confirm new password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="rounded-lg bg-card border-border"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      className="h-8 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                      onClick={() => {
+                        if (!newPassword.trim()) { toast.error("Please enter a new password"); return; }
+                        if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
+                        if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
+                        toast.success("Password updated successfully");
+                        setShowPasswordFlow(false);
+                        setPasswordStep("idle");
+                        setVerificationCode("");
+                        setNewPassword("");
+                        setConfirmPassword("");
+                      }}
+                    >
+                      Save Password
+                    </button>
+                    <button
+                      className="h-8 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground"
+                      onClick={() => { setShowPasswordFlow(false); setPasswordStep("idle"); setVerificationCode(""); setNewPassword(""); setConfirmPassword(""); }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -278,6 +370,52 @@ export default function Account() {
                   <div className="text-xs mt-1 text-muted-foreground">unlimited factors</div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Settings — always visible at bottom of profile tab */}
+      {activeTab === "profile" && (
+        <div className="surface-card">
+          <div className="px-6 py-4 pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <Bell className="w-4 h-4 text-primary" />
+              <span className="text-base font-semibold text-foreground">Notification Settings</span>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <div className="text-sm font-medium text-foreground">Alphas Notifications</div>
+                <div className="text-xs text-muted-foreground">Get notified about alpha status changes, test results, and performance updates</div>
+              </div>
+              <button
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                  alphasNotify ? "bg-primary" : "bg-muted"
+                }`}
+                onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? "Alphas notifications disabled" : "Alphas notifications enabled"); }}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
+                  alphasNotify ? "translate-x-5" : "translate-x-0"
+                }`} />
+              </button>
+            </div>
+            <div className="flex items-center justify-between py-2 border-t border-border">
+              <div>
+                <div className="text-sm font-medium text-foreground">Arena Notifications</div>
+                <div className="text-xs text-muted-foreground">Get notified about competition rounds, rankings, and prize pool updates</div>
+              </div>
+              <button
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${
+                  arenaNotify ? "bg-primary" : "bg-muted"
+                }`}
+                onClick={() => { setArenaNotify(!arenaNotify); toast.success(arenaNotify ? "Arena notifications disabled" : "Arena notifications enabled"); }}
+              >
+                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
+                  arenaNotify ? "translate-x-5" : "translate-x-0"
+                }`} />
+              </button>
             </div>
           </div>
         </div>

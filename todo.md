@@ -12,3 +12,10 @@
 - [ ] **Technical Moat Section**: 4 维度表格
 - [ ] **Workflow Section**: 4 步流程
 - [ ] 保持现有动效和主题适配
+
+# Account 页面修改
+
+- [ ] 删除 Two-Factor Auth 行（第178行 div）
+- [ ] 修改 Password "Change" 按钮 → 增加修改流程（发送验证码至邮箱、更新密码、保存）
+- [ ] 删除 Sessions 行（第196行 div）
+- [ ] 在 Account 页面底部新增消息通知板块（Alphas 相关通知、Arena 相关通知）
