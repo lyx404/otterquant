@@ -106,21 +106,24 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 /* ── Copy Prompt button ── */
-function CopyPromptBtn({ apiKey, skillVersion }: { apiKey: string; skillVersion: string }) {
+function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey: string; skillVersion: string; itemSkillVersion: string }) {
   const [copied, setCopied] = useState(false);
+  const needsUpdate = itemSkillVersion !== skillVersion;
   const handleCopy = () => {
     navigator.clipboard.writeText(buildPrompt(apiKey, skillVersion));
     setCopied(true);
-    toast.success("Prompt copied to clipboard");
+    toast.success(needsUpdate ? "Updated to latest skill & prompt copied" : "Prompt copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
   return (
     <button
       onClick={handleCopy}
-      className="h-7 text-xs px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10"
+      className={`h-7 text-xs px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 ease-in-out border ${
+        needsUpdate ? "border-amber-500/30 text-amber-500 hover:bg-amber-500/10" : "border-primary/20 text-primary hover:bg-primary/10"
+      }`}
     >
       {copied ? <Check className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-      {copied ? "Copied" : "Copy Prompt"}
+      {copied ? "Copied" : needsUpdate ? "Update & Copy Prompt" : "Copy Prompt"}
     </button>
   );
 }
@@ -652,14 +655,7 @@ export default function Account() {
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-3">
-                          <CopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} />
-                          <button
-                            className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5"
-                            onClick={() => setDeleteConfirmId(item.id)}
-                            title="Delete API key"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          <CopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
                         </div>
                       </div>
 
@@ -677,17 +673,25 @@ export default function Account() {
                         </div>
                       </div>
 
-                      {/* Row 3: Meta info */}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <span className="uppercase tracking-wider font-medium">Skill</span>
-                          <span className="text-primary font-semibold">{item.skillVersion}</span>
-                          {item.skillVersion !== SKILL_LATEST && (
-                            <span className="text-amber-500 ml-0.5">(update available: {SKILL_LATEST})</span>
-                          )}
-                        </span>
-                        <span className="border-l border-border pl-4">Created {item.createdAt}</span>
-                        <span className="border-l border-border pl-4">Updated {item.updatedAt}</span>
+                      {/* Row 3: Meta info + Delete */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <span className="uppercase tracking-wider font-medium">Skill</span>
+                            <span className="text-primary font-semibold">{item.skillVersion}</span>
+                            {item.skillVersion !== SKILL_LATEST && (
+                              <span className="text-amber-500 ml-0.5">(update available: {SKILL_LATEST})</span>
+                            )}
+                          </span>
+                          <span className="border-l border-border pl-4">Updated {item.updatedAt}</span>
+                        </div>
+                        <button
+                          className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 shrink-0"
+                          onClick={() => setDeleteConfirmId(item.id)}
+                          title="Delete API key"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
                       </div>
                     </div>
                   ))}
