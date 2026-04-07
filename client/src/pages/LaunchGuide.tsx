@@ -521,52 +521,6 @@ Include the API key in your agent's system prompt or environment configuration.`
                         </div>
                       </div>
 
-                      <div className="rounded-2xl overflow-hidden border border-border">
-                        <div className="px-4 py-3 bg-accent border-b border-border">
-                          <span className="label-upper">
-                            Skill Components
-                          </span>
-                        </div>
-                        {verifyDetails.skills.map((skill, i) => (
-                          <div
-                            key={skill.name}
-                            className={`flex items-center justify-between px-4 py-3 ${
-                              i < verifyDetails.skills.length - 1 ? "border-b border-border" : ""
-                            }`}
-                          >
-                            <span className="text-sm text-foreground">{skill.name}</span>
-                            <div className="flex items-center gap-1.5">
-                              {skill.status === "ok" && (
-                                <>
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                                  <span className="text-xs font-mono text-success">OK</span>
-                                </>
-                              )}
-                              {skill.status === "warn" && (
-                                <>
-                                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-                                  <span className="text-xs font-mono text-amber-500 dark:text-amber-400">OPTIONAL</span>
-                                </>
-                              )}
-                              {skill.status === "error" && (
-                                <>
-                                  <XCircle className="w-3.5 h-3.5 text-destructive" />
-                                  <span className="text-xs font-mono text-destructive">FAILED</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {verifyStatus === "partial" && (
-                        <div className="flex items-start gap-2 p-3 rounded-2xl text-xs bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
-                          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                          <span>
-                            Live Trading Bridge is optional for getting started. You can configure it later in Account → Exchanges.
-                          </span>
-                        </div>
-                      )}
 
                       <button
                         onClick={runVerification}
