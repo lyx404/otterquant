@@ -407,7 +407,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className="px-4 pb-4">
+      <div className="px-4 pt-4 pb-4">
         {apiKeys.length === 0 ? (
           <div className="text-center py-6">
             <Key className="w-6 h-6 mx-auto mb-2 text-muted-foreground/30" />
