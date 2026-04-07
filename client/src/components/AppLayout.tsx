@@ -10,7 +10,7 @@
  * Logo "Otter" links to /landing
  */
 import { Link, useLocation } from "wouter";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -36,6 +36,74 @@ const navItems = [
   { path: "/leaderboard", label: "Alpha Arena", icon: Trophy },
   { path: "/account", label: "Account", icon: UserCog },
 ];
+
+/* ── User Dropdown ── */
+function UserDropdown({
+  user,
+  isActive,
+  onNavigate,
+  onLogout,
+}: {
+  user: { displayName?: string; avatar?: string } | null;
+  isActive: boolean;
+  onNavigate: (path: string) => void;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-2 px-2.5 py-1 rounded-full border cursor-pointer transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-sm ${
+          isActive || open
+            ? "bg-primary/10 border-primary/20"
+            : "bg-accent border-border hover:bg-slate-200 dark:hover:bg-slate-800 hover:border-primary/20"
+        }`}
+      >
+        <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold overflow-hidden">
+          {user?.avatar ? (
+            <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            user?.displayName?.charAt(0)?.toUpperCase() || "U"
+          )}
+        </div>
+        <span className="text-xs font-medium text-foreground">
+          {user?.displayName || "User"}
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1.5 w-44 rounded-xl border border-border bg-white dark:bg-slate-900 shadow-lg py-1 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+          <button
+            onClick={() => { setOpen(false); onNavigate("/account"); }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-foreground hover:bg-accent transition-colors duration-150"
+          >
+            <UserCog className="w-3.5 h-3.5 text-muted-foreground" />
+            Account Settings
+          </button>
+          <div className="my-1 border-t border-border" />
+          <button
+            onClick={() => { setOpen(false); onLogout(); }}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors duration-150"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Log Out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
@@ -153,36 +221,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <>
                   {isAuthenticated && <NotificationPanel />}
                   {isAuthenticated ? (
-                    /* User Info — clickable, links to Account page */
-                    <div className="flex items-center gap-2">
-                      <Link href="/account">
-                        <div
-                          className={`flex items-center gap-2 px-2.5 py-1 rounded-full border cursor-pointer transition-all duration-200 ease-in-out hover:scale-105 hover:shadow-sm ${
-                            isActive("/account")
-                              ? "bg-primary/10 border-primary/20"
-                              : "bg-accent border-border hover:bg-slate-200 dark:hover:bg-slate-800 hover:border-primary/20"
-                          }`}
-                        >
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold overflow-hidden">
-                            {user?.avatar ? (
-                              <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                            ) : (
-                              user?.displayName?.charAt(0)?.toUpperCase() || "U"
-                            )}
-                          </div>
-                          <span className="text-xs font-medium text-foreground">
-                            {user?.displayName || "User"}
-                          </span>
-                        </div>
-                      </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="w-8 h-8 rounded-full flex items-center justify-center border border-border bg-accent hover:bg-destructive/10 hover:border-destructive/20 hover:text-destructive transition-all duration-200 text-muted-foreground"
-                        title="Log out"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    /* User Info — clickable dropdown with Account + Log Out */
+                    <UserDropdown
+                      user={user}
+                      isActive={isActive("/account")}
+                      onNavigate={(path: string) => navigate(path)}
+                      onLogout={handleLogout}
+                    />
                   ) : (
                     /* Login / Register button */
                     <Link href="/auth">
