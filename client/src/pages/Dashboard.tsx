@@ -464,7 +464,7 @@ export default function Dashboard() {
 
     return (
       <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
-        <div className="px-6 py-4 border-b border-border">
+        <div className="px-6 py-5 border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Activity className="w-3.5 h-3.5 text-muted-foreground" />
@@ -473,7 +473,7 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-        <div className="px-4 pb-4">
+        <div className="px-4 pt-4 pb-4">
           {recentActivities48h.length === 0 ? (
             <div className="text-center py-6">
               <Activity className="w-6 h-6 mx-auto mb-2 text-muted-foreground/30" />
