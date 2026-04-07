@@ -187,9 +187,7 @@ export default function LaunchGuide() {
           <span className="font-semibold text-base tracking-tight text-foreground">
             Otter
           </span>
-          <span className="text-xs font-mono ml-2 px-2 py-0.5 rounded-full text-primary bg-primary/10 border border-primary/20">
-            SETUP
-          </span>
+
         </div>
         <div className="flex items-center gap-2.5">
           <AnimatedThemeToggler
@@ -212,7 +210,7 @@ export default function LaunchGuide() {
         <div className="mx-auto max-w-[860px] px-6 sm:px-10 py-10">
           {/* Title + Stepper Row */}
           <div className="mb-10 flex items-center justify-between gap-6">
-            <h1 className="text-foreground whitespace-nowrap">Launch Guide</h1>
+            <h1 className="whitespace-nowrap text-[16px] font-normal px-4 py-1 rounded-full border-[0.5px] border-primary bg-[#f2f1f8] dark:bg-primary/10 text-primary">Launch Guide</h1>
 
             {/* ── Compact Horizontal Stepper ── */}
             <div className="flex items-center gap-1 sm:gap-2">
