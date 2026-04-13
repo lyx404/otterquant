@@ -472,42 +472,14 @@ export default function MyAlphas() {
                 New Alpha
               </button>
             </Link>
-            <div className="flex-1" />
-            {/* View Mode Toggle */}
-            <div className="flex items-center rounded-lg border border-border overflow-hidden">
-              <button
-                onClick={() => setViewMode("table")}
-                className={`p-2 transition-all duration-200 ease-in-out ${
-                  viewMode === "table"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-                title="Table View"
-              >
-                <Table2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("card")}
-                className={`p-2 transition-all duration-200 ease-in-out ${
-                  viewMode === "card"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                }`}
-                title="Card View"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-            </div>
+
           </div>
         </div>
 
       </div>
 
-      {/* Card View */}
-      {viewMode === "card" && <AlphaCardView />}
-
       {/* Pipeline Stats — Total / Starred / Passed / Failed (Table view only) */}
-      {viewMode === "table" && (<>
+      {viewMode === "table" && (
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
           onClick={() => { setCardFilter("all"); setPage(1); }}
@@ -556,9 +528,10 @@ export default function MyAlphas() {
           <div className="text-sm mt-1 text-muted-foreground truncate">{submissionStats.rejected} rejected</div>
         </button>
       </div>
+      )}
 
       {/* ═══════════════════════════════════════════
-          DATA TABLE
+          TOOLBAR + DATA TABLE / CARD VIEW
           ═══════════════════════════════════════════ */}
       <div className="surface-card overflow-hidden">
         {/* Toolbar */}
@@ -671,9 +644,43 @@ export default function MyAlphas() {
               </div>
             </PopoverContent>
           </Popover>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center rounded-lg border border-border overflow-hidden">
+            <button
+              onClick={() => setViewMode("table")}
+              className={`p-2 transition-all duration-200 ease-in-out ${
+                viewMode === "table"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }`}
+              title="Table View"
+            >
+              <Table2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("card")}
+              className={`p-2 transition-all duration-200 ease-in-out ${
+                viewMode === "card"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }`}
+              title="Card View"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
+        {/* Card View */}
+        {viewMode === "card" && (
+          <div className="p-6">
+            <AlphaCardView />
+          </div>
+        )}
+
         {/* Table */}
+        {viewMode === "table" && (<>
         <div className="overflow-x-auto relative">
           <table className="w-full" style={{ minWidth: "900px" }}>
             <ColGroup />
@@ -776,9 +783,8 @@ export default function MyAlphas() {
             </Button>
           </div>
         </div>
-      </div>
-
       </>)}
+      </div>
 
       {/* Batch Grade Reveal Modal */}
       {showBatchReveal && batchGrades.length > 0 && (
