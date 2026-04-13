@@ -289,7 +289,9 @@ export default function MyAlphas() {
             <button onClick={(e) => { e.stopPropagation(); toggleStar(row.id); }} className="shrink-0 transition-transform duration-200 hover:scale-125">
               <Star className={`w-3.5 h-3.5 transition-colors duration-200 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`} />
             </button>
-            <span className="truncate text-xs text-foreground">{row.name}</span>
+            <Link href={`/alphas/${row.id}`}>
+              <span className="truncate text-xs text-foreground hover:text-primary cursor-pointer transition-colors duration-200">{row.name}</span>
+            </Link>
           </div>
         );
       case "createdAt":
