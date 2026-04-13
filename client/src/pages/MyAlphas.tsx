@@ -362,7 +362,7 @@ export default function MyAlphas() {
                   Ineligible
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="top" sideOffset={6} className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+              <TooltipContent side="top">
                 Only passed alphas are eligible to participate in the Arena
               </TooltipContent>
             </Tooltip>
