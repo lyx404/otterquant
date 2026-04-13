@@ -344,6 +344,14 @@ export default function MyAlphas() {
       case "drawdown":
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "epochStatus": {
+        // Failed/rejected alphas cannot participate in arena
+        if (row.submissionStatus === "failed" || row.submissionStatus === "rejected") {
+          return (
+            <span className="text-xs font-mono whitespace-nowrap text-muted-foreground/50">
+              Ineligible
+            </span>
+          );
+        }
         const es = row.epochStatus || "Not Entered";
         const isRanked = es !== "Not Entered";
         if (isRanked && row.epochId) {
