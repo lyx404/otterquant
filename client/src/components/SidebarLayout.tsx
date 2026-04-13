@@ -22,7 +22,10 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Rocket,
+  Library,
+  FileText,
 } from "lucide-react";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import NotificationPanel from "@/components/NotificationPanel";
@@ -30,9 +33,24 @@ import NotificationPanel from "@/components/NotificationPanel";
 const SIDEBAR_W = 220;
 const SIDEBAR_COLLAPSED_W = 64;
 
-const navItems = [
+type NavItem = {
+  path: string;
+  label: string;
+  icon: any;
+  children?: { path: string; label: string; icon: any }[];
+};
+
+const navItems: NavItem[] = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/alphas", label: "Alphas", icon: FlaskConical },
+  {
+    path: "/alphas",
+    label: "Alphas",
+    icon: FlaskConical,
+    children: [
+      { path: "/alphas", label: "My Alphas", icon: FileText },
+      { path: "/alphas/official", label: "Official Library", icon: Library },
+    ],
+  },
   { path: "/leaderboard", label: "Alpha Arena", icon: Trophy },
   { path: "/account", label: "Account", icon: UserCog },
 ];
@@ -44,6 +62,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [alphasExpanded, setAlphasExpanded] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Close user menu on outside click
@@ -64,8 +83,13 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
   const isActive = (path: string) => {
     if (path === "/") return location === "/";
-    return location.startsWith(path);
+    if (path === "/alphas" && location === "/alphas") return true;
+    if (path === "/alphas/official" && location === "/alphas/official") return true;
+    if (path === "/alphas" && location.startsWith("/alphas/") && !location.startsWith("/alphas/official")) return true;
+    return location.startsWith(path) && path !== "/alphas";
   };
+
+  const isAlphasSection = location.startsWith("/alphas");
 
   const handleLogout = () => {
     logout();
@@ -115,8 +139,72 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
       {/* Navigation */}
       <nav className={`flex-1 py-2 space-y-0.5 overflow-y-auto ${collapsed && !isMobile ? "px-2" : "px-3"}`}>
         {navItems.map((item) => {
-          const active = isActive(item.path);
           const Icon = item.icon;
+          const hasChildren = item.children && item.children.length > 0;
+          const sectionActive = hasChildren ? isAlphasSection : isActive(item.path);
+          const showExpanded = collapsed && !isMobile ? false : (hasChildren && (alphasExpanded || isAlphasSection));
+
+          if (hasChildren) {
+            return (
+              <div key={item.path}>
+                {/* Parent item */}
+                <button
+                  onClick={() => {
+                    if (collapsed && !isMobile) {
+                      navigate(item.path);
+                    } else {
+                      setAlphasExpanded((v) => !v);
+                    }
+                  }}
+                  className={`w-full flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-200 ease-in-out ${
+                    collapsed && !isMobile
+                      ? "justify-center px-0 py-2.5"
+                      : "px-3 py-2"
+                  } ${
+                    sectionActive
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  }`}
+                  title={collapsed && !isMobile ? item.label : undefined}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {(!collapsed || isMobile) && (
+                    <>
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronDown className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
+                        showExpanded ? "rotate-0" : "-rotate-90"
+                      }`} />
+                    </>
+                  )}
+                </button>
+                {/* Children */}
+                {showExpanded && (
+                  <div className="mt-0.5 space-y-0.5 ml-3 pl-3 border-l border-border">
+                    {item.children!.map((child) => {
+                      const childActive = isActive(child.path);
+                      const ChildIcon = child.icon;
+                      return (
+                        <button
+                          key={child.path}
+                          onClick={() => navigate(child.path)}
+                          className={`w-full flex items-center gap-2 rounded-lg text-[12px] font-medium transition-all duration-200 ease-in-out px-2.5 py-1.5 ${
+                            childActive
+                              ? "bg-primary/10 text-primary"
+                              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                          }`}
+                        >
+                          <ChildIcon className="w-3.5 h-3.5 shrink-0" />
+                          <span>{child.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
+          const active = isActive(item.path);
           return (
             <button
               key={item.path}

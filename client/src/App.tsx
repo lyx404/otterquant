@@ -15,6 +15,7 @@ import Account from "./pages/Account";
 import LaunchGuide from "./pages/LaunchGuide";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
+import OfficialLibrary from "./pages/OfficialLibrary";
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 
 /* ── Onboarding context for reactive state ── */
@@ -118,6 +119,9 @@ function Router() {
       </Route>
       <Route path="/alphas">
         <ProtectedRoute component={MyAlphas} />
+      </Route>
+      <Route path="/alphas/official">
+        <ProtectedRoute component={OfficialLibrary} />
       </Route>
       <Route path="/alphas/:id">
         <ProtectedRoute component={AlphaDetail} />
