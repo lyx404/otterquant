@@ -1,9 +1,8 @@
 /*
  * LaunchGuide — Indigo/Sky + Slate Design System
+ * Dual mode: Platform Agent (AI Chat) + User's Own Agent (API/Skill)
  * Cards: rounded-2xl | Buttons: rounded-full | Inputs: rounded-lg
  * Primary: Indigo | Secondary: Sky | Success: Emerald
- * Stepper: horizontal, Indigo progress line
- * Pure Tailwind classes — zero inline styles (except progress width)
  */
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
@@ -21,30 +20,40 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   Rocket,
   FlaskConical,
   BarChart3,
   Trophy,
-  ExternalLink,
-  Sun,
-  Moon,
   Key,
+  MessageSquare,
+  Bot,
+  Send,
+  Sparkles,
+  Code2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { GradeRevealSingle } from "@/components/GradeRevealModal";
+import { type AlphaGrade } from "@/lib/mockData";
 
-/* ── Step definitions ── */
-const STEPS = [
+/* ── Agent Mode Type ── */
+type AgentMode = "platform" | "own" | null;
+
+/* ── Step definitions — dynamic based on mode ── */
+const PLATFORM_STEPS = [
+  { id: "welcome", label: "Welcome", icon: Zap },
+  { id: "ai-chat", label: "AI Mining", icon: MessageSquare },
+  { id: "verify", label: "Verify", icon: Cpu },
+] as const;
+
+const OWN_AGENT_STEPS = [
   { id: "welcome", label: "Welcome", icon: Zap },
   { id: "agent-api", label: "Agent API & Skill", icon: Key },
   { id: "first-run", label: "First Run", icon: Rocket },
   { id: "verify", label: "Verify", icon: Cpu },
 ] as const;
 
-type StepId = (typeof STEPS)[number]["id"];
 type VerifyStatus = "idle" | "checking" | "success" | "partial" | "failed";
 
 const MARKETS = [
@@ -59,23 +68,62 @@ const EXPERIENCE_OPTIONS = [
   { value: "advanced", label: "Advanced — Professional quant / fund manager" },
 ];
 
+/* ── AI Chat Message Type ── */
+interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: Date;
+  isTyping?: boolean;
+}
+
+/* ── Simulated AI Responses ── */
+const AI_RESPONSES: Record<string, string> = {
+  default: "I can help you create alpha factors. Try describing a trading strategy, like:\n\n- \"Create a BTC momentum factor using RSI\"\n- \"Build a volume divergence alpha for ETH\"\n- \"Design a funding rate mean reversion strategy\"",
+  momentum: "Great choice! I've designed a **BTC Momentum RSI Cross** factor:\n\n```\nts_rank(close/delay(close,14), 252) * ts_std(volume, 20)\n```\n\n**Strategy Logic:**\n- Ranks 14-day price momentum over a 252-day window\n- Weights by 20-day volume volatility for signal strength\n- Targets trending markets with increasing participation\n\nShall I submit this for backtesting?",
+  volume: "Here's an **ETH Volume Divergence** alpha:\n\n```\nrank(ts_corr(close, volume, 10)) - rank(ts_delta(close, 5))\n```\n\n**Strategy Logic:**\n- Detects divergence between price-volume correlation and price momentum\n- Short-term mean reversion signal when volume leads price\n\nWant me to run a backtest on this?",
+  funding: "I've created a **Funding Rate Mean Reversion** factor:\n\n```\nts_zscore(funding_rate, 168) * -1 * rank(open_interest_change)\n```\n\n**Strategy Logic:**\n- Z-score normalizes funding rate over 7-day window\n- Inverts signal (high funding = short bias)\n- Weights by open interest changes for conviction\n\nReady to backtest?",
+  backtest: "Backtesting initiated! Here's the preliminary result:\n\n| Metric | In-Sample | Out-of-Sample |\n|--------|-----------|---------------|\n| Sharpe | 1.42 | 1.15 |\n| Returns | 18.5% | 14.2% |\n| Drawdown | 6.8% | 8.2% |\n| Turnover | 38.2% | 41.5% |\n\nThe factor shows **strong IS performance** with reasonable OS decay. IS Sharpe of 1.42 exceeds the 1.25 cutoff.\n\nWould you like me to submit this to the Arena?",
+};
+
+function getAIResponse(input: string): string {
+  const lower = input.toLowerCase();
+  if (lower.includes("momentum") || lower.includes("rsi") || lower.includes("btc")) return AI_RESPONSES.momentum;
+  if (lower.includes("volume") || lower.includes("divergence") || lower.includes("eth")) return AI_RESPONSES.volume;
+  if (lower.includes("funding") || lower.includes("mean rev")) return AI_RESPONSES.funding;
+  if (lower.includes("backtest") || lower.includes("submit") || lower.includes("test")) return AI_RESPONSES.backtest;
+  return AI_RESPONSES.default;
+}
+
 /* ── Main Component ── */
 export default function LaunchGuide() {
   const [, navigate] = useLocation();
   const { markOnboarded } = useOnboarding();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [agentMode, setAgentMode] = useState<AgentMode>(null);
 
   // Step 1: Welcome
-  const [teamName, setTeamName] = useState("");
   const [experience, setExperience] = useState("");
   const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set());
 
-  // Step 2: Agent API
+  // Own Agent: API
   const [apiName, setApiName] = useState("My Trading Bot");
   const [generatedApiKey, setGeneratedApiKey] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  // Platform Agent: AI Chat
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
+    {
+      role: "assistant",
+      content: "Welcome to Otter AI Mining! I'm your personal quant assistant. Tell me what kind of alpha factor you'd like to create, and I'll help you design, backtest, and optimize it.\n\nHere are some ideas to get started:\n- Momentum-based strategies\n- Volume divergence signals\n- Funding rate arbitrage\n- Cross-exchange spread analysis",
+      timestamp: new Date(),
+    },
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isAiTyping, setIsAiTyping] = useState(false);
+  const [gradeReveal, setGradeReveal] = useState<{ grade: AlphaGrade; name: string } | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const generateApiKey = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -84,16 +132,15 @@ export default function LaunchGuide() {
     return key;
   };
 
-  // Auto-generate API key when entering step 1
   useEffect(() => {
-    if (currentStep === 1 && !generatedApiKey) {
+    if (agentMode === "own" && currentStep === 1 && !generatedApiKey) {
       setGeneratedApiKey(generateApiKey());
     }
-  }, [currentStep]);
+  }, [currentStep, agentMode]);
 
-  const buildGuidePrompt = (key: string) => `# Otter Trading Skill Configuration\n\n## API Key\n\`${key}\`\n\n## Skill Version\nv2.4.1\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.\n\nYour agent will be able to:\n- Mine and backtest alpha factors automatically\n- Access real-time market data (CEX & DEX)\n- Submit strategies to the Otter Arena\n- Monitor portfolio performance\n\n## Connection Endpoint\nhttps://api.otter.trade/v1/agent\n\n## Authentication\nInclude the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
+  const buildGuidePrompt = (key: string) => `# Otter Trading Skill Configuration\n\n## API Key\n\`${key}\`\n\n## Skill Version\nv2.4.1\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.\n\nYour agent will be able to:\n- Mine and backtest alpha factors automatically\n- Access real-time market data (CEX & DEX)\n- Submit strategies to the Otter Arena\n- Monitor portfolio performance\n\n## Connection Endpoint\nhttps://api.otter.trade/v1/agent\n\n## Authentication\nInclude the API key in your agent's system prompt or environment configuration.`;
 
-  // Step 3: Verify
+  // Verify
   const [verifyStatus, setVerifyStatus] = useState<VerifyStatus>("idle");
   const [verifyDetails, setVerifyDetails] = useState<{
     connection: boolean;
@@ -101,12 +148,9 @@ export default function LaunchGuide() {
     skills: { name: string; status: "ok" | "warn" | "error" }[];
   } | null>(null);
 
-  // Step 4: First Run
-  const [factorName, setFactorName] = useState("");
-  const [factorMarket, setFactorMarket] = useState("");
-  const [factorDescription, setFactorDescription] = useState("");
-
   const contentRef = useRef<HTMLDivElement>(null);
+
+  const STEPS = agentMode === "platform" ? PLATFORM_STEPS : OWN_AGENT_STEPS;
 
   /* ── Step navigation ── */
   const goNext = () => {
@@ -130,7 +174,6 @@ export default function LaunchGuide() {
     navigate("/");
   };
 
-  /* ── Copy helper ── */
   const copyCode = (code: string, id: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(id);
@@ -138,7 +181,6 @@ export default function LaunchGuide() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  /* ── Simulated verify ── */
   const runVerification = () => {
     setVerifyStatus("checking");
     setVerifyDetails(null);
@@ -156,15 +198,9 @@ export default function LaunchGuide() {
     }, 2500);
   };
 
-  /* ── Can proceed check ── */
   const canProceed = () => {
-    switch (currentStep) {
-      case 0: return experience !== "";
-      case 1: return true;
-      case 2: return true;
-      case 3: return verifyStatus === "success" || verifyStatus === "partial";
-      default: return false;
-    }
+    if (currentStep === 0) return experience !== "" && agentMode !== null;
+    return true;
   };
 
   const toggleMarket = (m: string) => {
@@ -175,7 +211,32 @@ export default function LaunchGuide() {
     });
   };
 
+  /* ── AI Chat ── */
+  const sendMessage = () => {
+    if (!chatInput.trim() || isAiTyping) return;
+    const userMsg: ChatMessage = { role: "user", content: chatInput.trim(), timestamp: new Date() };
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatInput("");
+    setIsAiTyping(true);
 
+    setTimeout(() => {
+      const response = getAIResponse(userMsg.content);
+      setChatMessages((prev) => [...prev, { role: "assistant", content: response, timestamp: new Date() }]);
+      setIsAiTyping(false);
+
+      // Trigger grade reveal when backtest results are shown
+      const lower = userMsg.content.toLowerCase();
+      if (lower.includes("backtest") || lower.includes("submit") || lower.includes("test")) {
+        setTimeout(() => {
+          setGradeReveal({ grade: "A", name: "BTC Momentum RSI Cross" });
+        }, 600);
+      }
+    }, 1200 + Math.random() * 800);
+  };
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, isAiTyping]);
 
   /* ═══ RENDER ═══ */
   return (
@@ -184,10 +245,7 @@ export default function LaunchGuide() {
       <header className="shrink-0 h-11 px-6 sm:px-10 border-b border-border bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-7 h-7 rounded-full object-cover" />
-          <span className="font-semibold text-base tracking-tight text-foreground">
-            Otter
-          </span>
-
+          <span className="font-semibold text-base tracking-tight text-foreground">Otter</span>
         </div>
         <div className="flex items-center gap-2.5">
           <AnimatedThemeToggler
@@ -195,12 +253,8 @@ export default function LaunchGuide() {
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           />
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-full border bg-accent border-border">
-            <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">
-              O
-            </div>
-            <span className="text-xs font-medium text-foreground">
-              Otter User
-            </span>
+            <div className="w-5 h-5 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[10px] font-semibold">O</div>
+            <span className="text-xs font-medium text-foreground">Otter User</span>
           </div>
         </div>
       </header>
@@ -239,19 +293,13 @@ export default function LaunchGuide() {
                         )}
                       </div>
                       <span className={`text-[10px] font-medium hidden sm:inline ${
-                        isCurrent
-                          ? "text-foreground"
-                          : isCompleted
-                          ? "text-primary"
-                          : "text-muted-foreground/60"
+                        isCurrent ? "text-foreground" : isCompleted ? "text-primary" : "text-muted-foreground/60"
                       }`}>
                         {step.label}
                       </span>
                     </div>
                     {i < STEPS.length - 1 && (
-                      <div className={`w-4 sm:w-6 h-px ${
-                        i < currentStep ? "bg-primary" : "bg-border"
-                      }`} />
+                      <div className={`w-4 sm:w-6 h-px ${i < currentStep ? "bg-primary" : "bg-border"}`} />
                     )}
                   </div>
                 );
@@ -261,7 +309,7 @@ export default function LaunchGuide() {
 
           {/* ── Step Content ── */}
           <div className="min-h-[400px]">
-            {/* ═══ STEP 0: Welcome ═══ */}
+            {/* ═══ STEP 0: Welcome + Mode Selection ═══ */}
             {currentStep === 0 && (
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
@@ -271,15 +319,12 @@ export default function LaunchGuide() {
                   </p>
                 </div>
 
-
                 {/* Experience Level */}
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-foreground">
                     What best describes your experience?
                   </label>
-                  <p className="text-xs text-muted-foreground">
-                    This helps us tailor the platform to your needs
-                  </p>
+                  <p className="text-xs text-muted-foreground">This helps us tailor the platform to your needs</p>
                   <div className="space-y-2">
                     {EXPERIENCE_OPTIONS.map((opt) => (
                       <label
@@ -294,15 +339,9 @@ export default function LaunchGuide() {
                         <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                           experience === opt.value ? "border-primary" : "border-slate-400 dark:border-slate-500"
                         }`}>
-                          {experience === opt.value && (
-                            <div className="w-2 h-2 rounded-full bg-primary" />
-                          )}
+                          {experience === opt.value && <div className="w-2 h-2 rounded-full bg-primary" />}
                         </div>
-                        <span className={`text-sm ${
-                          experience === opt.value
-                            ? "text-foreground"
-                            : "text-muted-foreground"
-                        }`}>
+                        <span className={`text-sm ${experience === opt.value ? "text-foreground" : "text-muted-foreground"}`}>
                           {opt.label}
                         </span>
                       </label>
@@ -335,11 +374,192 @@ export default function LaunchGuide() {
                     })}
                   </div>
                 </div>
+
+                {/* ── Agent Mode Selection ── */}
+                <div className="space-y-3">
+                  <label className="text-sm font-medium text-foreground">
+                    How would you like to create alphas?
+                  </label>
+                  <p className="text-xs text-muted-foreground">Choose your preferred workflow</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Platform Agent */}
+                    <button
+                      onClick={() => setAgentMode("platform")}
+                      className={`relative p-5 rounded-2xl text-left transition-all duration-200 ease-in-out border ${
+                        agentMode === "platform"
+                          ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.2)]"
+                          : "bg-accent border-border hover:border-slate-300 dark:hover:border-slate-600"
+                      }`}
+                    >
+                      {agentMode === "platform" && (
+                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-3 h-3 text-primary-foreground" />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                          agentMode === "platform" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
+                        }`}>
+                          <Bot className={`w-5 h-5 ${agentMode === "platform" ? "text-primary" : "text-muted-foreground"}`} />
+                        </div>
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">Platform Agent</div>
+                          <div className="text-[10px] uppercase tracking-wider text-primary font-medium">NEW</div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Use Otter's built-in AI to create and backtest alpha factors through natural language conversation. No coding required.
+                      </p>
+                    </button>
+
+                    {/* Own Agent */}
+                    <button
+                      onClick={() => setAgentMode("own")}
+                      className={`relative p-5 rounded-2xl text-left transition-all duration-200 ease-in-out border ${
+                        agentMode === "own"
+                          ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.2)]"
+                          : "bg-accent border-border hover:border-slate-300 dark:hover:border-slate-600"
+                      }`}
+                    >
+                      {agentMode === "own" && (
+                        <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                          <Check className="w-3 h-3 text-primary-foreground" />
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                          agentMode === "own" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
+                        }`}>
+                          <Code2 className={`w-5 h-5 ${agentMode === "own" ? "text-primary" : "text-muted-foreground"}`} />
+                        </div>
+                        <div className="text-sm font-semibold text-foreground">Your Own Agent</div>
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Connect your existing AI agent (ChatGPT / Claude / DeepSeek) via API key and Otter Skill prompt.
+                      </p>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
-            {/* ═══ STEP 1: Configure Agent API ═══ */}
-            {currentStep === 1 && (
+            {/* ═══ PLATFORM MODE: AI Chat Step ═══ */}
+            {agentMode === "platform" && currentStep === 1 && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="mb-1 text-foreground">AI Alpha Mining</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Describe your trading idea and our AI will help you create, backtest, and optimize alpha factors.
+                  </p>
+                </div>
+
+                {/* Chat Container */}
+                <div className="rounded-2xl border border-border bg-accent overflow-hidden">
+                  {/* Chat Messages */}
+                  <div className="h-[420px] overflow-y-auto p-4 space-y-4">
+                    {chatMessages.map((msg, i) => (
+                      <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                        <div className={`max-w-[85%] ${msg.role === "user" ? "order-2" : ""}`}>
+                          {msg.role === "assistant" && (
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center">
+                                <Sparkles className="w-3 h-3 text-primary" />
+                              </div>
+                              <span className="text-[10px] font-medium text-primary">Otter AI</span>
+                            </div>
+                          )}
+                          <div className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-white dark:bg-slate-950 border border-border rounded-bl-md"
+                          }`}>
+                            {msg.role === "assistant" ? (
+                              <div className="prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-slate-100 [&_pre]:dark:bg-slate-900 [&_pre]:rounded-lg [&_pre]:p-3 [&_pre]:text-xs [&_pre]:font-mono [&_code]:text-primary [&_table]:text-xs [&_th]:px-3 [&_th]:py-1.5 [&_td]:px-3 [&_td]:py-1.5 [&_strong]:text-foreground">
+                                <div dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }} />
+                              </div>
+                            ) : (
+                              <span>{msg.content}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {isAiTyping && (
+                      <div className="flex justify-start">
+                        <div>
+                          <div className="flex items-center gap-1.5 mb-1.5">
+                            <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center">
+                              <Sparkles className="w-3 h-3 text-primary" />
+                            </div>
+                            <span className="text-[10px] font-medium text-primary">Otter AI</span>
+                          </div>
+                          <div className="rounded-2xl rounded-bl-md px-4 py-3 bg-white dark:bg-slate-950 border border-border">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:0ms]" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:150ms]" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:300ms]" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Quick Suggestions */}
+                  {chatMessages.length <= 1 && (
+                    <div className="px-4 pb-2 flex flex-wrap gap-2">
+                      {[
+                        "Create a BTC momentum factor",
+                        "Build an ETH volume divergence alpha",
+                        "Design a funding rate strategy",
+                      ].map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          onClick={() => { setChatInput(suggestion); }}
+                          className="px-3 py-1.5 rounded-full text-xs border border-primary/20 text-primary bg-primary/5 hover:bg-primary/10 transition-colors duration-200"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Chat Input */}
+                  <div className="border-t border-border p-3 flex items-center gap-2">
+                    <Input
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                      placeholder="Describe your alpha strategy..."
+                      className="flex-1 rounded-xl bg-white dark:bg-slate-950 border-border h-10 text-sm"
+                      disabled={isAiTyping}
+                    />
+                    <button
+                      onClick={sendMessage}
+                      disabled={!chatInput.trim() || isAiTyping}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                        chatInput.trim() && !isAiTyping
+                          ? "bg-primary text-primary-foreground hover:brightness-110"
+                          : "bg-accent text-muted-foreground cursor-not-allowed"
+                      }`}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2 p-3 rounded-2xl text-xs bg-primary/5 text-primary border border-primary/20">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>
+                    Tip: The AI can create factors, run backtests, analyze results, and optimize strategies — all through natural conversation.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ OWN AGENT MODE: Step 1 — Configure Agent API ═══ */}
+            {agentMode === "own" && currentStep === 1 && (
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
                   <h2 className="mb-1 text-foreground">Configure Agent API</h2>
@@ -361,13 +581,10 @@ export default function LaunchGuide() {
                   </div>
                 </div>
 
-                {/* Prompt Preview — always visible */}
+                {/* Prompt Preview */}
                 {generatedApiKey && (
                   <div className="space-y-4 p-5 rounded-2xl border border-border bg-accent">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek).</p>
-                    </div>
-
+                    <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek).</p>
                     <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 max-h-64 overflow-y-auto">
                       <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
 {`# Otter Trading Skill Configuration
@@ -394,7 +611,6 @@ https://api.otter.trade/v1/agent
 Include the API key in your agent's system prompt or environment configuration.`}
                       </pre>
                     </div>
-
                     <div className="flex items-center justify-end">
                       <button
                         className="h-9 px-6 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce flex items-center gap-2"
@@ -412,17 +628,16 @@ Include the API key in your agent's system prompt or environment configuration.`
               </div>
             )}
 
-            {/* ═══ STEP 2: First Run — Prompt Use Cases ═══ */}
-            {currentStep === 2 && (
+            {/* ═══ OWN AGENT MODE: Step 2 — First Run ═══ */}
+            {agentMode === "own" && currentStep === 2 && (
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
                   <h2 className="mb-1 text-foreground">First Run</h2>
                   <p className="text-sm text-muted-foreground">
-                    Try these example prompts in your AI coding agent to test the Otter skill. Copy any prompt and paste it into your agent.
+                    Try these example prompts in your AI coding agent to test the Otter skill.
                   </p>
                 </div>
 
-                {/* Prompt use case cards */}
                 <div className="space-y-4">
                   {[
                     {
@@ -444,10 +659,7 @@ Include the API key in your agent's system prompt or environment configuration.`
                       desc: "Tests multi-alpha portfolio optimization",
                     },
                   ].map((item) => (
-                    <div
-                      key={item.category}
-                      className="p-5 rounded-2xl border border-border bg-accent hover:border-primary/30 transition-all duration-200 ease-in-out"
-                    >
+                    <div key={item.category} className="p-5 rounded-2xl border border-border bg-accent hover:border-primary/30 transition-all duration-200 ease-in-out">
                       <div className="flex items-center gap-2 mb-3">
                         <item.icon className="w-4 h-4 text-primary" />
                         <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
@@ -474,20 +686,20 @@ Include the API key in your agent's system prompt or environment configuration.`
 
                 <div className="flex items-start gap-2 p-3 rounded-2xl text-xs bg-primary/5 text-primary border border-primary/20">
                   <Zap className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>
-                    Tip: You can modify these prompts or create your own. The skill supports natural language instructions for all Otter platform operations.
-                  </span>
+                  <span>Tip: You can modify these prompts or create your own. The skill supports natural language instructions for all Otter platform operations.</span>
                 </div>
               </div>
             )}
 
-            {/* ═══ STEP 3: Verify ═══ */}
-            {currentStep === 3 && (
+            {/* ═══ VERIFY (both modes, last step) ═══ */}
+            {currentStep === STEPS.length - 1 && (
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
-                  <h2 className="mb-1 text-foreground">Verify Installation</h2>
+                  <h2 className="mb-1 text-foreground">Verify {agentMode === "platform" ? "Connection" : "Installation"}</h2>
                   <p className="text-sm text-muted-foreground">
-                    Let's check if your skill is properly connected and all components are running.
+                    {agentMode === "platform"
+                      ? "Let's verify the AI mining engine is ready for your workspace."
+                      : "Let's check if your skill is properly connected and all components are running."}
                   </p>
                 </div>
 
@@ -516,12 +728,10 @@ Include the API key in your agent's system prompt or environment configuration.`
                         <div>
                           <p className="text-sm font-medium text-foreground">Connection Established</p>
                           <p className="text-xs font-mono mt-0.5 text-muted-foreground">
-                            Skill version: {verifyDetails.version}
+                            {agentMode === "platform" ? "AI Mining Engine" : "Skill"} version: {verifyDetails.version}
                           </p>
                         </div>
                       </div>
-
-
                       <button
                         onClick={runVerification}
                         className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all duration-200 ease-in-out"
@@ -538,9 +748,7 @@ Include the API key in your agent's system prompt or environment configuration.`
                         <XCircle className="w-5 h-5 shrink-0 text-destructive" />
                         <div>
                           <p className="text-sm font-medium text-foreground">Connection Failed</p>
-                          <p className="text-xs mt-0.5 text-muted-foreground">
-                            Please check your installation and try again.
-                          </p>
+                          <p className="text-xs mt-0.5 text-muted-foreground">Please check your installation and try again.</p>
                         </div>
                       </div>
                       <button
@@ -606,66 +814,34 @@ Include the API key in your agent's system prompt or environment configuration.`
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ═══ Sub-components ═══ */
-
-function AccordionSection({
-  id, title, subtitle, expanded, onToggle, children,
-}: {
-  id: string; title: string; subtitle: string; expanded: boolean; onToggle: () => void; children: React.ReactNode;
-}) {
-  return (
-    <div className={`rounded-2xl overflow-hidden transition-all duration-200 ease-in-out border ${
-      expanded
-        ? "border-primary/30 bg-accent"
-        : "border-border bg-accent/50"
-    }`}>
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors duration-200 ease-in-out"
-      >
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-          <p className="text-xs mt-0.5 text-muted-foreground">{subtitle}</p>
-        </div>
-        {expanded ? (
-          <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
-        ) : (
-          <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
-        )}
-      </button>
-      {expanded && (
-        <div className="px-5 pb-5 border-t border-border">
-          <div className="pt-4">{children}</div>
-        </div>
+      {/* Grade Reveal Modal */}
+      {gradeReveal && (
+        <GradeRevealSingle
+          grade={gradeReveal.grade}
+          factorName={gradeReveal.name}
+          onClose={() => setGradeReveal(null)}
+        />
       )}
     </div>
   );
 }
 
-function CodeBlock({
-  code, id, copiedCode, onCopy,
-}: {
-  code: string; id: string; copiedCode: string | null; onCopy: (code: string, id: string) => void;
-}) {
-  return (
-    <div className="relative rounded-2xl overflow-hidden bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50">
-      <pre className="p-4 pr-12 text-xs font-mono leading-relaxed overflow-x-auto text-slate-800 dark:text-slate-100">
-        {code}
-      </pre>
-      <button
-        onClick={() => onCopy(code, id)}
-        className={`absolute top-2.5 right-2.5 p-1.5 rounded-lg border transition-all duration-200 ease-in-out ${
-          copiedCode === id
-            ? "border-success/30 text-success bg-slate-200 dark:bg-slate-800"
-            : "border-slate-300 dark:border-slate-700 text-slate-500 bg-slate-200 dark:bg-slate-800 hover:border-primary hover:text-primary"
-        }`}
-      >
-        {copiedCode === id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-      </button>
-    </div>
-  );
+/* ═══ Helpers ═══ */
+
+function formatMarkdown(text: string): string {
+  return text
+    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)+)/g, (_match, header, body) => {
+      const headers = header.split('|').map((h: string) => h.trim()).filter(Boolean);
+      const rows = body.trim().split('\n').map((row: string) =>
+        row.split('|').map((c: string) => c.trim()).filter(Boolean)
+      );
+      return `<table class="w-full border-collapse my-2"><thead><tr>${headers.map((h: string) => `<th class="text-left border-b border-border">${h}</th>`).join('')}</tr></thead><tbody>${rows.map((row: string[]) => `<tr>${row.map((c: string) => `<td class="border-b border-border/50">${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    })
+    .replace(/^- (.+)$/gm, '<li>$1</li>')
+    .replace(/(<li>[\s\S]*<\/li>)/g, '<ul class="list-disc pl-4 space-y-1">$1</ul>')
+    .replace(/\n\n/g, '<br/><br/>')
+    .replace(/\n/g, '<br/>');
 }

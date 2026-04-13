@@ -3,6 +3,25 @@
 // All data is simulated for demo purposes
 // ============================================================
 
+// --- Alpha Grade System ---
+export type AlphaGrade = "S" | "A" | "B" | "C" | "D";
+
+export function getAlphaGrade(osSharpe: number): AlphaGrade {
+  if (osSharpe >= 1.5) return "S";
+  if (osSharpe >= 1.0) return "A";
+  if (osSharpe >= 0.6) return "B";
+  if (osSharpe >= 0.3) return "C";
+  return "D";
+}
+
+export const GRADE_CONFIG: Record<AlphaGrade, { label: string; color: string; bg: string; border: string; glow: string }> = {
+  S: { label: "Legendary", color: "#FFD700", bg: "rgba(255, 215, 0, 0.1)", border: "rgba(255, 215, 0, 0.3)", glow: "0 0 40px rgba(255, 215, 0, 0.3)" },
+  A: { label: "Excellent", color: "#818CF8", bg: "rgba(129, 140, 248, 0.1)", border: "rgba(129, 140, 248, 0.3)", glow: "0 0 40px rgba(129, 140, 248, 0.3)" },
+  B: { label: "Good", color: "#34D399", bg: "rgba(52, 211, 153, 0.1)", border: "rgba(52, 211, 153, 0.3)", glow: "0 0 40px rgba(52, 211, 153, 0.3)" },
+  C: { label: "Average", color: "#FBBF24", bg: "rgba(251, 191, 36, 0.1)", border: "rgba(251, 191, 36, 0.3)", glow: "0 0 40px rgba(251, 191, 36, 0.3)" },
+  D: { label: "Needs Work", color: "#F87171", bg: "rgba(248, 113, 113, 0.1)", border: "rgba(248, 113, 113, 0.3)", glow: "0 0 40px rgba(248, 113, 113, 0.3)" },
+};
+
 // --- Time Series Generator ---
 function generateTimeSeries(
   startDate: string,
