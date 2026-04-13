@@ -621,10 +621,10 @@ export default function Leaderboard() {
                 <TableRow className="border-border">
                   <TableHead className="label-upper w-[70px] pl-4">Rank</TableHead>
                   <TableHead className="label-upper">User</TableHead>
-                  <TableHead className="label-upper">Top Alpha</TableHead>
                   <TableHead className="label-upper text-right">Total Alphas</TableHead>
                   <TableHead className="label-upper text-right">Qualified</TableHead>
                   <TableHead className="label-upper text-right">Avg OS Sharpe</TableHead>
+                  <TableHead className="label-upper">Top Alpha</TableHead>
                   <TableHead className="label-upper text-right pr-4">
                     Total Reward <span className="text-muted-foreground font-normal">(USDT)</span>
                   </TableHead>
@@ -648,7 +648,6 @@ export default function Leaderboard() {
                           <span className={`text-sm font-semibold ${nameColor}`}>{entry.username}</span>
                         </div>
                       </TableCell>
-                      <TableCell className={`text-sm font-semibold ${nameColor}`}>{entry.topFactor}</TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">{entry.totalFactors}</TableCell>
                       <TableCell className="text-right font-mono text-sm text-success">{entry.qualifiedFactors}</TableCell>
                       <TableCell className="text-right">
@@ -656,6 +655,7 @@ export default function Leaderboard() {
                           {entry.avgOsSharpe.toFixed(2)}
                         </span>
                       </TableCell>
+                      <TableCell className={`text-sm font-semibold ${nameColor}`}>{entry.topFactor}</TableCell>
                       <TableCell className="text-right pr-4">
                         <span className={rewardStyle}>
                           {stripUSDT(entry.totalReward)}

@@ -5,7 +5,7 @@ import { Route, Switch, Redirect, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import AppLayout from "./components/AppLayout";
+import SidebarLayout from "./components/SidebarLayout";
 import CustomCursor from "./components/CustomCursor";
 import Dashboard from "./pages/Dashboard";
 import MyAlphas from "./pages/MyAlphas";
@@ -135,16 +135,16 @@ function Router() {
   );
 }
 
-/* ── Layout wrapper that hides nav during onboarding, landing, and auth ── */
+/* ── Layout wrapper: Landing/Auth/LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/launch-guide", "/landing"];
+  const noLayoutPaths = ["/launch-guide", "/landing", "/auth"];
   const hideLayout = noLayoutPaths.some(
     (p) => location === p || location.startsWith(p)
   );
 
   if (hideLayout) return <>{children}</>;
-  return <AppLayout>{children}</AppLayout>;
+  return <SidebarLayout>{children}</SidebarLayout>;
 }
 
 function App() {
