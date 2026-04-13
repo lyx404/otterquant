@@ -42,6 +42,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Trophy,
+  Plus,
 } from "lucide-react";
 import {
   factors,
@@ -347,7 +348,10 @@ export default function MyAlphas() {
         // Failed/rejected alphas cannot participate in arena
         if (row.submissionStatus === "failed" || row.submissionStatus === "rejected") {
           return (
-            <span className="text-xs font-mono whitespace-nowrap text-muted-foreground/50">
+            <span
+              className="text-xs font-mono whitespace-nowrap text-muted-foreground/50 cursor-default"
+              title="Only passed alphas are eligible to participate in the Arena"
+            >
               Ineligible
             </span>
           );
@@ -424,9 +428,17 @@ export default function MyAlphas() {
       {/* Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-foreground">
-            My Alphas
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-foreground">
+              My Alphas
+            </h1>
+            <Link href="/launch-guide">
+              <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] transition-all duration-200 ease-in-out">
+                <Plus className="w-3.5 h-3.5" />
+                New Alpha
+              </button>
+            </Link>
+          </div>
         </div>
 
       </div>

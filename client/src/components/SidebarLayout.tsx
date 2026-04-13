@@ -23,7 +23,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Rocket,
-  Plus,
 } from "lucide-react";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import NotificationPanel from "@/components/NotificationPanel";
@@ -111,21 +110,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         )}
       </div>
 
-      {/* Create New Button */}
-      <div className={`px-3 pt-4 pb-2 ${collapsed && !isMobile ? "px-2" : ""}`}>
-        <Link href="/launch-guide">
-          <button
-            className={`w-full flex items-center gap-2.5 font-medium text-xs transition-all duration-200 ease-in-out rounded-lg bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] ${
-              collapsed && !isMobile
-                ? "justify-center px-0 py-2.5"
-                : "px-3 py-2.5"
-            }`}
-          >
-            <Plus className="w-4 h-4 shrink-0" />
-            {(!collapsed || isMobile) && <span>New Alpha</span>}
-          </button>
-        </Link>
-      </div>
+
 
       {/* Navigation */}
       <nav className={`flex-1 py-2 space-y-0.5 overflow-y-auto ${collapsed && !isMobile ? "px-2" : "px-3"}`}>
