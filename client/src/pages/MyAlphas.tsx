@@ -21,6 +21,11 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Link } from "wouter";
 import { useState, useMemo, useEffect, useRef } from "react";
 import gsap from "gsap";
@@ -348,15 +353,19 @@ export default function MyAlphas() {
       case "drawdown":
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "epochStatus": {
-        // Failed/rejected alphas cannot participate in arena
-        if (row.submissionStatus === "failed" || row.submissionStatus === "rejected") {
+        // Only passed alphas can participate in arena; all others show Ineligible
+        if (row.submissionStatus !== "passed") {
           return (
-            <span
-              className="text-xs font-mono whitespace-nowrap text-muted-foreground/50 cursor-default"
-              title="Only passed alphas are eligible to participate in the Arena"
-            >
-              Ineligible
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs font-mono whitespace-nowrap text-muted-foreground/50 cursor-default">
+                  Ineligible
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={6}>
+                Only passed alphas are eligible to participate in the Arena
+              </TooltipContent>
+            </Tooltip>
           );
         }
         const es = row.epochStatus || "Not Entered";
