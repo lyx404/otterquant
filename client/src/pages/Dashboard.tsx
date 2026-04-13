@@ -155,7 +155,7 @@ interface SectionDef {
 
 const ALL_SECTIONS: SectionDef[] = [
   { id: "epoch", label: "Alpha Arena", icon: Trophy },
-  { id: "myAlphas", label: "My Alphas", icon: FlaskConical },
+  { id: "myAlphas", label: "Alphas", icon: FlaskConical },
   { id: "agentApi", label: "Agent API", icon: Key },
   { id: "recentActivity", label: "Recent Activity", icon: Activity },
 ];
@@ -359,7 +359,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FlaskConical className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">My Alphas</span>
+            <span className="text-sm font-medium text-muted-foreground">Alphas</span>
           </div>
           <Link href="/my-alphas">
             <Button

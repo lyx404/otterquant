@@ -430,7 +430,7 @@ export default function MyAlphas() {
         <div className="reveal-line">
           <div className="flex items-center gap-4">
             <h1 className="text-foreground">
-              My Alphas
+              Alphas
             </h1>
             <Link href="/launch-guide">
               <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] transition-all duration-200 ease-in-out">

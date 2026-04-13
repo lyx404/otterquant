@@ -32,7 +32,7 @@ const SIDEBAR_COLLAPSED_W = 64;
 
 const navItems = [
   { path: "/", label: "Dashboard", icon: LayoutDashboard },
-  { path: "/alphas", label: "My Alphas", icon: FlaskConical },
+  { path: "/alphas", label: "Alphas", icon: FlaskConical },
   { path: "/leaderboard", label: "Alpha Arena", icon: Trophy },
   { path: "/account", label: "Account", icon: UserCog },
 ];
