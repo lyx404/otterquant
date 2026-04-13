@@ -57,6 +57,7 @@ import {
   currentEpoch,
   type Factor,
   getAlphaGrade,
+  GRADE_CONFIG,
   type AlphaGrade,
 } from "@/lib/mockData";
 import { GradeRevealBatch } from "@/components/GradeRevealModal";
@@ -84,6 +85,7 @@ interface ColumnDef {
 const dataColumns: ColumnDef[] = [
   { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
   { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px" },
   { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
@@ -237,6 +239,10 @@ export default function MyAlphas() {
       } else if (sortKey === "returns" || sortKey === "turnover" || sortKey === "drawdown") {
         av = parseFloat(String(a[sortKey as keyof AlphaRow])) || 0;
         bv = parseFloat(String(b[sortKey as keyof AlphaRow])) || 0;
+      } else if (sortKey === "grade") {
+        const gradeOrder: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
+        av = gradeOrder[getAlphaGrade(a.osSharpe)];
+        bv = gradeOrder[getAlphaGrade(b.osSharpe)];
       } else if (sortKey === "submissionStatus" || sortKey === "status_col") {
         const order = { passed: 0, os_testing: 1, is_testing: 2, backtesting: 3, queued: 4, failed: 5, rejected: 6 };
         av = order[a.submissionStatus] ?? 99;
@@ -352,6 +358,22 @@ export default function MyAlphas() {
         return <span className="font-mono text-xs tabular-nums text-foreground whitespace-nowrap">{row.turnover}</span>;
       case "drawdown":
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
+      case "grade": {
+        const grade = getAlphaGrade(row.osSharpe);
+        const gc = GRADE_CONFIG[grade];
+        return (
+          <span
+            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider whitespace-nowrap border"
+            style={{
+              color: gc.color,
+              backgroundColor: gc.bg,
+              borderColor: gc.border,
+            }}
+          >
+            {grade}
+          </span>
+        );
+      }
       case "epochStatus": {
         // Only passed alphas can participate in arena; all others show Ineligible
         if (row.submissionStatus !== "passed") {
