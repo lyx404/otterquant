@@ -55,6 +55,8 @@ import {
   type AlphaGrade,
 } from "@/lib/mockData";
 import { GradeRevealBatch } from "@/components/GradeRevealModal";
+import AlphaCardView from "@/components/AlphaCardView";
+import { LayoutGrid, Table2 } from "lucide-react";
 
 type AlphaRow = Factor & {
   submissionStatus: "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
@@ -135,6 +137,7 @@ export default function MyAlphas() {
   const [filterTurnoverMin, setFilterTurnoverMin] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
   const [cardFilter, setCardFilter] = useState<"all" | "passed" | "starred" | "failed">("all");
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
@@ -438,12 +441,42 @@ export default function MyAlphas() {
                 New Alpha
               </button>
             </Link>
+            <div className="flex-1" />
+            {/* View Mode Toggle */}
+            <div className="flex items-center rounded-lg border border-border overflow-hidden">
+              <button
+                onClick={() => setViewMode("table")}
+                className={`p-2 transition-all duration-200 ease-in-out ${
+                  viewMode === "table"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+                title="Table View"
+              >
+                <Table2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("card")}
+                className={`p-2 transition-all duration-200 ease-in-out ${
+                  viewMode === "card"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+                title="Card View"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
 
       </div>
 
-      {/* Pipeline Stats — Total / Starred / Passed / Failed */}
+      {/* Card View */}
+      {viewMode === "card" && <AlphaCardView />}
+
+      {/* Pipeline Stats — Total / Starred / Passed / Failed (Table view only) */}
+      {viewMode === "table" && (<>
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
           onClick={() => { setCardFilter("all"); setPage(1); }}
@@ -713,6 +746,8 @@ export default function MyAlphas() {
           </div>
         </div>
       </div>
+
+      </>)}
 
       {/* Batch Grade Reveal Modal */}
       {showBatchReveal && batchGrades.length > 0 && (
