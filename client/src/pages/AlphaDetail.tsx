@@ -148,14 +148,6 @@ export default function AlphaDetail() {
   const summaryData = summaryPeriod === "IS" ? yearlySummary : osYearlySummary;
   const aggData = summaryPeriod === "IS" ? aggregateData : osAggregateData;
 
-  /* ── Overview metrics (5 cards like image 1) ── */
-  const overviewMetrics = [
-    { label: "GRADE", value: grade, color: gradeConfig.color, desc: gradeConfig.label },
-    { label: "OS SHARPE", value: factor.osSharpe.toFixed(2), color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171", desc: factor.osSharpe >= 1.0 ? "Strong" : factor.osSharpe >= 0.5 ? "Moderate" : "Weak" },
-    { label: "RETURNS", value: factor.returns, color: "#34D399", desc: "Total return" },
-    { label: "DRAWDOWN", value: factor.drawdown, color: "#F87171", desc: "Max loss" },
-    { label: "TESTS", value: `${factor.testsPassed}/${factor.testsPassed + factor.testsFailed}`, color: factor.testsPassed > factor.testsFailed ? "#34D399" : "#F87171", desc: "Passed/Total" },
-  ];
 
   /* ── Beginner mode metrics ── */
   const beginnerMetrics = [
@@ -370,20 +362,7 @@ export default function AlphaDetail() {
       {viewMode === "pro" && (
         <div className="space-y-6 animate-in fade-in duration-300">
 
-          {/* ── SECTION 2: Factor Overview Data (5 metric cards) ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {overviewMetrics.map((m) => (
-              <div key={m.label} className="surface-card p-5 text-center">
-                <div className="label-upper mb-3 text-[10px] tracking-[0.15em]">{m.label}</div>
-                <div className="text-2xl font-bold font-mono" style={{ color: m.color }}>
-                  {m.value}
-                </div>
-                <div className="text-[10px] text-muted-foreground mt-2">{m.desc}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* ── SECTION 2b: IS/OS Summary (metric cards + yearly table) ── */}
+          {/* ── SECTION 2: Factor Overview + IS/OS Summary (merged) ── */}
           <div className="surface-card">
             <div className="px-6 py-4 pb-3">
               <div className="flex items-center justify-between">
@@ -410,14 +389,60 @@ export default function AlphaDetail() {
               </div>
             </div>
             <div className="px-6 pb-6 space-y-4">
-              {/* Aggregate metric cards */}
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                {Object.entries(aggData).map(([key, val]) => (
-                  <div key={key} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                    <div className="label-upper mb-1 text-[9px]">{key}</div>
-                    <div className="text-lg stat-value font-bold text-foreground">{val}</div>
+              {/* Top row: Grade + Tests + Aggregate metric cards */}
+              <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+                {/* Grade card */}
+                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px]">GRADE</div>
+                  <div className="text-lg font-bold font-mono" style={{ color: gradeConfig.color }}>{grade}</div>
+                  <div className="text-[9px] text-muted-foreground mt-0.5">{gradeConfig.label}</div>
+                </div>
+                {/* Sharpe card — color follows list view osSharpe rule */}
+                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px]">SHARPE</div>
+                  <div className={`text-lg font-bold font-mono tabular-nums ${
+                    (typeof aggData.sharpe === "number" ? aggData.sharpe : 0) >= 1 ? "text-success" : (typeof aggData.sharpe === "number" ? aggData.sharpe : 0) >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
+                  }`}>
+                    {typeof aggData.sharpe === "number" ? aggData.sharpe.toFixed(2) : aggData.sharpe}
                   </div>
-                ))}
+                </div>
+                {/* Turnover */}
+                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px]">TURNOVER</div>
+                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.turnover}</div>
+                </div>
+                {/* Fitness — color follows list view fitness rule */}
+                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px]">FITNESS</div>
+                  <div className={`text-lg font-bold font-mono tabular-nums ${
+                    (typeof aggData.fitness === "number" ? aggData.fitness : 0) >= 1 ? "text-success" : (typeof aggData.fitness === "number" ? aggData.fitness : 0) >= 0.5 ? "text-foreground" : "text-muted-foreground"
+                  }`}>
+                    {typeof aggData.fitness === "number" ? aggData.fitness.toFixed(2) : aggData.fitness}
+                  </div>
+                </div>
+                {/* Returns */}
+                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px]">RETURNS</div>
+                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.returns}</div>
+                </div>
+                {/* Drawdown — always destructive like list view */}
+                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px]">DRAWDOWN</div>
+                  <div className="text-lg font-bold font-mono tabular-nums text-destructive">{aggData.drawdown}</div>
+                </div>
+                {/* Margin */}
+                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px]">MARGIN</div>
+                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.margin}</div>
+                </div>
+                {/* Tests card */}
+                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px]">TESTS</div>
+                  <div className={`text-lg font-bold font-mono tabular-nums ${factor.testsPassed > factor.testsFailed ? "text-success" : "text-destructive"}`}>
+                    {factor.testsPassed}/{factor.testsPassed + factor.testsFailed}
+                  </div>
+                  <div className="text-[9px] text-muted-foreground mt-0.5">Passed/Total</div>
+                </div>
               </div>
 
               {/* Yearly breakdown table */}
@@ -439,18 +464,22 @@ export default function AlphaDetail() {
                   {summaryData.map((row) => (
                     <TableRow key={row.year} className="border-border hover:bg-slate-50 dark:hover:bg-slate-800/30">
                       <TableCell className="font-mono text-sm font-medium text-foreground">{row.year}</TableCell>
-                      <TableCell className={`font-mono text-sm ${
+                      <TableCell className={`font-mono text-sm tabular-nums ${
                         row.sharpe >= 1 ? "text-success" : row.sharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
                       }`}>
                         {row.sharpe.toFixed(2)}
                       </TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.turnover}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.fitness.toFixed(2)}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.returns}</TableCell>
-                      <TableCell className="font-mono text-sm text-destructive">{row.drawdown}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.margin}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.longCount.toLocaleString()}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.shortCount.toLocaleString()}</TableCell>
+                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.turnover}</TableCell>
+                      <TableCell className={`font-mono text-sm tabular-nums ${
+                        row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"
+                      }`}>
+                        {row.fitness.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.returns}</TableCell>
+                      <TableCell className="font-mono text-sm tabular-nums text-destructive">{row.drawdown}</TableCell>
+                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.margin}</TableCell>
+                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.longCount.toLocaleString()}</TableCell>
+                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.shortCount.toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
