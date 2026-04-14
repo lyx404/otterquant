@@ -287,7 +287,7 @@
 
   /* ── GSAP reveal clip ── */
   .reveal-clip {
-    overflow: hidden;
+    overflow: visible;
   }
   .reveal-line {
     will-change: transform, opacity;
@@ -593,6 +593,6 @@
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: auto;
+  overflow: visible;
   z-index: 1;
 }
