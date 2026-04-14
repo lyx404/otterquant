@@ -60,7 +60,6 @@ import {
   GRADE_CONFIG,
   type AlphaGrade,
 } from "@/lib/mockData";
-import { GradeRevealBatch } from "@/components/GradeRevealModal";
 import ShinyTag from "@/components/ui/shiny-tag";
 import { StarButton } from "@/components/ui/star-button";
 import { BorderGlowCard } from "@/components/ui/border-glow-card";
@@ -151,27 +150,7 @@ export default function MyAlphas() {
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
-  // Batch grade reveal for own-agent mode (simulate new results since last visit)
-  const [showBatchReveal, setShowBatchReveal] = useState(false);
-  useEffect(() => {
-    const lastVisit = localStorage.getItem("alphaforge_last_alphas_visit");
-    const now = Date.now();
-    // Show batch reveal if more than 30 seconds since last visit (simulating new results)
-    if (!lastVisit || now - parseInt(lastVisit) > 30000) {
-      // Compute grade summary from factors
-      const gradeMap = new Map<AlphaGrade, number>();
-      factors.forEach((f) => {
-        const g = getAlphaGrade(f.osSharpe);
-        gradeMap.set(g, (gradeMap.get(g) || 0) + 1);
-      });
-      if (gradeMap.size > 0) {
-        setBatchGrades(Array.from(gradeMap.entries()).map(([grade, count]) => ({ grade, count })));
-        setShowBatchReveal(true);
-      }
-    }
-    localStorage.setItem("alphaforge_last_alphas_visit", now.toString());
-  }, []);
-  const [batchGrades, setBatchGrades] = useState<{ grade: AlphaGrade; count: number }[]>([]);
+
 
   useEffect(() => {
     if (!headerRef.current) return;
@@ -776,13 +755,6 @@ export default function MyAlphas() {
       </>)}
       </div>
 
-      {/* Batch Grade Reveal Modal */}
-      {showBatchReveal && batchGrades.length > 0 && (
-        <GradeRevealBatch
-          grades={batchGrades}
-          onClose={() => setShowBatchReveal(false)}
-        />
-      )}
     </div>
   );
 }
