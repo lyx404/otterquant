@@ -64,11 +64,11 @@ export default function AlphaDetail() {
       cumulative += step.duration;
       timers.push(setTimeout(() => setGenStep(i + 1), cumulative));
     });
-    // After all steps complete, reveal the full page
     cumulative += 1500;
     timers.push(setTimeout(() => setIsGenerating(false), cumulative));
     return () => timers.forEach(clearTimeout);
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
   const [chartType, setChartType] = useState<ChartType>("pnl");
   const [summaryPeriod, setSummaryPeriod] = useState<"IS" | "OS">("IS");
   const [showTestPeriod, setShowTestPeriod] = useState(true);
@@ -81,7 +81,6 @@ export default function AlphaDetail() {
   });
   const headerRef = useRef<HTMLDivElement>(null);
 
-  // Persist view mode
   useEffect(() => {
     localStorage.setItem("alphaforge_view_mode", viewMode);
   }, [viewMode]);
@@ -149,7 +148,16 @@ export default function AlphaDetail() {
   const summaryData = summaryPeriod === "IS" ? yearlySummary : osYearlySummary;
   const aggData = summaryPeriod === "IS" ? aggregateData : osAggregateData;
 
-  /* ── Beginner mode: simplified key metrics ── */
+  /* ── Overview metrics (5 cards like image 1) ── */
+  const overviewMetrics = [
+    { label: "GRADE", value: grade, color: gradeConfig.color, desc: gradeConfig.label },
+    { label: "OS SHARPE", value: factor.osSharpe.toFixed(2), color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171", desc: factor.osSharpe >= 1.0 ? "Strong" : factor.osSharpe >= 0.5 ? "Moderate" : "Weak" },
+    { label: "RETURNS", value: factor.returns, color: "#34D399", desc: "Total return" },
+    { label: "DRAWDOWN", value: factor.drawdown, color: "#F87171", desc: "Max loss" },
+    { label: "TESTS", value: `${factor.testsPassed}/${factor.testsPassed + factor.testsFailed}`, color: factor.testsPassed > factor.testsFailed ? "#34D399" : "#F87171", desc: "Passed/Total" },
+  ];
+
+  /* ── Beginner mode metrics ── */
   const beginnerMetrics = [
     { label: "Grade", value: grade, color: gradeConfig.color, desc: gradeConfig.label },
     { label: "OS Sharpe", value: factor.osSharpe.toFixed(2), color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171", desc: factor.osSharpe >= 1.0 ? "Strong" : factor.osSharpe >= 0.5 ? "Moderate" : "Weak" },
@@ -163,7 +171,6 @@ export default function AlphaDetail() {
     const displayName = customName || params.id || "New Alpha";
     return (
       <div className="space-y-6">
-        {/* Back + Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign('/alphas')}>
             <ArrowLeft className="w-4 h-4" />
@@ -174,8 +181,6 @@ export default function AlphaDetail() {
             <p className="text-xs font-mono mt-1 text-muted-foreground">{params.id} &middot; Just created</p>
           </div>
         </div>
-
-        {/* Loading indicator */}
         <div className="flex flex-col items-center justify-center py-32">
           <Loader2 className="w-10 h-10 text-primary animate-spin" />
           <p className="mt-4 text-sm text-muted-foreground">Generating alpha factor...</p>
@@ -186,7 +191,7 @@ export default function AlphaDetail() {
 
   return (
     <div className="space-y-6">
-      {/* Back + Header + Mode Toggle */}
+      {/* ═══ SECTION 1: Factor Name + Header ═══ */}
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign('/alphas')}>
           <ArrowLeft className="w-4 h-4" />
@@ -345,7 +350,6 @@ export default function AlphaDetail() {
                   <span className="text-sm text-foreground">{pendingItems.length} Pending</span>
                 </div>
               </div>
-              {/* Progress bar */}
               <div className="mt-3 h-2 rounded-full bg-accent overflow-hidden flex">
                 <div className="bg-success h-full" style={{ width: `${(passItems.length / testingStatus.length) * 100}%` }} />
                 <div className="bg-destructive h-full" style={{ width: `${(failItems.length / testingStatus.length) * 100}%` }} />
@@ -365,7 +369,96 @@ export default function AlphaDetail() {
       {/* ═══ PRO MODE ═══ */}
       {viewMode === "pro" && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Alpha Expression */}
+
+          {/* ── SECTION 2: Factor Overview Data (5 metric cards) ── */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {overviewMetrics.map((m) => (
+              <div key={m.label} className="surface-card p-5 text-center">
+                <div className="label-upper mb-3 text-[10px] tracking-[0.15em]">{m.label}</div>
+                <div className="text-2xl font-bold font-mono" style={{ color: m.color }}>
+                  {m.value}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-2">{m.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── SECTION 2b: IS/OS Summary (metric cards + yearly table) ── */}
+          <div className="surface-card">
+            <div className="px-6 py-4 pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                  <span className="text-base font-semibold text-foreground">{summaryPeriod} Summary</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs mr-2 text-muted-foreground">Period</span>
+                  {(["IS", "OS"] as const).map((p) => (
+                    <button
+                      key={p}
+                      className={`h-7 text-xs px-3 rounded-full font-medium transition-all duration-200 ease-in-out border ${
+                        summaryPeriod === p
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : "bg-transparent text-muted-foreground border-border hover:text-foreground"
+                      }`}
+                      onClick={() => setSummaryPeriod(p)}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="px-6 pb-6 space-y-4">
+              {/* Aggregate metric cards */}
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                {Object.entries(aggData).map(([key, val]) => (
+                  <div key={key} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                    <div className="label-upper mb-1 text-[9px]">{key}</div>
+                    <div className="text-lg stat-value font-bold text-foreground">{val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Yearly breakdown table */}
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border">
+                    <TableHead className="label-upper text-primary">Year</TableHead>
+                    <TableHead className="label-upper text-primary">Sharpe</TableHead>
+                    <TableHead className="label-upper text-primary">Turnover</TableHead>
+                    <TableHead className="label-upper text-primary">Fitness</TableHead>
+                    <TableHead className="label-upper text-primary">Returns</TableHead>
+                    <TableHead className="label-upper text-primary">Drawdown</TableHead>
+                    <TableHead className="label-upper text-primary">Margin</TableHead>
+                    <TableHead className="label-upper text-primary">Long Count</TableHead>
+                    <TableHead className="label-upper text-primary">Short Count</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {summaryData.map((row) => (
+                    <TableRow key={row.year} className="border-border hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                      <TableCell className="font-mono text-sm font-medium text-foreground">{row.year}</TableCell>
+                      <TableCell className={`font-mono text-sm ${
+                        row.sharpe >= 1 ? "text-success" : row.sharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
+                      }`}>
+                        {row.sharpe.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-foreground">{row.turnover}</TableCell>
+                      <TableCell className="font-mono text-sm text-foreground">{row.fitness.toFixed(2)}</TableCell>
+                      <TableCell className="font-mono text-sm text-foreground">{row.returns}</TableCell>
+                      <TableCell className="font-mono text-sm text-destructive">{row.drawdown}</TableCell>
+                      <TableCell className="font-mono text-sm text-foreground">{row.margin}</TableCell>
+                      <TableCell className="font-mono text-sm text-foreground">{row.longCount.toLocaleString()}</TableCell>
+                      <TableCell className="font-mono text-sm text-foreground">{row.shortCount.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {/* ── SECTION 3: Alpha Expression ── */}
           <div className="surface-card py-4 px-6">
             <div className="flex items-center gap-2">
               <span className="label-upper">Expression:</span>
@@ -373,6 +466,7 @@ export default function AlphaDetail() {
             </div>
           </div>
 
+          {/* ── SECTION 4: Charts ── */}
           {/* Show/Hide Test Period Toggle */}
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -454,80 +548,7 @@ export default function AlphaDetail() {
             </div>
           </div>
 
-          {/* Summary Section */}
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">{summaryPeriod} Summary</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs mr-2 text-muted-foreground">Period</span>
-                  {(["IS", "OS"] as const).map((p) => (
-                    <button
-                      key={p}
-                      className={`h-7 text-xs px-3 rounded-full font-medium transition-all duration-200 ease-in-out border ${
-                        summaryPeriod === p
-                          ? "bg-primary/10 text-primary border-primary/20"
-                          : "bg-transparent text-muted-foreground border-border hover:text-foreground"
-                      }`}
-                      onClick={() => setSummaryPeriod(p)}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="px-6 pb-6 space-y-4">
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-                {Object.entries(aggData).map(([key, val]) => (
-                  <div key={key} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                    <div className="label-upper mb-1">{key}</div>
-                    <div className="text-lg stat-value font-bold text-foreground">{val}</div>
-                  </div>
-                ))}
-              </div>
-
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead className="label-upper text-primary">Year</TableHead>
-                    <TableHead className="label-upper text-primary">Sharpe</TableHead>
-                    <TableHead className="label-upper text-primary">Turnover</TableHead>
-                    <TableHead className="label-upper text-primary">Fitness</TableHead>
-                    <TableHead className="label-upper text-primary">Returns</TableHead>
-                    <TableHead className="label-upper text-primary">Drawdown</TableHead>
-                    <TableHead className="label-upper text-primary">Margin</TableHead>
-                    <TableHead className="label-upper text-primary">Long Count</TableHead>
-                    <TableHead className="label-upper text-primary">Short Count</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {summaryData.map((row) => (
-                    <TableRow key={row.year} className="border-border hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                      <TableCell className="font-mono text-sm font-medium text-foreground">{row.year}</TableCell>
-                      <TableCell className={`font-mono text-sm ${
-                        row.sharpe >= 1 ? "text-success" : row.sharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
-                      }`}>
-                        {row.sharpe.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.turnover}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.fitness.toFixed(2)}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.returns}</TableCell>
-                      <TableCell className="font-mono text-sm text-destructive">{row.drawdown}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.margin}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.longCount.toLocaleString()}</TableCell>
-                      <TableCell className="font-mono text-sm text-foreground">{row.shortCount.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-
-          {/* Correlation + Testing Status */}
+          {/* ── SECTION 5: Test Status ── */}
           <div className="grid lg:grid-cols-2 gap-8">
             {/* Correlation */}
             <div className="surface-card">
