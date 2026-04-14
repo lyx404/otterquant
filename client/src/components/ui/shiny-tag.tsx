@@ -28,7 +28,7 @@ export default function ShinyTag({ tier, className = "" }: ShinyTagProps) {
     <div
       className={[
         "shiny-tag relative inline-flex h-[22px] min-w-[22px] select-none items-center justify-center overflow-hidden rounded-full px-2.5",
-        "border text-xs font-semibold tracking-[0.04em]",
+        "border text-[10px] font-semibold tracking-[0.04em]",
         "bg-[size:200%_200%] transition-[background-position] duration-500",
         "hover:bg-[position:100%_50%]",
         TIER_CLASSES[tier],
