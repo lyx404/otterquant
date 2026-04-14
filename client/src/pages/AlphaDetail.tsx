@@ -24,6 +24,7 @@ import {
   Loader2, FlaskConical, LineChart as LineChartIcon, Settings2,
 } from "lucide-react";
 import ShinyTag from "@/components/ui/shiny-tag";
+import ScratchCard from "@/components/ui/scratch-card";
 import {
   factors, generatePnLData, generateSharpeData, generateTurnoverData,
   generateReturnsData, generateDrawdownData, aggregateData, osAggregateData,
@@ -352,12 +353,8 @@ export default function AlphaDetail() {
             <div className="px-6 pb-6 space-y-4">
               {/* Top row: Grade + Tests + Aggregate metric cards */}
               <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
-                {/* Grade card */}
-                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">GRADE</div>
-                  <div className="text-lg font-bold font-mono" style={{ color: gradeConfig.color }}>{grade}</div>
-                  <div className="text-[9px] text-muted-foreground mt-0.5">{gradeConfig.label}</div>
-                </div>
+                {/* Grade card — Scratch to reveal */}
+                <ScratchCard factorId={factor.id} grade={grade} />
                 {/* Sharpe card — color follows list view osSharpe rule */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                   <div className="label-upper mb-1 text-[9px]">SHARPE</div>
