@@ -363,7 +363,8 @@ export default function MyAlphas() {
       case "drawdown":
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "grade": {
-        if (row.submissionStatus === "failed" || row.submissionStatus === "rejected") {
+        // Only passed factors show grade; all others show "-"
+        if (row.submissionStatus !== "passed") {
           return <span className="text-xs text-muted-foreground/50 font-mono">-</span>;
         }
         const grade = getAlphaGrade(row.osSharpe);
