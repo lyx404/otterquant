@@ -229,9 +229,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
       {/* Bottom Section: Theme + User */}
       <div className={`border-t border-sidebar-border py-3 space-y-2 ${collapsed && !isMobile ? "px-2" : "px-3"}`}>
-        {/* Notification + Theme */}
-        <div className={`flex items-center ${collapsed && !isMobile ? "justify-center" : "gap-1.5"}`}>
-          {isAuthenticated && !collapsed && <NotificationPanel />}
+        {/* Notification + Theme — vertical stack */}
+        <div className={`flex flex-col gap-1.5 ${collapsed && !isMobile ? "items-center" : ""}`}>
+          {isAuthenticated && <NotificationPanel />}
           <AnimatedThemeToggler
             className={`flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-all duration-200 ${
               collapsed && !isMobile ? "w-10 h-10" : "w-8 h-8"
@@ -263,14 +263,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                 )}
               </div>
               {(!collapsed || isMobile) && (
-                <div className="flex-1 text-left min-w-0">
-                  <div className="text-xs font-medium text-foreground truncate">
-                    {user?.displayName || "User"}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground truncate">
-                    {user?.email || "user@otter.com"}
-                  </div>
-                </div>
+                <span className="text-xs font-medium text-foreground truncate flex-1 text-left">
+                  {user?.displayName || "User"}
+                </span>
               )}
             </button>
 
