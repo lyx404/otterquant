@@ -135,7 +135,8 @@ export default function NotificationPanel() {
       {/* Popup panel — positioned above the bell, anchored to bottom-left */}
       {open && (
         <div
-          className="absolute left-0 bottom-full mb-2 w-[380px] bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-[200] animate-in fade-in slide-in-from-bottom-2 duration-200"
+          style={{ position: 'fixed', bottom: '60px', left: '16px', width: '380px' }}
+          className="bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-[9999] animate-in fade-in slide-in-from-bottom-2 duration-200"
         >
           {/* Header */}
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
