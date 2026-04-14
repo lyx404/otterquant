@@ -61,6 +61,7 @@ import {
   type AlphaGrade,
 } from "@/lib/mockData";
 import { GradeRevealBatch } from "@/components/GradeRevealModal";
+import ShinyTag from "@/components/ui/shiny-tag";
 import AlphaCardView from "@/components/AlphaCardView";
 import { LayoutGrid, Table2 } from "lucide-react";
 
@@ -360,19 +361,7 @@ export default function MyAlphas() {
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "grade": {
         const grade = getAlphaGrade(row.osSharpe);
-        const gc = GRADE_CONFIG[grade];
-        return (
-          <span
-            className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-bold font-mono tracking-wider whitespace-nowrap border"
-            style={{
-              color: gc.color,
-              backgroundColor: gc.bg,
-              borderColor: gc.border,
-            }}
-          >
-            {grade}
-          </span>
-        );
+        return <ShinyTag tier={grade} />;
       }
       case "epochStatus": {
         // Only passed alphas can participate in arena; all others show Ineligible
