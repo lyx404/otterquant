@@ -665,7 +665,7 @@ export default function MyAlphas() {
         {/* Card View */}
         {viewMode === "card" && (
           <div className="p-6">
-            <AlphaCardView rows={sorted} visibleColumns={visibleColumns} />
+            <AlphaCardView rows={sorted} visibleColumns={visibleColumns} starred={starred} onToggleStar={toggleStar} />
           </div>
         )}
 

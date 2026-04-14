@@ -28,9 +28,11 @@ const statusConfig: Record<string, { label: string; dotClass: string; textClass:
 interface AlphaCardViewProps {
   rows: AlphaRow[];
   visibleColumns: Set<string>;
+  starred: Set<string>;
+  onToggleStar: (id: string) => void;
 }
 
-export default function AlphaCardView({ rows, visibleColumns }: AlphaCardViewProps) {
+export default function AlphaCardView({ rows, visibleColumns, starred, onToggleStar }: AlphaCardViewProps) {
   const isVisible = (key: string) => visibleColumns.has(key);
 
   const renderStatus = (status: AlphaRow["submissionStatus"]) => {
@@ -95,7 +97,9 @@ export default function AlphaCardView({ rows, visibleColumns }: AlphaCardViewPro
             <div className="px-4 pt-4 pb-3 border-b border-border/50">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Star className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                  <button onClick={(e) => { e.stopPropagation(); onToggleStar(row.id); }} className="shrink-0 transition-transform duration-200 hover:scale-125">
+                    <Star className={`w-3.5 h-3.5 transition-colors duration-200 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`} />
+                  </button>
                   {isVisible("name") ? (
                     <Link href={`/alphas/${row.id}`}>
                       <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer truncate">
