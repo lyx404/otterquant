@@ -1,7 +1,7 @@
 /**
  * ShinyTag — Flat-gradient rarity badge with subtle shine sweep
  * Tiers: S (Flat Gold) | A (Flat Purple) | B (Flat Blue) | C (Flat Green) | D (Flat Grey)
- * Shape: rounded-full pill, h-8, min-w-8
+ * Shape: rounded-full pill, h-[22px], min-w-[22px]
  * Effect: bg-position shift on hover + subtle white shine sweep on hover
  *
  * ⚠️  DO NOT change colors, border-radius, shadows, gradients, font-size, or spacing.
@@ -27,8 +27,8 @@ export default function ShinyTag({ tier, className = "" }: ShinyTagProps) {
   return (
     <div
       className={[
-        "shiny-tag relative inline-flex h-8 min-w-8 select-none items-center justify-center overflow-hidden rounded-full px-3",
-        "border text-sm font-semibold tracking-[0.04em]",
+        "shiny-tag relative inline-flex h-[22px] min-w-[22px] select-none items-center justify-center overflow-hidden rounded-full px-2.5",
+        "border text-xs font-semibold tracking-[0.04em]",
         "bg-[size:200%_200%] transition-[background-position] duration-500",
         "hover:bg-[position:100%_50%]",
         TIER_CLASSES[tier],
