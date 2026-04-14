@@ -330,7 +330,9 @@ export default function MyAlphas() {
             <button onClick={(e) => { e.stopPropagation(); toggleStar(row.id); }} className="shrink-0 transition-transform duration-200 hover:scale-125">
               <Star className={`w-3.5 h-3.5 transition-colors duration-200 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`} />
             </button>
-            <span className="truncate text-xs text-foreground">{row.name}</span>
+            <Link href={`/alphas/${row.id}`}>
+              <span className="truncate text-xs text-foreground hover:text-primary hover:underline cursor-pointer transition-colors duration-200">{row.name}</span>
+            </Link>
           </div>
         );
       case "createdAt":
@@ -451,17 +453,16 @@ export default function MyAlphas() {
       {/* Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between">
             <h1 className="text-foreground">
-              Alphas
+              My Alphas
             </h1>
             <Link href="/alphas/new">
-              <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] transition-all duration-200 ease-in-out">
+              <button className="flex items-center gap-2 px-5 h-10 rounded-full text-xs font-medium bg-primary text-white hover:opacity-90 active:scale-[0.98] transition-all duration-200 ease-in-out">
                 <Plus className="w-3.5 h-3.5" />
                 New Alpha
               </button>
             </Link>
-
           </div>
         </div>
 
