@@ -553,23 +553,6 @@ export default function MyAlphas() {
             />
           </div>
 
-          <Select value={filterStatus} onValueChange={(v) => { setFilterStatus(v); setPage(1); }}>
-            <SelectTrigger className={`h-8 w-auto min-w-[100px] text-xs gap-1 rounded-full border ${
-              filterStatus !== "all" ? "bg-primary/10 border-primary/20 text-primary" : "bg-card border-border text-muted-foreground"
-            }`}>
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="queued">Queued</SelectItem>
-              <SelectItem value="backtesting">Backtesting</SelectItem>
-              <SelectItem value="is_testing">IS Testing</SelectItem>
-              <SelectItem value="os_testing">OS Testing</SelectItem>
-              <SelectItem value="passed">Passed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
 
           {/* Numeric filter popover */}
           <Popover>
