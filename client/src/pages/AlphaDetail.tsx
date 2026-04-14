@@ -164,7 +164,7 @@ export default function AlphaDetail() {
       <div className="space-y-6">
         {/* Back + Header */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.history.length > 1 ? window.history.back() : window.location.assign('/alphas')}>
+          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign('/alphas')}>
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
@@ -187,7 +187,7 @@ export default function AlphaDetail() {
     <div className="space-y-6">
       {/* Back + Header + Mode Toggle */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.history.length > 1 ? window.history.back() : window.location.assign('/alphas')}>
+        <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign('/alphas')}>
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
