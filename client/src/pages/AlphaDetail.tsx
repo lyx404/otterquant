@@ -174,91 +174,10 @@ export default function AlphaDetail() {
           </div>
         </div>
 
-        {/* Generation Progress */}
-        <div className="surface-card rounded-2xl p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Loader2 className="w-5 h-5 text-primary animate-spin" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">AI Mining in Progress</h2>
-              <p className="text-xs text-muted-foreground">Your alpha factor is being generated and optimized</p>
-            </div>
-          </div>
-
-          {/* Steps */}
-          <div className="space-y-3">
-            {GEN_STEPS.map((step, i) => {
-              const StepIcon = step.icon;
-              const isComplete = genStep > i;
-              const isCurrent = genStep === i;
-              return (
-                <div key={i} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 ${
-                  isComplete ? "bg-success/5 border border-success/20" :
-                  isCurrent ? "bg-primary/5 border border-primary/20" :
-                  "bg-accent/50 border border-transparent"
-                }`}>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 ${
-                    isComplete ? "bg-success/10" :
-                    isCurrent ? "bg-primary/10" :
-                    "bg-muted"
-                  }`}>
-                    {isComplete ? (
-                      <CheckCircle className="w-4 h-4 text-success" />
-                    ) : isCurrent ? (
-                      <Loader2 className="w-4 h-4 text-primary animate-spin" />
-                    ) : (
-                      <StepIcon className="w-4 h-4 text-muted-foreground/50" />
-                    )}
-                  </div>
-                  <span className={`text-sm font-medium transition-colors duration-500 ${
-                    isComplete ? "text-success" :
-                    isCurrent ? "text-primary" :
-                    "text-muted-foreground/50"
-                  }`}>{step.label}</span>
-                  {isComplete && <span className="ml-auto text-[10px] text-success/70 font-mono">DONE</span>}
-                  {isCurrent && <span className="ml-auto text-[10px] text-primary/70 font-mono animate-pulse">RUNNING</span>}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Progress bar */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">Overall Progress</span>
-              <span className="text-xs font-mono text-foreground">{Math.min(Math.round((genStep / GEN_STEPS.length) * 100), 100)}%</span>
-            </div>
-            <div className="h-1.5 bg-accent rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary rounded-full transition-all duration-1000 ease-out"
-                style={{ width: `${Math.min((genStep / GEN_STEPS.length) * 100, 100)}%` }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Skeleton placeholders for charts and data */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="surface-card rounded-2xl p-6 space-y-3">
-              <div className="h-3 w-20 bg-accent rounded animate-pulse" />
-              <div className="h-8 w-28 bg-accent rounded animate-pulse" />
-              <div className="h-2 w-16 bg-accent/50 rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
-        <div className="surface-card rounded-2xl p-6">
-          <div className="h-4 w-32 bg-accent rounded animate-pulse mb-4" />
-          <div className="h-48 bg-accent/30 rounded-xl animate-pulse" />
-        </div>
-        <div className="surface-card rounded-2xl p-6">
-          <div className="h-4 w-40 bg-accent rounded animate-pulse mb-4" />
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-10 bg-accent/30 rounded-lg animate-pulse" />
-            ))}
-          </div>
+        {/* Loading indicator */}
+        <div className="flex flex-col items-center justify-center py-32">
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+          <p className="mt-4 text-sm text-muted-foreground">Generating alpha factor...</p>
         </div>
       </div>
     );
