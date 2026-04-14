@@ -264,7 +264,7 @@ export default function AlphaEdit() {
 
             {/* Strategy Type */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
+              <label className="text-xs font-medium text-muted-foreground">Strategy Type</label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                 {STRATEGY_TYPES.map((s) => (
                   <button
@@ -356,19 +356,44 @@ export default function AlphaEdit() {
                   </div>
                 </div>
 
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Strategy Description</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe your trading idea in natural language (optional)..."
-                    rows={3}
-                    className="w-full rounded-lg bg-accent border border-border px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none"
-                  />
-                </div>
               </div>
             )}
+          </div>
+
+          {/* Strategy Description — Independent section, AI chat-like input */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Send className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Strategy Description</span>
+              </div>
+              <button
+                onClick={() => {
+                  const optimized = `I want to build a ${strategyType.replace("-", " ")} strategy on ${selectedMarket} with ${timeframe} timeframe. Focus on ${lookbackDays}-day lookback, targeting Sharpe > ${targetSharpe} with max drawdown < ${maxDrawdown}%. Optimize entry/exit signals and position sizing for risk-adjusted returns.`;
+                  setDescription(optimized);
+                  toast.success("AI-optimized prompt generated!");
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-200 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30"
+              >
+                <Sparkles className="w-3 h-3" />
+                AI Optimize Prompt
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Describe your trading idea in natural language. The AI will interpret your intent and generate the optimal factor expression.
+            </p>
+            <div className="relative">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g., I want a momentum strategy that buys when RSI crosses above 30 after being oversold, combined with MACD bullish crossover confirmation..."
+                rows={4}
+                className="w-full rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none pr-12"
+              />
+              <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground/50">{description.length}/500</span>
+              </div>
+            </div>
           </div>
 
           {/* Submit */}
