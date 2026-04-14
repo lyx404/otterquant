@@ -11,7 +11,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useParams } from "wouter";
+import { useParams, useSearch } from "wouter";
 import { useState, useMemo, useEffect, useRef } from "react";
 import gsap from "gsap";
 import {
@@ -21,6 +21,7 @@ import {
 import {
   ArrowLeft, CheckCircle, XCircle, BarChart3, TrendingUp,
   ChevronDown, ChevronUp, RefreshCw, Eye, Sparkles,
+  Loader2, FlaskConical, LineChart as LineChartIcon, Settings2,
 } from "lucide-react";
 import {
   factors, generatePnLData, generateSharpeData, generateTurnoverData,
@@ -37,7 +38,36 @@ export default function AlphaDetail() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const params = useParams<{ id: string }>();
+  const searchStr = useSearch();
+  const searchParams = new URLSearchParams(searchStr);
+  const isGeneratingParam = searchParams.get("generating") === "true";
+  const customName = searchParams.get("name");
   const factor = factors.find((f) => f.id === params.id) || factors[0];
+
+  /* ── Generating state ── */
+  const [isGenerating, setIsGenerating] = useState(isGeneratingParam);
+  const [genStep, setGenStep] = useState(0);
+  const GEN_STEPS = [
+    { label: "Parsing strategy parameters", icon: Settings2, duration: 2000 },
+    { label: "Mining alpha factors", icon: FlaskConical, duration: 3000 },
+    { label: "Running backtests", icon: BarChart3, duration: 4000 },
+    { label: "Optimizing parameters", icon: LineChartIcon, duration: 3000 },
+    { label: "Evaluating performance", icon: Sparkles, duration: 2000 },
+  ];
+
+  useEffect(() => {
+    if (!isGenerating) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let cumulative = 0;
+    GEN_STEPS.forEach((step, i) => {
+      cumulative += step.duration;
+      timers.push(setTimeout(() => setGenStep(i + 1), cumulative));
+    });
+    // After all steps complete, reveal the full page
+    cumulative += 1500;
+    timers.push(setTimeout(() => setIsGenerating(false), cumulative));
+    return () => timers.forEach(clearTimeout);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
   const [chartType, setChartType] = useState<ChartType>("pnl");
   const [summaryPeriod, setSummaryPeriod] = useState<"IS" | "OS">("IS");
   const [showTestPeriod, setShowTestPeriod] = useState(true);
@@ -126,6 +156,113 @@ export default function AlphaDetail() {
     { label: "Drawdown", value: factor.drawdown, color: "#F87171", desc: "Max loss" },
     { label: "Tests", value: `${factor.testsPassed}/${factor.testsPassed + factor.testsFailed}`, color: factor.testsPassed > factor.testsFailed ? "#34D399" : "#F87171", desc: "Passed/Total" },
   ];
+
+  /* ── Generating Loading UI ── */
+  if (isGenerating) {
+    const displayName = customName || params.id || "New Alpha";
+    return (
+      <div className="space-y-6">
+        {/* Back + Header */}
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.history.length > 1 ? window.history.back() : window.location.assign('/alphas')}>
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-foreground">{displayName}</h1>
+            <p className="text-xs font-mono mt-1 text-muted-foreground">{params.id} &middot; Just created</p>
+          </div>
+        </div>
+
+        {/* Generation Progress */}
+        <div className="surface-card rounded-2xl p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">AI Mining in Progress</h2>
+              <p className="text-xs text-muted-foreground">Your alpha factor is being generated and optimized</p>
+            </div>
+          </div>
+
+          {/* Steps */}
+          <div className="space-y-3">
+            {GEN_STEPS.map((step, i) => {
+              const StepIcon = step.icon;
+              const isComplete = genStep > i;
+              const isCurrent = genStep === i;
+              return (
+                <div key={i} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 ${
+                  isComplete ? "bg-success/5 border border-success/20" :
+                  isCurrent ? "bg-primary/5 border border-primary/20" :
+                  "bg-accent/50 border border-transparent"
+                }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 ${
+                    isComplete ? "bg-success/10" :
+                    isCurrent ? "bg-primary/10" :
+                    "bg-muted"
+                  }`}>
+                    {isComplete ? (
+                      <CheckCircle className="w-4 h-4 text-success" />
+                    ) : isCurrent ? (
+                      <Loader2 className="w-4 h-4 text-primary animate-spin" />
+                    ) : (
+                      <StepIcon className="w-4 h-4 text-muted-foreground/50" />
+                    )}
+                  </div>
+                  <span className={`text-sm font-medium transition-colors duration-500 ${
+                    isComplete ? "text-success" :
+                    isCurrent ? "text-primary" :
+                    "text-muted-foreground/50"
+                  }`}>{step.label}</span>
+                  {isComplete && <span className="ml-auto text-[10px] text-success/70 font-mono">DONE</span>}
+                  {isCurrent && <span className="ml-auto text-[10px] text-primary/70 font-mono animate-pulse">RUNNING</span>}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Progress bar */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Overall Progress</span>
+              <span className="text-xs font-mono text-foreground">{Math.min(Math.round((genStep / GEN_STEPS.length) * 100), 100)}%</span>
+            </div>
+            <div className="h-1.5 bg-accent rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-1000 ease-out"
+                style={{ width: `${Math.min((genStep / GEN_STEPS.length) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Skeleton placeholders for charts and data */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="surface-card rounded-2xl p-6 space-y-3">
+              <div className="h-3 w-20 bg-accent rounded animate-pulse" />
+              <div className="h-8 w-28 bg-accent rounded animate-pulse" />
+              <div className="h-2 w-16 bg-accent/50 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="surface-card rounded-2xl p-6">
+          <div className="h-4 w-32 bg-accent rounded animate-pulse mb-4" />
+          <div className="h-48 bg-accent/30 rounded-xl animate-pulse" />
+        </div>
+        <div className="surface-card rounded-2xl p-6">
+          <div className="h-4 w-40 bg-accent rounded animate-pulse mb-4" />
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-10 bg-accent/30 rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

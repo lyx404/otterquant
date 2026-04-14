@@ -171,10 +171,12 @@ export default function AlphaEdit() {
       return;
     }
     setIsSubmitting(true);
+    // Generate a temporary new alpha ID and navigate to detail page with generating state
+    const newAlphaId = `AF-${String(Math.floor(Math.random() * 900) + 100)}`;
     setTimeout(() => {
       setIsSubmitting(false);
       toast.success("Alpha created! AI is now mining your factor...");
-      navigate("/alphas");
+      navigate(`/alphas/${newAlphaId}?generating=true&name=${encodeURIComponent(alphaName.trim())}`);
     }, 1500);
   };
 
