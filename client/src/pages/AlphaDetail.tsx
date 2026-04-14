@@ -192,14 +192,8 @@ export default function AlphaDetail() {
         <div className="flex-1" ref={headerRef}>
           <div className="reveal-line flex items-center gap-3 flex-wrap">
             <h1 className="text-foreground">{factor.name}</h1>
-            {/* Grade Badge — synced with list view */}
-            {(grade === "S" || grade === "A") ? (
-              <ShinyTag tier={grade} />
-            ) : (
-              <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border-[0.5px] border-white/40 text-[10px] font-semibold text-white bg-transparent">
-                {grade}
-              </span>
-            )}
+          </div>
+          <div className="reveal-line flex items-center gap-2 mt-1">
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
               factor.status === "active" || factor.status === "testing"
                 ? "bg-success/10 text-success border-success/20"
@@ -207,9 +201,7 @@ export default function AlphaDetail() {
             }`}>
               {factor.status === "active" || factor.status === "testing" ? "PASSED" : "FAILED"}
             </span>
-          </div>
-          <div className="reveal-line">
-            <p className="text-xs font-mono mt-1 text-muted-foreground">{factor.id} &middot; Created {factor.createdAt}</p>
+            <p className="text-xs font-mono text-muted-foreground">{factor.id} &middot; Created {factor.createdAt}</p>
           </div>
         </div>
 
@@ -490,7 +482,7 @@ export default function AlphaDetail() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">Chart</span>
+                  <span className="text-base font-semibold text-foreground">Performance</span>
                 </div>
                 <Select value={chartType} onValueChange={(v) => setChartType(v as ChartType)}>
                   <SelectTrigger className="w-[160px] h-8 text-sm rounded-lg bg-card border-border">
