@@ -243,25 +243,17 @@ export default function AlphaDetail() {
       {/* ═══ BEGINNER MODE ═══ */}
       {viewMode === "beginner" && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Key Metrics Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {/* Key Metrics Cards — Pro style */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
             {beginnerMetrics.map((m) => (
-              <div key={m.label} className="surface-card p-4 text-center">
-                <div className="label-upper mb-2">{m.label}</div>
-                <div className="text-2xl font-bold font-mono" style={{ color: m.color }}>
+              <div key={m.label} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+                <div className="label-upper mb-1 text-[9px]">{m.label}</div>
+                <div className="text-lg font-bold font-mono tabular-nums" style={{ color: m.color }}>
                   {m.value}
                 </div>
-                <div className="text-[10px] text-muted-foreground mt-1">{m.desc}</div>
+                <div className="text-[9px] text-muted-foreground mt-0.5">{m.desc}</div>
               </div>
             ))}
-          </div>
-
-          {/* Simplified Expression */}
-          <div className="surface-card py-4 px-6">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="label-upper">Alpha Expression</span>
-            </div>
-            <code className="text-sm font-mono text-primary block">{factor.expression}</code>
           </div>
 
           {/* Simplified Chart — PnL only */}
@@ -299,25 +291,6 @@ export default function AlphaDetail() {
             </div>
           </div>
 
-          {/* Simplified Summary */}
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">Quick Summary</span>
-              </div>
-            </div>
-            <div className="px-6 pb-6">
-              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                {Object.entries(aggData).map(([key, val]) => (
-                  <div key={key} className="text-center p-3 rounded-2xl bg-accent border border-border/60">
-                    <div className="label-upper mb-1 text-[9px]">{key}</div>
-                    <div className="text-base stat-value font-bold text-foreground">{val}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
 
           {/* Simple Test Status */}
           <div className="surface-card">
@@ -350,11 +323,7 @@ export default function AlphaDetail() {
             </div>
           </div>
 
-          {/* Upgrade prompt */}
-          <div className="flex items-start gap-2 p-4 rounded-2xl text-xs bg-primary/5 text-primary border border-primary/20">
-            <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>Switch to <strong>Pro mode</strong> for detailed charts, yearly breakdowns, correlation analysis, and full testing status.</span>
-          </div>
+
         </div>
       )}
 
