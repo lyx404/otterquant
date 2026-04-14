@@ -1,7 +1,7 @@
 /*
  * AlphaCardView — Card view for My Alphas, fields synced with table view
- * Design: Grid cards showing same data as table columns
- * Fields: Name, Status, Grade, Arena Round, Date Created, IS Sharpe, OS Sharpe, Fitness, Returns, Turnover, Drawdown
+ * Respects column visibility settings from parent
+ * Design: Grid cards with consistent metric styling
  */
 import { useMemo } from "react";
 import { Link } from "wouter";
@@ -14,6 +14,7 @@ import {
   currentEpoch,
   type Factor,
 } from "@/lib/mockData";
+import ShinyTag from "@/components/ui/shiny-tag";
 
 /* Build epoch status lookup from leaderboard data */
 function getEpochStatus(factorId: string): { display: string; epochId: string | null } {
@@ -31,7 +32,6 @@ function getEpochStatus(factorId: string): { display: string; epochId: string | 
   }
   return { display: "Not Entered", epochId: null };
 }
-import ShinyTag from "@/components/ui/shiny-tag";
 
 type AlphaRow = Factor & {
   submissionStatus: "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
@@ -45,7 +45,11 @@ const statusConfig: Record<string, { label: string; dotClass: string; textClass:
   failed: { label: "Failed", dotClass: "bg-red-400", textClass: "text-red-400" },
 };
 
-export default function AlphaCardView() {
+interface AlphaCardViewProps {
+  visibleColumns: Set<string>;
+}
+
+export default function AlphaCardView({ visibleColumns }: AlphaCardViewProps) {
   const alphaRows: AlphaRow[] = useMemo(() => {
     return factors.map((f) => {
       const sub = submissions.find((s) => s.factorId === f.id);
@@ -59,6 +63,8 @@ export default function AlphaCardView() {
       };
     });
   }, []);
+
+  const isVisible = (key: string) => visibleColumns.has(key);
 
   const renderStatus = (status: AlphaRow["submissionStatus"]) => {
     const mapped = status === "passed" ? "passed" : "failed";
@@ -87,10 +93,28 @@ export default function AlphaCardView() {
     return <span className={`text-xs font-semibold ${textColorMap[grade] || "text-muted-foreground"}`}>{grade}</span>;
   };
 
+  /* Metric cell: unified style for all numeric values */
+  const MetricCell = ({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) => (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">{label}</div>
+      <div className={`text-sm font-bold font-mono tabular-nums ${colorClass || "text-foreground"}`}>{value}</div>
+    </div>
+  );
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {alphaRows.map((row) => {
-        const sharpeColor = row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
+        const osSharpeColor = row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
+        const fitnessColor = row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground";
+
+        /* Collect visible metrics for the grid */
+        const metrics: { label: string; value: string; colorClass?: string }[] = [];
+        if (isVisible("sharpe")) metrics.push({ label: "IS Sharpe", value: row.sharpe.toFixed(2) });
+        if (isVisible("osSharpe")) metrics.push({ label: "OS Sharpe", value: row.osSharpe.toFixed(2), colorClass: osSharpeColor });
+        if (isVisible("fitness")) metrics.push({ label: "Fitness", value: row.fitness.toFixed(2), colorClass: fitnessColor });
+        if (isVisible("returns")) metrics.push({ label: "Returns", value: row.returns });
+        if (isVisible("turnover")) metrics.push({ label: "Turnover", value: row.turnover });
+        if (isVisible("drawdown")) metrics.push({ label: "Drawdown", value: row.drawdown, colorClass: "text-destructive" });
 
         return (
           <div
@@ -109,71 +133,51 @@ export default function AlphaCardView() {
                   </Link>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  {renderGrade(row)}
+                  {isVisible("grade") && renderGrade(row)}
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                {renderStatus(row.submissionStatus)}
+                {isVisible("status_col") && renderStatus(row.submissionStatus)}
                 <span className="text-[10px] text-muted-foreground font-mono">{row.id}</span>
               </div>
             </div>
 
-            {/* Card Body: Metrics Grid */}
-            <div className="px-4 py-3">
-              {/* Primary Metrics Row */}
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">IS Sharpe</div>
-                  <div className="text-sm font-bold font-mono tabular-nums text-foreground">{row.sharpe.toFixed(2)}</div>
+            {/* Card Body: Metrics Grid — only visible columns */}
+            {metrics.length > 0 && (
+              <div className="px-4 py-3">
+                <div className="grid grid-cols-3 gap-3">
+                  {metrics.map((m) => (
+                    <MetricCell key={m.label} label={m.label} value={m.value} colorClass={m.colorClass} />
+                  ))}
                 </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">OS Sharpe</div>
-                  <div className={`text-sm font-bold font-mono tabular-nums ${sharpeColor}`}>{row.osSharpe.toFixed(2)}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Fitness</div>
-                  <div className={`text-sm font-bold font-mono tabular-nums ${row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"}`}>
-                    {row.fitness.toFixed(2)}
+              </div>
+            )}
+
+            {/* Bottom Row: Arena Round + Date (if visible) */}
+            {(isVisible("epochStatus") || isVisible("createdAt")) && (
+              <div className="px-4 py-2.5 border-t border-border/30 flex items-center justify-between">
+                {isVisible("epochStatus") && (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Arena Round</div>
+                    {row.submissionStatus !== "passed" ? (
+                      <span className="text-xs font-mono text-muted-foreground/50">Ineligible</span>
+                    ) : row.epochId ? (
+                      <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
+                        <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
+                      </Link>
+                    ) : (
+                      <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || "Not Entered"}</span>
+                    )}
                   </div>
-                </div>
+                )}
+                {isVisible("createdAt") && (
+                  <div className={isVisible("epochStatus") ? "text-right" : ""}>
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Created</div>
+                    <div className="text-xs font-mono text-muted-foreground">{row.createdAt}</div>
+                  </div>
+                )}
               </div>
-
-              {/* Secondary Metrics Row */}
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Returns</div>
-                  <div className="text-xs font-mono tabular-nums text-foreground">{row.returns}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Turnover</div>
-                  <div className="text-xs font-mono tabular-nums text-foreground">{row.turnover}</div>
-                </div>
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Drawdown</div>
-                  <div className="text-xs font-mono tabular-nums text-destructive">{row.drawdown}</div>
-                </div>
-              </div>
-
-              {/* Bottom Row: Arena Round + Date */}
-              <div className="flex items-center justify-between pt-2 border-t border-border/30">
-                <div>
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Arena Round</div>
-                  {row.submissionStatus !== "passed" ? (
-                    <span className="text-xs font-mono text-muted-foreground/50">Ineligible</span>
-                  ) : row.epochId ? (
-                    <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
-                      <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
-                    </Link>
-                  ) : (
-                    <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || "Not Entered"}</span>
-                  )}
-                </div>
-                <div className="text-right">
-                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Created</div>
-                  <div className="text-xs font-mono text-muted-foreground">{row.createdAt}</div>
-                </div>
-              </div>
-            </div>
+            )}
 
             {/* Card Footer: View Detail */}
             <div className="px-4 py-2.5 border-t border-border/30 bg-accent/20">

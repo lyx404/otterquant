@@ -482,8 +482,7 @@ export default function MyAlphas() {
 
       </div>
 
-      {/* Pipeline Stats — Total / Starred / Passed / Failed (Table view only) */}
-      {viewMode === "table" && (
+      {/* Pipeline Stats — Total / Starred / Passed / Failed */}
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
           onClick={() => { setCardFilter("all"); setPage(1); }}
@@ -532,7 +531,6 @@ export default function MyAlphas() {
           <div className="text-sm mt-1 text-muted-foreground truncate">{submissionStats.rejected} rejected</div>
         </button>
       </div>
-      )}
 
       {/* ═══════════════════════════════════════════
           TOOLBAR + DATA TABLE / CARD VIEW
@@ -679,7 +677,7 @@ export default function MyAlphas() {
         {/* Card View */}
         {viewMode === "card" && (
           <div className="p-6">
-            <AlphaCardView />
+            <AlphaCardView visibleColumns={visibleColumns} />
           </div>
         )}
 
