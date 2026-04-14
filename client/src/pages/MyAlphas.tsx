@@ -63,6 +63,7 @@ import {
 import { GradeRevealBatch } from "@/components/GradeRevealModal";
 import ShinyTag from "@/components/ui/shiny-tag";
 import { StarButton } from "@/components/ui/star-button";
+import { BorderGlowCard } from "@/components/ui/border-glow-card";
 import AlphaCardView from "@/components/AlphaCardView";
 import { LayoutGrid, Table2 } from "lucide-react";
 
@@ -472,13 +473,15 @@ export default function MyAlphas() {
               My Alphas
             </h1>
             <Link href="/alphas/new">
-              <StarButton
-                backgroundColor="#818cf8"
-                className="shadow-2xl"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                New Alpha
-              </StarButton>
+              <BorderGlowCard className="inline-flex">
+                <StarButton
+                  backgroundColor="#818cf8"
+                  className="shadow-2xl"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  New Alpha
+                </StarButton>
+              </BorderGlowCard>
             </Link>
           </div>
         </div>
