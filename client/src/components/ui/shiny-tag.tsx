@@ -1,56 +1,18 @@
 /**
- * ShinyTag — Animated grade badge with shimmer effect
- * Design: Compact pill with gradient border, glow, and sweeping shine animation
- * Tiers: S (Gold) | A (Indigo) | B (Emerald) | C (Amber) | D (Red)
+ * ShinyTag — Rarity-tier badge with metallic gradient & shine sweep
+ * Tiers: S (Metallic Gold) | A (Purple) | B (Blue) | C (Green) | D (Grey)
+ * Shape: rounded-full pill, h-9, min-w-9
+ * Effect: gradient background-position shift on hover + white shine sweep
  */
-import { type AlphaGrade, GRADE_CONFIG } from "@/lib/mockData";
+import { type AlphaGrade } from "@/lib/mockData";
 
-/* ── Tier-specific gradient and shine configs ── */
-const TIER_STYLES: Record<
-  AlphaGrade,
-  {
-    gradient: string;
-    borderGradient: string;
-    textColor: string;
-    glowColor: string;
-    shineColor: string;
-  }
-> = {
-  S: {
-    gradient: "linear-gradient(135deg, rgba(255,215,0,0.18) 0%, rgba(255,180,0,0.08) 50%, rgba(255,215,0,0.18) 100%)",
-    borderGradient: "linear-gradient(135deg, #FFD700, #FFA500, #FFD700)",
-    textColor: "#FFD700",
-    glowColor: "rgba(255, 215, 0, 0.35)",
-    shineColor: "rgba(255, 255, 200, 0.6)",
-  },
-  A: {
-    gradient: "linear-gradient(135deg, rgba(129,140,248,0.18) 0%, rgba(99,102,241,0.08) 50%, rgba(129,140,248,0.18) 100%)",
-    borderGradient: "linear-gradient(135deg, #818CF8, #6366F1, #818CF8)",
-    textColor: "#818CF8",
-    glowColor: "rgba(129, 140, 248, 0.3)",
-    shineColor: "rgba(200, 200, 255, 0.5)",
-  },
-  B: {
-    gradient: "linear-gradient(135deg, rgba(52,211,153,0.18) 0%, rgba(16,185,129,0.08) 50%, rgba(52,211,153,0.18) 100%)",
-    borderGradient: "linear-gradient(135deg, #34D399, #10B981, #34D399)",
-    textColor: "#34D399",
-    glowColor: "rgba(52, 211, 153, 0.25)",
-    shineColor: "rgba(200, 255, 220, 0.5)",
-  },
-  C: {
-    gradient: "linear-gradient(135deg, rgba(251,191,36,0.18) 0%, rgba(245,158,11,0.08) 50%, rgba(251,191,36,0.18) 100%)",
-    borderGradient: "linear-gradient(135deg, #FBBF24, #F59E0B, #FBBF24)",
-    textColor: "#FBBF24",
-    glowColor: "rgba(251, 191, 36, 0.25)",
-    shineColor: "rgba(255, 240, 180, 0.5)",
-  },
-  D: {
-    gradient: "linear-gradient(135deg, rgba(248,113,113,0.18) 0%, rgba(239,68,68,0.08) 50%, rgba(248,113,113,0.18) 100%)",
-    borderGradient: "linear-gradient(135deg, #F87171, #EF4444, #F87171)",
-    textColor: "#F87171",
-    glowColor: "rgba(248, 113, 113, 0.2)",
-    shineColor: "rgba(255, 200, 200, 0.4)",
-  },
+/* ── Per-tier Tailwind class bundles ── */
+const TIER_CLASSES: Record<AlphaGrade, string> = {
+  S: "border-[#D4AF37] text-[#5B3D00] bg-[linear-gradient(135deg,#7A5310_0%,#C9971A_18%,#FFF1A8_34%,#F7D774_50%,#B97A0E_66%,#FFE89A_82%,#8A5B12_100%)]",
+  A: "border-[#9A7CFF] text-white bg-[linear-gradient(135deg,#4C2A9C_0%,#7B4DFF_22%,#C7B6FF_48%,#8E63FF_68%,#5B35C8_100%)]",
+  B: "border-[#5AA9FF] text-white bg-[linear-gradient(135deg,#0D4D9E_0%,#2F7BFF_22%,#9ED0FF_48%,#4C97FF_68%,#1C5FC8_100%)]",
+  C: "border-[#62C28B] text-white bg-[linear-gradient(135deg,#1E6B43_0%,#2FA866_24%,#9AE6B4_48%,#46C37B_70%,#1F7A49_100%)]",
+  D: "border-[#8C93A1] text-white bg-[linear-gradient(135deg,#4B5563_0%,#6B7280_24%,#C7CDD6_48%,#7B8494_70%,#525A68_100%)]",
 };
 
 interface ShinyTagProps {
@@ -59,42 +21,31 @@ interface ShinyTagProps {
 }
 
 export default function ShinyTag({ tier, className = "" }: ShinyTagProps) {
-  const style = TIER_STYLES[tier];
-  const config = GRADE_CONFIG[tier];
-
   return (
-    <span
-      className={`shiny-tag relative inline-flex items-center justify-center overflow-hidden font-mono text-[10px] font-bold tracking-wider whitespace-nowrap ${className}`}
-      style={{
-        /* Outer wrapper with gradient border via background trick */
-        padding: "1px",
-        borderRadius: "6px",
-        background: style.borderGradient,
-        boxShadow: `0 0 8px ${style.glowColor}, inset 0 0 4px ${style.glowColor}`,
-      }}
+    <div
+      className={[
+        "shiny-tag relative inline-flex h-7 min-w-7 select-none items-center justify-center overflow-hidden rounded-full px-2.5",
+        "border text-[11px] font-semibold tracking-[0.08em]",
+        "bg-[size:220%_220%] transition-[background-position,transform] duration-700",
+        "hover:bg-[position:100%_50%]",
+        TIER_CLASSES[tier],
+        className,
+      ].join(" ")}
     >
-      {/* Inner content */}
+      {/* Letter */}
+      <span className="relative z-10">{tier}</span>
+
+      {/* Shine sweep overlay */}
       <span
-        className="relative z-[1] inline-flex items-center justify-center px-2.5 py-[3px]"
-        style={{
-          borderRadius: "5px",
-          background: style.gradient,
-          color: style.textColor,
-          minWidth: "26px",
-        }}
-      >
-        {/* Shine sweep overlay */}
-        <span
-          className="shiny-tag-shine absolute inset-0 z-[2] pointer-events-none"
-          style={{
-            borderRadius: "5px",
-            background: `linear-gradient(105deg, transparent 40%, ${style.shineColor} 50%, transparent 60%)`,
-            backgroundSize: "200% 100%",
-          }}
-        />
-        {/* Letter */}
-        <span className="relative z-[3]">{tier}</span>
-      </span>
-    </span>
+        aria-hidden="true"
+        className="shiny-tag-shine pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.06)_38%,rgba(255,255,255,0.38)_50%,rgba(255,255,255,0.06)_62%,transparent_80%)] bg-[size:200%_100%]"
+      />
+
+      {/* Inner ring highlight */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-[1px] rounded-full ring-1 ring-inset ring-white/20"
+      />
+    </div>
   );
 }
