@@ -22,7 +22,7 @@ import {
   Zap,
   Sparkles,
   Send,
-  Info,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -292,7 +292,7 @@ export default function AlphaEdit() {
               className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/50 transition-colors duration-200"
             >
               <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-muted-foreground" />
+                <SlidersHorizontal className="w-4 h-4 text-primary" />
                 <span className="text-sm font-medium text-foreground">Advanced Settings</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border">Optional</span>
               </div>
@@ -362,49 +362,51 @@ export default function AlphaEdit() {
           </div>
 
           {/* Strategy Description — Collapsible, optional, default collapsed */}
-          <button
-            onClick={() => setShowDescription(!showDescription)}
-            className="w-full rounded-2xl border border-border bg-card px-6 py-4 flex items-center justify-between transition-all duration-200 hover:border-primary/30 cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <Send className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Strategy Description</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">Optional</span>
-            </div>
-            {showDescription ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-          </button>
-          {showDescription && (
-            <div className="rounded-2xl border border-border bg-card px-6 pb-6 pt-4 space-y-4 -mt-2 border-t-0 rounded-t-none">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Describe your trading idea in natural language. The AI will interpret your intent and generate the optimal factor expression.
-                </p>
-                <button
-                  onClick={() => {
-                    const optimized = `I want to build a ${strategyType.replace("-", " ")} strategy on ${selectedMarket} with ${timeframe} timeframe. Focus on ${lookbackDays}-day lookback, targeting Sharpe > ${targetSharpe} with max drawdown < ${maxDrawdown}%. Optimize entry/exit signals and position sizing for risk-adjusted returns.`;
-                    setDescription(optimized);
-                    toast.success("AI-optimized prompt generated!");
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-200 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30 shrink-0 ml-4"
-                >
-                  <Sparkles className="w-3 h-3" />
-                  AI Optimize Prompt
-                </button>
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <button
+              onClick={() => setShowDescription(!showDescription)}
+              className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/50 transition-colors duration-200"
+            >
+              <div className="flex items-center gap-2">
+                <Send className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Strategy Description</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border">Optional</span>
               </div>
-              <div className="relative">
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g., I want a momentum strategy that buys when RSI crosses above 30 after being oversold, combined with MACD bullish crossover confirmation..."
-                  rows={4}
-                  className="w-full rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none pr-12"
-                />
-                <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
-                  <span className="text-[10px] text-muted-foreground/50">{description.length}/500</span>
+              {showDescription ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </button>
+            {showDescription && (
+              <div className="px-6 pb-6 pt-4 space-y-4 border-t border-border animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Describe your trading idea in natural language. The AI will interpret your intent and generate the optimal factor expression.
+                  </p>
+                  <button
+                    onClick={() => {
+                      const optimized = `I want to build a ${strategyType.replace("-", " ")} strategy on ${selectedMarket} with ${timeframe} timeframe. Focus on ${lookbackDays}-day lookback, targeting Sharpe > ${targetSharpe} with max drawdown < ${maxDrawdown}%. Optimize entry/exit signals and position sizing for risk-adjusted returns.`;
+                      setDescription(optimized);
+                      toast.success("AI-optimized prompt generated!");
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-200 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30 shrink-0 ml-4"
+                  >
+                    <Sparkles className="w-3 h-3" />
+                    AI Optimize Prompt
+                  </button>
+                </div>
+                <div className="relative">
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="e.g., I want a momentum strategy that buys when RSI crosses above 30 after being oversold, combined with MACD bullish crossover confirmation..."
+                    rows={4}
+                    className="w-full rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none pr-12"
+                  />
+                  <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground/50">{description.length}/500</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Submit */}
           <div className="flex items-center justify-between pt-2">
