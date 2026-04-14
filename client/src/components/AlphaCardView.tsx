@@ -1,41 +1,21 @@
 /*
  * AlphaCardView — Card view for My Alphas
+ * Receives pre-filtered & sorted data from parent (same as table view)
  * Field visibility fully synced with table view's visibleColumns
- * All fields controlled by the same column toggle as the list view
  */
-import { useMemo } from "react";
 import { Link } from "wouter";
 import { Star } from "lucide-react";
 import {
-  factors,
-  submissions,
   getAlphaGrade,
-  leaderboardByFactorByEpoch,
-  currentEpoch,
   type Factor,
 } from "@/lib/mockData";
 import ShinyTag from "@/components/ui/shiny-tag";
 
-/* Build epoch status lookup from leaderboard data */
-function getEpochStatus(factorId: string): { display: string; epochId: string | null } {
-  const currentEntries = leaderboardByFactorByEpoch[currentEpoch.id] || [];
-  const currentEntry = currentEntries.find(e => e.factorId === factorId);
-  if (currentEntry) {
-    return { display: `${currentEpoch.id} #${currentEntry.rank}`, epochId: currentEpoch.id };
-  }
-  for (const [epochId, entries] of Object.entries(leaderboardByFactorByEpoch)) {
-    if (epochId === currentEpoch.id) continue;
-    const entry = entries.find(e => e.factorId === factorId);
-    if (entry) {
-      return { display: `${epochId} #${entry.rank}`, epochId };
-    }
-  }
-  return { display: "Not Entered", epochId: null };
-}
-
 type AlphaRow = Factor & {
   submissionStatus: "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
   submittedAt?: string;
+  osFitness?: number;
+  compositeScore?: number;
   epochStatus?: string;
   epochId?: string;
 };
@@ -46,24 +26,11 @@ const statusConfig: Record<string, { label: string; dotClass: string; textClass:
 };
 
 interface AlphaCardViewProps {
+  rows: AlphaRow[];
   visibleColumns: Set<string>;
 }
 
-export default function AlphaCardView({ visibleColumns }: AlphaCardViewProps) {
-  const alphaRows: AlphaRow[] = useMemo(() => {
-    return factors.map((f) => {
-      const sub = submissions.find((s) => s.factorId === f.id);
-      const submissionStatus = sub ? (sub.status as AlphaRow["submissionStatus"]) : "queued";
-      return {
-        ...f,
-        submissionStatus,
-        submittedAt: sub?.submittedAt,
-        epochStatus: getEpochStatus(f.id).display,
-        epochId: getEpochStatus(f.id).epochId ?? undefined,
-      };
-    });
-  }, []);
-
+export default function AlphaCardView({ rows, visibleColumns }: AlphaCardViewProps) {
   const isVisible = (key: string) => visibleColumns.has(key);
 
   const renderStatus = (status: AlphaRow["submissionStatus"]) => {
@@ -103,7 +70,7 @@ export default function AlphaCardView({ visibleColumns }: AlphaCardViewProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {alphaRows.map((row) => {
+      {rows.map((row) => {
         const osSharpeColor = row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
         const fitnessColor = row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground";
 
@@ -201,9 +168,9 @@ export default function AlphaCardView({ visibleColumns }: AlphaCardViewProps) {
         );
       })}
 
-      {alphaRows.length === 0 && (
+      {rows.length === 0 && (
         <div className="col-span-full surface-card px-6 py-12 text-center">
-          <p className="text-sm text-muted-foreground">No alphas found.</p>
+          <p className="text-sm text-muted-foreground">No alphas found matching the current filters.</p>
         </div>
       )}
     </div>

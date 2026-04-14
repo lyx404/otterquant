@@ -683,7 +683,7 @@ export default function MyAlphas() {
         {/* Card View */}
         {viewMode === "card" && (
           <div className="p-6">
-            <AlphaCardView visibleColumns={visibleColumns} />
+            <AlphaCardView rows={sorted} visibleColumns={visibleColumns} />
           </div>
         )}
 
