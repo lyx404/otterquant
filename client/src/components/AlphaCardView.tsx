@@ -1,7 +1,7 @@
 /*
- * AlphaCardView — Card view for My Alphas, fields synced with table view
- * Respects column visibility settings from parent
- * Design: Grid cards with consistent metric styling
+ * AlphaCardView — Card view for My Alphas
+ * Field visibility fully synced with table view's visibleColumns
+ * All fields controlled by the same column toggle as the list view
  */
 import { useMemo } from "react";
 import { Link } from "wouter";
@@ -107,7 +107,7 @@ export default function AlphaCardView({ visibleColumns }: AlphaCardViewProps) {
         const osSharpeColor = row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
         const fitnessColor = row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground";
 
-        /* Collect visible metrics for the grid */
+        /* Collect visible metrics for the grid — synced with table columns */
         const metrics: { label: string; value: string; colorClass?: string }[] = [];
         if (isVisible("sharpe")) metrics.push({ label: "IS Sharpe", value: row.sharpe.toFixed(2) });
         if (isVisible("osSharpe")) metrics.push({ label: "OS Sharpe", value: row.osSharpe.toFixed(2), colorClass: osSharpeColor });
@@ -115,6 +115,10 @@ export default function AlphaCardView({ visibleColumns }: AlphaCardViewProps) {
         if (isVisible("returns")) metrics.push({ label: "Returns", value: row.returns });
         if (isVisible("turnover")) metrics.push({ label: "Turnover", value: row.turnover });
         if (isVisible("drawdown")) metrics.push({ label: "Drawdown", value: row.drawdown, colorClass: "text-destructive" });
+        if (isVisible("testsPassed")) {
+          const testsValue = `${row.testsPassed}/${row.testsFailed}${row.testsPending > 0 ? `/${row.testsPending}` : ""}`;
+          metrics.push({ label: "Tests", value: testsValue });
+        }
 
         return (
           <div
@@ -126,11 +130,15 @@ export default function AlphaCardView({ visibleColumns }: AlphaCardViewProps) {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Star className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                  <Link href={`/alphas/${row.id}`}>
-                    <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer truncate">
-                      {row.name}
-                    </span>
-                  </Link>
+                  {isVisible("name") ? (
+                    <Link href={`/alphas/${row.id}`}>
+                      <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer truncate">
+                        {row.name}
+                      </span>
+                    </Link>
+                  ) : (
+                    <span className="text-sm font-semibold text-foreground truncate">{row.name}</span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {isVisible("grade") && renderGrade(row)}
@@ -138,7 +146,9 @@ export default function AlphaCardView({ visibleColumns }: AlphaCardViewProps) {
               </div>
               <div className="flex items-center justify-between">
                 {isVisible("status_col") && renderStatus(row.submissionStatus)}
-                <span className="text-[10px] text-muted-foreground font-mono">{row.id}</span>
+                {isVisible("id") && (
+                  <span className="text-[10px] text-muted-foreground font-mono">{row.id}</span>
+                )}
               </div>
             </div>
 
