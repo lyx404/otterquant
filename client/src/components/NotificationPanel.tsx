@@ -15,6 +15,7 @@ import {
   X,
   Megaphone,
   MessageCircle,
+  Zap,
 } from "lucide-react";
 import { notifications, type Notification } from "@/lib/mockData";
 
@@ -104,6 +105,8 @@ export default function NotificationPanel() {
       navigate(`/alphas?highlight=${n.factorId}`);
     } else if (n.type === "epoch_reward" && n.epochId) {
       navigate(`/leaderboard?epoch=${encodeURIComponent(n.epochId)}`);
+    } else if (n.type === "skill_update") {
+      navigate("/launch");
     }
   };
 
@@ -211,6 +214,7 @@ export default function NotificationPanel() {
                 notifications.map(n => {
                   const isRead = readIds.has(n.id);
                   const isTestResult = n.type === "alpha_test_result";
+                  const isSkillUpdate = n.type === "skill_update";
                   const isPassed = n.testResult === "passed";
 
                   return (
@@ -223,13 +227,17 @@ export default function NotificationPanel() {
                     >
                       {/* Icon */}
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                        isTestResult
-                          ? isPassed
-                            ? "bg-emerald-500/10 text-emerald-500"
-                            : "bg-red-500/10 text-red-500"
-                          : "bg-amber-500/10 text-amber-500"
+                        isSkillUpdate
+                          ? "bg-indigo-500/10 text-indigo-500"
+                          : isTestResult
+                            ? isPassed
+                              ? "bg-emerald-500/10 text-emerald-500"
+                              : "bg-red-500/10 text-red-500"
+                            : "bg-amber-500/10 text-amber-500"
                       }`}>
-                        {isTestResult ? (
+                        {isSkillUpdate ? (
+                          <Zap className="w-4 h-4" />
+                        ) : isTestResult ? (
                           isPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />
                         ) : (
                           <Trophy className="w-4 h-4" />
