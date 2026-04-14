@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, ReactNode, CSSProperties } from "react";
+import React, { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 interface StarBackgroundProps {
@@ -40,9 +40,6 @@ function StarBackground({ color }: StarBackgroundProps) {
 
 interface StarButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
-  lightWidth?: number;
-  duration?: number;
-  lightColor?: string;
   backgroundColor?: string;
   borderWidth?: number;
   className?: string;
@@ -50,57 +47,22 @@ interface StarButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
 
 export function StarButton({
   children,
-  lightWidth = 110,
-  duration = 3,
-  lightColor = "#FAFAFA",
   backgroundColor = "currentColor",
   borderWidth = 2,
   className,
   ...props
 }: StarButtonProps) {
-  const pathRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (pathRef.current) {
-      const div = pathRef.current;
-      div.style.setProperty(
-        "--path",
-        `path('M 0 0 H ${div.offsetWidth} V ${div.offsetHeight} H 0 V 0')`,
-      );
-    }
-  }, []);
-
   return (
     <button
-      style={
-        {
-          "--duration": duration,
-          "--light-width": `${lightWidth}px`,
-          "--light-color": lightColor,
-          "--border-width": `${borderWidth}px`,
-          isolation: "isolate",
-        } as CSSProperties
-      }
-      ref={pathRef}
       className={cn(
-        "relative z-[3] overflow-hidden h-10 px-4 py-2 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-3xl text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 group/star-button",
+        "relative overflow-hidden h-10 px-4 py-2 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-3xl text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
       {...props}
     >
       <div
-        className="absolute aspect-square inset-0 animate-star-btn bg-[radial-gradient(ellipse_at_center,var(--light-color),transparent,transparent)]"
-        style={
-          {
-            offsetPath: "var(--path)",
-            offsetDistance: "0%",
-            width: "var(--light-width)",
-          } as CSSProperties
-        }
-      />
-      <div
-        className="absolute inset-0 dark:border-white/15 border-black/10 z-[4] overflow-hidden rounded-[inherit] dark:text-black text-white"
-        style={{ borderWidth: "var(--border-width)" }}
+        className="absolute inset-0 dark:border-white/15 border-black/10 overflow-hidden rounded-[inherit] dark:text-black text-white"
+        style={{ borderWidth: `${borderWidth}px` }}
         aria-hidden="true"
       >
         <StarBackground color={backgroundColor} />

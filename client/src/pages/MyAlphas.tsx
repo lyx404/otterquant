@@ -473,7 +473,6 @@ export default function MyAlphas() {
             </h1>
             <Link href="/alphas/new">
               <StarButton
-                lightColor="#818cf8"
                 backgroundColor="#818cf8"
                 className="shadow-2xl"
               >
