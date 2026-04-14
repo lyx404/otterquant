@@ -276,15 +276,9 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             )}
           </div>
         ) : (
-          /* === Expanded: single row — icons + user avatar in one line === */
+          /* === Expanded: single row — user avatar, notification, theme (left to right) === */
           <div className="relative" ref={userMenuRef}>
             <div className="flex items-center gap-1.5">
-              {isAuthenticated && <NotificationPanel />}
-              <AnimatedThemeToggler
-                className="flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-all duration-200 w-8 h-8"
-                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              />
-              <div className="flex-1" />
               {isAuthenticated && (
                 <button
                   onClick={() => setUserMenuOpen((v) => !v)}
@@ -304,6 +298,12 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
                   </span>
                 </button>
               )}
+              <div className="flex-1" />
+              {isAuthenticated && <NotificationPanel />}
+              <AnimatedThemeToggler
+                className="flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-all duration-200 w-8 h-8"
+                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              />
             </div>
             {/* User dropdown menu */}
             {userMenuOpen && (
