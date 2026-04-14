@@ -335,7 +335,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
     <div className="min-h-screen bg-background flex">
       {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex flex-col shrink-0 bg-card border-r border-border h-screen sticky top-0 transition-all duration-300 ease-in-out overflow-hidden"
+        className="hidden md:flex flex-col shrink-0 bg-card border-r border-border h-screen sticky top-0 z-10 transition-all duration-300 ease-in-out overflow-hidden"
         style={{ width: sidebarWidth }}
       >
         <SidebarContent />
