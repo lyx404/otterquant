@@ -373,13 +373,8 @@ export default function MyAlphas() {
           return <ShinyTag tier={grade} />;
         }
         // B/C/D: plain text style
-        const pillStyleMap: Record<string, string> = {
-          B: "border-[#69B2FF]/50 text-white bg-[linear-gradient(135deg,#4B94F8_0%,#73B3FF_50%,#387FE0_100%)]",
-          C: "border-[#72CB92]/50 text-white bg-[linear-gradient(135deg,#43AF6D_0%,#72CB92_50%,#32935A_100%)]",
-          D: "border-[#98A1AF]/50 text-white bg-[linear-gradient(135deg,#7B8494_0%,#9EA6B4_50%,#687180_100%)]",
-        };
         return (
-          <span className={`inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border-[0.5px] text-[10px] font-semibold ${pillStyleMap[grade] || "border-border text-muted-foreground"}`}>
+          <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border-[0.5px] border-white/40 text-[10px] font-semibold text-white bg-transparent">
             {grade}
           </span>
         );
