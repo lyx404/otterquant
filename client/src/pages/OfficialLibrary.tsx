@@ -14,7 +14,8 @@ import {
   ChevronRight,
   Zap,
   Sparkles,
-  Library,
+  Info,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { factors, type Factor } from "@/lib/mockData";
@@ -174,6 +175,7 @@ export default function OfficialLibrary() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showFlywheelInfo, setShowFlywheelInfo] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Only show official and graduated factors
@@ -217,14 +219,51 @@ export default function OfficialLibrary() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <div className="flex items-center gap-2.5 mb-1">
-          <Library className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-bold text-foreground tracking-tight">Official Library</h1>
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">Official Library</h1>
+          <button
+            onClick={() => setShowFlywheelInfo(true)}
+            className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200"
+            title="Factor Flywheel"
+          >
+            <Info className="w-4 h-4" />
+          </button>
         </div>
         <p className="text-sm text-muted-foreground">
           Browse proven trading signals. Use them as building blocks for your strategies.
         </p>
       </div>
+
+      {/* Flywheel Info Modal */}
+      {showFlywheelInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowFlywheelInfo(false)}>
+          <div className="relative w-full max-w-lg mx-4 surface-card p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowFlywheelInfo(false)}
+              className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Factor Flywheel</h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Develop factors
+              <span className="mx-1.5 text-primary/60">&rarr;</span>
+              Submit to competition
+              <span className="mx-1.5 text-primary/60">&rarr;</span>
+              Top factors graduate to official library
+              <span className="mx-1.5 text-primary/60">&rarr;</span>
+              Others use them in strategies
+              <span className="mx-1.5 text-primary/60">&rarr;</span>
+              You earn rewards
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Search + Category Tabs */}
       <div className="flex items-center gap-3">
@@ -253,9 +292,6 @@ export default function OfficialLibrary() {
           ))}
         </div>
       </div>
-
-      {/* Factor Flywheel Banner */}
-      <FlywheelBanner />
 
       {/* Stats */}
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
