@@ -23,6 +23,7 @@ import {
   Sparkles,
   Send,
   SlidersHorizontal,
+  ClipboardCheck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -168,7 +169,7 @@ export default function AlphaEdit() {
         {/* Platform Agent */}
         <button
           onClick={() => setMode("platform")}
-          className={`relative p-5 rounded-2xl text-left transition-all duration-200 ease-in-out border ${
+          className={`relative p-3.5 rounded-2xl text-left transition-all duration-200 ease-in-out border ${
             mode === "platform"
               ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.2)]"
               : "bg-card border-border hover:border-slate-300 dark:hover:border-slate-600"
@@ -179,15 +180,15 @@ export default function AlphaEdit() {
               <Check className="w-3 h-3 text-primary-foreground" />
             </div>
           )}
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
               mode === "platform" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
             }`}>
-              <Bot className={`w-5 h-5 ${mode === "platform" ? "text-primary" : "text-muted-foreground"}`} />
+              <Bot className={`w-4 h-4 ${mode === "platform" ? "text-primary" : "text-muted-foreground"}`} />
             </div>
             <div className="text-sm font-semibold text-foreground">Platform Agent</div>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-[11px] text-muted-foreground leading-relaxed pl-[42px]">
             Fill in key parameters and let Otter's AI create, backtest, and optimize your alpha factor automatically.
           </p>
         </button>
@@ -195,7 +196,7 @@ export default function AlphaEdit() {
         {/* Your Own Agent */}
         <button
           onClick={() => setMode("own")}
-          className={`relative p-5 rounded-2xl text-left transition-all duration-200 ease-in-out border ${
+          className={`relative p-3.5 rounded-2xl text-left transition-all duration-200 ease-in-out border ${
             mode === "own"
               ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.2)]"
               : "bg-card border-border hover:border-slate-300 dark:hover:border-slate-600"
@@ -206,15 +207,15 @@ export default function AlphaEdit() {
               <Check className="w-3 h-3 text-primary-foreground" />
             </div>
           )}
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
               mode === "own" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
             }`}>
-              <Code2 className={`w-5 h-5 ${mode === "own" ? "text-primary" : "text-muted-foreground"}`} />
+              <Code2 className={`w-4 h-4 ${mode === "own" ? "text-primary" : "text-muted-foreground"}`} />
             </div>
             <div className="text-sm font-semibold text-foreground">Your Own Agent</div>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-[11px] text-muted-foreground leading-relaxed pl-[42px]">
             Connect your AI agent (ChatGPT / Claude / DeepSeek) via API key and Otter Skill prompt.
           </p>
         </button>
@@ -228,8 +229,9 @@ export default function AlphaEdit() {
           {/* Required Fields */}
           <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
             <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-4 h-4 text-primary" />
+              <ClipboardCheck className="w-4 h-4 text-primary" />
               <span className="text-sm font-semibold text-foreground">Core Parameters</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">Required</span>
             </div>
 
             {/* Alpha Name */}
@@ -263,26 +265,7 @@ export default function AlphaEdit() {
               </div>
             </div>
 
-            {/* Strategy Type */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Strategy Type</label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {STRATEGY_TYPES.map((s) => (
-                  <button
-                    key={s.value}
-                    onClick={() => setStrategyType(s.value)}
-                    className={`p-3 rounded-xl text-left transition-all duration-200 border ${
-                      strategyType === s.value
-                        ? "bg-primary/10 border-primary/30 text-foreground"
-                        : "bg-accent border-border hover:border-slate-300 dark:hover:border-slate-600 text-muted-foreground"
-                    }`}
-                  >
-                    <div className="text-xs font-semibold">{s.label}</div>
-                    <div className="text-[10px] mt-0.5 opacity-70">{s.desc}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
+
           </div>
 
           {/* Advanced Settings (collapsed by default) */}
@@ -368,7 +351,7 @@ export default function AlphaEdit() {
               className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/50 transition-colors duration-200"
             >
               <div className="flex items-center gap-2">
-                <Send className="w-4 h-4 text-primary" />
+                <Bot className="w-4 h-4 text-primary" />
                 <span className="text-sm font-semibold text-foreground">Strategy Description</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border">Optional</span>
               </div>
