@@ -305,28 +305,75 @@ export default function ScratchCard({ factorId, grade, onReveal }: ScratchCardPr
     );
   }
 
-  // ── 未揭开状态：显示刮刮乐入口 ──
+  // ── 未揭开状态：显示刮刮乐入口（强调未知感） ──
   return (
     <>
       <div
-        className="text-center p-4 rounded-2xl bg-accent border border-border/60 cursor-pointer group hover:border-primary/40 transition-all duration-300"
+        className="text-center p-4 rounded-2xl cursor-pointer group transition-all duration-500 relative overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, rgba(30,20,50,0.9) 0%, rgba(15,10,30,0.95) 100%)",
+          border: "1px solid rgba(129,140,248,0.2)",
+          boxShadow: "0 0 20px rgba(129,140,248,0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
+        }}
         onClick={() => setShowModal(true)}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "rgba(129,140,248,0.45)";
+          e.currentTarget.style.boxShadow = "0 0 30px rgba(129,140,248,0.15), inset 0 1px 0 rgba(255,255,255,0.08)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "rgba(129,140,248,0.2)";
+          e.currentTarget.style.boxShadow = "0 0 20px rgba(129,140,248,0.08), inset 0 1px 0 rgba(255,255,255,0.05)";
+        }}
       >
-        <div className="label-upper mb-1 text-[9px]">GRADE</div>
-        <div className="relative">
-          <div className="text-lg font-bold font-mono text-muted-foreground/50 select-none">
+        {/* 微光粒子背景 */}
+        <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+          <div className="absolute w-1 h-1 rounded-full bg-indigo-400/40 top-[20%] left-[15%]" style={{ animation: "scratchPulse 3s ease-in-out infinite" }} />
+          <div className="absolute w-0.5 h-0.5 rounded-full bg-purple-400/30 top-[60%] left-[75%]" style={{ animation: "scratchPulse 4s ease-in-out 1s infinite" }} />
+          <div className="absolute w-0.5 h-0.5 rounded-full bg-sky-400/25 top-[35%] left-[85%]" style={{ animation: "scratchPulse 3.5s ease-in-out 0.5s infinite" }} />
+        </div>
+
+        <div className="label-upper mb-1 text-[9px] text-white/40">GRADE</div>
+        <div className="relative h-7 flex items-center justify-center">
+          {/* 问号 — 脉冲呼吸 */}
+          <div
+            className="text-2xl font-black font-mono select-none"
+            style={{
+              background: "linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #818cf8 100%)",
+              backgroundSize: "200% 200%",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+              animation: "scratchShimmer 3s ease-in-out infinite",
+              filter: "drop-shadow(0 0 8px rgba(129,140,248,0.4))",
+            }}
+          >
             ?
           </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-700 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-              <svg className="w-4 h-4 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
-              </svg>
-            </div>
-          </div>
         </div>
-        <div className="text-[9px] text-primary mt-0.5 group-hover:text-primary/80">Tap to reveal</div>
+        <div
+          className="text-[9px] mt-1 font-medium tracking-wide"
+          style={{
+            background: "linear-gradient(90deg, rgba(129,140,248,0.6), rgba(192,132,252,0.6))",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          Tap to reveal
+        </div>
       </div>
+
+      {/* 内联动画 keyframes */}
+      <style>{`
+        @keyframes scratchShimmer {
+          0%, 100% { background-position: 0% 50%; filter: drop-shadow(0 0 8px rgba(129,140,248,0.4)); }
+          50% { background-position: 100% 50%; filter: drop-shadow(0 0 14px rgba(192,132,252,0.5)); }
+        }
+        @keyframes scratchPulse {
+          0%, 100% { opacity: 0.2; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.8); }
+        }
+      `}</style>
 
       {/* ── 模态弹窗 ── */}
       {showModal && (
