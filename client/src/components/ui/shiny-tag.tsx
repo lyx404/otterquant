@@ -1,18 +1,21 @@
 /**
- * ShinyTag — Rarity-tier badge with metallic gradient & shine sweep
- * Tiers: S (Metallic Gold) | A (Purple) | B (Blue) | C (Green) | D (Grey)
- * Shape: rounded-full pill, h-9, min-w-9
- * Effect: gradient background-position shift on hover + white shine sweep
+ * ShinyTag — Flat-gradient rarity badge with subtle shine sweep
+ * Tiers: S (Flat Gold) | A (Flat Purple) | B (Flat Blue) | C (Flat Green) | D (Flat Grey)
+ * Shape: rounded-full pill, h-8, min-w-8
+ * Effect: bg-position shift on hover + subtle white shine sweep on hover
+ *
+ * ⚠️  DO NOT change colors, border-radius, shadows, gradients, font-size, or spacing.
+ *     If the runtime environment is missing tokens, fix Tailwind / globals.css first.
  */
 import { type AlphaGrade } from "@/lib/mockData";
 
-/* ── Per-tier Tailwind class bundles ── */
+/* ── Per-tier class bundles — flat 3-stop gradients ── */
 const TIER_CLASSES: Record<AlphaGrade, string> = {
-  S: "border-[#D4AF37] text-[#5B3D00] bg-[linear-gradient(135deg,#7A5310_0%,#C9971A_18%,#FFF1A8_34%,#F7D774_50%,#B97A0E_66%,#FFE89A_82%,#8A5B12_100%)]",
-  A: "border-[#9A7CFF] text-white bg-[linear-gradient(135deg,#4C2A9C_0%,#7B4DFF_22%,#C7B6FF_48%,#8E63FF_68%,#5B35C8_100%)]",
-  B: "border-[#5AA9FF] text-white bg-[linear-gradient(135deg,#0D4D9E_0%,#2F7BFF_22%,#9ED0FF_48%,#4C97FF_68%,#1C5FC8_100%)]",
-  C: "border-[#62C28B] text-white bg-[linear-gradient(135deg,#1E6B43_0%,#2FA866_24%,#9AE6B4_48%,#46C37B_70%,#1F7A49_100%)]",
-  D: "border-[#8C93A1] text-white bg-[linear-gradient(135deg,#4B5563_0%,#6B7280_24%,#C7CDD6_48%,#7B8494_70%,#525A68_100%)]",
+  S: "border-[#E5C35A] text-[#6A4B00] bg-[linear-gradient(135deg,#E7C65B_0%,#F3DA84_50%,#E2BC45_100%)]",
+  A: "border-[#9C86F8] text-white bg-[linear-gradient(135deg,#7B61FF_0%,#9B86FF_50%,#6B4FEA_100%)]",
+  B: "border-[#69B2FF] text-white bg-[linear-gradient(135deg,#4B94F8_0%,#73B3FF_50%,#387FE0_100%)]",
+  C: "border-[#72CB92] text-white bg-[linear-gradient(135deg,#43AF6D_0%,#72CB92_50%,#32935A_100%)]",
+  D: "border-[#98A1AF] text-white bg-[linear-gradient(135deg,#7B8494_0%,#9EA6B4_50%,#687180_100%)]",
 };
 
 interface ShinyTagProps {
@@ -24,9 +27,9 @@ export default function ShinyTag({ tier, className = "" }: ShinyTagProps) {
   return (
     <div
       className={[
-        "shiny-tag relative inline-flex h-7 min-w-7 select-none items-center justify-center overflow-hidden rounded-full px-2.5",
-        "border text-[11px] font-semibold tracking-[0.08em]",
-        "bg-[size:220%_220%] transition-[background-position,transform] duration-700",
+        "shiny-tag relative inline-flex h-8 min-w-8 select-none items-center justify-center overflow-hidden rounded-full px-3",
+        "border text-sm font-semibold tracking-[0.04em]",
+        "bg-[size:200%_200%] transition-[background-position] duration-500",
         "hover:bg-[position:100%_50%]",
         TIER_CLASSES[tier],
         className,
@@ -35,16 +38,10 @@ export default function ShinyTag({ tier, className = "" }: ShinyTagProps) {
       {/* Letter */}
       <span className="relative z-10">{tier}</span>
 
-      {/* Shine sweep overlay */}
+      {/* Subtle shine sweep overlay (hover-triggered via CSS) */}
       <span
         aria-hidden="true"
-        className="shiny-tag-shine pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.06)_38%,rgba(255,255,255,0.38)_50%,rgba(255,255,255,0.06)_62%,transparent_80%)] bg-[size:200%_100%]"
-      />
-
-      {/* Inner ring highlight */}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-[1px] rounded-full ring-1 ring-inset ring-white/20"
+        className="shiny-tag-shine pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.12)_50%,transparent_70%)] bg-[size:180%_100%]"
       />
     </div>
   );

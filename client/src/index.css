@@ -414,21 +414,20 @@
 }
 
 
-/* ── ShinyTag — Shimmer sweep animation ── */
-@keyframes shiny-sweep {
-  0% { background-position: -100% 0; }
-  100% { background-position: 200% 0; }
+/* ── ShinyTag — Flat gradient with subtle hover shine ── */
+.shiny-tag-shine {
+  background-position: -80% 0;
+  transition: background-position 0.7s ease;
 }
 
-.shiny-tag-shine {
-  animation: shiny-sweep 3.5s ease-in-out infinite;
-  animation-delay: 0.5s;
+.shiny-tag:hover .shiny-tag-shine {
+  background-position: 120% 0;
 }
 
 .shiny-tag {
-  transition: background-position 0.7s, transform 0.2s ease-in-out;
+  transition: background-position 0.5s, transform 0.2s ease-in-out;
 }
 
 .shiny-tag:hover {
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
