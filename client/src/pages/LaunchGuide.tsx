@@ -411,7 +411,7 @@ export default function LaunchGuide() {
                         </div>
                         <div>
                           <div className="text-sm font-semibold text-foreground">Platform Agent</div>
-                          <div className="text-[10px] uppercase tracking-wider text-primary font-medium">NEW</div>
+
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
