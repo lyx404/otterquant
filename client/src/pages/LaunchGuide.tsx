@@ -44,8 +44,6 @@ type AgentMode = "platform" | "own" | null;
 const PLATFORM_STEPS = [
   { id: "welcome", label: "Welcome", icon: Zap },
   { id: "mode", label: "Mode", icon: Bot },
-  { id: "ai-chat", label: "AI Mining", icon: MessageSquare },
-  { id: "verify", label: "Verify", icon: Cpu },
 ] as const;
 
 const OWN_AGENT_STEPS = [
@@ -791,7 +789,18 @@ Include the API key in your agent's system prompt or environment configuration.`
 
             {currentStep < STEPS.length - 1 ? (
               <button
-                onClick={goNext}
+                onClick={() => {
+                  if (currentStep === 1 && agentMode === "platform") {
+                    // Platform Agent: skip to AI Mining page directly
+                    markOnboarded();
+                    navigate("/launch-guide");
+                    // Navigate to a dedicated AI mining page or dashboard
+                    navigate("/");
+                    toast.success("Welcome! Start mining alphas with AI.");
+                    return;
+                  }
+                  goNext();
+                }}
                 disabled={!canProceed()}
                 className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ease-in-out ${
                   canProceed()
@@ -799,7 +808,7 @@ Include the API key in your agent's system prompt or environment configuration.`
                     : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
                 }`}
               >
-                Next
+                {currentStep === 1 && agentMode === "platform" ? "进入" : "Next"}
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
