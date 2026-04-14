@@ -52,12 +52,11 @@ export default function AlphaCardView({ rows, visibleColumns }: AlphaCardViewPro
     if (grade === "S" || grade === "A") {
       return <ShinyTag tier={grade} />;
     }
-    const textColorMap: Record<string, string> = {
-      B: "text-[#4B94F8]",
-      C: "text-[#43AF6D]",
-      D: "text-muted-foreground/60",
-    };
-    return <span className={`text-xs font-semibold ${textColorMap[grade] || "text-muted-foreground"}`}>{grade}</span>;
+    return (
+      <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border-[0.5px] border-white/40 text-[10px] font-semibold text-white bg-transparent">
+        {grade}
+      </span>
+    );
   };
 
   /* Metric cell: unified style for all numeric values */
