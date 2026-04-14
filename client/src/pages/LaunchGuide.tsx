@@ -43,12 +43,14 @@ type AgentMode = "platform" | "own" | null;
 /* ── Step definitions — dynamic based on mode ── */
 const PLATFORM_STEPS = [
   { id: "welcome", label: "Welcome", icon: Zap },
+  { id: "mode", label: "Mode", icon: Bot },
   { id: "ai-chat", label: "AI Mining", icon: MessageSquare },
   { id: "verify", label: "Verify", icon: Cpu },
 ] as const;
 
 const OWN_AGENT_STEPS = [
   { id: "welcome", label: "Welcome", icon: Zap },
+  { id: "mode", label: "Mode", icon: Bot },
   { id: "agent-api", label: "Agent API & Skill", icon: Key },
   { id: "first-run", label: "First Run", icon: Rocket },
   { id: "verify", label: "Verify", icon: Cpu },
@@ -64,8 +66,7 @@ const MARKETS = [
 
 const EXPERIENCE_OPTIONS = [
   { value: "beginner", label: "Beginner — New to quantitative trading" },
-  { value: "intermediate", label: "Intermediate — Some algo trading experience" },
-  { value: "advanced", label: "Advanced — Professional quant / fund manager" },
+  { value: "advanced", label: "Professional — Experienced quant / fund manager" },
 ];
 
 /* ── AI Chat Message Type ── */
@@ -133,7 +134,7 @@ export default function LaunchGuide() {
   };
 
   useEffect(() => {
-    if (agentMode === "own" && currentStep === 1 && !generatedApiKey) {
+    if (agentMode === "own" && currentStep === 2 && !generatedApiKey) {
       setGeneratedApiKey(generateApiKey());
     }
   }, [currentStep, agentMode]);
@@ -199,7 +200,8 @@ export default function LaunchGuide() {
   };
 
   const canProceed = () => {
-    if (currentStep === 0) return experience !== "" && agentMode !== null;
+    if (currentStep === 0) return experience !== "";
+    if (currentStep === 1) return agentMode !== null;
     return true;
   };
 
@@ -375,12 +377,20 @@ export default function LaunchGuide() {
                   </div>
                 </div>
 
-                {/* ── Agent Mode Selection ── */}
+              </div>
+            )}
+
+            {/* ═══ STEP 1: Agent Mode Selection ═══ */}
+            {currentStep === 1 && (
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div>
+                  <h2 className="mb-1 text-foreground">Choose Your Workflow</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Select how you'd like to create alpha factors.
+                  </p>
+                </div>
+
                 <div className="space-y-3">
-                  <label className="text-sm font-medium text-foreground">
-                    How would you like to create alphas?
-                  </label>
-                  <p className="text-xs text-muted-foreground">Choose your preferred workflow</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Platform Agent */}
                     <button
@@ -444,7 +454,7 @@ export default function LaunchGuide() {
             )}
 
             {/* ═══ PLATFORM MODE: AI Chat Step ═══ */}
-            {agentMode === "platform" && currentStep === 1 && (
+            {agentMode === "platform" && currentStep === 2 && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div>
                   <h2 className="mb-1 text-foreground">AI Alpha Mining</h2>
@@ -558,8 +568,8 @@ export default function LaunchGuide() {
               </div>
             )}
 
-            {/* ═══ OWN AGENT MODE: Step 1 — Configure Agent API ═══ */}
-            {agentMode === "own" && currentStep === 1 && (
+            {/* ═══ OWN AGENT MODE: Step 2 — Configure Agent API ═══ */}
+            {agentMode === "own" && currentStep === 2 && (
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
                   <h2 className="mb-1 text-foreground">Configure Agent API</h2>
@@ -628,8 +638,8 @@ Include the API key in your agent's system prompt or environment configuration.`
               </div>
             )}
 
-            {/* ═══ OWN AGENT MODE: Step 2 — First Run ═══ */}
-            {agentMode === "own" && currentStep === 2 && (
+            {/* ═══ OWN AGENT MODE: Step 3 — First Run ═══ */}
+            {agentMode === "own" && currentStep === 3 && (
               <div className="space-y-8 animate-in fade-in duration-300">
                 <div>
                   <h2 className="mb-1 text-foreground">First Run</h2>
