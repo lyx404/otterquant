@@ -23,6 +23,7 @@ import {
   ChevronDown, ChevronUp, RefreshCw, Eye, Sparkles,
   Loader2, FlaskConical, LineChart as LineChartIcon, Settings2,
 } from "lucide-react";
+import ShinyTag from "@/components/ui/shiny-tag";
 import {
   factors, generatePnLData, generateSharpeData, generateTurnoverData,
   generateReturnsData, generateDrawdownData, aggregateData, osAggregateData,
@@ -194,13 +195,14 @@ export default function AlphaDetail() {
         <div className="flex-1" ref={headerRef}>
           <div className="reveal-line flex items-center gap-3 flex-wrap">
             <h1 className="text-foreground">{factor.name}</h1>
-            {/* Grade Badge */}
-            <span
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider border"
-              style={{ color: gradeConfig.color, backgroundColor: gradeConfig.bg, borderColor: gradeConfig.border }}
-            >
-              {grade}
-            </span>
+            {/* Grade Badge — synced with list view */}
+            {(grade === "S" || grade === "A") ? (
+              <ShinyTag tier={grade} />
+            ) : (
+              <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border-[0.5px] border-white/40 text-[10px] font-semibold text-white bg-transparent">
+                {grade}
+              </span>
+            )}
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
               factor.status === "active" || factor.status === "testing"
                 ? "bg-success/10 text-success border-success/20"
