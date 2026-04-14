@@ -19,3 +19,14 @@
 - [ ] 修改 Password "Change" 按钮 → 增加修改流程（发送验证码至邮箱、更新密码、保存）
 - [ ] 删除 Sessions 行（第196行 div）
 - [ ] 在 Account 页面底部新增消息通知板块（Alphas 相关通知、Arena 相关通知）
+
+# Alpha Edit 页面（/alphas/new）
+
+- [ ] 分析 MyAlphas.tsx 新建按钮位置和现有跳转逻辑
+- [ ] 分析 Launch Guide 页面的 Agent API & Skill 和 First Run 步骤内容
+- [ ] 创建 /alphas/new 路由和 AlphaEdit.tsx 页面组件
+- [ ] 实现模式选择 UI（Platform Agent / Your Own Agent）
+- [ ] 实现 Platform Agent 模式：表单收集 2-3 个必要数据，其余默认收起
+- [ ] 实现 Your Own Agent 模式：复用 Launch Guide 的 Agent API 和 First Run 内容
+- [ ] 更新 MyAlphas 新建按钮跳转到 /alphas/new
+- [ ] 验证 TypeScript 无错误，创建 checkpoint

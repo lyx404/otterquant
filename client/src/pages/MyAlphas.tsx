@@ -466,7 +466,7 @@ export default function MyAlphas() {
             <h1 className="text-foreground">
               Alphas
             </h1>
-            <Link href="/launch-guide">
+            <Link href="/alphas/new">
               <button className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98] transition-all duration-200 ease-in-out">
                 <Plus className="w-3.5 h-3.5" />
                 New Alpha
