@@ -63,6 +63,7 @@ import {
 import { GradeRevealBatch } from "@/components/GradeRevealModal";
 import ShinyTag from "@/components/ui/shiny-tag";
 import { StarButton } from "@/components/ui/star-button";
+import ShinyText from "@/components/ui/shiny-text";
 import AlphaCardView from "@/components/AlphaCardView";
 import { LayoutGrid, Table2 } from "lucide-react";
 
@@ -477,7 +478,7 @@ export default function MyAlphas() {
                 className="shadow-2xl"
               >
                 <Plus className="w-3.5 h-3.5" />
-                New Alpha
+                <ShinyText text="New Alpha" color="#ffffff" shineColor="#e0e7ff" speed={3} />
               </StarButton>
             </Link>
           </div>
