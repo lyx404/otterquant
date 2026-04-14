@@ -1,281 +1,197 @@
 /*
- * AlphaCardView — Factor card list with category filtering
- * Design: Full-width cards, single column, expand/collapse
- * Categories: All | Official | Graduated
- * Factor Flywheel banner at top
- * Left accent border: green for official, purple for graduated
- * Icons: Star for official, Crown for graduated
+ * AlphaCardView — Card view for My Alphas, fields synced with table view
+ * Design: Grid cards showing same data as table columns
+ * Fields: Name, Status, Grade, Arena Round, Date Created, IS Sharpe, OS Sharpe, Fitness, Returns, Turnover, Drawdown
  */
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useMemo } from "react";
 import { Link } from "wouter";
-import gsap from "gsap";
+import { Star } from "lucide-react";
 import {
-  Search,
-  Star,
-  Crown,
-  Users,
-  ChevronRight,
-  Zap,
-  ArrowRight,
-  Sparkles,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { factors, type Factor } from "@/lib/mockData";
-import { toast } from "sonner";
+  factors,
+  submissions,
+  getAlphaGrade,
+  leaderboardByFactorByEpoch,
+  currentEpoch,
+  type Factor,
+} from "@/lib/mockData";
 
-type CategoryFilter = "all" | "official" | "graduated";
-
-/* ── Factor Flywheel Banner ── */
-function FlywheelBanner() {
-  return (
-    <div className="surface-card overflow-hidden border-l-4 border-l-primary">
-      <div className="px-5 py-4 flex items-start gap-4">
-        <div className="shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <Sparkles className="w-5 h-5 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-foreground mb-1">Factor Flywheel</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Develop factors
-            <span className="mx-1.5 text-primary/60">&rarr;</span>
-            Submit to competition
-            <span className="mx-1.5 text-primary/60">&rarr;</span>
-            Top factors graduate to official library
-            <span className="mx-1.5 text-primary/60">&rarr;</span>
-            Others use them in strategies
-            <span className="mx-1.5 text-primary/60">&rarr;</span>
-            You earn rewards
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+/* Build epoch status lookup from leaderboard data */
+function getEpochStatus(factorId: string): { display: string; epochId: string | null } {
+  const currentEntries = leaderboardByFactorByEpoch[currentEpoch.id] || [];
+  const currentEntry = currentEntries.find(e => e.factorId === factorId);
+  if (currentEntry) {
+    return { display: `${currentEpoch.id} #${currentEntry.rank}`, epochId: currentEpoch.id };
+  }
+  for (const [epochId, entries] of Object.entries(leaderboardByFactorByEpoch)) {
+    if (epochId === currentEpoch.id) continue;
+    const entry = entries.find(e => e.factorId === factorId);
+    if (entry) {
+      return { display: `${epochId} #${entry.rank}`, epochId };
+    }
+  }
+  return { display: "Not Entered", epochId: null };
 }
+import ShinyTag from "@/components/ui/shiny-tag";
 
-/* ── Single Factor Card ── */
-function FactorCard({ factor, expanded, onToggle }: {
-  factor: Factor;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const isOfficial = factor.category === "official";
-  const isGraduated = factor.category === "graduated";
+type AlphaRow = Factor & {
+  submissionStatus: "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
+  submittedAt?: string;
+  epochStatus?: string;
+  epochId?: string;
+};
 
-  const borderAccent = isOfficial
-    ? "border-l-4 border-l-success"
-    : isGraduated
-    ? "border-l-4 border-l-purple-500"
-    : "border-l-4 border-l-transparent";
+const statusConfig: Record<string, { label: string; dotClass: string; textClass: string }> = {
+  passed: { label: "Passed", dotClass: "bg-emerald-400", textClass: "text-emerald-400" },
+  failed: { label: "Failed", dotClass: "bg-red-400", textClass: "text-red-400" },
+};
 
-  const Icon = isGraduated ? Crown : Star;
-  const iconClass = isGraduated
-    ? "text-purple-500 dark:text-purple-400"
-    : isOfficial
-    ? "text-amber-500 dark:text-amber-400"
-    : "text-muted-foreground";
-
-  const sharpeColor = factor.osSharpe >= 1.0
-    ? "text-success"
-    : factor.osSharpe >= 0.5
-    ? "text-amber-500 dark:text-amber-400"
-    : "text-foreground";
-
-  return (
-    <div
-      className={`surface-card overflow-hidden transition-all duration-200 ease-in-out hover:border-slate-300 dark:hover:border-slate-600 ${borderAccent}`}
-    >
-      {/* Main content */}
-      <div className="px-5 py-4">
-        {/* Top row: icon + name + tag + user count */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <Icon className={`w-4 h-4 shrink-0 ${iconClass}`} />
-            <Link href={`/alphas/${factor.id}`}>
-              <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer">
-                {factor.name}
-              </span>
-            </Link>
-            {factor.tag && (
-              <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.12em] font-medium border border-border text-muted-foreground bg-accent">
-                {factor.tag}
-              </span>
-            )}
-          </div>
-          {factor.userCount && (
-            <div className="flex items-center gap-1 shrink-0 text-xs text-muted-foreground">
-              <Users className="w-3 h-3" />
-              <span className="font-mono tabular-nums">{factor.userCount}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Description */}
-        {factor.description && (
-          <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-            {factor.description}
-          </p>
-        )}
-
-        {/* Metrics row: Sharpe + Fitness + action button */}
-        <div className="flex items-end justify-between">
-          <div className="flex items-center gap-6">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-0.5">Sharpe</div>
-              <div className={`text-base font-bold font-mono tabular-nums ${sharpeColor}`}>
-                {factor.osSharpe.toFixed(2)}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground mb-0.5">Fitness</div>
-              <div className="text-base font-bold font-mono tabular-nums text-foreground">
-                {factor.fitness.toFixed(2)}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isGraduated && factor.author && (
-              <span className="text-[10px] text-purple-500 dark:text-purple-400 font-medium">
-                by {factor.author}
-              </span>
-            )}
-            <button
-              onClick={onToggle}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 ease-in-out"
-            >
-              {expanded ? "Less" : "Use in Strategy"}
-              <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Expanded section */}
-      {expanded && (
-        <div className="px-5 py-4 border-t border-border bg-accent/30">
-          <p className="text-xs text-muted-foreground mb-3">
-            This factor can be used as a building block in your strategy. Click below to add it to a new strategy.
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => toast.success("Added to Time-Series Strategy")}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium bg-success/15 text-success border border-success/20 hover:bg-success/25 transition-all duration-200 ease-in-out"
-            >
-              <Zap className="w-3 h-3" />
-              Add to Time-Series Strategy
-            </button>
-            <button
-              onClick={() => toast.success("Added to Cross-Sectional Strategy")}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-200 ease-in-out"
-            >
-              Add to Cross-Sectional Strategy
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ── Main AlphaCardView Component ── */
 export default function AlphaCardView() {
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  // Filter factors that have card view data (category assigned)
-  const cardFactors = useMemo(() => {
-    return factors.filter((f) => f.category);
+  const alphaRows: AlphaRow[] = useMemo(() => {
+    return factors.map((f) => {
+      const sub = submissions.find((s) => s.factorId === f.id);
+      const submissionStatus = sub ? (sub.status as AlphaRow["submissionStatus"]) : "queued";
+      return {
+        ...f,
+        submissionStatus,
+        submittedAt: sub?.submittedAt,
+        epochStatus: getEpochStatus(f.id).display,
+        epochId: getEpochStatus(f.id).epochId ?? undefined,
+      };
+    });
   }, []);
 
-  const filtered = useMemo(() => {
-    return cardFactors.filter((f) => {
-      if (categoryFilter !== "all" && f.category !== categoryFilter) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (
-          !f.name.toLowerCase().includes(q) &&
-          !(f.tag || "").toLowerCase().includes(q) &&
-          !(f.description || "").toLowerCase().includes(q)
-        ) return false;
-      }
-      return true;
-    });
-  }, [cardFactors, categoryFilter, searchQuery]);
+  const renderStatus = (status: AlphaRow["submissionStatus"]) => {
+    const mapped = status === "passed" ? "passed" : "failed";
+    const s = statusConfig[mapped];
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        <span className={`w-1.5 h-1.5 rounded-full ${s.dotClass}`} />
+        <span className={`text-xs font-medium ${s.textClass}`}>{s.label}</span>
+      </span>
+    );
+  };
 
-  // Entrance animation
-  useEffect(() => {
-    if (!listRef.current) return;
-    const cards = listRef.current.querySelectorAll(".factor-card-item");
-    gsap.set(cards, { y: 20, opacity: 0 });
-    gsap.to(cards, {
-      y: 0, opacity: 1,
-      duration: 0.4, stagger: 0.05, ease: "power3.out",
-    });
-  }, [categoryFilter, searchQuery]);
-
-  const tabs: { key: CategoryFilter; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "official", label: "Official" },
-    { key: "graduated", label: "Graduated" },
-  ];
+  const renderGrade = (row: AlphaRow) => {
+    if (row.submissionStatus !== "passed") {
+      return <span className="text-xs text-muted-foreground/50 font-mono">-</span>;
+    }
+    const grade = getAlphaGrade(row.osSharpe);
+    if (grade === "S" || grade === "A") {
+      return <ShinyTag tier={grade} />;
+    }
+    const textColorMap: Record<string, string> = {
+      B: "text-[#4B94F8]",
+      C: "text-[#43AF6D]",
+      D: "text-muted-foreground/60",
+    };
+    return <span className={`text-xs font-semibold ${textColorMap[grade] || "text-muted-foreground"}`}>{grade}</span>;
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Subtitle */}
-      <p className="text-sm text-muted-foreground">
-        Browse proven trading signals. Use them as building blocks for your strategies.
-      </p>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {alphaRows.map((row) => {
+        const sharpeColor = row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
 
-      {/* Search + Category Tabs */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-[400px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Search factors..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 text-xs pl-9 rounded-lg bg-card border-border"
-          />
-        </div>
-        <div className="flex items-center rounded-lg border border-border overflow-hidden">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setCategoryFilter(tab.key)}
-              className={`px-4 py-2 text-xs font-medium transition-all duration-200 ease-in-out ${
-                categoryFilter === tab.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
+        return (
+          <div
+            key={row.id}
+            className="surface-card overflow-hidden transition-all duration-200 hover:border-primary/30 group"
+          >
+            {/* Card Header: Name + Status + Grade */}
+            <div className="px-4 pt-4 pb-3 border-b border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Star className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                  <Link href={`/alphas/${row.id}`}>
+                    <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer truncate">
+                      {row.name}
+                    </span>
+                  </Link>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {renderGrade(row)}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                {renderStatus(row.submissionStatus)}
+                <span className="text-[10px] text-muted-foreground font-mono">{row.id}</span>
+              </div>
+            </div>
 
-      {/* Factor Flywheel Banner */}
-      <FlywheelBanner />
+            {/* Card Body: Metrics Grid */}
+            <div className="px-4 py-3">
+              {/* Primary Metrics Row */}
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">IS Sharpe</div>
+                  <div className="text-sm font-bold font-mono tabular-nums text-foreground">{row.sharpe.toFixed(2)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">OS Sharpe</div>
+                  <div className={`text-sm font-bold font-mono tabular-nums ${sharpeColor}`}>{row.osSharpe.toFixed(2)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Fitness</div>
+                  <div className={`text-sm font-bold font-mono tabular-nums ${row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"}`}>
+                    {row.fitness.toFixed(2)}
+                  </div>
+                </div>
+              </div>
 
-      {/* Factor Cards */}
-      <div ref={listRef} className="space-y-3">
-        {filtered.map((factor) => (
-          <div key={factor.id} className="factor-card-item">
-            <FactorCard
-              factor={factor}
-              expanded={expandedId === factor.id}
-              onToggle={() => setExpandedId(expandedId === factor.id ? null : factor.id)}
-            />
+              {/* Secondary Metrics Row */}
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Returns</div>
+                  <div className="text-xs font-mono tabular-nums text-foreground">{row.returns}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Turnover</div>
+                  <div className="text-xs font-mono tabular-nums text-foreground">{row.turnover}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Drawdown</div>
+                  <div className="text-xs font-mono tabular-nums text-destructive">{row.drawdown}</div>
+                </div>
+              </div>
+
+              {/* Bottom Row: Arena Round + Date */}
+              <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                <div>
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Arena Round</div>
+                  {row.submissionStatus !== "passed" ? (
+                    <span className="text-xs font-mono text-muted-foreground/50">Ineligible</span>
+                  ) : row.epochId ? (
+                    <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
+                      <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
+                    </Link>
+                  ) : (
+                    <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || "Not Entered"}</span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Created</div>
+                  <div className="text-xs font-mono text-muted-foreground">{row.createdAt}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card Footer: View Detail */}
+            <div className="px-4 py-2.5 border-t border-border/30 bg-accent/20">
+              <Link href={`/alphas/${row.id}`}>
+                <span className="text-xs font-medium text-primary hover:text-primary/80 transition-colors duration-200 cursor-pointer">
+                  View Details →
+                </span>
+              </Link>
+            </div>
           </div>
-        ))}
-        {filtered.length === 0 && (
-          <div className="surface-card px-6 py-12 text-center">
-            <p className="text-sm text-muted-foreground">No factors match the current filters.</p>
-          </div>
-        )}
-      </div>
+        );
+      })}
+
+      {alphaRows.length === 0 && (
+        <div className="col-span-full surface-card px-6 py-12 text-center">
+          <p className="text-sm text-muted-foreground">No alphas found.</p>
+        </div>
+      )}
     </div>
   );
 }
