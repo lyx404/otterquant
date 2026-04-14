@@ -3,7 +3,7 @@
  * Design: Indigo/Sky + Slate | Cards: rounded-2xl | Buttons: rounded-full | Inputs: rounded-lg
  * Two modes: Platform Agent (form-based) / Your Own Agent (API guide)
  */
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useLocation, Link } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
@@ -21,7 +21,6 @@ import {
   Trophy,
   Zap,
   Sparkles,
-  Send,
   SlidersHorizontal,
   ClipboardCheck,
 } from "lucide-react";
@@ -116,17 +115,47 @@ export default function AlphaEdit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* ── Own Agent State ── */
-  const [apiName, setApiName] = useState("My Trading Bot");
-  const [generatedApiKey, setGeneratedApiKey] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [ownStep, setOwnStep] = useState<"api" | "first-run">("api");
+  const [apiKeys, setApiKeys] = useState<{ id: string; name: string; apiKey: string; skillVersion: string; updatedAt: string }[]>([
+    { id: "1", name: "My Trading Bot", apiKey: "ot_sk_7x9kM2nP4qR8sT6uW3yA1bC5dE0fG2h", skillVersion: "v2.4.1", updatedAt: "2026-03-28" },
+    { id: "2", name: "Research Agent", apiKey: "ot_sk_hJ2kL4mN6pQ8rS0tU2vW4xY6zA8bC0dE", skillVersion: "v2.3.0", updatedAt: "2026-03-15" },
+  ]);
+  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
+  const SKILL_LATEST = "v2.4.1";
 
-  /* ── Generate API key on Own Agent mode ── */
-  useEffect(() => {
-    if (mode === "own" && !generatedApiKey) {
-      setGeneratedApiKey(generateApiKey());
-    }
-  }, [mode]);
+  const toggleKeyVisibility = (id: string) => {
+    setVisibleKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const copyApiKey = (key: string, id: string) => {
+    navigator.clipboard.writeText(key);
+    setCopiedKey(id);
+    toast.success("API key copied");
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
+  const copyPrompt = (apiKey: string, id: string) => {
+    navigator.clipboard.writeText(buildGuidePrompt(apiKey));
+    setCopiedPrompt(id);
+    toast.success("Prompt copied to clipboard");
+    setTimeout(() => setCopiedPrompt(null), 2000);
+  };
+  const handleCreateApiKey = () => {
+    const newKey = {
+      id: String(Date.now()),
+      name: `Agent ${apiKeys.length + 1}`,
+      apiKey: generateApiKey(),
+      skillVersion: SKILL_LATEST,
+      updatedAt: new Date().toISOString().slice(0, 10),
+    };
+    setApiKeys(prev => [...prev, newKey]);
+    toast.success("New API key created");
+  };
 
   const copyCode = (code: string, id: string) => {
     navigator.clipboard.writeText(code);
@@ -160,64 +189,46 @@ export default function AlphaEdit() {
         </Link>
         <div>
           <h1 className="text-foreground text-xl font-bold">Create New Alpha</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Choose how you want to create your alpha factor</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Choose how you want to create your alpha</p>
         </div>
       </div>
 
       {/* ═══ Mode Selection ═══ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         {/* Platform Agent */}
         <button
           onClick={() => setMode("platform")}
-          className={`relative p-3.5 rounded-2xl text-left transition-all duration-200 ease-in-out border ${
+          className={`relative px-3.5 py-2.5 rounded-xl text-left transition-all duration-200 ease-in-out border flex items-center gap-2.5 ${
             mode === "platform"
               ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.2)]"
               : "bg-card border-border hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
-          {mode === "platform" && (
-            <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-              <Check className="w-3 h-3 text-primary-foreground" />
-            </div>
-          )}
-          <div className="flex items-center gap-2.5 mb-1.5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-              mode === "platform" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
-            }`}>
-              <Bot className={`w-4 h-4 ${mode === "platform" ? "text-primary" : "text-muted-foreground"}`} />
-            </div>
-            <div className="text-sm font-semibold text-foreground">Platform Agent</div>
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+            mode === "platform" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
+          }`}>
+            <Bot className={`w-3.5 h-3.5 ${mode === "platform" ? "text-primary" : "text-muted-foreground"}`} />
           </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed pl-[42px]">
-            Fill in key parameters and let Otter's AI create, backtest, and optimize your alpha factor automatically.
-          </p>
+          <span className="text-xs font-semibold text-foreground">Platform Agent</span>
+          {mode === "platform" && <Check className="w-3.5 h-3.5 text-primary ml-auto shrink-0" />}
         </button>
 
         {/* Your Own Agent */}
         <button
           onClick={() => setMode("own")}
-          className={`relative p-3.5 rounded-2xl text-left transition-all duration-200 ease-in-out border ${
+          className={`relative px-3.5 py-2.5 rounded-xl text-left transition-all duration-200 ease-in-out border flex items-center gap-2.5 ${
             mode === "own"
               ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.2)]"
               : "bg-card border-border hover:border-slate-300 dark:hover:border-slate-600"
           }`}
         >
-          {mode === "own" && (
-            <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-              <Check className="w-3 h-3 text-primary-foreground" />
-            </div>
-          )}
-          <div className="flex items-center gap-2.5 mb-1.5">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-              mode === "own" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
-            }`}>
-              <Code2 className={`w-4 h-4 ${mode === "own" ? "text-primary" : "text-muted-foreground"}`} />
-            </div>
-            <div className="text-sm font-semibold text-foreground">Your Own Agent</div>
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+            mode === "own" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
+          }`}>
+            <Code2 className={`w-3.5 h-3.5 ${mode === "own" ? "text-primary" : "text-muted-foreground"}`} />
           </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed pl-[42px]">
-            Connect your AI agent (ChatGPT / Claude / DeepSeek) via API key and Otter Skill prompt.
-          </p>
+          <span className="text-xs font-semibold text-foreground">Your Own Agent</span>
+          {mode === "own" && <Check className="w-3.5 h-3.5 text-primary ml-auto shrink-0" />}
         </button>
       </div>
 
@@ -460,71 +471,88 @@ export default function AlphaEdit() {
           {/* ── Agent API & Skill Tab ── */}
           {ownStep === "api" && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-                <div>
-                  <h2 className="text-base font-semibold text-foreground mb-1">Configure Agent API</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Generate an API key and paste the prompt into your AI agent to connect with Otter.
-                  </p>
-                </div>
-
-                {/* API Name */}
-                <div className="space-y-3 p-4 rounded-xl border border-border bg-accent">
-                  <div className="flex items-center gap-3">
-                    <label className="text-xs font-normal text-muted-foreground whitespace-nowrap">API Name</label>
-                    <Input
-                      placeholder="e.g., My Trading Bot, Research Agent..."
-                      value={apiName}
-                      onChange={(e) => setApiName(e.target.value)}
-                      className="rounded-lg bg-white dark:bg-slate-950 border-border h-8 text-sm"
-                    />
+              <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                {/* Header */}
+                <div className="px-6 py-4 pb-3 border-b border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Key className="w-4 h-4 text-primary" />
+                      <span className="text-base font-semibold text-foreground">Agent API</span>
+                      <span className="text-xs text-muted-foreground ml-1">({apiKeys.length})</span>
+                    </div>
+                    <button
+                      className="h-8 text-xs px-4 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 font-medium"
+                      onClick={handleCreateApiKey}
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      New API Key
+                    </button>
                   </div>
                 </div>
 
-                {/* Prompt Preview */}
-                {generatedApiKey && (
-                  <div className="space-y-4 p-5 rounded-xl border border-border bg-accent">
-                    <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek).</p>
-                    <div className="p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 max-h-64 overflow-y-auto">
-                      <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
-{`# Otter Trading Skill Configuration
-
-## API Key
-\`${generatedApiKey}\`
-
-## Skill Version
-v2.4.1
-
-## Setup Instructions
-Paste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.
-
-Your agent will be able to:
-- Mine and backtest alpha factors automatically
-- Access real-time market data (CEX & DEX)
-- Submit strategies to the Otter Arena
-- Monitor portfolio performance
-
-## Connection Endpoint
-https://api.otter.trade/v1/agent
-
-## Authentication
-Include the API key in your agent's system prompt or environment configuration.`}
-                      </pre>
+                {/* API Keys List */}
+                <div className="p-6">
+                  {apiKeys.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+                      <p className="text-sm text-muted-foreground">No API keys yet</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1">Create your first API key to connect your AI agent</p>
                     </div>
-                    <div className="flex items-center justify-end">
-                      <button
-                        className="h-9 px-6 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 flex items-center gap-2"
-                        onClick={() => {
-                          navigator.clipboard.writeText(buildGuidePrompt(generatedApiKey));
-                          toast.success("Prompt copied to clipboard");
-                        }}
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                        Copy Prompt
-                      </button>
+                  ) : (
+                    <div className="space-y-3">
+                      {apiKeys.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-4 rounded-2xl border border-border bg-accent/50 hover:border-primary/20 transition-colors duration-200"
+                        >
+                          {/* Row 1: Name + Copy Prompt */}
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-semibold text-foreground truncate">{item.name}</span>
+                            <button
+                              onClick={() => copyPrompt(item.apiKey, item.id)}
+                              className={`h-7 text-xs px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 ease-in-out border ${
+                                item.skillVersion !== SKILL_LATEST
+                                  ? "border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                                  : "border-primary/20 text-primary hover:bg-primary/10"
+                              }`}
+                            >
+                              {copiedPrompt === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                              {copiedPrompt === item.id ? "Copied" : item.skillVersion !== SKILL_LATEST ? "Copy Latest Prompt" : "Copy Prompt"}
+                            </button>
+                          </div>
+
+                          {/* Row 2: API Key */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-14 shrink-0">API Key</span>
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 flex-1 min-w-0">
+                              <code className="font-mono text-xs text-primary truncate flex-1">
+                                {visibleKeys.has(item.id) ? item.apiKey : item.apiKey.slice(0, 6) + "\u2022".repeat(16) + "..."}
+                              </code>
+                              <button onClick={() => toggleKeyVisibility(item.id)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                                {visibleKeys.has(item.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                              </button>
+                              <button onClick={() => copyApiKey(item.apiKey, item.id)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors shrink-0">
+                                {copiedKey === item.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Row 3: Meta info */}
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <span className="uppercase tracking-wider font-medium">Skill</span>
+                              <span className="text-primary font-semibold">{item.skillVersion}</span>
+                              {item.skillVersion !== SKILL_LATEST && (
+                                <span className="text-amber-500 ml-0.5">(update available: {SKILL_LATEST})</span>
+                              )}
+                            </span>
+                            <span className="border-l border-border pl-4">Updated {item.updatedAt}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           )}
