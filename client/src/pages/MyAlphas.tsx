@@ -62,7 +62,7 @@ import {
 } from "@/lib/mockData";
 import { GradeRevealBatch } from "@/components/GradeRevealModal";
 import ShinyTag from "@/components/ui/shiny-tag";
-import { ShimmerButton } from "@/components/ui/shimmer-button";
+import { StarButton } from "@/components/ui/star-button";
 import AlphaCardView from "@/components/AlphaCardView";
 import { LayoutGrid, Table2 } from "lucide-react";
 
@@ -472,10 +472,14 @@ export default function MyAlphas() {
               My Alphas
             </h1>
             <Link href="/alphas/new">
-              <ShimmerButton className="shadow-2xl">
+              <StarButton
+                lightColor="#818cf8"
+                backgroundColor="#818cf8"
+                className="shadow-2xl"
+              >
                 <Plus className="w-3.5 h-3.5" />
                 New Alpha
-              </ShimmerButton>
+              </StarButton>
             </Link>
           </div>
         </div>

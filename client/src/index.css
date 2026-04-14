@@ -62,6 +62,8 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'Roboto Mono', ui-monospace, monospace;
   --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --animate-star-btn: star-btn calc(var(--duration)*1s) linear infinite;
 }
 
 /* ══════════════════════════════════════════════
@@ -440,4 +442,14 @@
 
 .animate-shimmer-slide {
   animation: shimmer-slide 2.5s ease-in-out infinite;
+}
+
+/* ── StarButton animation ── */
+@keyframes star-btn {
+  0% {
+    offset-distance: 0%;
+  }
+  100% {
+    offset-distance: 100%;
+  }
 }
