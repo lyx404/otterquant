@@ -431,3 +431,13 @@
 .shiny-tag:hover {
   transform: scale(1.03);
 }
+
+/* ── ShimmerButton animation ── */
+@keyframes shimmer-slide {
+  0% { background-position: -300% 0; }
+  100% { background-position: 300% 0; }
+}
+
+.animate-shimmer-slide {
+  animation: shimmer-slide 2.5s ease-in-out infinite;
+}

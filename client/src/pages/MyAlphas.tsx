@@ -62,6 +62,7 @@ import {
 } from "@/lib/mockData";
 import { GradeRevealBatch } from "@/components/GradeRevealModal";
 import ShinyTag from "@/components/ui/shiny-tag";
+import { ShimmerButton } from "@/components/ui/shimmer-button";
 import AlphaCardView from "@/components/AlphaCardView";
 import { LayoutGrid, Table2 } from "lucide-react";
 
@@ -362,8 +363,20 @@ export default function MyAlphas() {
       case "drawdown":
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "grade": {
+        if (row.submissionStatus === "failed" || row.submissionStatus === "rejected") {
+          return <span className="text-xs text-muted-foreground/50 font-mono">-</span>;
+        }
         const grade = getAlphaGrade(row.osSharpe);
-        return <ShinyTag tier={grade} />;
+        if (grade === "S" || grade === "A") {
+          return <ShinyTag tier={grade} />;
+        }
+        // B/C/D: plain text style
+        const textColorMap: Record<string, string> = {
+          B: "text-[#4B94F8]",
+          C: "text-[#43AF6D]",
+          D: "text-muted-foreground/60",
+        };
+        return <span className={`text-xs font-semibold ${textColorMap[grade] || "text-muted-foreground"}`}>{grade}</span>;
       }
       case "epochStatus": {
         // Only passed alphas can participate in arena; all others show Ineligible
@@ -458,10 +471,10 @@ export default function MyAlphas() {
               My Alphas
             </h1>
             <Link href="/alphas/new">
-              <button className="flex items-center gap-2 px-5 h-10 rounded-full text-xs font-medium bg-primary text-white hover:opacity-90 active:scale-[0.98] transition-all duration-200 ease-in-out">
+              <ShimmerButton className="shadow-2xl">
                 <Plus className="w-3.5 h-3.5" />
                 New Alpha
-              </button>
+              </ShimmerButton>
             </Link>
           </div>
         </div>
