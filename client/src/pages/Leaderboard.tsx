@@ -342,7 +342,7 @@ export default function Leaderboard() {
                 length="70vh"
               />
             )}
-            <div className="relative z-10 p-6">
+            <div className="relative p-6">
           {/* Top row: Epoch ID + Status + Timer */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-3">
@@ -422,7 +422,7 @@ export default function Leaderboard() {
         </div>
 
         {/* ── Your Ranking — show all alphas in this round ── */}
-        <div className="relative z-10 px-6 py-4 border-t border-border/50 bg-card/40">
+        <div className="relative px-6 py-4 border-t border-border/50 bg-card/40">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-xs font-mono text-primary font-bold">

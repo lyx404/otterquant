@@ -152,7 +152,6 @@ export default function AlphaDetail() {
 
   /* ── Beginner mode metrics ── */
   const beginnerMetrics = [
-    { label: "Grade", value: grade, color: gradeConfig.color, desc: gradeConfig.label },
     { label: "OS Sharpe", value: factor.osSharpe.toFixed(2), color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171", desc: factor.osSharpe >= 1.0 ? "Strong" : factor.osSharpe >= 0.5 ? "Moderate" : "Weak" },
     { label: "Returns", value: factor.returns, color: "#34D399", desc: "Total return" },
     { label: "Drawdown", value: factor.drawdown, color: "#F87171", desc: "Max loss" },
@@ -238,6 +237,7 @@ export default function AlphaDetail() {
         <div className="space-y-6 animate-in fade-in duration-300">
           {/* Key Metrics Cards — Pro style */}
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+            <ScratchCard factorId={factor.id} grade={grade} />
             {beginnerMetrics.map((m) => (
               <div key={m.label} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                 <div className="label-upper mb-1 text-[9px]">{m.label}</div>
