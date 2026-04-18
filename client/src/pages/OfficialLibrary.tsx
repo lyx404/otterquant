@@ -9,15 +9,14 @@ import gsap from "gsap";
 import {
   Search,
   Star,
-  Crown,
   Users,
-  ChevronRight,
-  Zap,
   Sparkles,
   Info,
   X,
+  ArrowUpRight,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { factors, type Factor } from "@/lib/mockData";
 import { toast } from "sonner";
 
@@ -51,144 +50,104 @@ function FlywheelBanner() {
 }
 
 /* ── Single Factor Card ── */
-function FactorCard({ factor, expanded, onToggle }: {
+function FactorCard({ factor, isStarred, onToggleStar }: {
   factor: Factor;
-  expanded: boolean;
-  onToggle: () => void;
+  isStarred: boolean;
+  onToggleStar: () => void;
 }) {
   const isOfficial = factor.category === "official";
   const isGraduated = factor.category === "graduated";
 
-  const borderAccent = isOfficial
-    ? "border-l-4 border-l-success"
-    : isGraduated
-    ? "border-l-4 border-l-purple-500"
-    : "border-l-4 border-l-transparent";
+  const statusClass = isGraduated
+    ? "border-purple-500/25 bg-purple-500/10 text-purple-400"
+    : "border-amber-500/25 bg-amber-500/10 text-amber-400";
 
-  const Icon = isGraduated ? Crown : Star;
-  const iconClass = isGraduated
-    ? "text-purple-500 dark:text-purple-400"
-    : isOfficial
-    ? "text-amber-500 dark:text-amber-400"
-    : "text-muted-foreground";
-
-  const sharpeColor = factor.osSharpe >= 1.0
+  const osSharpeColor = factor.osSharpe >= 1.0
     ? "text-success"
     : factor.osSharpe >= 0.5
     ? "text-amber-500 dark:text-amber-400"
     : "text-foreground";
 
+  const isSharpeColor = factor.sharpe >= 1.0
+    ? "text-success"
+    : factor.sharpe >= 0.5
+    ? "text-amber-500 dark:text-amber-400"
+    : "text-foreground";
+
+  const MetricCell = ({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) => (
+    <div className="rounded-xl border border-border/50 bg-background/30 px-3 py-2">
+      <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div className={`text-sm font-semibold font-mono tabular-nums ${colorClass || "text-foreground"}`}>
+        {value}
+      </div>
+    </div>
+  );
+
   return (
-    <div
-      className={`surface-card overflow-hidden transition-all duration-200 hover:border-primary/30 group ${borderAccent}`}
-    >
-      <div className="px-4 pt-4 pb-3 border-b border-border/50">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Icon className={`w-4 h-4 shrink-0 ${iconClass}`} />
-            <Link href={`/alphas/${factor.id}`}>
-              <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer truncate">
+    <div className="surface-card group flex h-full flex-col overflow-hidden transition-all duration-200 hover:border-primary/30">
+      <div className="border-b border-border/50 px-4 pt-4 pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <Link href={`/alphas/${factor.id}?source=official&tier=${factor.category === "graduated" ? "graduated" : "official"}`}>
+              <span className="block cursor-pointer truncate text-sm font-semibold leading-5 text-foreground transition-colors duration-200 hover:text-primary">
                 {factor.name}
               </span>
             </Link>
-            {factor.tag && (
-              <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-[0.12em] font-medium border border-border text-muted-foreground bg-accent">
-                {factor.tag}
+            <div className="mt-2 flex items-center gap-2">
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusClass}`}>
+                {isGraduated ? "Graduated" : "Official"}
               </span>
+              <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
+            </div>
+            {factor.description && (
+              <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                {factor.description}
+              </p>
             )}
           </div>
-          {factor.userCount && (
-            <div className="flex items-center gap-1 shrink-0 text-xs text-muted-foreground">
-              <Users className="w-3 h-3" />
-              <span className="font-mono tabular-nums">{factor.userCount}</span>
-            </div>
-          )}
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-3 px-4 py-3">
+        <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/20 px-3 py-2.5">
+          <Users className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Adoption</div>
+            <span className="text-xs font-mono text-muted-foreground">Used {factor.userCount ?? 0} times</span>
+          </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span
-            className={`inline-flex items-center gap-1.5 text-xs font-medium ${
-              isGraduated ? "text-purple-500 dark:text-purple-400" : "text-amber-500 dark:text-amber-400"
+        <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-3">
+          <MetricCell label="IS Sharpe" value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} />
+          <MetricCell label="OS Sharpe" value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} />
+          <MetricCell label="Fitness" value={factor.fitness.toFixed(2)} />
+          <MetricCell label="Returns" value={factor.returns} />
+          <MetricCell label="Turnover" value={factor.turnover} />
+          <MetricCell label="Drawdown" value={factor.drawdown} colorClass="text-destructive" />
+        </div>
+      </div>
+
+      <div className="mt-auto border-t border-border/30 bg-accent/20 px-4 py-3">
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={onToggleStar}
+            className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${
+              isStarred
+                ? "border-[#ffb900]/60 bg-[#ffb900]/30 text-[#ffb900]"
+                : "border-border/60 bg-background/30 text-[#ffb900] hover:border-[#ffb900]/50"
             }`}
+            title={isStarred ? "Unfavorite" : "Favorite"}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${isGraduated ? "bg-purple-500 dark:bg-purple-400" : "bg-amber-500 dark:bg-amber-400"}`} />
-            {isGraduated ? "Graduated" : "Official"}
-          </span>
-          <span className="text-[10px] text-muted-foreground font-mono">{factor.id}</span>
+            <Star className={`h-[14px] w-[14px] ${isStarred ? "fill-current" : ""}`} />
+          </button>
+          <Link href={`/alphas/${factor.id}?source=official&tier=${factor.category === "graduated" ? "graduated" : "official"}`}>
+            <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-[#020617] hover:bg-primary/90">
+              View
+              <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+            </Button>
+          </Link>
         </div>
       </div>
-
-      <div className="px-4 py-3">
-        {factor.description && (
-          <p className="text-xs text-muted-foreground leading-relaxed min-h-[2.5rem]">
-            {factor.description}
-          </p>
-        )}
-      </div>
-
-      <div className="px-4 py-3 border-t border-border/30">
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">OS Sharpe</div>
-            <div className={`text-sm font-bold font-mono tabular-nums ${sharpeColor}`}>
-              {factor.osSharpe.toFixed(2)}
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Fitness</div>
-            <div className="text-sm font-bold font-mono tabular-nums text-foreground">
-              {factor.fitness.toFixed(2)}
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Market</div>
-            <div className="text-sm font-bold font-mono tabular-nums text-foreground">
-              {factor.market}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-4 py-2.5 border-t border-border/30 flex items-center justify-between">
-        <div>
-          <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">
-            {isGraduated ? "Author" : "Usage"}
-          </div>
-          <div className={`text-xs font-mono ${isGraduated && factor.author ? "text-primary" : "text-muted-foreground"}`}>
-            {isGraduated && factor.author ? factor.author : `${factor.userCount ?? 0} strategies`}
-          </div>
-        </div>
-        <button
-          onClick={onToggle}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium border border-border text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-200"
-        >
-          {expanded ? "Less" : "Use in Strategy"}
-          <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />
-        </button>
-      </div>
-
-      {expanded && (
-        <div className="px-4 py-3 border-t border-border/30 bg-accent/20">
-          <p className="text-xs text-muted-foreground mb-3">
-            This factor can be used as a building block in your strategy. Click below to add it to a new strategy.
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => toast.success("Added to Time-Series Strategy")}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium bg-success/15 text-success border border-success/20 hover:bg-success/25 transition-all duration-200"
-            >
-              <Zap className="w-3 h-3" />
-              Add to Time-Series Strategy
-            </button>
-            <button
-              onClick={() => toast.success("Added to Cross-Sectional Strategy")}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium border border-border text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all duration-200"
-            >
-              Add to Cross-Sectional Strategy
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -197,7 +156,7 @@ function FactorCard({ factor, expanded, onToggle }: {
 export default function OfficialLibrary() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [starred, setStarred] = useState<Set<string>>(new Set(["AF-001", "AF-004"]));
   const [showFlywheelInfo, setShowFlywheelInfo] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -290,24 +249,25 @@ export default function OfficialLibrary() {
 
       {/* Search + Category Tabs */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-[400px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+        <div className="relative flex-1 min-w-[180px] max-w-[420px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search factors..."
+            placeholder="Search by name or ID..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-9 text-xs pl-9 rounded-lg bg-card border-border"
+            className="h-8 w-full rounded-xl border border-border bg-accent/30 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
           />
         </div>
-        <div className="flex items-center rounded-lg border border-border overflow-hidden">
+
+        <div className="flex items-center gap-2">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setCategoryFilter(tab.key)}
-              className={`px-4 py-2 text-xs font-medium transition-all duration-200 ease-in-out ${
+              className={`flex h-8 items-center rounded-full border px-3 text-xs transition-all duration-200 ease-in-out ${
                 categoryFilter === tab.key
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "bg-primary/10 border-primary/20 text-primary"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground"
               }`}
             >
               {tab.label}
@@ -316,23 +276,23 @@ export default function OfficialLibrary() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span>{filtered.length} factors</span>
-        <span className="w-px h-3 bg-border" />
-        <span>{libraryFactors.filter(f => f.category === "official").length} official</span>
-        <span className="w-px h-3 bg-border" />
-        <span>{libraryFactors.filter(f => f.category === "graduated").length} graduated</span>
-      </div>
-
       {/* Factor Cards */}
       <div ref={listRef} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map((factor) => (
           <div key={factor.id} className="factor-card-item">
             <FactorCard
               factor={factor}
-              expanded={expandedId === factor.id}
-              onToggle={() => setExpandedId(expandedId === factor.id ? null : factor.id)}
+              isStarred={starred.has(factor.id)}
+              onToggleStar={() => {
+                setStarred((prev) => {
+                  const next = new Set(prev);
+                  const willStar = !next.has(factor.id);
+                  if (willStar) next.add(factor.id);
+                  else next.delete(factor.id);
+                  toast.success(willStar ? "Added to favorites" : "Removed from favorites");
+                  return next;
+                });
+              }}
             />
           </div>
         ))}

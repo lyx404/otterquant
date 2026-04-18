@@ -5,6 +5,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 /* ── Confetti 粒子系统 ── */
+type Grade = "S" | "A" | "B" | "C" | "D";
+
 interface Particle {
   x: number;
   y: number;
@@ -104,12 +106,58 @@ function ConfettiCanvas({ active }: { active: boolean }) {
 }
 
 /* ── Grade 配色 ── */
-const GRADE_STYLES: Record<string, { bg: string; text: string; glow: string }> = {
-  S: { bg: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)", text: "#000", glow: "0 0 40px rgba(255,215,0,0.5)" },
-  A: { bg: "linear-gradient(135deg, #C084FC 0%, #818CF8 100%)", text: "#FFF", glow: "0 0 40px rgba(129,140,248,0.5)" },
-  B: { bg: "linear-gradient(135deg, #34D399 0%, #10B981 100%)", text: "#FFF", glow: "0 0 30px rgba(52,211,153,0.3)" },
-  C: { bg: "linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%)", text: "#FFF", glow: "0 0 30px rgba(96,165,250,0.3)" },
-  D: { bg: "linear-gradient(135deg, #94A3B8 0%, #64748B 100%)", text: "#FFF", glow: "0 0 20px rgba(148,163,184,0.2)" },
+type GradeTheme = {
+  bg: string;
+  text: string;
+  border: string;
+  shadow: string;
+  shadowHover: string;
+};
+
+const GRADE_THEME: Record<string, GradeTheme> = {
+  S: {
+    bg: "linear-gradient(135deg, #E7C65B 0%, #F3DA84 50%, #E2BC45 100%)",
+    text: "#6A4B00",
+    border: "#E5C35A",
+    shadow: "0 0 20px rgba(229,195,90,0.10), inset 0 1px 0 rgba(255,255,255,0.10)",
+    shadowHover: "0 0 30px rgba(229,195,90,0.18), inset 0 1px 0 rgba(255,255,255,0.18)",
+  },
+  A: {
+    bg: "linear-gradient(135deg, #7B61FF 0%, #9B86FF 50%, #6B4FEA 100%)",
+    text: "#FFFFFF",
+    border: "#9C86F8",
+    shadow: "0 0 20px rgba(129,102,248,0.10), inset 0 1px 0 rgba(255,255,255,0.08)",
+    shadowHover: "0 0 30px rgba(129,102,248,0.18), inset 0 1px 0 rgba(255,255,255,0.14)",
+  },
+  B: {
+    bg: "linear-gradient(135deg, #4B94F8 0%, #73B3FF 50%, #387FE0 100%)",
+    text: "#FFFFFF",
+    border: "#69B2FF",
+    shadow: "0 0 18px rgba(75,148,248,0.08), inset 0 1px 0 rgba(255,255,255,0.08)",
+    shadowHover: "0 0 28px rgba(75,148,248,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+  },
+  C: {
+    bg: "linear-gradient(135deg, #43AF6D 0%, #72CB92 50%, #32935A 100%)",
+    text: "#FFFFFF",
+    border: "#72CB92",
+    shadow: "0 0 18px rgba(66,175,109,0.08), inset 0 1px 0 rgba(255,255,255,0.08)",
+    shadowHover: "0 0 28px rgba(66,175,109,0.15), inset 0 1px 0 rgba(255,255,255,0.12)",
+  },
+  D: {
+    bg: "linear-gradient(135deg, #7B8494 0%, #9EA6B4 50%, #687180 100%)",
+    text: "#FFFFFF",
+    border: "#98A1AF",
+    shadow: "0 0 14px rgba(123,132,148,0.08), inset 0 1px 0 rgba(255,255,255,0.06)",
+    shadowHover: "0 0 22px rgba(123,132,148,0.12), inset 0 1px 0 rgba(255,255,255,0.10)",
+  },
+};
+
+const GRADE_SUBTITLE: Record<Grade, string> = {
+  S: "Exceptional",
+  A: "Excellent",
+  B: "Good",
+  C: "Average",
+  D: "Below Average",
 };
 
 /* ── 主组件 ── */
@@ -129,6 +177,7 @@ export default function ScratchCard({ factorId, grade, onReveal }: ScratchCardPr
   const [scratchPercent, setScratchPercent] = useState(0);
   const [fullyRevealed, setFullyRevealed] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
@@ -279,27 +328,40 @@ export default function ScratchCard({ factorId, grade, onReveal }: ScratchCardPr
     setScratchPercent(0);
   }, []);
 
-  const gradeStyle = GRADE_STYLES[grade] || GRADE_STYLES.D;
+  const gradeStyle = GRADE_THEME[grade] || GRADE_THEME.D;
 
   // ── 已揭开状态：直接显示 Grade ──
   if (revealedGrade) {
-    const revStyle = GRADE_STYLES[revealedGrade] || GRADE_STYLES.D;
+    const revStyle = GRADE_THEME[revealedGrade as Grade] || GRADE_THEME.D;
     return (
-      <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-        <div className="label-upper mb-1 text-[9px]">GRADE</div>
+      <div
+        className="text-center p-4 rounded-2xl relative overflow-hidden transition-all duration-300 group"
+        style={{
+          backgroundImage: revStyle.bg,
+          border: `1px solid ${revStyle.border}66`,
+          boxShadow: isHovered ? revStyle.shadowHover : revStyle.shadow,
+          backgroundSize: "200% 200%",
+          backgroundPosition: isHovered ? "100% 50%" : "0% 50%",
+          transform: isHovered ? "translateY(-1px) scale(1.01)" : "translateY(0) scale(1)",
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.12)_50%,transparent_70%)] bg-[size:180%_100%] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        <div className="relative z-10 label-upper mb-1 text-[9px]" style={{ color: revStyle.text, opacity: 0.65 }}>
+          GRADE
+        </div>
         <div
-          className="text-lg font-bold font-mono"
+          className="text-lg font-bold"
           style={{
-            background: revStyle.bg,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
+            color: revStyle.text,
+            textShadow: "0 0 10px rgba(255,255,255,0.12)",
           }}
         >
           {revealedGrade}
         </div>
-        <div className="text-[9px] text-muted-foreground mt-0.5">
-          {revealedGrade === "S" ? "Exceptional" : revealedGrade === "A" ? "Excellent" : revealedGrade === "B" ? "Good" : revealedGrade === "C" ? "Average" : "Below Average"}
+        <div className="text-[9px] mt-0.5" style={{ color: revStyle.text, opacity: 0.78 }}>
+          {GRADE_SUBTITLE[revealedGrade as Grade] || "Below Average"}
         </div>
       </div>
     );
@@ -309,42 +371,36 @@ export default function ScratchCard({ factorId, grade, onReveal }: ScratchCardPr
   return (
     <>
       <div
-        className="text-center p-4 rounded-2xl cursor-pointer group transition-all duration-500 relative overflow-hidden"
+        className="text-center p-4 rounded-2xl cursor-pointer group transition-all duration-300 relative overflow-hidden"
         style={{
-          background: "linear-gradient(135deg, rgba(30,20,50,0.9) 0%, rgba(15,10,30,0.95) 100%)",
-          border: "1px solid rgba(129,140,248,0.2)",
-          boxShadow: "0 0 20px rgba(129,140,248,0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
+          backgroundImage: gradeStyle.bg,
+          border: `1px solid ${gradeStyle.border}66`,
+          boxShadow: isHovered ? gradeStyle.shadowHover : gradeStyle.shadow,
+          backgroundSize: "200% 200%",
+          backgroundPosition: isHovered ? "100% 50%" : "0% 50%",
+          transform: isHovered ? "translateY(-1px) scale(1.01)" : "translateY(0) scale(1)",
         }}
         onClick={() => setShowModal(true)}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = "rgba(129,140,248,0.45)";
-          e.currentTarget.style.boxShadow = "0 0 30px rgba(129,140,248,0.15), inset 0 1px 0 rgba(255,255,255,0.08)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "rgba(129,140,248,0.2)";
-          e.currentTarget.style.boxShadow = "0 0 20px rgba(129,140,248,0.08), inset 0 1px 0 rgba(255,255,255,0.05)";
-        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {/* 微光粒子背景 */}
         <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-          <div className="absolute w-1 h-1 rounded-full bg-indigo-400/40 top-[20%] left-[15%]" style={{ animation: "scratchPulse 3s ease-in-out infinite" }} />
-          <div className="absolute w-0.5 h-0.5 rounded-full bg-purple-400/30 top-[60%] left-[75%]" style={{ animation: "scratchPulse 4s ease-in-out 1s infinite" }} />
-          <div className="absolute w-0.5 h-0.5 rounded-full bg-sky-400/25 top-[35%] left-[85%]" style={{ animation: "scratchPulse 3.5s ease-in-out 0.5s infinite" }} />
+          <div className="absolute w-1 h-1 rounded-full bg-white/30 top-[20%] left-[15%]" style={{ animation: "scratchPulse 3s ease-in-out infinite" }} />
+          <div className="absolute w-0.5 h-0.5 rounded-full bg-white/20 top-[60%] left-[75%]" style={{ animation: "scratchPulse 4s ease-in-out 1s infinite" }} />
+          <div className="absolute w-0.5 h-0.5 rounded-full bg-white/16 top-[35%] left-[85%]" style={{ animation: "scratchPulse 3.5s ease-in-out 0.5s infinite" }} />
+          <div className="absolute inset-0 bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.12)_50%,transparent_70%)] bg-[size:180%_100%] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
         </div>
 
-        <div className="label-upper mb-1 text-[9px] text-white/40">GRADE</div>
+        <div className="label-upper mb-1 text-[9px]" style={{ color: gradeStyle.text, opacity: 0.65 }}>GRADE</div>
         <div className="relative h-7 flex items-center justify-center">
           {/* 问号 — 脉冲呼吸 */}
           <div
-            className="text-2xl font-black font-mono select-none"
+            className="text-2xl font-black select-none"
             style={{
-              background: "linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #818cf8 100%)",
-              backgroundSize: "200% 200%",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              color: gradeStyle.text,
               animation: "scratchShimmer 3s ease-in-out infinite",
-              filter: "drop-shadow(0 0 8px rgba(129,140,248,0.4))",
+              filter: "drop-shadow(0 0 8px rgba(255,255,255,0.18))",
             }}
           >
             ?
@@ -353,10 +409,8 @@ export default function ScratchCard({ factorId, grade, onReveal }: ScratchCardPr
         <div
           className="text-[9px] mt-1 font-medium tracking-wide"
           style={{
-            background: "linear-gradient(90deg, rgba(129,140,248,0.6), rgba(192,132,252,0.6))",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
+            color: gradeStyle.text,
+            opacity: 0.78,
           }}
         >
           Tap to reveal
@@ -391,32 +445,35 @@ export default function ScratchCard({ factorId, grade, onReveal }: ScratchCardPr
             style={{ width: CARD_W, height: CARD_H }}
           >
             {/* 底层：Grade 结果 */}
-            <div
-              className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center gap-3 overflow-hidden"
-              style={{
-                background: gradeStyle.bg,
-                boxShadow: fullyRevealed ? gradeStyle.glow : "none",
-              }}
-            >
-              <div className="text-[11px] font-semibold tracking-[0.2em] uppercase" style={{ color: `${gradeStyle.text}99` }}>
+              <div
+                className="absolute inset-0 rounded-3xl flex flex-col items-center justify-center gap-3 overflow-hidden"
+                style={{
+                  backgroundImage: gradeStyle.bg,
+                  border: `1px solid ${gradeStyle.border}66`,
+                  boxShadow: fullyRevealed ? gradeStyle.shadowHover : gradeStyle.shadow,
+                  backgroundSize: "200% 200%",
+                  backgroundPosition: "0% 50%",
+                }}
+              >
+              <div className="text-[11px] font-semibold tracking-[0.2em] uppercase" style={{ color: gradeStyle.text, opacity: 0.7 }}>
                 YOUR GRADE
               </div>
               <div
-                className="text-8xl font-black font-mono leading-none"
+                className="text-8xl font-black leading-none"
                 style={{
                   color: gradeStyle.text,
-                  textShadow: fullyRevealed ? `0 0 20px ${gradeStyle.text}40` : "none",
+                  textShadow: fullyRevealed ? "0 0 20px rgba(255,255,255,0.15)" : "none",
                   transform: fullyRevealed ? "scale(1)" : "scale(0.9)",
                   transition: "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)",
                 }}
               >
                 {grade}
               </div>
-              <div className="text-sm font-medium" style={{ color: `${gradeStyle.text}CC` }}>
+              <div className="text-sm font-medium" style={{ color: gradeStyle.text, opacity: 0.86 }}>
                 {grade === "S" ? "Exceptional Alpha!" : grade === "A" ? "Excellent Alpha!" : grade === "B" ? "Good Alpha" : grade === "C" ? "Average Alpha" : "Below Average"}
               </div>
               {fullyRevealed && (grade === "S" || grade === "A") && (
-                <div className="text-xs mt-2 animate-bounce" style={{ color: `${gradeStyle.text}AA` }}>
+                <div className="text-xs mt-2 animate-bounce" style={{ color: gradeStyle.text, opacity: 0.84 }}>
                   🎉 Congratulations! 🎉
                 </div>
               )}

@@ -5,15 +5,15 @@
  */
 import { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { useTheme } from "@/contexts/ThemeContext";
 import {
   ArrowLeft,
   Bot,
   Code2,
   Check,
+  Copy,
   ChevronDown,
   ChevronUp,
-  Copy,
+  Info,
   Key,
   Rocket,
   FlaskConical,
@@ -21,39 +21,30 @@ import {
   Trophy,
   Zap,
   Sparkles,
-  SlidersHorizontal,
   ClipboardCheck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import { toast } from "sonner";
 
 /* ── Agent Mode ── */
 type AgentMode = "platform" | "own" | null;
 
-/* ── Markets ── */
-const MARKETS = [
-  "BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT",
-  "ARB/USDT", "OP/USDT", "AVAX/USDT", "MATIC/USDT",
-  "DOGE/USDT", "XRP/USDT",
-];
-
 /* ── Strategy Types ── */
-const STRATEGY_TYPES = [
-  { value: "momentum", label: "Momentum", desc: "Trend-following signals" },
-  { value: "mean-reversion", label: "Mean Reversion", desc: "Counter-trend signals" },
-  { value: "statistical-arb", label: "Statistical Arbitrage", desc: "Cross-asset spread" },
-  { value: "volume-based", label: "Volume-based", desc: "Volume/flow analysis" },
-  { value: "funding-rate", label: "Funding Rate", desc: "Perp funding signals" },
-  { value: "custom", label: "Custom", desc: "Define your own logic" },
-];
+const STRATEGY_TYPES_BY_MODE = {
+  beginner: [
+    { value: "time-series", label: "Time series" },
+    { value: "cross-sectional", label: "Cross Section" },
+  ],
+  pro: [
+    { value: "time-series", label: "Time series" },
+    { value: "cross-sectional", label: "Cross Section" },
+  ],
+} as const;
 
-/* ── Timeframes ── */
-const TIMEFRAMES = [
-  { value: "1h", label: "1H" },
-  { value: "4h", label: "4H" },
-  { value: "1d", label: "1D" },
-  { value: "1w", label: "1W" },
-];
+const ITERATION_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
 
 /* ── Generate API Key ── */
 function generateApiKey() {
@@ -95,23 +86,17 @@ const FIRST_RUN_PROMPTS = [
    ══════════════════════════════════════════════ */
 export default function AlphaEdit() {
   const [, navigate] = useLocation();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const { alphaViewMode } = useAlphaViewMode();
 
   /* ── Mode ── */
   const [mode, setMode] = useState<AgentMode>(null);
 
   /* ── Platform Agent Form State ── */
-  const [alphaName, setAlphaName] = useState("");
-  const [selectedMarket, setSelectedMarket] = useState("BTC/USDT");
-  const [strategyType, setStrategyType] = useState("momentum");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [timeframe, setTimeframe] = useState("1d");
-  const [lookbackDays, setLookbackDays] = useState("30");
-  const [maxDrawdown, setMaxDrawdown] = useState("15");
-  const [targetSharpe, setTargetSharpe] = useState("1.25");
+  const [alphaName, setAlphaName] = useState("BTC Momentum RSI Cross");
+  const [strategyType, setStrategyType] = useState("time-series");
+  const [iterationCount, setIterationCount] = useState(3);
   const [description, setDescription] = useState("");
-  const [showDescription, setShowDescription] = useState(false);
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* ── Own Agent State ── */
@@ -163,6 +148,45 @@ export default function AlphaEdit() {
     toast.success("Copied to clipboard");
     setTimeout(() => setCopiedCode(null), 2000);
   };
+
+  const strategyTypeOptions = STRATEGY_TYPES_BY_MODE[alphaViewMode];
+  const activeStrategyTypeLabel =
+    strategyTypeOptions.find((item) => item.value === strategyType)?.label ?? "";
+  const showBeginnerHints = alphaViewMode === "beginner";
+
+  const buildOptimizedPrompt = () => {
+    const factorName = alphaName.trim() || "Untitled Factor";
+    const strategyLabel = activeStrategyTypeLabel || "strategy";
+    const viewModeHint =
+      alphaViewMode === "beginner"
+        ? "Keep the wording simple, focus on timing quality or symbol selection, and avoid unnecessary jargon."
+        : "Keep the wording concise but specific, and emphasize robustness, signal clarity, and execution constraints.";
+
+    setDescription(
+      `Please refine the ${strategyLabel} factor named "${factorName}". Please iterate ${iterationCount} times and produce a clearer, more actionable description for alpha creation. ${viewModeHint}`
+    );
+    toast.success("Prompt optimized");
+  };
+
+  const helpCopy = {
+    strategy: {
+      items: [
+        {
+          title: "Time series -> Find good Timing",
+          body: "This means looking for patterns within one asset over time.",
+        },
+        {
+          title: "Cross Section -> Find good Symbols",
+          body: "This means comparing many assets at the same time and choosing the stronger ones.",
+        },
+      ],
+    },
+    iterations: {
+      title: "Iterations",
+      body:
+        "Iterations means how many rounds the system will try to improve your idea. More rounds usually means more refinement, but it may also take longer.",
+    },
+  } as const;
 
   /* ── Platform Agent Submit ── */
   const handleSubmit = () => {
@@ -247,156 +271,148 @@ export default function AlphaEdit() {
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">Required</span>
             </div>
 
-            {/* Alpha Name */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Alpha Name <span className="text-destructive">*</span></label>
-              <Input
-                placeholder="e.g., BTC Momentum RSI Cross"
-                value={alphaName}
-                onChange={(e) => setAlphaName(e.target.value)}
-                className="rounded-lg bg-accent border-border h-10 text-sm"
-              />
-            </div>
-
-            {/* Market */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Target Market <span className="text-destructive">*</span></label>
-              <div className="flex flex-wrap gap-2">
-                {MARKETS.map((m) => (
+            {/* Type */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
+                {showBeginnerHints && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
+                        aria-label="Explain strategy type"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
+                      <div className="space-y-3 text-[11px] leading-5">
+                        <p className="text-xs font-semibold text-foreground">Strategy Type Notes</p>
+                        {helpCopy.strategy.items.map((item) => (
+                          <div key={item.title} className="space-y-1.5">
+                            <p className="text-[11px] font-medium text-foreground/90">{item.title}</p>
+                            <p className="text-[11px] text-muted-foreground">{item.body}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {strategyTypeOptions.map((t) => (
                   <button
-                    key={m}
-                    onClick={() => setSelectedMarket(m)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
-                      selectedMarket === m
-                        ? "bg-primary text-primary-foreground border-primary"
+                    key={t.value}
+                    onClick={() => setStrategyType(t.value)}
+                    className={`px-4 py-3 rounded-xl text-left transition-all duration-200 border ${
+                      strategyType === t.value
+                        ? "bg-primary/10 border-primary/30 text-primary shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
                         : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                     }`}
                   >
-                    {m}
+                    <div className={`text-sm font-semibold ${strategyType === t.value ? "text-primary" : "text-foreground"}`}>{t.label}</div>
                   </button>
                 ))}
               </div>
             </div>
 
-
+            {/* Iterations */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-muted-foreground">Iterations <span className="text-destructive">*</span></label>
+                {showBeginnerHints && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
+                        aria-label="Explain iterations"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
+                      <div className="space-y-2.5 text-[11px] leading-5">
+                        <p className="text-xs font-semibold text-foreground">{helpCopy.iterations.title}</p>
+                        <p className="text-muted-foreground">{helpCopy.iterations.body}</p>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                {ITERATION_OPTIONS.map((count) => (
+                  <button
+                    key={count}
+                    onClick={() => setIterationCount(count)}
+                    className={`h-9 rounded-lg text-xs font-semibold transition-all duration-200 border ${
+                      iterationCount === count
+                        ? "bg-primary/10 border-primary/30 text-primary shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
+                        : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
+                    }`}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Advanced Settings (collapsed by default) */}
+          {/* Optional Fields */}
           <div className="rounded-2xl border border-border bg-card overflow-hidden">
             <button
-              onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/50 transition-colors duration-200"
+              type="button"
+              onClick={() => setShowOptionalFields((prev) => !prev)}
+              className="w-full flex items-center justify-between gap-3 px-6 py-4 text-left transition-colors duration-200 hover:bg-accent/60"
             >
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium text-foreground">Advanced Settings</span>
+                <Bot className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Optional</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border">Optional</span>
               </div>
-              {showAdvanced ? (
+              {showOptionalFields ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />
               ) : (
                 <ChevronDown className="w-4 h-4 text-muted-foreground" />
               )}
             </button>
 
-            {showAdvanced && (
-              <div className="px-6 pb-6 space-y-5 border-t border-border pt-5 animate-in fade-in duration-200">
-                {/* Timeframe */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Timeframe</label>
-                  <div className="flex gap-2">
-                    {TIMEFRAMES.map((t) => (
-                      <button
-                        key={t.value}
-                        onClick={() => setTimeframe(t.value)}
-                        className={`px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 border ${
-                          timeframe === t.value
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
+            {showOptionalFields && (
+              <div className="px-6 pb-6 space-y-5">
+                {/* Factor Name */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-muted-foreground">Factor Name</label>
+                  <Input
+                    placeholder="System default will be filled"
+                    value={alphaName}
+                    onChange={(e) => setAlphaName(e.target.value)}
+                    className="rounded-lg bg-accent border-border h-10 text-sm"
+                  />
                 </div>
 
-                {/* Numeric Params */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Lookback (days)</label>
-                    <Input
-                      type="number"
-                      value={lookbackDays}
-                      onChange={(e) => setLookbackDays(e.target.value)}
-                      className="rounded-lg bg-accent border-border h-9 text-sm"
-                    />
+                {/* Supplementary Description */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="text-xs font-medium text-muted-foreground">Supplementary Description</label>
+                    <button
+                      type="button"
+                      onClick={buildOptimizedPrompt}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary transition-all duration-200 hover:bg-primary/15 hover:border-primary/30"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Optimize Prompt
+                    </button>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Max Drawdown (%)</label>
-                    <Input
-                      type="number"
-                      value={maxDrawdown}
-                      onChange={(e) => setMaxDrawdown(e.target.value)}
-                      className="rounded-lg bg-accent border-border h-9 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Target Sharpe</label>
-                    <Input
-                      type="number"
-                      step="0.05"
-                      value={targetSharpe}
-                      onChange={(e) => setTargetSharpe(e.target.value)}
-                      className="rounded-lg bg-accent border-border h-9 text-sm"
-                    />
-                  </div>
-                </div>
-
-              </div>
-            )}
-          </div>
-
-          {/* Strategy Description — Collapsible, optional, default collapsed */}
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <button
-              onClick={() => setShowDescription(!showDescription)}
-              className="w-full flex items-center justify-between px-6 py-4 hover:bg-accent/50 transition-colors duration-200"
-            >
-              <div className="flex items-center gap-2">
-                <Bot className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Strategy Description</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border">Optional</span>
-              </div>
-              {showDescription ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-            </button>
-            {showDescription && (
-              <div className="px-6 pb-6 pt-4 space-y-4 border-t border-border animate-in fade-in duration-200">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Describe your trading idea in natural language. The AI will interpret your intent and generate the optimal factor expression.
-                  </p>
-                  <button
-                    onClick={() => {
-                      const optimized = `I want to build a ${strategyType.replace("-", " ")} strategy on ${selectedMarket} with ${timeframe} timeframe. Focus on ${lookbackDays}-day lookback, targeting Sharpe > ${targetSharpe} with max drawdown < ${maxDrawdown}%. Optimize entry/exit signals and position sizing for risk-adjusted returns.`;
-                      setDescription(optimized);
-                      toast.success("AI-optimized prompt generated!");
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-200 bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 hover:border-primary/30 shrink-0 ml-4"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    AI Optimize Prompt
-                  </button>
-                </div>
-                <div className="relative">
-                  <textarea
+                  <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="e.g., I want a momentum strategy that buys when RSI crosses above 30 after being oversold, combined with MACD bullish crossover confirmation..."
-                    rows={4}
-                    className="w-full rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none pr-12"
+                    placeholder="Add extra constraints, interpretation notes, or any follow-up details here..."
+                    rows={5}
+                    className="rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none"
                   />
-                  <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] text-muted-foreground/60">This note will be attached to the alpha creation context.</p>
                     <span className="text-[10px] text-muted-foreground/50">{description.length}/500</span>
                   </div>
                 </div>

@@ -38,7 +38,7 @@ import { dashboardStats, recentActivity, currentEpoch, submissionStats } from "@
 
 const statCards = [
   { label: "TOTAL ALPHAS", value: submissionStats.total.toString(), highlight: false },
-  { label: "STARRED", value: submissionStats.starred.toString(), highlight: false, color: "text-amber-500 dark:text-amber-400" },
+  { label: "MY FAVORITES", value: submissionStats.starred.toString(), highlight: false, color: "text-amber-500 dark:text-amber-400" },
   { label: "PASSED", value: submissionStats.passed.toString(), highlight: true },
   { label: "FAILED", value: (submissionStats.failed + submissionStats.rejected).toString(), highlight: false, color: "text-destructive" },
 ];

@@ -48,6 +48,7 @@ import {
   ChevronsRight,
   Trophy,
   Plus,
+  CircleHelp,
 } from "lucide-react";
 import {
   factors,
@@ -65,6 +66,7 @@ import { StarButton } from "@/components/ui/star-button";
 import { BorderGlowCard } from "@/components/ui/border-glow-card";
 import AlphaCardView from "@/components/AlphaCardView";
 import { LayoutGrid, Table2 } from "lucide-react";
+import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 
 type AlphaRow = Factor & {
   submissionStatus: "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
@@ -103,6 +105,158 @@ const dataColumns: ColumnDef[] = [
 
 type SortDir = "asc" | "desc" | null;
 
+type AlphaViewMode = "beginner" | "pro";
+
+type MyAlphasViewMode = "table" | "card";
+
+type MyAlphasCardFilter = "all" | "passed" | "starred" | "failed";
+
+type MyAlphasPrefs = {
+  prefsVersion: number;
+  sortKey: string;
+  sortDir: SortDir;
+  filterName: string;
+  filterStatus: string;
+  filterSharpeMin: string;
+  filterReturnsMin: string;
+  filterTurnoverMin: string;
+  cardFilter: MyAlphasCardFilter;
+  viewMode: MyAlphasViewMode;
+  pageSize: number;
+  visibleColumns?: string[];
+  visibleColumnsByMode?: Partial<Record<AlphaViewMode, string[]>>;
+};
+
+const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
+const MY_ALPHAS_PREFS_VERSION = 2;
+const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_";
+
+function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
+  if (mode === "beginner") {
+    return ["name", "grade", "epochStatus", "sharpe", "osSharpe", "fitness"];
+  }
+  return [
+    "name",
+    "status_col",
+    "grade",
+    "epochStatus",
+    "createdAt",
+    "sharpe",
+    "osSharpe",
+    "fitness",
+    "returns",
+    "turnover",
+    "drawdown",
+  ];
+}
+
+function sanitizeVisibleColumns(keys: unknown, mode: AlphaViewMode): Set<string> {
+  const validKeys = new Set(dataColumns.map((c) => c.key));
+  const fallback = getDefaultVisibleColumnKeysForMode(mode);
+
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return new Set(fallback);
+  }
+
+  const sanitized = keys.filter((key): key is string => typeof key === "string" && validKeys.has(key));
+  return new Set(sanitized.length > 0 ? sanitized : fallback);
+}
+
+function getInitialVisibleColumns(prefs: Partial<MyAlphasPrefs> | null, mode: AlphaViewMode): Set<string> {
+  if (prefs?.prefsVersion !== MY_ALPHAS_PREFS_VERSION) {
+    return sanitizeVisibleColumns(undefined, mode);
+  }
+
+  const modeColumns = prefs?.visibleColumnsByMode?.[mode];
+  if (Array.isArray(modeColumns) && modeColumns.length > 0) {
+    return sanitizeVisibleColumns(modeColumns, mode);
+  }
+
+  if (Array.isArray(prefs?.visibleColumns) && prefs.visibleColumns.length > 0) {
+    return sanitizeVisibleColumns(prefs.visibleColumns, mode);
+  }
+
+  return sanitizeVisibleColumns(undefined, mode);
+}
+
+function getVisibleColumnsForMode(prefs: Partial<MyAlphasPrefs> | null, mode: AlphaViewMode): Set<string> {
+  if (prefs?.prefsVersion !== MY_ALPHAS_PREFS_VERSION) {
+    return sanitizeVisibleColumns(undefined, mode);
+  }
+
+  const modeColumns = prefs?.visibleColumnsByMode?.[mode];
+  if (Array.isArray(modeColumns) && modeColumns.length > 0) {
+    return sanitizeVisibleColumns(modeColumns, mode);
+  }
+
+  return sanitizeVisibleColumns(undefined, mode);
+}
+
+function sanitizeSortDir(value: unknown): SortDir {
+  return value === "asc" || value === "desc" || value === null ? value : "desc";
+}
+
+function sanitizeSortKey(value: unknown): string {
+  const allowed = new Set([
+    "",
+    ...dataColumns.map((c) => c.key),
+    "submissionStatus",
+  ]);
+  return typeof value === "string" && allowed.has(value) ? value : "createdAt";
+}
+
+function sanitizeCardFilter(value: unknown): MyAlphasCardFilter {
+  return value === "passed" || value === "starred" || value === "failed" ? value : "all";
+}
+
+function sanitizeViewMode(value: unknown): MyAlphasViewMode {
+  return value === "card" ? "card" : "table";
+}
+
+function sanitizeFilterStatus(value: unknown): string {
+  const allowed = new Set([
+    "all",
+    "queued",
+    "backtesting",
+    "is_testing",
+    "os_testing",
+    "passed",
+    "failed",
+    "rejected",
+  ]);
+  return typeof value === "string" && allowed.has(value) ? value : "all";
+}
+
+function sanitizePageSize(value: unknown): number {
+  const allowed = new Set([10, 25, 50]);
+  const parsed = typeof value === "number" ? value : Number(value);
+  return allowed.has(parsed) ? parsed : 10;
+}
+
+function readMyAlphasPrefs(): Partial<MyAlphasPrefs> | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(MY_ALPHAS_PREFS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<MyAlphasPrefs>;
+    return parsed ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function readRevealedGrade(factorId: string): AlphaGrade | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const value = window.localStorage.getItem(`${REVEALED_GRADE_STORAGE_PREFIX}${factorId}`);
+    return value === "S" || value === "A" || value === "B" || value === "C" || value === "D" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 /* Status badge config — only passed/failed shown as badges */
 const statusConfig: Record<string, { label: string; colorClass: string; bgClass: string; borderClass: string }> = {
   passed: { label: "PASSED", colorClass: "text-success", bgClass: "bg-success/10", borderClass: "border-success/20" },
@@ -132,21 +286,23 @@ function getEpochStatus(factorId: string): { display: string; epochId: string | 
 }
 
 export default function MyAlphas() {
-  const [sortKey, setSortKey] = useState<string>("createdAt");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const storedPrefs = useMemo(() => readMyAlphasPrefs(), []);
+  const { alphaViewMode } = useAlphaViewMode();
+  const [sortKey, setSortKey] = useState<string>(() => sanitizeSortKey(storedPrefs?.sortKey));
+  const [sortDir, setSortDir] = useState<SortDir>(() => sanitizeSortDir(storedPrefs?.sortDir));
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
-    () => new Set(dataColumns.filter((c) => c.defaultVisible).map((c) => c.key))
+    () => getInitialVisibleColumns(storedPrefs, alphaViewMode)
   );
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [filterName, setFilterName] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterSharpeMin, setFilterSharpeMin] = useState("");
-  const [filterReturnsMin, setFilterReturnsMin] = useState("");
-  const [filterTurnoverMin, setFilterTurnoverMin] = useState("");
+  const [pageSize, setPageSize] = useState(() => sanitizePageSize(storedPrefs?.pageSize));
+  const [filterName, setFilterName] = useState(() => storedPrefs?.filterName ?? "");
+  const [filterStatus, setFilterStatus] = useState(() => sanitizeFilterStatus(storedPrefs?.filterStatus));
+  const [filterSharpeMin, setFilterSharpeMin] = useState(() => storedPrefs?.filterSharpeMin ?? "");
+  const [filterReturnsMin, setFilterReturnsMin] = useState(() => storedPrefs?.filterReturnsMin ?? "");
+  const [filterTurnoverMin, setFilterTurnoverMin] = useState(() => storedPrefs?.filterTurnoverMin ?? "");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
-  const [cardFilter, setCardFilter] = useState<"all" | "passed" | "starred" | "failed">("all");
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [cardFilter, setCardFilter] = useState<MyAlphasCardFilter>(() => sanitizeCardFilter(storedPrefs?.cardFilter));
+  const [viewMode, setViewMode] = useState<MyAlphasViewMode>(() => sanitizeViewMode(storedPrefs?.viewMode));
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
@@ -173,6 +329,52 @@ export default function MyAlphas() {
       delay: 0.25,
     });
   }, []);
+
+  useEffect(() => {
+    setVisibleColumns(getVisibleColumnsForMode(readMyAlphasPrefs(), alphaViewMode));
+    setPage(1);
+  }, [alphaViewMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const existingPrefs = readMyAlphasPrefs() ?? {};
+    const visibleColumnsByMode = {
+      ...(existingPrefs.visibleColumnsByMode ?? {}),
+      [alphaViewMode]: Array.from(visibleColumns),
+    };
+
+    const prefs: MyAlphasPrefs = {
+      prefsVersion: MY_ALPHAS_PREFS_VERSION,
+      sortKey,
+      sortDir,
+      filterName,
+      filterStatus,
+      filterSharpeMin,
+      filterReturnsMin,
+      filterTurnoverMin,
+      cardFilter,
+      viewMode,
+      pageSize,
+      visibleColumns: Array.from(visibleColumns),
+      visibleColumnsByMode,
+    };
+
+    window.localStorage.setItem(MY_ALPHAS_PREFS_KEY, JSON.stringify(prefs));
+  }, [
+    sortKey,
+    sortDir,
+    filterName,
+    filterStatus,
+    filterSharpeMin,
+    filterReturnsMin,
+    filterTurnoverMin,
+    cardFilter,
+    viewMode,
+    pageSize,
+    visibleColumns,
+    alphaViewMode,
+  ]);
 
   /* ── Data — build rows, assign submission status, epoch status ── */
   const alphaRows: AlphaRow[] = useMemo(() => {
@@ -284,6 +486,7 @@ export default function MyAlphas() {
   };
 
   const visibleCols = dataColumns.filter((c) => visibleColumns.has(c.key));
+  const cardSortColumns = dataColumns.filter((c) => c.sortable && c.key !== "id" && c.key !== "testsPassed");
   const hasActiveFilters = filterName || filterStatus !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin;
 
   /* ── Status badge renderer — only passed/failed shown ── */
@@ -343,18 +546,27 @@ export default function MyAlphas() {
       case "drawdown":
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "grade": {
-        // Only passed factors show grade; all others show "-"
         if (row.submissionStatus !== "passed") {
           return <span className="text-xs text-muted-foreground/50 font-mono">-</span>;
         }
-        const grade = getAlphaGrade(row.osSharpe);
-        if (grade === "S" || grade === "A") {
-          return <ShinyTag tier={grade} />;
+        const revealedGrade = readRevealedGrade(row.id);
+        if (!revealedGrade) {
+          return (
+            <span
+              className="inline-flex items-center justify-center h-[24px] w-[24px] rounded-full border border-white/15 bg-gradient-to-b from-white/10 to-white/5 text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+              title="Pending reveal"
+              aria-label="Pending reveal"
+            >
+              <CircleHelp className="h-3.5 w-3.5" strokeWidth={2.25} />
+            </span>
+          );
         }
-        // B/C/D: plain text style
+        if (revealedGrade === "S" || revealedGrade === "A") {
+          return <ShinyTag tier={revealedGrade} />;
+        }
         return (
           <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border-[0.5px] border-white/40 text-[10px] font-semibold text-white bg-transparent">
-            {grade}
+            {revealedGrade}
           </span>
         );
       }
@@ -466,69 +678,79 @@ export default function MyAlphas() {
 
       </div>
 
-      {/* Pipeline Stats — Total / Starred / Passed / Failed */}
+      {/* Pipeline Stats — Total / My Favorites / Passed / Failed */}
       <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
         <button
           onClick={() => { setCardFilter("all"); setPage(1); }}
-          className="fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:border-slate-300 dark:hover:border-slate-600 hover:scale-[1.03] active:scale-[0.98]"
+          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
+            cardFilter === "all"
+              ? "border-primary/30 bg-primary/[0.06]"
+              : "border-border hover:border-border/80"
+          }`}
         >
           <div className="flex items-center gap-2 label-upper mb-2">
             <BarChart3 className="w-3.5 h-3.5" /> Total
           </div>
           <div className="stat-value text-2xl font-bold text-foreground truncate">{submissionStats.total}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate">submissions</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate" />
         </button>
         <button
           onClick={() => { setCardFilter(cardFilter === "starred" ? "all" : "starred"); setPage(1); }}
-          className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
-            cardFilter === "starred" ? "border-amber-400/40" : "hover:border-slate-300 dark:hover:border-slate-600"
+          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
+            cardFilter === "starred"
+              ? "border-amber-400/40 bg-amber-400/[0.06]"
+              : "border-border hover:border-border/80"
           }`}
         >
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-amber-500 dark:text-amber-400">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> Starred
+          <div className="flex items-center gap-2 label-upper mb-2 text-amber-400">
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> My Favorites
           </div>
           <div className="stat-value text-2xl font-bold text-amber-500 dark:text-amber-400 truncate">{starred.size}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate">favorites</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate" />
         </button>
         <button
           onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
-          className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
-            cardFilter === "passed" ? "border-success/40" : "hover:border-slate-300 dark:hover:border-slate-600"
+          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
+            cardFilter === "passed"
+              ? "border-success/40 bg-success/[0.06]"
+              : "border-border hover:border-border/80"
           }`}
         >
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-success">
+          <div className="flex items-center gap-2 label-upper mb-2 text-success">
             <CheckCircle className="w-3.5 h-3.5" /> Passed
           </div>
           <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate">pass rate: {submissionStats.passRate}</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate" />
         </button>
         <button
           onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
-          className={`fade-item surface-card p-6 text-left cursor-pointer transition-bouncy hover:scale-[1.03] active:scale-[0.98] ${
-            cardFilter === "failed" ? "border-destructive/40" : "hover:border-slate-300 dark:hover:border-slate-600"
+          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
+            cardFilter === "failed"
+              ? "border-destructive/40 bg-destructive/[0.06]"
+              : "border-border hover:border-border/80"
           }`}
         >
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-medium mb-2 text-destructive">
+          <div className="flex items-center gap-2 label-upper mb-2 text-destructive">
             <XCircle className="w-3.5 h-3.5" /> Failed
           </div>
           <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + submissionStats.rejected}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate">{submissionStats.rejected} rejected</div>
+          <div className="text-sm mt-1 text-muted-foreground truncate" />
         </button>
       </div>
 
       {/* ═══════════════════════════════════════════
           TOOLBAR + DATA TABLE / CARD VIEW
           ═══════════════════════════════════════════ */}
-      <div className="surface-card overflow-hidden">
+      <div className="overflow-visible space-y-4">
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-b border-border bg-card">
+        <div className="flex flex-wrap items-center gap-2 px-0 py-1">
           <div className="relative flex-1 min-w-[180px] max-w-[280px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
               placeholder="Search by name or ID..."
               value={filterName}
               onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
-              className="h-8 text-xs pl-8 rounded-lg bg-card border-border"
+              className="h-8 w-full rounded-xl border border-border bg-accent/30 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
             />
           </div>
 
@@ -539,7 +761,7 @@ export default function MyAlphas() {
               <button className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
                 (filterSharpeMin || filterReturnsMin || filterTurnoverMin)
                   ? "bg-primary/10 border-primary/20 text-primary"
-                  : "bg-card border-border text-muted-foreground"
+                  : "bg-card border-border text-muted-foreground hover:text-foreground"
               }`}>
                 <BarChart3 className="w-3 h-3" />
                 Metrics
@@ -590,6 +812,68 @@ export default function MyAlphas() {
             </button>
           )}
 
+          {viewMode === "card" && (
+            <Popover>
+              <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                Sort
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 rounded-2xl" align="end">
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground">Sort Cards</p>
+                  <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
+                    {cardSortColumns.map((col) => {
+                      const active = sortKey === col.key;
+                      return (
+                        <button
+                          key={col.key}
+                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${
+                            active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-accent"
+                          }`}
+                          onClick={() => {
+                            if (active) {
+                              setSortDir(sortDir === "asc" ? "desc" : "asc");
+                            } else {
+                              handleSort(col.key);
+                            }
+                          }}
+                        >
+                          <span>{col.label}</span>
+                          <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                            {active ? (sortDir === "asc" ? "ASC" : "DESC") : "DEFAULT"}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {sortKey && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-colors"
+                        onClick={() => {
+                          setSortDir(sortDir === "asc" ? "desc" : "asc");
+                        }}
+                      >
+                        Toggle direction
+                      </button>
+                      <button
+                        className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-colors"
+                        onClick={() => {
+                          setSortKey("");
+                          setSortDir(null);
+                        }}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
+
           <Popover>
             <PopoverTrigger asChild>
               <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
@@ -615,13 +899,13 @@ export default function MyAlphas() {
           </Popover>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center rounded-lg border border-border overflow-hidden">
+          <div className="inline-flex h-[34px] items-center overflow-hidden rounded-xl border border-border bg-card p-px">
             <button
               onClick={() => setViewMode("table")}
-              className={`p-2 transition-all duration-200 ease-in-out ${
+              className={`inline-flex h-8 w-8 items-center justify-center transition-all duration-200 ease-in-out ${
                 viewMode === "table"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "bg-primary/12 text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               title="Table View"
             >
@@ -629,10 +913,10 @@ export default function MyAlphas() {
             </button>
             <button
               onClick={() => setViewMode("card")}
-              className={`p-2 transition-all duration-200 ease-in-out ${
+              className={`inline-flex h-8 w-8 items-center justify-center transition-all duration-200 ease-in-out ${
                 viewMode === "card"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "bg-primary text-[#020617]"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               title="Card View"
             >
@@ -643,22 +927,23 @@ export default function MyAlphas() {
 
         {/* Card View */}
         {viewMode === "card" && (
-          <div className="p-6">
+          <div className="pt-4">
             <AlphaCardView rows={sorted} visibleColumns={visibleColumns} starred={starred} onToggleStar={toggleStar} />
           </div>
         )}
 
         {/* Table */}
-        {viewMode === "table" && (<>
+        {viewMode === "table" && (
+        <div className="surface-card border border-border/70 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto relative">
           <table className="w-full" style={{ minWidth: "900px" }}>
             <ColGroup />
             <thead>
-              <tr className="bg-accent dark:bg-slate-900/50">
+              <tr className="border-b border-border/60">
                 {visibleCols.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.key === "name" ? "pl-10" : ""} ${col.sortable ? "cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/50" : ""} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.key === "name" ? "pl-10" : ""} ${col.sortable ? "cursor-pointer hover:bg-accent/40" : ""} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
                     onClick={() => col.sortable && handleSort(col.key)}
                   >
                     <span className={`flex items-center gap-1.5 label-upper whitespace-nowrap select-none ${col.align === "right" ? "justify-end" : col.align === "center" ? "justify-center" : ""}`}>
@@ -668,7 +953,7 @@ export default function MyAlphas() {
                   </th>
                 ))}
                 {/* Actions header — sticky right */}
-                <th className="px-3 py-2.5 text-right sticky right-0 z-[2] bg-accent dark:bg-slate-900/50 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)]">
+                <th className="px-3 py-2.5 text-right sticky right-0 z-[2] bg-card border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)]">
                   <span className="label-upper">Actions</span>
                 </th>
               </tr>
@@ -677,7 +962,7 @@ export default function MyAlphas() {
               {paginated.map((row, i) => (
                 <tr
                   key={row.id}
-                  className={`transition-all duration-200 ease-in-out group border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
+                  className={`transition-all duration-200 ease-in-out group border-t border-border/40 hover:bg-accent/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
                 >
                   {visibleCols.map((col) => (
                     <td key={col.key} className={`px-3 py-2.5 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
@@ -706,7 +991,7 @@ export default function MyAlphas() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border bg-card">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border/60 bg-card/40">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="font-mono tabular-nums">
               {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
@@ -752,7 +1037,7 @@ export default function MyAlphas() {
             </Button>
           </div>
         </div>
-      </>)}
+      </div>)}
       </div>
 
     </div>

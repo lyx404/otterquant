@@ -17,6 +17,12 @@ import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import OfficialLibrary from "./pages/OfficialLibrary";
 import AlphaEdit from "./pages/AlphaEdit";
+import MyStrategies from "./pages/MyStrategies";
+import StrategyLibrary from "./pages/StrategyLibrary";
+import StrategyDetail from "./pages/StrategyDetail";
+import StrategyCreate from "./pages/StrategyCreate";
+import Trade from "./pages/Trade";
+import TradeDetail from "./pages/TradeDetail";
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 
 /* ── Onboarding context for reactive state ── */
@@ -129,6 +135,24 @@ function Router() {
       </Route>
       <Route path="/alphas/:id">
         <ProtectedRoute component={AlphaDetail} />
+      </Route>
+      <Route path="/strategies/new">
+        <ProtectedRoute component={StrategyCreate} />
+      </Route>
+      <Route path="/strategies/official">
+        <ProtectedRoute component={StrategyLibrary} />
+      </Route>
+      <Route path="/strategies/:id">
+        <ProtectedRoute component={StrategyDetail} />
+      </Route>
+      <Route path="/strategies">
+        <ProtectedRoute component={MyStrategies} />
+      </Route>
+      <Route path="/trade/:id">
+        <ProtectedRoute component={TradeDetail} />
+      </Route>
+      <Route path="/trade">
+        <ProtectedRoute component={Trade} />
       </Route>
       <Route path="/leaderboard">
         <ProtectedRoute component={Leaderboard} />

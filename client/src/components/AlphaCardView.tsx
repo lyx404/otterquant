@@ -4,7 +4,8 @@
  * Field visibility fully synced with table view's visibleColumns
  */
 import { Link } from "wouter";
-import { Star } from "lucide-react";
+import { ArrowUpRight, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   getAlphaGrade,
   type Factor,
@@ -39,9 +40,9 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
     const mapped = status === "passed" ? "passed" : "failed";
     const s = statusConfig[mapped];
     return (
-      <span className="inline-flex items-center gap-1.5">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background/40 px-2.5 py-1">
         <span className={`w-1.5 h-1.5 rounded-full ${s.dotClass}`} />
-        <span className={`text-xs font-medium ${s.textClass}`}>{s.label}</span>
+        <span className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${s.textClass}`}>{s.label}</span>
       </span>
     );
   };
@@ -61,11 +62,11 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
     );
   };
 
-  /* Metric cell: unified style for all numeric values */
+  /* Metric cell: clearer label/value hierarchy */
   const MetricCell = ({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) => (
-    <div>
-      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">{label}</div>
-      <div className={`text-sm font-bold font-mono tabular-nums ${colorClass || "text-foreground"}`}>{value}</div>
+    <div className="rounded-xl border border-border/50 bg-background/30 px-3 py-2">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">{label}</div>
+      <div className={`text-sm font-semibold font-mono tabular-nums ${colorClass || "text-foreground"}`}>{value}</div>
     </div>
   );
 
@@ -91,81 +92,88 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
         return (
           <div
             key={row.id}
-            className="surface-card overflow-hidden transition-all duration-200 hover:border-primary/30 group"
+            className="surface-card overflow-hidden transition-all duration-200 hover:border-primary/30 group flex h-full flex-col"
           >
-            {/* Card Header: Name + Status + Grade */}
+            {/* Card Header: title first, then key badges */}
             <div className="px-4 pt-4 pb-3 border-b border-border/50">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <button onClick={(e) => { e.stopPropagation(); onToggleStar(row.id); }} className="shrink-0 transition-transform duration-200 hover:scale-125">
-                    <Star className={`w-3.5 h-3.5 transition-colors duration-200 ${starred.has(row.id) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`} />
-                  </button>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
                   {isVisible("name") ? (
                     <Link href={`/alphas/${row.id}`}>
-                      <span className="text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer truncate">
+                      <span className="block text-sm font-semibold text-foreground hover:text-primary transition-colors duration-200 cursor-pointer truncate leading-5">
                         {row.name}
                       </span>
                     </Link>
                   ) : (
-                    <span className="text-sm font-semibold text-foreground truncate">{row.name}</span>
+                    <span className="block text-sm font-semibold text-foreground truncate leading-5">{row.name}</span>
                   )}
+                  {(isVisible("createdAt") || isVisible("id")) && (
+                    <div className="mt-2 text-xs font-mono text-muted-foreground whitespace-nowrap">
+                      {isVisible("createdAt") ? `Created:${row.createdAt}` : ""}
+                      {isVisible("createdAt") && isVisible("id") ? "  " : ""}
+                      {isVisible("id") ? `ID: ${row.id}` : ""}
+                    </div>
+                  )}
+                  <div className="mt-2 flex items-center gap-2">
+                    {isVisible("status_col") && renderStatus(row.submissionStatus)}
+                    {isVisible("grade") && renderGrade(row)}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {isVisible("grade") && renderGrade(row)}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                {isVisible("status_col") && renderStatus(row.submissionStatus)}
-                {isVisible("id") && (
-                  <span className="text-[10px] text-muted-foreground font-mono">{row.id}</span>
-                )}
               </div>
             </div>
 
-            {/* Card Body: Metrics Grid — only visible columns */}
-            {metrics.length > 0 && (
-              <div className="px-4 py-3">
-                <div className="grid grid-cols-3 gap-3">
+            {/* Card Body: metrics + secondary info */}
+            <div className="px-4 py-3 flex-1 space-y-3">
+              {isVisible("epochStatus") && (
+                <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/20 px-3 py-2.5">
+                  {isVisible("epochStatus") && (
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">Arena Round</div>
+                      {row.submissionStatus !== "passed" ? (
+                        <span className="text-xs font-mono text-muted-foreground/50">Ineligible</span>
+                      ) : row.epochId ? (
+                        <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
+                          <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
+                        </Link>
+                      ) : (
+                        <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || "Not Entered"}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {metrics.length > 0 && (
+                <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5">
                   {metrics.map((m) => (
                     <MetricCell key={m.label} label={m.label} value={m.value} colorClass={m.colorClass} />
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Bottom Row: Arena Round + Date (if visible) */}
-            {(isVisible("epochStatus") || isVisible("createdAt")) && (
-              <div className="px-4 py-2.5 border-t border-border/30 flex items-center justify-between">
-                {isVisible("epochStatus") && (
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Arena Round</div>
-                    {row.submissionStatus !== "passed" ? (
-                      <span className="text-xs font-mono text-muted-foreground/50">Ineligible</span>
-                    ) : row.epochId ? (
-                      <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
-                        <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
-                      </Link>
-                    ) : (
-                      <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || "Not Entered"}</span>
-                    )}
-                  </div>
-                )}
-                {isVisible("createdAt") && (
-                  <div className={isVisible("epochStatus") ? "text-right" : ""}>
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground mb-0.5">Created</div>
-                    <div className="text-xs font-mono text-muted-foreground">{row.createdAt}</div>
-                  </div>
-                )}
+            {/* Card Footer: actions */}
+            <div className="mt-auto border-t border-border/30 bg-accent/20 px-4 py-3">
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${
+                    starred.has(row.id)
+                      ? "border-[#ffb900]/60 bg-[#ffb900]/30 text-[#ffb900]"
+                      : "border-border/60 bg-background/30 text-[#ffb900] hover:border-[#ffb900]/50"
+                  }`}
+                  onClick={(e) => { e.stopPropagation(); onToggleStar(row.id); }}
+                  aria-label={starred.has(row.id) ? "Unfavorite" : "Favorite"}
+                >
+                  <Star className={`h-[14px] w-[14px] ${starred.has(row.id) ? "fill-current" : ""}`} />
+                </button>
+                <Link href={`/alphas/${row.id}`}>
+                  <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-[#020617] hover:bg-primary/90">
+                    View
+                    <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                  </Button>
+                </Link>
               </div>
-            )}
-
-            {/* Card Footer: View Detail */}
-            <div className="px-4 py-2.5 border-t border-border/30 bg-accent/20">
-              <Link href={`/alphas/${row.id}`}>
-                <span className="text-xs font-medium text-primary hover:text-primary/80 transition-colors duration-200 cursor-pointer">
-                  View Details →
-                </span>
-              </Link>
             </div>
           </div>
         );

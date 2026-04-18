@@ -13,9 +13,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle, Compass,
-  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal,
+  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, Settings2, LogOut,
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { exchanges, type Exchange } from "@/lib/mockData";
 
@@ -129,7 +129,8 @@ function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey: str
 }
 
 export default function Account() {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>("profile");
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
   const [username, setUsername] = useState(user?.displayName || "");
@@ -146,6 +147,7 @@ export default function Account() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [alphasNotify, setAlphasNotify] = useState(true);
   const [arenaNotify, setArenaNotify] = useState(true);
+  const [systemNotify, setSystemNotify] = useState(true);
   const headerRef = useRef<HTMLDivElement>(null);
 
   // Edit mode states for each subsection
@@ -164,6 +166,7 @@ export default function Account() {
   const [editNameValue, setEditNameValue] = useState("");
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [moreMenuId, setMoreMenuId] = useState<string | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
 
@@ -380,7 +383,7 @@ export default function Account() {
               <div className="flex items-start gap-6">
                 <div className="flex flex-col items-center gap-2 shrink-0">
                   <div
-                    className={`w-20 h-20 rounded-2xl border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors duration-200 ${
+                    className={`w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors duration-200 ${
                       editingProfile ? "border-primary/40 cursor-pointer hover:border-primary/60" : "border-border cursor-default"
                     }`}
                     onClick={() => editingProfile && avatarInputRef.current?.click()}
@@ -757,37 +760,72 @@ export default function Account() {
 
       {/* ═══════════════ Notification Settings ═══════════════ */}
       {activeTab === "profile" && (
-        <div className="surface-card">
-          <div className="px-6 py-4 pb-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-primary" />
-              <span className="text-base font-semibold text-foreground">Notification Settings</span>
+        <div className="space-y-6">
+          <div className="surface-card">
+            <div className="px-6 py-4 pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-primary" />
+                <span className="text-base font-semibold text-foreground">Notification Settings</span>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <div className="text-sm font-medium text-foreground">Alphas Notifications</div>
+                  <div className="text-xs text-muted-foreground">Get notified about alpha status changes, test results, and performance updates</div>
+                </div>
+                <button
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${alphasNotify ? "bg-primary" : "bg-muted"}`}
+                  onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? "Alphas notifications disabled" : "Alphas notifications enabled"); }}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-border">
+                <div>
+                  <div className="text-sm font-medium text-foreground">Arena Notifications</div>
+                  <div className="text-xs text-muted-foreground">Get notified about competition rounds, rankings, and prize pool updates</div>
+                </div>
+                <button
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${arenaNotify ? "bg-primary" : "bg-muted"}`}
+                  onClick={() => { setArenaNotify(!arenaNotify); toast.success(arenaNotify ? "Arena notifications disabled" : "Arena notifications enabled"); }}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${arenaNotify ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-border">
+                <div className="pr-6">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <Settings2 className="w-3.5 h-3.5 text-primary" />
+                    <span>System Messages</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Get notified about skill updates, new skills, deprecations, platform announcements, maintenance, and Official Library expansion.
+                  </div>
+                </div>
+                <button
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${systemNotify ? "bg-primary" : "bg-muted"}`}
+                  onClick={() => { setSystemNotify(!systemNotify); toast.success(systemNotify ? "System messages disabled" : "System messages enabled"); }}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${systemNotify ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
             </div>
           </div>
-          <div className="p-6 space-y-4">
-            <div className="flex items-center justify-between py-2">
+
+          <div className="surface-card">
+            <div className="p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-sm font-medium text-foreground">Alphas Notifications</div>
-                <div className="text-xs text-muted-foreground">Get notified about alpha status changes, test results, and performance updates</div>
+                <div className="text-sm font-medium text-foreground">Log Out</div>
+                <div className="text-xs text-muted-foreground">Sign out of your current account and return to the landing page.</div>
               </div>
-              <button
-                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${alphasNotify ? "bg-primary" : "bg-muted"}`}
-                onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? "Alphas notifications disabled" : "Alphas notifications enabled"); }}
+              <Button
+                className="rounded-full gap-1.5 self-start sm:self-auto bg-destructive text-destructive-foreground hover:brightness-110"
+                onClick={() => setShowLogoutConfirm(true)}
               >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
-            </div>
-            <div className="flex items-center justify-between py-2 border-t border-border">
-              <div>
-                <div className="text-sm font-medium text-foreground">Arena Notifications</div>
-                <div className="text-xs text-muted-foreground">Get notified about competition rounds, rankings, and prize pool updates</div>
-              </div>
-              <button
-                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${arenaNotify ? "bg-primary" : "bg-muted"}`}
-                onClick={() => { setArenaNotify(!arenaNotify); toast.success(arenaNotify ? "Arena notifications disabled" : "Arena notifications enabled"); }}
-              >
-                <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${arenaNotify ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
+                <LogOut className="w-4 h-4" />
+                Log Out
+              </Button>
             </div>
           </div>
         </div>
@@ -820,6 +858,42 @@ export default function Account() {
                 onClick={() => { handleDeleteApi(deleteConfirmId); setDeleteConfirmId(null); }}
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ Logout Confirm Modal ═══════════════ */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowLogoutConfirm(false)} />
+          <div className="relative w-full max-w-sm mx-4 bg-card border border-border rounded-2xl shadow-2xl p-6">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <LogOut className="w-5 h-5 text-destructive" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">Confirm Log Out</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Are you sure you want to log out of your current account?
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 mt-5">
+              <button
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-destructive text-destructive-foreground hover:brightness-110"
+                onClick={() => {
+                  setShowLogoutConfirm(false);
+                  logout();
+                  navigate("/landing");
+                }}
+              >
+                Log Out
               </button>
             </div>
           </div>

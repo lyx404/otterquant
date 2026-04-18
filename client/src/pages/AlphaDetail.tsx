@@ -20,11 +20,12 @@ import {
 } from "recharts";
 import {
   ArrowLeft, CheckCircle, XCircle, BarChart3, TrendingUp,
-  ChevronDown, ChevronUp, RefreshCw, Eye, Sparkles,
+  ChevronDown, ChevronUp, RefreshCw, Sparkles,
   Loader2, FlaskConical, LineChart as LineChartIcon, Settings2,
 } from "lucide-react";
 import ShinyTag from "@/components/ui/shiny-tag";
 import ScratchCard from "@/components/ui/scratch-card";
+import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import {
   factors, generatePnLData, generateSharpeData, generateTurnoverData,
   generateReturnsData, generateDrawdownData, aggregateData, osAggregateData,
@@ -34,7 +35,6 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 
 type ChartType = "pnl" | "sharpe" | "turnover" | "returns" | "drawdown";
-type ViewMode = "beginner" | "pro";
 
 export default function AlphaDetail() {
   const { theme } = useTheme();
@@ -42,9 +42,19 @@ export default function AlphaDetail() {
   const params = useParams<{ id: string }>();
   const searchStr = useSearch();
   const searchParams = new URLSearchParams(searchStr);
+  const source = searchParams.get("source");
+  const isOfficialLibraryView = source === "official";
+  const tierParam = searchParams.get("tier");
   const isGeneratingParam = searchParams.get("generating") === "true";
   const customName = searchParams.get("name");
   const factor = factors.find((f) => f.id === params.id) || factors[0];
+  const officialTier: "official" | "graduated" =
+    tierParam === "graduated"
+      ? "graduated"
+      : factor.category === "graduated"
+        ? "graduated"
+        : "official";
+  const detailBackPath = isOfficialLibraryView ? "/alphas/official" : "/alphas";
 
   /* ── Generating state ── */
   const [isGenerating, setIsGenerating] = useState(isGeneratingParam);
@@ -76,15 +86,8 @@ export default function AlphaDetail() {
   const [expandedTestSections, setExpandedTestSections] = useState<Record<string, boolean>>({
     pass: false, fail: true, pending: false,
   });
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    const saved = localStorage.getItem("alphaforge_view_mode");
-    return (saved === "beginner" || saved === "pro") ? saved : "pro";
-  });
+  const { alphaViewMode: viewMode } = useAlphaViewMode();
   const headerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    localStorage.setItem("alphaforge_view_mode", viewMode);
-  }, [viewMode]);
 
   const grade = getAlphaGrade(factor.osSharpe);
   const gradeConfig = GRADE_CONFIG[grade];
@@ -164,7 +167,7 @@ export default function AlphaDetail() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign('/alphas')}>
+          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
             <ArrowLeft className="w-4 h-4" />
             Back
           </Button>
@@ -185,7 +188,7 @@ export default function AlphaDetail() {
     <div className="space-y-6">
       {/* ═══ SECTION 1: Factor Name + Header ═══ */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign('/alphas')}>
+        <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
           <ArrowLeft className="w-4 h-4" />
           Back
         </Button>
@@ -194,42 +197,32 @@ export default function AlphaDetail() {
             <h1 className="text-foreground">{factor.name}</h1>
           </div>
           <div className="reveal-line flex items-center gap-2 mt-1">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
-              factor.status === "active" || factor.status === "testing"
-                ? "bg-success/10 text-success border-success/20"
-                : "bg-destructive/10 text-destructive border-destructive/20"
-            }`}>
-              {factor.status === "active" || factor.status === "testing" ? "PASSED" : "FAILED"}
-            </span>
-            <p className="text-xs font-mono text-muted-foreground">{factor.id} &middot; Created {factor.createdAt}</p>
+            {isOfficialLibraryView ? (
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
+                  officialTier === "official"
+                    ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+                    : "border-sky-500/25 bg-sky-500/10 text-sky-400"
+                }`}
+              >
+                {officialTier === "official" ? "OFFICIAL" : "GRADUATED"}
+              </span>
+            ) : (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
+                factor.status === "active" || factor.status === "testing"
+                  ? "bg-success/10 text-success border-success/20"
+                  : "bg-destructive/10 text-destructive border-destructive/20"
+              }`}>
+                {factor.status === "active" || factor.status === "testing" ? "PASSED" : "FAILED"}
+              </span>
+            )}
+            <p className="text-xs font-mono text-muted-foreground">
+              {factor.id} &middot; Created {factor.createdAt}
+              {isOfficialLibraryView ? " · Official Library" : ""}
+            </p>
           </div>
         </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 p-0.5 rounded-full bg-accent border border-border shrink-0">
-          <button
-            onClick={() => setViewMode("beginner")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-              viewMode === "beginner"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Eye className="w-3.5 h-3.5" />
-            Beginner
-          </button>
-          <button
-            onClick={() => setViewMode("pro")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-              viewMode === "pro"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Pro
-          </button>
-        </div>
       </div>
 
       {/* ═══ BEGINNER MODE ═══ */}
