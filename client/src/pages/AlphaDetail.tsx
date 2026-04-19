@@ -230,7 +230,11 @@ export default function AlphaDetail() {
         <div className="space-y-6 animate-in fade-in duration-300">
           {/* Key Metrics Cards — Pro style */}
           <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-            <ScratchCard factorId={factor.id} grade={grade} />
+            <ScratchCard
+              factorId={factor.id}
+              grade={grade}
+              status={factor.status === "active" || factor.status === "testing" ? "passed" : "failed"}
+            />
             {beginnerMetrics.map((m) => (
               <div key={m.label} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                 <div className="label-upper mb-1 text-[9px]">{m.label}</div>
@@ -347,7 +351,11 @@ export default function AlphaDetail() {
               {/* Top row: Grade + Tests + Aggregate metric cards */}
               <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
                 {/* Grade card — Scratch to reveal */}
-                <ScratchCard factorId={factor.id} grade={grade} />
+                <ScratchCard
+                  factorId={factor.id}
+                  grade={grade}
+                  status={factor.status === "active" || factor.status === "testing" ? "passed" : "failed"}
+                />
                 {/* Sharpe card — color follows list view osSharpe rule */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                   <div className="label-upper mb-1 text-[9px]">SHARPE</div>

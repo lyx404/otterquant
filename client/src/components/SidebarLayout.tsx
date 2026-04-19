@@ -399,24 +399,24 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <div className="flex flex-1 items-center gap-1">
                 <button
                   onClick={() => handleAlphaViewModeChange("beginner")}
-                  className={`flex-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-200 ${
+                  className={`flex-1 min-w-[90px] flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all duration-200 ${
                     alphaViewMode === "beginner"
-                      ? "bg-primary/10 text-primary border border-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      ? "bg-primary/10 text-primary border-primary/20"
+                      : "text-muted-foreground border-transparent hover:text-foreground hover:bg-accent hover:border-sidebar-border/60"
                   }`}
                 >
-                  <Eye className="w-3 h-3" />
+                  <Eye className="w-3.5 h-3.5 shrink-0" />
                   Beginner
                 </button>
                 <button
                   onClick={() => handleAlphaViewModeChange("pro")}
-                  className={`flex-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all duration-200 ${
+                  className={`flex-1 min-w-[90px] flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all duration-200 ${
                     alphaViewMode === "pro"
-                      ? "bg-primary/10 text-primary border border-primary/20"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      ? "bg-primary/10 text-primary border-primary/20"
+                      : "text-muted-foreground border-transparent hover:text-foreground hover:bg-accent hover:border-sidebar-border/60"
                   }`}
                 >
-                  <Sparkles className="w-3 h-3" />
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
                   Pro
                 </button>
               </div>

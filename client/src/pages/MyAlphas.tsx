@@ -48,7 +48,6 @@ import {
   ChevronsRight,
   Trophy,
   Plus,
-  CircleHelp,
 } from "lucide-react";
 import {
   factors,
@@ -63,7 +62,7 @@ import {
 } from "@/lib/mockData";
 import ShinyTag from "@/components/ui/shiny-tag";
 import { StarButton } from "@/components/ui/star-button";
-import { BorderGlowCard } from "@/components/ui/border-glow-card";
+import ShinyText from "@/components/ui/shiny-text";
 import AlphaCardView from "@/components/AlphaCardView";
 import { LayoutGrid, Table2 } from "lucide-react";
 import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
@@ -116,10 +115,6 @@ type MyAlphasPrefs = {
   sortKey: string;
   sortDir: SortDir;
   filterName: string;
-  filterStatus: string;
-  filterSharpeMin: string;
-  filterReturnsMin: string;
-  filterTurnoverMin: string;
   cardFilter: MyAlphasCardFilter;
   viewMode: MyAlphasViewMode;
   pageSize: number;
@@ -129,7 +124,7 @@ type MyAlphasPrefs = {
 
 const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
 const MY_ALPHAS_PREFS_VERSION = 2;
-const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_";
+const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v2_";
 
 function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
   if (mode === "beginner") {
@@ -213,20 +208,6 @@ function sanitizeViewMode(value: unknown): MyAlphasViewMode {
   return value === "card" ? "card" : "table";
 }
 
-function sanitizeFilterStatus(value: unknown): string {
-  const allowed = new Set([
-    "all",
-    "queued",
-    "backtesting",
-    "is_testing",
-    "os_testing",
-    "passed",
-    "failed",
-    "rejected",
-  ]);
-  return typeof value === "string" && allowed.has(value) ? value : "all";
-}
-
 function sanitizePageSize(value: unknown): number {
   const allowed = new Set([10, 25, 50]);
   const parsed = typeof value === "number" ? value : Number(value);
@@ -255,6 +236,10 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
   } catch {
     return null;
   }
+}
+
+function getSubmissionStatusFromFactorStatus(status: string): AlphaRow["submissionStatus"] {
+  return status === "active" || status === "testing" ? "passed" : "failed";
 }
 
 /* Status badge config — only passed/failed shown as badges */
@@ -296,10 +281,6 @@ export default function MyAlphas() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() => sanitizePageSize(storedPrefs?.pageSize));
   const [filterName, setFilterName] = useState(() => storedPrefs?.filterName ?? "");
-  const [filterStatus, setFilterStatus] = useState(() => sanitizeFilterStatus(storedPrefs?.filterStatus));
-  const [filterSharpeMin, setFilterSharpeMin] = useState(() => storedPrefs?.filterSharpeMin ?? "");
-  const [filterReturnsMin, setFilterReturnsMin] = useState(() => storedPrefs?.filterReturnsMin ?? "");
-  const [filterTurnoverMin, setFilterTurnoverMin] = useState(() => storedPrefs?.filterTurnoverMin ?? "");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
   const [cardFilter, setCardFilter] = useState<MyAlphasCardFilter>(() => sanitizeCardFilter(storedPrefs?.cardFilter));
   const [viewMode, setViewMode] = useState<MyAlphasViewMode>(() => sanitizeViewMode(storedPrefs?.viewMode));
@@ -349,10 +330,6 @@ export default function MyAlphas() {
       sortKey,
       sortDir,
       filterName,
-      filterStatus,
-      filterSharpeMin,
-      filterReturnsMin,
-      filterTurnoverMin,
       cardFilter,
       viewMode,
       pageSize,
@@ -365,10 +342,6 @@ export default function MyAlphas() {
     sortKey,
     sortDir,
     filterName,
-    filterStatus,
-    filterSharpeMin,
-    filterReturnsMin,
-    filterTurnoverMin,
     cardFilter,
     viewMode,
     pageSize,
@@ -380,7 +353,7 @@ export default function MyAlphas() {
   const alphaRows: AlphaRow[] = useMemo(() => {
     return factors.map((f) => {
       const sub = submissions.find((s) => s.factorId === f.id);
-      const submissionStatus = sub ? sub.status as AlphaRow["submissionStatus"] : "queued";
+      const submissionStatus = getSubmissionStatusFromFactorStatus(f.status);
       return {
         ...f,
         submissionStatus,
@@ -396,22 +369,12 @@ export default function MyAlphas() {
   const filtered = useMemo(() => {
     return alphaRows.filter((r) => {
       if (filterName && !r.name.toLowerCase().includes(filterName.toLowerCase()) && !r.id.toLowerCase().includes(filterName.toLowerCase())) return false;
-      if (filterStatus !== "all" && r.submissionStatus !== filterStatus) return false;
       if (cardFilter === "passed" && r.submissionStatus !== "passed") return false;
       if (cardFilter === "starred" && !starred.has(r.id)) return false;
-      if (cardFilter === "failed" && r.submissionStatus !== "failed" && r.submissionStatus !== "rejected") return false;
-      if (filterSharpeMin && r.osSharpe < parseFloat(filterSharpeMin)) return false;
-      if (filterReturnsMin) {
-        const rv = parseFloat(r.returns);
-        if (!isNaN(rv) && rv < parseFloat(filterReturnsMin)) return false;
-      }
-      if (filterTurnoverMin) {
-        const tv = parseFloat(r.turnover);
-        if (!isNaN(tv) && tv < parseFloat(filterTurnoverMin)) return false;
-      }
+      if (cardFilter === "failed" && r.submissionStatus !== "failed") return false;
       return true;
     });
-  }, [alphaRows, filterName, filterStatus, filterSharpeMin, filterReturnsMin, filterTurnoverMin, cardFilter, starred]);
+  }, [alphaRows, filterName, cardFilter, starred]);
 
   const sorted = useMemo(() => {
     if (!sortDir || !sortKey) return filtered;
@@ -428,7 +391,7 @@ export default function MyAlphas() {
         av = gradeOrder[getAlphaGrade(a.osSharpe)];
         bv = gradeOrder[getAlphaGrade(b.osSharpe)];
       } else if (sortKey === "submissionStatus" || sortKey === "status_col") {
-        const order = { passed: 0, os_testing: 1, is_testing: 2, backtesting: 3, queued: 4, failed: 5, rejected: 6 };
+        const order = { passed: 0, failed: 1, os_testing: 2, is_testing: 3, backtesting: 4, queued: 5, rejected: 6 };
         av = order[a.submissionStatus] ?? 99;
         bv = order[b.submissionStatus] ?? 99;
       } else if (sortKey === "epochStatus") {
@@ -487,13 +450,11 @@ export default function MyAlphas() {
 
   const visibleCols = dataColumns.filter((c) => visibleColumns.has(c.key));
   const cardSortColumns = dataColumns.filter((c) => c.sortable && c.key !== "id" && c.key !== "testsPassed");
-  const hasActiveFilters = filterName || filterStatus !== "all" || filterSharpeMin || filterReturnsMin || filterTurnoverMin;
+  const hasActiveFilters = Boolean(filterName);
 
   /* ── Status badge renderer — only passed/failed shown ── */
   const renderStatusBadge = (status: AlphaRow["submissionStatus"]) => {
-    // Map all statuses to passed or failed
-    const mappedStatus = (status === "passed") ? "passed" : "failed";
-    const s = statusConfig[mappedStatus];
+    const s = statusConfig[status] ?? statusConfig.failed;
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${s.bgClass} ${s.colorClass} ${s.borderClass}`}>
         {s.label}
@@ -547,17 +508,21 @@ export default function MyAlphas() {
         return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
       case "grade": {
         if (row.submissionStatus !== "passed") {
-          return <span className="text-xs text-muted-foreground/50 font-mono">-</span>;
+          return (
+            <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-700 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300">
+              -
+            </span>
+          );
         }
         const revealedGrade = readRevealedGrade(row.id);
         if (!revealedGrade) {
           return (
             <span
-              className="inline-flex items-center justify-center h-[24px] w-[24px] rounded-full border border-white/15 bg-gradient-to-b from-white/10 to-white/5 text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-              title="Pending reveal"
-              aria-label="Pending reveal"
+              className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+              title="Unrevealed grade"
+              aria-label="Unrevealed grade"
             >
-              <CircleHelp className="h-3.5 w-3.5" strokeWidth={2.25} />
+              <span className="text-[11px] leading-none font-black text-slate-500 dark:text-slate-300 select-none">?</span>
             </span>
           );
         }
@@ -565,7 +530,7 @@ export default function MyAlphas() {
           return <ShinyTag tier={revealedGrade} />;
         }
         return (
-          <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border-[0.5px] border-white/40 text-[10px] font-semibold text-white bg-transparent">
+          <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-900 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-100">
             {revealedGrade}
           </span>
         );
@@ -663,15 +628,27 @@ export default function MyAlphas() {
               My Alphas
             </h1>
             <Link href="/alphas/new">
-              <BorderGlowCard className="inline-flex">
-                <StarButton
-                  backgroundColor="#818cf8"
-                  className="shadow-2xl"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  New Alpha
-                </StarButton>
-              </BorderGlowCard>
+              <StarButton
+                style={{
+                  backgroundColor: "transparent",
+                  backgroundImage: "linear-gradient(rgb(79, 70, 229), rgb(79, 70, 229))",
+                }}
+                className="shadow-2xl text-[rgb(0,0,0)]"
+              >
+                <Plus className="w-3.5 h-3.5 text-white fill-white" />
+                <ShinyText
+                  text="New Alpha"
+                  speed={2}
+                  delay={0.1}
+                  spread={120}
+                  direction="left"
+                  yoyo={false}
+                  pauseOnHover={false}
+                  color="var(--new-alpha-text-base)"
+                  shineColor="var(--new-alpha-text-shine)"
+                  className="[--new-alpha-text-base:rgb(255,255,255)] [--new-alpha-text-shine:rgba(255,255,255,0.98)] dark:[--new-alpha-text-base:rgb(255,255,255)] dark:[--new-alpha-text-shine:rgba(255,255,255,0.98)]"
+                />
+              </StarButton>
             </Link>
           </div>
         </div>
@@ -753,58 +730,14 @@ export default function MyAlphas() {
               className="h-8 w-full rounded-xl border border-border bg-accent/30 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
             />
           </div>
-
-
-          {/* Numeric filter popover */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
-                (filterSharpeMin || filterReturnsMin || filterTurnoverMin)
-                  ? "bg-primary/10 border-primary/20 text-primary"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground"
-              }`}>
-                <BarChart3 className="w-3 h-3" />
-                Metrics
-                {(filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                )}
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-60 rounded-2xl" align="start">
-              <div className="space-y-3">
-                <p className="text-xs font-medium text-muted-foreground">Minimum Thresholds</p>
-                <div>
-                  <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">OS Sharpe</label>
-                  <Input placeholder="e.g. 1.0" value={filterSharpeMin} onChange={(e) => { setFilterSharpeMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">Returns</label>
-                  <Input placeholder="e.g. 5.0" value={filterReturnsMin} onChange={(e) => { setFilterReturnsMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-[0.15em] mb-1 block text-muted-foreground">Turnover</label>
-                  <Input placeholder="e.g. 30" value={filterTurnoverMin} onChange={(e) => { setFilterTurnoverMin(e.target.value); setPage(1); }} className="h-7 text-xs font-mono rounded-lg bg-card border-border" />
-                </div>
-                {(filterSharpeMin || filterReturnsMin || filterTurnoverMin) && (
-                  <button
-                    className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-colors"
-                    onClick={() => { setFilterSharpeMin(""); setFilterReturnsMin(""); setFilterTurnoverMin(""); setPage(1); }}
-                  >
-                    Clear all
-                  </button>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
-
           <div className="flex-1" />
 
           {hasActiveFilters && (
             <button
               className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-destructive/10 border border-destructive/20 text-destructive hover:bg-destructive/15"
               onClick={() => {
-                setFilterName(""); setFilterStatus("all");
-                setFilterSharpeMin(""); setFilterReturnsMin(""); setFilterTurnoverMin(""); setPage(1);
+                setFilterName("");
+                setPage(1);
               }}
             >
               <X className="w-3 h-3" />
@@ -812,17 +745,18 @@ export default function MyAlphas() {
             </button>
           )}
 
-          {viewMode === "card" && (
-            <Popover>
-              <PopoverTrigger asChild>
+          <Popover>
+            <PopoverTrigger asChild>
               <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                 <ArrowUpDown className="w-3.5 h-3.5" />
                 Sort
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 rounded-2xl" align="end">
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 rounded-2xl" align="end">
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">Sort Cards</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {viewMode === "card" ? "Sort Cards" : "Sort Rows"}
+                  </p>
                   <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
                     {cardSortColumns.map((col) => {
                       const active = sortKey === col.key;
@@ -870,9 +804,8 @@ export default function MyAlphas() {
                     </div>
                   )}
                 </div>
-              </PopoverContent>
-            </Popover>
-          )}
+            </PopoverContent>
+          </Popover>
 
           <Popover>
             <PopoverTrigger asChild>
