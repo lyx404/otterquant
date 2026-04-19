@@ -1,0 +1,434 @@
+{
+  "meta": {
+    "name": "AlphaForge / Otter — AI Factor Mining Platform",
+    "description": "Dark-first quantitative finance SaaS platform with Indigo/Sky + Slate design system. Features WebGL aurora backgrounds, custom cursor, GSAP entrance animations, ASCII canvas hero, and gamified scratch-card interactions.",
+    "source_references": [
+      "client/src/index.css",
+      "client/index.html",
+      "client/src/components/CustomCursor.tsx",
+      "client/src/components/Aurora.tsx",
+      "client/src/components/AsciiHero.tsx",
+      "client/src/components/ShineBorder.tsx",
+      "client/src/components/LightRays.tsx",
+      "client/src/components/SidebarLayout.tsx",
+      "client/src/components/ui/shiny-tag.tsx",
+      "client/src/components/ui/scramble-text.tsx",
+      "client/src/components/ui/encrypted-text.tsx",
+      "client/src/components/ui/scratch-card.tsx",
+      "client/src/components/ui/border-glow-card.tsx",
+      "client/src/components/ui/button.tsx",
+      "client/src/components/ui/star-button.tsx"
+    ],
+    "created_at": "2026-04-16"
+  },
+
+  "design_system": {
+    "color": {
+      "palette_type": "analogous",
+      "primary": {
+        "hex_light": "#4F46E5",
+        "hex_dark": "#818CF8",
+        "role": "Brand accent, CTA buttons, focus rings, sidebar active state, chart-1"
+      },
+      "secondary": {
+        "hex_light": "#0EA5E9",
+        "hex_dark": "#38BDF8",
+        "role": "Supporting accent, secondary buttons, chart-3, info semantic"
+      },
+      "accent": {
+        "hex_light": "#F1F5F9",
+        "hex_dark": "#1E293B",
+        "role": "Muted surface for pills, card hover backgrounds, sidebar accent"
+      },
+      "neutral": {
+        "scale": [
+          { "name": "Slate-50", "hex": "#F8FAFC", "usage": "Light background, dark foreground" },
+          { "name": "Slate-100", "hex": "#F1F5F9", "usage": "Light muted/accent surface" },
+          { "name": "Slate-200", "hex": "#E2E8F0", "usage": "Light borders, input borders" },
+          { "name": "Slate-300", "hex": "#CBD5E1", "usage": "Light scrollbar thumb" },
+          { "name": "Slate-400", "hex": "#94A3B8", "usage": "Dark muted-foreground" },
+          { "name": "Slate-500", "hex": "#64748B", "usage": "Light muted-foreground, sidebar text" },
+          { "name": "Slate-600", "hex": "#475569", "usage": "Dark scrollbar thumb hover" },
+          { "name": "Slate-700", "hex": "#334155", "usage": "Dark card hover border, scrollbar" },
+          { "name": "Slate-800", "hex": "#1E293B", "usage": "Dark borders, dark muted/accent surface" },
+          { "name": "Slate-900", "hex": "#0F172A", "usage": "Dark card/popover/sidebar bg" },
+          { "name": "Slate-950", "hex": "#020617", "usage": "Dark background, dark primary-foreground" }
+        ],
+        "usage": "Full Slate scale from Tailwind, providing 11-step neutral ramp for both themes"
+      },
+      "semantic": {
+        "success_light": "#10B981",
+        "success_dark": "#34D399",
+        "warning_light": "#F59E0B",
+        "warning_dark": "#FBBF24",
+        "error_light": "#EF4444",
+        "error_dark": "#F87171",
+        "info": "Mapped to secondary (Sky)"
+      },
+      "surface": {
+        "background_light": "#F8FAFC",
+        "background_dark": "#020617",
+        "card_light": "#FFFFFF",
+        "card_dark": "#0F172A",
+        "elevated_light": "#FFFFFF with backdrop-blur(12px)",
+        "elevated_dark": "#0F172A with backdrop-blur(12px)"
+      },
+      "contrast_strategy": "High contrast dark-on-light / light-on-dark with Slate scale layering. Dark mode uses border + bg-step instead of shadows for depth."
+    },
+
+    "typography": {
+      "type_scale": {
+        "display": {
+          "size": "2.25rem (36px)",
+          "weight": "700 (bold)",
+          "line_height": "2.5rem (40px)",
+          "tracking": "-0.02em"
+        },
+        "heading_1": {
+          "size": "2.25rem (36px)",
+          "weight": "700 (bold)",
+          "line_height": "2.5rem (40px)",
+          "tracking": "-0.02em"
+        },
+        "heading_2": {
+          "size": "1.5rem (24px)",
+          "weight": "600 (semibold)",
+          "line_height": "2rem (32px)",
+          "tracking": "-0.01em"
+        },
+        "heading_3": {
+          "size": "1.25rem (20px)",
+          "weight": "500 (medium)",
+          "line_height": "1.75rem (28px)",
+          "tracking": "normal"
+        },
+        "body": {
+          "size": "0.875rem (14px)",
+          "weight": "400 (regular)",
+          "line_height": "1.25rem (20px)",
+          "tracking": "normal"
+        },
+        "body_small": {
+          "size": "0.75rem (12px)",
+          "weight": "400 (regular)",
+          "line_height": "1rem (16px)",
+          "tracking": "normal"
+        },
+        "caption": {
+          "size": "0.625rem (10px)",
+          "weight": "600 (semibold)",
+          "line_height": "1rem (16px)",
+          "tracking": "0.04em"
+        },
+        "overline": {
+          "size": "11px",
+          "weight": "500 (medium)",
+          "line_height": "1rem (16px)",
+          "tracking": "0.08em, uppercase, tabular-nums"
+        }
+      },
+      "font_families": {
+        "heading": "'Inter', system-ui, -apple-system, sans-serif",
+        "body": "'Inter', system-ui, -apple-system, sans-serif",
+        "mono": "'Roboto Mono', ui-monospace, monospace"
+      },
+      "font_style_notes": "Inter with OpenType features cv02/cv03/cv04/cv11 for refined letterforms. Geist also loaded as secondary option. Mono font (Roboto Mono) used for all data values with tabular-nums and -0.02em tracking. Heading and body share Inter but differentiate through weight and tracking."
+    },
+
+    "spacing": {
+      "base_unit": "4px (Tailwind default)",
+      "scale": "4, 8, 12, 16, 20, 24, 32, 40, 48, 64 (Tailwind spacing scale)",
+      "content_density": "comfortable — generous padding in cards (p-5, p-6), spacious section gaps",
+      "section_rhythm": "Consistent 24-32px gaps between major sections, 12-16px between related elements"
+    },
+
+    "layout": {
+      "grid_system": "CSS Flexbox + CSS Grid hybrid",
+      "max_content_width": "1200px",
+      "columns": "Responsive: 1-col mobile, 2-3 col tablet, up to 8-col metric grids on desktop",
+      "gutter": "16px (1rem) mobile, 24px (1.5rem) tablet, 32px (2rem) desktop",
+      "breakpoints": {
+        "sm": "640px",
+        "md": "768px",
+        "lg": "1024px",
+        "xl": "1280px"
+      },
+      "alignment_tendency": "Left-aligned sidebar layout for authenticated pages. Landing page uses asymmetric hero (left text, right ASCII canvas). Dashboard uses card grid."
+    },
+
+    "shape": {
+      "border_radius": {
+        "small": "0.25rem (4px) — radius-sm",
+        "medium": "0.5rem (8px) — radius-md, inputs",
+        "large": "0.75rem (12px) — radius-lg, base radius",
+        "xl": "1rem (16px) — radius-xl",
+        "xxl": "1.5rem (24px) — radius-2xl, cards, surface-card, surface-elevated",
+        "pill": "9999px — rounded-full, buttons, pills, tags, avatars"
+      },
+      "border_usage": "Subtle 1px borders using Slate-200 (light) / Slate-800 (dark). Cards always have border. Inputs have border with indigo glow on focus. Tables use border-b for row separation.",
+      "divider_style": "1px solid border-border (Slate-200/Slate-800), used as table row separators and section dividers"
+    },
+
+    "elevation": {
+      "shadow_style": "Soft diffused in light mode, none in dark mode (uses border + bg-step instead)",
+      "levels": {
+        "low": "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px -1px rgba(0,0,0,0.04) — card default (light only)",
+        "medium": "0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05) — card hover (light only)",
+        "high": "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1) — dropdowns (light); 0 20px 25px -5px rgba(0,0,0,0.5) (dark)"
+      },
+      "depth_cues": "Light: soft shadows. Dark: border layering + bg-step (Slate-800 → Slate-900 → Slate-950). Elevated surfaces use backdrop-filter: blur(12px). Glow effects: 0 0 40px rgba(primary, 0.08-0.1)."
+    },
+
+    "iconography": {
+      "style": "Outlined / stroke-based",
+      "stroke_weight": "2px (Lucide default)",
+      "size_scale": "16px (size-4 default in buttons), 20px (size-5), 24px (size-6)",
+      "preferred_set": "Lucide React — LayoutDashboard, FlaskConical, Trophy, UserCog, Zap, Menu, X, ChevronLeft/Right/Down, Rocket, Library, FileText, Star, Eye, Plus, Filter, Columns3, Grid3x3, List, etc."
+    },
+
+    "motion": {
+      "easing": {
+        "default": "ease-in-out",
+        "smooth": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "bouncy": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "gsap_entrance": "power4.out",
+        "gsap_cursor": "power2.out / power3.out"
+      },
+      "duration_scale": {
+        "micro": "150ms — cursor follow, tooltip show",
+        "normal": "200ms — default transitions (bg, border, color, shadow)",
+        "macro": "300-500ms — card entrance (400ms), GSAP stagger reveals (300ms per item), theme transitions"
+      },
+      "entrance_pattern": "GSAP staggered reveal: y:100 → y:0 with skewY:7 → skewY:0, power4.out easing, 0.08s stagger. Cards: y:30/16 → y:0 with opacity:0 → opacity:1, 0.06s stagger.",
+      "exit_pattern": "Opacity fade-out, 200ms ease-in-out",
+      "philosophy": "Cinematic entrance animations with GSAP for page titles and hero sections. Functional micro-transitions for interactive elements. Bouncy easing for playful button interactions."
+    },
+
+    "components": {
+      "button_style": "Rounded-md (6px) default. Variants: default (bg-primary), destructive (bg-destructive), outline (border, transparent bg), secondary (bg-secondary), ghost (transparent), link (underline). Sizes: sm (h-8), default (h-9), lg (h-10), icon (size-9). Hover: bg-primary/90. Special: StarButton (rounded-3xl, bg-[#818cf8], white text), btn-bounce (scale 1.05 on hover, 0.98 on active).",
+      "input_style": "Border border-input, rounded-md, focus: indigo glow ring (box-shadow 0 0 0 2px rgba(primary, 0.2)), border-color shift to primary/50.",
+      "card_style": "surface-card: bg-card, border border-border, rounded-2xl (24px). Light: soft shadow, hover shadow upgrade. Dark: no shadow, hover border lightens to Slate-700. Transition: 200ms ease-in-out on bg, border, shadow.",
+      "navigation_pattern": "Persistent left sidebar (220px expanded, 64px collapsed). Icon + label nav items. Collapsible sub-menus with ChevronDown. Mobile: overlay sidebar with backdrop. Bottom: theme toggle + user dropdown.",
+      "modal_style": "Centered overlay with backdrop blur. Rounded-2xl. Close on backdrop click or X button. ScratchCard modal: full-screen overlay with Canvas interaction.",
+      "list_style": "Table with border-b row separators. Hover: bg-slate-50/bg-slate-800/50. Monospace tabular-nums for data columns. Sortable column headers.",
+      "component_notes": "ShinyTag for S/A grade badges (gradient fill, shine sweep on hover). B/C/D grades use white text + white/40 border pill. BorderGlowCard for premium CTA buttons (cursor-tracking edge glow with mesh-gradient). ScratchCard for gamified grade reveal (Canvas 2D scratch layer + confetti particles). ShineBorder for rotating gradient border animation."
+    }
+  },
+
+  "design_style": {
+    "aesthetic": {
+      "mood": ["technical", "premium", "data-driven", "futuristic", "gamified"],
+      "visual_metaphor": "Quantitative trading terminal meets modern SaaS dashboard — precision data display with playful gamification elements (scratch cards, grade reveals, aurora effects)",
+      "era_influence": "2024-2026 dark-mode SaaS with Web3/DeFi visual language influences (glowing borders, mesh gradients, ASCII art)",
+      "genre": "FinTech SaaS dashboard with gamification",
+      "personality_traits": ["analytical", "confident", "sophisticated", "playful-in-details"],
+      "adjectives": ["sleek", "data-dense", "indigo-tinted", "cinematic", "precise"]
+    },
+
+    "visual_language": {
+      "complexity": "rich — multiple animation systems (GSAP, WebGL, Canvas 2D, CSS), layered effects, gamification mechanics",
+      "ornamentation": "subtle accents — aurora backgrounds, glow effects, shine sweeps, but content remains clean and data-focused",
+      "whitespace_usage": "Generous within cards and sections, but data tables are dense. Hero sections use ample whitespace. Sidebar is compact.",
+      "visual_weight_distribution": "Left-heavy due to persistent sidebar. Content area balanced with card grids. Hero sections asymmetric (text left, visual right).",
+      "focal_strategy": "Progressive reveal — GSAP stagger animations draw attention sequentially. Grade scratch-card creates focal point through gamification.",
+      "contrast_level": "High — Indigo/Sky accents pop against Slate-950 dark background. Semantic colors (green/red/yellow) for data values create strong visual hierarchy.",
+      "texture_usage": "ASCII character grid as hero texture. Aurora WebGL shader as ambient background. Mesh-gradient glow on premium elements."
+    },
+
+    "composition": {
+      "hierarchy_method": "Scale contrast + color weight + typographic hierarchy. Page titles are 36px bold, section headers 24px semibold, data values use monospace with color coding.",
+      "balance_type": "Asymmetric — sidebar creates persistent left weight. Content area uses grid-based card layouts for internal balance.",
+      "flow_direction": "Top-to-bottom with left sidebar anchor. Dashboard: title → metrics grid → charts → tables. Detail pages: name → summary cards → expression → charts → tests.",
+      "grouping_strategy": "Card-based grouping with consistent rounded-2xl containers. Related metrics grouped in grid rows. Collapsible sections for secondary content.",
+      "negative_space_role": "Structural — separates card groups, creates breathing room between sections. Dark background amplifies the effect of illuminated content areas."
+    },
+
+    "imagery": {
+      "photo_treatment": "No photography used. All visuals are generative/programmatic.",
+      "illustration_style": "ASCII art (AsciiHero canvas), WebGL aurora shader, programmatic light rays",
+      "graphic_elements": "Gradient pills/tags, glow borders, confetti particles, scratch-card canvas overlay",
+      "pattern_usage": "ASCII character grid as decorative pattern. Dot-grid implied by data table structure.",
+      "image_shape": "Rectangular with rounded-2xl corners for cards. Full-bleed for aurora/ASCII backgrounds."
+    },
+
+    "interaction_feel": {
+      "feedback_style": "Visual state changes (color, scale, glow) + toast notifications via Sonner. Focus rings with indigo glow.",
+      "hover_behavior": "Cards: border lightens + shadow upgrade. Buttons: scale(1.05) + brightness(1.1) bouncy. Tags: bg-position shift + shine sweep. Cursor: ring enlarges + fills with primary/10.",
+      "transition_personality": "Smooth glide for general UI (200ms ease-in-out). Bouncy elastic for buttons (300ms cubic-bezier(0.34,1.56,0.64,1)). Cinematic for page entrances (GSAP power4.out).",
+      "loading_style": "Skeleton placeholders implied. Spinner component available. Card entrance animation (400ms fade-up).",
+      "microinteraction_density": "High — custom cursor tracking, star toggle animation, scramble text on brand name, encrypted text reveal, shine border rotation, border-glow cursor tracking, scratch-card canvas interaction"
+    },
+
+    "brand_voice_in_ui": {
+      "tone": "Technical-professional with playful gamification touches",
+      "formality": "Semi-formal — uses quant finance terminology (Alpha, Sharpe, Drawdown, IS/OS) but adds fun elements (scratch cards, grade reveals, aurora effects)",
+      "cta_style": "Direct imperative — 'Get Your Skill Key', 'New Alpha', 'Create Alpha', 'Explore Prize Pools'",
+      "empty_state_approach": "Illustrated empty states with action prompts",
+      "error_tone": "Neutral-helpful with destructive red accent"
+    }
+  },
+
+  "visual_effects": {
+    "overview": {
+      "effect_intensity": "moderate",
+      "performance_tier": "heavy",
+      "fallback_strategy": "Aurora degrades to static gradient. Custom cursor hidden on touch devices. GSAP animations play once without scroll triggers.",
+      "primary_technology": "GSAP + WebGL (OGL) + Canvas 2D"
+    },
+
+    "background_effects": {
+      "type": "generative-art",
+      "description": "WebGL aurora borealis shader using OGL library with simplex noise. Renders smooth, animated color bands that drift horizontally. Used on landing/dashboard pages. Colors configurable via props (default: #5227FF, #7cff67, #5227FF).",
+      "technology": "WebGL via OGL (Renderer, Program, Mesh, Triangle) with custom GLSL fragment shader",
+      "params": {
+        "color_palette": ["#5227FF", "#7cff67", "#5227FF"],
+        "speed": "0.1 (slow drift, uTime * speed * 0.1)",
+        "density": "Simplex noise at uv.x * 2.0 frequency",
+        "opacity": "0.6 base intensity, smoothstep blend",
+        "blend_mode": "Premultiplied alpha, ONE / ONE_MINUS_SRC_ALPHA"
+      }
+    },
+
+    "particle_systems": {
+      "enabled": true,
+      "type": "confetti",
+      "description": "Confetti particle burst triggered on S/A grade scratch-card reveal. 150 particles with random colors, sizes, velocities, and rotation. Gravity-affected with fade-out.",
+      "technology": "Canvas 2D with requestAnimationFrame loop",
+      "params": {
+        "count": 150,
+        "shape": "Rectangles with random width (4-8px) and height (8-16px)",
+        "size_range": "4-16px",
+        "movement_pattern": "Burst from center with random velocity (-15 to 15 horizontal, -20 to -5 vertical), gravity 0.3, rotation",
+        "color_behavior": "Random selection from grade-specific palette (S: gold/amber, A: purple/violet)",
+        "interaction": "Triggered on scratch-card 50% reveal threshold",
+        "spawn_area": "Center of scratch-card modal"
+      }
+    },
+
+    "3d_elements": {
+      "enabled": false,
+      "type": "none",
+      "description": "No 3D models or Three.js scenes used",
+      "technology": "N/A",
+      "params": {
+        "renderer": "N/A",
+        "lighting": "N/A",
+        "camera": "N/A",
+        "materials": "N/A",
+        "geometry": "N/A",
+        "post_processing": "N/A",
+        "interaction_model": "N/A"
+      }
+    },
+
+    "shader_effects": {
+      "enabled": true,
+      "type": "noise-distortion",
+      "description": "Simplex noise shader in Aurora component creates organic aurora borealis wave patterns. Fragment shader computes noise-based height field with exponential falloff and smoothstep alpha blending.",
+      "technology": "GLSL ES 3.0 via OGL",
+      "params": {
+        "uniforms": ["uTime (float)", "uAmplitude (float)", "uColorStops (vec3[3])", "uResolution (vec2)", "uBlend (float)"],
+        "vertex_manipulation": "None (fullscreen triangle pass-through)",
+        "fragment_output": "Noise-modulated color ramp with smoothstep alpha",
+        "noise_type": "simplex (2D snoise function)",
+        "distortion": "Exponential height field: exp(snoise * 0.5 * amplitude)"
+      }
+    },
+
+    "scroll_effects": {
+      "parallax": {
+        "enabled": false,
+        "layers": "0",
+        "depth_range": "N/A",
+        "speed_curve": "N/A"
+      },
+      "scroll_triggered_animations": {
+        "enabled": false,
+        "trigger_points": "N/A (GSAP animations are mount-triggered, not scroll-triggered)",
+        "animation_type": "N/A",
+        "scrub_behavior": "N/A"
+      },
+      "scroll_morphing": {
+        "enabled": false,
+        "description": "No scroll-driven morphing effects"
+      }
+    },
+
+    "text_effects": {
+      "type": "split-letter-animate",
+      "description": "Multiple text animation systems: (1) ScrambleText — GSAP-powered character scramble with random char cycling before reveal, auto-repeating. (2) EncryptedText — character-by-character reveal from random chars to actual text with IntersectionObserver trigger. (3) TextLoop — GSAP vertical text carousel with blur transition between items.",
+      "technology": "GSAP (ScrambleText, TextLoop) + vanilla JS (EncryptedText)",
+      "params": {
+        "split_strategy": "by-char (all three systems split text into individual characters)",
+        "animation_per_unit": "ScrambleText: random char cycling (10 cycles) then reveal. EncryptedText: sequential reveal with 50ms delay per char. TextLoop: yPercent slide + blur filter.",
+        "stagger": "ScrambleText: 0.02s per char. EncryptedText: 50ms sequential. TextLoop: N/A (full word swap).",
+        "effect_style": "Cyber/hacker aesthetic — random character scramble before revealing actual text. Brand name 'Otter' uses this on the sidebar."
+      }
+    },
+
+    "cursor_effects": {
+      "enabled": true,
+      "type": "custom-cursor",
+      "description": "Custom dual-element cursor: outer ring (32px, border-only, primary color at 50% opacity) + inner dot (5px, solid primary). Ring follows mouse with 150ms GSAP lerp. On hoverable elements: ring expands to 56px, fills with primary/10, border becomes solid primary. Theme-aware via CSS variable --primary.",
+      "params": {
+        "shape": "Circle (ring + dot)",
+        "size": "32px default ring, 56px hover ring, 5px center dot",
+        "blend_mode": "None (no mix-blend-mode to preserve true Indigo color)",
+        "trail": "Soft 150ms GSAP lerp on ring, instant on dot",
+        "interaction_zone": "All interactive elements: a, button, [role=button], select, input, textarea, [data-cursor-hover]"
+      }
+    },
+
+    "image_effects": {
+      "type": "none",
+      "description": "No image distortion or reveal effects. Visual interest comes from generative/programmatic elements instead of photography.",
+      "technology": "N/A",
+      "params": {
+        "filter_pipeline": "N/A",
+        "hover_transform": "N/A",
+        "reveal_animation": "N/A",
+        "distortion_type": "N/A"
+      }
+    },
+
+    "glassmorphism_neumorphism": {
+      "enabled": true,
+      "style": "frosted-layers",
+      "params": {
+        "blur_radius": "12px (backdrop-filter: blur(12px) on surface-elevated)",
+        "transparency": "Opaque card backgrounds with blur on elevated surfaces (dropdowns, popovers)",
+        "border_treatment": "1px solid border-border with theme-aware color",
+        "shadow_type": "Soft diffused (light mode only). Dark mode: border layering only.",
+        "light_source_angle": "Top-left implied by shadow offsets"
+      }
+    },
+
+    "canvas_drawings": {
+      "enabled": true,
+      "type": "interactive-blobs",
+      "description": "AsciiHero — Canvas 2D rendering of ASCII character grid that responds to mouse position. Characters cycle through ' .:-=+*#%@' based on distance from mouse cursor and time-based animation. Creates a living, breathing dot-matrix texture. Also: ScratchCard Canvas for gamified grade reveal with eraser-style touch/mouse interaction.",
+      "technology": "Canvas 2D with requestAnimationFrame",
+      "params": {
+        "draw_method": "fillText for ASCII grid, globalCompositeOperation 'destination-out' for scratch eraser",
+        "animation_loop": "requestAnimationFrame continuous loop",
+        "color_scheme": "Indigo (#4F47E6) for ASCII chars, silver (#C0C0C0) for scratch layer",
+        "responsiveness": "ResizeObserver with DPR-aware scaling",
+        "interaction": "Mouse position influences ASCII character selection (proximity-based). Scratch card: mouse/touch drag erases silver layer."
+      }
+    },
+
+    "svg_animations": {
+      "enabled": false,
+      "type": "none",
+      "description": "No SVG path animations or morphing",
+      "params": {
+        "animation_method": "N/A",
+        "path_morphing": "N/A",
+        "stroke_animation": "N/A",
+        "filter_effects": "N/A"
+      }
+    },
+
+    "composite_notes": "The design layers multiple effect systems: (1) WebGL aurora shader as ambient page background, (2) Canvas 2D ASCII grid as hero section texture, (3) GSAP entrance animations for titles (skewY reveal) and cards (stagger fade-up), (4) Custom cursor with GSAP-driven follow and hover state changes, (5) CSS-driven micro-interactions (shine sweeps, border glow, button bounce), (6) Canvas 2D scratch-card for gamified grade reveal with confetti burst. Performance consideration: WebGL and Canvas run on separate threads from GSAP DOM animations. Aurora uses premultiplied alpha blending for proper compositing. Custom cursor uses will-change:transform for GPU acceleration. BorderGlowCard uses CSS custom properties driven by JS mousemove for cursor-tracking glow without Canvas overhead."
+  }
+}
