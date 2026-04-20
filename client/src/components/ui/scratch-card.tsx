@@ -21,14 +21,6 @@ type HighlightGradeTheme = {
   shadowHover: string;
 };
 
-type GradeConfig = {
-  title: string;
-  subtitle: string;
-  glow: string;
-  text: string;
-  border: string;
-};
-
 const HIGHLIGHT_GRADE_THEME: Record<Extract<Grade, "S" | "A">, HighlightGradeTheme> = {
   S: {
     bg: "linear-gradient(135deg, #E7C65B 0%, #F3DA84 50%, #E2BC45 100%)",
@@ -54,44 +46,6 @@ const UNREVEALED_CARD_STYLE = {
   shadowHover: "0 0 32px rgba(148,163,184,0.24), inset 0 1px 0 rgba(255,255,255,0.12)",
 };
 
-const GRADE_MODAL_MAP: Record<Grade, GradeConfig> = {
-  S: {
-    title: "S",
-    subtitle: "Exceptional",
-    glow: "from-yellow-300/30 via-amber-300/10 to-transparent",
-    text: "text-yellow-400",
-    border: "border-yellow-300/40",
-  },
-  A: {
-    title: "A",
-    subtitle: "Excellent",
-    glow: "from-amber-200/20 via-orange-200/10 to-transparent",
-    text: "text-amber-300",
-    border: "border-amber-200/30",
-  },
-  B: {
-    title: "B",
-    subtitle: "Great",
-    glow: "from-sky-300/20 via-indigo-200/10 to-transparent",
-    text: "text-sky-300",
-    border: "border-sky-200/20",
-  },
-  C: {
-    title: "C",
-    subtitle: "Good",
-    glow: "from-indigo-300/15 via-violet-200/10 to-transparent",
-    text: "text-indigo-300",
-    border: "border-indigo-200/20",
-  },
-  D: {
-    title: "D",
-    subtitle: "Keep going",
-    glow: "from-slate-300/10 via-slate-200/5 to-transparent",
-    text: "text-slate-300",
-    border: "border-slate-200/15",
-  },
-};
-
 const GRADE_SUBTITLE: Record<Grade, string> = {
   S: "Exceptional",
   A: "Excellent",
@@ -103,7 +57,7 @@ const GRADE_SUBTITLE: Record<Grade, string> = {
 const REVEAL_THRESHOLD = 0.6;
 const SCRATCH_RADIUS = 34;
 const MASK_OVERDRAW = 4;
-const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v2_";
+const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
 const LETTER_REGION = {
   x: 0.32,
   y: 0.28,
@@ -204,32 +158,85 @@ function ConfettiLayer() {
   return <canvas ref={canvasRef} className="pointer-events-none absolute inset-0 z-0 h-full w-full" />;
 }
 
-function ResultCard({ grade }: { grade: Grade }) {
-  const cfg = GRADE_MODAL_MAP[grade];
+function RevealedGradeCard({
+  grade,
+  isHovered = false,
+  interactive = false,
+  size = "card",
+  className = "",
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  grade: Grade;
+  isHovered?: boolean;
+  interactive?: boolean;
+  size?: "card" | "modal";
+  className?: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
+  const isHighlightGrade = grade === "S" || grade === "A";
+  const revStyle = isHighlightGrade ? HIGHLIGHT_GRADE_THEME[grade] : null;
+  const interactiveClass = interactive ? "transition-all duration-300 group" : "";
+  const isModal = size === "modal";
 
   return (
-    <div className={`relative h-full w-full overflow-hidden rounded-[28px] border ${cfg.border} bg-slate-800/95`}>
-      <div className={`absolute inset-0 bg-gradient-to-br ${cfg.glow}`} />
-      <div className="absolute inset-x-0 top-0 h-px bg-white/10" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.08),transparent_28%),radial-gradient(circle_at_18%_24%,rgba(113,87,255,0.18),transparent_16%),radial-gradient(circle_at_84%_30%,rgba(74,159,255,0.12),transparent_12%)]" />
-      <div className="relative flex h-full flex-col items-center justify-center gap-3">
-        <div className="text-[14px] font-medium tracking-[0.22em] text-slate-300">GRADE</div>
-        <motion.div
-          initial={{ scale: 0.86, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
-          className={`text-6xl font-semibold leading-none ${cfg.text}`}
+    <div
+      className={`text-center relative overflow-hidden ${
+        isModal ? "rounded-[28px]" : "rounded-2xl"
+      } ${
+        isHighlightGrade
+          ? ""
+          : "border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800"
+      } ${interactiveClass} ${className}`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      style={{
+        backgroundImage: revStyle?.bg,
+        border: revStyle ? `1px solid ${revStyle.border}66` : undefined,
+        boxShadow: revStyle
+          ? isHovered
+            ? revStyle.shadowHover
+            : revStyle.shadow
+          : undefined,
+        backgroundSize: revStyle ? "200% 200%" : undefined,
+        backgroundPosition: revStyle ? (isHovered ? "100% 50%" : "0% 50%") : undefined,
+        transform: interactive
+          ? isHovered
+            ? "translateY(-1px) scale(1.01)"
+            : "translateY(0) scale(1)"
+          : undefined,
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.12)_50%,transparent_70%)] bg-[size:180%_100%] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      <div className={`relative z-10 flex h-full w-full flex-col items-center justify-center ${isModal ? "gap-4" : "gap-1"}`}>
+        <div
+          className={`label-upper ${isModal ? "text-[clamp(14px,1.8vw,18px)]" : "text-[9px]"} ${
+            isHighlightGrade ? "" : "text-slate-600 dark:text-slate-400"
+          }`}
+          style={{ color: revStyle?.text, opacity: 0.65 }}
         >
-          {cfg.title}
-        </motion.div>
-        <motion.div
-          initial={{ y: 6, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.22, delay: 0.05 }}
-          className="text-[16px] text-slate-300"
+          GRADE
+        </div>
+        <div
+          className={`${isModal ? "text-[clamp(72px,10vw,122px)] leading-none" : "text-lg"} font-bold ${
+            isHighlightGrade ? "" : "text-slate-900 dark:text-slate-100"
+          }`}
+          style={{
+            color: revStyle?.text,
+            textShadow: revStyle ? "0 0 10px rgba(255,255,255,0.12)" : undefined,
+          }}
         >
-          {cfg.subtitle}
-        </motion.div>
+          {grade}
+        </div>
+        <div
+          className={`${isModal ? "text-[clamp(20px,2.6vw,30px)]" : "text-[9px]"} ${
+            isHighlightGrade ? "" : "text-slate-700 dark:text-slate-300"
+          }`}
+          style={{ color: revStyle?.text, opacity: 0.78 }}
+        >
+          {GRADE_SUBTITLE[grade]}
+        </div>
       </div>
     </div>
   );
@@ -242,6 +249,7 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
   const revealedRef = useRef(false);
   const [started, setStarted] = useState(false);
   const [maskHidden, setMaskHidden] = useState(false);
+  const [revealedHovered, setRevealedHovered] = useState(false);
 
   const initMask = useCallback(() => {
     const canvas = canvasRef.current;
@@ -311,6 +319,7 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
     revealedRef.current = false;
     setMaskHidden(false);
     setStarted(false);
+    setRevealedHovered(false);
     return true;
   }, []);
 
@@ -406,10 +415,25 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
       className="relative w-full overflow-hidden rounded-[28px] shadow-[0_20px_60px_rgba(9,10,30,0.55)]"
       style={{ aspectRatio: "370 / 220", maxWidth: 520 }}
     >
-      <ResultCard grade={grade} />
+      <div
+        className="h-full w-full transition-opacity duration-150"
+        style={{ opacity: started || maskHidden ? 1 : 0 }}
+      >
+        <RevealedGradeCard
+          grade={grade}
+          size="modal"
+          className="h-full w-full px-8 py-7 md:px-10 md:py-8"
+          interactive={maskHidden}
+          isHovered={revealedHovered}
+          onMouseEnter={() => setRevealedHovered(true)}
+          onMouseLeave={() => setRevealedHovered(false)}
+        />
+      </div>
       <motion.canvas
         ref={canvasRef}
-        className="absolute left-0 top-0 rounded-[28px] cursor-crosshair touch-none"
+        className={`absolute left-0 top-0 rounded-[28px] touch-none ${
+          maskHidden ? "pointer-events-none cursor-default" : "pointer-events-auto cursor-crosshair"
+        }`}
         animate={maskHidden ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.24 }}
         onPointerDown={(e) => {
@@ -459,10 +483,6 @@ export default function ScratchCard({
   const [showModal, setShowModal] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [modalRevealed, setModalRevealed] = useState(false);
-  const [modalFrame, setModalFrame] = useState<{ left: number; right: number }>({
-    left: 0,
-    right: 0,
-  });
 
   const openModal = () => {
     if (isFailed) return;
@@ -473,40 +493,6 @@ export default function ScratchCard({
   const closeModal = useCallback(() => {
     setShowModal(false);
   }, []);
-
-  useEffect(() => {
-    if (!showModal || typeof window === "undefined") return;
-
-    const updateModalFrame = () => {
-      const desktopSidebar = document.querySelector("aside.hidden.md\\:flex") as HTMLElement | null;
-      const sidebarVisible =
-        desktopSidebar && window.getComputedStyle(desktopSidebar).display !== "none";
-
-      const left = sidebarVisible
-        ? Math.max(0, Math.round(desktopSidebar.getBoundingClientRect().right))
-        : 0;
-
-      setModalFrame({
-        left,
-        right: 0,
-      });
-    };
-
-    updateModalFrame();
-
-    const resizeObserver = new ResizeObserver(() => {
-      updateModalFrame();
-    });
-
-    const desktopSidebar = document.querySelector("aside.hidden.md\\:flex") as HTMLElement | null;
-    if (desktopSidebar) resizeObserver.observe(desktopSidebar);
-
-    window.addEventListener("resize", updateModalFrame);
-    return () => {
-      window.removeEventListener("resize", updateModalFrame);
-      resizeObserver.disconnect();
-    };
-  }, [showModal]);
 
   const handleRevealDone = useCallback(() => {
     if (modalRevealed) return;
@@ -528,65 +514,15 @@ export default function ScratchCard({
 
   if (revealedGrade && !showModal) {
     const displayGrade = normalizeGrade(revealedGrade);
-    const isHighlightGrade = displayGrade === "S" || displayGrade === "A";
-    const revStyle = isHighlightGrade
-      ? HIGHLIGHT_GRADE_THEME[displayGrade]
-      : null;
     return (
-      <div
-        className={`text-center p-4 rounded-2xl relative overflow-hidden transition-all duration-300 group ${
-          isHighlightGrade
-            ? ""
-            : "border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800"
-        }`}
-        style={{
-          backgroundImage: revStyle?.bg,
-          border: revStyle ? `1px solid ${revStyle.border}66` : undefined,
-          boxShadow: revStyle
-            ? isHovered
-              ? revStyle.shadowHover
-              : revStyle.shadow
-            : undefined,
-          backgroundSize: revStyle ? "200% 200%" : undefined,
-          backgroundPosition: revStyle
-            ? isHovered
-              ? "100% 50%"
-              : "0% 50%"
-            : undefined,
-          transform: isHovered ? "translateY(-1px) scale(1.01)" : "translateY(0) scale(1)",
-        }}
+      <RevealedGradeCard
+        grade={displayGrade}
+        isHovered={isHovered}
+        interactive
+        className="p-4"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.12)_50%,transparent_70%)] bg-[size:180%_100%] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-        <div
-          className={`relative z-10 label-upper mb-1 text-[9px] ${
-            isHighlightGrade ? "" : "text-slate-600 dark:text-slate-400"
-          }`}
-          style={{ color: revStyle?.text, opacity: 0.65 }}
-        >
-          GRADE
-        </div>
-        <div
-          className={`text-lg font-bold ${
-            isHighlightGrade ? "" : "text-slate-900 dark:text-slate-100"
-          }`}
-          style={{
-            color: revStyle?.text,
-            textShadow: revStyle ? "0 0 10px rgba(255,255,255,0.12)" : undefined,
-          }}
-        >
-          {displayGrade}
-        </div>
-        <div
-          className={`text-[9px] mt-0.5 ${
-            isHighlightGrade ? "" : "text-slate-700 dark:text-slate-300"
-          }`}
-          style={{ color: revStyle?.text, opacity: 0.78 }}
-        >
-          {GRADE_SUBTITLE[displayGrade]}
-        </div>
-      </div>
+      />
     );
   }
 
@@ -671,8 +607,7 @@ export default function ScratchCard({
               {modalRevealed && shouldCelebrate(normalizedGrade) && <ConfettiLayer />}
             </AnimatePresence>
             <div
-              className="absolute inset-y-0 z-10 flex items-center justify-center px-2 sm:px-4"
-              style={{ left: modalFrame.left, right: modalFrame.right }}
+              className="absolute inset-0 z-10 flex items-center justify-center px-2 sm:px-4"
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.92, rotate: -6, y: 18, filter: "blur(6px)" }}

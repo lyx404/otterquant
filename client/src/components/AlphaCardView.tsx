@@ -7,8 +7,8 @@ import { Link } from "wouter";
 import { ArrowUpRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  getAlphaGrade,
   type Factor,
+  type AlphaGrade,
 } from "@/lib/mockData";
 import ShinyTag from "@/components/ui/shiny-tag";
 
@@ -33,6 +33,21 @@ interface AlphaCardViewProps {
   onToggleStar: (id: string) => void;
 }
 
+const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v4_";
+
+function readRevealedGrade(factorId: string): AlphaGrade | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const value = window.localStorage.getItem(`${REVEALED_GRADE_STORAGE_PREFIX}${factorId}`);
+    return value === "S" || value === "A" || value === "B" || value === "C" || value === "D"
+      ? value
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function AlphaCardView({ rows, visibleColumns, starred, onToggleStar }: AlphaCardViewProps) {
   const isVisible = (key: string) => visibleColumns.has(key);
 
@@ -49,15 +64,33 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
 
   const renderGrade = (row: AlphaRow) => {
     if (row.submissionStatus !== "passed") {
-      return <span className="text-xs text-muted-foreground/50 font-mono">-</span>;
+      return (
+        <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-700 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300">
+          -
+        </span>
+      );
     }
-    const grade = getAlphaGrade(row.osSharpe);
-    if (grade === "S" || grade === "A") {
-      return <ShinyTag tier={grade} />;
+
+    const revealedGrade = readRevealedGrade(row.id);
+    if (!revealedGrade) {
+      return (
+        <span
+          className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+          title="Unrevealed grade"
+          aria-label="Unrevealed grade"
+        >
+          <span className="text-[11px] leading-none font-black text-slate-500 dark:text-slate-300 select-none">?</span>
+        </span>
+      );
     }
+
+    if (revealedGrade === "S" || revealedGrade === "A") {
+      return <ShinyTag tier={revealedGrade} />;
+    }
+
     return (
-      <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border-[0.5px] border-white/40 text-[10px] font-semibold text-white bg-transparent">
-        {grade}
+      <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-900 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-100">
+        {revealedGrade}
       </span>
     );
   };

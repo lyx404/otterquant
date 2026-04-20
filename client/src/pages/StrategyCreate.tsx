@@ -661,15 +661,15 @@ export default function StrategyCreate() {
       </div>
 
       {mode === "platform" && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="rounded-2xl border border-border bg-card p-6 space-y-7">
-            <div className="flex items-center gap-2 mb-1">
+        <div className="space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="rounded-2xl border border-border bg-card p-7 space-y-8">
+            <div className="flex items-center gap-2 mb-2">
               <ClipboardCheck className="w-4 h-4 text-primary" />
               <span className="text-sm font-semibold text-foreground">Core Parameters</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">Required</span>
             </div>
 
-            <div className="grid w-full max-w-[300px] grid-cols-2 gap-2">
+            <div className="grid w-full max-w-[320px] grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setPlatformInputMethod("form")}
@@ -697,10 +697,10 @@ export default function StrategyCreate() {
               </button>
             </div>
 
-            <div className={platformInputMethod === "form" ? "space-y-0" : "hidden"}>
-            <div className="space-y-3">
+            <div className={platformInputMethod === "form" ? "space-y-6" : "hidden"}>
+            <div className="space-y-4">
               <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setStrategyType("time-series")}
@@ -732,7 +732,7 @@ export default function StrategyCreate() {
             {strategyType ? (
               <>
                 {strategyType === "time-series" && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <label className="text-xs font-medium text-muted-foreground">Symbol <span className="text-destructive">*</span></label>
                     </div>
@@ -785,7 +785,7 @@ export default function StrategyCreate() {
                   </div>
                 )}
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <label className="text-xs font-medium text-muted-foreground">Alpha Selection <span className="text-destructive">*</span></label>
 
                   <button
@@ -830,11 +830,11 @@ export default function StrategyCreate() {
                   )}
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <label className="text-xs font-medium text-muted-foreground">Factor Weights <span className="text-destructive">*</span></label>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setWeightMode("equal")}
@@ -863,9 +863,9 @@ export default function StrategyCreate() {
                   )}
 
                   {weightMode === "custom" && (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {selectedFactors.map((factorName) => (
-                        <div key={factorName} className="grid grid-cols-[1fr_120px] gap-2">
+                        <div key={factorName} className="grid grid-cols-[1fr_120px] gap-3">
                           <div className="h-9 rounded-lg border border-border/60 bg-background/30 px-3 flex items-center text-xs text-muted-foreground truncate">
                             {factorName}
                           </div>
@@ -889,9 +889,9 @@ export default function StrategyCreate() {
 
                 {strategyType === "cross-sectional" && (
                   <>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <label className="text-xs font-medium text-muted-foreground">Strategy Side <span className="text-destructive">*</span></label>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 gap-3">
                         {([
                           { value: "long", label: "Long Only" },
                           { value: "short", label: "Short Only" },
@@ -913,16 +913,16 @@ export default function StrategyCreate() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <label className="text-xs font-medium text-muted-foreground">Top/Tail Rule <span className="text-destructive">*</span></label>
-                      <div className="grid w-full max-w-[360px] grid-cols-[1fr_120px] gap-2">
+                      <div className="grid w-full max-w-[360px] grid-cols-[1fr_120px] gap-3">
                         <Input
                           value={rankValue}
                           onChange={(e) => setRankValue(e.target.value)}
                           className="h-9 rounded-lg bg-accent border-border text-sm"
                           placeholder={rankMode === "n" ? "5" : "10"}
                         />
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-3">
                           <button
                             type="button"
                             onClick={() => setRankMode("n")}
@@ -954,8 +954,8 @@ export default function StrategyCreate() {
                   </>
                 )}
 
-                <div className="grid grid-cols-1 gap-4">
-                  <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <label className="text-xs font-medium text-muted-foreground">Stop Loss (%) <span className="text-destructive">*</span></label>
                       <Popover>
@@ -1008,7 +1008,7 @@ export default function StrategyCreate() {
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <label className="text-xs font-medium text-muted-foreground">Cooldown (hours) <span className="text-destructive">*</span></label>
                       <Popover>
@@ -1068,7 +1068,7 @@ export default function StrategyCreate() {
             </div>
 
             {platformInputMethod === "ai-chat" && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <label className="text-xs font-medium text-muted-foreground">AI Chat Prompt <span className="text-destructive">*</span></label>
                   <button
@@ -1118,8 +1118,8 @@ export default function StrategyCreate() {
             </button>
 
             {showOptionalFields && (
-              <div className="px-6 pb-6 space-y-5">
-                <div className="space-y-2">
+              <div className="px-6 pb-6 space-y-6">
+                <div className="space-y-3">
                   <label className="text-xs font-medium text-muted-foreground">Strategy Name</label>
                   <Input
                     placeholder="System default will be filled"
@@ -1129,7 +1129,7 @@ export default function StrategyCreate() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <label className="text-xs font-medium text-muted-foreground">Supplementary Description</label>
                     <button

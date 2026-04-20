@@ -26,6 +26,7 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "wouter";
 import { useState, useMemo, useEffect, useRef } from "react";
 import gsap from "gsap";
@@ -124,7 +125,7 @@ type MyAlphasPrefs = {
 
 const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
 const MY_ALPHAS_PREFS_VERSION = 2;
-const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v2_";
+const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
 
 function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
   if (mode === "beginner") {
@@ -284,6 +285,9 @@ export default function MyAlphas() {
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
   const [cardFilter, setCardFilter] = useState<MyAlphasCardFilter>(() => sanitizeCardFilter(storedPrefs?.cardFilter));
   const [viewMode, setViewMode] = useState<MyAlphasViewMode>(() => sanitizeViewMode(storedPrefs?.viewMode));
+  const [gradeRevealTick, setGradeRevealTick] = useState(0);
+  const [revealAllResults, setRevealAllResults] = useState<Array<{ id: string; name: string; grade: AlphaGrade }>>([]);
+  const [showRevealAllModal, setShowRevealAllModal] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
 
@@ -414,6 +418,58 @@ export default function MyAlphas() {
       return 0;
     });
   }, [filtered, sortKey, sortDir]);
+
+  const unrevealedPassedCount = useMemo(() => {
+    // tick 变化时重新统计，确保一键刮开后计数即时刷新
+    void gradeRevealTick;
+    return alphaRows.reduce((count, row) => {
+      if (row.submissionStatus !== "passed") return count;
+      return readRevealedGrade(row.id) ? count : count + 1;
+    }, 0);
+  }, [alphaRows, gradeRevealTick]);
+
+  const handleRevealAllUnrevealedGrades = () => {
+    if (typeof window === "undefined") return;
+
+    let updated = 0;
+    const revealedThisRound: Array<{ id: string; name: string; grade: AlphaGrade }> = [];
+    for (const row of alphaRows) {
+      if (row.submissionStatus !== "passed") continue;
+      if (readRevealedGrade(row.id)) continue;
+
+      const nextGrade = getAlphaGrade(row.osSharpe);
+      window.localStorage.setItem(`${REVEALED_GRADE_STORAGE_PREFIX}${row.id}`, nextGrade);
+      revealedThisRound.push({
+        id: row.id,
+        name: row.name,
+        grade: nextGrade,
+      });
+      updated += 1;
+    }
+
+    if (updated > 0) {
+      setGradeRevealTick((v) => v + 1);
+      const order: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
+      revealedThisRound.sort((a, b) => {
+        const rankDelta = order[a.grade] - order[b.grade];
+        if (rankDelta !== 0) return rankDelta;
+        return a.name.localeCompare(b.name);
+      });
+      setRevealAllResults(revealedThisRound);
+      setShowRevealAllModal(true);
+    }
+  };
+
+  const renderRevealResultGrade = (grade: AlphaGrade) => {
+    if (grade === "S" || grade === "A") {
+      return <ShinyTag tier={grade} />;
+    }
+    return (
+      <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-900 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-100">
+        {grade}
+      </span>
+    );
+  };
 
   /* ── No more pinning starred to top — just use sorted order ── */
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
@@ -619,6 +675,7 @@ export default function MyAlphas() {
   );
 
   return (
+    <>
     <div className="space-y-6 min-w-0">
       {/* Header */}
       <div ref={headerRef} className="reveal-clip">
@@ -742,6 +799,17 @@ export default function MyAlphas() {
             >
               <X className="w-3 h-3" />
               Clear filters
+            </button>
+          )}
+
+          {unrevealedPassedCount > 0 && (
+            <button
+              className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
+              onClick={handleRevealAllUnrevealedGrades}
+              title={`Reveal ${unrevealedPassedCount} unrevealed grades`}
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              Reveal all grade
             </button>
           )}
 
@@ -974,5 +1042,64 @@ export default function MyAlphas() {
       </div>
 
     </div>
+    <Dialog open={showRevealAllModal} onOpenChange={setShowRevealAllModal}>
+      <DialogContent
+        showCloseButton={false}
+        className="!fixed !left-0 !top-0 !z-50 !h-screen !w-screen !max-w-none !translate-x-0 !translate-y-0 rounded-none border-none bg-[#050814]/92 p-0 shadow-none"
+        style={{ transform: "none", inset: 0 }}
+      >
+        <DialogTitle className="sr-only">Reveal All Results</DialogTitle>
+        <div
+          className="absolute inset-0 flex items-center justify-center p-3 sm:p-6"
+          onClick={() => setShowRevealAllModal(false)}
+        >
+          <div
+            className="w-full max-w-5xl overflow-hidden rounded-2xl border border-border/70 bg-card/95 shadow-[0_20px_60px_rgba(2,6,23,0.6)] backdrop-blur-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 sm:px-6">
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Revealed Grades</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {revealAllResults.length} newly revealed in this round
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-full border-border"
+                onClick={() => setShowRevealAllModal(false)}
+              >
+                Close
+              </Button>
+            </div>
+
+            <div className="max-h-[66vh] overflow-y-auto p-4 sm:p-6">
+              {revealAllResults.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {revealAllResults.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-xl border border-border/60 bg-accent/20 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-foreground">{item.name}</div>
+                        <div className="mt-1 text-xs font-mono text-muted-foreground">{item.id}</div>
+                      </div>
+                      <div className="ml-3 shrink-0">{renderRevealResultGrade(item.grade)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-border/60 bg-accent/20 px-4 py-8 text-center text-sm text-muted-foreground">
+                  No newly revealed grades.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

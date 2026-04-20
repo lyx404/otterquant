@@ -13,7 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle, Compass,
-  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, Settings2, LogOut,
+  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -795,10 +795,7 @@ export default function Account() {
               </div>
               <div className="flex items-center justify-between py-2 border-t border-border">
                 <div className="pr-6">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <Settings2 className="w-3.5 h-3.5 text-primary" />
-                    <span>System Messages</span>
-                  </div>
+                  <div className="text-sm font-medium text-foreground">System Messages</div>
                   <div className="text-xs text-muted-foreground">
                     Get notified about skill updates, new skills, deprecations, platform announcements, maintenance, and Official Library expansion.
                   </div>

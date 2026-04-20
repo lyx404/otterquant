@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { factors, type Factor } from "@/lib/mockData";
 import { toast } from "sonner";
+import { useAlphaViewMode, type AlphaViewMode } from "@/contexts/AlphaViewModeContext";
 
 type CategoryFilter = "all" | "official" | "graduated";
 
@@ -50,13 +51,15 @@ function FlywheelBanner() {
 }
 
 /* ── Single Factor Card ── */
-function FactorCard({ factor, isStarred, onToggleStar }: {
+function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
   factor: Factor;
   isStarred: boolean;
   onToggleStar: () => void;
+  viewMode: AlphaViewMode;
 }) {
   const isOfficial = factor.category === "official";
   const isGraduated = factor.category === "graduated";
+  const isBeginnerMode = viewMode === "beginner";
 
   const statusClass = isGraduated
     ? "border-purple-500/25 bg-purple-500/10 text-purple-400"
@@ -97,7 +100,9 @@ function FactorCard({ factor, isStarred, onToggleStar }: {
               <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusClass}`}>
                 {isGraduated ? "Graduated" : "Official"}
               </span>
-              <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
+              {!isBeginnerMode && (
+                <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
+              )}
             </div>
             {factor.description && (
               <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
@@ -121,9 +126,9 @@ function FactorCard({ factor, isStarred, onToggleStar }: {
           <MetricCell label="IS Sharpe" value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} />
           <MetricCell label="OS Sharpe" value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} />
           <MetricCell label="Fitness" value={factor.fitness.toFixed(2)} />
-          <MetricCell label="Returns" value={factor.returns} />
-          <MetricCell label="Turnover" value={factor.turnover} />
-          <MetricCell label="Drawdown" value={factor.drawdown} colorClass="text-destructive" />
+          {!isBeginnerMode && <MetricCell label="Returns" value={factor.returns} />}
+          {!isBeginnerMode && <MetricCell label="Turnover" value={factor.turnover} />}
+          {!isBeginnerMode && <MetricCell label="Drawdown" value={factor.drawdown} colorClass="text-destructive" />}
         </div>
       </div>
 
@@ -154,6 +159,7 @@ function FactorCard({ factor, isStarred, onToggleStar }: {
 
 /* ── Main OfficialLibrary Page ── */
 export default function OfficialLibrary() {
+  const { alphaViewMode } = useAlphaViewMode();
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-001", "AF-004"]));
@@ -283,6 +289,7 @@ export default function OfficialLibrary() {
             <FactorCard
               factor={factor}
               isStarred={starred.has(factor.id)}
+              viewMode={alphaViewMode}
               onToggleStar={() => {
                 setStarred((prev) => {
                   const next = new Set(prev);

@@ -4,7 +4,7 @@
  * Two tabs: "互动消息" (Interactive Messages) and "公告" (Announcements)
  * Reference: AnyGen-style notification panel
  */
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import {
   Bell,
@@ -15,11 +15,19 @@ import {
   X,
   Megaphone,
   MessageCircle,
-  Zap,
 } from "lucide-react";
 import { notifications, type Notification } from "@/lib/mockData";
 
 type TabType = "interactive" | "announcements";
+
+type AnnouncementItem = {
+  id: number;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  source: "announcement" | "skill_update";
+};
 
 /* Mock announcements data */
 const announcements = [
@@ -57,18 +65,45 @@ export default function NotificationPanel() {
   const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabType>("interactive");
+  const interactiveNotifications = useMemo(
+    () => notifications.filter((n) => n.type !== "skill_update"),
+    []
+  );
+  const announcementItems = useMemo<AnnouncementItem[]>(
+    () => [
+      ...notifications
+        .filter((n) => n.type === "skill_update")
+        .map((n) => ({
+          id: n.id,
+          title: n.title,
+          message: n.message,
+          time: n.time,
+          read: n.read,
+          source: "skill_update" as const,
+        })),
+      ...announcements.map((a) => ({
+        ...a,
+        source: "announcement" as const,
+      })),
+    ],
+    []
+  );
   const [readIds, setReadIds] = useState<Set<number>>(() => {
     const stored = localStorage.getItem("otter_read_notifications");
-    return stored ? new Set(JSON.parse(stored)) : new Set(notifications.filter(n => n.read).map(n => n.id));
+    return stored
+      ? new Set(JSON.parse(stored))
+      : new Set(interactiveNotifications.filter((n) => n.read).map((n) => n.id));
   });
   const [readAnnouncementIds, setReadAnnouncementIds] = useState<Set<number>>(() => {
     const stored = localStorage.getItem("otter_read_announcements");
-    return stored ? new Set(JSON.parse(stored)) : new Set(announcements.filter(a => a.read).map(a => a.id));
+    return stored
+      ? new Set(JSON.parse(stored))
+      : new Set(announcementItems.filter((a) => a.read).map((a) => a.id));
   });
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const unreadNotifCount = notifications.filter(n => !readIds.has(n.id)).length;
-  const unreadAnnouncementCount = announcements.filter(a => !readAnnouncementIds.has(a.id)).length;
+  const unreadNotifCount = interactiveNotifications.filter((n) => !readIds.has(n.id)).length;
+  const unreadAnnouncementCount = announcementItems.filter((a) => !readAnnouncementIds.has(a.id)).length;
   const totalUnread = unreadNotifCount + unreadAnnouncementCount;
 
   // Close on outside click
@@ -84,11 +119,11 @@ export default function NotificationPanel() {
 
   const markAllRead = () => {
     if (tab === "interactive") {
-      const allIds = new Set(notifications.map(n => n.id));
+      const allIds = new Set(interactiveNotifications.map((n) => n.id));
       setReadIds(allIds);
       localStorage.setItem("otter_read_notifications", JSON.stringify(Array.from(allIds)));
     } else {
-      const allIds = new Set(announcements.map(a => a.id));
+      const allIds = new Set(announcementItems.map((a) => a.id));
       setReadAnnouncementIds(allIds);
       localStorage.setItem("otter_read_announcements", JSON.stringify(Array.from(allIds)));
     }
@@ -105,16 +140,18 @@ export default function NotificationPanel() {
       navigate(`/alphas?highlight=${n.factorId}`);
     } else if (n.type === "epoch_reward" && n.epochId) {
       navigate(`/leaderboard?epoch=${encodeURIComponent(n.epochId)}`);
-    } else if (n.type === "skill_update") {
-      navigate("/launch");
     }
   };
 
-  const handleAnnouncementClick = (a: typeof announcements[0]) => {
+  const handleAnnouncementClick = (a: AnnouncementItem) => {
     const newRead = new Set(readAnnouncementIds);
     newRead.add(a.id);
     setReadAnnouncementIds(newRead);
     localStorage.setItem("otter_read_announcements", JSON.stringify(Array.from(newRead)));
+    if (a.source === "skill_update") {
+      setOpen(false);
+      navigate("/launch");
+    }
   };
 
   const currentUnread = tab === "interactive" ? unreadNotifCount : unreadAnnouncementCount;
@@ -206,15 +243,14 @@ export default function NotificationPanel() {
           <div className="max-h-[400px] overflow-y-auto">
             {tab === "interactive" ? (
               /* Interactive Messages */
-              notifications.length === 0 ? (
+              interactiveNotifications.length === 0 ? (
                 <div className="py-10 text-center text-xs text-muted-foreground">
                   No messages yet
                 </div>
               ) : (
-                notifications.map(n => {
+                interactiveNotifications.map(n => {
                   const isRead = readIds.has(n.id);
                   const isTestResult = n.type === "alpha_test_result";
-                  const isSkillUpdate = n.type === "skill_update";
                   const isPassed = n.testResult === "passed";
 
                   return (
@@ -227,17 +263,13 @@ export default function NotificationPanel() {
                     >
                       {/* Icon */}
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                        isSkillUpdate
-                          ? "bg-indigo-500/10 text-indigo-500"
-                          : isTestResult
-                            ? isPassed
-                              ? "bg-emerald-500/10 text-emerald-500"
-                              : "bg-red-500/10 text-red-500"
-                            : "bg-amber-500/10 text-amber-500"
+                        isTestResult
+                          ? isPassed
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : "bg-red-500/10 text-red-500"
+                          : "bg-amber-500/10 text-amber-500"
                       }`}>
-                        {isSkillUpdate ? (
-                          <Zap className="w-4 h-4" />
-                        ) : isTestResult ? (
+                        {isTestResult ? (
                           isPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />
                         ) : (
                           <Trophy className="w-4 h-4" />
@@ -267,12 +299,12 @@ export default function NotificationPanel() {
               )
             ) : (
               /* Announcements */
-              announcements.length === 0 ? (
+              announcementItems.length === 0 ? (
                 <div className="py-10 text-center text-xs text-muted-foreground">
                   No announcements
                 </div>
               ) : (
-                announcements.map(a => {
+                announcementItems.map(a => {
                   const isRead = readAnnouncementIds.has(a.id);
 
                   return (

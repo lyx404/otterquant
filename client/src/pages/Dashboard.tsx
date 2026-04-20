@@ -12,7 +12,6 @@ import {
   FlaskConical,
   TrendingUp,
   Trophy,
-  Activity,
   CheckCircle,
   XCircle,
   Award,
@@ -30,11 +29,9 @@ import {
   GripVertical,
   X,
   RefreshCw,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
-import { dashboardStats, recentActivity, currentEpoch, submissionStats } from "@/lib/mockData";
+import { dashboardStats, currentEpoch, submissionStats } from "@/lib/mockData";
 
 const statCards = [
   { label: "TOTAL ALPHAS", value: submissionStats.total.toString(), highlight: false },
@@ -42,15 +39,6 @@ const statCards = [
   { label: "PASSED", value: submissionStats.passed.toString(), highlight: true },
   { label: "FAILED", value: (submissionStats.failed + submissionStats.rejected).toString(), highlight: false, color: "text-destructive" },
 ];
-
-const iconMap: Record<string, React.ReactNode> = {
-  plus: <Zap className="w-3.5 h-3.5 text-primary" />,
-  check: <CheckCircle className="w-3.5 h-3.5 text-success" />,
-  trophy: <Award className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />,
-  activity: <Activity className="w-3.5 h-3.5 text-secondary" />,
-  x: <XCircle className="w-3.5 h-3.5 text-destructive" />,
-  user: <Users className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />,
-};
 
 const SKILL_LATEST = "v2.4.1";
 
@@ -135,17 +123,6 @@ function stripUSDT(s: string) {
   return s.replace(/\s*USDT$/i, "");
 }
 
-/* ── Parse relative time string to hours ── */
-function parseTimeToHours(timeStr: string): number {
-  const minMatch = timeStr.match(/(\d+)\s*min/);
-  const hourMatch = timeStr.match(/(\d+)\s*hour/);
-  const dayMatch = timeStr.match(/(\d+)\s*day/);
-  if (minMatch) return parseInt(minMatch[1]) / 60;
-  if (hourMatch) return parseInt(hourMatch[1]);
-  if (dayMatch) return parseInt(dayMatch[1]) * 24;
-  return 0;
-}
-
 /* ── Section definitions ── */
 interface SectionDef {
   id: string;
@@ -157,20 +134,31 @@ const ALL_SECTIONS: SectionDef[] = [
   { id: "epoch", label: "Alpha Arena", icon: Trophy },
   { id: "myAlphas", label: "Alphas", icon: FlaskConical },
   { id: "agentApi", label: "Agent API", icon: Key },
-  { id: "recentActivity", label: "Recent Activity", icon: Activity },
 ];
 
 const DEFAULT_ORDER = ALL_SECTIONS.map((s) => s.id);
 const DEFAULT_VISIBLE = new Set(DEFAULT_ORDER);
 
 function loadSectionConfig(): { order: string[]; visible: Set<string> } {
+  const validIds = new Set(DEFAULT_ORDER);
   try {
     const raw = localStorage.getItem("dashboard-sections");
     if (raw) {
       const parsed = JSON.parse(raw);
+      const parsedOrder = Array.isArray(parsed.order)
+        ? parsed.order.filter((id: unknown): id is string => typeof id === "string" && validIds.has(id))
+        : [];
+      const order = [
+        ...parsedOrder,
+        ...DEFAULT_ORDER.filter((id) => !parsedOrder.includes(id)),
+      ];
+      const parsedVisible = Array.isArray(parsed.visible)
+        ? parsed.visible.filter((id: unknown): id is string => typeof id === "string" && validIds.has(id))
+        : [];
+      const visible = new Set(parsedVisible.length > 0 ? parsedVisible : order);
       return {
-        order: parsed.order || DEFAULT_ORDER,
-        visible: new Set(parsed.visible || DEFAULT_ORDER),
+        order,
+        visible,
       };
     }
   } catch {}
@@ -200,13 +188,6 @@ export default function Dashboard() {
   /* ── Agent API refresh state ── */
   const [apiKeys, setApiKeys] = useState(DASHBOARD_API_KEYS);
   const [refreshingId, setRefreshingId] = useState<string | null>(null);
-
-  /* ── Recent Activity expand/collapse ── */
-  const [activityExpanded, setActivityExpanded] = useState(false);
-  const ACTIVITY_DEFAULT_COUNT = 3;
-
-  /* Filter activities within 48 hours */
-  const recentActivities48h = recentActivity.filter((item) => parseTimeToHours(item.time) <= 48);
 
   /* Close customize panel on outside click */
   useEffect(() => {
@@ -456,84 +437,14 @@ export default function Dashboard() {
     </div>
   );
 
-  const renderRecentActivity = () => {
-    const displayItems = activityExpanded
-      ? recentActivities48h
-      : recentActivities48h.slice(0, ACTIVITY_DEFAULT_COUNT);
-    const hasMore = recentActivities48h.length > ACTIVITY_DEFAULT_COUNT;
-
-    return (
-      <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
-        <div className="px-6 py-5 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">Recent Activity</span>
-              <span className="text-[10px] text-muted-foreground/50">48h</span>
-            </div>
-          </div>
-        </div>
-        <div className="px-4 pt-4 pb-4">
-          {recentActivities48h.length === 0 ? (
-            <div className="text-center py-6">
-              <Activity className="w-6 h-6 mx-auto mb-2 text-muted-foreground/30" />
-              <p className="text-xs text-muted-foreground">No activity in the last 48 hours</p>
-            </div>
-          ) : (
-            <>
-              <div className="space-y-0">
-                {displayItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 ease-in-out hover:bg-accent"
-                  >
-                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-accent">
-                      {iconMap[item.icon]}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs leading-snug block truncate text-muted-foreground">{item.message}</span>
-                      <span className="text-[10px] font-mono text-muted-foreground/60">{item.time}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {hasMore && (
-                <button
-                  onClick={() => setActivityExpanded(!activityExpanded)}
-                  className="w-full mt-2 py-1.5 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors rounded-xl hover:bg-accent"
-                >
-                  {activityExpanded ? (
-                    <>
-                      <ChevronUp className="w-3 h-3" />
-                      Collapse
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="w-3 h-3" />
-                      Show all ({recentActivities48h.length})
-                    </>
-                  )}
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   const sectionRenderers: Record<string, () => React.ReactNode> = {
     epoch: renderEpoch,
     myAlphas: renderMyAlphas,
     agentApi: renderAgentApi,
-    recentActivity: renderRecentActivity,
   };
-
-  /* Check if agentApi and recentActivity are adjacent and both visible */
-  const visibleOrder = sectionOrder.filter((id) => visibleSections.has(id));
-  const agentApiIdx = visibleOrder.indexOf("agentApi");
-  const activityIdx = visibleOrder.indexOf("recentActivity");
-  const shouldPairApiActivity = agentApiIdx !== -1 && activityIdx !== -1 && Math.abs(agentApiIdx - activityIdx) === 1;
+  const visibleOrder = sectionOrder
+    .filter((id) => visibleSections.has(id))
+    .filter((id) => Boolean(sectionRenderers[id]));
 
   return (
     <div className="space-y-6">
@@ -652,43 +563,9 @@ export default function Dashboard() {
       {/* ═══════════════════════════════════════════
           DYNAMIC SECTIONS
           ═══════════════════════════════════════════ */}
-      {(() => {
-        const rendered: React.ReactNode[] = [];
-        let i = 0;
-        while (i < visibleOrder.length) {
-          const id = visibleOrder[i];
-
-          /* Pair agentApi + recentActivity in a grid if adjacent */
-          if (shouldPairApiActivity) {
-            const nextId = visibleOrder[i + 1];
-            if (
-              (id === "agentApi" && nextId === "recentActivity") ||
-              (id === "recentActivity" && nextId === "agentApi")
-            ) {
-              const firstId = id;
-              const secondId = nextId;
-              rendered.push(
-                <div key={`pair-${firstId}-${secondId}`} className="grid lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    {sectionRenderers[firstId === "agentApi" ? "agentApi" : "recentActivity"]()}
-                  </div>
-                  <div className="lg:col-span-1">
-                    {sectionRenderers[secondId === "recentActivity" ? "recentActivity" : "agentApi"]()}
-                  </div>
-                </div>
-              );
-              i += 2;
-              continue;
-            }
-          }
-
-          rendered.push(
-            <div key={id}>{sectionRenderers[id]()}</div>
-          );
-          i++;
-        }
-        return rendered;
-      })()}
+      {visibleOrder.map((id) => (
+        <div key={id}>{sectionRenderers[id]()}</div>
+      ))}
     </div>
   );
 }

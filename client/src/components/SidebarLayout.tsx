@@ -368,7 +368,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             </button>
             {isAuthenticated && <NotificationPanel />}
             <AnimatedThemeToggler
-              className="flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-all duration-200 w-9 h-9"
+              className="flex items-center justify-center border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 w-9 h-9 p-0"
               title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             />
             {isAuthenticated && (
@@ -392,32 +392,29 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         ) : (
           /* === Expanded: single row — user avatar, notification, theme (left to right) === */
           <div>
-            <div className="mb-2 flex items-center gap-2 rounded-lg border border-sidebar-border/70 bg-background/60 px-2 py-1.5">
-              <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground shrink-0">
-                View
-              </span>
-              <div className="flex flex-1 items-center gap-1">
+            <div className="mb-2 rounded-lg border border-sidebar-border/70 bg-background/60 p-1.5">
+              <div className="grid grid-cols-2 gap-1">
                 <button
                   onClick={() => handleAlphaViewModeChange("beginner")}
-                  className={`flex-1 min-w-[90px] flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all duration-200 ${
+                  className={`min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap border transition-all duration-200 ${
                     alphaViewMode === "beginner"
                       ? "bg-primary/10 text-primary border-primary/20"
                       : "text-muted-foreground border-transparent hover:text-foreground hover:bg-accent hover:border-sidebar-border/60"
                   }`}
                 >
                   <Eye className="w-3.5 h-3.5 shrink-0" />
-                  Beginner
+                  <span className="truncate">Beginner</span>
                 </button>
                 <button
                   onClick={() => handleAlphaViewModeChange("pro")}
-                  className={`flex-1 min-w-[90px] flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all duration-200 ${
+                  className={`min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap border transition-all duration-200 ${
                     alphaViewMode === "pro"
                       ? "bg-primary/10 text-primary border-primary/20"
                       : "text-muted-foreground border-transparent hover:text-foreground hover:bg-accent hover:border-sidebar-border/60"
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  Pro
+                  <span className="truncate">Pro</span>
                 </button>
               </div>
             </div>
@@ -444,7 +441,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <div className="flex-1" />
               {isAuthenticated && <NotificationPanel />}
               <AnimatedThemeToggler
-                className="flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-all duration-200 w-8 h-8"
+                className="flex items-center justify-center border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 w-8 h-8 p-0"
                 title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               />
             </div>

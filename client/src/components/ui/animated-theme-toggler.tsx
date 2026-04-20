@@ -78,15 +78,15 @@ export const AnimatedThemeToggler = ({
       ref={buttonRef}
       onClick={handleToggle}
       className={cn(
-        "relative inline-flex items-center justify-center rounded-full p-2 transition-colors",
+        "relative inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground",
         className
       )}
       {...props}
     >
       {isDark ? (
-        <Sun className="h-4 w-4 text-white/70 hover:text-white transition-colors" />
+        <Sun className="h-3.5 w-3.5 transition-colors" />
       ) : (
-        <Moon className="h-4 w-4 text-neutral-600 hover:text-neutral-900 transition-colors" />
+        <Moon className="h-3.5 w-3.5 transition-colors" />
       )}
       <span className="sr-only">Toggle theme</span>
     </button>
