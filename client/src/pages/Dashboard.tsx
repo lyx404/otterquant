@@ -155,7 +155,7 @@ function loadSectionConfig(): { order: string[]; visible: Set<string> } {
       const parsedVisible = Array.isArray(parsed.visible)
         ? parsed.visible.filter((id: unknown): id is string => typeof id === "string" && validIds.has(id))
         : [];
-      const visible = new Set(parsedVisible.length > 0 ? parsedVisible : order);
+      const visible = new Set<string>(parsedVisible.length > 0 ? parsedVisible : order);
       return {
         order,
         visible,
