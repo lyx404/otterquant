@@ -6,10 +6,8 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
-  ClipboardCheck,
   Code2,
   Copy,
-  FlaskConical,
   Info,
   Key,
   Rocket,
@@ -21,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { factors, strategies, submissions, type Factor } from "@/lib/mockData";
+import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import { toast } from "sonner";
 
 type AgentMode = "platform" | "own" | null;
@@ -243,6 +242,7 @@ export default function StrategyCreate() {
   const templateId = searchParams.get("template");
   const template = strategies.find((item) => item.id === templateId) || strategies[0];
   const [, navigate] = useLocation();
+  const { alphaViewMode } = useAlphaViewMode();
 
   const [mode, setMode] = useState<AgentMode>(
     searchParams.get("creationMode") === "platform" ? "platform" : searchParams.get("creationMode") === "own" ? "own" : null
@@ -274,8 +274,7 @@ export default function StrategyCreate() {
   const [aiChatPrompt, setAiChatPrompt] = useState("");
   const [aiChatTouched, setAiChatTouched] = useState(false);
 
-  const [showOptionalFields, setShowOptionalFields] = useState(false);
-  const [description, setDescription] = useState(template.description);
+  const [description] = useState(template.description);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showValidationFeedback, setShowValidationFeedback] = useState(false);
   const [showAlphaPicker, setShowAlphaPicker] = useState(false);
@@ -393,6 +392,7 @@ export default function StrategyCreate() {
   );
   const isCustomWeightValid = weightMode === "equal" || Math.abs(weightSum - 1) <= 0.0001;
   const selectedOptionClass = "bg-primary/10 border-primary/30 text-primary shadow-[0_0_0_1px_rgba(79,70,229,0.15)]";
+  const showBeginnerHints = alphaViewMode === "beginner";
   const strategyTypeMissing = !strategyType;
   const symbolMissing = strategyType === "time-series" && selectedSymbolList.length === 0;
   const factorMissing = selectedFactors.length === 0;
@@ -445,29 +445,6 @@ export default function StrategyCreate() {
       return;
     }
     setMultipleSymbols((prev) => prev.filter((item) => item !== symbol));
-  };
-
-  const optimizeDescription = () => {
-    const symbols = normalizeSymbols(selectedSymbolList);
-    const strategyTypeText =
-      strategyType === "time-series"
-        ? "time-series"
-        : strategyType === "cross-sectional"
-          ? "cross-sectional"
-          : "strategy";
-    const weightingText =
-      weightMode === "equal"
-        ? "equal weights"
-        : weightMode === "custom"
-          ? "custom weights"
-          : "pending weight mode";
-    const rankText =
-      strategyType === "cross-sectional" ? `Top/Tail ${rankValue || "10"}${rankMode === "percent" ? "%" : ""}` : "N/A";
-
-    setDescription(
-      `Build a ${strategyTypeText} strategy with ${selectedFactors.length || 3} factors (${weightingText}), symbols: ${symbols}, side: ${crossDirection}, ranking: ${rankText}, stop loss: ${stopLoss || "8"}%, cooldown: ${cooldownValue || "24"}h.`
-    );
-    toast.success("Prompt optimized");
   };
 
   const optimizeAiPrompt = () => {
@@ -540,10 +517,6 @@ export default function StrategyCreate() {
     if (!strategyType) {
       return false;
     }
-    if (!strategyName.trim()) {
-      toast.error("Please enter a strategy name.");
-      return false;
-    }
     if (strategyType === "time-series" && selectedSymbolList.length === 0) {
       return false;
     }
@@ -581,7 +554,7 @@ export default function StrategyCreate() {
 
     const queryParams = new URLSearchParams({
       draft: "true",
-      name: strategyName.trim(),
+      name: strategyName.trim() || template.name,
       creationMode: "platform",
       scale: creationScale,
       inputMethod: platformInputMethod,
@@ -661,12 +634,9 @@ export default function StrategyCreate() {
       </div>
 
       {mode === "platform" && (
-        <div className="space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="rounded-2xl border border-border bg-card p-7 space-y-8">
-            <div className="flex items-center gap-2 mb-2">
-              <ClipboardCheck className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Core Parameters</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">Required</span>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Input Method</label>
             </div>
 
             <div className="grid w-full max-w-[320px] grid-cols-2 gap-3">
@@ -698,36 +668,64 @@ export default function StrategyCreate() {
             </div>
 
             <div className={platformInputMethod === "form" ? "space-y-6" : "hidden"}>
-            <div className="space-y-4">
-              <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setStrategyType("time-series")}
-                  className={`px-4 py-3 rounded-xl text-left transition-all duration-200 border ${
-                    strategyType === "time-series"
-                      ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
-                      : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                  }`}
-                >
-                  <div className="text-sm font-semibold text-foreground">Time series</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStrategyType("cross-sectional")}
-                  className={`px-4 py-3 rounded-xl text-left transition-all duration-200 border ${
-                    strategyType === "cross-sectional"
-                      ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
-                      : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                  }`}
-                >
-                  <div className="text-sm font-semibold text-foreground">Cross Section</div>
-                </button>
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
+                  {showBeginnerHints && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
+                          aria-label="Explain strategy type"
+                        >
+                          <Info className="h-3.5 w-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
+                        <div className="space-y-3 text-[11px] leading-5">
+                          <p className="text-xs font-semibold text-foreground">Strategy Type Notes</p>
+                          <div className="space-y-1.5">
+                            <p className="text-[11px] font-medium text-foreground/90">Time series -&gt; Find good Timing</p>
+                            <p className="text-[11px] text-muted-foreground">This means looking for patterns within one asset over time.</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <p className="text-[11px] font-medium text-foreground/90">Cross Section -&gt; Find good Symbols</p>
+                            <p className="text-[11px] text-muted-foreground">This means comparing many assets at the same time and choosing the stronger ones.</p>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStrategyType("time-series")}
+                    className={`px-4 py-3 rounded-xl text-left transition-all duration-200 border ${
+                      strategyType === "time-series"
+                        ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
+                        : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-foreground">Time series</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStrategyType("cross-sectional")}
+                    className={`px-4 py-3 rounded-xl text-left transition-all duration-200 border ${
+                      strategyType === "cross-sectional"
+                        ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
+                        : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-foreground">Cross Section</div>
+                  </button>
+                </div>
+                {showValidationFeedback && strategyTypeMissing && (
+                  <p className="text-[11px] text-destructive">Please select a strategy type.</p>
+                )}
               </div>
-              {showValidationFeedback && strategyTypeMissing && (
-                <p className="text-[11px] text-destructive">Please select a strategy type.</p>
-              )}
-            </div>
 
             {strategyType ? (
               <>
@@ -954,116 +952,132 @@ export default function StrategyCreate() {
                   </>
                 )}
 
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs font-medium text-muted-foreground">Stop Loss (%) <span className="text-destructive">*</span></label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            aria-label="Stop loss notes"
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
-                          <div className="space-y-2.5 text-[11px] leading-5">
-                            <p className="text-xs font-semibold text-foreground">Stop Loss Notes</p>
-                            <p className="text-muted-foreground">
-                              When unrealized portfolio drawdown reaches this threshold, all positions are force-closed and the strategy enters cooldown.
-                            </p>
-                            <div className="space-y-1.5">
-                              <p className="text-[11px] font-medium text-foreground/90">Parameter guide:</p>
-                              <p className="text-muted-foreground">0%-10%: conservative risk cap</p>
-                              <p className="text-muted-foreground">10%-20%: baseline default range</p>
-                              <p className="text-muted-foreground">30%-100%: high-risk tolerance</p>
+                {strategyType !== "cross-sectional" && (
+                  <div className="grid grid-cols-1 gap-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-medium text-muted-foreground">Stop Loss (%) <span className="text-destructive">*</span></label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              aria-label="Stop loss notes"
+                              className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
+                            >
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
+                            <div className="space-y-2.5 text-[11px] leading-5">
+                              <p className="text-xs font-semibold text-foreground">Stop Loss Notes</p>
+                              <p className="text-muted-foreground">
+                                When unrealized portfolio drawdown reaches this threshold, all positions are force-closed and the strategy enters cooldown.
+                              </p>
+                              <div className="space-y-1.5">
+                                <p className="text-[11px] font-medium text-foreground/90">Parameter guide:</p>
+                                <p className="text-muted-foreground">0%-10%: conservative risk cap</p>
+                                <p className="text-muted-foreground">10%-20%: baseline default range</p>
+                                <p className="text-muted-foreground">30%-100%: high-risk tolerance</p>
+                              </div>
                             </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <Input
+                        value={stopLoss}
+                        onChange={(e) => setStopLoss(e.target.value)}
+                        className="h-10 w-full max-w-[320px] rounded-lg bg-accent border-border text-sm"
+                        placeholder="8"
+                        inputMode="decimal"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {["5", "8", "10"].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setStopLoss(value)}
+                            className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                              stopLoss === value
+                                ? "border-primary/30 bg-primary/10 text-primary"
+                                : "border-border text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {value}%
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <Input
-                      value={stopLoss}
-                      onChange={(e) => setStopLoss(e.target.value)}
-                      className="h-10 w-full max-w-[320px] rounded-lg bg-accent border-border text-sm"
-                      placeholder="8"
-                      inputMode="decimal"
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      {["5", "8", "10"].map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => setStopLoss(value)}
-                          className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
-                            stopLoss === value
-                              ? "border-primary/30 bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          {value}%
-                        </button>
-                      ))}
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-medium text-muted-foreground">Cooldown (hours) <span className="text-destructive">*</span></label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              aria-label="Cooldown notes"
+                              className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
+                            >
+                              <Info className="h-3.5 w-3.5" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
+                            <div className="space-y-2.5 text-[11px] leading-5">
+                              <p className="text-xs font-semibold text-foreground">Cooldown Notes</p>
+                              <p className="text-muted-foreground">
+                                After a stop-out is triggered, the strategy waits for the configured cooldown window before allowing re-entry.
+                              </p>
+                              <div className="space-y-1.5">
+                                <p className="text-[11px] font-medium text-foreground/90">Parameter guide:</p>
+                                <p className="text-muted-foreground">1-2h: short cooldown, fast recovery (high-frequency strategies)</p>
+                                <p className="text-muted-foreground">4-6h: balanced default for most intraday setups</p>
+                                <p className="text-muted-foreground">12-24h: long cooldown for daily-timeframe strategies</p>
+                                <p className="text-muted-foreground">48-72h: very long cooldown after major drawdown events</p>
+                              </div>
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <Input
+                        value={cooldownValue}
+                        onChange={(e) => setCooldownValue(e.target.value)}
+                        className="h-10 w-full max-w-[320px] rounded-lg bg-accent border-border text-sm"
+                        placeholder="4"
+                        inputMode="numeric"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {["2", "6", "24", "72"].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setCooldownValue(value)}
+                            className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                              cooldownValue === value
+                                ? "border-primary/30 bg-primary/10 text-primary"
+                                : "border-border text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            {value}h
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs font-medium text-muted-foreground">Cooldown (hours) <span className="text-destructive">*</span></label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <button
-                            type="button"
-                            aria-label="Cooldown notes"
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
-                          >
-                            <Info className="h-3.5 w-3.5" />
-                          </button>
-                        </PopoverTrigger>
-                        <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
-                          <div className="space-y-2.5 text-[11px] leading-5">
-                            <p className="text-xs font-semibold text-foreground">Cooldown Notes</p>
-                            <p className="text-muted-foreground">
-                              After a stop-out is triggered, the strategy waits for the configured cooldown window before allowing re-entry.
-                            </p>
-                            <div className="space-y-1.5">
-                              <p className="text-[11px] font-medium text-foreground/90">Parameter guide:</p>
-                              <p className="text-muted-foreground">1-2h: short cooldown, fast recovery (high-frequency strategies)</p>
-                              <p className="text-muted-foreground">4-6h: balanced default for most intraday setups</p>
-                              <p className="text-muted-foreground">12-24h: long cooldown for daily-timeframe strategies</p>
-                              <p className="text-muted-foreground">48-72h: very long cooldown after major drawdown events</p>
-                            </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <Input
-                      value={cooldownValue}
-                      onChange={(e) => setCooldownValue(e.target.value)}
-                      className="h-10 w-full max-w-[320px] rounded-lg bg-accent border-border text-sm"
-                      placeholder="4"
-                      inputMode="numeric"
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      {["1", "2", "4", "6", "12", "24", "48", "72"].map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => setCooldownValue(value)}
-                          className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
-                            cooldownValue === value
-                              ? "border-primary/30 bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          {value}h
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                )}
               </>
+            ) : null}
+
+            {strategyType ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-muted-foreground">Strategy Name</label>
+                </div>
+                <Input
+                  placeholder="System default will be used if empty"
+                  value={strategyName}
+                  onChange={(e) => setStrategyName(e.target.value)}
+                  className="rounded-lg bg-accent border-border h-10 text-sm max-w-[420px]"
+                />
+              </div>
             ) : null}
             </div>
 
@@ -1096,64 +1110,6 @@ export default function StrategyCreate() {
                 </p>
               </div>
             )}
-          </div>
-
-          {platformInputMethod === "form" && strategyType && (
-            <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowOptionalFields((prev) => !prev)}
-              className="w-full flex items-center justify-between gap-3 px-6 py-4 text-left transition-colors duration-200 hover:bg-accent/60"
-            >
-              <div className="flex items-center gap-2">
-                <FlaskConical className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Optional</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border">Optional</span>
-              </div>
-              {showOptionalFields ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
-
-            {showOptionalFields && (
-              <div className="px-6 pb-6 space-y-6">
-                <div className="space-y-3">
-                  <label className="text-xs font-medium text-muted-foreground">Strategy Name</label>
-                  <Input
-                    placeholder="System default will be filled"
-                    value={strategyName}
-                    onChange={(e) => setStrategyName(e.target.value)}
-                    className="rounded-lg bg-accent border-border h-10 text-sm"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <label className="text-xs font-medium text-muted-foreground">Supplementary Description</label>
-                    <button
-                      type="button"
-                      onClick={optimizeDescription}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary transition-all duration-200 hover:bg-primary/15 hover:border-primary/30"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Optimize Prompt
-                    </button>
-                  </div>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add extra constraints, interpretation notes, or any follow-up details here..."
-                    rows={5}
-                    className="rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none"
-                  />
-                </div>
-                </div>
-              )}
-            </div>
-          )}
-
           {(platformInputMethod === "ai-chat" || strategyType) && (
             <div className="flex items-center justify-between pt-2">
             <div />

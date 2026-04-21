@@ -1,40 +1,84 @@
 /*
- * StrategyDetail — rebuilt with Figma information architecture
- * and aligned to the AlphaDetail visual system.
+ * StrategyDetail — strategy backtest dashboard rebuilt into a
+ * multi-panel quant research layout while preserving the top metrics block.
  */
 import { useMemo, useState, type ComponentType } from "react";
 import { useParams, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { strategies } from "@/lib/mockData";
-import { buildCalendarValues, buildPath, buildSeries, parsePercent } from "@/lib/strategyUtils";
+import { buildSeries, parsePercent } from "@/lib/strategyUtils";
 import { deployStrategyToTrade, getStrategyDeployment } from "@/lib/tradeDeployments";
 import { toast } from "sonner";
 import {
+  Activity,
   ArrowLeft,
-  CalendarDays,
+  BarChart3,
+  BriefcaseBusiness,
   ClipboardList,
+  PieChart,
   Star,
   TrendingUp,
   Wallet,
 } from "lucide-react";
 
-const rangeOptions = ["YTD", "1Y", "3Y", "Since Launch", "Since Inception"] as const;
-type RangeKey = (typeof rangeOptions)[number];
+const curveRanges = ["7D", "30D", "90D", "365D"] as const;
+type CurveRange = (typeof curveRanges)[number];
 
-const rangeMeta: Record<RangeKey, { points: number; slope: number; benchmarkSlope: number }> = {
-  YTD: { points: 24, slope: 0.62, benchmarkSlope: 0.16 },
-  "1Y": { points: 36, slope: 0.54, benchmarkSlope: 0.14 },
-  "3Y": { points: 48, slope: 0.47, benchmarkSlope: 0.12 },
-  "Since Launch": { points: 58, slope: 0.42, benchmarkSlope: 0.1 },
-  "Since Inception": { points: 64, slope: 0.39, benchmarkSlope: 0.09 },
+const curveMeta: Record<
+  CurveRange,
+  {
+    points: number;
+    start: number;
+    slope: number;
+    volatility: number;
+    benchmarkSlope: number;
+    benchmarkVolatility: number;
+    labels: string[];
+  }
+> = {
+  "7D": {
+    points: 18,
+    start: 100200,
+    slope: 28,
+    volatility: 52,
+    benchmarkSlope: 12,
+    benchmarkVolatility: 18,
+    labels: ["04-15", "04-17", "04-19", "04-21"],
+  },
+  "30D": {
+    points: 30,
+    start: 99500,
+    slope: 44,
+    volatility: 110,
+    benchmarkSlope: 18,
+    benchmarkVolatility: 34,
+    labels: ["03-22", "03-29", "04-05", "04-12", "04-19"],
+  },
+  "90D": {
+    points: 45,
+    start: 99200,
+    slope: 92,
+    volatility: 185,
+    benchmarkSlope: 34,
+    benchmarkVolatility: 52,
+    labels: ["01-22", "02-12", "03-04", "03-24", "04-14"],
+  },
+  "365D": {
+    points: 64,
+    start: 99100,
+    slope: 138,
+    volatility: 260,
+    benchmarkSlope: 46,
+    benchmarkVolatility: 70,
+    labels: ["02-12", "04-14", "06-14", "08-14", "10-14", "12-14"],
+  },
+};
+
+const returnMeta: Record<CurveRange, { bars: number; amplitude: number; labels: string[] }> = {
+  "7D": { bars: 14, amplitude: 0.42, labels: ["04-15", "04-17", "04-19", "04-21"] },
+  "30D": { bars: 30, amplitude: 0.74, labels: ["03-22", "03-29", "04-05", "04-12", "04-19"] },
+  "90D": { bars: 56, amplitude: 1.18, labels: ["11-14", "11-28", "12-12", "12-26", "01-09", "01-23", "02-06"] },
+  "365D": { bars: 72, amplitude: 1.34, labels: ["Apr", "Jun", "Aug", "Oct", "Dec", "Feb"] },
 };
 
 type SectionRow = {
@@ -43,178 +87,88 @@ type SectionRow = {
   tone?: "positive" | "negative" | "neutral";
 };
 
-type OrderSide = "Open Long" | "Close Long" | "Open Short" | "Close Short";
-
-type OrderRow = {
-  time: string;
-  pair: string;
-  side: OrderSide;
-  type: "Market";
-  price: string;
-  size: string;
-  avgEntry: string;
-  pnl: string;
-  pnlPct: string;
-  fee: string;
-  status: "Filled";
+type CurvePoint = {
+  x: number;
+  y: number;
+  value: number;
 };
 
-const orderRows: OrderRow[] = [
+type PreferenceSlice = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+type PositionRecord = {
+  symbol: string;
+  contract: "Perp";
+  side: "Cross Long" | "Cross Short";
+  status: "Closed";
+  entryPrice: string;
+  maxOpenInterest: string;
+  openedAt: string;
+  closedAt: string;
+  pnl: string;
+};
+
+const preferenceSlices: PreferenceSlice[] = [
+  { label: "ETH", value: 14.3, color: "#7184F5" },
+  { label: "BTC", value: 11.64, color: "#F0A13B" },
+  { label: "WLD", value: 9.05, color: "#64D1B1" },
+  { label: "CRV", value: 6.8, color: "#F5D04F" },
+  { label: "WIF", value: 5.28, color: "#8A4CF1" },
+  { label: "1000PEPE", value: 4.87, color: "#61C33A" },
+  { label: "SUI", value: 3.91, color: "#6BA7FF" },
+  { label: "BCH", value: 3.71, color: "#52C8A5" },
+  { label: "BSV", value: 3.7, color: "#DAB03E" },
+  { label: "APE", value: 3.57, color: "#3977F5" },
+  { label: "Other", value: 33.17, color: "#667085" },
+];
+
+const positionHistory: PositionRecord[] = [
   {
-    time: "2022-09-15 20:00:00",
-    pair: "ETH_USDT",
-    side: "Close Long",
-    type: "Market",
-    price: "1,590.34",
-    size: "73.164000",
-    avgEntry: "1,641.33",
-    pnl: "-3,730.36",
-    pnlPct: "-3.11%",
-    fee: "46.5423 USDT",
-    status: "Filled",
+    symbol: "FILUSDT",
+    contract: "Perp",
+    side: "Cross Short",
+    status: "Closed",
+    entryPrice: "0.885",
+    maxOpenInterest: "451.4 FIL",
+    openedAt: "2026-02-10 22:17:26",
+    closedAt: "2026-02-10 23:08:11",
+    pnl: "+1.35 USDT",
   },
   {
-    time: "2022-12-12 12:00:00",
-    pair: "ETH_USDT",
-    side: "Close Long",
-    type: "Market",
-    price: "1,242.85",
-    size: "101.517000",
-    avgEntry: "1,206.90",
-    pnl: "+3,649.54",
-    pnlPct: "+2.98%",
-    fee: "50.4682 USDT",
-    status: "Filled",
+    symbol: "ICPUSDT",
+    contract: "Perp",
+    side: "Cross Long",
+    status: "Closed",
+    entryPrice: "2.375",
+    maxOpenInterest: "168 ICP",
+    openedAt: "2026-02-10 22:17:26",
+    closedAt: "2026-02-10 23:08:08",
+    pnl: "+2.52 USDT",
   },
   {
-    time: "2022-10-04 16:00:00",
-    pair: "ETH_USDT",
-    side: "Open Long",
-    type: "Market",
-    price: "1,349.86",
-    size: "86.142000",
-    avgEntry: "1,349.86",
-    pnl: "-",
-    pnlPct: "-",
-    fee: "46.5119 USDT",
-    status: "Filled",
+    symbol: "DOTUSDT",
+    contract: "Perp",
+    side: "Cross Short",
+    status: "Closed",
+    entryPrice: "1.278",
+    maxOpenInterest: "312.8 DOT",
+    openedAt: "2026-02-10 18:02:43",
+    closedAt: "2026-02-10 21:44:43",
+    pnl: "-2.50 USDT",
   },
   {
-    time: "2022-10-15 00:00:00",
-    pair: "ETH_USDT",
-    side: "Close Long",
-    type: "Market",
-    price: "1,309.51",
-    size: "85.690000",
-    avgEntry: "1,329.55",
-    pnl: "-1,717.04",
-    pnlPct: "-1.51%",
-    fee: "44.8847 USDT",
-    status: "Filled",
-  },
-  {
-    time: "2022-12-16 08:00:00",
-    pair: "ETH_USDT",
-    side: "Close Long",
-    type: "Market",
-    price: "1,266.01",
-    size: "99.976000",
-    avgEntry: "1,254.12",
-    pnl: "+1,188.31",
-    pnlPct: "+0.95%",
-    fee: "50.6281 USDT",
-    status: "Filled",
-  },
-  {
-    time: "2023-02-01 00:00:00",
-    pair: "ETH_USDT",
-    side: "Open Long",
-    type: "Market",
-    price: "1,588.81",
-    size: "103.958000",
-    avgEntry: "1,588.81",
-    pnl: "-",
-    pnlPct: "-",
-    fee: "66.0677 USDT",
-    status: "Filled",
-  },
-  {
-    time: "2023-02-07 08:00:00",
-    pair: "ETH_USDT",
-    side: "Close Long",
-    type: "Market",
-    price: "1,613.57",
-    size: "101.743000",
-    avgEntry: "1,617.93",
-    pnl: "-444.24",
-    pnlPct: "-0.27%",
-    fee: "65.6677 USDT",
-    status: "Filled",
-  },
-  {
-    time: "2023-02-09 16:00:00",
-    pair: "ETH_USDT",
-    side: "Open Long",
-    type: "Market",
-    price: "1,630.32",
-    size: "99.648000",
-    avgEntry: "1,630.32",
-    pnl: "-",
-    pnlPct: "-",
-    fee: "64.9831 USDT",
-    status: "Filled",
-  },
-  {
-    time: "2023-02-10 04:00:00",
-    pair: "ETH_USDT",
-    side: "Close Long",
-    type: "Market",
-    price: "1,578.76",
-    size: "99.648000",
-    avgEntry: "1,630.32",
-    pnl: "-5,137.04",
-    pnlPct: "-3.16%",
-    fee: "62.9283 USDT",
-    status: "Filled",
-  },
-  {
-    time: "2023-02-23 00:00:00",
-    pair: "ETH_USDT",
-    side: "Close Long",
-    type: "Market",
-    price: "1,612.37",
-    size: "96.534000",
-    avgEntry: "1,628.62",
-    pnl: "-1,568.50",
-    pnlPct: "-1.00%",
-    fee: "62.2593 USDT",
-    status: "Filled",
-  },
-  {
-    time: "2023-02-27 04:00:00",
-    pair: "ETH_USDT",
-    side: "Open Long",
-    type: "Market",
-    price: "1,633.02",
-    size: "92.831000",
-    avgEntry: "1,633.02",
-    pnl: "-",
-    pnlPct: "-",
-    fee: "60.6378 USDT",
-    status: "Filled",
-  },
-  {
-    time: "2023-02-28 04:00:00",
-    pair: "ETH_USDT",
-    side: "Close Long",
-    type: "Market",
-    price: "1,620.90",
-    size: "92.831000",
-    avgEntry: "1,633.02",
-    pnl: "-1,125.18",
-    pnlPct: "-0.74%",
-    fee: "60.1877 USDT",
-    status: "Filled",
+    symbol: "KSMUSDT",
+    contract: "Perp",
+    side: "Cross Long",
+    status: "Closed",
+    entryPrice: "4.153",
+    maxOpenInterest: "96.3 KSM",
+    openedAt: "2026-02-11 04:32:33",
+    closedAt: "2026-02-11 11:54:24",
+    pnl: "+2.82 USDT",
   },
 ];
 
@@ -223,6 +177,64 @@ function fmtSigned(value: number, fractionDigits = 2) {
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   })}`;
+}
+
+function buildSeriesPoints(
+  values: number[],
+  width: number,
+  height: number,
+  padding: number,
+  min: number,
+  max: number
+): CurvePoint[] {
+  const range = max - min || 1;
+  const innerWidth = width - padding * 2;
+  const innerHeight = height - padding * 2;
+
+  return values.map((value, index) => ({
+    x: padding + (index * innerWidth) / Math.max(1, values.length - 1),
+    y: height - padding - ((value - min) / range) * innerHeight,
+    value,
+  }));
+}
+
+function pointsToPath(points: CurvePoint[]) {
+  if (points.length === 0) return "";
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+}
+
+function pointsToArea(points: CurvePoint[], height: number, padding: number) {
+  if (points.length === 0) return "";
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${pointsToPath(points)} L ${last.x.toFixed(2)} ${(height - padding).toFixed(2)} L ${first.x.toFixed(2)} ${(height - padding).toFixed(2)} Z`;
+}
+
+function buildReturnBars(count: number, amplitude: number) {
+  return Array.from({ length: count }, (_, index) => {
+    const wave = Math.sin(index * 0.37) * amplitude * 0.58;
+    const wobble = Math.cos(index * 0.83) * amplitude * 0.34;
+    const drift = (index % 9 === 0 ? -1 : 1) * amplitude * 0.08;
+    return Number((wave + wobble + drift).toFixed(3));
+  });
+}
+
+function classForTone(tone?: "positive" | "negative" | "neutral") {
+  if (tone === "positive") return "text-emerald-400";
+  if (tone === "negative") return "text-rose-400";
+  return "text-foreground";
+}
+
+function positionTone(value: string) {
+  return value.startsWith("-") ? "text-rose-400" : "text-emerald-400";
+}
+
+function sideClass(side: PositionRecord["side"]) {
+  return side === "Cross Long"
+    ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+    : "border-rose-500/25 bg-rose-500/10 text-rose-400";
 }
 
 function TopMetric({
@@ -237,19 +249,7 @@ function TopMetric({
   return (
     <div className="h-full w-full rounded-xl px-2 py-1.5 text-left">
       <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{label}</div>
-      <div className="mt-2">
-        <div
-          className={`stat-value text-[20px] font-semibold leading-none ${
-            tone === "positive"
-              ? "text-emerald-400"
-              : tone === "negative"
-                ? "text-rose-400"
-                : "text-foreground"
-          }`}
-        >
-          {value}
-        </div>
-      </div>
+      <div className={`mt-2 text-[20px] font-semibold leading-none ${classForTone(tone)}`}>{value}</div>
     </div>
   );
 }
@@ -273,17 +273,7 @@ function DetailListCard({
         {rows.map((row) => (
           <div key={row.label} className="flex items-center justify-between gap-4">
             <span className="text-xs text-muted-foreground">{row.label}</span>
-            <span
-              className={`data-value text-xs font-semibold ${
-                row.tone === "positive"
-                  ? "text-emerald-400"
-                  : row.tone === "negative"
-                    ? "text-rose-400"
-                    : "text-foreground"
-              }`}
-            >
-              {row.value}
-            </span>
+            <span className={`text-xs font-semibold ${classForTone(row.tone)}`}>{row.value}</span>
           </div>
         ))}
       </div>
@@ -291,23 +281,34 @@ function DetailListCard({
   );
 }
 
-function sideClass(side: OrderSide) {
-  if (side.includes("Open") && side.includes("Long")) {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-400";
-  }
-  if (side.includes("Close") && side.includes("Long")) {
-    return "border-amber-500/30 bg-amber-500/10 text-amber-400";
-  }
-  if (side.includes("Open") && side.includes("Short")) {
-    return "border-rose-500/30 bg-rose-500/10 text-rose-400";
-  }
-  return "border-orange-500/30 bg-orange-500/10 text-orange-400";
-}
-
-function pnlClass(value: string) {
-  if (value.startsWith("+")) return "text-emerald-400";
-  if (value.startsWith("-")) return "text-rose-400";
-  return "text-muted-foreground";
+function DashboardPanel({
+  title,
+  icon: Icon,
+  accentClass,
+  actions,
+  children,
+}: {
+  title: string;
+  icon: ComponentType<{ className?: string }>;
+  accentClass: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="surface-card overflow-hidden p-0">
+      <div className={`h-px w-full ${accentClass}`} />
+      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Icon className="h-3.5 w-3.5 text-primary" />
+          <h2 className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+            {title}
+          </h2>
+        </div>
+        {actions}
+      </div>
+      <div className="p-4">{children}</div>
+    </section>
+  );
 }
 
 export default function StrategyDetail() {
@@ -339,9 +340,13 @@ export default function StrategyDetail() {
     tags: ["Draft"],
   };
 
-  const [range, setRange] = useState<RangeKey>("Since Inception");
   const [starred, setStarred] = useState(false);
   const [deploymentVersion, setDeploymentVersion] = useState(0);
+  const [curveRange, setCurveRange] = useState<CurveRange>("365D");
+  const [returnsRange, setReturnsRange] = useState<CurveRange>("90D");
+  const [curveHoverIndex, setCurveHoverIndex] = useState<number | null>(null);
+  const [returnsHoverIndex, setReturnsHoverIndex] = useState<number | null>(null);
+  const [activePreference, setActivePreference] = useState(0);
 
   const strategyName = customName || strategy.name;
   const strategyId = strategy.id;
@@ -373,71 +378,114 @@ export default function StrategyDetail() {
   const totalFees = Math.abs(totalReturn) * 0.1268;
 
   const fundRows: SectionRow[] = [
-    { label: "Peak Equity", value: `${peakEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
-    { label: "Min Equity", value: `${minEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
-    { label: "Realized PnL", value: `${fmtSigned(realizedPnl)} USDT`, tone: realizedPnl >= 0 ? "positive" : "negative" },
-    { label: "Unrealized PnL", value: `${fmtSigned(unrealizedPnl)} USDT`, tone: unrealizedPnl >= 0 ? "positive" : "negative" },
+    {
+      label: "Peak Equity",
+      value: `${peakEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
+    },
+    {
+      label: "Min Equity",
+      value: `${minEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
+    },
+    {
+      label: "Realized PnL",
+      value: `${fmtSigned(realizedPnl)} USDT`,
+      tone: realizedPnl >= 0 ? "positive" : "negative",
+    },
+    {
+      label: "Unrealized PnL",
+      value: `${fmtSigned(unrealizedPnl)} USDT`,
+      tone: unrealizedPnl >= 0 ? "positive" : "negative",
+    },
   ];
 
   const perfRows: SectionRow[] = [
-    { label: "Sharpe Ratio", value: strategy.sharpe.toFixed(2), tone: strategy.sharpe >= 1 ? "positive" : "neutral" },
-    { label: "Calmar Ratio", value: calmar.toFixed(2), tone: calmar >= 1 ? "positive" : "neutral" },
-    { label: "Win Rate", value: `${winRate.toFixed(2)}%`, tone: winRate >= 50 ? "positive" : "negative" },
-    { label: "Profit/Loss Ratio", value: profitLossRatio.toFixed(2), tone: profitLossRatio >= 1 ? "positive" : "neutral" },
+    {
+      label: "Sharpe Ratio",
+      value: strategy.sharpe.toFixed(2),
+      tone: strategy.sharpe >= 1 ? "positive" : "neutral",
+    },
+    {
+      label: "Calmar Ratio",
+      value: calmar.toFixed(2),
+      tone: calmar >= 1 ? "positive" : "neutral",
+    },
+    {
+      label: "Win Rate",
+      value: `${winRate.toFixed(2)}%`,
+      tone: winRate >= 50 ? "positive" : "negative",
+    },
+    {
+      label: "Profit/Loss Ratio",
+      value: profitLossRatio.toFixed(2),
+      tone: profitLossRatio >= 1 ? "positive" : "neutral",
+    },
   ];
 
   const tradeRows: SectionRow[] = [
     { label: "Trading Days", value: `${tradingDays}` },
     { label: "Total Trades", value: `${totalTrades}` },
     { label: "Max Exposure", value: `${maxExposure.toFixed(2)}%` },
-    { label: "Total Fees", value: `${totalFees.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
+    {
+      label: "Total Fees",
+      value: `${totalFees.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
+    },
   ];
 
-  const chartSeries = useMemo(() => {
-    const meta = rangeMeta[range];
-    const strategyValues = buildSeries(meta.points, 100, meta.slope, 1.05);
-    const benchmarkValues = buildSeries(meta.points, 100, meta.benchmarkSlope, 0.5).map((value, index) =>
-      Number((value - index * 0.03).toFixed(2))
-    );
-    return { strategyValues, benchmarkValues };
-  }, [range]);
+  const curveChart = useMemo(() => {
+    const meta = curveMeta[curveRange];
+    const width = 720;
+    const height = 320;
+    const padding = 22;
+    const equityValues = buildSeries(meta.points, meta.start, meta.slope, meta.volatility);
+    const benchmarkValues = buildSeries(
+      meta.points,
+      meta.start - 120,
+      meta.benchmarkSlope,
+      meta.benchmarkVolatility
+    ).map((value, index) => Number((value - index * 4.8).toFixed(2)));
+    const min = Math.min(...equityValues, ...benchmarkValues) - 80;
+    const max = Math.max(...equityValues, ...benchmarkValues) + 80;
+    const equityPoints = buildSeriesPoints(equityValues, width, height, padding, min, max);
+    const benchmarkPoints = buildSeriesPoints(benchmarkValues, width, height, padding, min, max);
+    return {
+      width,
+      height,
+      padding,
+      min,
+      max,
+      equityValues,
+      benchmarkValues,
+      equityPoints,
+      benchmarkPoints,
+      equityPath: pointsToPath(equityPoints),
+      equityArea: pointsToArea(equityPoints, height, padding),
+      benchmarkPath: pointsToPath(benchmarkPoints),
+      labels: meta.labels,
+    };
+  }, [curveRange]);
 
-  const strategyPath = useMemo(
-    () => buildPath(chartSeries.strategyValues, 700, 320, 24),
-    [chartSeries.strategyValues]
-  );
-  const benchmarkPath = useMemo(
-    () => buildPath(chartSeries.benchmarkValues, 700, 320, 24),
-    [chartSeries.benchmarkValues]
-  );
+  const curveStats = useMemo(() => {
+    const equityStart = curveChart.equityValues[0];
+    const equityEnd = curveChart.equityValues[curveChart.equityValues.length - 1];
+    const benchmarkStart = curveChart.benchmarkValues[0];
+    const benchmarkEnd = curveChart.benchmarkValues[curveChart.benchmarkValues.length - 1];
+    const total = ((equityEnd - equityStart) / equityStart) * 100;
+    const benchmark = ((benchmarkEnd - benchmarkStart) / benchmarkStart) * 100;
+    const excess = total - benchmark;
+    return { total, benchmark, excess };
+  }, [curveChart]);
 
-  const totalReturnPct = useMemo(() => {
-    const values = chartSeries.strategyValues;
-    return ((values[values.length - 1] - values[0]) / values[0]) * 100;
-  }, [chartSeries.strategyValues]);
+  const dailyReturns = useMemo(() => {
+    const meta = returnMeta[returnsRange];
+    return buildReturnBars(meta.bars, meta.amplitude);
+  }, [returnsRange]);
 
-  const benchmarkReturnPct = useMemo(() => {
-    const values = chartSeries.benchmarkValues;
-    return ((values[values.length - 1] - values[0]) / values[0]) * 100;
-  }, [chartSeries.benchmarkValues]);
-
-  const calendar = useMemo(() => {
-    const year = 2026;
-    const monthIndex = 3;
-    const totalDays = new Date(year, monthIndex + 1, 0).getDate();
-    const firstWeekday = (new Date(year, monthIndex, 1).getDay() + 6) % 7;
-    const monthValues = buildCalendarValues(totalDays, 1.8);
-    const cells: Array<{ day: number | null; value: number | null }> = [];
-
-    for (let i = 0; i < firstWeekday; i += 1) cells.push({ day: null, value: null });
-    for (let day = 1; day <= totalDays; day += 1) {
-      cells.push({ day, value: monthValues[day - 1] });
-    }
-    while (cells.length % 7 !== 0) cells.push({ day: null, value: null });
-
-    const totalMonthReturn = monthValues.reduce((sum, value) => sum + value, 0);
-    return { cells, totalMonthReturn };
-  }, []);
+  const returnSummary = useMemo(() => {
+    const avg = dailyReturns.reduce((sum, value) => sum + value, 0) / Math.max(1, dailyReturns.length);
+    const wins = dailyReturns.filter((value) => value > 0).length;
+    const losses = dailyReturns.filter((value) => value < 0).length;
+    return { avg, wins, losses };
+  }, [dailyReturns]);
 
   const openTradePage = (environment: "paper" | "live", focusTradeId?: string) => {
     const query = new URLSearchParams({
@@ -449,7 +497,7 @@ export default function StrategyDetail() {
   };
 
   const deployStrategy = (environment: "paper" | "live") => {
-    const bot = deployStrategyToTrade({
+    deployStrategyToTrade({
       strategyId,
       strategyName,
       market: strategy.market,
@@ -458,12 +506,7 @@ export default function StrategyDetail() {
       environment,
     });
     setDeploymentVersion((prev) => prev + 1);
-    toast.success(
-      environment === "paper"
-        ? "Deployed to paper trading."
-        : "Deployed to live trading."
-    );
-    return bot;
+    toast.success(environment === "paper" ? "Deployed to paper trading." : "Deployed to live trading.");
   };
 
   const tierBadgeClass =
@@ -471,6 +514,7 @@ export default function StrategyDetail() {
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
       : "border-sky-500/30 bg-sky-500/10 text-sky-400";
   const tierBadgeLabel = strategyTier === "official" ? "Official" : "Graduated";
+  const activeSlice = preferenceSlices[activePreference];
 
   return (
     <div className="space-y-6 min-w-0">
@@ -583,7 +627,10 @@ export default function StrategyDetail() {
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           <TopMetric
             label="Total Equity (USDT)"
-            value={currentEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            value={currentEquity.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
           />
           <TopMetric
             label="PnL (USDT)"
@@ -619,18 +666,278 @@ export default function StrategyDetail() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.42fr_0.78fr]">
-        <section className="surface-card p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-base font-semibold text-foreground">Performance Curve</h2>
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+        <DashboardPanel
+          title="Asset Curve"
+          icon={BarChart3}
+          accentClass="bg-amber-400"
+          actions={
             <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
-              {rangeOptions.map((option) => (
+              {curveRanges.map((option) => (
                 <button
                   key={option}
                   type="button"
-                  onClick={() => setRange(option)}
-                  className={`rounded-md px-2.5 py-1.5 text-[10px] font-medium tracking-[0.04em] transition-colors ${
-                    option === range
+                  onClick={() => {
+                    setCurveRange(option);
+                    setCurveHoverIndex(null);
+                  }}
+                  className={`rounded-md px-2.5 py-1.5 text-[10px] font-medium tracking-[0.08em] transition-colors ${
+                    option === curveRange
+                      ? "border border-primary/45 bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+              <span className="text-muted-foreground">
+                Total Return{" "}
+                <span className={curveStats.total >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
+                  {fmtSigned(curveStats.total)}%
+                </span>
+              </span>
+              <span className="text-muted-foreground">
+                Excess Return{" "}
+                <span className={curveStats.excess >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
+                  {fmtSigned(curveStats.excess)}%
+                </span>
+              </span>
+              <span className="text-muted-foreground">
+                Sharpe <span className="font-semibold text-foreground">{strategy.sharpe.toFixed(2)}</span>
+              </span>
+              <span className="text-muted-foreground">
+                Calmar <span className="font-semibold text-foreground">{calmar.toFixed(2)}</span>
+              </span>
+            </div>
+
+            <div className="relative">
+              <svg
+                viewBox={`0 0 ${curveChart.width} ${curveChart.height}`}
+                className="h-[320px] w-full"
+                onMouseMove={(event) => {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  const ratio = (event.clientX - rect.left) / rect.width;
+                  const index = Math.round(
+                    Math.max(0, Math.min(1, ratio)) * (curveChart.equityValues.length - 1)
+                  );
+                  setCurveHoverIndex(index);
+                }}
+                onMouseLeave={() => setCurveHoverIndex(null)}
+              >
+                <defs>
+                  <linearGradient id="asset-curve-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#F0A13B" stopOpacity="0.28" />
+                    <stop offset="100%" stopColor="#F0A13B" stopOpacity="0.04" />
+                  </linearGradient>
+                </defs>
+                <rect
+                  x="0"
+                  y="0"
+                  width={curveChart.width}
+                  height={curveChart.height}
+                  rx="16"
+                  fill="rgba(11,18,32,0.55)"
+                />
+                {Array.from({ length: 6 }, (_, index) => (
+                  <line
+                    key={index}
+                    x1={curveChart.padding}
+                    y1={curveChart.padding + index * ((curveChart.height - curveChart.padding * 2) / 5)}
+                    x2={curveChart.width - curveChart.padding}
+                    y2={curveChart.padding + index * ((curveChart.height - curveChart.padding * 2) / 5)}
+                    stroke="rgba(148,163,184,0.12)"
+                    strokeDasharray="3 8"
+                  />
+                ))}
+                <path d={curveChart.equityArea} fill="url(#asset-curve-fill)" />
+                <path
+                  d={curveChart.equityPath}
+                  fill="none"
+                  stroke="#F0C13B"
+                  strokeWidth="2.8"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+                <path
+                  d={curveChart.benchmarkPath}
+                  fill="none"
+                  stroke="#6E82F6"
+                  strokeWidth="2.3"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  opacity="0.85"
+                />
+                {curveHoverIndex !== null ? (
+                  <>
+                    <line
+                      x1={curveChart.equityPoints[curveHoverIndex].x}
+                      y1={curveChart.padding}
+                      x2={curveChart.equityPoints[curveHoverIndex].x}
+                      y2={curveChart.height - curveChart.padding}
+                      stroke="rgba(255,255,255,0.18)"
+                      strokeDasharray="4 6"
+                    />
+                    <circle
+                      cx={curveChart.equityPoints[curveHoverIndex].x}
+                      cy={curveChart.equityPoints[curveHoverIndex].y}
+                      r="4.5"
+                      fill="#F0C13B"
+                      stroke="#0B1220"
+                      strokeWidth="2"
+                    />
+                    <circle
+                      cx={curveChart.benchmarkPoints[curveHoverIndex].x}
+                      cy={curveChart.benchmarkPoints[curveHoverIndex].y}
+                      r="4"
+                      fill="#6E82F6"
+                      stroke="#0B1220"
+                      strokeWidth="2"
+                    />
+                  </>
+                ) : null}
+              </svg>
+
+              {curveHoverIndex !== null ? (
+                <div
+                  className="pointer-events-none absolute rounded-lg border border-border/80 bg-background/95 px-3 py-2 text-xs shadow-xl"
+                  style={{
+                    left: Math.min(
+                      curveChart.equityPoints[curveHoverIndex].x / curveChart.width * 100 + 2,
+                      76
+                    ) + "%",
+                    top: 18,
+                  }}
+                >
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                    {curveMeta[curveRange].labels[Math.min(curveMeta[curveRange].labels.length - 1, Math.floor((curveHoverIndex / Math.max(1, curveChart.equityValues.length - 1)) * curveMeta[curveRange].labels.length))]}
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#F0C13B]" />
+                    <span className="text-muted-foreground">Equity</span>
+                    <span className="font-semibold text-foreground">
+                      {curveChart.equityValues[curveHoverIndex].toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#6E82F6]" />
+                    <span className="text-muted-foreground">Benchmark</span>
+                    <span className="font-semibold text-foreground">
+                      {curveChart.benchmarkValues[curveHoverIndex].toLocaleString(undefined, {
+                        maximumFractionDigits: 0,
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              {curveChart.labels.map((label) => (
+                <span key={label}>{label}</span>
+              ))}
+            </div>
+          </div>
+        </DashboardPanel>
+
+        <DashboardPanel title="Asset Preferences" icon={PieChart} accentClass="bg-amber-400">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.85fr_1.15fr]">
+            <div className="flex items-center justify-center">
+              <div className="relative h-[260px] w-[260px]">
+                <svg viewBox="0 0 260 260" className="h-full w-full">
+                  <circle cx="130" cy="130" r="76" fill="none" stroke="rgba(148,163,184,0.12)" strokeWidth="30" />
+                  {(() => {
+                    const circumference = 2 * Math.PI * 76;
+                    let offset = 0;
+                    return preferenceSlices.map((slice, index) => {
+                      const length = (slice.value / 100) * circumference;
+                      const node = (
+                        <circle
+                          key={slice.label}
+                          cx="130"
+                          cy="130"
+                          r="76"
+                          fill="none"
+                          stroke={slice.color}
+                          strokeWidth={activePreference === index ? 34 : 30}
+                          strokeLinecap="butt"
+                          strokeDasharray={`${length} ${circumference - length}`}
+                          strokeDashoffset={-offset}
+                          transform="rotate(-90 130 130)"
+                          opacity={activePreference === index ? 1 : 0.9}
+                          style={{ cursor: "pointer", transition: "all 180ms ease" }}
+                          onMouseEnter={() => setActivePreference(index)}
+                        />
+                      );
+                      offset += length;
+                      return node;
+                    });
+                  })()}
+                </svg>
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Top Asset</div>
+                  <div className="mt-1 text-2xl font-semibold text-foreground">{activeSlice.label}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">{activeSlice.value.toFixed(2)}% allocation</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-x-5 gap-y-2 text-sm sm:grid-cols-2">
+              {preferenceSlices.map((slice, index) => (
+                <button
+                  key={slice.label}
+                  type="button"
+                  onMouseEnter={() => setActivePreference(index)}
+                  className={`flex items-center justify-between rounded-lg px-2 py-1.5 text-left transition-colors ${
+                    activePreference === index ? "bg-accent/45" : "hover:bg-accent/25"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: slice.color }}
+                    />
+                    <span className="text-muted-foreground">{slice.label}</span>
+                  </span>
+                  <span className="font-medium text-foreground">{slice.value.toFixed(2)}%</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </DashboardPanel>
+      </div>
+
+      <DashboardPanel
+        title="Daily Returns"
+        icon={Activity}
+        accentClass="bg-emerald-400"
+        actions={
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <span>
+              Avg{" "}
+              <span className={returnSummary.avg >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
+                {fmtSigned(returnSummary.avg, 3)}%
+              </span>
+            </span>
+            <span className="font-medium text-emerald-400">W{returnSummary.wins}</span>
+            <span className="font-medium text-rose-400">L{returnSummary.losses}</span>
+            <div className="ml-1 flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
+              {curveRanges.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => {
+                    setReturnsRange(option);
+                    setReturnsHoverIndex(null);
+                  }}
+                  className={`rounded-md px-2.5 py-1.5 text-[10px] font-medium tracking-[0.08em] transition-colors ${
+                    option === returnsRange
                       ? "border border-primary/45 bg-primary/15 text-primary"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
@@ -640,229 +947,152 @@ export default function StrategyDetail() {
               ))}
             </div>
           </div>
-
-          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
-            <span className="text-muted-foreground">
-              Total Return: <span className={`font-semibold ${totalReturnPct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{fmtSigned(totalReturnPct)}%</span>
-            </span>
-            <span className="text-muted-foreground">
-              Excess Return: <span className={`font-semibold ${totalReturnPct - benchmarkReturnPct >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{fmtSigned(totalReturnPct - benchmarkReturnPct)}%</span>
-            </span>
-            <span className="text-muted-foreground">
-              Sharpe: <span className="font-semibold text-foreground">{strategy.sharpe.toFixed(2)}</span>
-            </span>
-            <span className="text-muted-foreground">
-              Calmar: <span className="font-semibold text-foreground">{calmar.toFixed(2)}</span>
-            </span>
-          </div>
-
-          <div className="mt-4">
-            <svg viewBox="0 0 700 320" className="h-[320px] w-full">
-              <defs>
-                <linearGradient id="detailStrategyFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#818CF8" stopOpacity="0.28" />
-                  <stop offset="100%" stopColor="#818CF8" stopOpacity="0.04" />
-                </linearGradient>
-              </defs>
-
-              <rect x="0" y="0" width="700" height="320" rx="14" fill="rgba(15,23,42,0.22)" />
-              {Array.from({ length: 7 }, (_, index) => (
-                <line
-                  key={index}
-                  x1="24"
-                  y1={36 + index * 40}
-                  x2="676"
-                  y2={36 + index * 40}
-                  stroke="rgba(148,163,184,0.15)"
-                  strokeDasharray="3 8"
-                />
-              ))}
-
-              <path d={`${strategyPath} L 676 296 L 24 296 Z`} fill="url(#detailStrategyFill)" />
-              <path d={strategyPath} fill="none" stroke="#818CF8" strokeWidth="2.8" strokeLinejoin="round" strokeLinecap="round" />
-              <path d={benchmarkPath} fill="none" stroke="#F59E0B" strokeWidth="2.2" strokeLinejoin="round" strokeLinecap="round" opacity="0.95" />
-            </svg>
-          </div>
-
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-6 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-5 rounded bg-[#818CF8]" />
-              Strategy Equity
-            </span>
-            <span className="inline-flex items-center gap-2">
-              <span className="h-1.5 w-5 rounded bg-[#F59E0B]" />
-              ETH Spot Benchmark
-            </span>
-          </div>
-        </section>
-
-        <section className="surface-card p-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold text-foreground">Return Calendar</h2>
-            <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-              <CalendarDays className="h-3.5 w-3.5" />
-              Apr 2026
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-7 gap-1 text-center text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => (
-              <div key={label}>{label}</div>
+        }
+      >
+        <div className="relative">
+          <svg
+            viewBox="0 0 1120 280"
+            className="h-[320px] w-full"
+            onMouseMove={(event) => {
+              const rect = event.currentTarget.getBoundingClientRect();
+              const ratio = (event.clientX - rect.left) / rect.width;
+              const index = Math.round(Math.max(0, Math.min(1, ratio)) * (dailyReturns.length - 1));
+              setReturnsHoverIndex(index);
+            }}
+            onMouseLeave={() => setReturnsHoverIndex(null)}
+          >
+            <rect x="0" y="0" width="1120" height="280" rx="16" fill="rgba(11,18,32,0.55)" />
+            {Array.from({ length: 5 }, (_, index) => (
+              <line
+                key={index}
+                x1="28"
+                y1={32 + index * 54}
+                x2="1092"
+                y2={32 + index * 54}
+                stroke="rgba(148,163,184,0.10)"
+                strokeDasharray="3 8"
+              />
             ))}
-          </div>
-
-          <div className="mt-2 grid grid-cols-7 gap-1.5">
-            {calendar.cells.map((cell, index) => {
-              const value = cell.value;
-              const isPositive = value !== null && value >= 0;
-              const isNegative = value !== null && value < 0;
+            <line x1="28" y1="140" x2="1092" y2="140" stroke="rgba(148,163,184,0.18)" />
+            {dailyReturns.map((value, index) => {
+              const slot = 1064 / dailyReturns.length;
+              const barWidth = Math.max(8, slot - 6);
+              const x = 28 + index * slot + (slot - barWidth) / 2;
+              const magnitude = Math.min(105, (Math.abs(value) / 1.4) * 105);
+              const y = value >= 0 ? 140 - magnitude : 140;
               return (
-                <div
-                  key={`${cell.day ?? "empty"}-${index}`}
-                  className={`h-14 rounded-lg border px-1 py-1 text-center ${
-                    cell.day === null
-                      ? "border-border/35 bg-transparent"
-                      : isPositive
-                        ? "border-emerald-500/30 bg-emerald-500/10"
-                        : isNegative
-                          ? "border-rose-500/30 bg-rose-500/10"
-                          : "border-border/70 bg-accent/30"
-                  }`}
-                >
-                  {cell.day !== null ? (
-                    <>
-                      <div className="text-[11px] font-medium text-foreground">{cell.day}</div>
-                      <div className={`mt-1 text-[10px] data-value ${isPositive ? "text-emerald-400" : isNegative ? "text-rose-400" : "text-muted-foreground"}`}>
-                        {value !== null ? `${fmtSigned(value, 2)}%` : "--"}
-                      </div>
-                    </>
-                  ) : null}
-                </div>
+                <rect
+                  key={`${returnsRange}-${index}`}
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={Math.max(3, magnitude)}
+                  rx="2"
+                  fill={value >= 0 ? "#66D39A" : "#E16373"}
+                  opacity={returnsHoverIndex === index ? 1 : 0.92}
+                />
               );
             })}
-          </div>
+            {returnsHoverIndex !== null ? (
+              (() => {
+                const slot = 1064 / dailyReturns.length;
+                const x = 28 + returnsHoverIndex * slot + slot / 2;
+                return (
+                  <line
+                    x1={x}
+                    y1="24"
+                    x2={x}
+                    y2="252"
+                    stroke="rgba(255,255,255,0.18)"
+                    strokeDasharray="4 6"
+                  />
+                );
+              })()
+            ) : null}
+          </svg>
 
-          <div className="mt-3 text-right text-xs text-muted-foreground">
-            Monthly Return:{" "}
-            <span className={`font-semibold ${calendar.totalMonthReturn >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-              {fmtSigned(calendar.totalMonthReturn)}%
-            </span>
-          </div>
-        </section>
-      </div>
-
-      {isOfficialLibraryView ? (
-        <section className="surface-card p-5">
-          <h2 className="text-base font-semibold text-foreground">Template Metadata</h2>
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-xl border border-border/70 bg-accent/35 p-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Source</div>
-              <div className="mt-2 text-sm font-semibold text-foreground">Official Strategy Library</div>
-            </div>
-            <div className="rounded-xl border border-border/70 bg-accent/35 p-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Tier</div>
-              <div className="mt-2 text-sm font-semibold text-foreground">{tierBadgeLabel}</div>
-            </div>
-            <div className="rounded-xl border border-border/70 bg-accent/35 p-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Author</div>
-              <div className="mt-2 text-sm font-semibold text-foreground">{strategy.author}</div>
-            </div>
-            <div className="rounded-xl border border-border/70 bg-accent/35 p-4">
-              <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Tags</div>
-              <div className="mt-2 text-sm font-semibold text-foreground">{strategy.tags.join(" · ")}</div>
-            </div>
-          </div>
-        </section>
-      ) : (
-        <>
-          <section className="surface-card p-5">
-            <h2 className="text-base font-semibold text-foreground">Assets</h2>
-            <div className="mt-4 overflow-x-auto rounded-xl border border-border/70">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/70">
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Exchange</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Asset</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Total</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Available</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Frozen</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Updated At</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow className="border-border/70">
-                    <TableCell className="font-mono text-xs text-muted-foreground">binance</TableCell>
-                    <TableCell className="font-semibold text-foreground">USDT</TableCell>
-                    <TableCell className="data-value text-foreground">228,069.571705</TableCell>
-                    <TableCell className="data-value text-emerald-400">228,069.571705</TableCell>
-                    <TableCell className="data-value text-muted-foreground">0.000000</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">2026-03-29 15:22:46</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </div>
-          </section>
-
-          <section className="surface-card p-5">
-            <h2 className="text-base font-semibold text-foreground">Orders</h2>
-            <div className="mt-4 overflow-x-auto rounded-xl border border-border/70">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/70">
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Time</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Pair</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Side</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Type</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Price</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Size</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Avg Entry</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">PnL</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">PnL %</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Fee</TableHead>
-                    <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orderRows.map((row) => (
-                    <TableRow key={`${row.time}-${row.pair}-${row.side}`} className="border-border/70">
-                      <TableCell className="font-mono text-xs text-muted-foreground">{row.time}</TableCell>
-                      <TableCell className="font-semibold text-foreground">{row.pair}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${sideClass(row.side)}`}>
-                          {row.side}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{row.type}</TableCell>
-                      <TableCell className="data-value text-foreground">{row.price}</TableCell>
-                      <TableCell className="data-value text-foreground">{row.size}</TableCell>
-                      <TableCell className="data-value text-foreground">{row.avgEntry}</TableCell>
-                      <TableCell className={`data-value ${pnlClass(row.pnl)}`}>{row.pnl}</TableCell>
-                      <TableCell className={`data-value ${pnlClass(row.pnlPct)}`}>{row.pnlPct}</TableCell>
-                      <TableCell className="data-value text-muted-foreground">{row.fee}</TableCell>
-                      <TableCell>
-                        <span className="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-                          {row.status}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
-              <span>286 records total, page 1 / 3</span>
-              <div className="inline-flex items-center gap-2">
-                <button className="rounded-md border border-border/70 bg-accent/35 px-2 py-1 hover:text-foreground">First</button>
-                <button className="rounded-md border border-border/70 bg-accent/35 px-2 py-1 hover:text-foreground">Prev</button>
-                <span className="rounded-md border border-primary/35 bg-primary/12 px-2 py-1 text-primary">1</span>
-                <button className="rounded-md border border-border/70 bg-accent/35 px-2 py-1 hover:text-foreground">Next</button>
-                <button className="rounded-md border border-border/70 bg-accent/35 px-2 py-1 hover:text-foreground">Last</button>
+          {returnsHoverIndex !== null ? (
+            <div
+              className="pointer-events-none absolute rounded-lg border border-border/80 bg-background/95 px-3 py-2 text-xs shadow-xl"
+              style={{
+                left: `${Math.min(82, Math.max(8, (returnsHoverIndex / Math.max(1, dailyReturns.length - 1)) * 100))}%`,
+                top: 12,
+              }}
+            >
+              <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+                {returnMeta[returnsRange].labels[
+                  Math.min(
+                    returnMeta[returnsRange].labels.length - 1,
+                    Math.floor(
+                      (returnsHoverIndex / Math.max(1, dailyReturns.length - 1)) *
+                        returnMeta[returnsRange].labels.length
+                    )
+                  )
+                ]}
+              </div>
+              <div className={`mt-1 font-semibold ${dailyReturns[returnsHoverIndex] >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                {fmtSigned(dailyReturns[returnsHoverIndex], 3)}%
               </div>
             </div>
-          </section>
-        </>
-      )}
+          ) : null}
+        </div>
+
+        <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+          {returnMeta[returnsRange].labels.map((label) => (
+            <span key={label}>{label}</span>
+          ))}
+        </div>
+      </DashboardPanel>
+
+      <DashboardPanel title="Position History" icon={BriefcaseBusiness} accentClass="bg-amber-400">
+        <div className="space-y-3">
+          {positionHistory.map((position) => (
+            <article
+              key={`${position.symbol}-${position.openedAt}`}
+              className="rounded-xl border border-border/60 bg-background/35 p-4 transition-colors hover:bg-accent/20"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-2xl font-semibold text-foreground">{position.symbol}</h3>
+                    <span className="inline-flex rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                      {position.contract}
+                    </span>
+                    <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] ${sideClass(position.side)}`}>
+                      {position.side}
+                    </span>
+                    <span className="inline-flex rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                      {position.status}
+                    </span>
+                  </div>
+                </div>
+                <div className={`text-right text-[30px] font-semibold leading-none ${positionTone(position.pnl)}`}>
+                  {position.pnl}
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Entry Price</div>
+                  <div className="mt-1 font-mono text-lg text-foreground">{position.entryPrice}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Max Open Interest</div>
+                  <div className="mt-1 font-mono text-lg text-foreground">{position.maxOpenInterest}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Opened</div>
+                  <div className="mt-1 font-mono text-sm text-foreground">{position.openedAt}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Closed</div>
+                  <div className="mt-1 font-mono text-sm text-foreground">{position.closedAt}</div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </DashboardPanel>
     </div>
   );
 }

@@ -44,7 +44,17 @@ const STRATEGY_TYPES_BY_MODE = {
   ],
 } as const;
 
-const ITERATION_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
+const REFINEMENT_LEVELS = [
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+] as const;
+type RefinementLevel = (typeof REFINEMENT_LEVELS)[number]["value"];
+const REFINEMENT_TO_ITERATIONS: Record<RefinementLevel, number> = {
+  low: 3,
+  medium: 6,
+  high: 10,
+};
 
 /* ── Generate API Key ── */
 function generateApiKey() {
@@ -94,7 +104,7 @@ export default function AlphaEdit() {
   /* ── Platform Agent Form State ── */
   const [alphaName, setAlphaName] = useState("BTC Momentum RSI Cross");
   const [strategyType, setStrategyType] = useState("time-series");
-  const [iterationCount, setIterationCount] = useState(3);
+  const [refinementLevel, setRefinementLevel] = useState<RefinementLevel>("medium");
   const [description, setDescription] = useState("");
   const [showOptionalFields, setShowOptionalFields] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -163,7 +173,7 @@ export default function AlphaEdit() {
         : "Keep the wording concise but specific, and emphasize robustness, signal clarity, and execution constraints.";
 
     setDescription(
-      `Please refine the ${strategyLabel} factor named "${factorName}". Please iterate ${iterationCount} times and produce a clearer, more actionable description for alpha creation. ${viewModeHint}`
+      `Please refine the ${strategyLabel} factor named "${factorName}". Use ${refinementLevel} refinement depth (about ${REFINEMENT_TO_ITERATIONS[refinementLevel]} improvement rounds) and produce a clearer, more actionable description for factor creation. ${viewModeHint}`
     );
     toast.success("Prompt optimized");
   };
@@ -182,9 +192,9 @@ export default function AlphaEdit() {
       ],
     },
     iterations: {
-      title: "Iterations",
+      title: "Refinement Level",
       body:
-        "Iterations means how many rounds the system will try to improve your idea. More rounds usually means more refinement, but it may also take longer.",
+        "Choose how deeply the system should refine your idea: Low for quick polish, Medium for balanced depth, High for stronger optimization.",
     },
   } as const;
 
@@ -317,17 +327,17 @@ export default function AlphaEdit() {
               </div>
             </div>
 
-            {/* Iterations */}
+            {/* Refinement Level */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-muted-foreground">Iterations <span className="text-destructive">*</span></label>
+                <label className="text-xs font-medium text-muted-foreground">Refinement Level <span className="text-destructive">*</span></label>
                 {showBeginnerHints && (
                   <Popover>
                     <PopoverTrigger asChild>
                       <button
                         type="button"
                         className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
-                        aria-label="Explain iterations"
+                        aria-label="Explain refinement level"
                       >
                         <Info className="h-3.5 w-3.5" />
                       </button>
@@ -341,18 +351,18 @@ export default function AlphaEdit() {
                   </Popover>
                 )}
               </div>
-              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-                {ITERATION_OPTIONS.map((count) => (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {REFINEMENT_LEVELS.map((level) => (
                   <button
-                    key={count}
-                    onClick={() => setIterationCount(count)}
+                    key={level.value}
+                    onClick={() => setRefinementLevel(level.value)}
                     className={`h-9 rounded-lg text-xs font-semibold transition-all duration-200 border ${
-                      iterationCount === count
+                      refinementLevel === level.value
                         ? "bg-primary/10 border-primary/30 text-primary shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
                         : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                     }`}
                   >
-                    {count}
+                    {level.label}
                   </button>
                 ))}
               </div>

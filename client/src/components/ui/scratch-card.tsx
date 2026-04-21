@@ -247,6 +247,7 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
   const hostRef = useRef<HTMLDivElement | null>(null);
   const isDrawingRef = useRef(false);
   const revealedRef = useRef(false);
+  const completingRef = useRef(false);
   const [started, setStarted] = useState(false);
   const [maskHidden, setMaskHidden] = useState(false);
   const [revealedHovered, setRevealedHovered] = useState(false);
@@ -317,6 +318,7 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
     }
 
     revealedRef.current = false;
+    completingRef.current = false;
     setMaskHidden(false);
     setStarted(false);
     setRevealedHovered(false);
@@ -355,16 +357,26 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
 
   const getLetterRevealRatio = (
     ctx: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement
+    canvas: HTMLCanvasElement,
+    host: HTMLDivElement
   ) => {
-    const regionX = Math.floor(canvas.width * LETTER_REGION.x);
-    const regionY = Math.floor(canvas.height * LETTER_REGION.y);
-    const regionWidth = Math.floor(canvas.width * LETTER_REGION.width);
-    const regionHeight = Math.floor(canvas.height * LETTER_REGION.height);
+    const dpr = window.devicePixelRatio || 1;
+    const hostWidth = Math.max(1, host.clientWidth);
+    const hostHeight = Math.max(1, host.clientHeight);
+    const offset = MASK_OVERDRAW / 2;
+    const regionX = Math.floor((offset + hostWidth * LETTER_REGION.x) * dpr);
+    const regionY = Math.floor((offset + hostHeight * LETTER_REGION.y) * dpr);
+    const regionWidth = Math.floor(hostWidth * LETTER_REGION.width * dpr);
+    const regionHeight = Math.floor(hostHeight * LETTER_REGION.height * dpr);
 
     if (regionWidth <= 0 || regionHeight <= 0) return 0;
+    if (regionX >= canvas.width || regionY >= canvas.height) return 0;
 
-    const sample = ctx.getImageData(regionX, regionY, regionWidth, regionHeight).data;
+    const clampedWidth = Math.min(regionWidth, canvas.width - regionX);
+    const clampedHeight = Math.min(regionHeight, canvas.height - regionY);
+    if (clampedWidth <= 0 || clampedHeight <= 0) return 0;
+
+    const sample = ctx.getImageData(regionX, regionY, clampedWidth, clampedHeight).data;
     let transparent = 0;
     const step = 12;
 
@@ -399,12 +411,24 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
     ctx.fill();
 
     if (!revealedRef.current) {
-      const ratio = getLetterRevealRatio(ctx, canvas);
+      const ratio = getLetterRevealRatio(ctx, canvas, host);
       if (ratio > REVEAL_THRESHOLD) {
         revealedRef.current = true;
+        completingRef.current = true;
         isDrawingRef.current = false;
-        setMaskHidden(true);
-        onDone();
+
+        const dpr = window.devicePixelRatio || 1;
+        const clearWidth = canvas.width / dpr;
+        const clearHeight = canvas.height / dpr;
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.fillStyle = "rgba(0,0,0,1)";
+        ctx.fillRect(0, 0, clearWidth, clearHeight);
+
+        requestAnimationFrame(() => {
+          setMaskHidden(true);
+          onDone();
+          completingRef.current = false;
+        });
       }
     }
   };
@@ -417,7 +441,7 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
     >
       <div
         className="h-full w-full transition-opacity duration-150"
-        style={{ opacity: started || maskHidden ? 1 : 0 }}
+        style={{ opacity: 1 }}
       >
         <RevealedGradeCard
           grade={grade}
@@ -437,12 +461,13 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
         animate={maskHidden ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.24 }}
         onPointerDown={(e) => {
+          if (completingRef.current || revealedRef.current) return;
           isDrawingRef.current = true;
           setStarted(true);
           eraseAt(e.clientX, e.clientY);
         }}
         onPointerMove={(e) => {
-          if (!isDrawingRef.current || revealedRef.current) return;
+          if (!isDrawingRef.current || revealedRef.current || completingRef.current) return;
           eraseAt(e.clientX, e.clientY);
         }}
         onPointerUp={() => {

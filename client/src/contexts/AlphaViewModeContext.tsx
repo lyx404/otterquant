@@ -12,11 +12,11 @@ const STORAGE_KEY = "alphaforge_view_mode";
 const AlphaViewModeContext = createContext<AlphaViewModeContextValue | null>(null);
 
 export function getAlphaDisplayName(mode: AlphaViewMode) {
-  return mode === "beginner" ? "Signal" : "Alpha";
+  return mode === "beginner" ? "Signal" : "Factor";
 }
 
 export function getAlphaDisplayNamePlural(mode: AlphaViewMode) {
-  return mode === "beginner" ? "Signals" : "Alphas";
+  return mode === "beginner" ? "Signals" : "Factors";
 }
 
 export function replaceAlphaTerms(text: string, mode: AlphaViewMode) {
