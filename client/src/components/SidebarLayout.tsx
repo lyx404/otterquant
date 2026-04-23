@@ -3,12 +3,11 @@
  * Design System: Indigo/Sky + Slate
  * Sidebar: 240px fixed width, collapsible to 64px icon-only mode
  * Logo links to /landing, nav items with icons + labels
- * Bottom: theme toggle + user dropdown
+ * Bottom: account controls + user dropdown
  * Mobile: overlay sidebar with backdrop
  */
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   AlphaViewModeProvider,
@@ -34,8 +33,8 @@ import {
   Library,
   FileText,
   CandlestickChart,
+  CreditCard,
 } from "lucide-react";
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import NotificationPanel from "@/components/NotificationPanel";
 
 const SIDEBAR_W = 220;
@@ -70,6 +69,7 @@ const navItems: NavItem[] = [
   },
   { path: "/trade", label: "Trade", icon: CandlestickChart },
   { path: "/leaderboard", label: "Alpha Arena", icon: Trophy },
+  { path: "/subscription", label: "Subscription", icon: CreditCard },
   { path: "/account", label: "Setting", icon: Settings2 },
 ];
 
@@ -83,7 +83,6 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
 function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
-  const { theme } = useTheme();
   const { isAuthenticated, user } = useAuth();
   const { alphaViewMode, setAlphaViewMode } = useAlphaViewMode();
   const [collapsed, setCollapsed] = useState(false);
@@ -367,10 +366,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <Sparkles className="w-3.5 h-3.5" />
             </button>
             {isAuthenticated && <NotificationPanel />}
-            <AnimatedThemeToggler
-              className="flex items-center justify-center border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 w-9 h-9 p-0"
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            />
             {isAuthenticated && (
               <button
                 onClick={() => navigate("/account")}
@@ -440,10 +435,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               )}
               <div className="flex-1" />
               {isAuthenticated && <NotificationPanel />}
-              <AnimatedThemeToggler
-                className="flex items-center justify-center border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 w-8 h-8 p-0"
-                title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              />
             </div>
           </div>
         )}

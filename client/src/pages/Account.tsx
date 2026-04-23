@@ -6,23 +6,28 @@
  */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
-  Eye, EyeOff, RefreshCw, Wifi, WifiOff, AlertTriangle, Compass,
+  Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
   Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { exchanges, type Exchange } from "@/lib/mockData";
 
-type TabId = "profile" | "api";
+type TabId = "general" | "profile" | "exchangeApi" | "api";
+type UiLang = "en" | "zh";
 
 const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
+  { id: "general", label: "General", icon: Shield },
   { id: "profile", label: "Profile", icon: User },
+  { id: "exchangeApi", label: "Exchange API", icon: Link2 },
   { id: "api", label: "Agent API", icon: Key },
 ];
 
@@ -32,6 +37,15 @@ interface ApiKeyItem {
   name: string;
   apiKey: string;
   skillVersion: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ExchangeApiItem {
+  id: string;
+  venue: "binance" | "okx";
+  accountName: string;
+  apiKey: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,13 +103,24 @@ const INITIAL_KEYS: ApiKeyItem[] = [
   },
 ];
 
+const INITIAL_EXCHANGE_APIS: ExchangeApiItem[] = [
+  {
+    id: "ex-1",
+    venue: "binance",
+    accountName: "Primary Futures Account",
+    apiKey: "bn_api_x9f4k2p7q1m5",
+    createdAt: "2026-04-18",
+    updatedAt: "2026-04-20",
+  },
+];
+
 /* ── Copy button helper ── */
-function CopyBtn({ text }: { text: string }) {
+function CopyBtn({ text, uiLang = "en" }: { text: string; uiLang?: UiLang }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
-    toast.success("Copied to clipboard");
+    toast.success(uiLang === "zh" ? "已复制到剪贴板" : "Copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
   return (
@@ -106,13 +131,17 @@ function CopyBtn({ text }: { text: string }) {
 }
 
 /* ── Copy Prompt button ── */
-function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey: string; skillVersion: string; itemSkillVersion: string }) {
+function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion, uiLang = "en" }: { apiKey: string; skillVersion: string; itemSkillVersion: string; uiLang?: UiLang }) {
   const [copied, setCopied] = useState(false);
   const needsUpdate = itemSkillVersion !== skillVersion;
   const handleCopy = () => {
     navigator.clipboard.writeText(buildPrompt(apiKey, skillVersion));
     setCopied(true);
-    toast.success(needsUpdate ? "Updated to latest skill & prompt copied" : "Prompt copied to clipboard");
+    toast.success(
+      needsUpdate
+        ? (uiLang === "zh" ? "已更新至最新 Skill 并复制提示词" : "Updated to latest skill & prompt copied")
+        : (uiLang === "zh" ? "提示词已复制到剪贴板" : "Prompt copied to clipboard")
+    );
     setTimeout(() => setCopied(false), 2000);
   };
   return (
@@ -123,15 +152,16 @@ function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey: str
       }`}
     >
       {copied ? <Check className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-      {copied ? "Copied" : needsUpdate ? "Copy Latest Prompt" : "Copy Prompt"}
+      {copied ? (uiLang === "zh" ? "已复制" : "Copied") : needsUpdate ? (uiLang === "zh" ? "复制最新提示词" : "Copy Latest Prompt") : (uiLang === "zh" ? "复制提示词" : "Copy Prompt")}
     </button>
   );
 }
 
 export default function Account() {
   const { user, updateUser, logout } = useAuth();
+  const { theme } = useTheme();
   const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
+  const [activeTab, setActiveTab] = useState<TabId>("general");
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
   const [username, setUsername] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
@@ -148,7 +178,23 @@ export default function Account() {
   const [alphasNotify, setAlphasNotify] = useState(true);
   const [arenaNotify, setArenaNotify] = useState(true);
   const [systemNotify, setSystemNotify] = useState(true);
+  const [uiLang, setUiLang] = useState<UiLang>(() => {
+    if (typeof window === "undefined") return "en";
+    return localStorage.getItem("otter_account_lang") === "zh" ? "zh" : "en";
+  });
   const headerRef = useRef<HTMLDivElement>(null);
+  const [exchangeApiItems, setExchangeApiItems] = useState<ExchangeApiItem[]>(INITIAL_EXCHANGE_APIS);
+  const [showCreateExchangeModal, setShowCreateExchangeModal] = useState(false);
+  const [exchangeCreateStep, setExchangeCreateStep] = useState<1 | 2>(1);
+  const [selectedExchangeVenue, setSelectedExchangeVenue] = useState<"binance" | "okx">("binance");
+  const [exchangeAccountName, setExchangeAccountName] = useState("");
+  const [exchangeApiKey, setExchangeApiKey] = useState("");
+  const [exchangeApiSecret, setExchangeApiSecret] = useState("");
+  const [editingExchangeNameId, setEditingExchangeNameId] = useState<string | null>(null);
+  const [editExchangeNameValue, setEditExchangeNameValue] = useState("");
+  const [exchangeDeleteConfirmId, setExchangeDeleteConfirmId] = useState<string | null>(null);
+  const [exchangeMoreMenuId, setExchangeMoreMenuId] = useState<string | null>(null);
+  const exchangeMoreMenuRef = useRef<HTMLDivElement>(null);
 
   // Edit mode states for each subsection
   const [editingProfile, setEditingProfile] = useState(false);
@@ -169,6 +215,7 @@ export default function Account() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [moreMenuId, setMoreMenuId] = useState<string | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   // Close more menu on outside click
   useEffect(() => {
@@ -181,20 +228,34 @@ export default function Account() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [moreMenuId]);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exchangeMoreMenuRef.current && !exchangeMoreMenuRef.current.contains(e.target as Node)) {
+        setExchangeMoreMenuId(null);
+      }
+    };
+    if (exchangeMoreMenuId) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [exchangeMoreMenuId]);
+
+  useEffect(() => {
+    localStorage.setItem("otter_account_lang", uiLang);
+  }, [uiLang]);
+
   const handleRefreshSkill = useCallback((id: string) => {
     const now = new Date().toISOString().split("T")[0];
     setApiKeys((prev) =>
       prev.map((k) => {
         if (k.id !== id) return k;
         if (k.skillVersion === SKILL_LATEST) {
-          toast.success("Already on the latest version");
+          toast.success(tr("Already on the latest version", "当前已是最新版本"));
           return k;
         }
-        toast.success(`Skill updated to ${SKILL_LATEST}`);
+        toast.success(tr(`Skill updated to ${SKILL_LATEST}`, `Skill 已更新到 ${SKILL_LATEST}`));
         return { ...k, skillVersion: SKILL_LATEST, updatedAt: now };
       })
     );
-  }, []);
+  }, [tr]);
 
   useEffect(() => {
     if (!headerRef.current) return;
@@ -218,7 +279,7 @@ export default function Account() {
         ex.id === id ? { ...ex, status: ex.status === "connected" ? "disconnected" : "connected" } : ex
       )
     );
-    toast.success("Exchange connection updated");
+    toast.success(tr("Exchange connection updated", "交易所连接状态已更新"));
   };
 
   const handleCancelProfile = () => {
@@ -242,13 +303,66 @@ export default function Account() {
     setEditingPassword(false);
   };
 
+  const resetExchangeCreateFlow = useCallback(() => {
+    setExchangeCreateStep(1);
+    setSelectedExchangeVenue("binance");
+    setExchangeAccountName("");
+    setExchangeApiKey("");
+    setExchangeApiSecret("");
+  }, []);
+
+  const handleOpenExchangeModal = useCallback(() => {
+    resetExchangeCreateFlow();
+    setShowCreateExchangeModal(true);
+  }, [resetExchangeCreateFlow]);
+
+  const handleCreateExchangeApi = useCallback(() => {
+    if (!exchangeAccountName.trim() || !exchangeApiKey.trim() || !exchangeApiSecret.trim()) {
+      toast.error("Please complete all required fields.");
+      return;
+    }
+    const now = new Date().toISOString().split("T")[0];
+    const newExchangeItem: ExchangeApiItem = {
+      id: `ex-${Date.now()}`,
+      venue: selectedExchangeVenue,
+      accountName: exchangeAccountName.trim(),
+      apiKey: exchangeApiKey.trim(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    setExchangeApiItems((prev) => [newExchangeItem, ...prev]);
+    setShowCreateExchangeModal(false);
+    resetExchangeCreateFlow();
+    toast.success(`${selectedExchangeVenue.toUpperCase()} API connected successfully.`);
+  }, [exchangeAccountName, exchangeApiKey, exchangeApiSecret, resetExchangeCreateFlow, selectedExchangeVenue]);
+
+  const handleSaveExchangeName = useCallback((id: string) => {
+    if (!editExchangeNameValue.trim()) {
+      toast.error("Name cannot be empty");
+      return;
+    }
+    setExchangeApiItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, accountName: editExchangeNameValue.trim() } : item
+      )
+    );
+    setEditingExchangeNameId(null);
+    setEditExchangeNameValue("");
+    toast.success("Exchange account name updated");
+  }, [editExchangeNameValue]);
+
+  const handleDeleteExchangeApi = useCallback((id: string) => {
+    setExchangeApiItems((prev) => prev.filter((item) => item.id !== id));
+    toast.success("Exchange API deleted");
+  }, []);
+
   // API Key actions
   const handleCreateApi = useCallback(() => {
-    if (!newApiName.trim()) { toast.error("Please enter an API name"); return; }
+    if (!newApiName.trim()) { toast.error(tr("Please enter an API name", "请输入 API 名称")); return; }
     const key = generateApiKey();
     setCreatedApiKey(key);
     setCreateStep(2);
-  }, [newApiName]);
+  }, [newApiName, tr]);
 
   const handleFinishCreate = useCallback(() => {
     const now = new Date().toISOString().split("T")[0];
@@ -265,24 +379,24 @@ export default function Account() {
     setCreateStep(1);
     setNewApiName("");
     setCreatedApiKey("");
-    toast.success("API key created successfully");
-  }, [newApiName, createdApiKey]);
+    toast.success(tr("API key created successfully", "API 密钥创建成功"));
+  }, [newApiName, createdApiKey, tr]);
 
   const handleDeleteApi = useCallback((id: string) => {
     setApiKeys((prev) => prev.filter((k) => k.id !== id));
-    toast.success("API key deleted");
-  }, []);
+    toast.success(tr("API key deleted", "API 密钥已删除"));
+  }, [tr]);
 
   const handleSaveName = useCallback((id: string) => {
-    if (!editNameValue.trim()) { toast.error("Name cannot be empty"); return; }
+    if (!editNameValue.trim()) { toast.error(tr("Name cannot be empty", "名称不能为空")); return; }
     const now = new Date().toISOString().split("T")[0];
     setApiKeys((prev) =>
       prev.map((k) => k.id === id ? { ...k, name: editNameValue.trim(), updatedAt: now } : k)
     );
     setEditingNameId(null);
     setEditNameValue("");
-    toast.success("API name updated");
-  }, [editNameValue]);
+    toast.success(tr("API name updated", "API 名称已更新"));
+  }, [editNameValue, tr]);
 
   const toggleKeyVisibility = useCallback((id: string) => {
     setVisibleKeys((prev) => {
@@ -300,24 +414,15 @@ export default function Account() {
       {/* Header */}
       <div ref={headerRef} className="reveal-clip">
         <div className="reveal-line">
-          <h1 className="text-foreground">Account</h1>
+          <h1 className="text-foreground">{tr("Account", "账户设置")}</h1>
         </div>
         <div className="reveal-line mt-2">
           <p className="text-base text-muted-foreground">
-            Manage your profile, API keys, and exchange connections
+            {tr(
+              "Manage your profile, API keys, and exchange connections",
+              "管理账户资料、Agent API 密钥与交易所连接"
+            )}
           </p>
-        </div>
-        <div className="reveal-line mt-3">
-          <Link href="/launch-guide">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 rounded-full text-xs border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
-            >
-              <Compass className="w-3.5 h-3.5" />
-              Launch Guide
-            </Button>
-          </Link>
         </div>
       </div>
 
@@ -337,30 +442,144 @@ export default function Account() {
               onClick={() => setActiveTab(tab.id)}
             >
               <Icon className="w-3.5 h-3.5" />
-              {tab.label}
+              {tab.id === "general"
+                ? "General"
+                : tab.id === "profile"
+                  ? tr("Profile", "资料设置")
+                  : tab.id === "exchangeApi"
+                    ? "Exchange API"
+                    : tr("Agent API", "Agent API")}
             </button>
           );
         })}
       </div>
+
+      {/* ═══════════════ General Tab ═══════════════ */}
+      {activeTab === "general" && (
+        <div className="space-y-6">
+          <div className="surface-card">
+            <div className="px-6 py-4 pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-base font-semibold text-foreground">General Settings</span>
+              </div>
+            </div>
+
+            <div className="px-6 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("Language", "语言")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Set display language for UI and notifications.", "设置界面与通知的显示语言。")}
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent/35 p-1">
+                  <button
+                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                      uiLang === "en" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => setUiLang("en")}
+                  >
+                    EN
+                  </button>
+                  <button
+                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                      uiLang === "zh" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => setUiLang("zh")}
+                  >
+                    中文
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("Theme", "主题")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Switch between light and dark mode.", "切换浅色与深色模式。")}
+                  </div>
+                </div>
+                <AnimatedThemeToggler
+                  className="flex items-center justify-center border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 w-8 h-8 p-0"
+                  title={theme === "dark" ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-card">
+            <div className="px-6 py-4 pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-primary" />
+                <span className="text-base font-semibold text-foreground">{tr("Notification Settings", "通知设置")}</span>
+              </div>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <div className="text-sm font-medium text-foreground">{tr("Signals Notifications", "信号通知")}</div>
+                  <div className="text-xs text-muted-foreground">{tr("Get notified about signal status changes, test results, and performance updates", "接收信号状态变化、回测结果与绩效更新通知")}</div>
+                </div>
+                <button
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${alphasNotify ? "bg-primary" : "bg-muted"}`}
+                  onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? tr("Signals notifications disabled", "已关闭信号通知") : tr("Signals notifications enabled", "已开启信号通知")); }}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-border">
+                <div>
+                  <div className="text-sm font-medium text-foreground">{tr("Arena Notifications", "竞技场通知")}</div>
+                  <div className="text-xs text-muted-foreground">{tr("Get notified about competition rounds, rankings, and prize pool updates", "接收比赛轮次、排名与奖池更新通知")}</div>
+                </div>
+                <button
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${arenaNotify ? "bg-primary" : "bg-muted"}`}
+                  onClick={() => { setArenaNotify(!arenaNotify); toast.success(arenaNotify ? tr("Arena notifications disabled", "已关闭竞技场通知") : tr("Arena notifications enabled", "已开启竞技场通知")); }}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${arenaNotify ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+              <div className="flex items-center justify-between py-2 border-t border-border">
+                <div className="pr-6">
+                  <div className="text-sm font-medium text-foreground">{tr("System Messages", "系统消息")}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {tr(
+                      "Get notified about skill updates, new skills, deprecations, platform announcements, maintenance, and Official Library expansion.",
+                      "接收技能更新、新技能发布、废弃公告、平台通知、维护通知与官方库扩展信息。"
+                    )}
+                  </div>
+                </div>
+                <button
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${systemNotify ? "bg-primary" : "bg-muted"}`}
+                  onClick={() => { setSystemNotify(!systemNotify); toast.success(systemNotify ? tr("System messages disabled", "已关闭系统消息") : tr("System messages enabled", "已开启系统消息")); }}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${systemNotify ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════ Profile Tab ═══════════════ */}
       {activeTab === "profile" && (
         <div className="space-y-8">
           {/* Account Settings */}
           <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">Account Settings</span>
+              <div className="px-6 py-4 pb-3 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-primary" />
+                  <span className="text-base font-semibold text-foreground">{tr("Account Settings", "账户信息设置")}</span>
+                </div>
               </div>
-            </div>
 
             {/* 1. Profile (Nickname & Avatar) */}
             <div className="px-6 pt-5 pb-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">Profile</span>
+                  <span className="text-sm font-semibold text-foreground">{tr("Profile", "个人资料")}</span>
                 </div>
                 {!editingProfile ? (
                   <button
@@ -368,7 +587,7 @@ export default function Account() {
                     onClick={() => { setOriginalNickname(nickname); setEditingProfile(true); }}
                   >
                     <Pencil className="w-3 h-3" />
-                    Edit
+                    {tr("Edit", "编辑")}
                   </button>
                 ) : (
                   <button
@@ -376,7 +595,7 @@ export default function Account() {
                     onClick={handleCancelProfile}
                   >
                     <X className="w-3 h-3" />
-                    Cancel
+                    {tr("Cancel", "取消")}
                   </button>
                 )}
               </div>
@@ -411,12 +630,12 @@ export default function Account() {
                       }
                     }}
                   />
-                  {editingProfile && <span className="text-[10px] text-muted-foreground">Click to upload</span>}
+                  {editingProfile && <span className="text-[10px] text-muted-foreground">{tr("Click to upload", "点击上传")}</span>}
                 </div>
                 <div className="flex-1 space-y-2">
-                  <Label className="label-upper">Nickname</Label>
+                  <Label className="label-upper">{tr("Nickname", "昵称")}</Label>
                   <Input
-                    placeholder="Enter your nickname"
+                    placeholder={tr("Enter your nickname", "请输入昵称")}
                     value={nickname}
                     onChange={(e) => setNickname(e.target.value)}
                     disabled={!editingProfile}
@@ -426,16 +645,16 @@ export default function Account() {
                     <button
                       className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce mt-2"
                       onClick={() => {
-                        if (!nickname.trim()) { toast.error("Nickname cannot be empty"); return; }
+                        if (!nickname.trim()) { toast.error(tr("Nickname cannot be empty", "昵称不能为空")); return; }
                         const profileUpdates: Partial<{displayName: string; avatar: string}> = { displayName: nickname };
                         if (avatarPreview) profileUpdates.avatar = avatarPreview;
                         updateUser(profileUpdates);
                         setOriginalNickname(nickname);
-                        toast.success("Profile updated successfully");
+                        toast.success(tr("Profile updated successfully", "资料更新成功"));
                         setEditingProfile(false);
                       }}
                     >
-                      Save Profile
+                      {tr("Save Profile", "保存资料")}
                     </button>
                   )}
                 </div>
@@ -447,7 +666,7 @@ export default function Account() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">Change Email</span>
+                  <span className="text-sm font-semibold text-foreground">{tr("Change Email", "修改邮箱")}</span>
                 </div>
                 {!editingEmail ? (
                   <button
@@ -455,7 +674,7 @@ export default function Account() {
                     onClick={() => setEditingEmail(true)}
                   >
                     <Pencil className="w-3 h-3" />
-                    Edit
+                    {tr("Edit", "编辑")}
                   </button>
                 ) : (
                   <button
@@ -463,7 +682,7 @@ export default function Account() {
                     onClick={handleCancelEmail}
                   >
                     <X className="w-3 h-3" />
-                    Cancel
+                    {tr("Cancel", "取消")}
                   </button>
                 )}
               </div>
@@ -471,41 +690,41 @@ export default function Account() {
             <div className="px-6 pb-6 space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="label-upper">Current Email</Label>
+                  <Label className="label-upper">{tr("Current Email", "当前邮箱")}</Label>
                   <Input value={email} disabled className={disabledInputCls} />
                 </div>
                 {editingEmail && (
                   <div className="space-y-2">
-                    <Label className="label-upper">Verification Code</Label>
+                    <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
                     <div className="flex items-center gap-2">
                       <Input
-                        placeholder="Enter verification code"
+                        placeholder={tr("Enter verification code", "请输入验证码")}
                         value={emailVerCode}
                         onChange={(e) => setEmailVerCode(e.target.value)}
                         className={`${activeInputCls} flex-1`}
                       />
                       <button
                         className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
-                        onClick={() => { setEmailCodeSent(true); toast.success("Verification code sent to your current email"); }}
+                        onClick={() => { setEmailCodeSent(true); toast.success(tr("Verification code sent to your current email", "验证码已发送至当前邮箱")); }}
                       >
                         <Send className="w-3 h-3" />
-                        {emailCodeSent ? "Resend Code" : "Send Code"}
+                        {emailCodeSent ? tr("Resend Code", "重新发送") : tr("Send Code", "发送验证码")}
                       </button>
                     </div>
                   </div>
                 )}
                 {editingEmail && (
                   <div className="space-y-2 md:col-span-2">
-                    <Label className="label-upper">New Email</Label>
+                    <Label className="label-upper">{tr("New Email", "新邮箱")}</Label>
                     <Input
                       type="email"
-                      placeholder="Enter new email address"
+                      placeholder={tr("Enter new email address", "请输入新邮箱地址")}
                       value={newEmail}
                       onChange={(e) => setNewEmail(e.target.value)}
                       className={`${activeInputCls} md:max-w-md`}
                     />
                     {newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) && (
-                      <p className="text-xs text-destructive">Please enter a valid email address</p>
+                      <p className="text-xs text-destructive">{tr("Please enter a valid email address", "请输入有效的邮箱地址")}</p>
                     )}
                   </div>
                 )}
@@ -514,16 +733,16 @@ export default function Account() {
                 <button
                   className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                   onClick={() => {
-                    if (!emailVerCode.trim()) { toast.error("Please enter the verification code"); return; }
-                    if (!newEmail.trim()) { toast.error("Please enter a new email address"); return; }
-                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast.error("Please enter a valid email address"); return; }
-                    toast.success("Email updated successfully");
+                    if (!emailVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
+                    if (!newEmail.trim()) { toast.error(tr("Please enter a new email address", "请输入新邮箱地址")); return; }
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast.error(tr("Please enter a valid email address", "请输入有效的邮箱地址")); return; }
+                    toast.success(tr("Email updated successfully", "邮箱更新成功"));
                     setEmail(newEmail);
                     updateUser({ email: newEmail });
                     setEmailVerCode(""); setEmailCodeSent(false); setNewEmail(""); setEditingEmail(false);
                   }}
                 >
-                  Save Email
+                  {tr("Save Email", "保存邮箱")}
                 </button>
               )}
             </div>
@@ -533,7 +752,7 @@ export default function Account() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">Change Password</span>
+                  <span className="text-sm font-semibold text-foreground">{tr("Change Password", "修改密码")}</span>
                 </div>
                 {!editingPassword ? (
                   <button
@@ -541,7 +760,7 @@ export default function Account() {
                     onClick={() => setEditingPassword(true)}
                   >
                     <Pencil className="w-3 h-3" />
-                    Edit
+                    {tr("Edit", "编辑")}
                   </button>
                 ) : (
                   <button
@@ -549,7 +768,7 @@ export default function Account() {
                     onClick={handleCancelPassword}
                   >
                     <X className="w-3 h-3" />
-                    Cancel
+                    {tr("Cancel", "取消")}
                   </button>
                 )}
               </div>
@@ -558,54 +777,203 @@ export default function Account() {
               <div className="px-6 pb-6 space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="label-upper">Email</Label>
+                    <Label className="label-upper">{tr("Email", "邮箱")}</Label>
                     <Input value={email} disabled className={disabledInputCls} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="label-upper">Verification Code</Label>
+                    <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
                     <div className="flex items-center gap-2">
                       <Input
-                        placeholder="Enter verification code"
+                        placeholder={tr("Enter verification code", "请输入验证码")}
                         value={passwordVerCode}
                         onChange={(e) => setPasswordVerCode(e.target.value)}
                         className={`${activeInputCls} flex-1`}
                       />
                       <button
                         className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
-                        onClick={() => { setPasswordCodeSent(true); toast.success("Verification code sent to your email"); }}
+                        onClick={() => { setPasswordCodeSent(true); toast.success(tr("Verification code sent to your email", "验证码已发送至邮箱")); }}
                       >
                         <Send className="w-3 h-3" />
-                        {passwordCodeSent ? "Resend Code" : "Send Code"}
+                        {passwordCodeSent ? tr("Resend Code", "重新发送") : tr("Send Code", "发送验证码")}
                       </button>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="label-upper">New Password</Label>
-                    <Input type="password" placeholder="Enter new password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={activeInputCls} />
+                    <Label className="label-upper">{tr("New Password", "新密码")}</Label>
+                    <Input type="password" placeholder={tr("Enter new password", "请输入新密码")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={activeInputCls} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="label-upper">Confirm New Password</Label>
-                    <Input type="password" placeholder="Re-enter new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={activeInputCls} />
+                    <Label className="label-upper">{tr("Confirm New Password", "确认新密码")}</Label>
+                    <Input type="password" placeholder={tr("Re-enter new password", "请再次输入新密码")} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={activeInputCls} />
                     {confirmPassword && newPassword !== confirmPassword && (
-                      <p className="text-xs text-destructive">Passwords do not match</p>
+                      <p className="text-xs text-destructive">{tr("Passwords do not match", "两次输入密码不一致")}</p>
                     )}
                   </div>
                 </div>
                 <button
                   className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                   onClick={() => {
-                    if (!passwordVerCode.trim()) { toast.error("Please enter the verification code"); return; }
-                    if (!newPassword.trim()) { toast.error("Please enter a new password"); return; }
-                    if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
-                    if (newPassword !== confirmPassword) { toast.error("Passwords do not match"); return; }
-                    toast.success("Password updated successfully");
+                    if (!passwordVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
+                    if (!newPassword.trim()) { toast.error(tr("Please enter a new password", "请输入新密码")); return; }
+                    if (newPassword.length < 8) { toast.error(tr("Password must be at least 8 characters", "密码至少为 8 位")); return; }
+                    if (newPassword !== confirmPassword) { toast.error(tr("Passwords do not match", "两次输入密码不一致")); return; }
+                    toast.success(tr("Password updated successfully", "密码更新成功"));
                     setPasswordVerCode(""); setPasswordCodeSent(false); setNewPassword(""); setConfirmPassword(""); setEditingPassword(false);
                   }}
                 >
-                  Save Password
+                  {tr("Save Password", "保存密码")}
                 </button>
               </div>
             ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ Exchange API Tab ═══════════════ */}
+      {activeTab === "exchangeApi" && (
+        <div className="space-y-6">
+          <div className="surface-card">
+            <div className="px-6 py-4 pb-3 border-b border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-primary" />
+                  <span className="text-base font-semibold text-foreground">Connected Exchanges</span>
+                  <span className="text-xs text-muted-foreground ml-1">({exchangeApiItems.length})</span>
+                </div>
+                <button
+                  className="h-8 text-xs px-4 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce font-medium"
+                  onClick={handleOpenExchangeModal}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  New Exchange API
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              {exchangeApiItems.length === 0 ? (
+                <div className="text-center py-12">
+                  <Link2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">No exchange API connected</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">
+                    Add a venue connection to enable live execution and account sync.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {exchangeApiItems.map((item) => {
+                    const venueBadge = item.venue === "binance" ? "BINANCE" : "OKX";
+                    const keyVisible = visibleKeys.has(item.id);
+                    const maskedKey = `${item.apiKey.slice(0, 8)}${"\u2022".repeat(10)}`;
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-4 rounded-2xl border border-border bg-accent/50 hover:border-primary/20 transition-colors duration-200"
+                      >
+                        <div className="flex items-center justify-between mb-3 gap-3">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            {editingExchangeNameId === item.id ? (
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <Input
+                                  value={editExchangeNameValue}
+                                  onChange={(e) => setEditExchangeNameValue(e.target.value)}
+                                  className="h-7 text-sm rounded-lg bg-card border-border max-w-xs"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveExchangeName(item.id);
+                                    if (e.key === "Escape") setEditingExchangeNameId(null);
+                                  }}
+                                />
+                                <button
+                                  className="h-7 text-xs px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110"
+                                  onClick={() => handleSaveExchangeName(item.id)}
+                                >
+                                  <Check className="w-3 h-3" />
+                                  Save
+                                </button>
+                                <button
+                                  className="h-7 text-xs px-2 rounded-full flex items-center transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
+                                  onClick={() => setEditingExchangeNameId(null)}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="text-sm font-semibold text-foreground truncate">{item.accountName}</span>
+                                <button
+                                  className="p-1 rounded-md text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                                  onClick={() => {
+                                    setEditingExchangeNameId(item.id);
+                                    setEditExchangeNameValue(item.accountName);
+                                  }}
+                                  title="Edit"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                          <div className="relative shrink-0" ref={exchangeMoreMenuId === item.id ? exchangeMoreMenuRef : undefined}>
+                            <button
+                              className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                              onClick={() => setExchangeMoreMenuId(exchangeMoreMenuId === item.id ? null : item.id)}
+                              title="More options"
+                            >
+                              <MoreHorizontal className="w-3.5 h-3.5" />
+                            </button>
+                            {exchangeMoreMenuId === item.id && (
+                              <div className="absolute right-0 top-full mt-1 w-40 py-1 rounded-xl bg-card border border-border shadow-xl z-20">
+                                <button
+                                  className="w-full px-3 py-2 text-xs text-left flex items-center gap-2 text-destructive hover:bg-destructive/10 transition-colors"
+                                  onClick={() => {
+                                    setExchangeMoreMenuId(null);
+                                    setExchangeDeleteConfirmId(item.id);
+                                  }}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Delete Exchange API
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-16 shrink-0">
+                            Venue
+                          </span>
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 text-xs text-foreground">
+                            <span className={item.venue === "binance" ? "text-amber-400 font-semibold" : "text-foreground font-semibold"}>
+                              {venueBadge}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-16 shrink-0">
+                            API Key
+                          </span>
+                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 flex-1 min-w-0">
+                            <code className="font-mono text-xs text-primary truncate flex-1">
+                              {keyVisible ? item.apiKey : maskedKey}
+                            </code>
+                            <button
+                              onClick={() => toggleKeyVisibility(item.id)}
+                              className="p-0.5 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                              title={keyVisible ? "Hide API Key" : "Show API Key"}
+                            >
+                              {keyVisible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                            </button>
+                            <CopyBtn text={item.apiKey} uiLang={uiLang} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -619,16 +987,18 @@ export default function Account() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">Agent API</span>
+                  <span className="text-base font-semibold text-foreground">{tr("Agent API", "Agent API")}</span>
                   <span className="text-xs text-muted-foreground ml-1">({apiKeys.length})</span>
                 </div>
-                <button
-                  className="h-8 text-xs px-4 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce font-medium"
-                  onClick={() => { setShowCreateModal(true); setCreateStep(1); setNewApiName(""); setCreatedApiKey(""); }}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  New API Key
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="h-8 text-xs px-4 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce font-medium"
+                    onClick={() => { setShowCreateModal(true); setCreateStep(1); setNewApiName(""); setCreatedApiKey(""); }}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    {tr("New API Key", "新建 API 密钥")}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -637,8 +1007,8 @@ export default function Account() {
               {apiKeys.length === 0 ? (
                 <div className="text-center py-12">
                   <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">No API keys yet</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">Create your first API key to connect your AI agent</p>
+                  <p className="text-sm text-muted-foreground">{tr("No API keys yet", "暂无 API 密钥")}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-1">{tr("Create your first API key to connect your AI agent", "创建首个 API 密钥以连接你的 AI Agent")}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -686,7 +1056,7 @@ export default function Account() {
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0 ml-3">
-                          <CopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
+                          <CopyPromptBtn uiLang={uiLang} apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
                           {/* More menu */}
                           <div className="relative" ref={moreMenuId === item.id ? moreMenuRef : undefined}>
                             <button
@@ -703,7 +1073,7 @@ export default function Account() {
                                   onClick={() => { setMoreMenuId(null); setDeleteConfirmId(item.id); }}
                                 >
                                   <Trash2 className="w-3 h-3" />
-                                  Delete API Key
+                                  {tr("Delete API Key", "删除 API 密钥")}
                                 </button>
                               </div>
                             )}
@@ -713,7 +1083,7 @@ export default function Account() {
 
                       {/* Row 2: API Key */}
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-14 shrink-0">API Key</span>
+                          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-14 shrink-0">{tr("API Key", "API 密钥")}</span>
                         <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 flex-1 min-w-0">
                           <code className="font-mono text-xs text-primary truncate flex-1">
                             {visibleKeys.has(item.id) ? item.apiKey : item.apiKey.slice(0, 6) + "\u2022".repeat(16) + "..."}
@@ -721,7 +1091,7 @@ export default function Account() {
                           <button onClick={() => toggleKeyVisibility(item.id)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors shrink-0">
                             {visibleKeys.has(item.id) ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                           </button>
-                          <CopyBtn text={item.apiKey} />
+                          <CopyBtn uiLang={uiLang} text={item.apiKey} />
                         </div>
                       </div>
 
@@ -729,18 +1099,18 @@ export default function Account() {
                       <div className="flex items-center">
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <span className="uppercase tracking-wider font-medium">Skill</span>
+                            <span className="uppercase tracking-wider font-medium">{tr("Skill", "Skill")}</span>
                             <span className="text-primary font-semibold">{item.skillVersion}</span>
                             {item.skillVersion !== SKILL_LATEST && (
-                              <span className="text-amber-500 ml-0.5">(update available: {SKILL_LATEST})</span>
+                              <span className="text-amber-500 ml-0.5">{tr(`(update available: ${SKILL_LATEST})`, `（可更新至：${SKILL_LATEST}）`)}</span>
                             )}
                           </span>
                           <span className="border-l border-border pl-4 flex items-center gap-1.5">
-                            Updated {item.updatedAt}
+                            {tr("Updated", "更新于")} {item.updatedAt}
                             <button
                               className="p-0.5 rounded-md text-muted-foreground hover:text-primary transition-colors"
                               onClick={() => handleRefreshSkill(item.id)}
-                              title="Check for skill updates"
+                              title={tr("Check for skill updates", "检查 Skill 更新")}
                             >
                               <RefreshCw className="w-3 h-3" />
                             </button>
@@ -754,82 +1124,247 @@ export default function Account() {
             </div>
           </div>
 
+          <Link href="/launch-guide">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 rounded-full text-xs border-border text-muted-foreground hover:text-foreground hover:border-primary/30"
+            >
+              <Compass className="w-3.5 h-3.5" />
+              {tr("Launch Guide", "启动指引")}
+            </Button>
+          </Link>
 
         </div>
       )}
 
-      {/* ═══════════════ Notification Settings ═══════════════ */}
+      {/* ═══════════════ Profile Actions ═══════════════ */}
       {activeTab === "profile" && (
         <div className="space-y-6">
           <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">Notification Settings</span>
-              </div>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <div className="text-sm font-medium text-foreground">Alphas Notifications</div>
-                  <div className="text-xs text-muted-foreground">Get notified about alpha status changes, test results, and performance updates</div>
-                </div>
-                <button
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${alphasNotify ? "bg-primary" : "bg-muted"}`}
-                  onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? "Alphas notifications disabled" : "Alphas notifications enabled"); }}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between py-2 border-t border-border">
-                <div>
-                  <div className="text-sm font-medium text-foreground">Arena Notifications</div>
-                  <div className="text-xs text-muted-foreground">Get notified about competition rounds, rankings, and prize pool updates</div>
-                </div>
-                <button
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${arenaNotify ? "bg-primary" : "bg-muted"}`}
-                  onClick={() => { setArenaNotify(!arenaNotify); toast.success(arenaNotify ? "Arena notifications disabled" : "Arena notifications enabled"); }}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${arenaNotify ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between py-2 border-t border-border">
-                <div className="pr-6">
-                  <div className="text-sm font-medium text-foreground">System Messages</div>
-                  <div className="text-xs text-muted-foreground">
-                    Get notified about skill updates, new skills, deprecations, platform announcements, maintenance, and Official Library expansion.
-                  </div>
-                </div>
-                <button
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${systemNotify ? "bg-primary" : "bg-muted"}`}
-                  onClick={() => { setSystemNotify(!systemNotify); toast.success(systemNotify ? "System messages disabled" : "System messages enabled"); }}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${systemNotify ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="surface-card">
             <div className="p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <div className="text-sm font-medium text-foreground">Log Out</div>
-                <div className="text-xs text-muted-foreground">Sign out of your current account and return to the landing page.</div>
+                <div className="text-sm font-medium text-foreground">{tr("Log Out", "退出登录")}</div>
+                <div className="text-xs text-muted-foreground">{tr("Sign out of your current account and return to the landing page.", "退出当前账户并返回落地页。")}</div>
               </div>
               <Button
                 className="rounded-full gap-1.5 self-start sm:self-auto bg-destructive text-destructive-foreground hover:brightness-110"
                 onClick={() => setShowLogoutConfirm(true)}
               >
                 <LogOut className="w-4 h-4" />
-                Log Out
+                {tr("Log Out", "退出登录")}
               </Button>
             </div>
           </div>
         </div>
       )}
 
+      {/* ═══════════════ Create Exchange API Modal ═══════════════ */}
+      {showCreateExchangeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowCreateExchangeModal(false)} />
+          <div className="relative w-full max-w-2xl mx-4 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-6 pt-5 pb-0">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-base font-semibold text-foreground">
+                  {exchangeCreateStep === 1 ? "Add Exchange API" : "Configure API Credentials"}
+                </h3>
+                <button
+                  className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent hover:border-border"
+                  onClick={() => setShowCreateExchangeModal(false)}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`flex items-center gap-2 ${exchangeCreateStep >= 1 ? "text-primary" : "text-muted-foreground"}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                    exchangeCreateStep >= 1 ? "border-primary bg-primary/10" : "border-border"
+                  }`}>1</div>
+                  <span className="text-xs font-medium">Select Venue</span>
+                </div>
+                <div className={`flex-1 h-px ${exchangeCreateStep >= 2 ? "bg-primary" : "bg-border"}`} />
+                <div className={`flex items-center gap-2 ${exchangeCreateStep >= 2 ? "text-primary" : "text-muted-foreground"}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+                    exchangeCreateStep >= 2 ? "border-primary bg-primary/10" : "border-border"
+                  }`}>2</div>
+                  <span className="text-xs font-medium">API Configuration</span>
+                </div>
+              </div>
+            </div>
+
+            {exchangeCreateStep === 1 && (
+              <div className="px-6 pb-6 space-y-4">
+                <p className="text-xs text-muted-foreground">
+                  Choose an exchange venue to connect your trading account.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { id: "binance" as const, label: "Binance", brand: "BINANCE" },
+                    { id: "okx" as const, label: "OKX", brand: "OKX" },
+                  ].map((venue) => {
+                    const active = selectedExchangeVenue === venue.id;
+                    return (
+                      <button
+                        key={venue.id}
+                        type="button"
+                        onClick={() => setSelectedExchangeVenue(venue.id)}
+                        className={`rounded-xl border text-left overflow-hidden transition-all duration-200 ${
+                          active
+                            ? "border-primary/50 bg-primary/10"
+                            : "border-border bg-accent/40 hover:border-primary/30"
+                        }`}
+                      >
+                        <div className="flex items-stretch">
+                          <div className="w-36 bg-black flex items-center justify-center px-3 py-5">
+                            <span
+                              className={`font-semibold tracking-wide text-sm ${
+                                venue.id === "binance" ? "text-amber-400" : "text-white"
+                              }`}
+                            >
+                              {venue.brand}
+                            </span>
+                          </div>
+                          <div className="flex-1 px-4 py-4 flex items-center justify-between">
+                            <span className="text-sm font-medium text-foreground">{venue.label}</span>
+                            <span
+                              className={`w-4 h-4 rounded-full border ${
+                                active ? "border-primary bg-primary/80" : "border-border"
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                    onClick={() => setExchangeCreateStep(2)}
+                  >
+                    Continue
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {exchangeCreateStep === 2 && (
+              <div className="px-6 pb-6 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Account Name *</Label>
+                  <Input
+                    value={exchangeAccountName}
+                    onChange={(e) => setExchangeAccountName(e.target.value)}
+                    placeholder="e.g., Primary Futures Account"
+                    className="rounded-lg bg-accent border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">API Key *</Label>
+                  <Input
+                    value={exchangeApiKey}
+                    onChange={(e) => setExchangeApiKey(e.target.value)}
+                    placeholder="Enter your API key"
+                    className="rounded-lg bg-accent border-border"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">API Secret *</Label>
+                  <Input
+                    value={exchangeApiSecret}
+                    onChange={(e) => setExchangeApiSecret(e.target.value)}
+                    placeholder="Enter your API secret"
+                    className="rounded-lg bg-accent border-border"
+                  />
+                </div>
+
+                <div className="rounded-xl border border-border bg-accent/30 p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Security Best Practices</p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        API credentials are encrypted at rest. Do not enable withdrawal permissions.
+                        Trade and read-only scopes are sufficient for strategy execution and monitoring.
+                      </p>
+                      <ul className="mt-2 text-sm text-muted-foreground space-y-1">
+                        <li>Disable withdrawal permissions.</li>
+                        <li>Restrict API access by IP whitelist.</li>
+                        <li>Rotate API credentials periodically.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
+                    onClick={() => setExchangeCreateStep(1)}
+                  >
+                    Back
+                  </button>
+                  <button
+                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                    onClick={handleCreateExchangeApi}
+                  >
+                    Add Exchange API
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ═══════════════ Create API Modal ═══════════════ */}
       {/* ═══════════════ Delete Confirm Modal ═══════════════ */}
+      {exchangeDeleteConfirmId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setExchangeDeleteConfirmId(null)} />
+          <div className="relative w-full max-w-sm mx-4 bg-card border border-border rounded-2xl shadow-2xl p-6">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Trash2 className="w-5 h-5 text-destructive" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">{tr("Delete Exchange API", "删除交易所 API")}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {tr("Are you sure you want to delete", "确认删除")}{" "}
+                <span className="font-medium text-foreground">
+                  "{exchangeApiItems.find((item) => item.id === exchangeDeleteConfirmId)?.accountName}"
+                </span>
+                ?
+                {" "}
+                {tr(
+                  "This action cannot be undone and this exchange account will no longer be available for trading deployment.",
+                  "该操作不可撤销，此交易所账户将无法用于策略部署。"
+                )}
+              </p>
+            </div>
+            <div className="flex items-center justify-center gap-3 mt-5">
+              <button
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
+                onClick={() => setExchangeDeleteConfirmId(null)}
+              >
+                {tr("Cancel", "取消")}
+              </button>
+              <button
+                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-destructive text-destructive-foreground hover:brightness-110"
+                onClick={() => {
+                  handleDeleteExchangeApi(exchangeDeleteConfirmId);
+                  setExchangeDeleteConfirmId(null);
+                }}
+              >
+                {tr("Delete", "删除")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {deleteConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setDeleteConfirmId(null)} />
@@ -838,9 +1373,12 @@ export default function Account() {
               <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
                 <Trash2 className="w-5 h-5 text-destructive" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">Delete API Key</h3>
+              <h3 className="text-base font-semibold text-foreground">{tr("Delete API Key", "删除 API 密钥")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Are you sure you want to delete <span className="font-medium text-foreground">"{apiKeys.find(k => k.id === deleteConfirmId)?.name}"</span>? This action cannot be undone and any agents using this key will lose access.
+                {tr("Are you sure you want to delete", "确认删除")}{" "}
+                <span className="font-medium text-foreground">"{apiKeys.find(k => k.id === deleteConfirmId)?.name}"</span>?
+                {" "}
+                {tr("This action cannot be undone and any agents using this key will lose access.", "该操作不可撤销，使用该密钥的 Agent 将失去访问权限。")}
               </p>
             </div>
             <div className="flex items-center justify-center gap-3 mt-5">
@@ -848,13 +1386,13 @@ export default function Account() {
                 className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
                 onClick={() => setDeleteConfirmId(null)}
               >
-                Cancel
+                {tr("Cancel", "取消")}
               </button>
               <button
                 className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-destructive text-destructive-foreground hover:brightness-110"
                 onClick={() => { handleDeleteApi(deleteConfirmId); setDeleteConfirmId(null); }}
               >
-                Delete
+                {tr("Delete", "删除")}
               </button>
             </div>
           </div>
@@ -870,9 +1408,9 @@ export default function Account() {
               <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
                 <LogOut className="w-5 h-5 text-destructive" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">Confirm Log Out</h3>
+              <h3 className="text-base font-semibold text-foreground">{tr("Confirm Log Out", "确认退出登录")}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Are you sure you want to log out of your current account?
+                {tr("Are you sure you want to log out of your current account?", "确认退出当前账户吗？")}
               </p>
             </div>
             <div className="flex items-center justify-center gap-3 mt-5">
@@ -880,7 +1418,7 @@ export default function Account() {
                 className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
                 onClick={() => setShowLogoutConfirm(false)}
               >
-                Cancel
+                {tr("Cancel", "取消")}
               </button>
               <button
                 className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-destructive text-destructive-foreground hover:brightness-110"
@@ -890,7 +1428,7 @@ export default function Account() {
                   navigate("/landing");
                 }}
               >
-                Log Out
+                {tr("Log Out", "退出登录")}
               </button>
             </div>
           </div>
@@ -908,7 +1446,7 @@ export default function Account() {
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-base font-semibold text-foreground">
-                  {createStep === 1 ? "Create New API Key" : "Your API Key is Ready"}
+                  {createStep === 1 ? tr("Create New API Key", "创建新的 API 密钥") : tr("Your API Key is Ready", "API 密钥已准备就绪")}
                 </h3>
                 <button
                   className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent hover:border-border"
@@ -923,14 +1461,14 @@ export default function Account() {
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                     createStep >= 1 ? "border-primary bg-primary/10" : "border-border"
                   }`}>1</div>
-                  <span className="text-xs font-medium">Generate API</span>
+                  <span className="text-xs font-medium">{tr("Generate API", "生成 API")}</span>
                 </div>
                 <div className={`flex-1 h-px ${createStep >= 2 ? "bg-primary" : "bg-border"}`} />
                 <div className={`flex items-center gap-2 ${createStep >= 2 ? "text-primary" : "text-muted-foreground"}`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                     createStep >= 2 ? "border-primary bg-primary/10" : "border-border"
                   }`}>2</div>
-                  <span className="text-xs font-medium">Paste to Agent</span>
+                  <span className="text-xs font-medium">{tr("Paste to Agent", "粘贴到 Agent")}</span>
                 </div>
               </div>
             </div>
@@ -938,11 +1476,11 @@ export default function Account() {
             {/* Step 1: Name & Create */}
             {createStep === 1 && (
               <div className="px-6 pb-6 space-y-4">
-                <p className="text-xs text-muted-foreground">Give your API key a name to identify it later.</p>
+                <p className="text-xs text-muted-foreground">{tr("Give your API key a name to identify it later.", "为 API 密钥命名，便于后续识别。")}</p>
                 <div className="space-y-2">
-                  <Label className="label-upper">API Name</Label>
+                  <Label className="label-upper">{tr("API Name", "API 名称")}</Label>
                   <Input
-                    placeholder="e.g., My Trading Bot, Research Agent..."
+                    placeholder={tr("e.g., My Trading Bot, Research Agent...", "例如：我的交易机器人、研究 Agent...")}
                     value={newApiName}
                     onChange={(e) => setNewApiName(e.target.value)}
                     className="rounded-lg bg-accent border-border"
@@ -955,7 +1493,7 @@ export default function Account() {
                     className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                     onClick={handleCreateApi}
                   >
-                    Create API Key
+                    {tr("Create API Key", "创建 API 密钥")}
                   </button>
                 </div>
               </div>
@@ -964,7 +1502,7 @@ export default function Account() {
             {/* Step 2: Show Prompt */}
             {createStep === 2 && (
               <div className="px-6 pb-6 space-y-4">
-                <p className="text-xs text-muted-foreground">Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Otter Trading.</p>
+                <p className="text-xs text-muted-foreground">{tr("Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Otter Trading.", "复制下方提示词并粘贴到你的 AI Agent（ChatGPT / Claude / DeepSeek）即可开始使用 Otter Trading。")}</p>
 
                 {/* Prompt preview */}
                 <div>
@@ -980,11 +1518,11 @@ export default function Account() {
                     className="h-9 px-6 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce flex items-center gap-2"
                     onClick={() => {
                       navigator.clipboard.writeText(buildPrompt(createdApiKey, SKILL_LATEST));
-                      toast.success("Prompt copied to clipboard");
+                      toast.success(tr("Prompt copied to clipboard", "提示词已复制到剪贴板"));
                     }}
                   >
                     <Copy className="w-3.5 h-3.5" />
-                    Copy Prompt
+                    {tr("Copy Prompt", "复制提示词")}
                   </button>
                 </div>
               </div>

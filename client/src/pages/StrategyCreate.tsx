@@ -236,6 +236,71 @@ function getSourceLabel(source: AlphaSourceTab, factor: Factor) {
   return "Official";
 }
 
+type StrategyTemplatePrefill = {
+  strategyType: StrategyType;
+  symbols?: string[];
+  factorIds: string[];
+  weightMode: WeightMode;
+  stopLoss?: string;
+  cooldownHours?: string;
+  crossDirection?: CrossDirection;
+  rankMode?: RankMode;
+  rankValue?: string;
+};
+
+const FACTOR_NAME_BY_ID = new Map(factors.map((factor) => [factor.id, factor.name] as const));
+
+const STRATEGY_TEMPLATE_PREFILLS: Partial<Record<string, StrategyTemplatePrefill>> = {
+  "STR-001": {
+    strategyType: "time-series",
+    symbols: ["BTCUSDT"],
+    factorIds: ["AF-001", "AF-002", "AF-005", "AF-009", "AF-013"],
+    weightMode: "equal",
+    stopLoss: "8",
+    cooldownHours: "24",
+  },
+  "STR-002": {
+    strategyType: "cross-sectional",
+    factorIds: ["AF-003", "AF-006", "AF-008", "AF-018"],
+    weightMode: "equal",
+    crossDirection: "neutral",
+    rankMode: "percent",
+    rankValue: "10",
+  },
+  "STR-003": {
+    strategyType: "time-series",
+    symbols: ["BTCUSDT"],
+    factorIds: ["AF-004", "AF-011", "AF-016"],
+    weightMode: "equal",
+    stopLoss: "5",
+    cooldownHours: "6",
+  },
+  "STR-004": {
+    strategyType: "cross-sectional",
+    factorIds: ["AF-001", "AF-007", "AF-009", "AF-012", "AF-015"],
+    weightMode: "equal",
+    crossDirection: "neutral",
+    rankMode: "percent",
+    rankValue: "10",
+  },
+  "STR-005": {
+    strategyType: "time-series",
+    symbols: ["BTCUSDT"],
+    factorIds: ["AF-005", "AF-016"],
+    weightMode: "equal",
+    stopLoss: "5",
+    cooldownHours: "24",
+  },
+  "STR-006": {
+    strategyType: "time-series",
+    symbols: ["ETHUSDT"],
+    factorIds: ["AF-006", "AF-010", "AF-018"],
+    weightMode: "equal",
+    stopLoss: "10",
+    cooldownHours: "12",
+  },
+};
+
 export default function StrategyCreate() {
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
@@ -293,6 +358,51 @@ export default function StrategyCreate() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [ownStep, setOwnStep] = useState<OwnStep>("api");
+
+  useEffect(() => {
+    if (!templateId) return;
+
+    const prefill = STRATEGY_TEMPLATE_PREFILLS[templateId];
+    if (!prefill) return;
+
+    const factorNames = prefill.factorIds
+      .map((factorId) => FACTOR_NAME_BY_ID.get(factorId))
+      .filter((name): name is string => Boolean(name))
+      .slice(0, MAX_FACTOR_COUNT);
+
+    setMode("platform");
+    setPlatformInputMethod("form");
+    setAiChatPrompt("");
+    setAiChatTouched(false);
+    setShowValidationFeedback(false);
+
+    setStrategyName(template.name);
+    setStrategyType(prefill.strategyType);
+    setSelectedFactors(factorNames);
+    setWeightMode(prefill.weightMode);
+    setCustomWeights({});
+
+    if (prefill.strategyType === "time-series") {
+      setMultipleSymbols(prefill.symbols && prefill.symbols.length > 0 ? prefill.symbols : ["BTCUSDT"]);
+      setSelectedSymbolGroup(null);
+      setStopLoss(prefill.stopLoss || "8");
+      setCooldownValue(prefill.cooldownHours || "24");
+    } else {
+      setMultipleSymbols([]);
+      setSelectedSymbolGroup(null);
+      setCrossDirection(prefill.crossDirection || "neutral");
+      setRankMode(prefill.rankMode || "percent");
+      setRankValue(prefill.rankValue || "10");
+    }
+
+    const firstFactor = factors.find((factor) => factor.name === factorNames[0]);
+    if (firstFactor) {
+      const category = getOfficialFactorCategory(firstFactor);
+      setAlphaSourceTab("official");
+      setOfficialPrimaryCategory(category.primary);
+      setOfficialSubcategory(category.subcategory);
+    }
+  }, [templateId, template.name]);
 
   useEffect(() => {
     if (!showSymbolPicker && !showAlphaPicker) return;
@@ -635,40 +745,42 @@ export default function StrategyCreate() {
 
       {mode === "platform" && (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Input Method</label>
+            <div className="space-y-2">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Input Method</label>
+              </div>
+
+              <div className="grid w-full max-w-[320px] grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPlatformInputMethod("form")}
+                  className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
+                    platformInputMethod === "form"
+                      ? selectedOptionClass
+                      : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
+                  }`}
+                >
+                  Form
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPlatformInputMethod("ai-chat");
+                    setAiChatTouched(false);
+                  }}
+                  className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
+                    platformInputMethod === "ai-chat"
+                      ? selectedOptionClass
+                      : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
+                  }`}
+                >
+                  AI Chat
+                </button>
+              </div>
             </div>
 
-            <div className="grid w-full max-w-[320px] grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPlatformInputMethod("form")}
-                className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
-                  platformInputMethod === "form"
-                    ? selectedOptionClass
-                    : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                Form
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPlatformInputMethod("ai-chat");
-                  setAiChatTouched(false);
-                }}
-                className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
-                  platformInputMethod === "ai-chat"
-                    ? selectedOptionClass
-                    : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                AI Chat
-              </button>
-            </div>
-
-            <div className={platformInputMethod === "form" ? "space-y-6" : "hidden"}>
-              <div className="space-y-4">
+            <div className={platformInputMethod === "form" ? "space-y-8" : "hidden"}>
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
                   {showBeginnerHints && (
@@ -730,7 +842,7 @@ export default function StrategyCreate() {
             {strategyType ? (
               <>
                 {strategyType === "time-series" && (
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
                       <label className="text-xs font-medium text-muted-foreground">Symbol <span className="text-destructive">*</span></label>
                     </div>
@@ -783,7 +895,7 @@ export default function StrategyCreate() {
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">Alpha Selection <span className="text-destructive">*</span></label>
 
                   <button
@@ -828,7 +940,7 @@ export default function StrategyCreate() {
                   )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     <label className="text-xs font-medium text-muted-foreground">Factor Weights <span className="text-destructive">*</span></label>
                   </div>
@@ -887,7 +999,7 @@ export default function StrategyCreate() {
 
                 {strategyType === "cross-sectional" && (
                   <>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <label className="text-xs font-medium text-muted-foreground">Strategy Side <span className="text-destructive">*</span></label>
                       <div className="grid grid-cols-3 gap-3">
                         {([
@@ -911,7 +1023,7 @@ export default function StrategyCreate() {
                       </div>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <label className="text-xs font-medium text-muted-foreground">Top/Tail Rule <span className="text-destructive">*</span></label>
                       <div className="grid w-full max-w-[360px] grid-cols-[1fr_120px] gap-3">
                         <Input
@@ -953,8 +1065,8 @@ export default function StrategyCreate() {
                 )}
 
                 {strategyType !== "cross-sectional" && (
-                  <div className="grid grid-cols-1 gap-6">
-                    <div className="space-y-4">
+                  <div className="grid grid-cols-1 gap-8">
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <label className="text-xs font-medium text-muted-foreground">Stop Loss (%) <span className="text-destructive">*</span></label>
                         <Popover>
@@ -1007,7 +1119,7 @@ export default function StrategyCreate() {
                         ))}
                       </div>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <label className="text-xs font-medium text-muted-foreground">Cooldown (hours) <span className="text-destructive">*</span></label>
                         <Popover>
@@ -1067,7 +1179,7 @@ export default function StrategyCreate() {
             ) : null}
 
             {strategyType ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <label className="text-xs font-medium text-muted-foreground">Strategy Name</label>
                 </div>
@@ -1333,11 +1445,11 @@ export default function StrategyCreate() {
                         [OfficialPrimaryCategory, (typeof OFFICIAL_LIBRARY_GROUPS)[OfficialPrimaryCategory]]
                       >
                     ).map(([key, group]) => (
-                      <div key={key} className="space-y-1.5">
-                        <div className="px-1 text-[11px] font-semibold tracking-[0.04em] text-muted-foreground">
+                      <div key={key} className="space-y-2">
+                        <div className="px-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/60">
                           {group.label}
                         </div>
-                        <div className="space-y-1">
+                        <div className="ml-1 space-y-1 border-l border-border/60 pl-2.5">
                           {group.items.map((item) => {
                             const isActive =
                               officialPrimaryCategory === key && officialSubcategory === item.id;
@@ -1349,10 +1461,10 @@ export default function StrategyCreate() {
                                   setOfficialPrimaryCategory(key);
                                   setOfficialSubcategory(item.id);
                                 }}
-                                className={`w-full rounded-lg px-2.5 py-1.5 text-left text-xs transition-all ${
+                                className={`w-full rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-all ${
                                   isActive
-                                    ? "bg-primary/12 text-primary"
-                                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                    ? "bg-primary/15 text-primary"
+                                    : "text-foreground/80 hover:bg-accent hover:text-foreground"
                                 }`}
                               >
                                 {item.label}
@@ -1425,20 +1537,20 @@ export default function StrategyCreate() {
                         [keyof typeof MY_ALPHA_GROUPS, (typeof MY_ALPHA_GROUPS)[keyof typeof MY_ALPHA_GROUPS]]
                       >
                     ).map(([key, group]) => (
-                      <div key={key} className="space-y-1.5">
-                        <div className="px-1 text-[11px] font-semibold tracking-[0.04em] text-muted-foreground">
+                      <div key={key} className="space-y-2">
+                        <div className="px-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/60">
                           {group.label}
                         </div>
-                        <div className="space-y-1">
+                        <div className="ml-1 space-y-1 border-l border-border/60 pl-2.5">
                           {group.items.map((item) => (
                             <button
                               key={item.id}
                               type="button"
                               onClick={() => setMyAlphaCategory(item.id as MyAlphaCategory)}
-                              className={`w-full rounded-lg px-2.5 py-1.5 text-left text-xs transition-all ${
+                              className={`w-full rounded-lg px-2.5 py-1.5 text-left text-[12px] transition-all ${
                                 myAlphaCategory === item.id
-                                  ? "bg-primary/12 text-primary"
-                                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                                  ? "bg-primary/15 text-primary"
+                                  : "text-foreground/80 hover:bg-accent hover:text-foreground"
                               }`}
                             >
                               {item.label}

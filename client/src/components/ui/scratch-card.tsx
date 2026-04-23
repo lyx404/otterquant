@@ -5,7 +5,7 @@
  * 2) 刮开交互（仅中央等级字母区域达到阈值后自动揭晓）
  * 3) S/A 结果彩带动效
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
@@ -248,8 +248,10 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
   const isDrawingRef = useRef(false);
   const revealedRef = useRef(false);
   const completingRef = useRef(false);
+  const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [started, setStarted] = useState(false);
   const [maskHidden, setMaskHidden] = useState(false);
+  const [maskReady, setMaskReady] = useState(false);
   const [revealedHovered, setRevealedHovered] = useState(false);
 
   const initMask = useCallback(() => {
@@ -281,79 +283,88 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
     ctx.globalCompositeOperation = "source-over";
     ctx.clearRect(0, 0, drawWidth, drawHeight);
 
-    // Keep scratch mask style consistent with the unrevealed entry card (neutral grey gradient).
+    // Keep an opaque (alpha=1) scratch layer so the result card is fully blocked before scratching.
     const gradient = ctx.createLinearGradient(0, 0, drawWidth, drawHeight);
-    gradient.addColorStop(0, "rgba(171,178,189,1)");
-    gradient.addColorStop(0.5, "rgba(160,167,178,1)");
-    gradient.addColorStop(1, "rgba(145,153,165,1)");
+    gradient.addColorStop(0, "#ABB2BD");
+    gradient.addColorStop(0.5, "#A0A7B2");
+    gradient.addColorStop(1, "#9199A5");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, drawWidth, drawHeight);
 
-    const sheen = ctx.createRadialGradient(
-      drawWidth * 0.18,
-      drawHeight * 0.12,
-      0,
-      drawWidth * 0.18,
-      drawHeight * 0.12,
-      drawWidth * 0.9
-    );
-    sheen.addColorStop(0, "rgba(255,255,255,0.2)");
-    sheen.addColorStop(1, "rgba(255,255,255,0)");
-    ctx.fillStyle = sheen;
-    ctx.fillRect(0, 0, drawWidth, drawHeight);
-
-    for (let i = 0; i < 18; i += 1) {
-      const x = Math.random() * drawWidth;
-      const y = Math.random() * drawHeight;
-      const r = 1 + Math.random() * 4;
-      ctx.beginPath();
-      ctx.fillStyle =
-        i % 3 === 0
-          ? "rgba(255,255,255,0.28)"
-          : i % 3 === 1
-            ? "rgba(255,255,255,0.18)"
-            : "rgba(203,213,225,0.22)";
-      ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
     revealedRef.current = false;
     completingRef.current = false;
+    isDrawingRef.current = false;
+    setMaskReady(true);
     setMaskHidden(false);
     setStarted(false);
     setRevealedHovered(false);
     return true;
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const host = hostRef.current;
     if (!host) return;
 
     let rafId = 0;
-    let settleTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryCount = 0;
     const queueInit = () => {
       if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        initMask();
-      });
+      setMaskReady(false);
+      const tryInit = () => {
+        const ok = initMask();
+        if (ok) return;
+        // Retry init when dialog opening animation/reporting size is not stable yet.
+        if (retryCount < 24) {
+          retryCount += 1;
+          rafId = requestAnimationFrame(tryInit);
+        }
+      };
+      rafId = requestAnimationFrame(tryInit);
     };
 
     queueInit();
-    // Re-run once after entrance animation settles to avoid fractional seams.
-    settleTimer = setTimeout(() => {
-      queueInit();
-    }, 650);
     const resizeObserver = new ResizeObserver(queueInit);
     resizeObserver.observe(host);
     window.addEventListener("resize", queueInit);
 
     return () => {
       if (rafId) cancelAnimationFrame(rafId);
-      if (settleTimer) clearTimeout(settleTimer);
+      if (completionTimerRef.current) {
+        clearTimeout(completionTimerRef.current);
+        completionTimerRef.current = null;
+      }
       resizeObserver.disconnect();
       window.removeEventListener("resize", queueInit);
     };
   }, [grade, initMask]);
+
+  const completeReveal = useCallback(
+    (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+      if (revealedRef.current) return;
+      revealedRef.current = true;
+      completingRef.current = true;
+      isDrawingRef.current = false;
+
+      const dpr = window.devicePixelRatio || 1;
+      const clearWidth = canvas.width / dpr;
+      const clearHeight = canvas.height / dpr;
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = "rgba(0,0,0,1)";
+      ctx.fillRect(0, 0, clearWidth, clearHeight);
+
+      // Switch to revealed state immediately and remove remaining mask.
+      setMaskHidden(true);
+      setStarted(true);
+      onDone();
+
+      if (completionTimerRef.current) clearTimeout(completionTimerRef.current);
+      completionTimerRef.current = setTimeout(() => {
+        completingRef.current = false;
+        completionTimerRef.current = null;
+      }, 120);
+    },
+    [onDone]
+  );
 
   const getLetterRevealRatio = (
     ctx: CanvasRenderingContext2D,
@@ -412,23 +423,8 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
 
     if (!revealedRef.current) {
       const ratio = getLetterRevealRatio(ctx, canvas, host);
-      if (ratio > REVEAL_THRESHOLD) {
-        revealedRef.current = true;
-        completingRef.current = true;
-        isDrawingRef.current = false;
-
-        const dpr = window.devicePixelRatio || 1;
-        const clearWidth = canvas.width / dpr;
-        const clearHeight = canvas.height / dpr;
-        ctx.globalCompositeOperation = "destination-out";
-        ctx.fillStyle = "rgba(0,0,0,1)";
-        ctx.fillRect(0, 0, clearWidth, clearHeight);
-
-        requestAnimationFrame(() => {
-          setMaskHidden(true);
-          onDone();
-          completingRef.current = false;
-        });
+      if (ratio >= REVEAL_THRESHOLD) {
+        completeReveal(ctx, canvas);
       }
     }
   };
@@ -440,8 +436,8 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
       style={{ aspectRatio: "370 / 220", maxWidth: 520 }}
     >
       <div
-        className="h-full w-full transition-opacity duration-150"
-        style={{ opacity: 1 }}
+        className="relative z-0 h-full w-full transition-opacity duration-150"
+        style={{ opacity: maskReady || maskHidden ? 1 : 0 }}
       >
         <RevealedGradeCard
           grade={grade}
@@ -453,15 +449,19 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
           onMouseLeave={() => setRevealedHovered(false)}
         />
       </div>
+      {!maskReady && !maskHidden && (
+        <div className="pointer-events-none absolute inset-0 z-10 rounded-[28px] bg-[#A0A7B2]" />
+      )}
       <motion.canvas
         ref={canvasRef}
-        className={`absolute left-0 top-0 rounded-[28px] touch-none ${
+        className={`absolute left-0 top-0 z-20 rounded-[28px] touch-none ${
           maskHidden ? "pointer-events-none cursor-default" : "pointer-events-auto cursor-crosshair"
         }`}
         animate={maskHidden ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.24 }}
         onPointerDown={(e) => {
-          if (completingRef.current || revealedRef.current) return;
+          if (!maskReady || completingRef.current || revealedRef.current) return;
+          e.currentTarget.setPointerCapture(e.pointerId);
           isDrawingRef.current = true;
           setStarted(true);
           eraseAt(e.clientX, e.clientY);
@@ -484,9 +484,11 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="pointer-events-none absolute inset-x-0 bottom-8 text-center text-base text-violet-200/85"
+          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center text-center"
         >
-          Scratch to reveal
+          <span className="rounded-full px-4 py-1.5 text-sm font-medium tracking-[0.06em] text-slate-700/55">
+            Swipe to scratch
+          </span>
         </motion.div>
       )}
     </div>

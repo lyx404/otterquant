@@ -23,6 +23,7 @@ import StrategyDetail from "./pages/StrategyDetail";
 import StrategyCreate from "./pages/StrategyCreate";
 import Trade from "./pages/Trade";
 import TradeDetail from "./pages/TradeDetail";
+import Subscription from "./pages/Subscription";
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 
 /* ── Onboarding context for reactive state ── */
@@ -156,6 +157,9 @@ function Router() {
       </Route>
       <Route path="/leaderboard">
         <ProtectedRoute component={Leaderboard} />
+      </Route>
+      <Route path="/subscription">
+        <ProtectedRoute component={Subscription} />
       </Route>
       <Route path="/account">
         <ProtectedRoute component={Account} />

@@ -147,7 +147,7 @@ export default function StrategyLibrary() {
                 </div>
 
                 <div className="mt-3 flex items-center justify-end gap-2">
-                  <Link href={`/strategies/new?template=${strategy.id}&creationMode=platform&scale=single`}>
+                  <Link href={`/strategies/new?template=${strategy.id}&creationMode=platform&scale=single&inputMethod=form`}>
                     <Button
                       variant="outline"
                       className="h-8 rounded-full border-border/60 bg-background/30 px-4 text-xs font-medium text-foreground hover:border-primary/20 hover:text-primary"
