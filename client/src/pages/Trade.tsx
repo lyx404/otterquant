@@ -32,6 +32,8 @@ type PendingAction =
   | { type: "delete"; botId: string }
   | null;
 
+type BotStatusFilter = "all" | "running" | "stop";
+
 export default function Trade() {
   const search = useSearch();
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
@@ -42,10 +44,10 @@ export default function Trade() {
   const [environment, setEnvironment] = useState<TradeEnvironment>(
     envFromQuery === "live" ? "live" : "paper"
   );
-  const [lastSyncAt, setLastSyncAt] = useState("13:22:00");
   const [focusedBotId, setFocusedBotId] = useState<string | null>(null);
   const [hiddenBotIds, setHiddenBotIds] = useState<Set<string>>(new Set());
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [statusFilter, setStatusFilter] = useState<BotStatusFilter>("all");
   const allTradeBots = useMemo(() => getTradeBotsWithDeployments(tradeBots), []);
   const [statusById, setStatusById] = useState<Record<string, BotStatus>>(() =>
     Object.fromEntries(allTradeBots.map((bot, index) => [bot.id, index % 4 === 1 ? "paused" : "running"]))
@@ -65,6 +67,12 @@ export default function Trade() {
         .map((bot) => ({ ...bot, status: statusById[bot.id] ?? "running" })),
     [allTradeBots, environment, hiddenBotIds, statusById]
   );
+  const filteredVisibleBots = useMemo(() => {
+    if (statusFilter === "all") return visibleBots;
+    return visibleBots.filter((bot) =>
+      statusFilter === "running" ? bot.status === "running" : bot.status !== "running"
+    );
+  }, [statusFilter, visibleBots]);
   const visiblePositions = useMemo(
     () => tradePositionRows.filter((row) => row.environment === environment),
     [environment]
@@ -113,9 +121,6 @@ export default function Trade() {
   };
 
   const syncNow = () => {
-    const now = new Date();
-    const time = now.toTimeString().slice(0, 8);
-    setLastSyncAt(time);
     toast.success("Trade state synced");
   };
 
@@ -231,15 +236,53 @@ export default function Trade() {
       <div className="surface-card overflow-hidden border border-border/70">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-5 py-3">
           <div className="text-sm font-semibold text-foreground">Trading Bots</div>
-          <div className="text-xs text-muted-foreground">Last synced: {lastSyncAt}</div>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex h-8 items-center rounded-lg border border-border bg-card p-1">
+              <button
+                type="button"
+                onClick={() => setStatusFilter("all")}
+                className={`inline-flex h-6 items-center rounded-md px-2.5 text-[11px] font-medium transition-colors ${
+                  statusFilter === "all"
+                    ? "bg-primary/12 text-primary border border-primary/30"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("running")}
+                className={`ml-1 inline-flex h-6 items-center rounded-md px-2.5 text-[11px] font-medium transition-colors ${
+                  statusFilter === "running"
+                    ? "bg-primary/12 text-primary border border-primary/30"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Running
+              </button>
+              <button
+                type="button"
+                onClick={() => setStatusFilter("stop")}
+                className={`ml-1 inline-flex h-6 items-center rounded-md px-2.5 text-[11px] font-medium transition-colors ${
+                  statusFilter === "stop"
+                    ? "bg-primary/12 text-primary border border-primary/30"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Stop
+              </button>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 p-4">
-          {visibleBots.length === 0 ? (
+          {filteredVisibleBots.length === 0 ? (
             <div className="rounded-2xl border border-border/60 bg-background/30 px-6 py-12 text-center">
-              <p className="text-sm font-medium text-foreground">No trading bots in this environment.</p>
+              <p className="text-sm font-medium text-foreground">
+                No trading bots match the selected status.
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Create or deploy a strategy in Strategy workspace first.
+                Try switching status filter or create/deploy a strategy in Strategy workspace.
               </p>
               <div className="mt-4 flex justify-center">
                 <Link href="/strategies">
@@ -250,7 +293,7 @@ export default function Trade() {
               </div>
             </div>
           ) : (
-            visibleBots.map((bot) => (
+            filteredVisibleBots.map((bot) => (
               <div
                 key={bot.id}
                 id={`trade-bot-${bot.id}`}

@@ -5,6 +5,14 @@
 import { useMemo, useState, type ComponentType } from "react";
 import { useParams, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { strategies } from "@/lib/mockData";
 import { buildSeries, parsePercent } from "@/lib/strategyUtils";
 import { deployStrategyToTrade, getStrategyDeployment } from "@/lib/tradeDeployments";
@@ -12,9 +20,13 @@ import { toast } from "sonner";
 import {
   Activity,
   ArrowLeft,
+  CheckCircle2,
   BarChart3,
   BriefcaseBusiness,
+  ChevronLeft,
   ClipboardList,
+  Unplug,
+  ExternalLink,
   PieChart,
   Star,
   TrendingUp,
@@ -110,6 +122,21 @@ type PositionRecord = {
   closedAt: string;
   pnl: string;
 };
+
+type ExchangeId = "binance" | "bybit" | "okx";
+type LiveDeployView = "deploy" | "connect-list" | "connect-config";
+type ConnectFlowTab = "quick" | "api";
+
+const exchangeOptions: Array<{
+  id: ExchangeId;
+  label: string;
+  iconText: string;
+  iconClassName: string;
+}> = [
+  { id: "binance", label: "Binance", iconText: "BN", iconClassName: "bg-amber-400/20 text-amber-300 border-amber-400/30" },
+  { id: "bybit", label: "Bybit", iconText: "BY", iconClassName: "bg-orange-400/20 text-orange-300 border-orange-400/30" },
+  { id: "okx", label: "OKX", iconText: "OK", iconClassName: "bg-slate-200/20 text-slate-200 border-slate-200/30" },
+];
 
 const preferenceSlices: PreferenceSlice[] = [
   { label: "ETH", value: 14.3, color: "#7184F5" },
@@ -284,19 +311,16 @@ function DetailListCard({
 function DashboardPanel({
   title,
   icon: Icon,
-  accentClass,
   actions,
   children,
 }: {
   title: string;
   icon: ComponentType<{ className?: string }>;
-  accentClass: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="surface-card overflow-hidden p-0">
-      <div className={`h-px w-full ${accentClass}`} />
+    <section className="surface-card h-full overflow-hidden p-0">
       <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
         <div className="flex items-center gap-2">
           <Icon className="h-3.5 w-3.5 text-primary" />
@@ -306,7 +330,7 @@ function DashboardPanel({
         </div>
         {actions}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="h-full p-4">{children}</div>
     </section>
   );
 }
@@ -322,7 +346,6 @@ export default function StrategyDetail() {
     tierParam === "graduated" ? "graduated" : "official";
   const customName = searchParams.get("name");
   const strategyFromStore = strategies.find((item) => item.id === params.id);
-  const isDraftView = searchParams.get("draft") === "true" || !strategyFromStore;
   const strategy = strategyFromStore ?? {
     id: params.id,
     name: customName || "Strategy Backtest",
@@ -347,6 +370,14 @@ export default function StrategyDetail() {
   const [curveHoverIndex, setCurveHoverIndex] = useState<number | null>(null);
   const [returnsHoverIndex, setReturnsHoverIndex] = useState<number | null>(null);
   const [activePreference, setActivePreference] = useState(0);
+  const [isStrategyConfigOpen, setIsStrategyConfigOpen] = useState(false);
+  const [isLiveDeployOpen, setIsLiveDeployOpen] = useState(false);
+  const [liveDeployView, setLiveDeployView] = useState<LiveDeployView>("deploy");
+  const [connectedExchangeIds, setConnectedExchangeIds] = useState<ExchangeId[]>([]);
+  const [selectedExchangeId, setSelectedExchangeId] = useState<ExchangeId | null>(null);
+  const [connectExchangeId, setConnectExchangeId] = useState<ExchangeId | null>(null);
+  const [connectTab, setConnectTab] = useState<ConnectFlowTab>("quick");
+  const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
 
   const strategyName = customName || strategy.name;
   const strategyId = strategy.id;
@@ -359,6 +390,157 @@ export default function StrategyDetail() {
     () => getStrategyDeployment(strategyId, "live"),
     [deploymentVersion, strategyId]
   );
+  const connectedExchanges = useMemo(
+    () => exchangeOptions.filter((item) => connectedExchangeIds.includes(item.id)),
+    [connectedExchangeIds]
+  );
+  const selectedExchange = useMemo(
+    () => exchangeOptions.find((item) => item.id === selectedExchangeId) ?? null,
+    [selectedExchangeId]
+  );
+  const connectingExchange = useMemo(
+    () => exchangeOptions.find((item) => item.id === connectExchangeId) ?? null,
+    [connectExchangeId]
+  );
+  const minLiveCapital = 100;
+  const parsedLiveCapital = Number(liveCapitalInput);
+  const isLiveCapitalNumeric = Number.isFinite(parsedLiveCapital);
+  const isCapitalBelowMinimum =
+    isLiveCapitalNumeric &&
+    parsedLiveCapital > 0 &&
+    parsedLiveCapital < minLiveCapital;
+  const canSubmitLiveDeploy =
+    selectedExchange !== null &&
+    isLiveCapitalNumeric &&
+    parsedLiveCapital >= minLiveCapital;
+  const normalizeConfigValue = (value: string | null | undefined) => {
+    if (!value) return null;
+    const cleaned = value.replace(/\s+/g, " ").trim();
+    if (!cleaned) return null;
+    const lowered = cleaned.toLowerCase();
+    if (
+      lowered === "n/a" ||
+      lowered === "na" ||
+      lowered === "none" ||
+      lowered === "not specified" ||
+      lowered === "null" ||
+      lowered === "undefined"
+    ) {
+      return null;
+    }
+    return cleaned;
+  };
+  const toReadableList = (value: string | null | undefined, splitter: RegExp) => {
+    const normalized = normalizeConfigValue(value);
+    if (!normalized) return null;
+    const items = normalized
+      .split(splitter)
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return items.length > 0 ? items.join(", ") : null;
+  };
+
+  const strategyTypeRaw = normalizeConfigValue(
+    searchParams.get("strategyType") ?? searchParams.get("type")
+  );
+  const weightingModeRaw = normalizeConfigValue(
+    searchParams.get("weightMode") ?? searchParams.get("weights")
+  );
+  const executionSideRaw = normalizeConfigValue(
+    searchParams.get("crossDirection") ?? searchParams.get("direction")
+  );
+  const rankValueRaw = normalizeConfigValue(searchParams.get("rankValue"));
+  const rankModeRaw = normalizeConfigValue(searchParams.get("rankMode"));
+  const stopLossRaw = normalizeConfigValue(
+    searchParams.get("stopLoss") ?? searchParams.get("risk")
+  );
+  const cooldownRaw = normalizeConfigValue(searchParams.get("cooldown"));
+  const symbolScopeRaw = toReadableList(
+    searchParams.get("symbols") ??
+      searchParams.get("symbolGroup") ??
+      searchParams.get("symbol"),
+    /,/
+  );
+  const signalSelectionRaw = toReadableList(searchParams.get("factors"), /\|/);
+  const strategyConfigRows: Array<{ label: string; value: string }> = [];
+  const strategyTypeKey = strategyTypeRaw?.toLowerCase().replace(/\s+/g, "-");
+  const strategyTypeLabel =
+    strategyTypeKey === "time-series"
+      ? "Time Series"
+      : strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section"
+        ? "Cross Section"
+        : strategyTypeRaw;
+  if (strategyTypeLabel) {
+    strategyConfigRows.push({ label: "Strategy Type", value: strategyTypeLabel });
+  }
+
+  if (symbolScopeRaw) {
+    strategyConfigRows.push({ label: "Symbol", value: symbolScopeRaw });
+  }
+
+  if (signalSelectionRaw) {
+    strategyConfigRows.push({ label: "Signal Selection", value: signalSelectionRaw });
+  }
+
+  const signalUniverseRaw = normalizeConfigValue(searchParams.get("market"));
+  if (signalUniverseRaw) {
+    strategyConfigRows.push({ label: "Signal Universe", value: signalUniverseRaw });
+  } else if (strategyFromStore) {
+    strategyConfigRows.push({ label: "Signal Universe", value: strategy.market });
+  }
+
+  const factorCountRaw = normalizeConfigValue(searchParams.get("signals"));
+  if (factorCountRaw) {
+    strategyConfigRows.push({ label: "Factor Count", value: factorCountRaw });
+  } else if (signalSelectionRaw) {
+    strategyConfigRows.push({
+      label: "Factor Count",
+      value: String(signalSelectionRaw.split(", ").length),
+    });
+  } else if (strategyFromStore) {
+    strategyConfigRows.push({ label: "Factor Count", value: String(strategy.factorCount) });
+  }
+
+  if (weightingModeRaw) {
+    const weightingKey = weightingModeRaw.toLowerCase();
+    const weightingLabel =
+      weightingKey === "equal"
+        ? "Equal Weight"
+        : weightingKey === "custom"
+          ? "Custom Weight"
+          : weightingModeRaw;
+    strategyConfigRows.push({ label: "Factor Weights", value: weightingLabel });
+  }
+
+  if (executionSideRaw === "long") {
+    strategyConfigRows.push({ label: "Execution Side", value: "Long-Only" });
+  } else if (executionSideRaw === "short") {
+    strategyConfigRows.push({ label: "Execution Side", value: "Short-Only" });
+  } else if (executionSideRaw === "neutral") {
+    strategyConfigRows.push({ label: "Execution Side", value: "Market-Neutral" });
+  }
+
+  if (strategyTypeKey === "cross-sectional" && rankValueRaw) {
+    strategyConfigRows.push({
+      label: "Top/Tail Rule",
+      value: `Top/Bottom ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`,
+    });
+  }
+
+  if (stopLossRaw) {
+    strategyConfigRows.push({
+      label: "Stop Loss",
+      value: stopLossRaw.includes("%") ? stopLossRaw : `${stopLossRaw}%`,
+    });
+  }
+
+  if (cooldownRaw) {
+    const cooldownHours = cooldownRaw.match(/[\d.]+/)?.[0];
+    strategyConfigRows.push({
+      label: "Cooldown (hours)",
+      value: cooldownHours ? `${cooldownHours} h` : cooldownRaw,
+    });
+  }
 
   const initialEquity = 438000;
   const returnRate = parsePercent(strategy.annualReturn);
@@ -496,7 +678,10 @@ export default function StrategyDetail() {
     window.location.assign(`/trade?${query.toString()}`);
   };
 
-  const deployStrategy = (environment: "paper" | "live") => {
+  const deployStrategy = (
+    environment: "paper" | "live",
+    options?: { exchangeLabel?: string; capitalUsdt?: number }
+  ) => {
     deployStrategyToTrade({
       strategyId,
       strategyName,
@@ -506,7 +691,65 @@ export default function StrategyDetail() {
       environment,
     });
     setDeploymentVersion((prev) => prev + 1);
-    toast.success(environment === "paper" ? "Deployed to paper trading." : "Deployed to live trading.");
+    if (environment === "paper") {
+      toast.success("Deployed to paper trading.");
+      return;
+    }
+    if (options?.exchangeLabel && options.capitalUsdt) {
+      toast.success(
+        `Live deployment submitted to ${options.exchangeLabel} with ${options.capitalUsdt.toLocaleString()} USDT base capital.`
+      );
+      return;
+    }
+    toast.success("Deployed to live trading.");
+  };
+
+  const openLiveDeployModal = () => {
+    if (connectedExchangeIds.length > 0 && !selectedExchangeId) {
+      setSelectedExchangeId(connectedExchangeIds[0]);
+    }
+    setLiveDeployView("deploy");
+    setConnectTab("quick");
+    setIsLiveDeployOpen(true);
+  };
+
+  const goToExchangeApi = () => {
+    setIsLiveDeployOpen(false);
+    window.location.assign("/account?tab=exchangeApi");
+  };
+
+  const connectSelectedExchange = () => {
+    if (!connectExchangeId) return;
+    setConnectedExchangeIds((prev) =>
+      prev.includes(connectExchangeId) ? prev : [...prev, connectExchangeId]
+    );
+    setSelectedExchangeId(connectExchangeId);
+    setLiveDeployView("deploy");
+    const exchangeLabel =
+      exchangeOptions.find((item) => item.id === connectExchangeId)?.label ?? "Exchange";
+    toast.success(`${exchangeLabel} connected successfully.`);
+  };
+
+  const submitLiveDeployment = () => {
+    if (!selectedExchange) {
+      toast.error("Select an exchange account before submitting live deployment.");
+      return;
+    }
+    if (!isLiveCapitalNumeric || parsedLiveCapital <= 0) {
+      toast.error("Enter a valid base capital amount in USDT.");
+      return;
+    }
+    if (parsedLiveCapital < minLiveCapital) {
+      toast.error(
+        `Minimum activation capital is ${minLiveCapital} USDT. Deployment cannot be initiated below this threshold.`
+      );
+      return;
+    }
+    deployStrategy("live", {
+      exchangeLabel: selectedExchange.label,
+      capitalUsdt: parsedLiveCapital,
+    });
+    setIsLiveDeployOpen(false);
   };
 
   const tierBadgeClass =
@@ -534,9 +777,6 @@ export default function StrategyDetail() {
           <h1 className="mt-3 text-foreground">
             {isOfficialLibraryView ? strategyName : `${strategyName} Backtest`}
           </h1>
-          <p className="mt-1 text-xs font-mono text-muted-foreground">
-            Strategy ID: {strategyId} &middot; Created: {createdAt}
-          </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {isOfficialLibraryView ? (
               <span
@@ -544,27 +784,14 @@ export default function StrategyDetail() {
               >
                 {tierBadgeLabel}
               </span>
-            ) : (
-              <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em] ${
-                  isDraftView
-                    ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
-                    : strategy.status === "live"
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                      : strategy.status === "backtested"
-                        ? "border-sky-500/30 bg-sky-500/10 text-sky-400"
-                        : "border-primary/30 bg-primary/10 text-primary"
-                }`}
-              >
-                {isDraftView ? "Draft" : strategy.status}
-              </span>
-            )}
-            <span className="inline-flex items-center rounded-full border border-border/70 bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-              {strategy.market}
-            </span>
-            <span className="inline-flex items-center rounded-full border border-border/70 bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-              {strategy.factorCount} factors
-            </span>
+            ) : null}
+            <Button
+              variant="outline"
+              className="h-7 rounded-full border-border/70 bg-card px-3 text-[11px] font-medium text-foreground hover:bg-accent"
+              onClick={() => setIsStrategyConfigOpen(true)}
+            >
+              View Strategy Configuration
+            </Button>
           </div>
         </div>
 
@@ -613,7 +840,7 @@ export default function StrategyDetail() {
                     openTradePage("live", liveDeployment.id);
                     return;
                   }
-                  deployStrategy("live");
+                  openLiveDeployModal();
                 }}
               >
                 {liveDeployment ? "View Live Trade" : "Deploy to Live Trading"}
@@ -666,11 +893,10 @@ export default function StrategyDetail() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid grid-cols-1 gap-5">
         <DashboardPanel
           title="Asset Curve"
           icon={BarChart3}
-          accentClass="bg-amber-400"
           actions={
             <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
               {curveRanges.map((option) => (
@@ -693,7 +919,7 @@ export default function StrategyDetail() {
             </div>
           }
         >
-          <div className="space-y-4">
+          <div className="flex h-full min-h-[440px] flex-col gap-4">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
               <span className="text-muted-foreground">
                 Total Return{" "}
@@ -715,10 +941,11 @@ export default function StrategyDetail() {
               </span>
             </div>
 
-            <div className="relative">
+            <div className="relative flex-1 min-h-[300px]">
               <svg
                 viewBox={`0 0 ${curveChart.width} ${curveChart.height}`}
-                className="h-[320px] w-full"
+                preserveAspectRatio="xMidYMid meet"
+                className="h-full w-full"
                 onMouseMove={(event) => {
                   const rect = event.currentTarget.getBoundingClientRect();
                   const ratio = (event.clientX - rect.left) / rect.width;
@@ -838,7 +1065,7 @@ export default function StrategyDetail() {
               ) : null}
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+            <div className="flex shrink-0 items-center justify-between text-[11px] text-muted-foreground">
               {curveChart.labels.map((label) => (
                 <span key={label}>{label}</span>
               ))}
@@ -846,7 +1073,7 @@ export default function StrategyDetail() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Asset Preferences" icon={PieChart} accentClass="bg-amber-400">
+        <DashboardPanel title="Asset Preferences" icon={PieChart}>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.85fr_1.15fr]">
             <div className="flex items-center justify-center">
               <div className="relative h-[260px] w-[260px]">
@@ -916,7 +1143,6 @@ export default function StrategyDetail() {
       <DashboardPanel
         title="Daily Returns"
         icon={Activity}
-        accentClass="bg-emerald-400"
         actions={
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>
@@ -1044,48 +1270,48 @@ export default function StrategyDetail() {
         </div>
       </DashboardPanel>
 
-      <DashboardPanel title="Position History" icon={BriefcaseBusiness} accentClass="bg-amber-400">
+      <DashboardPanel title="Position History" icon={BriefcaseBusiness}>
         <div className="space-y-3">
           {positionHistory.map((position) => (
             <article
               key={`${position.symbol}-${position.openedAt}`}
               className="rounded-xl border border-border/60 bg-background/35 p-4 transition-colors hover:bg-accent/20"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-3 pb-0">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-2xl font-semibold text-foreground">{position.symbol}</h3>
-                    <span className="inline-flex rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                    <h3 className="text-[16px] font-semibold text-foreground">{position.symbol}</h3>
+                    <span className="inline-flex items-center justify-start rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                       {position.contract}
                     </span>
-                    <span className={`inline-flex rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] ${sideClass(position.side)}`}>
+                    <span className={`inline-flex items-center justify-start rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] ${sideClass(position.side)}`}>
                       {position.side}
                     </span>
-                    <span className="inline-flex rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                    <span className="inline-flex items-center justify-start rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                       {position.status}
                     </span>
                   </div>
                 </div>
-                <div className={`text-right text-[30px] font-semibold leading-none ${positionTone(position.pnl)}`}>
+                <div className={`text-right text-[16px] font-semibold leading-none ${positionTone(position.pnl)}`}>
                   {position.pnl}
                 </div>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Entry Price</div>
-                  <div className="mt-1 font-mono text-lg text-foreground">{position.entryPrice}</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Entry Price</div>
+                  <div className="mt-1 font-mono text-[14px] text-foreground">{position.entryPrice}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Max Open Interest</div>
-                  <div className="mt-1 font-mono text-lg text-foreground">{position.maxOpenInterest}</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Max Open Interest</div>
+                  <div className="mt-1 font-mono text-[14px] text-foreground">{position.maxOpenInterest}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Opened</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Opened</div>
                   <div className="mt-1 font-mono text-sm text-foreground">{position.openedAt}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Closed</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Closed</div>
                   <div className="mt-1 font-mono text-sm text-foreground">{position.closedAt}</div>
                 </div>
               </div>
@@ -1093,6 +1319,376 @@ export default function StrategyDetail() {
           ))}
         </div>
       </DashboardPanel>
+
+      <Dialog
+        open={isLiveDeployOpen}
+        onOpenChange={(open) => {
+          setIsLiveDeployOpen(open);
+          if (!open) {
+            setLiveDeployView("deploy");
+            setConnectExchangeId(null);
+            setConnectTab("quick");
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl border-border bg-card p-0 text-foreground">
+          {liveDeployView === "deploy" ? (
+            <>
+              <DialogHeader className="border-b border-border/60 px-6 py-5">
+                <DialogTitle>Deploy Strategy to Live Trading</DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-5 px-6 py-5">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                      Exchange
+                    </p>
+                    <button
+                      type="button"
+                      className="text-xs text-primary hover:text-primary/80"
+                      onClick={goToExchangeApi}
+                    >
+                      Manage Connections
+                    </button>
+                  </div>
+
+                  {connectedExchanges.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border/70 bg-accent/25 px-3 py-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border/70 bg-background/40 text-muted-foreground">
+                            <Unplug className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground">No Exchange API Connected</p>
+                            <p className="text-xs text-muted-foreground">
+                              Connect an exchange API account to enable live deployment.
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-8 shrink-0 rounded-full border-border bg-card px-3 text-xs"
+                          onClick={goToExchangeApi}
+                        >
+                          Connect Exchange
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {connectedExchanges.map((exchange) => (
+                        <button
+                          key={exchange.id}
+                          type="button"
+                          onClick={() => setSelectedExchangeId(exchange.id)}
+                          aria-pressed={selectedExchangeId === exchange.id}
+                          className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition-colors ${
+                            selectedExchangeId === exchange.id
+                              ? "border-primary/50 bg-primary/10 text-primary"
+                              : "border-border/70 bg-background/35 text-foreground hover:bg-accent/35"
+                          }`}
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span
+                              className={`inline-flex h-8 w-8 items-center justify-center rounded-md border text-[10px] font-semibold uppercase tracking-[0.1em] ${exchange.iconClassName}`}
+                            >
+                              {exchange.iconText}
+                            </span>
+                            <span className="truncate text-sm font-medium">{exchange.label}</span>
+                          </div>
+                          <span
+                            className={`inline-flex h-4 w-4 items-center justify-center rounded-full border ${
+                              selectedExchangeId === exchange.id
+                                ? "border-primary/60 bg-primary/20"
+                                : "border-border/70 bg-background/35"
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                selectedExchangeId === exchange.id ? "bg-primary" : "bg-transparent"
+                              }`}
+                            />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                    Base Capital
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={liveCapitalInput}
+                      onChange={(event) =>
+                        setLiveCapitalInput(event.target.value.replace(/[^0-9.]/g, ""))
+                      }
+                      placeholder="1000"
+                      className="h-10"
+                      aria-invalid={isCapitalBelowMinimum}
+                    />
+                    <div className="inline-flex h-10 items-center rounded-md border border-border bg-accent/35 px-3 text-sm font-medium text-foreground">
+                      USDT
+                    </div>
+                  </div>
+                  {isCapitalBelowMinimum ? (
+                    <p className="text-xs text-rose-400">
+                      Minimum activation capital is 100 USDT. Deployment cannot be initiated below this threshold.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Minimum activation capital: 100 USDT.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-border/60 px-6 py-4">
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-full border-border bg-card px-4 text-xs"
+                  onClick={() => setIsLiveDeployOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="h-9 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90"
+                  disabled={!canSubmitLiveDeploy}
+                  onClick={submitLiveDeployment}
+                >
+                  Submit Live Deployment
+                </Button>
+              </div>
+            </>
+          ) : liveDeployView === "connect-list" ? (
+            <>
+              <DialogHeader className="border-b border-border/60 px-6 py-5">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 rounded-full px-2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setLiveDeployView("deploy")}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Back
+                  </Button>
+                </div>
+                <DialogTitle>Connect Exchange</DialogTitle>
+                <DialogDescription>
+                  Your assets remain in your exchange account. We use encrypted API credentials for strategy execution only.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 px-6 py-5">
+                <div className="rounded-xl border border-border/60 bg-accent/35 p-4 text-sm text-muted-foreground">
+                  Choose a venue to connect. You can manage multiple exchanges and pick one at deployment time.
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {exchangeOptions.map((exchange) => {
+                    const isConnected = connectedExchangeIds.includes(exchange.id);
+                    return (
+                      <button
+                        key={exchange.id}
+                        type="button"
+                        onClick={() => {
+                          setConnectExchangeId(exchange.id);
+                          setConnectTab("quick");
+                          setLiveDeployView("connect-config");
+                        }}
+                        className="rounded-xl border border-border/70 bg-background/35 px-4 py-4 text-left transition-colors hover:bg-accent/25"
+                      >
+                        <div className="text-sm font-semibold text-foreground">{exchange.label}</div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          {isConnected ? "Connected" : "Not connected"}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Request another exchange integration
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <DialogHeader className="border-b border-border/60 px-6 py-5">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 rounded-full px-2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setLiveDeployView("connect-list")}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                    Back
+                  </Button>
+                </div>
+                <DialogTitle>Connect {connectingExchange?.label ?? "Exchange"}</DialogTitle>
+                <DialogDescription>
+                  Configure API access for live strategy execution and risk synchronization.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 px-6 py-5">
+                <div className="inline-flex items-center rounded-lg border border-border bg-card p-1">
+                  <button
+                    type="button"
+                    onClick={() => setConnectTab("quick")}
+                    className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
+                      connectTab === "quick"
+                        ? "border border-primary/40 bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Quick Connect
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConnectTab("api")}
+                    className={`ml-1 rounded-md px-3 py-1.5 text-xs transition-colors ${
+                      connectTab === "api"
+                        ? "border border-primary/40 bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    API Keys
+                  </button>
+                </div>
+
+                {connectTab === "quick" ? (
+                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/30 p-4">
+                    <div className="flex items-start gap-3 text-sm">
+                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
+                        1
+                      </span>
+                      <p className="text-muted-foreground">
+                        Sign in to your {connectingExchange?.label ?? "exchange"} account.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3 text-sm">
+                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
+                        2
+                      </span>
+                      <p className="text-muted-foreground">
+                        Authorize API access for order placement and position query.
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-3 text-sm">
+                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
+                        3
+                      </span>
+                      <p className="text-muted-foreground">
+                        Confirm risk permissions and activate strategy routing.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Import open positions on first sync
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/30 p-4">
+                    <p className="text-xs text-muted-foreground">
+                      Create API credentials with trade and position permissions enabled.
+                    </p>
+                    <Input value={`My ${connectingExchange?.label ?? "Exchange"} Account`} readOnly />
+                    <Input placeholder="API Key" />
+                    <Input placeholder="API Secret" />
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                      Keep withdrawals disabled for security best practice.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-end gap-2 border-t border-border/60 px-6 py-4">
+                <Button
+                  variant="outline"
+                  className="h-9 rounded-full border-border bg-card px-4 text-xs"
+                  onClick={() => setLiveDeployView("connect-list")}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="h-9 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90"
+                  onClick={connectSelectedExchange}
+                  disabled={!connectExchangeId}
+                >
+                  Connect Exchange
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isStrategyConfigOpen} onOpenChange={setIsStrategyConfigOpen}>
+        <DialogContent className="max-w-2xl border-border bg-card p-0 text-foreground">
+          <DialogHeader className="border-b border-border/60 px-6 py-4">
+            <DialogTitle>Strategy Configuration</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 px-6 py-4">
+            <section className="space-y-2">
+              <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                Meta
+              </p>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-background/20 px-4 py-3 text-xs sm:grid-cols-2">
+                <div className="space-y-0.5">
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Strategy ID</p>
+                  <p className="font-semibold text-foreground">{strategyId}</p>
+                </div>
+                <div className="space-y-0.5">
+                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Created At</p>
+                  <p className="font-semibold text-foreground">{createdAt}</p>
+                </div>
+              </div>
+            </section>
+
+            {strategyConfigRows.length > 0 ? (
+              <section className="space-y-2">
+                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                  Configured Parameters
+                </p>
+                <div className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-background/20 px-4 py-3 sm:grid-cols-2">
+                  {strategyConfigRows.map((row) => (
+                    <div key={row.label} className="space-y-0.5">
+                      <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                        {row.label}
+                      </p>
+                      <p className="text-sm font-semibold text-foreground">{row.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </div>
+
+          <div className="flex items-center justify-end border-t border-border/60 px-6 py-4">
+            <Button
+              variant="outline"
+              className="h-9 rounded-full border-border bg-card px-4 text-xs"
+              onClick={() => setIsStrategyConfigOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
