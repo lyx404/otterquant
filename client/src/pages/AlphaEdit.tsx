@@ -21,7 +21,6 @@ import {
   Trophy,
   Zap,
   Sparkles,
-  ClipboardCheck,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -31,6 +30,7 @@ import { toast } from "sonner";
 
 /* ── Agent Mode ── */
 type AgentMode = "platform" | "own" | null;
+type PlatformInputMethod = "form" | "ai-chat";
 
 /* ── Strategy Types ── */
 const STRATEGY_TYPES_BY_MODE = {
@@ -105,8 +105,9 @@ export default function AlphaEdit() {
   const [alphaName, setAlphaName] = useState("BTC Momentum RSI Cross");
   const [strategyType, setStrategyType] = useState("time-series");
   const [refinementLevel, setRefinementLevel] = useState<RefinementLevel>("medium");
-  const [description, setDescription] = useState("");
-  const [showOptionalFields, setShowOptionalFields] = useState(false);
+  const [platformInputMethod, setPlatformInputMethod] = useState<PlatformInputMethod>("form");
+  const [aiChatPrompt, setAiChatPrompt] = useState("");
+  const [aiChatTouched, setAiChatTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   /* ── Own Agent State ── */
@@ -163,19 +164,18 @@ export default function AlphaEdit() {
   const activeStrategyTypeLabel =
     strategyTypeOptions.find((item) => item.value === strategyType)?.label ?? "";
   const showBeginnerHints = alphaViewMode === "beginner";
+  const selectedOptionClass =
+    "bg-primary/10 border-primary/30 text-primary shadow-[0_0_0_1px_rgba(79,70,229,0.15)]";
+  const aiChatPromptMissing = platformInputMethod === "ai-chat" && !aiChatPrompt.trim();
+  const alphaNameLabel = alphaViewMode === "beginner" ? "Signal Name" : "Factor Name";
 
-  const buildOptimizedPrompt = () => {
-    const factorName = alphaName.trim() || "Untitled Factor";
-    const strategyLabel = activeStrategyTypeLabel || "strategy";
-    const viewModeHint =
-      alphaViewMode === "beginner"
-        ? "Keep the wording simple, focus on timing quality or symbol selection, and avoid unnecessary jargon."
-        : "Keep the wording concise but specific, and emphasize robustness, signal clarity, and execution constraints.";
-
-    setDescription(
-      `Please refine the ${strategyLabel} factor named "${factorName}". Use ${refinementLevel} refinement depth (about ${REFINEMENT_TO_ITERATIONS[refinementLevel]} improvement rounds) and produce a clearer, more actionable description for factor creation. ${viewModeHint}`
+  const optimizeAiPrompt = () => {
+    const strategyLabel = activeStrategyTypeLabel || "time-series";
+    setAiChatPrompt(
+      `Create a ${strategyLabel} alpha signal for liquid crypto perpetuals. Use Cross-Exchange Spread and Funding Rate Mean Rev as the initial signal ideas, refine them at ${refinementLevel} depth, and return a deployable signal description with clear market logic, required data inputs, and risk notes.`
     );
-    toast.success("Prompt optimized");
+    setAiChatTouched(true);
+    toast.success("AI chat prompt optimized");
   };
 
   const helpCopy = {
@@ -200,17 +200,27 @@ export default function AlphaEdit() {
 
   /* ── Platform Agent Submit ── */
   const handleSubmit = () => {
-    if (!alphaName.trim()) {
+    if (platformInputMethod === "ai-chat" && !aiChatPrompt.trim()) {
+      setAiChatTouched(true);
+      toast.error("Please enter an AI chat prompt");
+      return;
+    }
+
+    if (platformInputMethod === "form" && !alphaName.trim()) {
       toast.error("Please enter an alpha name");
       return;
     }
     setIsSubmitting(true);
     // Generate a temporary new alpha ID and navigate to detail page with generating state
     const newAlphaId = `AF-${String(Math.floor(Math.random() * 900) + 100)}`;
+    const generatedName =
+      platformInputMethod === "ai-chat"
+        ? "AI Chat Alpha Signal"
+        : alphaName.trim();
     setTimeout(() => {
       setIsSubmitting(false);
       toast.success("Alpha created! AI is now mining your factor...");
-      navigate(`/alphas/${newAlphaId}?generating=true&name=${encodeURIComponent(alphaName.trim())}`);
+      navigate(`/alphas/${newAlphaId}?generating=true&name=${encodeURIComponent(generatedName)}`);
     }, 1500);
   };
 
@@ -269,19 +279,45 @@ export default function AlphaEdit() {
       </div>
 
       {/* ═══════════════════════════════════════════
-          Platform Agent Mode — Form
+          Platform Agent Mode
           ═══════════════════════════════════════════ */}
       {mode === "platform" && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* Required Fields */}
-          <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-            <div className="flex items-center gap-2 mb-1">
-              <ClipboardCheck className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Core Parameters</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-medium">Required</span>
+        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Input Method</label>
             </div>
 
-            {/* Type */}
+            <div className="grid w-full max-w-[320px] grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setPlatformInputMethod("form")}
+                className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
+                  platformInputMethod === "form"
+                    ? selectedOptionClass
+                    : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
+                }`}
+              >
+                Form
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPlatformInputMethod("ai-chat");
+                  setAiChatTouched(false);
+                }}
+                className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
+                  platformInputMethod === "ai-chat"
+                    ? selectedOptionClass
+                    : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
+                }`}
+              >
+                AI Chat
+              </button>
+            </div>
+          </div>
+
+          <div className={platformInputMethod === "form" ? "space-y-8" : "hidden"}>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
@@ -317,7 +353,7 @@ export default function AlphaEdit() {
                     onClick={() => setStrategyType(t.value)}
                     className={`px-4 py-3 rounded-xl text-left transition-all duration-200 border ${
                       strategyType === t.value
-                        ? "bg-primary/10 border-primary/30 text-primary shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
+                        ? selectedOptionClass
                         : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                     }`}
                   >
@@ -327,7 +363,6 @@ export default function AlphaEdit() {
               </div>
             </div>
 
-            {/* Refinement Level */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <label className="text-xs font-medium text-muted-foreground">Refinement Level <span className="text-destructive">*</span></label>
@@ -358,7 +393,7 @@ export default function AlphaEdit() {
                     onClick={() => setRefinementLevel(level.value)}
                     className={`h-9 rounded-lg text-xs font-semibold transition-all duration-200 border ${
                       refinementLevel === level.value
-                        ? "bg-primary/10 border-primary/30 text-primary shadow-[0_0_0_1px_rgba(79,70,229,0.15)]"
+                        ? selectedOptionClass
                         : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                     }`}
                   >
@@ -367,77 +402,55 @@ export default function AlphaEdit() {
                 ))}
               </div>
             </div>
+
+            <div className="flex w-full flex-col items-stretch gap-2">
+              <label className="text-xs font-medium text-muted-foreground">{alphaNameLabel}</label>
+              <Input
+                placeholder="System default will be used if empty"
+                value={alphaName}
+                onChange={(e) => setAlphaName(e.target.value)}
+                className="h-10 w-full rounded-lg border-border bg-accent text-sm"
+              />
+            </div>
           </div>
 
-          {/* Optional Fields */}
-          <div className="rounded-2xl border border-border bg-card overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setShowOptionalFields((prev) => !prev)}
-              className="w-full flex items-center justify-between gap-3 px-6 py-4 text-left transition-colors duration-200 hover:bg-accent/60"
-            >
-              <div className="flex items-center gap-2">
-                <Bot className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Optional</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-muted-foreground border border-border">Optional</span>
+          {platformInputMethod === "ai-chat" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-xs font-medium text-muted-foreground">AI Chat Prompt <span className="text-destructive">*</span></label>
+                <button
+                  type="button"
+                  onClick={optimizeAiPrompt}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary transition-all duration-200 hover:bg-primary/15 hover:border-primary/30"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Optimize Prompt
+                </button>
               </div>
-              {showOptionalFields ? (
-                <ChevronUp className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
+              <Textarea
+                value={aiChatPrompt}
+                onChange={(e) => setAiChatPrompt(e.target.value)}
+                onBlur={() => setAiChatTouched(true)}
+                placeholder="Describe the signal you want to create in natural language. Include markets, data inputs, factor logic, and any constraints."
+                rows={8}
+                className="rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none"
+              />
+              {aiChatTouched && aiChatPromptMissing ? (
+                <p className="text-[11px] text-destructive">Please enter a prompt for AI chat signal creation.</p>
+              ) : null}
+              <p className="text-[11px] text-muted-foreground">
+                AI Chat mode turns a natural-language signal idea into a structured alpha mining request.
+              </p>
+            </div>
+          )}
 
-            {showOptionalFields && (
-              <div className="px-6 pb-6 space-y-5">
-                {/* Factor Name */}
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Factor Name</label>
-                  <Input
-                    placeholder="System default will be filled"
-                    value={alphaName}
-                    onChange={(e) => setAlphaName(e.target.value)}
-                    className="rounded-lg bg-accent border-border h-10 text-sm"
-                  />
-                </div>
-
-                {/* Supplementary Description */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <label className="text-xs font-medium text-muted-foreground">Supplementary Description</label>
-                    <button
-                      type="button"
-                      onClick={buildOptimizedPrompt}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary transition-all duration-200 hover:bg-primary/15 hover:border-primary/30"
-                    >
-                      <Sparkles className="w-3.5 h-3.5" />
-                      Optimize Prompt
-                    </button>
-                  </div>
-                  <Textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Add extra constraints, interpretation notes, or any follow-up details here..."
-                    rows={5}
-                    className="rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none"
-                  />
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] text-muted-foreground/60">This note will be attached to the alpha creation context.</p>
-                    <span className="text-[10px] text-muted-foreground/50">{description.length}/500</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Submit */}
           <div className="flex items-center justify-between pt-2">
             <div />
             <button
               onClick={handleSubmit}
-              disabled={!alphaName.trim() || isSubmitting}
+              disabled={isSubmitting || (platformInputMethod === "form" && !alphaName.trim())}
               className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ease-in-out ${
-                alphaName.trim() && !isSubmitting
+                !isSubmitting && (platformInputMethod === "ai-chat" || alphaName.trim())
                   ? "bg-primary text-primary-foreground hover:brightness-110 hover:-translate-y-0.5 cursor-pointer"
                   : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
               }`}

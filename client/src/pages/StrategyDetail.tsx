@@ -2,31 +2,39 @@
  * StrategyDetail — strategy backtest dashboard rebuilt into a
  * multi-panel quant research layout while preserving the top metrics block.
  */
-import { useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useParams, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { strategies } from "@/lib/mockData";
 import { buildSeries, parsePercent } from "@/lib/strategyUtils";
+import {
+  getExchangeVenueMeta,
+  readExchangeApiConnections,
+  type ExchangeApiConnection,
+} from "@/lib/exchangeApiConnections";
 import { deployStrategyToTrade, getStrategyDeployment } from "@/lib/tradeDeployments";
 import { toast } from "sonner";
 import {
   Activity,
   ArrowLeft,
-  CheckCircle2,
   BarChart3,
   BriefcaseBusiness,
-  ChevronLeft,
   ClipboardList,
   Unplug,
-  ExternalLink,
   PieChart,
   Star,
   TrendingUp,
@@ -122,21 +130,6 @@ type PositionRecord = {
   closedAt: string;
   pnl: string;
 };
-
-type ExchangeId = "binance" | "bybit" | "okx";
-type LiveDeployView = "deploy" | "connect-list" | "connect-config";
-type ConnectFlowTab = "quick" | "api";
-
-const exchangeOptions: Array<{
-  id: ExchangeId;
-  label: string;
-  iconText: string;
-  iconClassName: string;
-}> = [
-  { id: "binance", label: "Binance", iconText: "BN", iconClassName: "bg-amber-400/20 text-amber-300 border-amber-400/30" },
-  { id: "bybit", label: "Bybit", iconText: "BY", iconClassName: "bg-orange-400/20 text-orange-300 border-orange-400/30" },
-  { id: "okx", label: "OKX", iconText: "OK", iconClassName: "bg-slate-200/20 text-slate-200 border-slate-200/30" },
-];
 
 const preferenceSlices: PreferenceSlice[] = [
   { label: "ETH", value: 14.3, color: "#7184F5" },
@@ -372,11 +365,10 @@ export default function StrategyDetail() {
   const [activePreference, setActivePreference] = useState(0);
   const [isStrategyConfigOpen, setIsStrategyConfigOpen] = useState(false);
   const [isLiveDeployOpen, setIsLiveDeployOpen] = useState(false);
-  const [liveDeployView, setLiveDeployView] = useState<LiveDeployView>("deploy");
-  const [connectedExchangeIds, setConnectedExchangeIds] = useState<ExchangeId[]>([]);
-  const [selectedExchangeId, setSelectedExchangeId] = useState<ExchangeId | null>(null);
-  const [connectExchangeId, setConnectExchangeId] = useState<ExchangeId | null>(null);
-  const [connectTab, setConnectTab] = useState<ConnectFlowTab>("quick");
+  const [connectedExchangeApis, setConnectedExchangeApis] = useState<ExchangeApiConnection[]>(() =>
+    readExchangeApiConnections()
+  );
+  const [selectedExchangeApiId, setSelectedExchangeApiId] = useState<string>("");
   const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
 
   const strategyName = customName || strategy.name;
@@ -390,18 +382,19 @@ export default function StrategyDetail() {
     () => getStrategyDeployment(strategyId, "live"),
     [deploymentVersion, strategyId]
   );
-  const connectedExchanges = useMemo(
-    () => exchangeOptions.filter((item) => connectedExchangeIds.includes(item.id)),
-    [connectedExchangeIds]
-  );
   const selectedExchange = useMemo(
-    () => exchangeOptions.find((item) => item.id === selectedExchangeId) ?? null,
-    [selectedExchangeId]
+    () => connectedExchangeApis.find((item) => item.id === selectedExchangeApiId) ?? null,
+    [connectedExchangeApis, selectedExchangeApiId]
   );
-  const connectingExchange = useMemo(
-    () => exchangeOptions.find((item) => item.id === connectExchangeId) ?? null,
-    [connectExchangeId]
-  );
+  useEffect(() => {
+    if (connectedExchangeApis.length === 0) {
+      setSelectedExchangeApiId("");
+      return;
+    }
+    if (!selectedExchangeApiId || !connectedExchangeApis.some((item) => item.id === selectedExchangeApiId)) {
+      setSelectedExchangeApiId(connectedExchangeApis[0].id);
+    }
+  }, [connectedExchangeApis, selectedExchangeApiId]);
   const minLiveCapital = 100;
   const parsedLiveCapital = Number(liveCapitalInput);
   const isLiveCapitalNumeric = Number.isFinite(parsedLiveCapital);
@@ -439,6 +432,33 @@ export default function StrategyDetail() {
       .filter(Boolean);
     return items.length > 0 ? items.join(", ") : null;
   };
+  const toReadableItems = (value: string | null | undefined, splitter: RegExp) => {
+    const normalized = normalizeConfigValue(value);
+    if (!normalized) return [];
+    return normalized
+      .split(splitter)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+  const formatConfigDate = (value: string) => {
+    const normalized = value.replace("T", " ").replace(/\.\d+Z?$/, "").replace(/Z$/, "").trim();
+    const match = normalized.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}):(\d{2}))?/);
+    if (!match) return normalized;
+    return `${match[1]} ${match[2] ?? "00"}:${match[3] ?? "00"}`;
+  };
+  const formatDecimalWeight = (value: number) => Number(value.toFixed(2)).toString();
+  const formatCooldown = (value: string | null) => {
+    if (!value) return null;
+    const hours = value.match(/[\d.]+/)?.[0];
+    if (!hours) return value;
+    return `${hours} ${Number(hours) === 1 ? "hour" : "hours"}`;
+  };
+  const inferSymbolFromName = (value: string) => {
+    const upperName = value.toUpperCase();
+    if (upperName.includes("BTC")) return "BTCUSDT";
+    if (upperName.includes("ETH")) return "ETHUSDT";
+    return null;
+  };
 
   const strategyTypeRaw = normalizeConfigValue(
     searchParams.get("strategyType") ?? searchParams.get("type")
@@ -451,6 +471,7 @@ export default function StrategyDetail() {
   );
   const rankValueRaw = normalizeConfigValue(searchParams.get("rankValue"));
   const rankModeRaw = normalizeConfigValue(searchParams.get("rankMode"));
+  const sortingRuleRaw = normalizeConfigValue(searchParams.get("sorting"));
   const stopLossRaw = normalizeConfigValue(
     searchParams.get("stopLoss") ?? searchParams.get("risk")
   );
@@ -461,86 +482,84 @@ export default function StrategyDetail() {
       searchParams.get("symbol"),
     /,/
   );
-  const signalSelectionRaw = toReadableList(searchParams.get("factors"), /\|/);
-  const strategyConfigRows: Array<{ label: string; value: string }> = [];
+  const signalItems = toReadableItems(searchParams.get("factors"), /\|/);
+  const signalSelectionRaw = signalItems.length > 0 ? signalItems.join(", ") : null;
   const strategyTypeKey = strategyTypeRaw?.toLowerCase().replace(/\s+/g, "-");
+  const isTimeSeriesStrategy = strategyTypeKey === "time-series";
+  const isCrossSectionStrategy =
+    strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section";
   const strategyTypeLabel =
     strategyTypeKey === "time-series"
       ? "Time Series"
       : strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section"
         ? "Cross Section"
         : strategyTypeRaw;
-  if (strategyTypeLabel) {
-    strategyConfigRows.push({ label: "Strategy Type", value: strategyTypeLabel });
-  }
+  const factorWeightItems = (() => {
+    const explicitWeights = normalizeConfigValue(searchParams.get("weights"));
+    if (explicitWeights) {
+      const parsed = explicitWeights
+        .split("|")
+        .map((item) => {
+          const [label, weight] = item.split(":");
+          const parsedWeight = Number(weight);
+          if (!label?.trim() || !Number.isFinite(parsedWeight)) return null;
+          return {
+            label: label.trim(),
+            value: parsedWeight,
+          };
+        })
+        .filter((item): item is { label: string; value: number } => item !== null);
+      if (parsed.length > 0) return parsed;
+    }
 
-  if (symbolScopeRaw) {
-    strategyConfigRows.push({ label: "Symbol", value: symbolScopeRaw });
-  }
+    if (weightingModeRaw?.toLowerCase() === "equal" && signalItems.length > 0) {
+      const equalWeight = 1 / signalItems.length;
+      return signalItems.map((label) => ({ label, value: equalWeight }));
+    }
 
-  if (signalSelectionRaw) {
-    strategyConfigRows.push({ label: "Signal Selection", value: signalSelectionRaw });
-  }
-
-  const signalUniverseRaw = normalizeConfigValue(searchParams.get("market"));
-  if (signalUniverseRaw) {
-    strategyConfigRows.push({ label: "Signal Universe", value: signalUniverseRaw });
-  } else if (strategyFromStore) {
-    strategyConfigRows.push({ label: "Signal Universe", value: strategy.market });
-  }
-
-  const factorCountRaw = normalizeConfigValue(searchParams.get("signals"));
-  if (factorCountRaw) {
-    strategyConfigRows.push({ label: "Factor Count", value: factorCountRaw });
-  } else if (signalSelectionRaw) {
-    strategyConfigRows.push({
-      label: "Factor Count",
-      value: String(signalSelectionRaw.split(", ").length),
-    });
-  } else if (strategyFromStore) {
-    strategyConfigRows.push({ label: "Factor Count", value: String(strategy.factorCount) });
-  }
-
-  if (weightingModeRaw) {
-    const weightingKey = weightingModeRaw.toLowerCase();
-    const weightingLabel =
-      weightingKey === "equal"
-        ? "Equal Weight"
-        : weightingKey === "custom"
-          ? "Custom Weight"
-          : weightingModeRaw;
-    strategyConfigRows.push({ label: "Factor Weights", value: weightingLabel });
-  }
-
-  if (executionSideRaw === "long") {
-    strategyConfigRows.push({ label: "Execution Side", value: "Long-Only" });
-  } else if (executionSideRaw === "short") {
-    strategyConfigRows.push({ label: "Execution Side", value: "Short-Only" });
-  } else if (executionSideRaw === "neutral") {
-    strategyConfigRows.push({ label: "Execution Side", value: "Market-Neutral" });
-  }
-
-  if (strategyTypeKey === "cross-sectional" && rankValueRaw) {
-    strategyConfigRows.push({
-      label: "Top/Tail Rule",
-      value: `Top/Bottom ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`,
-    });
-  }
-
-  if (stopLossRaw) {
-    strategyConfigRows.push({
-      label: "Stop Loss",
-      value: stopLossRaw.includes("%") ? stopLossRaw : `${stopLossRaw}%`,
-    });
-  }
-
-  if (cooldownRaw) {
-    const cooldownHours = cooldownRaw.match(/[\d.]+/)?.[0];
-    strategyConfigRows.push({
-      label: "Cooldown (hours)",
-      value: cooldownHours ? `${cooldownHours} h` : cooldownRaw,
-    });
-  }
+    return [];
+  })();
+  const factorWeightSummary =
+    factorWeightItems.length > 0
+      ? factorWeightItems
+          .map((item) => `${item.label} ${formatDecimalWeight(item.value)}`)
+          .join(" | ")
+      : null;
+  const factorWeightTotal = factorWeightItems.reduce((sum, item) => sum + item.value, 0);
+  const factorWeightColors = ["#6E82F6", "#16E0A7", "#22D3EE", "#F0C13B", "#FF6B88"];
+  const strategySideValue =
+    executionSideRaw === "long"
+      ? "Long-Only"
+      : executionSideRaw === "short"
+        ? "Short-Only"
+        : executionSideRaw === "neutral"
+          ? "Market-Neutral"
+          : executionSideRaw;
+  const topTailRuleValue =
+    rankValueRaw && isCrossSectionStrategy
+      ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
+      : sortingRuleRaw;
+  const stopLossValue = stopLossRaw ? (stopLossRaw.includes("%") ? stopLossRaw : `${stopLossRaw}%`) : null;
+  const cooldownValue = formatCooldown(cooldownRaw);
+  const strategyConfigRows: Array<{ label: string; value: string }> = [
+    { label: "Strategy ID", value: strategyId },
+    { label: "Created date", value: formatConfigDate(createdAt) },
+    ...(strategyTypeLabel ? [{ label: "Strategy Type", value: strategyTypeLabel }] : []),
+    {
+      label: "Symbol",
+      value: symbolScopeRaw ?? inferSymbolFromName(strategyName) ?? "N/A",
+    },
+    ...(signalSelectionRaw ? [{ label: "Signal", value: signalSelectionRaw }] : []),
+    ...(factorWeightSummary ? [{ label: "Factor Weights", value: factorWeightSummary }] : []),
+    ...(stopLossValue ? [{ label: "Stop Loss", value: stopLossValue }] : []),
+    ...(cooldownValue ? [{ label: "Cooldown", value: cooldownValue }] : []),
+    ...(!isTimeSeriesStrategy && strategySideValue
+      ? [{ label: "Strategy Side", value: strategySideValue }]
+      : []),
+    ...(!isTimeSeriesStrategy && topTailRuleValue
+      ? [{ label: "Top/Tail Rule", value: topTailRuleValue }]
+      : []),
+  ];
 
   const initialEquity = 438000;
   const returnRate = parsePercent(strategy.annualReturn);
@@ -705,29 +724,21 @@ export default function StrategyDetail() {
   };
 
   const openLiveDeployModal = () => {
-    if (connectedExchangeIds.length > 0 && !selectedExchangeId) {
-      setSelectedExchangeId(connectedExchangeIds[0]);
+    const latestExchangeApis = readExchangeApiConnections();
+    setConnectedExchangeApis(latestExchangeApis);
+    if (latestExchangeApis.length > 0) {
+      setSelectedExchangeApiId((current) =>
+        latestExchangeApis.some((item) => item.id === current) ? current : latestExchangeApis[0].id
+      );
+    } else {
+      setSelectedExchangeApiId("");
     }
-    setLiveDeployView("deploy");
-    setConnectTab("quick");
     setIsLiveDeployOpen(true);
   };
 
   const goToExchangeApi = () => {
     setIsLiveDeployOpen(false);
     window.location.assign("/account?tab=exchangeApi");
-  };
-
-  const connectSelectedExchange = () => {
-    if (!connectExchangeId) return;
-    setConnectedExchangeIds((prev) =>
-      prev.includes(connectExchangeId) ? prev : [...prev, connectExchangeId]
-    );
-    setSelectedExchangeId(connectExchangeId);
-    setLiveDeployView("deploy");
-    const exchangeLabel =
-      exchangeOptions.find((item) => item.id === connectExchangeId)?.label ?? "Exchange";
-    toast.success(`${exchangeLabel} connected successfully.`);
   };
 
   const submitLiveDeployment = () => {
@@ -745,8 +756,9 @@ export default function StrategyDetail() {
       );
       return;
     }
+    const venue = getExchangeVenueMeta(selectedExchange.venue);
     deployStrategy("live", {
-      exchangeLabel: selectedExchange.label,
+      exchangeLabel: `${selectedExchange.accountName} (${venue.label})`,
       capitalUsdt: parsedLiveCapital,
     });
     setIsLiveDeployOpen(false);
@@ -1324,16 +1336,10 @@ export default function StrategyDetail() {
         open={isLiveDeployOpen}
         onOpenChange={(open) => {
           setIsLiveDeployOpen(open);
-          if (!open) {
-            setLiveDeployView("deploy");
-            setConnectExchangeId(null);
-            setConnectTab("quick");
-          }
         }}
       >
         <DialogContent className="max-w-2xl border-border bg-card p-0 text-foreground">
-          {liveDeployView === "deploy" ? (
-            <>
+          <>
               <DialogHeader className="border-b border-border/60 px-6 py-5">
                 <DialogTitle>Deploy Strategy to Live Trading</DialogTitle>
               </DialogHeader>
@@ -1353,7 +1359,7 @@ export default function StrategyDetail() {
                     </button>
                   </div>
 
-                  {connectedExchanges.length === 0 ? (
+                  {connectedExchangeApis.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border/70 bg-accent/25 px-3 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
@@ -1378,43 +1384,28 @@ export default function StrategyDetail() {
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {connectedExchanges.map((exchange) => (
-                        <button
-                          key={exchange.id}
-                          type="button"
-                          onClick={() => setSelectedExchangeId(exchange.id)}
-                          aria-pressed={selectedExchangeId === exchange.id}
-                          className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition-colors ${
-                            selectedExchangeId === exchange.id
-                              ? "border-primary/50 bg-primary/10 text-primary"
-                              : "border-border/70 bg-background/35 text-foreground hover:bg-accent/35"
-                          }`}
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span
-                              className={`inline-flex h-8 w-8 items-center justify-center rounded-md border text-[10px] font-semibold uppercase tracking-[0.1em] ${exchange.iconClassName}`}
-                            >
-                              {exchange.iconText}
-                            </span>
-                            <span className="truncate text-sm font-medium">{exchange.label}</span>
-                          </div>
-                          <span
-                            className={`inline-flex h-4 w-4 items-center justify-center rounded-full border ${
-                              selectedExchangeId === exchange.id
-                                ? "border-primary/60 bg-primary/20"
-                                : "border-border/70 bg-background/35"
-                            }`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                selectedExchangeId === exchange.id ? "bg-primary" : "bg-transparent"
-                              }`}
-                            />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                    <Select value={selectedExchangeApiId} onValueChange={setSelectedExchangeApiId}>
+                      <SelectTrigger className="h-11 w-full border-border/70 bg-background/35 text-foreground">
+                        <SelectValue placeholder="Select exchange account" />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-card text-foreground">
+                        {connectedExchangeApis.map((exchange) => {
+                          const venue = getExchangeVenueMeta(exchange.venue);
+                          return (
+                            <SelectItem key={exchange.id} value={exchange.id}>
+                              <span
+                                className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-[9px] font-semibold uppercase tracking-[0.08em] ${venue.iconClassName}`}
+                              >
+                                {venue.iconText}
+                              </span>
+                              <span className="truncate">
+                                {exchange.accountName} · {venue.label}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   )}
                 </div>
 
@@ -1465,217 +1456,74 @@ export default function StrategyDetail() {
                 </Button>
               </div>
             </>
-          ) : liveDeployView === "connect-list" ? (
-            <>
-              <DialogHeader className="border-b border-border/60 px-6 py-5">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 rounded-full px-2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setLiveDeployView("deploy")}
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                    Back
-                  </Button>
-                </div>
-                <DialogTitle>Connect Exchange</DialogTitle>
-                <DialogDescription>
-                  Your assets remain in your exchange account. We use encrypted API credentials for strategy execution only.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 px-6 py-5">
-                <div className="rounded-xl border border-border/60 bg-accent/35 p-4 text-sm text-muted-foreground">
-                  Choose a venue to connect. You can manage multiple exchanges and pick one at deployment time.
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  {exchangeOptions.map((exchange) => {
-                    const isConnected = connectedExchangeIds.includes(exchange.id);
-                    return (
-                      <button
-                        key={exchange.id}
-                        type="button"
-                        onClick={() => {
-                          setConnectExchangeId(exchange.id);
-                          setConnectTab("quick");
-                          setLiveDeployView("connect-config");
-                        }}
-                        className="rounded-xl border border-border/70 bg-background/35 px-4 py-4 text-left transition-colors hover:bg-accent/25"
-                      >
-                        <div className="text-sm font-semibold text-foreground">{exchange.label}</div>
-                        <div className="mt-1 text-[11px] text-muted-foreground">
-                          {isConnected ? "Connected" : "Not connected"}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  Request another exchange integration
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <DialogHeader className="border-b border-border/60 px-6 py-5">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 rounded-full px-2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setLiveDeployView("connect-list")}
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                    Back
-                  </Button>
-                </div>
-                <DialogTitle>Connect {connectingExchange?.label ?? "Exchange"}</DialogTitle>
-                <DialogDescription>
-                  Configure API access for live strategy execution and risk synchronization.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 px-6 py-5">
-                <div className="inline-flex items-center rounded-lg border border-border bg-card p-1">
-                  <button
-                    type="button"
-                    onClick={() => setConnectTab("quick")}
-                    className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
-                      connectTab === "quick"
-                        ? "border border-primary/40 bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Quick Connect
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConnectTab("api")}
-                    className={`ml-1 rounded-md px-3 py-1.5 text-xs transition-colors ${
-                      connectTab === "api"
-                        ? "border border-primary/40 bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    API Keys
-                  </button>
-                </div>
-
-                {connectTab === "quick" ? (
-                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/30 p-4">
-                    <div className="flex items-start gap-3 text-sm">
-                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
-                        1
-                      </span>
-                      <p className="text-muted-foreground">
-                        Sign in to your {connectingExchange?.label ?? "exchange"} account.
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-3 text-sm">
-                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
-                        2
-                      </span>
-                      <p className="text-muted-foreground">
-                        Authorize API access for order placement and position query.
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-3 text-sm">
-                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
-                        3
-                      </span>
-                      <p className="text-muted-foreground">
-                        Confirm risk permissions and activate strategy routing.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Import open positions on first sync
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/30 p-4">
-                    <p className="text-xs text-muted-foreground">
-                      Create API credentials with trade and position permissions enabled.
-                    </p>
-                    <Input value={`My ${connectingExchange?.label ?? "Exchange"} Account`} readOnly />
-                    <Input placeholder="API Key" />
-                    <Input placeholder="API Secret" />
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                      Keep withdrawals disabled for security best practice.
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 border-t border-border/60 px-6 py-4">
-                <Button
-                  variant="outline"
-                  className="h-9 rounded-full border-border bg-card px-4 text-xs"
-                  onClick={() => setLiveDeployView("connect-list")}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="h-9 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90"
-                  onClick={connectSelectedExchange}
-                  disabled={!connectExchangeId}
-                >
-                  Connect Exchange
-                </Button>
-              </div>
-            </>
-          )}
         </DialogContent>
       </Dialog>
 
       <Dialog open={isStrategyConfigOpen} onOpenChange={setIsStrategyConfigOpen}>
-        <DialogContent className="max-w-2xl border-border bg-card p-0 text-foreground">
+        <DialogContent className="max-w-3xl border-border bg-card p-0 text-foreground">
           <DialogHeader className="border-b border-border/60 px-6 py-4">
             <DialogTitle>Strategy Configuration</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-3 px-6 py-4">
+          <div className="space-y-4 px-6 py-4">
             <section className="space-y-2">
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Meta
+                Configuration
               </p>
-              <div className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-background/20 px-4 py-3 text-xs sm:grid-cols-2">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Strategy ID</p>
-                  <p className="font-semibold text-foreground">{strategyId}</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Created At</p>
-                  <p className="font-semibold text-foreground">{createdAt}</p>
-                </div>
-              </div>
-            </section>
-
-            {strategyConfigRows.length > 0 ? (
-              <section className="space-y-2">
-                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  Configured Parameters
-                </p>
-                <div className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-background/20 px-4 py-3 sm:grid-cols-2">
-                  {strategyConfigRows.map((row) => (
-                    <div key={row.label} className="space-y-0.5">
+              <div className="grid grid-cols-1 gap-2 rounded-2xl border border-border/60 bg-background/25 p-3 sm:grid-cols-2">
+                {strategyConfigRows.map((row) => (
+	                  <div
+	                    key={row.label}
+	                    className={`rounded-xl border border-border/40 bg-card/45 px-3 py-2.5 ${
+	                      row.label === "Signal" || row.label === "Factor Weights" ? "sm:col-span-2" : ""
+	                    }`}
+	                  >
+                    <div className="space-y-1">
                       <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                         {row.label}
                       </p>
-                      <p className="text-sm font-semibold text-foreground">{row.value}</p>
+                      <p className="text-sm font-semibold leading-relaxed text-foreground">{row.value}</p>
+                      {row.label === "Factor Weights" && factorWeightItems.length > 0 ? (
+                        <div className="space-y-2 pt-2">
+                          <div className="flex h-3 overflow-hidden rounded-full bg-muted/40">
+                            {factorWeightItems.map((item, index) => {
+                              const width =
+                                factorWeightTotal > 0
+                                  ? Math.max(0, Math.min((item.value / factorWeightTotal) * 100, 100))
+                                  : 0;
+                              return (
+                                <div
+                                  key={`${item.label}-${index}`}
+                                  className="h-full"
+                                  style={{
+                                    width: `${width}%`,
+                                    backgroundColor: factorWeightColors[index % factorWeightColors.length],
+                                  }}
+                                  title={`${item.label} ${formatDecimalWeight(item.value)}`}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                            {factorWeightItems.map((item, index) => (
+                              <span key={`${item.label}-legend-${index}`} className="inline-flex items-center gap-1.5">
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{
+                                    backgroundColor: factorWeightColors[index % factorWeightColors.length],
+                                  }}
+                                />
+                                {item.label} {formatDecimalWeight(item.value)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
 
           <div className="flex items-center justify-end border-t border-border/60 px-6 py-4">

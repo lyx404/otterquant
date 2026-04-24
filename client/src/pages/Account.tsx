@@ -20,6 +20,13 @@ import {
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { exchanges, type Exchange } from "@/lib/mockData";
+import {
+  getExchangeVenueMeta,
+  readExchangeApiConnections,
+  writeExchangeApiConnections,
+  type ExchangeApiConnection,
+  type ExchangeVenue,
+} from "@/lib/exchangeApiConnections";
 
 type TabId = "general" | "profile" | "exchangeApi" | "api";
 type UiLang = "en" | "zh";
@@ -37,15 +44,6 @@ interface ApiKeyItem {
   name: string;
   apiKey: string;
   skillVersion: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ExchangeApiItem {
-  id: string;
-  venue: "binance" | "okx";
-  accountName: string;
-  apiKey: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -100,17 +98,6 @@ const INITIAL_KEYS: ApiKeyItem[] = [
     skillVersion: "v2.3.0",
     createdAt: "2026-02-15",
     updatedAt: "2026-03-15",
-  },
-];
-
-const INITIAL_EXCHANGE_APIS: ExchangeApiItem[] = [
-  {
-    id: "ex-1",
-    venue: "binance",
-    accountName: "Primary Futures Account",
-    apiKey: "bn_api_x9f4k2p7q1m5",
-    createdAt: "2026-04-18",
-    updatedAt: "2026-04-20",
   },
 ];
 
@@ -183,10 +170,12 @@ export default function Account() {
     return localStorage.getItem("otter_account_lang") === "zh" ? "zh" : "en";
   });
   const headerRef = useRef<HTMLDivElement>(null);
-  const [exchangeApiItems, setExchangeApiItems] = useState<ExchangeApiItem[]>(INITIAL_EXCHANGE_APIS);
+  const [exchangeApiItems, setExchangeApiItems] = useState<ExchangeApiConnection[]>(() =>
+    readExchangeApiConnections()
+  );
   const [showCreateExchangeModal, setShowCreateExchangeModal] = useState(false);
   const [exchangeCreateStep, setExchangeCreateStep] = useState<1 | 2>(1);
-  const [selectedExchangeVenue, setSelectedExchangeVenue] = useState<"binance" | "okx">("binance");
+  const [selectedExchangeVenue, setSelectedExchangeVenue] = useState<ExchangeVenue>("binance");
   const [exchangeAccountName, setExchangeAccountName] = useState("");
   const [exchangeApiKey, setExchangeApiKey] = useState("");
   const [exchangeApiSecret, setExchangeApiSecret] = useState("");
@@ -241,6 +230,10 @@ export default function Account() {
   useEffect(() => {
     localStorage.setItem("otter_account_lang", uiLang);
   }, [uiLang]);
+
+  useEffect(() => {
+    writeExchangeApiConnections(exchangeApiItems);
+  }, [exchangeApiItems]);
 
   const handleRefreshSkill = useCallback((id: string) => {
     const now = new Date().toISOString().split("T")[0];
@@ -322,7 +315,7 @@ export default function Account() {
       return;
     }
     const now = new Date().toISOString().split("T")[0];
-    const newExchangeItem: ExchangeApiItem = {
+    const newExchangeItem: ExchangeApiConnection = {
       id: `ex-${Date.now()}`,
       venue: selectedExchangeVenue,
       accountName: exchangeAccountName.trim(),
@@ -862,7 +855,7 @@ export default function Account() {
               ) : (
                 <div className="space-y-3">
                   {exchangeApiItems.map((item) => {
-                    const venueBadge = item.venue === "binance" ? "BINANCE" : "OKX";
+                    const venue = getExchangeVenueMeta(item.venue);
                     const keyVisible = visibleKeys.has(item.id);
                     const maskedKey = `${item.apiKey.slice(0, 8)}${"\u2022".repeat(10)}`;
                     return (
@@ -945,7 +938,7 @@ export default function Account() {
                           </span>
                           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 text-xs text-foreground">
                             <span className={item.venue === "binance" ? "text-amber-400 font-semibold" : "text-foreground font-semibold"}>
-                              {venueBadge}
+                              {venue.badge}
                             </span>
                           </div>
                         </div>

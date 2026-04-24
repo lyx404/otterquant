@@ -158,6 +158,9 @@ function Router() {
       <Route path="/leaderboard">
         <ProtectedRoute component={Leaderboard} />
       </Route>
+      <Route path="/subscription/hosting">
+        <ProtectedRoute component={Subscription} />
+      </Route>
       <Route path="/subscription">
         <ProtectedRoute component={Subscription} />
       </Route>
