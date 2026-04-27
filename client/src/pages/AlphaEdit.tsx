@@ -1,658 +1,736 @@
-/**
- * AlphaEdit — Create New Alpha
- * Design: Indigo/Sky + Slate | Cards: rounded-2xl | Buttons: rounded-full | Inputs: rounded-lg
- * Two modes: Platform Agent (form-based) / Your Own Agent (API guide)
- */
-import { useState } from "react";
-import { useLocation, Link } from "wouter";
-import {
-  ArrowLeft,
-  Bot,
-  Code2,
-  Check,
-  Copy,
-  ChevronDown,
-  ChevronUp,
-  Info,
-  Key,
-  Rocket,
-  FlaskConical,
-  BarChart3,
-  Trophy,
-  Zap,
-  Sparkles,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "wouter";
+import { ArrowLeft, Bot, Check, Code2, Play, Pause, Coins, RefreshCw, Trash2, ChevronDown, ChevronUp, X, Sparkles, Undo2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
-import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import AlphaDetail from "@/pages/AlphaDetail";
+import { factors as detailFactors } from "@/lib/mockData";
 
-/* ── Agent Mode ── */
-type AgentMode = "platform" | "own" | null;
-type PlatformInputMethod = "form" | "ai-chat";
+type AgentMode = "platform" | "own";
+type StrategyType = "time-series" | "cross-sectional";
+type ModelKey = "otter-quant-fast" | "otter-quant-pro" | "otter-quant-research";
+type GenerationStatus = "generating" | "paused" | "complete";
 
-/* ── Strategy Types ── */
-const STRATEGY_TYPES_BY_MODE = {
-  beginner: [
-    { value: "time-series", label: "Time series" },
-    { value: "cross-sectional", label: "Cross Section" },
-  ],
-  pro: [
-    { value: "time-series", label: "Time series" },
-    { value: "cross-sectional", label: "Cross Section" },
-  ],
-} as const;
-
-const REFINEMENT_LEVELS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-] as const;
-type RefinementLevel = (typeof REFINEMENT_LEVELS)[number]["value"];
-const REFINEMENT_TO_ITERATIONS: Record<RefinementLevel, number> = {
-  low: 3,
-  medium: 6,
-  high: 10,
+type RoundResult = {
+  id: string;
+  factorName: string;
+  factorId: string;
+  model: string;
+  fitness: number;
+  returns: number;
+  drawdown: number;
+  pnlSeries: number[];
 };
 
-/* ── Generate API Key ── */
-function generateApiKey() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let key = "ot_sk_";
-  for (let i = 0; i < 32; i++) key += chars.charAt(Math.floor(Math.random() * chars.length));
-  return key;
-}
+type GenerationRound = {
+  id: string;
+  createdAt: string;
+  status: GenerationStatus;
+  strategyType: StrategyType;
+  prompt: string;
+  model: ModelKey;
+  resultCount: number;
+  estimatedCredit: number;
+  results: RoundResult[];
+};
 
-/* ── Build Guide Prompt ── */
-function buildGuidePrompt(key: string) {
-  return `# Otter Trading Skill Configuration\n\n## API Key\n\`${key}\`\n\n## Skill Version\nv2.4.1\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.\n\nYour agent will be able to:\n- Mine and backtest alpha factors automatically\n- Access real-time market data (CEX & DEX)\n- Submit strategies to the Otter Arena\n- Monitor portfolio performance\n\n## Connection Endpoint\nhttps://api.otter.trade/v1/agent\n\n## Authentication\nInclude the API key in your agent's system prompt or environment configuration.`;
-}
-
-/* ── First Run Prompts ── */
-const FIRST_RUN_PROMPTS = [
-  {
-    category: "Alpha Creation",
-    icon: FlaskConical,
-    prompt: "Create a BTC momentum alpha using RSI(14) and MACD crossover signals. Target market: BTC/USDT, lookback period: 30 days. Submit it to Otter for backtesting.",
-    desc: "Tests the alpha creation and submission pipeline",
-  },
-  {
-    category: "Backtest Analysis",
-    icon: BarChart3,
-    prompt: "Analyze my latest backtest results for alpha AF-001. Show me the Sharpe ratio, max drawdown, and return distribution. Suggest improvements if Sharpe < 1.5.",
-    desc: "Tests the backtest retrieval and analysis capabilities",
-  },
-  {
-    category: "Portfolio Optimization",
-    icon: Trophy,
-    prompt: "Review my current alpha portfolio and suggest optimal weight allocation across my top 5 alphas to maximize risk-adjusted returns while keeping correlation below 0.3.",
-    desc: "Tests multi-alpha portfolio optimization",
-  },
+const MODEL_OPTIONS: Array<{ value: ModelKey; label: string; unitCost: number }> = [
+  { value: "otter-quant-fast", label: "Otter Quant Fast", unitCost: 0.15 },
+  { value: "otter-quant-pro", label: "Otter Quant Pro", unitCost: 0.32 },
+  { value: "otter-quant-research", label: "Otter Quant Research", unitCost: 0.5 },
 ];
 
-/* ══════════════════════════════════════════════
-   Main Component
-   ══════════════════════════════════════════════ */
-export default function AlphaEdit() {
-  const [, navigate] = useLocation();
-  const { alphaViewMode } = useAlphaViewMode();
+const TIME_SERIES_FACTOR_NAMES = [
+  "Funding Rate Mean Rev",
+  "Volatility Breakout Pulse",
+  "Cross-Exchange Spread Edge",
+  "Momentum Regime Switch",
+  "Liquidity Drift Capture",
+  "Trend Persistence Signal",
+  "Market Microstructure Imbalance",
+  "Orderflow Momentum Core",
+  "Mean-Reversion Velocity",
+  "Drawdown Recovery Timing",
+];
 
-  /* ── Mode ── */
-  const [mode, setMode] = useState<AgentMode>(null);
+const CROSS_SECTION_FACTOR_NAMES = [
+  "Relative Strength Rotation",
+  "Cross-Asset Quality Rank",
+  "Funding Pressure Basket",
+  "Liquidity-Weighted Momentum",
+  "Multi-Symbol Spread Ranking",
+  "Factor Neutral Selection",
+  "Tail Risk Dispersion",
+  "Ranking Stability Filter",
+  "Correlation-Aware Selection",
+  "Volatility-Adjusted Alpha Rank",
+];
 
-  /* ── Platform Agent Form State ── */
-  const [alphaName, setAlphaName] = useState("BTC Momentum RSI Cross");
-  const [strategyType, setStrategyType] = useState("time-series");
-  const [refinementLevel, setRefinementLevel] = useState<RefinementLevel>("medium");
-  const [platformInputMethod, setPlatformInputMethod] = useState<PlatformInputMethod>("form");
-  const [aiChatPrompt, setAiChatPrompt] = useState("");
-  const [aiChatTouched, setAiChatTouched] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+function formatStrategyLabel(value: StrategyType) {
+  return value === "time-series" ? "Time series" : "Cross Section";
+}
 
-  /* ── Own Agent State ── */
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [ownStep, setOwnStep] = useState<"api" | "first-run">("api");
-  const [apiKeys, setApiKeys] = useState<{ id: string; name: string; apiKey: string; skillVersion: string; updatedAt: string }[]>([
-    { id: "1", name: "My Trading Bot", apiKey: "ot_sk_7x9kM2nP4qR8sT6uW3yA1bC5dE0fG2h", skillVersion: "v2.4.1", updatedAt: "2026-03-28" },
-    { id: "2", name: "Research Agent", apiKey: "ot_sk_hJ2kL4mN6pQ8rS0tU2vW4xY6zA8bC0dE", skillVersion: "v2.3.0", updatedAt: "2026-03-15" },
-  ]);
-  const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
-  const SKILL_LATEST = "v2.4.1";
+function formatMinutesAgo(timestamp: string) {
+  const delta = Math.max(1, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000));
+  return `${delta} minutes ago`;
+}
 
-  const toggleKeyVisibility = (id: string) => {
-    setVisibleKeys(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-  const copyApiKey = (key: string, id: string) => {
-    navigator.clipboard.writeText(key);
-    setCopiedKey(id);
-    toast.success("API key copied");
-    setTimeout(() => setCopiedKey(null), 2000);
-  };
-  const copyPrompt = (apiKey: string, id: string) => {
-    navigator.clipboard.writeText(buildGuidePrompt(apiKey));
-    setCopiedPrompt(id);
-    toast.success("Prompt copied to clipboard");
-    setTimeout(() => setCopiedPrompt(null), 2000);
-  };
-  const handleCreateApiKey = () => {
-    const newKey = {
-      id: String(Date.now()),
-      name: `Agent ${apiKeys.length + 1}`,
-      apiKey: generateApiKey(),
-      skillVersion: SKILL_LATEST,
-      updatedAt: new Date().toISOString().slice(0, 10),
-    };
-    setApiKeys(prev => [...prev, newKey]);
-    toast.success("New API key created");
-  };
+function buildPnlSeries(seed: number) {
+  let value = 100;
+  const points: number[] = [];
+  for (let i = 0; i < 18; i++) {
+    const drift = Math.sin((i + 1 + seed) / 2.7) * 1.35 + 0.6;
+    const noise = (Math.cos((i + seed) * 1.7) + 1) * 0.35;
+    value = Math.max(70, value + drift - noise);
+    points.push(Number(value.toFixed(2)));
+  }
+  return points;
+}
 
-  const copyCode = (code: string, id: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(id);
-    toast.success("Copied to clipboard");
-    setTimeout(() => setCopiedCode(null), 2000);
-  };
+function buildFactorName(strategyType: StrategyType, index: number) {
+  const bank = strategyType === "time-series" ? TIME_SERIES_FACTOR_NAMES : CROSS_SECTION_FACTOR_NAMES;
+  return bank[index % bank.length];
+}
 
-  const strategyTypeOptions = STRATEGY_TYPES_BY_MODE[alphaViewMode];
-  const activeStrategyTypeLabel =
-    strategyTypeOptions.find((item) => item.value === strategyType)?.label ?? "";
-  const showBeginnerHints = alphaViewMode === "beginner";
-  const selectedOptionClass =
-    "bg-primary/10 border-primary/30 text-primary shadow-[0_0_0_1px_rgba(79,70,229,0.15)]";
-  const aiChatPromptMissing = platformInputMethod === "ai-chat" && !aiChatPrompt.trim();
-  const alphaNameLabel = alphaViewMode === "beginner" ? "Signal Name" : "Factor Name";
+function optimizePromptText(value: string, strategyType: StrategyType) {
+  const base = value.trim();
+  const scope =
+    strategyType === "time-series"
+      ? "time-series factor for perpetual futures"
+      : "cross-sectional factor for multi-symbol ranking";
 
-  const optimizeAiPrompt = () => {
-    const strategyLabel = activeStrategyTypeLabel || "time-series";
-    setAiChatPrompt(
-      `Create a ${strategyLabel} alpha signal for liquid crypto perpetuals. Use Cross-Exchange Spread and Funding Rate Mean Rev as the initial signal ideas, refine them at ${refinementLevel} depth, and return a deployable signal description with clear market logic, required data inputs, and risk notes.`
-    );
-    setAiChatTouched(true);
-    toast.success("AI chat prompt optimized");
-  };
+  return [
+    `Generate a robust ${scope} based on: ${base}`,
+    "Focus on clear signal logic, stable market intuition, risk-aware filtering, and deployable parameter ranges.",
+    "Return concise factor definitions with expected behavior, required inputs, normalization method, and failure conditions.",
+  ].join("\n");
+}
 
-  const helpCopy = {
-    strategy: {
-      items: [
-        {
-          title: "Time series -> Find good Timing",
-          body: "This means looking for patterns within one asset over time.",
-        },
-        {
-          title: "Cross Section -> Find good Symbols",
-          body: "This means comparing many assets at the same time and choosing the stronger ones.",
-        },
-      ],
-    },
-    iterations: {
-      title: "Refinement Level",
-      body:
-        "Choose how deeply the system should refine your idea: Low for quick polish, Medium for balanced depth, High for stronger optimization.",
-    },
-  } as const;
-
-  /* ── Platform Agent Submit ── */
-  const handleSubmit = () => {
-    if (platformInputMethod === "ai-chat" && !aiChatPrompt.trim()) {
-      setAiChatTouched(true);
-      toast.error("Please enter an AI chat prompt");
-      return;
-    }
-
-    if (platformInputMethod === "form" && !alphaName.trim()) {
-      toast.error("Please enter an alpha name");
-      return;
-    }
-    setIsSubmitting(true);
-    // Generate a temporary new alpha ID and navigate to detail page with generating state
-    const newAlphaId = `AF-${String(Math.floor(Math.random() * 900) + 100)}`;
-    const generatedName =
-      platformInputMethod === "ai-chat"
-        ? "AI Chat Alpha Signal"
-        : alphaName.trim();
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success("Alpha created! AI is now mining your factor...");
-      navigate(`/alphas/${newAlphaId}?generating=true&name=${encodeURIComponent(generatedName)}`);
-    }, 1500);
-  };
+function Sparkline({ data }: { data: number[] }) {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const points = data
+    .map((value, index) => {
+      const x = (index / (data.length - 1 || 1)) * 100;
+      const y = 100 - ((value - min) / range) * 100;
+      return `${x},${y}`;
+    })
+    .join(" ");
 
   return (
-    <div className="space-y-6 min-w-0 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/alphas">
-          <button className="w-9 h-9 rounded-xl flex items-center justify-center border border-border bg-card hover:bg-accent text-muted-foreground hover:text-foreground transition-all duration-200">
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-        </Link>
-        <div>
-          <h1 className="text-foreground text-xl font-bold">Create New Alpha</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Choose how you want to create your alpha</p>
+    <svg viewBox="0 0 100 100" className="h-32 w-full">
+      <defs>
+        <linearGradient id="pnl-gradient" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(52,211,153,0.36)" />
+          <stop offset="100%" stopColor="rgba(52,211,153,0.02)" />
+        </linearGradient>
+      </defs>
+      <polyline fill="none" stroke="rgba(59,130,246,0.7)" strokeWidth="1.2" points={points} />
+      <polyline
+        fill="url(#pnl-gradient)"
+        stroke="none"
+        points={`${points} 100,100 0,100`}
+      />
+    </svg>
+  );
+}
+
+function ResultCard({
+  result,
+  onSelect,
+  className = "",
+  active = false,
+  status = "complete",
+}: {
+  result: RoundResult;
+  onSelect?: () => void;
+  className?: string;
+  active?: boolean;
+  status?: GenerationStatus;
+}) {
+  const isGenerating = status === "generating";
+  const clickable = Boolean(onSelect) && !isGenerating;
+
+  return (
+    <article
+      className={`surface-card relative overflow-hidden rounded-2xl border border-border p-4 ${
+        clickable ? "cursor-pointer transition hover:border-primary/35 hover:bg-primary/5" : ""
+      } ${active ? "border-primary/45 ring-1 ring-primary/35" : ""} ${className}`}
+      onClick={clickable ? onSelect : undefined}
+      role={clickable ? "button" : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onSelect?.();
+              }
+            }
+          : undefined
+      }
+    >
+      {isGenerating ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/70 backdrop-blur-[1px]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+            生成中
+          </span>
+        </div>
+      ) : null}
+
+      <div className="mb-3 flex items-center">
+        <p className="text-sm font-semibold text-foreground">{result.factorName}</p>
+      </div>
+
+      <div className="rounded-xl border border-border/70 bg-accent/40 px-2 py-1">
+        <Sparkline data={result.pnlSeries} />
+        <p className="text-xs text-muted-foreground">PNL Curve</p>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+        <div className="rounded-lg bg-accent/50 p-2">
+          <p className="text-[11px] text-muted-foreground">Fitness</p>
+          <p className="font-semibold text-foreground">{result.fitness}</p>
+        </div>
+        <div className="rounded-lg bg-accent/50 p-2">
+          <p className="text-[11px] text-muted-foreground">Returns</p>
+          <p className="font-semibold text-emerald-400">+{result.returns}%</p>
+        </div>
+        <div className="rounded-lg bg-accent/50 p-2">
+          <p className="text-[11px] text-muted-foreground">Drawdown</p>
+          <p className="font-semibold text-rose-400">-{result.drawdown}%</p>
         </div>
       </div>
 
-      {/* ═══ Mode Selection ═══ */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* Platform Agent */}
-        <button
-          onClick={() => setMode("platform")}
-          className={`relative px-3.5 py-2.5 rounded-xl text-left transition-all duration-200 ease-in-out border flex items-center gap-2.5 ${
-            mode === "platform"
-              ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.2)]"
-              : "bg-card border-border hover:border-slate-300 dark:hover:border-slate-600"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-            mode === "platform" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
-          }`}>
-            <Bot className={`w-3.5 h-3.5 ${mode === "platform" ? "text-primary" : "text-muted-foreground"}`} />
-          </div>
-          <span className="text-xs font-semibold text-foreground">Platform Agent</span>
-          {mode === "platform" && <Check className="w-3.5 h-3.5 text-primary ml-auto shrink-0" />}
-        </button>
-
-        {/* Your Own Agent */}
-        <button
-          onClick={() => setMode("own")}
-          className={`relative px-3.5 py-2.5 rounded-xl text-left transition-all duration-200 ease-in-out border flex items-center gap-2.5 ${
-            mode === "own"
-              ? "bg-primary/10 border-primary/30 shadow-[0_0_0_1px_rgba(79,70,229,0.2)]"
-              : "bg-card border-border hover:border-slate-300 dark:hover:border-slate-600"
-          }`}
-        >
-          <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-            mode === "own" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"
-          }`}>
-            <Code2 className={`w-3.5 h-3.5 ${mode === "own" ? "text-primary" : "text-muted-foreground"}`} />
-          </div>
-          <span className="text-xs font-semibold text-foreground">Your Own Agent</span>
-          {mode === "own" && <Check className="w-3.5 h-3.5 text-primary ml-auto shrink-0" />}
-        </button>
+      <div className="mt-3 flex justify-end">
+        <span className="rounded-full bg-accent px-2.5 py-1 text-[11px] text-muted-foreground">{result.model}</span>
       </div>
+    </article>
+  );
+}
 
-      {/* ═══════════════════════════════════════════
-          Platform Agent Mode
-          ═══════════════════════════════════════════ */}
-      {mode === "platform" && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="space-y-2">
+function buildRound(input: {
+  strategyType: StrategyType;
+  prompt: string;
+  model: ModelKey;
+  resultCount: number;
+  estimatedCredit: number;
+  status?: GenerationStatus;
+}) {
+  const modelLabel = MODEL_OPTIONS.find((item) => item.value === input.model)?.label ?? input.model;
+  const results: RoundResult[] = Array.from({ length: input.resultCount }).map((_, index) => {
+    const seed = Date.now() + index;
+    const pnlSeries = buildPnlSeries(seed % 17);
+    const fitness = Number((1.2 + (index + 1) * 0.18).toFixed(2));
+    const returns = Number((8 + index * 3.4 + (seed % 9) * 0.3).toFixed(2));
+    const drawdown = Number((4.2 + index * 1.1 + (seed % 5) * 0.5).toFixed(2));
+
+    return {
+      id: `${seed}-${index}`,
+      factorName: buildFactorName(input.strategyType, index),
+      factorId: detailFactors[(seed + index) % detailFactors.length]?.id ?? detailFactors[0].id,
+      model: modelLabel,
+      fitness,
+      returns,
+      drawdown,
+      pnlSeries,
+    };
+  });
+
+  return {
+    id: String(Date.now()),
+    createdAt: new Date().toISOString(),
+    status: input.status ?? "complete",
+    strategyType: input.strategyType,
+    prompt: input.prompt,
+    model: input.model,
+    resultCount: input.resultCount,
+    estimatedCredit: input.estimatedCredit,
+    results,
+  } satisfies GenerationRound;
+}
+
+export default function AlphaEdit() {
+  const latestRoundRef = useRef<HTMLElement | null>(null);
+  const generationTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const [mode, setMode] = useState<AgentMode>("platform");
+  const [composerCollapsed, setComposerCollapsed] = useState(false);
+  const [selectedFactorId, setSelectedFactorId] = useState<string | null>(null);
+  const [selectedPreview, setSelectedPreview] = useState<RoundResult | null>(null);
+  const [pendingDeleteRoundId, setPendingDeleteRoundId] = useState<string | null>(null);
+  const [activeGeneratingRoundId, setActiveGeneratingRoundId] = useState<string | null>(null);
+  const [latestRoundId, setLatestRoundId] = useState<string | null>(null);
+
+  const [strategyType, setStrategyType] = useState<StrategyType>("time-series");
+  const [prompt, setPrompt] = useState("");
+  const [promptBeforeOptimization, setPromptBeforeOptimization] = useState<string | null>(null);
+  const [model, setModel] = useState<ModelKey>("otter-quant-pro");
+  const [resultCount, setResultCount] = useState(4);
+  const [rounds, setRounds] = useState<GenerationRound[]>([
+    buildRound({
+      strategyType: "time-series",
+      prompt: "Generate robust mean-reversion factors for BTC perpetual futures.",
+      model: "otter-quant-fast",
+      resultCount: 3,
+      estimatedCredit: 0.45,
+    }),
+  ]);
+
+  const estimatedCredit = useMemo(() => {
+    const modelCost = MODEL_OPTIONS.find((item) => item.value === model)?.unitCost ?? 0.2;
+    const promptCost = prompt.trim().length > 0 ? Math.min(0.22, prompt.trim().length * 0.0015) : 0;
+    return Number((modelCost * resultCount + promptCost).toFixed(2));
+  }, [model, prompt, resultCount]);
+
+  const promptOptimized = promptBeforeOptimization !== null;
+
+  const optimizePrompt = () => {
+    if (!prompt.trim()) return;
+    setPromptBeforeOptimization(prompt);
+    setPrompt(optimizePromptText(prompt, strategyType));
+  };
+
+  const undoPromptOptimization = () => {
+    if (promptBeforeOptimization === null) return;
+    setPrompt(promptBeforeOptimization);
+    setPromptBeforeOptimization(null);
+  };
+
+  const finishGeneration = (roundId: string) => {
+    setRounds((prev) => prev.map((round) => (round.id === roundId ? { ...round, status: "complete" } : round)));
+    setActiveGeneratingRoundId((current) => (current === roundId ? null : current));
+    generationTimerRef.current = null;
+  };
+
+  const pauseGeneration = () => {
+    if (!activeGeneratingRoundId) return;
+    if (generationTimerRef.current) {
+      window.clearTimeout(generationTimerRef.current);
+      generationTimerRef.current = null;
+    }
+    setRounds((prev) =>
+      prev.map((round) => (round.id === activeGeneratingRoundId ? { ...round, status: "paused" } : round)),
+    );
+    setActiveGeneratingRoundId(null);
+  };
+
+  const runGeneration = () => {
+    if (activeGeneratingRoundId) {
+      pauseGeneration();
+      return;
+    }
+
+    const nextRound = buildRound({
+      strategyType,
+      prompt,
+      model,
+      resultCount,
+      estimatedCredit,
+      status: "generating",
+    });
+    setRounds((prev) => [nextRound, ...prev]);
+    setActiveGeneratingRoundId(nextRound.id);
+    setLatestRoundId(nextRound.id);
+
+    if (generationTimerRef.current) window.clearTimeout(generationTimerRef.current);
+    generationTimerRef.current = window.setTimeout(() => finishGeneration(nextRound.id), 2400);
+  };
+
+  const confirmDeleteRound = () => {
+    if (!pendingDeleteRoundId) return;
+    if (pendingDeleteRoundId === activeGeneratingRoundId) {
+      if (generationTimerRef.current) {
+        window.clearTimeout(generationTimerRef.current);
+        generationTimerRef.current = null;
+      }
+      setActiveGeneratingRoundId(null);
+    }
+    setRounds((prev) => prev.filter((round) => round.id !== pendingDeleteRoundId));
+    setPendingDeleteRoundId(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (generationTimerRef.current) window.clearTimeout(generationTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!latestRoundId) return;
+    const frame = window.requestAnimationFrame(() => {
+      latestRoundRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [latestRoundId, rounds.length]);
+
+  useEffect(() => {
+    if (!selectedFactorId) return;
+    const onEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedFactorId(null);
+        setSelectedPreview(null);
+      }
+    };
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [selectedFactorId]);
+
+  useEffect(() => {
+    if (!selectedFactorId) return;
+
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevBodyOverscroll = document.body.style.overscrollBehavior;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
+
+    document.body.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.overscrollBehavior = "none";
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.overscrollBehavior = prevBodyOverscroll;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
+    };
+  }, [selectedFactorId]);
+
+  return (
+    <div className="mx-auto flex min-h-[calc(100vh-6.5rem)] max-w-[1180px] flex-col gap-5">
+      <div className="space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-center gap-3">
+            <Link href="/alphas">
+              <button className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:text-foreground">
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+            </Link>
             <div>
-              <label className="text-xs font-medium text-muted-foreground">Input Method</label>
-            </div>
-
-            <div className="grid w-full max-w-[320px] grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setPlatformInputMethod("form")}
-                className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
-                  platformInputMethod === "form"
-                    ? selectedOptionClass
-                    : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                Form
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPlatformInputMethod("ai-chat");
-                  setAiChatTouched(false);
-                }}
-                className={`h-9 rounded-lg border text-xs font-semibold transition-all ${
-                  platformInputMethod === "ai-chat"
-                    ? selectedOptionClass
-                    : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                }`}
-              >
-                AI Chat
-              </button>
+              <h1 className="text-foreground text-4xl font-semibold tracking-tight">Create New Factor</h1>
+              <p className="mt-1 text-muted-foreground">Choose how you want to create your factor</p>
             </div>
           </div>
 
-          <div className={platformInputMethod === "form" ? "space-y-8" : "hidden"}>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
-                {showBeginnerHints && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
-                        aria-label="Explain strategy type"
-                      >
-                        <Info className="h-3.5 w-3.5" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
-                      <div className="space-y-3 text-[11px] leading-5">
-                        <p className="text-xs font-semibold text-foreground">Strategy Type Notes</p>
-                        {helpCopy.strategy.items.map((item) => (
-                          <div key={item.title} className="space-y-1.5">
-                            <p className="text-[11px] font-medium text-foreground/90">{item.title}</p>
-                            <p className="text-[11px] text-muted-foreground">{item.body}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {strategyTypeOptions.map((t) => (
-                  <button
-                    key={t.value}
-                    onClick={() => setStrategyType(t.value)}
-                    className={`px-4 py-3 rounded-xl text-left transition-all duration-200 border ${
-                      strategyType === t.value
-                        ? selectedOptionClass
-                        : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                    }`}
-                  >
-                    <div className={`text-sm font-semibold ${strategyType === t.value ? "text-primary" : "text-foreground"}`}>{t.label}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-muted-foreground">Refinement Level <span className="text-destructive">*</span></label>
-                {showBeginnerHints && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
-                        aria-label="Explain refinement level"
-                      >
-                        <Info className="h-3.5 w-3.5" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
-                      <div className="space-y-2.5 text-[11px] leading-5">
-                        <p className="text-xs font-semibold text-foreground">{helpCopy.iterations.title}</p>
-                        <p className="text-muted-foreground">{helpCopy.iterations.body}</p>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {REFINEMENT_LEVELS.map((level) => (
-                  <button
-                    key={level.value}
-                    onClick={() => setRefinementLevel(level.value)}
-                    className={`h-9 rounded-lg text-xs font-semibold transition-all duration-200 border ${
-                      refinementLevel === level.value
-                        ? selectedOptionClass
-                        : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
-                    }`}
-                  >
-                    {level.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex w-full flex-col items-stretch gap-2">
-              <label className="text-xs font-medium text-muted-foreground">{alphaNameLabel}</label>
-              <Input
-                placeholder="System default will be used if empty"
-                value={alphaName}
-                onChange={(e) => setAlphaName(e.target.value)}
-                className="h-10 w-full rounded-lg border-border bg-accent text-sm"
-              />
-            </div>
-          </div>
-
-          {platformInputMethod === "ai-chat" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <label className="text-xs font-medium text-muted-foreground">AI Chat Prompt <span className="text-destructive">*</span></label>
-                <button
-                  type="button"
-                  onClick={optimizeAiPrompt}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary transition-all duration-200 hover:bg-primary/15 hover:border-primary/30"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Optimize Prompt
-                </button>
-              </div>
-              <Textarea
-                value={aiChatPrompt}
-                onChange={(e) => setAiChatPrompt(e.target.value)}
-                onBlur={() => setAiChatTouched(true)}
-                placeholder="Describe the signal you want to create in natural language. Include markets, data inputs, factor logic, and any constraints."
-                rows={8}
-                className="rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none"
-              />
-              {aiChatTouched && aiChatPromptMissing ? (
-                <p className="text-[11px] text-destructive">Please enter a prompt for AI chat signal creation.</p>
-              ) : null}
-              <p className="text-[11px] text-muted-foreground">
-                AI Chat mode turns a natural-language signal idea into a structured alpha mining request.
-              </p>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-2">
-            <div />
+          <div className="inline-flex self-end rounded-xl border border-border bg-card p-1">
             <button
-              onClick={handleSubmit}
-              disabled={isSubmitting || (platformInputMethod === "form" && !alphaName.trim())}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ease-in-out ${
-                !isSubmitting && (platformInputMethod === "ai-chat" || alphaName.trim())
-                  ? "bg-primary text-primary-foreground hover:brightness-110 hover:-translate-y-0.5 cursor-pointer"
-                  : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
+              onClick={() => setMode("platform")}
+              className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition ${
+                mode === "platform"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4" />
-                  Create Alpha
-                </>
-              )}
+              <Bot className="h-4 w-4" />
+              Platform Agent
+              {mode === "platform" ? <Check className="h-4 w-4" /> : null}
+            </button>
+
+            <button
+              onClick={() => setMode("own")}
+              className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-semibold transition ${
+                mode === "own"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Code2 className="h-4 w-4" />
+              Your Own Agent
+              {mode === "own" ? <Check className="h-4 w-4" /> : null}
             </button>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* ═══════════════════════════════════════════
-          Your Own Agent Mode — API Guide + First Run
-          ═══════════════════════════════════════════ */}
-      {mode === "own" && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* Tab Switcher */}
-          <div className="flex items-center gap-1 p-1 rounded-2xl w-fit bg-accent border border-border">
-            <button
-              onClick={() => setOwnStep("api")}
-              className={`h-8 text-xs px-4 rounded-xl font-medium transition-all duration-200 ease-in-out border ${
-                ownStep === "api"
-                  ? "bg-card text-foreground border-border shadow-sm"
-                  : "text-muted-foreground border-transparent hover:text-foreground"
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                <Key className="w-3.5 h-3.5" />
-                Agent API & Skill
-              </div>
-            </button>
-            <button
-              onClick={() => setOwnStep("first-run")}
-              className={`h-8 text-xs px-4 rounded-xl font-medium transition-all duration-200 ease-in-out border ${
-                ownStep === "first-run"
-                  ? "bg-card text-foreground border-border shadow-sm"
-                  : "text-muted-foreground border-transparent hover:text-foreground"
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                <Rocket className="w-3.5 h-3.5" />
-                First Run
-              </div>
-            </button>
+      {mode === "own" ? (
+        <div className="surface-card flex min-h-[360px] items-center justify-center rounded-3xl border border-dashed border-border p-10 text-center">
+          <div>
+            <p className="text-lg font-semibold text-foreground">Your Own Agent</p>
+            <p className="mt-2 text-sm text-muted-foreground">此模式暂保持原有逻辑入口，可按后续需求继续扩展。</p>
           </div>
-
-          {/* ── Agent API & Skill Tab ── */}
-          {ownStep === "api" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                {/* Header */}
-                <div className="px-6 py-4 pb-3 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Key className="w-4 h-4 text-primary" />
-                      <span className="text-base font-semibold text-foreground">Agent API</span>
-                      <span className="text-xs text-muted-foreground ml-1">({apiKeys.length})</span>
-                    </div>
-                    <button
-                      className="h-8 text-xs px-4 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 font-medium"
-                      onClick={handleCreateApiKey}
-                    >
-                      <Zap className="w-3.5 h-3.5" />
-                      New API Key
-                    </button>
+        </div>
+      ) : (
+        <>
+          <div className="flex-1 space-y-5 overflow-y-auto pb-72">
+            {rounds.map((round) => (
+              <section
+                key={round.id}
+                ref={round.id === latestRoundId ? latestRoundRef : null}
+                className="scroll-mt-4 grid items-start gap-4 md:grid-cols-3 xl:grid-cols-4"
+              >
+                <article className="surface-card h-fit rounded-2xl border border-border p-4 text-sm">
+                  <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {round.status === "generating" ? "生成中" : `${round.resultCount} results`}
+                    </span>
+                    <span>{formatMinutesAgo(round.createdAt)}</span>
                   </div>
-                </div>
 
-                {/* API Keys List */}
-                <div className="p-6">
-                  {apiKeys.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
-                      <p className="text-sm text-muted-foreground">No API keys yet</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">Create your first API key to connect your AI agent</p>
+                  <div className="space-y-2.5 text-xs">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Strategy Type</p>
+                      <p className="text-[12px] font-medium text-foreground">{formatStrategyLabel(round.strategyType)}</p>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {apiKeys.map((item) => (
-                        <div
-                          key={item.id}
-                          className="p-4 rounded-2xl border border-border bg-accent/50 hover:border-primary/20 transition-colors duration-200"
-                        >
-                          {/* Row 1: Name + Copy Prompt */}
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-semibold text-foreground truncate">{item.name}</span>
-                            <button
-                              onClick={() => copyPrompt(item.apiKey, item.id)}
-                              className={`h-7 text-xs px-2.5 rounded-full flex items-center gap-1 transition-all duration-200 ease-in-out border ${
-                                item.skillVersion !== SKILL_LATEST
-                                  ? "border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
-                                  : "border-primary/20 text-primary hover:bg-primary/10"
-                              }`}
-                            >
-                              {copiedPrompt === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                              {copiedPrompt === item.id ? "Copied" : item.skillVersion !== SKILL_LATEST ? "Copy Latest Prompt" : "Copy Prompt"}
-                            </button>
-                          </div>
-
-                          {/* Row 2: API Key */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-14 shrink-0">API Key</span>
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 flex-1 min-w-0">
-                              <code className="font-mono text-xs text-primary truncate flex-1">
-                                {visibleKeys.has(item.id) ? item.apiKey : item.apiKey.slice(0, 6) + "\u2022".repeat(16) + "..."}
-                              </code>
-                              <button onClick={() => toggleKeyVisibility(item.id)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors shrink-0">
-                                {visibleKeys.has(item.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                              </button>
-                              <button onClick={() => copyApiKey(item.apiKey, item.id)} className="p-0.5 text-muted-foreground hover:text-foreground transition-colors shrink-0">
-                                {copiedKey === item.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Row 3: Meta info */}
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <span className="uppercase tracking-wider font-medium">Skill</span>
-                              <span className="text-primary font-semibold">{item.skillVersion}</span>
-                              {item.skillVersion !== SKILL_LATEST && (
-                                <span className="text-amber-500 ml-0.5">(update available: {SKILL_LATEST})</span>
-                              )}
-                            </span>
-                            <span className="border-l border-border pl-4">Updated {item.updatedAt}</span>
-                          </div>
-                        </div>
-                      ))}
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Prompt</p>
+                      <p className="line-clamp-3 text-[12px] text-foreground/90">{round.prompt.trim() || "--"}</p>
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* ── First Run Tab ── */}
-          {ownStep === "first-run" && (
-            <div className="space-y-6 animate-in fade-in duration-200">
-              <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
-                <div>
-                  <h2 className="text-base font-semibold text-foreground mb-1">First Run</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Try these example prompts in your AI coding agent to test the Otter skill.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {FIRST_RUN_PROMPTS.map((item) => (
-                    <div key={item.category} className="p-5 rounded-xl border border-border bg-accent hover:border-primary/30 transition-all duration-200 ease-in-out">
-                      <div className="flex items-center gap-2 mb-3">
-                        <item.icon className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Model</p>
+                      <p className="text-[12px] font-medium text-foreground">{MODEL_OPTIONS.find((item) => item.value === round.model)?.label}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Result Count</p>
+                        <p className="text-[12px] font-medium text-foreground">{round.resultCount}</p>
                       </div>
-                      <div className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 mb-3">
-                        <pre className="p-4 pr-12 text-xs font-mono leading-relaxed overflow-x-auto text-slate-800 dark:text-slate-100 whitespace-pre-wrap">
-                          {item.prompt}
-                        </pre>
-                        <button
-                          onClick={() => copyCode(item.prompt, item.category)}
-                          className={`absolute top-2.5 right-2.5 p-1.5 rounded-lg border transition-all duration-200 ease-in-out ${
-                            copiedCode === item.category
-                              ? "border-emerald-500/30 text-emerald-500 bg-slate-200 dark:bg-slate-800"
-                              : "border-slate-300 dark:border-slate-700 text-slate-500 bg-slate-200 dark:bg-slate-800 hover:border-primary hover:text-primary"
-                          }`}
-                        >
-                          {copiedCode === item.category ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                        </button>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground">Credit</p>
+                        <p className="text-[12px] font-medium text-emerald-400">{round.estimatedCredit.toFixed(2)}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground">{item.desc}</p>
                     </div>
+
+                    <div className="flex items-center gap-3 pt-1.5 text-muted-foreground">
+                      <button
+                        className="transition hover:text-foreground"
+                        aria-label="Regenerate"
+                        title="Regenerate"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="transition hover:text-destructive"
+                        aria-label="Delete"
+                        title="Delete"
+                        onClick={() => setPendingDeleteRoundId(round.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+
+                <div className="grid gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-3 xl:grid-cols-3">
+                  {round.results.map((result) => (
+                    <ResultCard
+                      key={result.id}
+                      result={result}
+                      status={round.status}
+                      className="sm:min-h-[300px]"
+                      active={selectedFactorId === result.factorId}
+                      onSelect={() => {
+                        setSelectedFactorId(result.factorId);
+                        setSelectedPreview(result);
+                      }}
+                    />
                   ))}
                 </div>
+              </section>
+            ))}
+          </div>
 
-                <div className="flex items-start gap-2 p-3 rounded-xl text-xs bg-primary/5 text-primary border border-primary/20">
-                  <Zap className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>Tip: You can modify these prompts or create your own. The skill supports natural language instructions for all Otter platform operations.</span>
+          <div className="sticky bottom-0 z-10 rounded-xl border border-border bg-card/95 p-2.5 shadow-[0_-14px_24px_rgba(2,6,23,0.3)] backdrop-blur md:p-3">
+            <div className={`relative ${composerCollapsed ? "space-y-2 pt-0.5" : "space-y-3 pt-6"}`}>
+              <button
+                type="button"
+                onClick={() => setComposerCollapsed((prev) => !prev)}
+                className="absolute right-0 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-accent text-muted-foreground transition hover:text-foreground"
+                aria-label={composerCollapsed ? "Expand composer" : "Collapse composer"}
+              >
+                {composerCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+
+              {!composerCollapsed ? (
+                <>
+                  <div className="grid gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                    Strategy Type <span className="text-destructive">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setStrategyType("time-series")}
+                          className={`h-9 rounded-md border px-2.5 text-left text-sm font-semibold transition ${
+                            strategyType === "time-series"
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border bg-accent text-foreground"
+                          }`}
+                        >
+                          Time series
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setStrategyType("cross-sectional")}
+                          className={`h-9 rounded-md border px-2.5 text-left text-sm font-semibold transition ${
+                            strategyType === "cross-sectional"
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border bg-accent text-foreground"
+                          }`}
+                        >
+                          Cross Section
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <label className="block text-xs font-medium text-muted-foreground">Description</label>
+                        <button
+                          type="button"
+                          onClick={promptOptimized ? undoPromptOptimization : optimizePrompt}
+                          disabled={!promptOptimized && !prompt.trim()}
+                          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-accent px-2 text-xs font-medium text-muted-foreground transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                        >
+                          {promptOptimized ? <Undo2 className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
+                          {promptOptimized ? "撤回" : "优化提示词"}
+                        </button>
+                      </div>
+                      <Textarea
+                        value={prompt}
+                        onChange={(event) => setPrompt(event.target.value)}
+                        placeholder="Describe what you want to generate..."
+                        rows={2}
+                        className="h-[64px] resize-none rounded-md border-border bg-accent px-3 py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex h-9 items-center gap-2 rounded-md border border-border bg-accent px-2.5">
+                      <span className="text-xs text-muted-foreground">Model</span>
+                      <select
+                        value={model}
+                        onChange={(event) => setModel(event.target.value as ModelKey)}
+                        className="bg-transparent text-sm font-medium text-foreground outline-none"
+                      >
+                        {MODEL_OPTIONS.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="flex h-9 items-center gap-2 rounded-md border border-border bg-accent px-2.5">
+                      <span className="text-xs text-muted-foreground">Result Count</span>
+                      <select
+                        value={resultCount}
+                        onChange={(event) => setResultCount(Number(event.target.value))}
+                        className="bg-transparent text-sm font-medium text-foreground outline-none"
+                      >
+                        {[1, 2, 3, 4, 8, 10].map((count) => (
+                          <option key={count} value={count}>
+                            {count}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  Composer collapsed. Current: {formatStrategyLabel(strategyType)}, {resultCount} result{resultCount > 1 ? "s" : ""}.
                 </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+                <div className="inline-flex items-center gap-2 text-sm text-foreground">
+                  <span className="text-xs text-muted-foreground">Will run {resultCount} model{resultCount > 1 ? "s" : ""}</span>
+                  <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/12 px-2 py-0.5 text-sm font-semibold text-emerald-300">
+                    <Coins className="h-3.5 w-3.5" />
+                    Est. ${estimatedCredit.toFixed(2)}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={runGeneration}
+                  className="inline-flex h-9 min-w-[120px] items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+                >
+                  {activeGeneratingRoundId ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                  {activeGeneratingRoundId ? "暂停" : "Run"}
+                </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        </>
       )}
 
-      {/* Empty state when no mode selected */}
-      {mode === null && (
-        <div className="rounded-2xl border border-dashed border-border bg-card/50 p-12 text-center animate-in fade-in duration-300">
-          <div className="w-12 h-12 rounded-2xl bg-accent border border-border flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-6 h-6 text-muted-foreground" />
+      {selectedFactorId ? (
+        <div className="fixed inset-0 z-50">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/55"
+            onClick={() => {
+              setSelectedFactorId(null);
+              setSelectedPreview(null);
+            }}
+            aria-label="Close factor detail panel"
+          />
+
+          <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/3 items-center justify-center p-4 xl:flex">
+            {selectedPreview ? (
+              <div className="w-full max-w-[360px]">
+                <ResultCard result={selectedPreview} />
+              </div>
+            ) : null}
           </div>
-          <p className="text-sm text-muted-foreground">Select a mode above to get started</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Platform Agent for guided creation, or Your Own Agent for API integration</p>
+
+          <aside className="absolute inset-y-0 right-0 w-full border-l border-border bg-background shadow-[0_10px_40px_rgba(2,6,23,0.45)] sm:w-2/3">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFactorId(null);
+                setSelectedPreview(null);
+              }}
+              className="absolute right-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition hover:text-foreground"
+              aria-label="Close panel"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="h-full overflow-y-auto p-5 sm:p-6">
+              <AlphaDetail embedded factorIdOverride={selectedFactorId} />
+            </div>
+          </aside>
         </div>
-      )}
+      ) : null}
+
+      <AlertDialog
+        open={Boolean(pendingDeleteRoundId)}
+        onOpenChange={(open) => {
+          if (!open) setPendingDeleteRoundId(null);
+        }}
+      >
+        <AlertDialogContent className="border-border bg-card text-foreground">
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认删除这组结果？</AlertDialogTitle>
+            <AlertDialogDescription>
+              删除不可撤销，无法找回已删除内容。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteRound}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              确认删除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

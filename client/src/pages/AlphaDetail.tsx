@@ -36,7 +36,12 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 type ChartType = "pnl" | "sharpe" | "turnover" | "returns" | "drawdown";
 
-export default function AlphaDetail() {
+type AlphaDetailProps = {
+  embedded?: boolean;
+  factorIdOverride?: string;
+};
+
+export default function AlphaDetail({ embedded = false, factorIdOverride }: AlphaDetailProps = {}) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const params = useParams<{ id: string }>();
@@ -47,7 +52,8 @@ export default function AlphaDetail() {
   const tierParam = searchParams.get("tier");
   const isGeneratingParam = searchParams.get("generating") === "true";
   const customName = searchParams.get("name");
-  const factor = factors.find((f) => f.id === params.id) || factors[0];
+  const resolvedFactorId = factorIdOverride ?? params.id;
+  const factor = factors.find((f) => f.id === resolvedFactorId) || factors[0];
   const officialTier: "official" | "graduated" =
     tierParam === "graduated"
       ? "graduated"
@@ -163,17 +169,19 @@ export default function AlphaDetail() {
 
   /* ── Generating Loading UI ── */
   if (isGenerating) {
-    const displayName = customName || params.id || "New Alpha";
+    const displayName = customName || resolvedFactorId || "New Alpha";
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
+          {!embedded ? (
+            <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          ) : null}
           <div className="flex-1">
             <h1 className="text-foreground">{displayName}</h1>
-            <p className="text-xs font-mono mt-1 text-muted-foreground">{params.id} &middot; Just created</p>
+            <p className="text-xs font-mono mt-1 text-muted-foreground">{resolvedFactorId} &middot; Just created</p>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-32">
@@ -188,10 +196,12 @@ export default function AlphaDetail() {
     <div className="space-y-6">
       {/* ═══ SECTION 1: Factor Name + Header ═══ */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
+        {!embedded ? (
+          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+        ) : null}
         <div className="flex-1" ref={headerRef}>
           <div className="reveal-line flex items-center gap-3 flex-wrap">
             <h1 className="text-foreground">{factor.name}</h1>
