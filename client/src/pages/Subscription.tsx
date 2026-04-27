@@ -1,30 +1,26 @@
 import { useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
-import {
-  Activity,
-  CalendarDays,
-  Check,
-  CreditCard,
-  Database,
-  History,
-  ReceiptText,
-  Wallet,
-} from "lucide-react";
+import { CalendarDays, Database } from "lucide-react";
 
-type UsageSubscriptionState = "before" | "after";
+type CreditPackageId = "10" | "20" | "50" | "custom";
 
-type UsagePlan = {
-  id: "basic" | "scale";
-  name: string;
-  subtitle: string;
-  baseCredits: number;
-  rate: string;
-  cta: string;
-  features: string[];
+type CreditPackage = {
+  id: CreditPackageId;
+  amount: number | null;
+  label: string;
+  description: string;
+};
+
+type CreditActivityItem = {
+  effectiveDate: string;
+  expires: string;
+  expiresIn: string;
+  amount: number;
 };
 
 type HostingHistoryItem = {
@@ -35,34 +31,39 @@ type HostingHistoryItem = {
   status: "paid" | "settled";
 };
 
-const usagePlans: UsagePlan[] = [
+const creditPackages: CreditPackage[] = [
   {
-    id: "basic",
-    name: "Usage Basic",
-    subtitle: "For early strategy research and AI-assisted setup",
-    baseCredits: 0,
-    rate: "$0.008 / 1K tokens",
-    cta: "Start Usage Billing",
-    features: [
-      "Pay only for Platform Agent consumption",
-      "No fixed monthly software subscription",
-      "Token usage dashboard",
-      "Monthly usage cap controls",
-    ],
+    id: "10",
+    amount: 10,
+    label: "$10",
+    description: "Approx. 120 factor generations using default model settings",
   },
   {
-    id: "scale",
-    name: "Usage Scale",
-    subtitle: "For teams running continuous strategy creation",
-    baseCredits: 100,
-    rate: "$0.006 / 1K tokens",
-    cta: "Upgrade Usage Tier",
-    features: [
-      "Lower unit rate after monthly commitment",
-      "Shared team usage pool",
-      "Priority execution for batch generation",
-      "Detailed invoice export",
-    ],
+    id: "20",
+    amount: 20,
+    label: "$20",
+    description: "Approx. 260 factor generations using default model settings",
+  },
+  {
+    id: "50",
+    amount: 50,
+    label: "$50",
+    description: "Approx. 700 factor generations using default model settings",
+  },
+  {
+    id: "custom",
+    amount: null,
+    label: "Custom",
+    description: "Buy any amount of credits",
+  },
+];
+
+const initialCreditActivity: CreditActivityItem[] = [
+  {
+    effectiveDate: "Mar 1st, 2026",
+    expires: "Mar 27th, 2027",
+    expiresIn: "334 days left",
+    amount: 100,
   },
 ];
 
@@ -81,250 +82,237 @@ const hostingHistory: HostingHistoryItem[] = [
   { month: "2025-05", hostedStrategies: 2, usageDays: 31, fee: 10, status: "settled" },
 ];
 
-function PageSwitcher({ activePage }: { activePage: "usage" | "hosting" }) {
-  const items = [
-    {
-      id: "usage" as const,
-      label: "Usage-based Billing",
-      href: "/subscription",
-      icon: Activity,
-    },
-    {
-      id: "hosting" as const,
-      label: "Fixed Hosting Fee",
-      href: "/subscription/hosting",
-      icon: Database,
-    },
-  ];
+function CreditsPage() {
+  const { uiLang } = useAppLanguage();
+  const [creditBalance, setCreditBalance] = useState(74.19);
+  const [expiringCredits, setExpiringCredits] = useState(74.19);
+  const [monthlyUsage] = useState(30.43);
+  const [dailyAverage] = useState(1.13);
+  const [selectedPackage, setSelectedPackage] = useState<CreditPackageId>("20");
+  const [customAmount, setCustomAmount] = useState("100");
+  const [couponCode, setCouponCode] = useState("");
+  const [creditActivity, setCreditActivity] =
+    useState<CreditActivityItem[]>(initialCreditActivity);
 
-  return (
-    <div className="inline-flex flex-wrap items-center gap-1 rounded-xl border border-border bg-accent/35 p-1">
-      {items.map((item) => {
-        const Icon = item.icon;
-        const active = item.id === activePage;
-        return (
-          <Link key={item.id} href={item.href}>
-            <button
-              type="button"
-              className={`h-9 rounded-lg px-3 text-sm font-medium transition-colors inline-flex items-center gap-2 ${
-                active
-                  ? "border border-primary/35 bg-primary/12 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </button>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
+  const selectedAmount = useMemo(() => {
+    const choice = creditPackages.find((item) => item.id === selectedPackage);
+    if (!choice) return 0;
+    if (choice.amount !== null) return choice.amount;
+    const parsed = Number(customAmount);
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+  }, [customAmount, selectedPackage]);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
-function UsageBillingPage() {
-  const [subscriptionState, setSubscriptionState] =
-    useState<UsageSubscriptionState>("before");
-  const [monthlyCap, setMonthlyCap] = useState(300);
+  const handleBuyCredits = () => {
+    if (selectedAmount <= 0) {
+      toast.error(tr("Enter a valid credit amount.", "请输入有效的 credit 金额。"));
+      return;
+    }
 
-  const isSubscribed = subscriptionState === "after";
-  const currentUsage = 128.4;
-  const remainingCap = Math.max(0, monthlyCap - currentUsage);
+    const roundedAmount = Number(selectedAmount.toFixed(2));
+    const today = new Date();
+    const expiry = new Date(today);
+    expiry.setFullYear(expiry.getFullYear() + 1);
+
+    setCreditBalance((prev) => Number((prev + roundedAmount).toFixed(2)));
+    setExpiringCredits((prev) => Number((prev + roundedAmount).toFixed(2)));
+    setCreditActivity((prev) => [
+      {
+        effectiveDate: today.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        expires: expiry.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        expiresIn: "365 days left",
+        amount: roundedAmount,
+      },
+      ...prev,
+    ]);
+    toast.success(tr(`Purchased $${roundedAmount.toFixed(2)} credits`, `已购买 $${roundedAmount.toFixed(2)} credits`));
+  };
+
+  const handleRedeemCode = () => {
+    const normalized = couponCode.trim().toUpperCase();
+    if (!normalized) {
+      toast.error(tr("Enter a coupon code first.", "请先输入优惠码。"));
+      return;
+    }
+
+    if (normalized === "OTTER10") {
+      setCreditBalance((prev) => Number((prev + 10).toFixed(2)));
+      setExpiringCredits((prev) => Number((prev + 10).toFixed(2)));
+      setCouponCode("");
+      toast.success(tr("Coupon redeemed: $10 bonus credits added.", "优惠码已兑换：已添加 $10 奖励 credits。"));
+      return;
+    }
+
+    toast.error(tr("Coupon code is invalid.", "优惠码无效。"));
+  };
 
   return (
     <div className="space-y-6 min-w-0">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-foreground">Usage-based Billing</h1>
-          <p className="mt-2 text-base text-muted-foreground">
-            Platform Agent usage is charged by consumption, separate from strategy hosting.
-          </p>
-        </div>
-        <PageSwitcher activePage="usage" />
+      <div>
+        <h1 className="text-foreground">{tr("Credits", "Credits")}</h1>
+        <p className="mt-2 text-base text-muted-foreground">
+          {tr("Track balance, usage, and billing activity for factor and agent workflows.", "查看余额、消耗以及因子与 Agent 工作流的账单活动。")}
+        </p>
       </div>
 
-      <section className="surface-card p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Subscription State</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Preview the experience before activation and after usage billing is enabled.
-            </p>
-          </div>
-          <div className="inline-flex items-center gap-1 rounded-xl border border-border bg-background/35 p-1">
-            <button
-              type="button"
-              onClick={() => setSubscriptionState("before")}
-              className={`h-8 rounded-lg px-3 text-xs font-medium transition-colors ${
-                !isSubscribed
-                  ? "border border-primary/35 bg-primary/12 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Before Subscription
-            </button>
-            <button
-              type="button"
-              onClick={() => setSubscriptionState("after")}
-              className={`h-8 rounded-lg px-3 text-xs font-medium transition-colors ${
-                isSubscribed
-                  ? "border border-primary/35 bg-primary/12 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              After Subscription
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-xl border border-border bg-accent/25 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  {isSubscribed ? "Usage Billing Active" : "Usage Billing Not Activated"}
-                </p>
-                <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-                  {isSubscribed
-                    ? "Your Platform Agent usage is being metered against this month's cap. Token usage and invoices are available here."
-                    : "Activate usage-based billing before running paid Platform Agent tasks. No token consumption will be charged until activation."}
-                </p>
-              </div>
-              <span
-                className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
-                  isSubscribed
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                    : "border-amber-500/30 bg-amber-500/10 text-amber-400"
-                }`}
+      <section className="space-y-6">
+        <section className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
+            <div className="p-6">
+              <p className="text-sm text-muted-foreground">{tr("Current balance", "当前余额")}</p>
+              <p className="mt-3 font-mono text-4xl font-semibold text-foreground">
+                ${creditBalance.toFixed(2)}
+              </p>
+              <p className="mt-3 max-w-[28ch] text-sm text-muted-foreground">
+                {tr("Balance updates may take up to one hour to reflect recent usage.", "余额更新可能需要最多一小时才能反映最新消耗。")}
+              </p>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-muted-foreground">{tr("Credits expiring in 334 days", "334 天后到期的 credits")}</p>
+              <p className="mt-3 font-mono text-4xl font-semibold text-amber-400">
+                ${expiringCredits.toFixed(2)}
+              </p>
+              <Button
+                variant="outline"
+                className="mt-4 h-10 rounded-lg border-border bg-card text-foreground hover:bg-accent"
+                onClick={() => toast.success(tr("Detailed credit expiry view is coming soon.", "credit 到期明细即将上线。"))}
               >
-                {isSubscribed ? "Active" : "Pending"}
-              </span>
+                {tr("See details", "查看详情")}
+              </Button>
             </div>
-
-            {isSubscribed ? (
-              <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div className="rounded-lg border border-border bg-background/35 p-4">
-                  <p className="text-xs text-muted-foreground">Current Usage</p>
-                  <p className="mt-2 font-mono text-2xl font-semibold text-foreground">
-                    ${currentUsage.toFixed(2)}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-background/35 p-4">
-                  <p className="text-xs text-muted-foreground">Monthly Cap</p>
-                  <p className="mt-2 font-mono text-2xl font-semibold text-foreground">
-                    ${monthlyCap.toFixed(0)}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-background/35 p-4">
-                  <p className="text-xs text-muted-foreground">Remaining</p>
-                  <p className="mt-2 font-mono text-2xl font-semibold text-emerald-400">
-                    ${remainingCap.toFixed(2)}
-                  </p>
-                </div>
+            <div className="p-6">
+              <p className="text-sm text-muted-foreground">{tr("Usage this month", "本月消耗")}</p>
+              <p className="mt-3 font-mono text-4xl font-semibold text-foreground">
+                ${monthlyUsage.toFixed(2)}
+              </p>
+              <div className="mt-4 inline-flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">${dailyAverage.toFixed(2)}</span>
+                <span>{tr("Daily average", "日均消耗")}</span>
               </div>
-            ) : (
-              <div className="mt-5 rounded-lg border border-dashed border-border bg-background/30 p-4">
-                <p className="text-sm font-medium text-foreground">No active usage subscription</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Choose a usage tier below to enable metered Platform Agent billing.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-border bg-accent/25 p-5">
-            <Label className="label-upper">Monthly Usage Cap</Label>
-            <div className="mt-3 flex items-center gap-2">
-              <Input
-                type="number"
-                min={0}
-                value={monthlyCap}
-                onChange={(event) => {
-                  const next = Number(event.target.value);
-                  setMonthlyCap(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
-                }}
-                className="h-10"
-              />
-              <span className="inline-flex h-10 items-center rounded-md border border-border bg-background/35 px-3 text-sm font-medium text-foreground">
-                USD
-              </span>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Usage pauses automatically when the configured monthly cap is reached.
-            </p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        {usagePlans.map((plan) => (
-          <article
-            key={plan.id}
-            className={`rounded-xl border p-5 ${
-              plan.id === "scale"
-                ? "border-emerald-500/35 bg-emerald-500/8"
-                : "border-border bg-accent/25"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xl font-semibold text-foreground">{plan.name}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.subtitle}</p>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr]">
+          <section className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-foreground">{tr("Add Credits", "购买 Credits")}</h3>
+            </div>
+            <div className="border-t border-border px-6 py-6">
+              <div className="space-y-4">
+                {creditPackages.map((item) => {
+                  const checked = selectedPackage === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setSelectedPackage(item.id)}
+                      className={`flex w-full items-center gap-4 rounded-xl border px-4 py-4 text-left transition ${
+                        checked
+                          ? "border-primary/30 bg-primary/8"
+                          : "border-border bg-background/30 hover:bg-accent/40"
+                      }`}
+                    >
+                      <span
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full border ${
+                          checked ? "border-foreground text-foreground" : "border-border text-transparent"
+                        }`}
+                      >
+                        <span className={`h-3.5 w-3.5 rounded-full ${checked ? "bg-foreground" : "bg-transparent"}`} />
+                      </span>
+                      <span className="min-w-[120px] text-2xl font-semibold text-foreground">
+                        {item.label}
+                      </span>
+                      <span className="text-sm text-muted-foreground">{item.description}</span>
+                    </button>
+                  );
+                })}
               </div>
-              {plan.id === "scale" ? (
-                <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                  Recommended
-                </span>
+
+              {selectedPackage === "custom" ? (
+                <div className="mt-4">
+                  <Label className="mb-2 block text-xs text-muted-foreground">{tr("Custom credit amount", "自定义 credit 金额")}</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={customAmount}
+                    onChange={(event) => setCustomAmount(event.target.value)}
+                    className="h-11"
+                  />
+                </div>
               ) : null}
             </div>
-
-            <div className="mt-5 flex flex-wrap items-end gap-x-5 gap-y-2">
-              <div>
-                <p className="text-xs text-muted-foreground">Base Credits</p>
-                <p className="mt-1 font-mono text-3xl font-semibold text-foreground">
-                  ${plan.baseCredits}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Metered Rate</p>
-                <p className="mt-1 text-xl font-semibold text-foreground">{plan.rate}</p>
+            <div className="border-t border-border px-6 py-5">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <Button
+                  className="h-11 rounded-lg bg-foreground px-6 text-base font-medium text-background hover:bg-foreground/90"
+                  onClick={handleBuyCredits}
+                >
+                  {tr("Buy", "购买")} ${selectedAmount.toFixed(2)}
+                </Button>
+                <div className="flex w-full max-w-[420px] items-center gap-2">
+                  <Input
+                    value={couponCode}
+                    onChange={(event) => setCouponCode(event.target.value)}
+                    placeholder={tr("Enter coupon code", "输入优惠码")}
+                    className="h-11"
+                  />
+                  <Button
+                    variant="outline"
+                    className="h-11 rounded-lg border-border bg-card px-5 text-foreground hover:bg-accent"
+                    onClick={handleRedeemCode}
+                  >
+                    {tr("Redeem", "兑换")}
+                  </Button>
+                </div>
               </div>
             </div>
+          </section>
+        </div>
 
-            <ul className="mt-5 space-y-2">
-              {plan.features.map((feature) => (
-                <li key={feature} className="flex items-start gap-2 text-sm text-foreground">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                  <span>{feature}</span>
-                </li>
+        <section className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="border-b border-border px-6 py-5">
+            <h3 className="text-xl font-semibold text-foreground">{tr("Credit activity", "Credit 活动记录")}</h3>
+          </div>
+          <div className="min-w-[720px]">
+            <div className="grid grid-cols-[1fr_1.2fr_0.8fr] gap-3 border-b border-border bg-accent/20 px-6 py-4 text-sm text-muted-foreground">
+              <span>{tr("Effective Date", "生效日期")}</span>
+              <span>{tr("Expires", "到期时间")}</span>
+              <span className="text-right">{tr("Amount", "金额")}</span>
+            </div>
+            <div className="divide-y divide-border/70">
+              {creditActivity.map((item) => (
+                <div key={`${item.effectiveDate}-${item.amount}`} className="grid grid-cols-[1fr_1.2fr_0.8fr] gap-3 px-6 py-5 text-sm">
+                  <span className="font-medium text-foreground">{item.effectiveDate}</span>
+                  <span className="text-muted-foreground">
+                    {item.expires}
+                    <span className="ml-2 text-muted-foreground/80">· {item.expiresIn}</span>
+                  </span>
+                  <span className="text-right font-mono font-semibold text-foreground">${item.amount.toFixed(2)}</span>
+                </div>
               ))}
-            </ul>
-
-            <Button
-              className={`mt-6 h-10 w-full rounded-lg text-sm font-medium ${
-                isSubscribed
-                  ? "bg-accent text-foreground hover:bg-accent/80"
-                  : "bg-primary text-primary-foreground hover:bg-primary/90"
-              }`}
-              onClick={() => {
-                setSubscriptionState("after");
-                toast.success("Usage-based billing activated.");
-              }}
-              disabled={isSubscribed && plan.id === "basic"}
-            >
-              {isSubscribed && plan.id === "basic" ? "Current Usage Tier" : plan.cta}
-            </Button>
-          </article>
-        ))}
+            </div>
+          </div>
+        </section>
       </section>
     </div>
   );
 }
 
 function FixedHostingFeePage() {
+  const { uiLang } = useAppLanguage();
   const [hostedStrategyCount, setHostedStrategyCount] = useState(8);
   const [hostingBalance, setHostingBalance] = useState(75);
   const [topUpAmount, setTopUpAmount] = useState(25);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   const hostingFeePerStrategy = 5;
   const monthlyHostingFee = hostedStrategyCount * hostingFeePerStrategy;
@@ -341,12 +329,15 @@ function FixedHostingFeePage() {
     <div className="space-y-6 min-w-0">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-foreground">Fixed Hosting Fee</h1>
+          <h1 className="text-foreground">{tr("Fixed Hosting Fee", "固定托管费用")}</h1>
           <p className="mt-2 text-base text-muted-foreground">
-            Strategy hosting is charged by hosted strategy count and tracked month by month.
+            {tr("Strategy hosting is charged by hosted strategy count and tracked month by month.", "策略托管按托管数量计费，并按月记录。")}
           </p>
         </div>
-        <PageSwitcher activePage="hosting" />
+        <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-accent/35 px-4 py-2 text-sm text-muted-foreground">
+          <Database className="h-4 w-4" />
+          {tr("Fixed Hosting Fee", "固定托管费用")}
+        </div>
       </div>
 
       <section className="surface-card p-5">
@@ -510,5 +501,5 @@ export default function Subscription() {
   const [location] = useLocation();
   const isHostingPage = location === "/subscription/hosting";
 
-  return isHostingPage ? <FixedHostingFeePage /> : <UsageBillingPage />;
+  return isHostingPage ? <FixedHostingFeePage /> : <CreditsPage />;
 }

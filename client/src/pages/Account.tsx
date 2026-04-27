@@ -6,11 +6,11 @@
  */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import { useState, useEffect, useRef, useCallback } from "react";
 import gsap from "gsap";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
@@ -29,13 +29,11 @@ import {
 } from "@/lib/exchangeApiConnections";
 
 type TabId = "general" | "profile" | "exchangeApi" | "api";
-type UiLang = "en" | "zh";
-
-const tabs: { id: TabId; label: string; icon: React.ElementType }[] = [
-  { id: "general", label: "General", icon: Shield },
-  { id: "profile", label: "Profile", icon: User },
-  { id: "exchangeApi", label: "Exchange API", icon: Link2 },
-  { id: "api", label: "Agent API", icon: Key },
+const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementType }[] = [
+  { id: "general", labelEn: "General", labelZh: "通用", icon: Shield },
+  { id: "profile", labelEn: "Profile", labelZh: "资料", icon: User },
+  { id: "exchangeApi", labelEn: "Exchange API", labelZh: "交易所 API", icon: Link2 },
+  { id: "api", labelEn: "Agent API", labelZh: "Agent API", icon: Key },
 ];
 
 /* ── API Key data model ── */
@@ -146,7 +144,8 @@ function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion, uiLang = "en" }
 
 export default function Account() {
   const { user, updateUser, logout } = useAuth();
-  const { theme } = useTheme();
+  const { uiLang, setUiLang } = useAppLanguage();
+  const { themePreference, setThemePreference } = useTheme();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
@@ -165,10 +164,6 @@ export default function Account() {
   const [alphasNotify, setAlphasNotify] = useState(true);
   const [arenaNotify, setArenaNotify] = useState(true);
   const [systemNotify, setSystemNotify] = useState(true);
-  const [uiLang, setUiLang] = useState<UiLang>(() => {
-    if (typeof window === "undefined") return "en";
-    return localStorage.getItem("otter_account_lang") === "zh" ? "zh" : "en";
-  });
   const headerRef = useRef<HTMLDivElement>(null);
   const [exchangeApiItems, setExchangeApiItems] = useState<ExchangeApiConnection[]>(() =>
     readExchangeApiConnections()
@@ -226,10 +221,6 @@ export default function Account() {
     if (exchangeMoreMenuId) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [exchangeMoreMenuId]);
-
-  useEffect(() => {
-    localStorage.setItem("otter_account_lang", uiLang);
-  }, [uiLang]);
 
   useEffect(() => {
     writeExchangeApiConnections(exchangeApiItems);
@@ -435,13 +426,7 @@ export default function Account() {
               onClick={() => setActiveTab(tab.id)}
             >
               <Icon className="w-3.5 h-3.5" />
-              {tab.id === "general"
-                ? "General"
-                : tab.id === "profile"
-                  ? tr("Profile", "资料设置")
-                  : tab.id === "exchangeApi"
-                    ? "Exchange API"
-                    : tr("Agent API", "Agent API")}
+              {tr(tab.labelEn, tab.labelZh)}
             </button>
           );
         })}
@@ -454,7 +439,7 @@ export default function Account() {
             <div className="px-6 py-4 pb-3 border-b border-border">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">General Settings</span>
+                <span className="text-base font-semibold text-foreground">{tr("General Settings", "通用设置")}</span>
               </div>
             </div>
 
@@ -490,13 +475,28 @@ export default function Account() {
                 <div>
                   <div className="text-sm font-semibold text-foreground">{tr("Theme", "主题")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Switch between light and dark mode.", "切换浅色与深色模式。")}
+                    {tr("Choose light, dark, or system theme.", "选择浅色、深色或跟随系统主题。")}
                   </div>
                 </div>
-                <AnimatedThemeToggler
-                  className="flex items-center justify-center border border-border rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 w-8 h-8 p-0"
-                  title={theme === "dark" ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}
-                />
+                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent p-1">
+                  {([
+                    { value: "dark", en: "Dark", zh: "深色模式" },
+                    { value: "light", en: "Light", zh: "浅色模式" },
+                    { value: "system", en: "System", zh: "跟随系统" },
+                  ] as const).map((item) => (
+                    <button
+                      key={item.value}
+                      onClick={() => setThemePreference?.(item.value)}
+                      className={`h-8 rounded-full px-3 text-xs font-medium transition-colors ${
+                        themePreference === item.value
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {tr(item.en, item.zh)}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

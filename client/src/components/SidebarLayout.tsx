@@ -9,6 +9,7 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   AlphaViewModeProvider,
   useAlphaViewMode,
@@ -42,35 +43,38 @@ const SIDEBAR_COLLAPSED_W = 64;
 
 type NavItem = {
   path: string;
-  label: string;
+  labelEn: string;
+  labelZh: string;
   icon: any;
-  children?: { path: string; label: string; icon: any }[];
+  children?: { path: string; labelEn: string; labelZh: string; icon: any }[];
 };
 
 const navItems: NavItem[] = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard },
+  { path: "/", labelEn: "Dashboard", labelZh: "仪表盘", icon: LayoutDashboard },
   {
     path: "/alphas",
-    label: "Alphas",
+    labelEn: "Factors",
+    labelZh: "因子",
     icon: FlaskConical,
     children: [
-      { path: "/alphas", label: "My Alphas", icon: FileText },
-      { path: "/alphas/official", label: "Official Library", icon: Library },
+      { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FileText },
+      { path: "/alphas/official", labelEn: "Official Library", labelZh: "官方库", icon: Library },
     ],
   },
   {
     path: "/strategies",
-    label: "Strategy",
+    labelEn: "Strategy",
+    labelZh: "策略",
     icon: Rocket,
     children: [
-      { path: "/strategies", label: "My Strategy", icon: FileText },
-      { path: "/strategies/official", label: "Official Library", icon: Library },
+      { path: "/strategies", labelEn: "My Strategy", labelZh: "我的策略", icon: FileText },
+      { path: "/strategies/official", labelEn: "Official Library", labelZh: "官方库", icon: Library },
     ],
   },
-  { path: "/trade", label: "Trade", icon: CandlestickChart },
-  { path: "/leaderboard", label: "Alpha Arena", icon: Trophy },
-  { path: "/subscription", label: "Subscription", icon: CreditCard },
-  { path: "/account", label: "Setting", icon: Settings2 },
+  { path: "/trade", labelEn: "Trade", labelZh: "交易", icon: CandlestickChart },
+  { path: "/leaderboard", labelEn: "Factor Arena", labelZh: "因子竞技场", icon: Trophy },
+  { path: "/subscription", labelEn: "Subscription", labelZh: "订阅", icon: CreditCard },
+  { path: "/account", labelEn: "Settings", labelZh: "设置", icon: Settings2 },
 ];
 
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
@@ -84,6 +88,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
+  const { uiLang } = useAppLanguage();
   const { alphaViewMode, setAlphaViewMode } = useAlphaViewMode();
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarHeaderHovered, setSidebarHeaderHovered] = useState(false);
@@ -117,6 +122,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const isSectionActive = (sectionPath: string) => location === sectionPath || location.startsWith(`${sectionPath}/`);
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   const handleAlphaViewModeChange = (mode: AlphaViewMode) => {
     setAlphaViewMode(mode);
@@ -195,7 +201,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setCollapsed(false)}
               className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
-              title="Expand sidebar"
+              title={tr("Expand sidebar", "展开侧边栏")}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -228,7 +234,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <button
                 onClick={() => setCollapsed(true)}
                 className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
-                title="Collapse sidebar"
+                title={tr("Collapse sidebar", "收起侧边栏")}
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
@@ -276,12 +282,12 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground hover:bg-accent"
                   }`}
-                  title={collapsed && !isMobile ? item.label : undefined}
+                  title={collapsed && !isMobile ? tr(item.labelEn, item.labelZh) : undefined}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   {(!collapsed || isMobile) && (
                     <>
-                      <span className="flex-1 text-left">{item.label}</span>
+                      <span className="flex-1 text-left">{tr(item.labelEn, item.labelZh)}</span>
                       <ChevronDown className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
                         showExpanded ? "rotate-0" : "-rotate-90"
                       }`} />
@@ -305,7 +311,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                           }`}
                         >
                           <ChildIcon className="w-3.5 h-3.5 shrink-0" />
-                          <span>{child.label}</span>
+                          <span>{tr(child.labelEn, child.labelZh)}</span>
                         </button>
                       );
                     })}
@@ -329,10 +335,10 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent"
               }`}
-              title={collapsed && !isMobile ? item.label : undefined}
+              title={collapsed && !isMobile ? tr(item.labelEn, item.labelZh) : undefined}
             >
               <Icon className="w-4 h-4 shrink-0" />
-              {(!collapsed || isMobile) && <span>{item.label}</span>}
+              {(!collapsed || isMobile) && <span>{tr(item.labelEn, item.labelZh)}</span>}
             </button>
           );
         })}
@@ -350,7 +356,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   ? "bg-primary/10 text-primary border-primary/20"
                   : "border-border text-muted-foreground hover:text-foreground hover:bg-accent"
               }`}
-              title="Beginner"
+              title={tr("Beginner", "初学者")}
             >
               <Eye className="w-3.5 h-3.5" />
             </button>
@@ -361,7 +367,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   ? "bg-primary/10 text-primary border-primary/20"
                   : "border-border text-muted-foreground hover:text-foreground hover:bg-accent"
               }`}
-              title="Pro"
+              title={tr("Pro", "专业")}
             >
               <Sparkles className="w-3.5 h-3.5" />
             </button>
@@ -372,7 +378,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                 className={`flex items-center justify-center rounded-lg transition-all duration-200 ease-in-out p-1.5 ${
                   isActive("/account") ? "bg-primary/10" : "hover:bg-accent"
                 }`}
-                title="Setting"
+                title={tr("Settings", "设置")}
               >
                 <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[11px] font-semibold overflow-hidden shrink-0">
                   {user?.avatar ? (
@@ -398,7 +404,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <Eye className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Beginner</span>
+                  <span className="truncate">{tr("Beginner", "初学者")}</span>
                 </button>
                 <button
                   onClick={() => handleAlphaViewModeChange("pro")}
@@ -409,7 +415,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">Pro</span>
+                  <span className="truncate">{tr("Pro", "专业")}</span>
                 </button>
               </div>
             </div>
@@ -493,7 +499,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 mx-auto w-full max-w-[1100px] px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <main className="flex-1 mx-auto w-full max-w-[1100px] px-0 py-6 lg:py-8">
           {children}
         </main>
       </div>
