@@ -42,6 +42,7 @@ import {
 import { LightRays } from "@/components/LightRays";
 import { ShineBorder } from "@/components/ShineBorder";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 
 type ViewMode = "factor" | "user";
 
@@ -195,6 +196,8 @@ const rankTextColor = (rank: number): string => {
 export default function Leaderboard() {
   const searchString = useSearch();
   const { theme } = useTheme();
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const isDark = theme === "dark";
   const [viewMode, setViewMode] = useState<ViewMode>("factor");
   const [selectedEpochId, setSelectedEpochId] = useState(() => {
@@ -241,6 +244,7 @@ export default function Leaderboard() {
   }, [selectedEpoch.endDate]);
 
   const countdown = useCountdown(endDateForTimer, isCurrent);
+  const countdownLabel = countdown === "Ended" ? tr("Ended", "已结束") : countdown;
 
   const factorData = useMemo(
     () => leaderboardByFactorByEpoch[selectedEpochId] ?? [],
@@ -279,19 +283,19 @@ export default function Leaderboard() {
         <div ref={headerRef} className="reveal-clip">
           <div className="reveal-line">
             <h1 className="text-foreground">
-              Alpha Arena
+              {tr("Signal Arena", "因子竞技场")}
             </h1>
           </div>
           <div className="reveal-line mt-2">
             <p className="text-base text-muted-foreground">
-              Arena round rankings and reward distribution
+              {tr("Arena round rankings and reward distribution", "竞技场轮次排名与奖励分配")}
             </p>
           </div>
         </div>
 
         {/* Epoch Selector */}
         <div className="flex items-center gap-3">
-          <span className="label-upper shrink-0">Round</span>
+          <span className="label-upper shrink-0">{tr("Round", "轮次")}</span>
           <Select value={selectedEpochId} onValueChange={setSelectedEpochId}>
             <SelectTrigger className="w-[260px] h-9 text-sm font-mono rounded-lg bg-card border-border">
               <SelectValue />
@@ -311,7 +315,7 @@ export default function Leaderboard() {
                     </span>
                     {!epoch.distributed && (
                       <span className="text-[9px] px-1.5 py-0 h-4 inline-flex items-center rounded-full font-mono ml-1 bg-primary/10 text-primary border border-primary/20">
-                        LIVE
+                        {tr("LIVE", "进行中")}
                       </span>
                     )}
                   </div>
@@ -358,12 +362,12 @@ export default function Leaderboard() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
                       </span>
-                      LIVE
+                      {tr("LIVE", "进行中")}
                     </span>
                   )}
                   {!isCurrent && selectedEpoch.distributed && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-mono tracking-[0.15em] uppercase bg-success/10 text-success border border-success/20">
-                      COMPLETED
+                      {tr("COMPLETED", "已结束")}
                     </span>
                   )}
                 </div>
@@ -377,13 +381,15 @@ export default function Leaderboard() {
             {isCurrent ? (
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-card/80 border border-border">
                 <Clock className="w-4 h-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Time Remaining</span>
-                <span className="font-mono text-base font-bold tabular-nums text-foreground">{countdown}</span>
+                <span className="text-xs text-muted-foreground">{tr("Time Remaining", "剩余时间")}</span>
+                <span className="font-mono text-base font-bold tabular-nums text-foreground">{countdownLabel}</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-card/80 border border-border">
                 <CheckCircle2 className="w-4 h-4 text-success" />
-                <span className="text-xs text-muted-foreground">{selectedEpoch.winners} winners rewarded</span>
+                <span className="text-xs text-muted-foreground">
+                  {uiLang === "zh" ? `已奖励 ${selectedEpoch.winners} 位获奖者` : `${selectedEpoch.winners} winners rewarded`}
+                </span>
               </div>
             )}
           </div>
@@ -392,31 +398,37 @@ export default function Leaderboard() {
           <div className="grid grid-cols-3 gap-6">
             <div className="fade-item">
               <div className="label-upper mb-1.5 flex items-center gap-1.5">
-                <Award className="w-3 h-3" /> Prize Pool
+                <Award className="w-3 h-3" /> {tr("Prize Pool", "奖池")}
               </div>
               <div className={`stat-value text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500`}>
                 {prizePoolDisplay}
                 <span className="text-sm font-medium ml-1">USDT</span>
               </div>
               <div className="text-xs mt-0.5 text-muted-foreground">
-                {isCurrent ? "distributed proportionally" : "fully distributed"}
+                {isCurrent ? tr("distributed proportionally", "按比例分配") : tr("fully distributed", "已全部分配")}
               </div>
             </div>
             <div className="fade-item">
               <div className="label-upper mb-1.5 flex items-center gap-1.5">
-                <Users className="w-3 h-3" /> Submissions
+                <Users className="w-3 h-3" /> {tr("Submissions", "提交数")}
               </div>
               <div className="stat-value text-2xl font-bold text-foreground">{selectedEpoch.totalSubmissions}</div>
-              <div className="text-xs mt-0.5 text-muted-foreground">{selectedEpoch.qualifiedFactors} qualified alphas</div>
+              <div className="text-xs mt-0.5 text-muted-foreground">
+                {uiLang === "zh" ? `${selectedEpoch.qualifiedFactors} 个合格信号` : `${selectedEpoch.qualifiedFactors} qualified signals`}
+              </div>
             </div>
             <div className="fade-item">
               <div className="label-upper mb-1.5 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3 h-3" /> Qualification Rate
+                <CheckCircle2 className="w-3 h-3" /> {tr("Qualification Rate", "通过率")}
               </div>
               <div className="stat-value text-2xl font-bold text-success">
                 {selectedEpoch.totalSubmissions > 0 ? Math.round((selectedEpoch.qualifiedFactors / selectedEpoch.totalSubmissions) * 100) : 0}%
               </div>
-              <div className="text-xs mt-0.5 text-muted-foreground">{selectedEpoch.qualifiedFactors} of {selectedEpoch.totalSubmissions} passed</div>
+              <div className="text-xs mt-0.5 text-muted-foreground">
+                {uiLang === "zh"
+                  ? `${selectedEpoch.totalSubmissions} 个中有 ${selectedEpoch.qualifiedFactors} 个通过`
+                  : `${selectedEpoch.qualifiedFactors} of ${selectedEpoch.totalSubmissions} passed`}
+              </div>
             </div>
           </div>
         </div>
@@ -429,8 +441,14 @@ export default function Leaderboard() {
                 OU
               </div>
               <div>
-                <div className="text-sm font-semibold text-foreground">Your Alphas in {selectedEpoch.id}</div>
-                <span className="text-xs text-muted-foreground">Otter User — {userAlphasInRound.length} alpha{userAlphasInRound.length !== 1 ? "s" : ""} entered</span>
+                <div className="text-sm font-semibold text-foreground">
+                  {uiLang === "zh" ? `你在 ${selectedEpoch.id} 中的信号` : `Your Signals in ${selectedEpoch.id}`}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {uiLang === "zh"
+                    ? `Otter User — 已提交 ${userAlphasInRound.length} 个信号`
+                    : `Otter User — ${userAlphasInRound.length} signal${userAlphasInRound.length !== 1 ? "s" : ""} entered`}
+                </span>
               </div>
             </div>
             {userAlphasInRound.length > 0 && (() => {
@@ -440,7 +458,7 @@ export default function Leaderboard() {
               }, 0);
               return (
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{isCurrent ? "Est. Total" : "Total"}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">{isCurrent ? tr("Est. Total", "预计总计") : tr("Total", "总计")}</span>
                   {totalReward > 0 ? (
                     <span className="text-sm font-bold font-mono tabular-nums text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500">{totalReward.toLocaleString()}</span>
                   ) : (
@@ -465,19 +483,19 @@ export default function Leaderboard() {
                     </div>
                     <div className="flex items-center gap-5 shrink-0">
                       <div className="text-center">
-                        <div className="label-upper mb-0.5 text-[8px]">Score</div>
+                        <div className="label-upper mb-0.5 text-[8px]">{tr("Score", "得分")}</div>
                         <div className="text-xs font-bold font-mono text-foreground">{entry.compositeScore.toFixed(1)}</div>
                       </div>
                       <div className="text-center">
-                        <div className="label-upper mb-0.5 text-[8px]">OS Sharpe</div>
+                        <div className="label-upper mb-0.5 text-[8px]">{tr("OS Sharpe", "样本外夏普比率")}</div>
                         <div className="text-xs font-bold font-mono text-foreground">{entry.osSharpe.toFixed(2)}</div>
                       </div>
                       <div className="text-center">
-                        <div className="label-upper mb-0.5 text-[8px]">Returns</div>
+                        <div className="label-upper mb-0.5 text-[8px]">{tr("Returns", "收益率")}</div>
                         <div className="text-xs font-bold font-mono text-foreground">{entry.osReturns}</div>
                       </div>
                       <div className="text-center">
-                        <div className="label-upper mb-0.5 text-[8px]">{isCurrent ? "Est. Reward" : "Reward"}</div>
+                        <div className="label-upper mb-0.5 text-[8px]">{isCurrent ? tr("Est. Reward", "预计奖励") : tr("Reward", "奖励")}</div>
                         {isZeroReward ? (
                           <div className="text-xs font-bold font-mono tabular-nums text-muted-foreground/50">0</div>
                         ) : (
@@ -497,12 +515,14 @@ export default function Leaderboard() {
                   {userAlphasExpanded ? (
                     <>
                       <ChevronUp className="w-3.5 h-3.5" />
-                      Collapse ({userAlphasInRound.length - 3} hidden)
+                      {uiLang === "zh" ? `收起（隐藏 ${userAlphasInRound.length - 3} 个）` : `Collapse (${userAlphasInRound.length - 3} hidden)`}
                     </>
                   ) : (
                     <>
                       <ChevronDown className="w-3.5 h-3.5" />
-                      Show all {userAlphasInRound.length} alphas ({userAlphasInRound.length - 3} more)
+                      {uiLang === "zh"
+                        ? `显示全部 ${userAlphasInRound.length} 个信号（另有 ${userAlphasInRound.length - 3} 个）`
+                        : `Show all ${userAlphasInRound.length} signals (${userAlphasInRound.length - 3} more)`}
                     </>
                   )}
                 </button>
@@ -511,7 +531,7 @@ export default function Leaderboard() {
             </>
           ) : (
             <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground/50">
-              <span className="text-xs">No alphas entered in this round</span>
+              <span className="text-xs">{tr("No signals entered in this round", "本轮暂无已提交信号")}</span>
             </div>
           )}
             </div>
@@ -539,7 +559,7 @@ export default function Leaderboard() {
           }`}
           onClick={() => setViewMode("factor")}
         >
-          By Alpha
+          {tr("By Signal", "按信号")}
         </button>
         <button
           className={`h-8 text-xs px-4 rounded-xl font-medium transition-all duration-200 ease-in-out border ${
@@ -549,7 +569,7 @@ export default function Leaderboard() {
           }`}
           onClick={() => setViewMode("user")}
         >
-          By User
+          {tr("By User", "按用户")}
         </button>
       </div>
 
@@ -560,15 +580,15 @@ export default function Leaderboard() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border">
-                  <TableHead className="label-upper w-[70px] pl-4">Rank</TableHead>
-                  <TableHead className="label-upper">User</TableHead>
-                  <TableHead className="label-upper">Alpha</TableHead>
-                  <TableHead className="label-upper text-right">OS Sharpe</TableHead>
-                  <TableHead className="label-upper text-right">OS Fitness</TableHead>
-                  <TableHead className="label-upper text-right">Returns</TableHead>
-                  <TableHead className="label-upper text-right">Score</TableHead>
+                  <TableHead className="label-upper w-[70px] pl-4">{tr("Rank", "排名")}</TableHead>
+                  <TableHead className="label-upper">{tr("User", "用户")}</TableHead>
+                  <TableHead className="label-upper">{tr("Signal", "信号")}</TableHead>
+                  <TableHead className="label-upper text-right">{tr("OS Sharpe", "样本外夏普比率")}</TableHead>
+                  <TableHead className="label-upper text-right">{tr("OS Fitness", "样本外适应度")}</TableHead>
+                  <TableHead className="label-upper text-right">{tr("Returns", "收益率")}</TableHead>
+                  <TableHead className="label-upper text-right">{tr("Score", "得分")}</TableHead>
                   <TableHead className="label-upper text-right pr-4">
-                    Reward <span className="text-muted-foreground font-normal">(USDT)</span>
+                    {tr("Reward", "奖励")} <span className="text-muted-foreground font-normal">(USDT)</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -619,14 +639,14 @@ export default function Leaderboard() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border">
-                  <TableHead className="label-upper w-[70px] pl-4">Rank</TableHead>
-                  <TableHead className="label-upper">User</TableHead>
-                  <TableHead className="label-upper text-right">Total Alphas</TableHead>
-                  <TableHead className="label-upper text-right">Qualified</TableHead>
-                  <TableHead className="label-upper text-right">Avg OS Sharpe</TableHead>
-                  <TableHead className="label-upper">Top Alpha</TableHead>
+                  <TableHead className="label-upper w-[70px] pl-4">{tr("Rank", "排名")}</TableHead>
+                  <TableHead className="label-upper">{tr("User", "用户")}</TableHead>
+                  <TableHead className="label-upper text-right">{tr("Total Signals", "信号总数")}</TableHead>
+                  <TableHead className="label-upper text-right">{tr("Qualified", "通过数")}</TableHead>
+                  <TableHead className="label-upper text-right">{tr("Avg OS Sharpe", "平均样本外夏普比率")}</TableHead>
+                  <TableHead className="label-upper">{tr("Top Signal", "最佳信号")}</TableHead>
                   <TableHead className="label-upper text-right pr-4">
-                    Total Reward <span className="text-muted-foreground font-normal">(USDT)</span>
+                    {tr("Total Reward", "总奖励")} <span className="text-muted-foreground font-normal">(USDT)</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>

@@ -150,6 +150,25 @@ function StrategyCard({
   uiLang: "en" | "zh";
 }) {
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const translatedDescription = (() => {
+    if (uiLang !== "zh") return row.description;
+    switch (row.name) {
+      case "Cross-Exchange Arb Pro":
+        return "利用主流 CEX 平台间的价格偏差，并结合价差分析与订单簿深度进行套利。";
+      case "Stable Yield Optimizer":
+        return "聚焦资金费率套利与基差交易的低风险策略，并通过受控敞口提升收益稳定性。";
+      case "BTC Alpha Composite":
+        return "结合 RSI 交叉、成交量背离与资金费率信号的多因子动量策略，适用于 BTC 永续合约。";
+      case "DeFi Yield Hunter":
+        return "从 TVL 资金流、LP 行为和 Gas 费模式中提取 Alpha，覆盖主要 DeFi 协议。";
+      case "Altcoin Rotation":
+        return "基于动量、巨鲸跟踪与链上指标，在前 50 大山寨币之间进行系统化轮动。";
+      case "MEV Protection Alpha":
+        return "通过识别并规避 MEV 攻击，同时捕捉具备抗 Sandwich 特征的机会来生成 Alpha。";
+      default:
+        return row.description;
+    }
+  })();
   return (
     <div className="surface-card overflow-hidden border border-border/70">
       <div className="border-b border-border/50 px-5 py-4">
@@ -168,7 +187,7 @@ function StrategyCard({
       </div>
 
       <div className="px-5 pb-4 pt-3">
-        <p className="text-sm leading-7 text-muted-foreground">{row.description}</p>
+        <p className="text-sm leading-7 text-muted-foreground">{translatedDescription}</p>
 
         <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
           {visibleMetrics.roi ? <MetricBox label="ROI" value={row.roi} tone="positive" /> : null}

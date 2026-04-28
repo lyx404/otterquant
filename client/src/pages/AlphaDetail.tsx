@@ -161,9 +161,9 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     if (uiLang === "en") return text;
     return text
       .replace("Turnover of ", "换手率 ")
-      .replace("Sharpe of ", "Sharpe ")
-      .replace("Sub-universe Sharpe of ", "子宇宙 Sharpe ")
-      .replace("Fitness of ", "Fitness ")
+      .replace("Sharpe of ", "夏普比率 ")
+      .replace("Sub-universe Sharpe of ", "子宇宙夏普比率 ")
+      .replace("Fitness of ", "适应度 ")
       .replace("Weight concentration ", "权重集中度 ")
       .replace(" is above cutoff of ", " 高于阈值 ")
       .replace(" is below cutoff of ", " 低于阈值 ")
@@ -178,7 +178,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
 
   /* ── Beginner mode metrics ── */
   const beginnerMetrics = [
-    { label: tr("OS Sharpe", "样本外 Sharpe"), value: factor.osSharpe.toFixed(2), color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171", desc: factor.osSharpe >= 1.0 ? tr("Strong", "强") : factor.osSharpe >= 0.5 ? tr("Moderate", "中等") : tr("Weak", "弱") },
+    { label: tr("OS Sharpe", "样本外夏普比率"), value: factor.osSharpe.toFixed(2), color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171", desc: factor.osSharpe >= 1.0 ? tr("Strong", "强") : factor.osSharpe >= 0.5 ? tr("Moderate", "中等") : tr("Weak", "弱") },
     { label: tr("Returns", "收益"), value: factor.returns, color: "#34D399", desc: tr("Total return", "总收益") },
     { label: tr("Drawdown", "回撤"), value: factor.drawdown, color: "#F87171", desc: tr("Max loss", "最大亏损") },
     { label: tr("Tests", "测试"), value: `${factor.testsPassed}/${factor.testsPassed + factor.testsFailed}`, color: factor.testsPassed > factor.testsFailed ? "#34D399" : "#F87171", desc: tr("Passed/Total", "通过/总数") },
@@ -385,7 +385,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                 />
                 {/* Sharpe card — color follows list view osSharpe rule */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("SHARPE", "SHARPE")}</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("SHARPE", "夏普比率")}</div>
                   <div className={`text-lg font-bold font-mono tabular-nums ${
                     (typeof aggData.sharpe === "number" ? aggData.sharpe : 0) >= 1 ? "text-success" : (typeof aggData.sharpe === "number" ? aggData.sharpe : 0) >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
                   }`}>
@@ -399,7 +399,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                 </div>
                 {/* Fitness — color follows list view fitness rule */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("FITNESS", "FITNESS")}</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("FITNESS", "适应度")}</div>
                   <div className={`text-lg font-bold font-mono tabular-nums ${
                     (typeof aggData.fitness === "number" ? aggData.fitness : 0) >= 1 ? "text-success" : (typeof aggData.fitness === "number" ? aggData.fitness : 0) >= 0.5 ? "text-foreground" : "text-muted-foreground"
                   }`}>
@@ -436,9 +436,9 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                 <TableHeader>
                   <TableRow className="border-border">
                     <TableHead className="label-upper text-primary">{tr("Year", "年份")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Sharpe", "Sharpe")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Sharpe", "夏普比率")}</TableHead>
                     <TableHead className="label-upper text-primary">{tr("Turnover", "换手率")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Fitness", "Fitness")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Fitness", "适应度")}</TableHead>
                     <TableHead className="label-upper text-primary">{tr("Returns", "收益")}</TableHead>
                     <TableHead className="label-upper text-primary">{tr("Drawdown", "回撤")}</TableHead>
                     <TableHead className="label-upper text-primary">{tr("Margin", "保证金")}</TableHead>
@@ -515,7 +515,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pnl">PnL</SelectItem>
-                    <SelectItem value="sharpe">{tr("Sharpe", "Sharpe")}</SelectItem>
+                    <SelectItem value="sharpe">{tr("Sharpe", "夏普比率")}</SelectItem>
                     <SelectItem value="turnover">{tr("Turnover", "换手率")}</SelectItem>
                     <SelectItem value="returns">{tr("Returns", "收益")}</SelectItem>
                     <SelectItem value="drawdown">{tr("Drawdown", "回撤")}</SelectItem>

@@ -80,6 +80,30 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
     ? "text-amber-500 dark:text-amber-400"
     : "text-foreground";
 
+  const factorDescription = (() => {
+    if (uiLang !== "zh") return factor.description;
+    switch (factor.id) {
+      case "AF-001":
+        return "利用 RSI 交叉信号，在加密资产中捕捉 7 日价格动量。";
+      case "AF-002":
+        return "识别 ETH 交易对中相对于 20 日均值的异常成交量激增。";
+      case "AF-004":
+        return "利用主流 CEX 平台之间的价格差异，通过价差分析捕捉套利机会。";
+      case "AF-005":
+        return "基于资金费率与持仓兴趣确认，构建均值回归信号。";
+      case "AF-007":
+        return "追踪巨鲸钱包的聪明钱流动模式，挖掘交易信号。";
+      case "AF-009":
+        return "利用 OI Delta 信号，并结合近期波动率进行风险调整收益归一化。";
+      case "AF-013":
+        return "识别连环强平事件，并为均值回归布局。";
+      case "AF-016":
+        return "在现货与期货之间优化基差交易，并结合成交量衰减权重。";
+      default:
+        return factor.description;
+    }
+  })();
+
   const MetricCell = ({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) => (
     <div className="rounded-xl border border-border/50 bg-background/30 px-3 py-2">
       <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
@@ -107,9 +131,9 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
                 <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
               )}
             </div>
-            {factor.description && (
+            {factorDescription && (
               <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                {factor.description}
+                {factorDescription}
               </p>
             )}
           </div>
@@ -126,9 +150,9 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
         </div>
 
         <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-3">
-          <MetricCell label={tr("IS Sharpe", "样本内 Sharpe")} value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} />
-          <MetricCell label={tr("OS Sharpe", "样本外 Sharpe")} value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} />
-          <MetricCell label={tr("Fitness", "Fitness")} value={factor.fitness.toFixed(2)} />
+          <MetricCell label={tr("IS Sharpe", "样本内夏普比率")} value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} />
+          <MetricCell label={tr("OS Sharpe", "样本外夏普比率")} value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} />
+          <MetricCell label={tr("Fitness", "适应度")} value={factor.fitness.toFixed(2)} />
           {!isBeginnerMode && <MetricCell label={tr("Returns", "收益")} value={factor.returns} />}
           {!isBeginnerMode && <MetricCell label={tr("Turnover", "换手率")} value={factor.turnover} />}
           {!isBeginnerMode && <MetricCell label={tr("Drawdown", "回撤")} value={factor.drawdown} colorClass="text-destructive" />}

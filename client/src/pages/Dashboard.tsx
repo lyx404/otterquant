@@ -29,9 +29,15 @@ import {
   GripVertical,
   X,
   RefreshCw,
+  Rocket,
+  CandlestickChart,
+  CreditCard,
+  Link2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { dashboardStats, currentEpoch, submissionStats } from "@/lib/mockData";
+import { dashboardStats, currentEpoch, submissionStats, strategies } from "@/lib/mockData";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { tradeBots } from "@/lib/tradeData";
 
 const statCards = [
   { label: "TOTAL ALPHAS", value: submissionStats.total.toString(), highlight: false },
@@ -60,13 +66,14 @@ function buildPrompt(apiKey: string, skillVersion: string): string {
 }
 
 /* ── Dashboard Copy Prompt button ── */
-function DashCopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey: string; skillVersion: string; itemSkillVersion: string }) {
+function DashCopyPromptBtn({ apiKey, skillVersion, itemSkillVersion, uiLang }: { apiKey: string; skillVersion: string; itemSkillVersion: string; uiLang: "en" | "zh" }) {
   const [copied, setCopied] = useState(false);
   const needsUpdate = itemSkillVersion !== skillVersion;
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const handleCopy = () => {
     navigator.clipboard.writeText(buildPrompt(apiKey, skillVersion));
     setCopied(true);
-    toast.success(needsUpdate ? "Updated to latest skill & prompt copied" : "Prompt copied to clipboard");
+    toast.success(needsUpdate ? tr("Updated to latest skill & prompt copied", "已更新至最新 Skill 并复制提示词") : tr("Prompt copied to clipboard", "提示词已复制到剪贴板"));
     setTimeout(() => setCopied(false), 2000);
   };
   return (
@@ -77,7 +84,7 @@ function DashCopyPromptBtn({ apiKey, skillVersion, itemSkillVersion }: { apiKey:
       }`}
     >
       {copied ? <Check className="w-2.5 h-2.5" /> : <FileText className="w-2.5 h-2.5" />}
-      {copied ? "Copied" : needsUpdate ? "Copy Latest Prompt" : "Copy Prompt"}
+      {copied ? tr("Copied", "已复制") : needsUpdate ? tr("Copy Latest Prompt", "复制最新提示词") : tr("Copy Prompt", "复制提示词")}
     </button>
   );
 }
@@ -133,6 +140,9 @@ interface SectionDef {
 const ALL_SECTIONS: SectionDef[] = [
   { id: "epoch", label: "Alpha Arena", icon: Trophy },
   { id: "myAlphas", label: "Alphas", icon: FlaskConical },
+  { id: "myStrategies", label: "My Strategies", icon: Rocket },
+  { id: "myTrades", label: "My Trades", icon: CandlestickChart },
+  { id: "quickActions", label: "Quick Actions", icon: Zap },
   { id: "agentApi", label: "Agent API", icon: Key },
 ];
 
@@ -173,6 +183,8 @@ function saveSectionConfig(order: string[], visible: Set<string>) {
 }
 
 export default function Dashboard() {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
@@ -221,7 +233,7 @@ export default function Dashboard() {
     });
   };
 
-  const handleRefreshSkill = (itemId: string) => {
+  const handleRefreshSkill = useCallback((itemId: string) => {
     setRefreshingId(itemId);
     setTimeout(() => {
       setApiKeys((prev) =>
@@ -233,13 +245,13 @@ export default function Dashboard() {
       );
       const item = apiKeys.find((k) => k.id === itemId);
       if (item && item.skillVersion !== SKILL_LATEST) {
-        toast.success(`"${item.name}" updated to ${SKILL_LATEST}`);
+        toast.success(uiLang === "zh" ? `“${item.name}” 已更新到 ${SKILL_LATEST}` : `"${item.name}" updated to ${SKILL_LATEST}`);
       } else {
-        toast.info("Already on the latest version");
+        toast.info(tr("Already on the latest version", "当前已是最新版本"));
       }
       setRefreshingId(null);
     }, 800);
-  };
+  }, [apiKeys, tr, uiLang]);
 
   useEffect(() => {
     if (!headerRef.current) return;
@@ -270,6 +282,40 @@ export default function Dashboard() {
   }, []);
 
   const goldGradient = "text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 dark:from-amber-400 dark:via-yellow-300 dark:to-amber-500";
+  const strategySummaryCards = [
+    {
+      key: "total",
+      label: tr("TOTAL STRATEGIES", "策略总数"),
+      value: String(strategies.length),
+      color: "text-foreground",
+    },
+    {
+      key: "live",
+      label: tr("LIVE", "实盘中"),
+      value: String(strategies.filter((item) => item.status === "live").length),
+      color: "text-emerald-400",
+    },
+    {
+      key: "BACKTESTED", 
+      label: tr("BACKTESTED", "已回测"),
+      value: String(strategies.filter((item) => item.status === "backtested").length),
+      color: "text-sky-400",
+    },
+    {
+      key: "AVG SHARPE",
+      label: tr("AVG SHARPE", "平均夏普比率"),
+      value: (
+        strategies.reduce((sum, item) => sum + item.sharpe, 0) / Math.max(1, strategies.length)
+      ).toFixed(2),
+      color: "text-amber-400",
+    },
+  ];
+  const tradeSummary = {
+    active: tradeBots.length,
+    paper: tradeBots.filter((item) => item.environment === "paper").length,
+    live: tradeBots.filter((item) => item.environment === "live").length,
+    totalEquity: tradeBots.reduce((sum, item) => sum + item.equity, 0),
+  };
 
   /* ── Section renderers ── */
   const renderEpoch = () => (
@@ -290,7 +336,7 @@ export default function Dashboard() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
                 </span>
-                LIVE
+                {tr("LIVE", "进行中")}
               </span>
             </div>
             <span className="text-xs text-muted-foreground">{currentEpoch.startDate} — {currentEpoch.endDate}</span>
@@ -298,7 +344,7 @@ export default function Dashboard() {
         </div>
         <div className="flex items-center gap-6 flex-wrap">
           <div className="text-center">
-            <div className="label-upper mb-0.5">Prize Pool</div>
+            <div className="label-upper mb-0.5">{tr("Prize Pool", "奖池")}</div>
             <div className={`stat-value text-base font-bold ${goldGradient}`}>
               {stripUSDT(currentEpoch.totalPool)} <span className="text-xs font-medium">USDT</span>
             </div>
@@ -307,7 +353,7 @@ export default function Dashboard() {
           <div className="text-center">
             <div className="label-upper mb-0.5 flex items-center justify-center gap-1">
               <Clock className="w-3 h-3" />
-              Time Remaining
+              {tr("Time Remaining", "剩余时间")}
             </div>
             <div className="stat-value text-base font-bold font-mono tabular-nums text-foreground">
               {countdown.display}
@@ -315,7 +361,7 @@ export default function Dashboard() {
           </div>
           <div className="w-px h-8 bg-border" />
           <div className="text-center">
-            <div className="label-upper mb-0.5">Qualified</div>
+            <div className="label-upper mb-0.5">{tr("Qualified", "通过数")}</div>
             <div className="stat-value text-base font-bold text-foreground">
               {currentEpoch.qualifiedFactors}<span className="text-xs font-normal text-muted-foreground"> / {currentEpoch.totalSubmissions}</span>
             </div>
@@ -323,7 +369,7 @@ export default function Dashboard() {
         </div>
         <Link href="/leaderboard">
           <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce">
-            Alpha Arena
+            {tr("Factor Arena", "因子竞技场")}
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Button>
         </Link>
@@ -340,7 +386,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FlaskConical className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Alphas</span>
+            <span className="text-sm font-medium text-muted-foreground">{tr("Factors", "因子")}</span>
           </div>
           <Link href="/my-alphas">
             <Button
@@ -348,7 +394,7 @@ export default function Dashboard() {
               size="sm"
               className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
             >
-              More
+              {tr("More", "更多")}
               <ArrowUpRight className="w-3 h-3" />
             </Button>
           </Link>
@@ -357,7 +403,15 @@ export default function Dashboard() {
       <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
         {statCards.map((stat) => (
           <div key={stat.label} className="fade-item min-w-0">
-            <span className="label-upper truncate block mb-2">{stat.label}</span>
+            <span className="label-upper truncate block mb-2">
+              {stat.label === "TOTAL ALPHAS"
+                ? tr("TOTAL FACTORS", "因子总数")
+                : stat.label === "MY FAVORITES"
+                  ? tr("MY FAVORITES", "我的收藏")
+                  : stat.label === "PASSED"
+                    ? tr("PASSED", "已通过")
+                    : tr("FAILED", "未通过")}
+            </span>
             <div className={`text-2xl stat-value font-bold truncate ${stat.color ? stat.color : stat.highlight ? "text-success" : "text-foreground"}`}>
               {stat.value}
             </div>
@@ -373,7 +427,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Key className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">Agent API</span>
+            <span className="text-sm font-medium text-muted-foreground">{tr("Agent API", "Agent API")}</span>
             <span className="text-[10px] text-muted-foreground/50">({apiKeys.length})</span>
           </div>
           <Link href="/account?tab=api">
@@ -382,7 +436,7 @@ export default function Dashboard() {
               size="sm"
               className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
             >
-              Manage
+              {tr("Manage", "管理")}
               <ArrowUpRight className="w-3 h-3" />
             </Button>
           </Link>
@@ -392,10 +446,10 @@ export default function Dashboard() {
         {apiKeys.length === 0 ? (
           <div className="text-center py-6">
             <Key className="w-6 h-6 mx-auto mb-2 text-muted-foreground/30" />
-            <p className="text-xs text-muted-foreground">No API keys yet</p>
+            <p className="text-xs text-muted-foreground">{tr("No API keys yet", "暂无 API 密钥")}</p>
             <Link href="/account?tab=api">
               <Button variant="outline" size="sm" className="mt-3 h-7 text-xs rounded-full">
-                Create API Key
+                {tr("Create API Key", "创建 API 密钥")}
               </Button>
             </Link>
           </div>
@@ -412,23 +466,23 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <span className="text-xs leading-snug text-muted-foreground truncate block">{item.name}</span>
                   <div className="flex items-center gap-3 text-[10px] font-mono text-muted-foreground/60 mt-0.5">
-                    <span>Skill {item.skillVersion}</span>
+                    <span>{tr("Skill", "Skill")} {item.skillVersion}</span>
                     {item.skillVersion !== SKILL_LATEST && (
-                      <span className="text-amber-500">(update)</span>
+                      <span className="text-amber-500">{tr("(update)", "（可更新）")}</span>
                     )}
                     <span className="flex items-center gap-1">
-                      Updated {item.updatedAt}
+                      {tr("Updated", "更新于")} {item.updatedAt}
                       <button
                         onClick={() => handleRefreshSkill(item.id)}
                         className="p-0.5 rounded-md text-muted-foreground/60 hover:text-primary transition-colors"
-                        title="Check for updates"
+                        title={tr("Check for updates", "检查更新")}
                       >
                         <RefreshCw className={`w-3 h-3 ${refreshingId === item.id ? "animate-spin" : ""}`} />
                       </button>
                     </span>
                   </div>
                 </div>
-                <DashCopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} />
+                <DashCopyPromptBtn apiKey={item.apiKey} skillVersion={SKILL_LATEST} itemSkillVersion={item.skillVersion} uiLang={uiLang} />
               </div>
             ))}
           </div>
@@ -437,9 +491,128 @@ export default function Dashboard() {
     </div>
   );
 
+  const renderMyStrategies = () => (
+    <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
+      <div className="px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Rocket className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">{tr("My Strategies", "我的策略")}</span>
+          </div>
+          <Link href="/strategies">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
+            >
+              {tr("More", "更多")}
+              <ArrowUpRight className="w-3 h-3" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+      <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+        {strategySummaryCards.map((stat) => (
+          <div key={stat.key} className="min-w-0">
+            <span className="label-upper truncate block mb-2">{stat.label}</span>
+            <div className={`text-2xl stat-value font-bold truncate ${stat.color}`}>
+              {stat.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderMyTrades = () => (
+    <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
+      <div className="px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CandlestickChart className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">{tr("My Trades", "我的交易")}</span>
+          </div>
+          <Link href="/trade">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1 rounded-full border-border text-muted-foreground hover:text-foreground"
+            >
+              {tr("More", "更多")}
+              <ArrowUpRight className="w-3 h-3" />
+            </Button>
+          </Link>
+        </div>
+      </div>
+      <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="min-w-0">
+          <span className="label-upper truncate block mb-2">{tr("ACTIVE BOTS", "活跃机器人")}</span>
+          <div className="text-2xl stat-value font-bold truncate text-foreground">{tradeSummary.active}</div>
+        </div>
+        <div className="min-w-0">
+          <span className="label-upper truncate block mb-2">{tr("PAPER", "模拟盘")}</span>
+          <div className="text-2xl stat-value font-bold truncate text-indigo-400">{tradeSummary.paper}</div>
+        </div>
+        <div className="min-w-0">
+          <span className="label-upper truncate block mb-2">{tr("LIVE", "实盘")}</span>
+          <div className="text-2xl stat-value font-bold truncate text-emerald-400">{tradeSummary.live}</div>
+        </div>
+        <div className="min-w-0">
+          <span className="label-upper truncate block mb-2">{tr("TOTAL EQUITY", "总权益")}</span>
+          <div className="text-2xl stat-value font-bold truncate text-foreground">
+            {tradeSummary.totalEquity.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderQuickActions = () => (
+    <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
+      <div className="px-6 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Zap className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">{tr("Quick Actions", "快捷操作")}</span>
+        </div>
+      </div>
+      <div className="p-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <Link href="/account?tab=api">
+          <Button className="h-11 w-full justify-between rounded-xl bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20">
+            <span className="flex items-center gap-2">
+              <Key className="w-4 h-4" />
+              {tr("Manage Agent API", "管理 Agent API")}
+            </span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
+        <Link href="/account?tab=exchangeApi">
+          <Button className="h-11 w-full justify-between rounded-xl bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20">
+            <span className="flex items-center gap-2">
+              <Link2 className="w-4 h-4" />
+              {tr("Manage Exchange API", "管理交易所 API")}
+            </span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
+        <Link href="/subscription">
+          <Button className="h-11 w-full justify-between rounded-xl bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20">
+            <span className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4" />
+              {tr("Recharge / Subscribe", "充值 / 订阅")}
+            </span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+
   const sectionRenderers: Record<string, () => React.ReactNode> = {
     epoch: renderEpoch,
     myAlphas: renderMyAlphas,
+    myStrategies: renderMyStrategies,
+    myTrades: renderMyTrades,
+    quickActions: renderQuickActions,
     agentApi: renderAgentApi,
   };
   const visibleOrder = sectionOrder
@@ -454,11 +627,11 @@ export default function Dashboard() {
       <div className="flex items-start justify-between">
         <div ref={headerRef} className="reveal-clip">
           <div className="reveal-line">
-            <h1 className="text-foreground">Dashboard</h1>
+            <h1 className="text-foreground">{tr("Dashboard", "仪表盘")}</h1>
           </div>
           <div className="reveal-line mt-2">
             <p className="text-base text-muted-foreground">
-              AI-powered alpha mining platform — monitor your agents, track performance, compete for rewards.
+              {tr("AI-powered factor mining platform — monitor your agents, track performance, compete for rewards.", "AI 驱动的因子挖掘平台：监控你的 Agent，跟踪表现，并参与奖励竞争。")}
             </p>
           </div>
         </div>
@@ -472,7 +645,7 @@ export default function Dashboard() {
                 ? "bg-primary/10 border-primary/30 text-primary"
                 : "bg-accent border-border text-muted-foreground hover:text-foreground hover:border-primary/20"
             }`}
-            title="Customize Dashboard"
+            title={tr("Customize Dashboard", "自定义仪表盘")}
           >
             <Settings2 className="w-4 h-4" />
           </button>
@@ -481,7 +654,7 @@ export default function Dashboard() {
           {showCustomize && (
             <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden">
               <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">Customize Dashboard</span>
+                <span className="text-sm font-semibold text-foreground">{tr("Customize Dashboard", "自定义仪表盘")}</span>
                 <button
                   onClick={() => setShowCustomize(false)}
                   className="p-1 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
@@ -522,7 +695,17 @@ export default function Dashboard() {
                       <GripVertical className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
                       <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                       <span className={`text-sm flex-1 ${isVisible ? "text-foreground" : "text-muted-foreground/40"}`}>
-                        {def.label}
+                        {def.label === "Alpha Arena"
+                          ? tr("Factor Arena", "因子竞技场")
+                          : def.label === "Alphas"
+                            ? tr("Factors", "因子")
+                            : def.label === "My Strategies"
+                              ? tr("My Strategies", "我的策略")
+                              : def.label === "My Trades"
+                                ? tr("My Trades", "我的交易")
+                                : def.label === "Quick Actions"
+                                  ? tr("Quick Actions", "快捷操作")
+                                  : tr("Agent API", "Agent API")}
                       </span>
                       <button
                         onClick={(e) => {
@@ -534,7 +717,7 @@ export default function Dashboard() {
                             ? "text-primary hover:bg-primary/10"
                             : "text-muted-foreground/40 hover:bg-accent"
                         }`}
-                        title={isVisible ? "Hide section" : "Show section"}
+                        title={isVisible ? tr("Hide section", "隐藏区块") : tr("Show section", "显示区块")}
                       >
                         {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       </button>
@@ -548,11 +731,11 @@ export default function Dashboard() {
                     setSectionOrder([...DEFAULT_ORDER]);
                     setVisibleSections(new Set(DEFAULT_VISIBLE));
                     saveSectionConfig([...DEFAULT_ORDER], new Set(DEFAULT_VISIBLE));
-                    toast.success("Dashboard layout reset to default");
+                    toast.success(tr("Dashboard layout reset to default", "仪表盘布局已恢复默认"));
                   }}
                   className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Reset to default
+                  {tr("Reset to default", "恢复默认布局")}
                 </button>
               </div>
             </div>

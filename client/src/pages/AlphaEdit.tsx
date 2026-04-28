@@ -160,8 +160,9 @@ function formatStrategyLabel(value: StrategyType) {
   return value === "time-series" ? "Time-Series" : "Cross-Sectional";
 }
 
-function formatMinutesAgo(timestamp: string) {
+function formatMinutesAgo(timestamp: string, uiLang: "en" | "zh") {
   const delta = Math.max(1, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000));
+  if (uiLang === "zh") return `${delta} 分钟前`;
   return `${delta} minute${delta === 1 ? "" : "s"} ago`;
 }
 
@@ -328,6 +329,8 @@ function ResultCard({
   active?: boolean;
   status?: GenerationStatus;
 }) {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const isGenerating = status === "generating";
   const clickable = Boolean(onSelect) && !isGenerating;
   const detailFactor = detailFactors.find((item) => item.id === result.factorId);
@@ -354,12 +357,12 @@ function ResultCard({
     >
       {isGenerating ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-card/70 backdrop-blur-[1px]">
-          <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-            Generating
-          </span>
-        </div>
-      ) : null}
+            <span className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/15 px-3 py-1 text-xs font-semibold text-primary">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+            {tr("Generating", "生成中")}
+            </span>
+          </div>
+        ) : null}
 
       <div className="mb-3 min-w-0">
         <p className="line-clamp-2 break-words pl-2 text-[12px] font-semibold leading-[1.25] tracking-[-0.01em] text-foreground">
@@ -369,7 +372,7 @@ function ResultCard({
 
       <div className="flex flex-none flex-col rounded-[1.1rem] border border-border/70 bg-[linear-gradient(180deg,rgba(99,102,241,0.08),rgba(15,23,42,0.02))] px-3 py-3">
         <div className="mb-2 flex items-center gap-2">
-          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/90">PnL Curve</p>
+          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/90">{tr("PnL Curve", "盈亏曲线")}</p>
         </div>
         <div className="aspect-video w-full min-h-0">
           <Sparkline data={result.pnlSeries} />
@@ -378,13 +381,13 @@ function ResultCard({
 
       <div className="mt-3 grid grid-cols-3 gap-[6px] text-[12px]">
         <div className="min-w-0 rounded-xl border border-border/50 bg-accent/55 px-2.5 py-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">Fitness</p>
+          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">{tr("Fitness", "适应度")}</p>
           <p className="mt-2 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-foreground">
             {result.fitness.toFixed(2)}
           </p>
         </div>
         <div className="min-w-0 rounded-xl border border-border/50 bg-accent/55 px-2.5 py-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">Returns</p>
+          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">{tr("Returns", "收益率")}</p>
           <p className="mt-2 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-emerald-400">
             +{result.returns.toFixed(1)}%
           </p>
@@ -405,7 +408,7 @@ function ResultCard({
               : "border-destructive/20 bg-destructive/10 text-destructive"
           }`}
         >
-          {isPassed ? "PASSED" : "FAILED"}
+          {isPassed ? tr("PASSED", "已通过") : tr("FAILED", "未通过")}
         </span>
         <span className="max-w-full truncate rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
           {result.model}
@@ -710,7 +713,7 @@ export default function AlphaEdit() {
                     <span className="font-medium text-foreground">
                       {round.status === "generating" ? tr("Generating", "生成中") : `${round.resultCount} ${tr("candidates", "候选项")}`}
                     </span>
-                    <span>{formatMinutesAgo(round.createdAt)}</span>
+                    <span>{formatMinutesAgo(round.createdAt, uiLang)}</span>
                   </div>
 
                   <div className="space-y-2.5 text-xs">
@@ -789,7 +792,7 @@ export default function AlphaEdit() {
                 type="button"
                 onClick={() => setComposerCollapsed((prev) => !prev)}
                 className="absolute right-0 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-accent text-muted-foreground transition hover:text-foreground"
-                aria-label={composerCollapsed ? "Expand composer" : "Collapse composer"}
+                aria-label={composerCollapsed ? tr("Expand composer", "展开编辑器") : tr("Collapse composer", "收起编辑器")}
               >
                 {composerCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
@@ -1037,7 +1040,7 @@ export default function AlphaEdit() {
               setSelectedFactorId(null);
               setSelectedPreview(null);
             }}
-            aria-label="Close factor detail panel"
+            aria-label={tr("Close factor detail panel", "关闭因子详情面板")}
           />
 
           <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/3 items-center justify-center p-4 xl:flex">
@@ -1056,7 +1059,7 @@ export default function AlphaEdit() {
                 setSelectedPreview(null);
               }}
               className="absolute right-4 top-4 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition hover:text-foreground"
-              aria-label="Close panel"
+              aria-label={tr("Close panel", "关闭面板")}
             >
               <X className="h-4 w-4" />
             </button>

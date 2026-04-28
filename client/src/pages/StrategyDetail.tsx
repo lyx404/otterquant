@@ -108,6 +108,12 @@ type SectionRow = {
   tone?: "positive" | "negative" | "neutral";
 };
 
+type StrategyConfigRow = {
+  key: string;
+  label: string;
+  value: string;
+};
+
 type CurvePoint = {
   x: number;
   y: number;
@@ -344,7 +350,7 @@ export default function StrategyDetail() {
   const strategyFromStore = strategies.find((item) => item.id === params.id);
   const strategy = strategyFromStore ?? {
     id: params.id,
-    name: customName || "Strategy Backtest",
+    name: customName || tr("Strategy", "策略"),
     description: "Draft strategy generated from the guided creation flow.",
     factorCount: Number(searchParams.get("signals") || "5"),
     market: "Mixed" as const,
@@ -374,6 +380,19 @@ export default function StrategyDetail() {
   const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
 
   const strategyName = customName || strategy.name;
+  const strategyHeading = (() => {
+    if (isOfficialLibraryView) return strategyName;
+    if (uiLang === "zh") {
+      if (strategyName === "Strategy Backtest" || strategyName === "策略回测" || strategyName === "策略") {
+        return "策略回测";
+      }
+      return strategyName.endsWith("回测") ? strategyName : `${strategyName} 回测`;
+    }
+    if (strategyName === "策略回测" || strategyName === "Strategy Backtest" || strategyName === "Strategy") {
+      return "Strategy Backtest";
+    }
+    return strategyName.endsWith("Backtest") ? strategyName : `${strategyName} Backtest`;
+  })();
   const strategyId = strategy.id;
   const createdAt = searchParams.get("createdAt") || strategy.updatedAt;
   const paperDeployment = useMemo(
@@ -453,6 +472,7 @@ export default function StrategyDetail() {
     if (!value) return null;
     const hours = value.match(/[\d.]+/)?.[0];
     if (!hours) return value;
+    if (uiLang === "zh") return `${hours} 小时`;
     return `${hours} ${Number(hours) === 1 ? "hour" : "hours"}`;
   };
   const inferSymbolFromName = (value: string) => {
@@ -461,6 +481,40 @@ export default function StrategyDetail() {
     if (upperName.includes("ETH")) return "ETHUSDT";
     return null;
   };
+  const translateMonthLabel = (label: string) => {
+    if (uiLang !== "zh") return label;
+    switch (label) {
+      case "Apr":
+        return "4月";
+      case "Jun":
+        return "6月";
+      case "Aug":
+        return "8月";
+      case "Oct":
+        return "10月";
+      case "Dec":
+        return "12月";
+      case "Feb":
+        return "2月";
+      default:
+        return label;
+    }
+  };
+  const translatePreferenceLabel = (label: string) => (label === "Other" ? tr("Other", "其他") : label);
+  const translatePositionContract = (contract: PositionRecord["contract"]) =>
+    contract === "Perp" ? tr("Perp", "永续") : contract;
+  const translatePositionSide = (side: PositionRecord["side"]) => {
+    switch (side) {
+      case "Cross Long":
+        return tr("Cross Long", "全仓多");
+      case "Cross Short":
+        return tr("Cross Short", "全仓空");
+      default:
+        return side;
+    }
+  };
+  const translatePositionStatus = (status: PositionRecord["status"]) =>
+    status === "Closed" ? tr("Closed", "已平仓") : status;
 
   const strategyTypeRaw = normalizeConfigValue(
     searchParams.get("strategyType") ?? searchParams.get("type")
@@ -492,9 +546,9 @@ export default function StrategyDetail() {
     strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section";
   const strategyTypeLabel =
     strategyTypeKey === "time-series"
-      ? "Time Series"
+      ? tr("Time Series", "时序策略")
       : strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section"
-        ? "Cross Section"
+        ? tr("Cross Section", "截面策略")
         : strategyTypeRaw;
   const factorWeightItems = (() => {
     const explicitWeights = normalizeConfigValue(searchParams.get("weights"));
@@ -531,35 +585,38 @@ export default function StrategyDetail() {
   const factorWeightColors = ["#6E82F6", "#16E0A7", "#22D3EE", "#F0C13B", "#FF6B88"];
   const strategySideValue =
     executionSideRaw === "long"
-      ? "Long-Only"
+      ? tr("Long-Only", "仅做多")
       : executionSideRaw === "short"
-        ? "Short-Only"
+        ? tr("Short-Only", "仅做空")
         : executionSideRaw === "neutral"
-          ? "Market-Neutral"
+          ? tr("Market-Neutral", "市场中性")
           : executionSideRaw;
   const topTailRuleValue =
     rankValueRaw && isCrossSectionStrategy
-      ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
+      ? uiLang === "zh"
+        ? `头部/尾部 ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " 个标的"}`
+        : `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
       : sortingRuleRaw;
   const stopLossValue = stopLossRaw ? (stopLossRaw.includes("%") ? stopLossRaw : `${stopLossRaw}%`) : null;
   const cooldownValue = formatCooldown(cooldownRaw);
-  const strategyConfigRows: Array<{ label: string; value: string }> = [
-    { label: "Strategy ID", value: strategyId },
-    { label: "Created date", value: formatConfigDate(createdAt) },
-    ...(strategyTypeLabel ? [{ label: "Strategy Type", value: strategyTypeLabel }] : []),
+  const strategyConfigRows: StrategyConfigRow[] = [
+    { key: "strategy-id", label: tr("Strategy ID", "策略 ID"), value: strategyId },
+    { key: "created-date", label: tr("Created Date", "创建时间"), value: formatConfigDate(createdAt) },
+    ...(strategyTypeLabel ? [{ key: "strategy-type", label: tr("Strategy Type", "策略类型"), value: strategyTypeLabel }] : []),
     {
-      label: "Symbol",
-      value: symbolScopeRaw ?? inferSymbolFromName(strategyName) ?? "N/A",
+      key: "symbol",
+      label: tr("Symbol", "标的"),
+      value: symbolScopeRaw ?? inferSymbolFromName(strategyName) ?? tr("N/A", "未设置"),
     },
-    ...(signalSelectionRaw ? [{ label: "Signal", value: signalSelectionRaw }] : []),
-    ...(factorWeightSummary ? [{ label: "Factor Weights", value: factorWeightSummary }] : []),
-    ...(stopLossValue ? [{ label: "Stop Loss", value: stopLossValue }] : []),
-    ...(cooldownValue ? [{ label: "Cooldown", value: cooldownValue }] : []),
+    ...(signalSelectionRaw ? [{ key: "signal", label: tr("Signal", "信号"), value: signalSelectionRaw }] : []),
+    ...(factorWeightSummary ? [{ key: "factor-weights", label: tr("Factor Weights", "因子权重"), value: factorWeightSummary }] : []),
+    ...(stopLossValue ? [{ key: "stop-loss", label: tr("Stop Loss", "止损"), value: stopLossValue }] : []),
+    ...(cooldownValue ? [{ key: "cooldown", label: tr("Cooldown", "冷却时间"), value: cooldownValue }] : []),
     ...(!isTimeSeriesStrategy && strategySideValue
-      ? [{ label: "Strategy Side", value: strategySideValue }]
+      ? [{ key: "strategy-side", label: tr("Strategy Side", "策略方向"), value: strategySideValue }]
       : []),
     ...(!isTimeSeriesStrategy && topTailRuleValue
-      ? [{ label: "Top/Tail Rule", value: topTailRuleValue }]
+      ? [{ key: "top-tail-rule", label: tr("Top/Tail Rule", "头尾分层规则"), value: topTailRuleValue }]
       : []),
   ];
 
@@ -582,20 +639,20 @@ export default function StrategyDetail() {
 
   const fundRows: SectionRow[] = [
     {
-      label: "Peak Equity",
+      label: tr("Peak Equity", "最高权益"),
       value: `${peakEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
     },
     {
-      label: "Min Equity",
+      label: tr("Min Equity", "最低权益"),
       value: `${minEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
     },
     {
-      label: "Realized PnL",
+      label: tr("Realized PnL", "已实现盈亏"),
       value: `${fmtSigned(realizedPnl)} USDT`,
       tone: realizedPnl >= 0 ? "positive" : "negative",
     },
     {
-      label: "Unrealized PnL",
+      label: tr("Unrealized PnL", "未实现盈亏"),
       value: `${fmtSigned(unrealizedPnl)} USDT`,
       tone: unrealizedPnl >= 0 ? "positive" : "negative",
     },
@@ -603,33 +660,33 @@ export default function StrategyDetail() {
 
   const perfRows: SectionRow[] = [
     {
-      label: "Sharpe Ratio",
+      label: tr("Sharpe Ratio", "夏普比率"),
       value: strategy.sharpe.toFixed(2),
       tone: strategy.sharpe >= 1 ? "positive" : "neutral",
     },
     {
-      label: "Calmar Ratio",
+      label: tr("Calmar Ratio", "Calmar比率"),
       value: calmar.toFixed(2),
       tone: calmar >= 1 ? "positive" : "neutral",
     },
     {
-      label: "Win Rate",
+      label: tr("Win Rate", "胜率"),
       value: `${winRate.toFixed(2)}%`,
       tone: winRate >= 50 ? "positive" : "negative",
     },
     {
-      label: "Profit/Loss Ratio",
+      label: tr("Profit/Loss Ratio", "盈亏比"),
       value: profitLossRatio.toFixed(2),
       tone: profitLossRatio >= 1 ? "positive" : "neutral",
     },
   ];
 
   const tradeRows: SectionRow[] = [
-    { label: "Trading Days", value: `${tradingDays}` },
-    { label: "Total Trades", value: `${totalTrades}` },
-    { label: "Max Exposure", value: `${maxExposure.toFixed(2)}%` },
+    { label: tr("Trading Days", "交易天数"), value: `${tradingDays}` },
+    { label: tr("Total Trades", "总交易次数"), value: `${totalTrades}` },
+    { label: tr("Max Exposure", "最大敞口"), value: `${maxExposure.toFixed(2)}%` },
     {
-      label: "Total Fees",
+      label: tr("Total Fees", "总手续费"),
       value: `${totalFees.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
     },
   ];
@@ -713,16 +770,18 @@ export default function StrategyDetail() {
     });
     setDeploymentVersion((prev) => prev + 1);
     if (environment === "paper") {
-      toast.success("Deployed to paper trading.");
+      toast.success(tr("Deployed to paper trading.", "已部署到模拟交易。"));
       return;
     }
     if (options?.exchangeLabel && options.capitalUsdt) {
       toast.success(
-        `Live deployment submitted to ${options.exchangeLabel} with ${options.capitalUsdt.toLocaleString()} USDT base capital.`
+        uiLang === "zh"
+          ? `已提交至 ${options.exchangeLabel} 的实盘部署，基础资金 ${options.capitalUsdt.toLocaleString()} USDT。`
+          : `Live deployment submitted to ${options.exchangeLabel} with ${options.capitalUsdt.toLocaleString()} USDT base capital.`
       );
       return;
     }
-    toast.success("Deployed to live trading.");
+    toast.success(tr("Deployed to live trading.", "已部署到实盘交易。"));
   };
 
   const openLiveDeployModal = () => {
@@ -745,16 +804,18 @@ export default function StrategyDetail() {
 
   const submitLiveDeployment = () => {
     if (!selectedExchange) {
-      toast.error("Select an exchange account before submitting live deployment.");
+      toast.error(tr("Select an exchange account before submitting live deployment.", "提交实盘部署前请先选择交易所账户。"));
       return;
     }
     if (!isLiveCapitalNumeric || parsedLiveCapital <= 0) {
-      toast.error("Enter a valid base capital amount in USDT.");
+      toast.error(tr("Enter a valid base capital amount in USDT.", "请输入有效的 USDT 基础资金金额。"));
       return;
     }
     if (parsedLiveCapital < minLiveCapital) {
       toast.error(
-        `Minimum activation capital is ${minLiveCapital} USDT. Deployment cannot be initiated below this threshold.`
+        uiLang === "zh"
+          ? `最低启用资金为 ${minLiveCapital} USDT，低于该阈值无法发起部署。`
+          : `Minimum activation capital is ${minLiveCapital} USDT. Deployment cannot be initiated below this threshold.`
       );
       return;
     }
@@ -788,9 +849,7 @@ export default function StrategyDetail() {
             <ArrowLeft className="h-3.5 w-3.5" />
             {tr("Back", "返回")}
           </Button>
-          <h1 className="mt-3 text-foreground">
-            {isOfficialLibraryView ? strategyName : `${strategyName} ${tr("Backtest", "回测")}`}
-          </h1>
+          <h1 className="mt-3 text-foreground">{strategyHeading}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {isOfficialLibraryView ? (
               <span
@@ -951,7 +1010,7 @@ export default function StrategyDetail() {
                 {tr("Sharpe", "夏普比率")} <span className="font-semibold text-foreground">{strategy.sharpe.toFixed(2)}</span>
               </span>
               <span className="text-muted-foreground">
-                {tr("Calmar", "Calmar")} <span className="font-semibold text-foreground">{calmar.toFixed(2)}</span>
+                {tr("Calmar", "Calmar比率")} <span className="font-semibold text-foreground">{calmar.toFixed(2)}</span>
               </span>
             </div>
 
@@ -1123,7 +1182,7 @@ export default function StrategyDetail() {
                 </svg>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
                   <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{tr("Top Asset", "核心资产")}</div>
-                  <div className="mt-1 text-2xl font-semibold text-foreground">{activeSlice.label}</div>
+                  <div className="mt-1 text-2xl font-semibold text-foreground">{translatePreferenceLabel(activeSlice.label)}</div>
                   <div className="mt-1 text-sm text-muted-foreground">{activeSlice.value.toFixed(2)}% {tr("allocation", "仓位占比")}</div>
                 </div>
               </div>
@@ -1144,7 +1203,7 @@ export default function StrategyDetail() {
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: slice.color }}
                     />
-                    <span className="text-muted-foreground">{slice.label}</span>
+                    <span className="text-muted-foreground">{translatePreferenceLabel(slice.label)}</span>
                   </span>
                   <span className="font-medium text-foreground">{slice.value.toFixed(2)}%</span>
                 </button>
@@ -1260,7 +1319,7 @@ export default function StrategyDetail() {
               }}
             >
               <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                {returnMeta[returnsRange].labels[
+                {translateMonthLabel(returnMeta[returnsRange].labels[
                   Math.min(
                     returnMeta[returnsRange].labels.length - 1,
                     Math.floor(
@@ -1268,7 +1327,7 @@ export default function StrategyDetail() {
                         returnMeta[returnsRange].labels.length
                     )
                   )
-                ]}
+                ])}
               </div>
               <div className={`mt-1 font-semibold ${dailyReturns[returnsHoverIndex] >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                 {fmtSigned(dailyReturns[returnsHoverIndex], 3)}%
@@ -1279,7 +1338,7 @@ export default function StrategyDetail() {
 
         <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
           {returnMeta[returnsRange].labels.map((label) => (
-            <span key={label}>{label}</span>
+            <span key={label}>{translateMonthLabel(label)}</span>
           ))}
         </div>
       </DashboardPanel>
@@ -1296,13 +1355,13 @@ export default function StrategyDetail() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-[16px] font-semibold text-foreground">{position.symbol}</h3>
                     <span className="inline-flex items-center justify-start rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                      {position.contract}
+                      {translatePositionContract(position.contract)}
                     </span>
                     <span className={`inline-flex items-center justify-start rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] ${sideClass(position.side)}`}>
-                      {position.side}
+                      {translatePositionSide(position.side)}
                     </span>
                     <span className="inline-flex items-center justify-start rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                      {position.status}
+                      {translatePositionStatus(position.status)}
                     </span>
                   </div>
                 </div>
@@ -1313,19 +1372,19 @@ export default function StrategyDetail() {
 
               <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Entry Price</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Entry Price", "开仓价")}</div>
                   <div className="mt-1 font-mono text-[14px] text-foreground">{position.entryPrice}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Max Open Interest</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Max Open Interest", "最大持仓量")}</div>
                   <div className="mt-1 font-mono text-[14px] text-foreground">{position.maxOpenInterest}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Opened</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Opened", "开仓时间")}</div>
                   <div className="mt-1 font-mono text-sm text-foreground">{position.openedAt}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Closed</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Closed", "平仓时间")}</div>
                   <div className="mt-1 font-mono text-sm text-foreground">{position.closedAt}</div>
                 </div>
               </div>
@@ -1475,9 +1534,9 @@ export default function StrategyDetail() {
               <div className="grid grid-cols-1 gap-2 rounded-2xl border border-border/60 bg-background/25 p-3 sm:grid-cols-2">
                 {strategyConfigRows.map((row) => (
 	                  <div
-	                    key={row.label}
+	                    key={row.key}
 	                    className={`rounded-xl border border-border/40 bg-card/45 px-3 py-2.5 ${
-	                      row.label === "Signal" || row.label === "Factor Weights" ? "sm:col-span-2" : ""
+	                      row.key === "signal" || row.key === "factor-weights" ? "sm:col-span-2" : ""
 	                    }`}
 	                  >
                     <div className="space-y-1">
@@ -1485,7 +1544,7 @@ export default function StrategyDetail() {
                         {row.label}
                       </p>
                       <p className="text-sm font-semibold leading-relaxed text-foreground">{row.value}</p>
-                      {row.label === "Factor Weights" && factorWeightItems.length > 0 ? (
+                      {row.key === "factor-weights" && factorWeightItems.length > 0 ? (
                         <div className="space-y-2 pt-2">
                           <div className="flex h-3 overflow-hidden rounded-full bg-muted/40">
                             {factorWeightItems.map((item, index) => {

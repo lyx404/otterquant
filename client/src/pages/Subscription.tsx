@@ -19,7 +19,7 @@ type CreditPackage = {
 type CreditActivityItem = {
   effectiveDate: string;
   expires: string;
-  expiresIn: string;
+  expiresInDays: number;
   amount: number;
 };
 
@@ -60,9 +60,9 @@ const creditPackages: CreditPackage[] = [
 
 const initialCreditActivity: CreditActivityItem[] = [
   {
-    effectiveDate: "Mar 1st, 2026",
-    expires: "Mar 27th, 2027",
-    expiresIn: "334 days left",
+    effectiveDate: "2026-03-01",
+    expires: "2027-03-27",
+    expiresInDays: 334,
     amount: 100,
   },
 ];
@@ -102,10 +102,36 @@ function CreditsPage() {
     return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
   }, [customAmount, selectedPackage]);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const formatActivityDate = (value: string) => {
+    const normalized = value.replace(/(\d+)(st|nd|rd|th)/gi, "$1");
+    const date = new Date(normalized);
+    if (Number.isNaN(date.getTime())) return value;
+    return uiLang === "zh"
+      ? new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "short", day: "numeric" }).format(date)
+      : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(date);
+  };
+  const formatExpiresIn = (days: number) =>
+    uiLang === "zh" ? `${days} 天后到期` : `${days} days left`;
+  const packageDescription = (id: CreditPackageId) => {
+    switch (id) {
+      case "10":
+        return tr("Approx. 120 factor generations using default model settings", "默认模型设置下，约可生成 120 次因子");
+      case "20":
+        return tr("Approx. 260 factor generations using default model settings", "默认模型设置下，约可生成 260 次因子");
+      case "50":
+        return tr("Approx. 700 factor generations using default model settings", "默认模型设置下，约可生成 700 次因子");
+      case "custom":
+        return tr("Buy any amount of credits", "购买任意数量的积分");
+      default:
+        return "";
+    }
+  };
+  const packageLabel = (item: CreditPackage) =>
+    item.id === "custom" ? tr("Custom", "自定义") : item.label;
 
   const handleBuyCredits = () => {
     if (selectedAmount <= 0) {
-      toast.error(tr("Enter a valid credit amount.", "请输入有效的 credit 金额。"));
+      toast.error(tr("Enter a valid credit amount.", "请输入有效的积分金额。"));
       return;
     }
 
@@ -128,12 +154,12 @@ function CreditsPage() {
           day: "numeric",
           year: "numeric",
         }),
-        expiresIn: "365 days left",
+        expiresInDays: 365,
         amount: roundedAmount,
       },
       ...prev,
     ]);
-    toast.success(tr(`Purchased $${roundedAmount.toFixed(2)} credits`, `已购买 $${roundedAmount.toFixed(2)} credits`));
+    toast.success(tr(`Purchased $${roundedAmount.toFixed(2)} credits`, `已购买 $${roundedAmount.toFixed(2)} 积分`));
   };
 
   const handleRedeemCode = () => {
@@ -147,7 +173,7 @@ function CreditsPage() {
       setCreditBalance((prev) => Number((prev + 10).toFixed(2)));
       setExpiringCredits((prev) => Number((prev + 10).toFixed(2)));
       setCouponCode("");
-      toast.success(tr("Coupon redeemed: $10 bonus credits added.", "优惠码已兑换：已添加 $10 奖励 credits。"));
+      toast.success(tr("Coupon redeemed: $10 bonus credits added.", "优惠码已兑换：已添加 $10 奖励积分。"));
       return;
     }
 
@@ -157,7 +183,7 @@ function CreditsPage() {
   return (
     <div className="space-y-6 min-w-0">
       <div>
-        <h1 className="text-foreground">{tr("Credits", "Credits")}</h1>
+        <h1 className="text-foreground">{tr("Credits", "积分")}</h1>
         <p className="mt-2 text-base text-muted-foreground">
           {tr("Track balance, usage, and billing activity for factor and agent workflows.", "查看余额、消耗以及因子与 Agent 工作流的账单活动。")}
         </p>
@@ -176,14 +202,14 @@ function CreditsPage() {
               </p>
             </div>
             <div className="p-6">
-              <p className="text-sm text-muted-foreground">{tr("Credits expiring in 334 days", "334 天后到期的 credits")}</p>
+              <p className="text-sm text-muted-foreground">{tr("Credits expiring in 334 days", "334 天后到期的积分")}</p>
               <p className="mt-3 font-mono text-4xl font-semibold text-amber-400">
                 ${expiringCredits.toFixed(2)}
               </p>
               <Button
                 variant="outline"
                 className="mt-4 h-10 rounded-lg border-border bg-card text-foreground hover:bg-accent"
-                onClick={() => toast.success(tr("Detailed credit expiry view is coming soon.", "credit 到期明细即将上线。"))}
+                onClick={() => toast.success(tr("Detailed credit expiry view is coming soon.", "积分到期明细即将上线。"))}
               >
                 {tr("See details", "查看详情")}
               </Button>
@@ -204,7 +230,7 @@ function CreditsPage() {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr]">
           <section className="overflow-hidden rounded-xl border border-border bg-card">
             <div className="p-6">
-              <h3 className="text-xl font-semibold text-foreground">{tr("Add Credits", "购买 Credits")}</h3>
+              <h3 className="text-xl font-semibold text-foreground">{tr("Add Credits", "购买积分")}</h3>
             </div>
             <div className="border-t border-border px-6 py-6">
               <div className="space-y-4">
@@ -229,9 +255,9 @@ function CreditsPage() {
                         <span className={`h-3.5 w-3.5 rounded-full ${checked ? "bg-foreground" : "bg-transparent"}`} />
                       </span>
                       <span className="min-w-[120px] text-2xl font-semibold text-foreground">
-                        {item.label}
+                        {packageLabel(item)}
                       </span>
-                      <span className="text-sm text-muted-foreground">{item.description}</span>
+                      <span className="text-sm text-muted-foreground">{packageDescription(item.id)}</span>
                     </button>
                   );
                 })}
@@ -239,7 +265,7 @@ function CreditsPage() {
 
               {selectedPackage === "custom" ? (
                 <div className="mt-4">
-                  <Label className="mb-2 block text-xs text-muted-foreground">{tr("Custom credit amount", "自定义 credit 金额")}</Label>
+                  <Label className="mb-2 block text-xs text-muted-foreground">{tr("Custom credit amount", "自定义积分金额")}</Label>
                   <Input
                     type="number"
                     min={1}
@@ -280,7 +306,7 @@ function CreditsPage() {
 
         <section className="overflow-hidden rounded-xl border border-border bg-card">
           <div className="border-b border-border px-6 py-5">
-            <h3 className="text-xl font-semibold text-foreground">{tr("Credit activity", "Credit 活动记录")}</h3>
+            <h3 className="text-xl font-semibold text-foreground">{tr("Credit activity", "积分活动记录")}</h3>
           </div>
           <div className="min-w-[720px]">
             <div className="grid grid-cols-[1fr_1.2fr_0.8fr] gap-3 border-b border-border bg-accent/20 px-6 py-4 text-sm text-muted-foreground">
@@ -291,10 +317,10 @@ function CreditsPage() {
             <div className="divide-y divide-border/70">
               {creditActivity.map((item) => (
                 <div key={`${item.effectiveDate}-${item.amount}`} className="grid grid-cols-[1fr_1.2fr_0.8fr] gap-3 px-6 py-5 text-sm">
-                  <span className="font-medium text-foreground">{item.effectiveDate}</span>
+                  <span className="font-medium text-foreground">{formatActivityDate(item.effectiveDate)}</span>
                   <span className="text-muted-foreground">
-                    {item.expires}
-                    <span className="ml-2 text-muted-foreground/80">· {item.expiresIn}</span>
+                    {formatActivityDate(item.expires)}
+                    <span className="ml-2 text-muted-foreground/80">· {formatExpiresIn(item.expiresInDays)}</span>
                   </span>
                   <span className="text-right font-mono font-semibold text-foreground">${item.amount.toFixed(2)}</span>
                 </div>

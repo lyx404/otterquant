@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 
 function isTradeEnvironment(value: string | null): value is TradeEnvironment {
   return value === "paper" || value === "live";
@@ -148,6 +149,8 @@ function curveArea(points: CurvePoint[], height: number, padding: number) {
 }
 
 export default function TradeDetail() {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
@@ -165,13 +168,13 @@ export default function TradeDetail() {
     return (
       <div className="space-y-6 min-w-0">
         <div className="surface-card border border-border/70 p-6">
-          <p className="text-lg font-semibold text-foreground">Trade bot not found</p>
+          <p className="text-lg font-semibold text-foreground">{tr("Trade bot not found", "未找到交易机器人")}</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            The selected trade id does not exist in the current workspace.
+            {tr("The selected trade id does not exist in the current workspace.", "当前工作区中不存在所选交易 ID。")}
           </p>
           <Link href="/trade">
             <Button className="mt-4 h-8 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90">
-              Back to Trade
+              {tr("Back to Trade", "返回交易页")}
             </Button>
           </Link>
         </div>
@@ -322,15 +325,15 @@ export default function TradeDetail() {
     const openInterest = usedMargin * 1.84;
     const fundingRate = (runtimeEnvironment === "live" ? -0.0125 : -0.0094) / 100;
     return [
-      { label: "24h High", value: `${high24h.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
-      { label: "24h Low", value: `${low24h.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
-      { label: "24h Volume", value: `${volume24h.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${trade.symbol.replace("USDT", "")}` },
-      { label: "24h Turnover", value: `${turnover24h.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDT` },
-      { label: "Open Interest", value: `${openInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
-      { label: "Funding Rate", value: `${(fundingRate * 100).toFixed(4)}%` },
-      { label: "Next Funding", value: "16:00:00 UTC" },
+      { label: tr("24h High", "24小时最高价"), value: `${high24h.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
+      { label: tr("24h Low", "24小时最低价"), value: `${low24h.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
+      { label: tr("24h Volume", "24小时成交量"), value: `${volume24h.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${trade.symbol.replace("USDT", "")}` },
+      { label: tr("24h Turnover", "24小时成交额"), value: `${turnover24h.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDT` },
+      { label: tr("Open Interest", "未平仓合约量"), value: `${openInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT` },
+      { label: tr("Funding Rate", "资金费率"), value: `${(fundingRate * 100).toFixed(4)}%` },
+      { label: tr("Next Funding", "下次结算"), value: "16:00:00 UTC" },
     ];
-  }, [klineCandles, runtimeEnvironment, trade.symbol, usedMargin]);
+  }, [klineCandles, runtimeEnvironment, trade.symbol, tr, usedMargin]);
   const realtimePositions = useMemo(
     () =>
       visiblePositions.map((row) => {
@@ -401,6 +404,26 @@ export default function TradeDetail() {
       { label: "Other", value: 24.6, color: "#7A89A6" },
     ];
   }, [trade.symbol]);
+  const translateMonthLabel = (label: string) => {
+    if (uiLang !== "zh") return label;
+    switch (label) {
+      case "May":
+        return "5月";
+      case "Jul":
+        return "7月";
+      case "Sep":
+        return "9月";
+      case "Nov":
+        return "11月";
+      case "Jan":
+        return "1月";
+      case "Mar":
+        return "3月";
+      default:
+        return label;
+    }
+  };
+  const translatePreferenceLabel = (label: string) => (label === "Other" ? tr("Other", "其他") : label);
 
   return (
     <div className="space-y-6 min-w-0">
@@ -413,12 +436,12 @@ export default function TradeDetail() {
               className="gap-1 rounded-full text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Back
+              {tr("Back", "返回")}
             </Button>
           </Link>
           <h1 className="mt-3 text-foreground">{trade.name}</h1>
           <p className="mt-1 text-xs font-mono text-muted-foreground">
-            Trade ID: {trade.id} &middot; Symbol: {trade.symbol} &middot; Updated: {trade.updatedAt}
+            {tr("Trade ID", "交易 ID")}: {trade.id} &middot; {tr("Symbol", "标的")}: {trade.symbol} &middot; {tr("Updated", "更新于")}: {trade.updatedAt}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span
@@ -428,7 +451,7 @@ export default function TradeDetail() {
                   : "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
               }`}
             >
-              {runtimeEnvironment === "paper" ? "Paper Execution" : "Live Execution"}
+              {runtimeEnvironment === "paper" ? tr("Paper Execution", "模拟执行") : tr("Live Execution", "实盘执行")}
             </span>
             <span
               className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em] ${
@@ -437,13 +460,13 @@ export default function TradeDetail() {
                   : "border-amber-500/30 bg-amber-500/10 text-amber-400"
               }`}
             >
-              {runtimeStatus}
+              {runtimeStatus === "running" ? tr("running", "运行中") : tr("paused", "已暂停")}
             </span>
             <span className="inline-flex items-center rounded-full border border-border/70 bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
               {trade.market}
             </span>
             <span className="inline-flex items-center rounded-full border border-border/70 bg-accent/40 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-              {trade.leverage} leverage
+              {uiLang === "zh" ? `${trade.leverage} 杠杆` : `${trade.leverage} leverage`}
             </span>
           </div>
         </div>
@@ -459,7 +482,7 @@ export default function TradeDetail() {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Trading View
+          {tr("Trading View", "交易视图")}
         </button>
         <button
           type="button"
@@ -470,38 +493,38 @@ export default function TradeDetail() {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Analysis View
+          {tr("Analysis View", "分析视图")}
         </button>
       </div>
 
       <section className="surface-card space-y-6 p-6">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           <TopMetric
-            label="Total Equity (USDT)"
+            label={tr("Total Equity (USDT)", "总权益（USDT）")}
             value={trade.equity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           />
           <TopMetric
-            label="PnL (USDT)"
+            label={tr("PnL (USDT)", "盈亏（USDT）")}
             value={formatSigned(totalPnl)}
             tone={totalPnl >= 0 ? "positive" : "negative"}
           />
           <TopMetric
-            label="ROI"
+            label={tr("ROI", "ROI")}
             value={`${formatSigned(roi)}%`}
             tone={roi >= 0 ? "positive" : "negative"}
           />
           <TopMetric
-            label="Win Rate"
+            label={tr("Win Rate", "胜率")}
             value={`${trade.winRate.toFixed(2)}%`}
             tone={trade.winRate >= 50 ? "positive" : "neutral"}
           />
           <TopMetric
-            label="Sharpe"
+            label={tr("Sharpe", "夏普比率")}
             value={estimatedSharpe.toFixed(2)}
             tone={estimatedSharpe >= 1 ? "positive" : "neutral"}
           />
           <TopMetric
-            label="Max Drawdown"
+            label={tr("Max Drawdown", "最大回撤")}
             value={`${maxDrawdown.toFixed(2)}%`}
             tone="negative"
           />
@@ -509,62 +532,62 @@ export default function TradeDetail() {
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
           <DetailListCard
-            title="Fund Snapshot"
+            title={tr("Fund Snapshot", "资金快照")}
             icon={Wallet}
             rows={[
               {
-                label: "Account Equity",
+                label: tr("Account Equity", "账户权益"),
                 value: `${trade.equity.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })} USDT`,
               },
               {
-                label: "Used Margin",
+                label: tr("Used Margin", "已用保证金"),
                 value: `${usedMargin.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })} USDT`,
               },
               {
-                label: "Available Balance",
+                label: tr("Available Balance", "可用余额"),
                 value: `${availableBalance.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })} USDT`,
               },
               {
-                label: "Unrealized PnL",
+                label: tr("Unrealized PnL", "未实现盈亏"),
                 value: `${formatSigned(trade.unrealizedPnl)} USDT`,
                 tone: trade.unrealizedPnl >= 0 ? "positive" : "negative",
               },
             ]}
           />
           <DetailListCard
-            title="Performance Metrics"
+            title={tr("Performance Metrics", "绩效指标")}
             icon={TrendingUp}
             rows={[
-              { label: "Win Rate", value: `${trade.winRate.toFixed(2)}%`, tone: trade.winRate >= 50 ? "positive" : "negative" },
-              { label: "Estimated Sharpe", value: estimatedSharpe.toFixed(2), tone: estimatedSharpe >= 1 ? "positive" : "neutral" },
-              { label: "Profit Factor", value: profitFactor.toFixed(2), tone: profitFactor >= 1 ? "positive" : "neutral" },
-              { label: "Average Slippage", value: `${avgSlippageBps.toFixed(2)} bps` },
+              { label: tr("Win Rate", "胜率"), value: `${trade.winRate.toFixed(2)}%`, tone: trade.winRate >= 50 ? "positive" : "negative" },
+              { label: tr("Estimated Sharpe", "预估夏普比率"), value: estimatedSharpe.toFixed(2), tone: estimatedSharpe >= 1 ? "positive" : "neutral" },
+              { label: tr("Profit Factor", "盈亏因子"), value: profitFactor.toFixed(2), tone: profitFactor >= 1 ? "positive" : "neutral" },
+              { label: tr("Average Slippage", "平均滑点"), value: `${avgSlippageBps.toFixed(2)} bps` },
             ]}
           />
           <DetailListCard
-            title="Execution Statistics"
+            title={tr("Execution Statistics", "执行统计")}
             icon={ClipboardList}
             rows={[
-              { label: "Open Positions", value: `${visiblePositions.length}` },
-              { label: "Filled Orders", value: `${totalTrades}` },
+              { label: tr("Open Positions", "未平仓位"), value: `${visiblePositions.length}` },
+              { label: tr("Filled Orders", "已成交订单"), value: `${totalTrades}` },
               {
-                label: "Notional Turnover",
+                label: tr("Notional Turnover", "名义成交额"),
                 value: `${notionalTurnover.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })} USDT`,
               },
               {
-                label: "Maker/Taker Fee (est.)",
+                label: tr("Maker/Taker Fee (est.)", "Maker/Taker 手续费（估算）"),
                 value: `${makerTakerFee.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -579,7 +602,7 @@ export default function TradeDetail() {
         <>
       <section className="surface-card overflow-hidden p-0">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-          <h2 className="text-sm font-semibold text-foreground">K线图 · {trade.symbol}</h2>
+          <h2 className="text-sm font-semibold text-foreground">{tr("Candlestick Chart", "K线图")} · {trade.symbol}</h2>
           <div className="inline-flex rounded-lg border border-border/70 bg-accent/35 p-1">
             {chartRanges.map((item) => (
               <button
@@ -696,7 +719,7 @@ export default function TradeDetail() {
                     textAnchor="middle"
                     className="fill-muted-foreground text-[10px]"
                   >
-                    {isBuy ? "Buy" : "Sell"}
+                    {tr(isBuy ? "Buy" : "Sell", isBuy ? "买入" : "卖出")}
                   </text>
                 </g>
               );
@@ -760,13 +783,13 @@ export default function TradeDetail() {
             >
               <div className="font-mono text-muted-foreground">{hoveredCandle.timeLabel}</div>
               <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
-                <span className="text-muted-foreground">O</span>
+                <span className="text-muted-foreground">{tr("O", "开")}</span>
                 <span className="font-mono text-foreground">{hoveredCandle.open.toFixed(2)}</span>
-                <span className="text-muted-foreground">H</span>
+                <span className="text-muted-foreground">{tr("H", "高")}</span>
                 <span className="font-mono text-foreground">{hoveredCandle.high.toFixed(2)}</span>
-                <span className="text-muted-foreground">L</span>
+                <span className="text-muted-foreground">{tr("L", "低")}</span>
                 <span className="font-mono text-foreground">{hoveredCandle.low.toFixed(2)}</span>
-                <span className="text-muted-foreground">C</span>
+                <span className="text-muted-foreground">{tr("C", "收")}</span>
                 <span className="font-mono text-foreground">{hoveredCandle.close.toFixed(2)}</span>
               </div>
             </div>
@@ -777,13 +800,13 @@ export default function TradeDetail() {
       <div className="grid grid-cols-1 gap-4">
         <section className="surface-card overflow-hidden p-0">
           <div className="border-b border-border/60 px-4 py-3">
-            <h2 className="text-sm font-semibold text-foreground">ORDER BOOK · {trade.symbol}</h2>
+            <h2 className="text-sm font-semibold text-foreground">{tr("Order Book", "订单簿")} · {trade.symbol}</h2>
           </div>
           <div className="p-3">
             <div className="mb-1.5 grid grid-cols-3 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-              <span>Price (USDT)</span>
-              <span className="text-right">Size</span>
-              <span className="text-right">Sum</span>
+              <span>{tr("Price (USDT)", "价格（USDT）")}</span>
+              <span className="text-right">{tr("Size", "数量")}</span>
+              <span className="text-right">{tr("Sum", "累计")}</span>
             </div>
             <div className="space-y-0.5">
               {orderBook.asks
@@ -832,7 +855,7 @@ export default function TradeDetail() {
 
         <section className="surface-card overflow-hidden p-0">
           <div className="border-b border-border/60 px-4 py-3">
-            <h2 className="text-sm font-semibold text-foreground">INFO · {trade.symbol}</h2>
+            <h2 className="text-sm font-semibold text-foreground">{tr("Info", "信息")} · {trade.symbol}</h2>
           </div>
           <div className="p-4">
             <div className="rounded-xl border border-border/60 bg-background/40 px-4 py-3">
@@ -861,18 +884,18 @@ export default function TradeDetail() {
 
       <section className="surface-card overflow-hidden p-0">
         <div className="border-b border-border/60 px-4 py-3">
-          <h2 className="text-sm font-semibold text-foreground">REAL-TIME POSITIONS</h2>
+          <h2 className="text-sm font-semibold text-foreground">{tr("Real-Time Positions", "实时持仓")}</h2>
         </div>
         <div className="overflow-x-auto p-4">
           <Table>
             <TableHeader>
               <TableRow className="border-border/70">
-                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Symbol</TableHead>
-                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Size</TableHead>
-                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Entry</TableHead>
-                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Mark</TableHead>
-                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">Margin</TableHead>
-                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground text-right">PnL (ROE)</TableHead>
+                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">{tr("Symbol", "标的")}</TableHead>
+                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">{tr("Size", "数量")}</TableHead>
+                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">{tr("Entry", "开仓价")}</TableHead>
+                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">{tr("Mark", "标记价")}</TableHead>
+                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground">{tr("Margin", "保证金")}</TableHead>
+                <TableHead className="text-xs uppercase tracking-[0.08em] text-muted-foreground text-right">{tr("PnL (ROE)", "盈亏（ROE）")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -880,7 +903,7 @@ export default function TradeDetail() {
                 <TableRow key={row.id} className="border-border/70">
                   <TableCell>
                     <div className="font-semibold text-foreground">{row.symbol}</div>
-                    <div className="text-[11px] text-muted-foreground">Perp {trade.leverage}</div>
+                    <div className="text-[11px] text-muted-foreground">{tr("Perp", "永续")} {trade.leverage}</div>
                   </TableCell>
                   <TableCell className={`font-mono ${row.side === "long" ? "text-emerald-300" : "text-rose-300"}`}>
                     {row.size}
@@ -906,7 +929,7 @@ export default function TradeDetail() {
 
       <section className="surface-card overflow-hidden p-0">
         <div className="border-b border-border/60 px-4 py-3">
-          <h2 className="text-sm font-semibold text-foreground">TRADE HISTORY</h2>
+          <h2 className="text-sm font-semibold text-foreground">{tr("Trade History", "成交历史")}</h2>
         </div>
         <div className="space-y-3 p-4">
           {executionRows.map((row) => {
@@ -920,11 +943,11 @@ export default function TradeDetail() {
                 </div>
                 <div className="mt-2 text-sm text-foreground">
                   <span className="font-semibold text-amber-300">{row.symbol}</span>{" "}
-                  <span className="text-muted-foreground">perpetual at</span>{" "}
+                  <span className="text-muted-foreground">{tr("perpetual at", "永续合约，成交价")}</span>{" "}
                   <span className="font-mono">{row.price} USDT</span>
-                  <span className="text-muted-foreground">, qty </span>
+                  <span className="text-muted-foreground">{tr(", qty ", "，数量 ")}</span>
                   <span className="font-mono">{row.qty}</span>
-                  <span className="text-muted-foreground">, notional </span>
+                  <span className="text-muted-foreground">{tr(", notional ", "，名义价值 ")}</span>
                   <span className="font-mono">{row.notional}</span>
                 </div>
               </div>
@@ -940,7 +963,7 @@ export default function TradeDetail() {
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.05fr_0.95fr]">
             <section className="surface-card overflow-hidden p-0">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-                <h2 className="text-sm font-semibold tracking-[0.08em] text-foreground">ASSET CURVE</h2>
+                <h2 className="text-sm font-semibold tracking-[0.08em] text-foreground">{tr("Asset Curve", "资产曲线")}</h2>
                 <div className="inline-flex rounded-lg border border-border/70 bg-accent/35 p-1">
                   {analysisRanges.map((item) => (
                     <button
@@ -964,19 +987,19 @@ export default function TradeDetail() {
               <div className="p-4">
                 <div className="mb-3 flex flex-wrap items-center gap-5 text-xs">
                   <span className="text-muted-foreground">
-                    Strategy{" "}
+                    {tr("Strategy", "策略")}{" "}
                     <span className={analysisCurve.strategyReturn >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                       {formatSigned(analysisCurve.strategyReturn)}%
                     </span>
                   </span>
                   <span className="text-muted-foreground">
-                    Benchmark{" "}
+                    {tr("Benchmark", "基准")}{" "}
                     <span className={analysisCurve.benchmarkReturn >= 0 ? "font-semibold text-sky-400" : "font-semibold text-rose-400"}>
                       {formatSigned(analysisCurve.benchmarkReturn)}%
                     </span>
                   </span>
                   <span className="text-muted-foreground">
-                    Excess{" "}
+                    {tr("Excess", "超额")}{" "}
                     <span className={analysisCurve.excessReturn >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                       {formatSigned(analysisCurve.excessReturn)}%
                     </span>
@@ -1049,10 +1072,10 @@ export default function TradeDetail() {
                       }}
                     >
                       <div className="font-mono text-muted-foreground">
-                        Strategy {analysisCurve.strategyValues[analysisCurveHoverIndex ?? 0].toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        {tr("Strategy", "策略")} {analysisCurve.strategyValues[analysisCurveHoverIndex ?? 0].toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </div>
                       <div className="mt-1 font-mono text-sky-300">
-                        Benchmark {analysisCurve.benchmarkValues[analysisCurveHoverIndex ?? 0].toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        {tr("Benchmark", "基准")} {analysisCurve.benchmarkValues[analysisCurveHoverIndex ?? 0].toLocaleString(undefined, { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                   ) : null}
@@ -1060,7 +1083,7 @@ export default function TradeDetail() {
 
                 <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
                   {analysisCurve.labels.map((label) => (
-                    <span key={label}>{label}</span>
+                    <span key={label}>{translateMonthLabel(label)}</span>
                   ))}
                 </div>
               </div>
@@ -1068,7 +1091,7 @@ export default function TradeDetail() {
 
             <section className="surface-card overflow-hidden p-0">
               <div className="border-b border-border/60 px-4 py-3">
-                <h2 className="text-sm font-semibold tracking-[0.08em] text-foreground">ASSET PREFERENCES</h2>
+                <h2 className="text-sm font-semibold tracking-[0.08em] text-foreground">{tr("Asset Preferences", "资产偏好")}</h2>
               </div>
               <div className="grid grid-cols-1 gap-5 p-4 sm:grid-cols-[0.95fr_1.05fr]">
                 <div className="flex items-center justify-center">
@@ -1105,7 +1128,7 @@ export default function TradeDetail() {
                     <div key={slice.label} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5">
                       <span className="flex items-center gap-2 text-muted-foreground">
                         <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: slice.color }} />
-                        {slice.label}
+                        {translatePreferenceLabel(slice.label)}
                       </span>
                       <span className="font-mono text-foreground">{slice.value.toFixed(2)}%</span>
                     </div>
@@ -1117,16 +1140,16 @@ export default function TradeDetail() {
 
           <section className="surface-card overflow-hidden p-0">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-              <h2 className="text-sm font-semibold tracking-[0.08em] text-foreground">DAILY RETURNS</h2>
+              <h2 className="text-sm font-semibold tracking-[0.08em] text-foreground">{tr("Daily Returns", "日收益")}</h2>
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span>
-                  Avg{" "}
+                  {tr("Avg", "均值")}{" "}
                   <span className={analysisReturnSummary.avg >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                     {formatSigned(analysisReturnSummary.avg)}%
                   </span>
                 </span>
-                <span className="font-medium text-emerald-400">W{analysisReturnSummary.wins}</span>
-                <span className="font-medium text-rose-400">L{analysisReturnSummary.losses}</span>
+                <span className="font-medium text-emerald-400">{tr("W", "胜")}{analysisReturnSummary.wins}</span>
+                <span className="font-medium text-rose-400">{tr("L", "负")}{analysisReturnSummary.losses}</span>
                 <div className="inline-flex rounded-lg border border-border/70 bg-accent/35 p-1">
                   {analysisRanges.map((item) => (
                     <button
@@ -1199,9 +1222,9 @@ export default function TradeDetail() {
           </section>
 
           <section className="surface-card overflow-hidden p-0">
-            <div className="border-b border-border/60 px-4 py-3">
-              <h2 className="text-sm font-semibold tracking-[0.08em] text-foreground">POSITION HISTORY</h2>
-            </div>
+              <div className="border-b border-border/60 px-4 py-3">
+              <h2 className="text-sm font-semibold tracking-[0.08em] text-foreground">{tr("Position History", "持仓历史")}</h2>
+              </div>
             <div className="space-y-3 p-4">
               {executionRows.map((row) => {
                 const isLong = row.side.includes("Long");
@@ -1215,7 +1238,7 @@ export default function TradeDetail() {
                         </span>
                         <ActionBadge action={row.side} />
                         <span className="inline-flex rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                          Closed
+                          {tr("Closed", "已平仓")}
                         </span>
                       </div>
                       <div className={`text-xl font-semibold ${isLong ? "text-emerald-400" : "text-rose-400"}`}>
@@ -1225,19 +1248,19 @@ export default function TradeDetail() {
                     </div>
                     <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
                       <div>
-                        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Entry Price</div>
+                        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Entry Price", "开仓价")}</div>
                         <div className="mt-1 font-mono text-foreground">{row.price}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Max Open Interest</div>
+                        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Max Open Interest", "最大持仓量")}</div>
                         <div className="mt-1 font-mono text-foreground">{row.qty}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Opened</div>
+                        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Opened", "开仓时间")}</div>
                         <div className="mt-1 font-mono text-foreground">{row.time}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Closed</div>
+                        <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Closed", "平仓时间")}</div>
                         <div className="mt-1 font-mono text-foreground">{row.time}</div>
                       </div>
                     </div>
@@ -1325,7 +1348,16 @@ function DetailListCard({
 }
 
 function ActionBadge({ action }: { action: FillRow["action"] }) {
+  const { uiLang } = useAppLanguage();
   const isLong = action.includes("Long");
+  const label =
+    uiLang === "zh"
+      ? action
+          .replace("Open Long", "开多")
+          .replace("Close Long", "平多")
+          .replace("Open Short", "开空")
+          .replace("Close Short", "平空")
+      : action;
   return (
     <span
       className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium ${
@@ -1334,7 +1366,7 @@ function ActionBadge({ action }: { action: FillRow["action"] }) {
           : "border-rose-500/30 bg-rose-500/10 text-rose-400"
       }`}
     >
-      {action}
+      {label}
     </span>
   );
 }

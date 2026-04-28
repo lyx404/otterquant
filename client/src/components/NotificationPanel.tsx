@@ -6,6 +6,7 @@
  */
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   Bell,
   Trophy,
@@ -63,6 +64,8 @@ const announcements = [
 
 export default function NotificationPanel() {
   const [, navigate] = useLocation();
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabType>("interactive");
   const interactiveNotifications = useMemo(
@@ -88,6 +91,78 @@ export default function NotificationPanel() {
     ],
     []
   );
+  const translateAnnouncement = (item: AnnouncementItem) => {
+    if (uiLang !== "zh") return item;
+    const map: Record<number, { title: string; message: string }> = {
+      101: {
+        title: "Alpha Arena 第 3 季现已开启",
+        message: "提交你最优秀的因子，角逐 5 万美元奖池。全新评估指标与更广泛的资产覆盖已上线。",
+      },
+      102: {
+        title: "平台维护已完成",
+        message: "所有系统已恢复在线，回测引擎性能提升 40%。",
+      },
+      103: {
+        title: "新功能：AI 因子挖掘",
+        message: "通过自然语言与内置 AI Agent 对话来创建因子。现在即可在启动指引中体验。",
+      },
+      104: {
+        title: "官方库已扩容",
+        message: "官方库新增 15 个毕业因子。浏览经过验证的交易信号，并将其用于你的策略。",
+      },
+    };
+    const translated = map[item.id];
+    return translated ? { ...item, ...translated } : item;
+  };
+  const translateInteractiveNotification = (item: Notification) => {
+    if (uiLang !== "zh") return item;
+    const map: Record<number, { title: string; message: string }> = {
+      1: {
+        title: "测试通过",
+        message: "BTC Momentum RSI Cross 已通过样本外测试，夏普比率为 1.15",
+      },
+      2: {
+        title: "奖励已发放",
+        message: "第 3 轮奖励已发放，你获得了 720 USDT",
+      },
+      3: {
+        title: "测试失败",
+        message: "DeFi TVL Alpha 未通过样本内测试，夏普比率低于阈值",
+      },
+      4: {
+        title: "奖励已发放",
+        message: "第 2 轮奖励已发放，你获得了 450 USDT",
+      },
+      5: {
+        title: "测试通过",
+        message: "Cross-Exchange Spread 已通过全部测试，夏普比率为 1.85",
+      },
+      6: {
+        title: "测试失败",
+        message: "Uniswap LP Flow 未通过样本外测试，回撤过高",
+      },
+      7: {
+        title: "奖励已发放",
+        message: "第 1 轮奖励已发放，你获得了 310 USDT",
+      },
+      8: {
+        title: "测试通过",
+        message: "OI Delta Momentum 已通过样本外测试，夏普比率为 1.55",
+      },
+    };
+    const translated = map[item.id];
+    return translated ? { ...item, ...translated } : item;
+  };
+  const translateTimeLabel = (value: string) => {
+    if (uiLang !== "zh") return value;
+    return value
+      .replace(" min ago", " 分钟前")
+      .replace(" mins ago", " 分钟前")
+      .replace(" hour ago", " 小时前")
+      .replace(" hours ago", " 小时前")
+      .replace(" day ago", " 天前")
+      .replace(" days ago", " 天前");
+  };
   const [readIds, setReadIds] = useState<Set<number>>(() => {
     const stored = localStorage.getItem("otter_read_notifications");
     return stored
@@ -162,7 +237,7 @@ export default function NotificationPanel() {
       <button
         onClick={() => setOpen(!open)}
         className="relative w-8 h-8 rounded-lg flex items-center justify-center border border-border hover:bg-accent transition-all duration-200 ease-in-out"
-        title="Notifications"
+        title={tr("Notifications", "通知")}
       >
         <Bell className="w-3.5 h-3.5 text-muted-foreground" />
         {totalUnread > 0 && (
@@ -180,14 +255,14 @@ export default function NotificationPanel() {
         >
           {/* Header */}
           <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-            <span className="text-sm font-semibold text-foreground">All Notifications</span>
+            <span className="text-sm font-semibold text-foreground">{tr("All Notifications", "全部通知")}</span>
             <div className="flex items-center gap-2">
               {currentUnread > 0 && (
                 <button
                   onClick={markAllRead}
                   className="text-[11px] text-primary hover:text-primary/80 font-medium transition-colors"
                 >
-                  Mark all read
+                  {tr("Mark all read", "全部标记为已读")}
                 </button>
               )}
               <button
@@ -211,7 +286,7 @@ export default function NotificationPanel() {
             >
               <span className="flex items-center justify-center gap-1.5">
                 <MessageCircle className="w-3 h-3" />
-                Interactive
+                {tr("Interactive", "互动消息")}
                 {unreadNotifCount > 0 && (
                   <span className="w-4 h-4 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center">
                     {unreadNotifCount}
@@ -229,7 +304,7 @@ export default function NotificationPanel() {
             >
               <span className="flex items-center justify-center gap-1.5">
                 <Megaphone className="w-3 h-3" />
-                Announcements
+                {tr("Announcements", "公告")}
                 {unreadAnnouncementCount > 0 && (
                   <span className="w-4 h-4 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center">
                     {unreadAnnouncementCount}
@@ -245,10 +320,11 @@ export default function NotificationPanel() {
               /* Interactive Messages */
               interactiveNotifications.length === 0 ? (
                 <div className="py-10 text-center text-xs text-muted-foreground">
-                  No messages yet
+                  {tr("No messages yet", "暂无消息")}
                 </div>
               ) : (
-                interactiveNotifications.map(n => {
+                interactiveNotifications.map(rawNotification => {
+                  const n = translateInteractiveNotification(rawNotification);
                   const isRead = readIds.has(n.id);
                   const isTestResult = n.type === "alpha_test_result";
                   const isPassed = n.testResult === "passed";
@@ -289,7 +365,7 @@ export default function NotificationPanel() {
                         <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
                           {n.message}
                         </p>
-                        <span className="text-[10px] text-muted-foreground/50 mt-1 block">{n.time}</span>
+                        <span className="text-[10px] text-muted-foreground/50 mt-1 block">{translateTimeLabel(n.time)}</span>
                       </div>
 
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 mt-2 shrink-0" />
@@ -301,10 +377,11 @@ export default function NotificationPanel() {
               /* Announcements */
               announcementItems.length === 0 ? (
                 <div className="py-10 text-center text-xs text-muted-foreground">
-                  No announcements
+                  {tr("No announcements", "暂无公告")}
                 </div>
               ) : (
-                announcementItems.map(a => {
+                announcementItems.map(rawItem => {
+                  const a = translateAnnouncement(rawItem);
                   const isRead = readAnnouncementIds.has(a.id);
 
                   return (
@@ -324,14 +401,14 @@ export default function NotificationPanel() {
                             {!isRead && (
                               <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                             )}
-                            <span className={`text-xs font-semibold ${!isRead ? "text-foreground" : "text-muted-foreground"}`}>
-                              {a.title}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                            {a.message}
-                          </p>
-                          <span className="text-[10px] text-muted-foreground/50 mt-1.5 block">{a.time}</span>
+                          <span className={`text-xs font-semibold ${!isRead ? "text-foreground" : "text-muted-foreground"}`}>
+                            {a.title}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                          {a.message}
+                        </p>
+                          <span className="text-[10px] text-muted-foreground/50 mt-1.5 block">{translateTimeLabel(a.time)}</span>
                         </div>
                       </div>
                     </div>

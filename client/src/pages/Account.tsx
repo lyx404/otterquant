@@ -302,7 +302,7 @@ export default function Account() {
 
   const handleCreateExchangeApi = useCallback(() => {
     if (!exchangeAccountName.trim() || !exchangeApiKey.trim() || !exchangeApiSecret.trim()) {
-      toast.error("Please complete all required fields.");
+      toast.error(tr("Please complete all required fields.", "请完整填写所有必填字段。"));
       return;
     }
     const now = new Date().toISOString().split("T")[0];
@@ -317,12 +317,16 @@ export default function Account() {
     setExchangeApiItems((prev) => [newExchangeItem, ...prev]);
     setShowCreateExchangeModal(false);
     resetExchangeCreateFlow();
-    toast.success(`${selectedExchangeVenue.toUpperCase()} API connected successfully.`);
-  }, [exchangeAccountName, exchangeApiKey, exchangeApiSecret, resetExchangeCreateFlow, selectedExchangeVenue]);
+    toast.success(
+      uiLang === "zh"
+        ? `${selectedExchangeVenue.toUpperCase()} API 已连接成功。`
+        : `${selectedExchangeVenue.toUpperCase()} API connected successfully.`
+    );
+  }, [exchangeAccountName, exchangeApiKey, exchangeApiSecret, resetExchangeCreateFlow, selectedExchangeVenue, tr, uiLang]);
 
   const handleSaveExchangeName = useCallback((id: string) => {
     if (!editExchangeNameValue.trim()) {
-      toast.error("Name cannot be empty");
+      toast.error(tr("Name cannot be empty", "名称不能为空"));
       return;
     }
     setExchangeApiItems((prev) =>
@@ -332,13 +336,13 @@ export default function Account() {
     );
     setEditingExchangeNameId(null);
     setEditExchangeNameValue("");
-    toast.success("Exchange account name updated");
-  }, [editExchangeNameValue]);
+    toast.success(tr("Exchange account name updated", "交易所账户名称已更新"));
+  }, [editExchangeNameValue, tr]);
 
   const handleDeleteExchangeApi = useCallback((id: string) => {
     setExchangeApiItems((prev) => prev.filter((item) => item.id !== id));
-    toast.success("Exchange API deleted");
-  }, []);
+    toast.success(tr("Exchange API deleted", "交易所 API 已删除"));
+  }, [tr]);
 
   // API Key actions
   const handleCreateApi = useCallback(() => {
@@ -616,7 +620,7 @@ export default function Account() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        if (file.size > 2 * 1024 * 1024) { toast.error("Image must be less than 2MB"); return; }
+                        if (file.size > 2 * 1024 * 1024) { toast.error(tr("Image must be less than 2MB", "图片大小必须小于 2MB")); return; }
                         const reader = new FileReader();
                         reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
                         reader.readAsDataURL(file);
@@ -830,7 +834,7 @@ export default function Account() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Link2 className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">Connected Exchanges</span>
+                  <span className="text-base font-semibold text-foreground">{tr("Connected Exchanges", "已连接交易所")}</span>
                   <span className="text-xs text-muted-foreground ml-1">({exchangeApiItems.length})</span>
                 </div>
                 <button
@@ -838,7 +842,7 @@ export default function Account() {
                   onClick={handleOpenExchangeModal}
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  New Exchange API
+                  {tr("New Exchange API", "新建交易所 API")}
                 </button>
               </div>
             </div>
@@ -847,9 +851,9 @@ export default function Account() {
               {exchangeApiItems.length === 0 ? (
                 <div className="text-center py-12">
                   <Link2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">No exchange API connected</p>
+                  <p className="text-sm text-muted-foreground">{tr("No exchange API connected", "尚未连接交易所 API")}</p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    Add a venue connection to enable live execution and account sync.
+                    {tr("Add a venue connection to enable live execution and account sync.", "添加交易所连接后即可启用实盘执行与账户同步。")}
                   </p>
                 </div>
               ) : (
@@ -882,7 +886,7 @@ export default function Account() {
                                   onClick={() => handleSaveExchangeName(item.id)}
                                 >
                                   <Check className="w-3 h-3" />
-                                  Save
+                                  {tr("Save", "保存")}
                                 </button>
                                 <button
                                   className="h-7 text-xs px-2 rounded-full flex items-center transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
@@ -900,7 +904,7 @@ export default function Account() {
                                     setEditingExchangeNameId(item.id);
                                     setEditExchangeNameValue(item.accountName);
                                   }}
-                                  title="Edit"
+                                  title={tr("Edit", "编辑")}
                                 >
                                   <Pencil className="w-3 h-3" />
                                 </button>
@@ -911,7 +915,7 @@ export default function Account() {
                             <button
                               className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                               onClick={() => setExchangeMoreMenuId(exchangeMoreMenuId === item.id ? null : item.id)}
-                              title="More options"
+                              title={tr("More options", "更多操作")}
                             >
                               <MoreHorizontal className="w-3.5 h-3.5" />
                             </button>
@@ -925,7 +929,7 @@ export default function Account() {
                                   }}
                                 >
                                   <Trash2 className="w-3 h-3" />
-                                  Delete Exchange API
+                                  {tr("Delete Exchange API", "删除交易所 API")}
                                 </button>
                               </div>
                             )}
@@ -934,7 +938,7 @@ export default function Account() {
 
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-16 shrink-0">
-                            Venue
+                            {tr("Venue", "交易所")}
                           </span>
                           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 text-xs text-foreground">
                             <span className={item.venue === "binance" ? "text-amber-400 font-semibold" : "text-foreground font-semibold"}>
@@ -945,7 +949,7 @@ export default function Account() {
 
                         <div className="flex items-center gap-2 mb-2">
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-16 shrink-0">
-                            API Key
+                            {tr("API Key", "API 密钥")}
                           </span>
                           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 flex-1 min-w-0">
                             <code className="font-mono text-xs text-primary truncate flex-1">
@@ -954,7 +958,7 @@ export default function Account() {
                             <button
                               onClick={() => toggleKeyVisibility(item.id)}
                               className="p-0.5 text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                              title={keyVisible ? "Hide API Key" : "Show API Key"}
+                              title={keyVisible ? tr("Hide API Key", "隐藏 API 密钥") : tr("Show API Key", "显示 API 密钥")}
                             >
                               {keyVisible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                             </button>
@@ -1027,7 +1031,7 @@ export default function Account() {
                                 onClick={() => handleSaveName(item.id)}
                               >
                                 <Check className="w-3 h-3" />
-                                Save
+                                {tr("Save", "保存")}
                               </button>
                               <button
                                 className="h-7 text-xs px-2 rounded-full flex items-center transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
@@ -1055,7 +1059,7 @@ export default function Account() {
                             <button
                               className="h-7 w-7 rounded-full flex items-center justify-center transition-all duration-200 border border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                               onClick={() => setMoreMenuId(moreMenuId === item.id ? null : item.id)}
-                              title="More options"
+                              title={tr("More options", "更多操作")}
                             >
                               <MoreHorizontal className="w-3.5 h-3.5" />
                             </button>
@@ -1160,7 +1164,7 @@ export default function Account() {
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-base font-semibold text-foreground">
-                  {exchangeCreateStep === 1 ? "Add Exchange API" : "Configure API Credentials"}
+                  {exchangeCreateStep === 1 ? tr("Add Exchange API", "添加交易所 API") : tr("Configure API Credentials", "配置 API 凭证")}
                 </h3>
                 <button
                   className="w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-accent border border-transparent hover:border-border"
@@ -1175,14 +1179,14 @@ export default function Account() {
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                     exchangeCreateStep >= 1 ? "border-primary bg-primary/10" : "border-border"
                   }`}>1</div>
-                  <span className="text-xs font-medium">Select Venue</span>
+                  <span className="text-xs font-medium">{tr("Select Venue", "选择交易所")}</span>
                 </div>
                 <div className={`flex-1 h-px ${exchangeCreateStep >= 2 ? "bg-primary" : "bg-border"}`} />
                 <div className={`flex items-center gap-2 ${exchangeCreateStep >= 2 ? "text-primary" : "text-muted-foreground"}`}>
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
                     exchangeCreateStep >= 2 ? "border-primary bg-primary/10" : "border-border"
                   }`}>2</div>
-                  <span className="text-xs font-medium">API Configuration</span>
+                  <span className="text-xs font-medium">{tr("API Configuration", "API 配置")}</span>
                 </div>
               </div>
             </div>
@@ -1190,7 +1194,7 @@ export default function Account() {
             {exchangeCreateStep === 1 && (
               <div className="px-6 pb-6 space-y-4">
                 <p className="text-xs text-muted-foreground">
-                  Choose an exchange venue to connect your trading account.
+                  {tr("Choose an exchange venue to connect your trading account.", "选择一个交易所来连接你的交易账户。")}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
@@ -1237,7 +1241,7 @@ export default function Account() {
                     className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                     onClick={() => setExchangeCreateStep(2)}
                   >
-                    Continue
+                    {tr("Continue", "继续")}
                   </button>
                 </div>
               </div>
@@ -1246,31 +1250,31 @@ export default function Account() {
             {exchangeCreateStep === 2 && (
               <div className="px-6 pb-6 space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Account Name *</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{tr("Account Name", "账户名称")} *</Label>
                   <Input
                     value={exchangeAccountName}
                     onChange={(e) => setExchangeAccountName(e.target.value)}
-                    placeholder="e.g., Primary Futures Account"
+                    placeholder={tr("e.g., Primary Futures Account", "例如：主力合约账户")}
                     className="rounded-lg bg-accent border-border"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">API Key *</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{tr("API Key", "API 密钥")} *</Label>
                   <Input
                     value={exchangeApiKey}
                     onChange={(e) => setExchangeApiKey(e.target.value)}
-                    placeholder="Enter your API key"
+                    placeholder={tr("Enter your API key", "输入你的 API 密钥")}
                     className="rounded-lg bg-accent border-border"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">API Secret *</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{tr("API Secret", "API Secret")} *</Label>
                   <Input
                     value={exchangeApiSecret}
                     onChange={(e) => setExchangeApiSecret(e.target.value)}
-                    placeholder="Enter your API secret"
+                    placeholder={tr("Enter your API secret", "输入你的 API Secret")}
                     className="rounded-lg bg-accent border-border"
                   />
                 </div>
@@ -1279,15 +1283,14 @@ export default function Account() {
                   <div className="flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-foreground">Security Best Practices</p>
+                      <p className="text-sm font-medium text-foreground">{tr("Security Best Practices", "安全最佳实践")}</p>
                       <p className="mt-2 text-sm text-muted-foreground">
-                        API credentials are encrypted at rest. Do not enable withdrawal permissions.
-                        Trade and read-only scopes are sufficient for strategy execution and monitoring.
+                        {tr("API credentials are encrypted at rest. Do not enable withdrawal permissions. Trade and read-only scopes are sufficient for strategy execution and monitoring.", "API 凭证会以加密形式存储。请勿开启提币权限。仅开启交易与只读权限即可满足策略执行与监控需求。")}
                       </p>
                       <ul className="mt-2 text-sm text-muted-foreground space-y-1">
-                        <li>Disable withdrawal permissions.</li>
-                        <li>Restrict API access by IP whitelist.</li>
-                        <li>Rotate API credentials periodically.</li>
+                        <li>{tr("Disable withdrawal permissions.", "关闭提币权限。")}</li>
+                        <li>{tr("Restrict API access by IP whitelist.", "通过 IP 白名单限制 API 访问。")}</li>
+                        <li>{tr("Rotate API credentials periodically.", "定期轮换 API 凭证。")}</li>
                       </ul>
                     </div>
                   </div>
@@ -1298,13 +1301,13 @@ export default function Account() {
                     className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 border border-border text-muted-foreground hover:text-foreground"
                     onClick={() => setExchangeCreateStep(1)}
                   >
-                    Back
+                    {tr("Back", "返回")}
                   </button>
                   <button
                     className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
                     onClick={handleCreateExchangeApi}
                   >
-                    Add Exchange API
+                    {tr("Add Exchange API", "添加交易所 API")}
                   </button>
                 </div>
               </div>
