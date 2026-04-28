@@ -101,7 +101,7 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
             </Link>
             <div className="mt-2 flex items-center gap-2">
               <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusClass}`}>
-                {isGraduated ? tr("Graduated", "毕业") : tr("Official", "官方")}
+                {isGraduated ? tr("Graduated", "三方") : tr("Official", "官方")}
               </span>
               {!isBeginnerMode && (
                 <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
@@ -205,7 +205,7 @@ export default function OfficialLibrary() {
   const tabs: { key: CategoryFilter; label: string }[] = [
     { key: "all", label: tr("All", "全部") },
     { key: "official", label: tr("Official", "官方") },
-    { key: "graduated", label: tr("Graduated", "毕业") },
+    { key: "graduated", label: tr("Graduated", "三方") },
   ];
 
   return (
@@ -248,7 +248,7 @@ export default function OfficialLibrary() {
               <span className="mx-1.5 text-primary/60">&rarr;</span>
               {tr("Submit to competition", "提交到竞赛")}
               <span className="mx-1.5 text-primary/60">&rarr;</span>
-              {tr("Top factors graduate to official library", "优秀因子毕业进入官方库")}
+              {tr("Top factors graduate to official library", "优秀因子进入官方库")}
               <span className="mx-1.5 text-primary/60">&rarr;</span>
               {tr("Others use them in strategies", "其他人将它们用于策略")}
               <span className="mx-1.5 text-primary/60">&rarr;</span>

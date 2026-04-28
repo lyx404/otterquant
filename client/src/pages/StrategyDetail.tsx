@@ -27,6 +27,7 @@ import {
   type ExchangeApiConnection,
 } from "@/lib/exchangeApiConnections";
 import { deployStrategyToTrade, getStrategyDeployment } from "@/lib/tradeDeployments";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 import {
   Activity,
@@ -329,6 +330,8 @@ function DashboardPanel({
 }
 
 export default function StrategyDetail() {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
@@ -355,7 +358,6 @@ export default function StrategyDetail() {
     updatedAt: "2026-04-17",
     tags: ["Draft"],
   };
-
   const [starred, setStarred] = useState(false);
   const [deploymentVersion, setDeploymentVersion] = useState(0);
   const [curveRange, setCurveRange] = useState<CurveRange>("365D");
@@ -768,7 +770,7 @@ export default function StrategyDetail() {
     strategyTier === "official"
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
       : "border-sky-500/30 bg-sky-500/10 text-sky-400";
-  const tierBadgeLabel = strategyTier === "official" ? "Official" : "Graduated";
+  const tierBadgeLabel = strategyTier === "official" ? tr("Official", "官方") : tr("Graduated", "三方");
   const activeSlice = preferenceSlices[activePreference];
 
   return (
@@ -784,10 +786,10 @@ export default function StrategyDetail() {
             }
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back
+            {tr("Back", "返回")}
           </Button>
           <h1 className="mt-3 text-foreground">
-            {isOfficialLibraryView ? strategyName : `${strategyName} Backtest`}
+            {isOfficialLibraryView ? strategyName : `${strategyName} ${tr("Backtest", "回测")}`}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {isOfficialLibraryView ? (
@@ -802,7 +804,7 @@ export default function StrategyDetail() {
               className="h-7 rounded-full border-border/70 bg-card px-3 text-[11px] font-medium text-foreground hover:bg-accent"
               onClick={() => setIsStrategyConfigOpen(true)}
             >
-              View Strategy Configuration
+              {tr("View Strategy Configuration", "查看策略配置")}
             </Button>
           </div>
         </div>
@@ -817,7 +819,7 @@ export default function StrategyDetail() {
                 )
               }
             >
-              Use Template
+              {tr("Use Template", "使用模板")}
             </Button>
           ) : (
             <>
@@ -826,9 +828,9 @@ export default function StrategyDetail() {
                 className="h-10 w-10 rounded-full border-border/80 bg-card p-0 text-foreground hover:bg-accent"
                 onClick={() => {
                   setStarred((prev) => !prev);
-                  toast.success(starred ? "Removed from favorites" : "Added to favorites");
+                  toast.success(starred ? tr("Removed from favorites", "已取消收藏") : tr("Added to favorites", "已加入收藏"));
                 }}
-                aria-label={starred ? "Unfavorite strategy" : "Favorite strategy"}
+                aria-label={starred ? tr("Unfavorite strategy", "取消收藏策略") : tr("Favorite strategy", "收藏策略")}
               >
                 <Star className={`h-4 w-4 ${starred ? "fill-current text-amber-400" : ""}`} />
               </Button>
@@ -842,7 +844,7 @@ export default function StrategyDetail() {
                   deployStrategy("paper");
                 }}
               >
-                {paperDeployment ? "View Paper Trade" : "Deploy to Paper Trading"}
+                {paperDeployment ? tr("View Paper Trade", "查看模拟交易") : tr("Deploy to Paper Trading", "部署到模拟交易")}
               </Button>
               <Button
                 variant="outline"
@@ -855,7 +857,7 @@ export default function StrategyDetail() {
                   openLiveDeployModal();
                 }}
               >
-                {liveDeployment ? "View Live Trade" : "Deploy to Live Trading"}
+                {liveDeployment ? tr("View Live Trade", "查看实盘交易") : tr("Deploy to Live Trading", "部署到实盘交易")}
               </Button>
             </>
           )}
@@ -865,49 +867,49 @@ export default function StrategyDetail() {
       <section className="surface-card space-y-6 p-6">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           <TopMetric
-            label="Total Equity (USDT)"
+            label={tr("Total Equity (USDT)", "总权益（USDT）")}
             value={currentEquity.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
           />
           <TopMetric
-            label="PnL (USDT)"
+            label={tr("PnL (USDT)", "PnL（USDT）")}
             value={fmtSigned(totalReturn)}
             tone={totalReturn >= 0 ? "positive" : "negative"}
           />
           <TopMetric
-            label="ROI"
+            label={tr("ROI", "ROI")}
             value={`${fmtSigned(returnRate)}%`}
             tone={returnRate >= 0 ? "positive" : "negative"}
           />
           <TopMetric
-            label="Win Rate"
+            label={tr("Win Rate", "胜率")}
             value={`${winRate.toFixed(2)}%`}
             tone={winRate >= 50 ? "positive" : "neutral"}
           />
           <TopMetric
-            label="Sharpe"
+            label={tr("Sharpe", "夏普比率")}
             value={strategy.sharpe.toFixed(2)}
             tone={strategy.sharpe >= 1 ? "positive" : "neutral"}
           />
           <TopMetric
-            label="Max Drawdown"
+            label={tr("Max Drawdown", "最大回撤")}
             value={`${Math.abs(drawdownPct).toFixed(2)}%`}
             tone="negative"
           />
         </div>
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-          <DetailListCard title="Fund Snapshot" icon={Wallet} rows={fundRows} />
-          <DetailListCard title="Performance Metrics" icon={TrendingUp} rows={perfRows} />
-          <DetailListCard title="Trade Statistics" icon={ClipboardList} rows={tradeRows} />
+          <DetailListCard title={tr("Fund Snapshot", "资金快照")} icon={Wallet} rows={fundRows} />
+          <DetailListCard title={tr("Performance Metrics", "表现指标")} icon={TrendingUp} rows={perfRows} />
+          <DetailListCard title={tr("Trade Statistics", "交易统计")} icon={ClipboardList} rows={tradeRows} />
         </div>
       </section>
 
       <div className="grid grid-cols-1 gap-5">
         <DashboardPanel
-          title="Asset Curve"
+          title={tr("Asset Curve", "资产曲线")}
           icon={BarChart3}
           actions={
             <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
@@ -934,22 +936,22 @@ export default function StrategyDetail() {
           <div className="flex h-full min-h-[440px] flex-col gap-4">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
               <span className="text-muted-foreground">
-                Total Return{" "}
+                {tr("Total Return", "总收益")}{" "}
                 <span className={curveStats.total >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                   {fmtSigned(curveStats.total)}%
                 </span>
               </span>
               <span className="text-muted-foreground">
-                Excess Return{" "}
+                {tr("Excess Return", "超额收益")}{" "}
                 <span className={curveStats.excess >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                   {fmtSigned(curveStats.excess)}%
                 </span>
               </span>
               <span className="text-muted-foreground">
-                Sharpe <span className="font-semibold text-foreground">{strategy.sharpe.toFixed(2)}</span>
+                {tr("Sharpe", "夏普比率")} <span className="font-semibold text-foreground">{strategy.sharpe.toFixed(2)}</span>
               </span>
               <span className="text-muted-foreground">
-                Calmar <span className="font-semibold text-foreground">{calmar.toFixed(2)}</span>
+                {tr("Calmar", "Calmar")} <span className="font-semibold text-foreground">{calmar.toFixed(2)}</span>
               </span>
             </div>
 
@@ -1057,7 +1059,7 @@ export default function StrategyDetail() {
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[#F0C13B]" />
-                    <span className="text-muted-foreground">Equity</span>
+                    <span className="text-muted-foreground">{tr("Equity", "权益")}</span>
                     <span className="font-semibold text-foreground">
                       {curveChart.equityValues[curveHoverIndex].toLocaleString(undefined, {
                         maximumFractionDigits: 0,
@@ -1066,7 +1068,7 @@ export default function StrategyDetail() {
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[#6E82F6]" />
-                    <span className="text-muted-foreground">Benchmark</span>
+                    <span className="text-muted-foreground">{tr("Benchmark", "基准")}</span>
                     <span className="font-semibold text-foreground">
                       {curveChart.benchmarkValues[curveHoverIndex].toLocaleString(undefined, {
                         maximumFractionDigits: 0,
@@ -1085,7 +1087,7 @@ export default function StrategyDetail() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Asset Preferences" icon={PieChart}>
+        <DashboardPanel title={tr("Asset Preferences", "资产偏好")} icon={PieChart}>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.85fr_1.15fr]">
             <div className="flex items-center justify-center">
               <div className="relative h-[260px] w-[260px]">
@@ -1120,9 +1122,9 @@ export default function StrategyDetail() {
                   })()}
                 </svg>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Top Asset</div>
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{tr("Top Asset", "核心资产")}</div>
                   <div className="mt-1 text-2xl font-semibold text-foreground">{activeSlice.label}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{activeSlice.value.toFixed(2)}% allocation</div>
+                  <div className="mt-1 text-sm text-muted-foreground">{activeSlice.value.toFixed(2)}% {tr("allocation", "仓位占比")}</div>
                 </div>
               </div>
             </div>
@@ -1153,18 +1155,18 @@ export default function StrategyDetail() {
       </div>
 
       <DashboardPanel
-        title="Daily Returns"
+        title={tr("Daily Returns", "日收益")}
         icon={Activity}
         actions={
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>
-              Avg{" "}
+              {tr("Avg", "均值")}{" "}
               <span className={returnSummary.avg >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                 {fmtSigned(returnSummary.avg, 3)}%
               </span>
             </span>
-            <span className="font-medium text-emerald-400">W{returnSummary.wins}</span>
-            <span className="font-medium text-rose-400">L{returnSummary.losses}</span>
+            <span className="font-medium text-emerald-400">{tr("W", "胜")}{returnSummary.wins}</span>
+            <span className="font-medium text-rose-400">{tr("L", "负")}{returnSummary.losses}</span>
             <div className="ml-1 flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
               {curveRanges.map((option) => (
                 <button
@@ -1282,7 +1284,7 @@ export default function StrategyDetail() {
         </div>
       </DashboardPanel>
 
-      <DashboardPanel title="Position History" icon={BriefcaseBusiness}>
+      <DashboardPanel title={tr("Position History", "持仓历史")} icon={BriefcaseBusiness}>
         <div className="space-y-3">
           {positionHistory.map((position) => (
             <article
@@ -1341,21 +1343,21 @@ export default function StrategyDetail() {
         <DialogContent className="max-w-2xl border-border bg-card p-0 text-foreground">
           <>
               <DialogHeader className="border-b border-border/60 px-6 py-5">
-                <DialogTitle>Deploy Strategy to Live Trading</DialogTitle>
+                <DialogTitle>{tr("Deploy Strategy to Live Trading", "部署到实盘交易")}</DialogTitle>
               </DialogHeader>
 
               <div className="space-y-5 px-6 py-5">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                      Exchange
+                      {tr("Exchange", "交易所")}
                     </p>
                     <button
                       type="button"
                       className="text-xs text-primary hover:text-primary/80"
                       onClick={goToExchangeApi}
                     >
-                      Manage Connections
+                      {tr("Manage Connections", "管理连接")}
                     </button>
                   </div>
 
@@ -1367,9 +1369,9 @@ export default function StrategyDetail() {
                             <Unplug className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground">No Exchange API Connected</p>
+                            <p className="text-sm font-medium text-foreground">{tr("No Exchange API Connected", "未连接交易所 API")}</p>
                             <p className="text-xs text-muted-foreground">
-                              Connect an exchange API account to enable live deployment.
+                              {tr("Connect an exchange API account to enable live deployment.", "连接交易所 API 账户后即可启用实盘部署。")}
                             </p>
                           </div>
                         </div>
@@ -1379,14 +1381,14 @@ export default function StrategyDetail() {
                           className="h-8 shrink-0 rounded-full border-border bg-card px-3 text-xs"
                           onClick={goToExchangeApi}
                         >
-                          Connect Exchange
+                          {tr("Connect Exchange", "连接交易所")}
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <Select value={selectedExchangeApiId} onValueChange={setSelectedExchangeApiId}>
                       <SelectTrigger className="h-11 w-full border-border/70 bg-background/35 text-foreground">
-                        <SelectValue placeholder="Select exchange account" />
+                        <SelectValue placeholder={tr("Select exchange account", "选择交易所账户")} />
                       </SelectTrigger>
                       <SelectContent className="border-border bg-card text-foreground">
                         {connectedExchangeApis.map((exchange) => {
@@ -1411,7 +1413,7 @@ export default function StrategyDetail() {
 
                 <div className="space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Base Capital
+                    {tr("Base Capital", "基础资金")}
                   </p>
                   <div className="flex items-center gap-2">
                     <Input
@@ -1429,11 +1431,11 @@ export default function StrategyDetail() {
                   </div>
                   {isCapitalBelowMinimum ? (
                     <p className="text-xs text-rose-400">
-                      Minimum activation capital is 100 USDT. Deployment cannot be initiated below this threshold.
+                      {tr("Minimum activation capital is 100 USDT. Deployment cannot be initiated below this threshold.", "最低启用资金为 100 USDT，低于该阈值无法发起部署。")}
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Minimum activation capital: 100 USDT.
+                      {tr("Minimum activation capital: 100 USDT.", "最低启用资金：100 USDT。")}
                     </p>
                   )}
                 </div>
@@ -1445,14 +1447,14 @@ export default function StrategyDetail() {
                   className="h-9 rounded-full border-border bg-card px-4 text-xs"
                   onClick={() => setIsLiveDeployOpen(false)}
                 >
-                  Cancel
+                  {tr("Cancel", "取消")}
                 </Button>
                 <Button
                   className="h-9 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90"
                   disabled={!canSubmitLiveDeploy}
                   onClick={submitLiveDeployment}
                 >
-                  Submit Live Deployment
+                  {tr("Submit Live Deployment", "提交实盘部署")}
                 </Button>
               </div>
             </>
@@ -1462,13 +1464,13 @@ export default function StrategyDetail() {
       <Dialog open={isStrategyConfigOpen} onOpenChange={setIsStrategyConfigOpen}>
         <DialogContent className="max-w-3xl border-border bg-card p-0 text-foreground">
           <DialogHeader className="border-b border-border/60 px-6 py-4">
-            <DialogTitle>Strategy Configuration</DialogTitle>
+            <DialogTitle>{tr("Strategy Configuration", "策略配置")}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 px-6 py-4">
             <section className="space-y-2">
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Configuration
+                {tr("Configuration", "配置")}
               </p>
               <div className="grid grid-cols-1 gap-2 rounded-2xl border border-border/60 bg-background/25 p-3 sm:grid-cols-2">
                 {strategyConfigRows.map((row) => (
@@ -1532,7 +1534,7 @@ export default function StrategyDetail() {
               className="h-9 rounded-full border-border bg-card px-4 text-xs"
               onClick={() => setIsStrategyConfigOpen(false)}
             >
-              Close
+                  {tr("Close", "关闭")}
             </Button>
           </div>
         </DialogContent>

@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { strategies } from "@/lib/mockData";
 import { parsePercent } from "@/lib/strategyUtils";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   ArrowUpDown,
   ArrowUpRight,
@@ -140,21 +141,28 @@ function StrategyCard({
   starred,
   onToggleStar,
   visibleMetrics,
+  uiLang,
 }: {
   row: StrategyViewRow;
   starred: boolean;
   onToggleStar: () => void;
   visibleMetrics: Record<MetricKey, boolean>;
+  uiLang: "en" | "zh";
 }) {
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   return (
     <div className="surface-card overflow-hidden border border-border/70">
       <div className="border-b border-border/50 px-5 py-4">
         <p className="text-lg font-semibold leading-7 text-foreground">{row.name}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className={`inline-flex h-[25px] items-center rounded-full border px-[11px] py-[5px] text-[10px] font-semibold uppercase tracking-[0.18em] ${row.statusClass}`}>
-            {row.statusLabel}
+            {row.statusLabel === "Live Trading"
+              ? tr("Live Trading", "实盘交易")
+              : row.statusLabel === "Paper Trading"
+                ? tr("Paper Trading", "模拟交易")
+                : tr("Backtest", "回测")}
           </span>
-          <span className="text-xs text-muted-foreground">Updated:{row.updatedAt}</span>
+          <span className="text-xs text-muted-foreground">{tr("Updated", "更新于")}:{row.updatedAt}</span>
           <span className="text-xs text-muted-foreground">ID:{row.id}</span>
         </div>
       </div>
@@ -164,9 +172,9 @@ function StrategyCard({
 
         <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
           {visibleMetrics.roi ? <MetricBox label="ROI" value={row.roi} tone="positive" /> : null}
-          {visibleMetrics.winRate ? <MetricBox label="Win Rate" value={row.winRate} tone="positive" /> : null}
-          {visibleMetrics.sharpe ? <MetricBox label="Sharpe" value={row.sharpe} tone="positive" /> : null}
-          {visibleMetrics.maxDrawdown ? <MetricBox label="Max Drawdown" value={row.maxDrawdown} tone="negative" /> : null}
+          {visibleMetrics.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} tone="positive" /> : null}
+          {visibleMetrics.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} tone="positive" /> : null}
+          {visibleMetrics.maxDrawdown ? <MetricBox label={tr("Max Drawdown", "最大回撤")} value={row.maxDrawdown} tone="negative" /> : null}
         </div>
 
         <div className="mt-3 flex items-center justify-end gap-2">
@@ -178,14 +186,14 @@ function StrategyCard({
                 : "border-border/60 bg-background/30 text-[#ffb900] hover:border-[#ffb900]/50"
             }`}
             onClick={onToggleStar}
-            aria-label="Toggle favorite"
+            aria-label={tr("Toggle favorite", "切换收藏")}
           >
             <Star className={`h-[14px] w-[14px] ${starred ? "fill-current" : ""}`} />
           </button>
 
           <Link href={`/strategies/${row.id}`}>
             <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-[#020617] hover:bg-primary/90">
-              View
+              {tr("View", "查看")}
               <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           </Link>
@@ -196,6 +204,7 @@ function StrategyCard({
 }
 
 export default function MyStrategies() {
+  const { uiLang } = useAppLanguage();
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("updated");
   const [sortDesc, setSortDesc] = useState(true);
@@ -207,6 +216,7 @@ export default function MyStrategies() {
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [visibleMetrics, setVisibleMetrics] = useState<Record<MetricKey, boolean>>(defaultVisibleMetrics);
   const [starred, setStarred] = useState<Set<string>>(new Set(["STR-463", "STR-470"]));
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
@@ -332,11 +342,11 @@ export default function MyStrategies() {
   return (
     <div className="space-y-6 min-w-0">
       <div className="flex items-start justify-between gap-4">
-        <h1 className="text-foreground">My Strategy</h1>
+          <h1 className="text-foreground">{tr("My Strategy", "我的策略")}</h1>
         <Link href="/strategies/new?creationMode=platform&scale=single">
           <Button className="h-10 rounded-full bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90">
             <Plus className="mr-1 h-3.5 w-3.5" />
-            New Strategy
+            {tr("New Strategy", "新建策略")}
           </Button>
         </Link>
       </div>
@@ -362,7 +372,13 @@ export default function MyStrategies() {
             <div className="mb-2 flex items-center gap-2 label-upper">
               {item.icon}
               <p className={`${item.labelClass}`}>
-                {item.label}
+                {item.label === "Total"
+                  ? tr("Total", "总数")
+                  : item.label === "My Favorites"
+                    ? tr("My Favorites", "我的收藏")
+                    : item.label === "Paper Trading"
+                      ? tr("Paper Trading", "模拟交易")
+                      : tr("Live Trading", "实盘交易")}
               </p>
             </div>
             <p className={`stat-value text-2xl font-bold ${item.tone}`}>{item.value}</p>
@@ -376,7 +392,7 @@ export default function MyStrategies() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name or ID..."
+              placeholder={tr("Search by name or ID...", "按名称或 ID 搜索...")}
             className="h-8 w-full rounded-xl border border-border bg-accent/30 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
           />
         </div>
@@ -389,7 +405,7 @@ export default function MyStrategies() {
               onClick={() => setShowSortMenu((prev) => !prev)}
             >
               <ArrowUpDown className="h-3.5 w-3.5" />
-              Sort
+              {tr("Sort", "排序")}
             </button>
 
             {showSortMenu ? (
@@ -410,7 +426,17 @@ export default function MyStrategies() {
                       }
                     }}
                   >
-                    <span>{sortLabels[key]}</span>
+                    <span>
+                      {key === "updated"
+                        ? tr("Updated Time", "更新时间")
+                        : key === "name"
+                          ? tr("Name", "名称")
+                          : key === "roi"
+                            ? "ROI"
+                            : key === "winRate"
+                              ? tr("Win Rate", "胜率")
+                              : tr("Sharpe", "夏普比率")}
+                    </span>
                     {sortKey === key ? <span>{sortDesc ? "DESC" : "ASC"}</span> : null}
                   </button>
                 ))}
@@ -425,16 +451,16 @@ export default function MyStrategies() {
               onClick={() => setShowColumnsMenu((prev) => !prev)}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-              Columns
+                {tr("Columns", "列")}
             </button>
 
             {showColumnsMenu ? (
               <div className="surface-elevated absolute right-0 z-40 mt-2 w-44 p-2">
                 {([
                   { key: "roi", label: "ROI" },
-                  { key: "winRate", label: "Win Rate" },
-                  { key: "sharpe", label: "Sharpe" },
-                  { key: "maxDrawdown", label: "Max Drawdown" },
+                  { key: "winRate", label: tr("Win Rate", "胜率") },
+                  { key: "sharpe", label: tr("Sharpe", "夏普比率") },
+                  { key: "maxDrawdown", label: tr("Max Drawdown", "最大回撤") },
                 ] as Array<{ key: MetricKey; label: string }>).map((item) => (
                   <label key={item.key} className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
                     <span>{item.label}</span>
@@ -496,6 +522,7 @@ export default function MyStrategies() {
                 })
               }
               visibleMetrics={visibleMetrics}
+              uiLang={uiLang}
             />
           ))}
         </div>
@@ -506,14 +533,14 @@ export default function MyStrategies() {
               <thead className="border-b border-border/60">
                 <tr>
                   <th className="w-10 px-3 py-3" />
-                  <th className="px-5 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Name</th>
-                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Status</th>
-                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Updated</th>
+                  <th className="px-5 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Name", "名称")}</th>
+                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Status", "状态")}</th>
+                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Updated", "更新于")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">ROI</th>
-                  <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Win Rate</th>
-                  <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Sharpe</th>
-                  <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Max Drawdown</th>
-                  <th className="px-5 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Action</th>
+                  <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Win Rate", "胜率")}</th>
+                  <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Sharpe", "夏普比率")}</th>
+                  <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Max Drawdown", "最大回撤")}</th>
+                  <th className="px-5 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Action", "操作")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -536,7 +563,7 @@ export default function MyStrategies() {
                           })
                         }
                         className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-[#ffb900]"
-                        aria-label="Toggle favorite"
+                        aria-label={tr("Toggle favorite", "切换收藏")}
                       >
                         <Star
                           className={`h-3.5 w-3.5 ${starred.has(row.id) ? "fill-[#ffb900] text-[#ffb900]" : ""}`}
@@ -549,7 +576,11 @@ export default function MyStrategies() {
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${row.statusClass}`}>
-                        {row.statusLabel}
+                        {row.statusLabel === "Live Trading"
+                          ? tr("Live Trading", "实盘交易")
+                          : row.statusLabel === "Paper Trading"
+                            ? tr("Paper Trading", "模拟交易")
+                            : tr("Backtest", "回测")}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-xs text-muted-foreground">{row.updatedAt}</td>
@@ -560,7 +591,7 @@ export default function MyStrategies() {
                     <td className="px-5 py-4 text-right">
                       <Link href={`/strategies/${row.id}`}>
                         <Button className="h-8 rounded-full bg-primary px-4 text-xs text-[#020617] hover:bg-primary/90">
-                          View
+                          {tr("View", "查看")}
                           <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                         </Button>
                       </Link>
@@ -570,7 +601,7 @@ export default function MyStrategies() {
                 {paginated.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
-                      No strategies match your filters.
+                      {tr("No strategies match your filters.", "没有符合当前筛选条件的策略。")}
                     </td>
                   </tr>
                 ) : null}
@@ -585,7 +616,7 @@ export default function MyStrategies() {
               </span>
               <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-1.5">
-                <span>Rows</span>
+                  <span>{tr("Rows", "行数")}</span>
                 <Select
                   value={String(pageSize)}
                   onValueChange={(value) => {

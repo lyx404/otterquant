@@ -232,7 +232,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                     : "border-sky-500/25 bg-sky-500/10 text-sky-400"
                 }`}
               >
-                {officialTier === "official" ? tr("OFFICIAL", "官方") : tr("GRADUATED", "毕业") }
+                {officialTier === "official" ? tr("OFFICIAL", "官方") : tr("GRADUATED", "三方") }
               </span>
             ) : (
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
