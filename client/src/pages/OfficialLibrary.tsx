@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { factors, type Factor } from "@/lib/mockData";
 import { toast } from "sonner";
 import { useAlphaViewMode, type AlphaViewMode } from "@/contexts/AlphaViewModeContext";
@@ -57,9 +58,11 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
   onToggleStar: () => void;
   viewMode: AlphaViewMode;
 }) {
+  const { uiLang } = useAppLanguage();
   const isOfficial = factor.category === "official";
   const isGraduated = factor.category === "graduated";
   const isBeginnerMode = viewMode === "beginner";
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   const statusClass = isGraduated
     ? "border-purple-500/25 bg-purple-500/10 text-purple-400"
@@ -98,7 +101,7 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
             </Link>
             <div className="mt-2 flex items-center gap-2">
               <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusClass}`}>
-                {isGraduated ? "Graduated" : "Official"}
+                {isGraduated ? tr("Graduated", "毕业") : tr("Official", "官方")}
               </span>
               {!isBeginnerMode && (
                 <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
@@ -117,18 +120,18 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
         <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/20 px-3 py-2.5">
           <Users className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           <div className="min-w-0 flex-1">
-            <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Adoption</div>
-            <span className="text-xs font-mono text-muted-foreground">Used {factor.userCount ?? 0} times</span>
+            <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Adoption", "采用度")}</div>
+            <span className="text-xs font-mono text-muted-foreground">{tr("Used", "已使用")} {factor.userCount ?? 0} {tr("times", "次")}</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-3">
-          <MetricCell label="IS Sharpe" value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} />
-          <MetricCell label="OS Sharpe" value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} />
-          <MetricCell label="Fitness" value={factor.fitness.toFixed(2)} />
-          {!isBeginnerMode && <MetricCell label="Returns" value={factor.returns} />}
-          {!isBeginnerMode && <MetricCell label="Turnover" value={factor.turnover} />}
-          {!isBeginnerMode && <MetricCell label="Drawdown" value={factor.drawdown} colorClass="text-destructive" />}
+          <MetricCell label={tr("IS Sharpe", "样本内 Sharpe")} value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} />
+          <MetricCell label={tr("OS Sharpe", "样本外 Sharpe")} value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} />
+          <MetricCell label={tr("Fitness", "Fitness")} value={factor.fitness.toFixed(2)} />
+          {!isBeginnerMode && <MetricCell label={tr("Returns", "收益")} value={factor.returns} />}
+          {!isBeginnerMode && <MetricCell label={tr("Turnover", "换手率")} value={factor.turnover} />}
+          {!isBeginnerMode && <MetricCell label={tr("Drawdown", "回撤")} value={factor.drawdown} colorClass="text-destructive" />}
         </div>
       </div>
 
@@ -141,13 +144,13 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
                 ? "border-[#ffb900]/60 bg-[#ffb900]/30 text-[#ffb900]"
                 : "border-border/60 bg-background/30 text-[#ffb900] hover:border-[#ffb900]/50"
             }`}
-            title={isStarred ? "Unfavorite" : "Favorite"}
+            title={isStarred ? tr("Unfavorite", "取消收藏") : tr("Favorite", "收藏")}
           >
             <Star className={`h-[14px] w-[14px] ${isStarred ? "fill-current" : ""}`} />
           </button>
           <Link href={`/alphas/${factor.id}?source=official&tier=${factor.category === "graduated" ? "graduated" : "official"}`}>
             <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-[#020617] hover:bg-primary/90">
-              View
+              {tr("View", "查看")}
               <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
             </Button>
           </Link>
@@ -159,12 +162,14 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
 
 /* ── Main OfficialLibrary Page ── */
 export default function OfficialLibrary() {
+  const { uiLang } = useAppLanguage();
   const { alphaViewMode } = useAlphaViewMode();
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-001", "AF-004"]));
   const [showFlywheelInfo, setShowFlywheelInfo] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   // Only show official and graduated factors
   const libraryFactors = useMemo(() => {
@@ -198,9 +203,9 @@ export default function OfficialLibrary() {
   }, [categoryFilter, searchQuery]);
 
   const tabs: { key: CategoryFilter; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "official", label: "Official" },
-    { key: "graduated", label: "Graduated" },
+    { key: "all", label: tr("All", "全部") },
+    { key: "official", label: tr("Official", "官方") },
+    { key: "graduated", label: tr("Graduated", "毕业") },
   ];
 
   return (
@@ -208,17 +213,17 @@ export default function OfficialLibrary() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">Official Library</h1>
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">{tr("Official Library", "官方库")}</h1>
           <button
             onClick={() => setShowFlywheelInfo(true)}
             className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200"
-            title="Factor Flywheel"
+            title={tr("Factor Flywheel", "因子飞轮")}
           >
             <Info className="w-4 h-4" />
           </button>
         </div>
         <p className="text-sm text-muted-foreground">
-          Browse proven trading signals. Use them as building blocks for your strategies.
+          {tr("Browse proven trading signals. Use them as building blocks for your strategies.", "浏览经过验证的交易信号，并将它们作为你策略的构建模块。")}
         </p>
       </div>
 
@@ -236,18 +241,18 @@ export default function OfficialLibrary() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">Factor Flywheel</h3>
+              <h3 className="text-lg font-semibold text-foreground">{tr("Factor Flywheel", "因子飞轮")}</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Develop factors
+              {tr("Develop factors", "开发因子")}
               <span className="mx-1.5 text-primary/60">&rarr;</span>
-              Submit to competition
+              {tr("Submit to competition", "提交到竞赛")}
               <span className="mx-1.5 text-primary/60">&rarr;</span>
-              Top factors graduate to official library
+              {tr("Top factors graduate to official library", "优秀因子毕业进入官方库")}
               <span className="mx-1.5 text-primary/60">&rarr;</span>
-              Others use them in strategies
+              {tr("Others use them in strategies", "其他人将它们用于策略")}
               <span className="mx-1.5 text-primary/60">&rarr;</span>
-              You earn rewards
+              {tr("You earn rewards", "你获得奖励")}
             </p>
           </div>
         </div>
@@ -258,7 +263,7 @@ export default function OfficialLibrary() {
         <div className="relative flex-1 min-w-[180px] max-w-[420px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search by name or ID..."
+            placeholder={tr("Search by name or ID...", "按名称或 ID 搜索...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="h-8 w-full rounded-xl border border-border bg-accent/30 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
@@ -296,7 +301,7 @@ export default function OfficialLibrary() {
                   const willStar = !next.has(factor.id);
                   if (willStar) next.add(factor.id);
                   else next.delete(factor.id);
-                  toast.success(willStar ? "Added to favorites" : "Removed from favorites");
+                  toast.success(willStar ? tr("Added to favorites", "已加入收藏") : tr("Removed from favorites", "已取消收藏"));
                   return next;
                 });
               }}
@@ -305,7 +310,7 @@ export default function OfficialLibrary() {
         ))}
         {filtered.length === 0 && (
           <div className="surface-card px-6 py-12 text-center">
-            <p className="text-sm text-muted-foreground">No factors match the current filters.</p>
+            <p className="text-sm text-muted-foreground">{tr("No factors match the current filters.", "没有符合当前筛选条件的因子。")}</p>
           </div>
         )}
       </div>

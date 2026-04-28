@@ -6,6 +6,7 @@
 import { Link } from "wouter";
 import { ArrowUpRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   type Factor,
   type AlphaGrade,
@@ -49,7 +50,9 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
 }
 
 export default function AlphaCardView({ rows, visibleColumns, starred, onToggleStar }: AlphaCardViewProps) {
+  const { uiLang } = useAppLanguage();
   const isVisible = (key: string) => visibleColumns.has(key);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   const renderStatus = (status: AlphaRow["submissionStatus"]) => {
     const mapped = status === "passed" ? "passed" : "failed";
@@ -57,7 +60,9 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background/40 px-2.5 py-1">
         <span className={`w-1.5 h-1.5 rounded-full ${s.dotClass}`} />
-        <span className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${s.textClass}`}>{s.label}</span>
+        <span className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${s.textClass}`}>
+          {s.label === "Passed" ? tr("Passed", "通过") : tr("Failed", "失败")}
+        </span>
       </span>
     );
   };
@@ -111,15 +116,15 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
 
         /* Collect visible metrics for the grid — synced with table columns */
         const metrics: { label: string; value: string; colorClass?: string }[] = [];
-        if (isVisible("sharpe")) metrics.push({ label: "IS Sharpe", value: row.sharpe.toFixed(2) });
-        if (isVisible("osSharpe")) metrics.push({ label: "OS Sharpe", value: row.osSharpe.toFixed(2), colorClass: osSharpeColor });
-        if (isVisible("fitness")) metrics.push({ label: "Fitness", value: row.fitness.toFixed(2), colorClass: fitnessColor });
-        if (isVisible("returns")) metrics.push({ label: "Returns", value: row.returns });
-        if (isVisible("turnover")) metrics.push({ label: "Turnover", value: row.turnover });
-        if (isVisible("drawdown")) metrics.push({ label: "Drawdown", value: row.drawdown, colorClass: "text-destructive" });
+        if (isVisible("sharpe")) metrics.push({ label: tr("IS Sharpe", "样本内夏普比率"), value: row.sharpe.toFixed(2) });
+        if (isVisible("osSharpe")) metrics.push({ label: tr("OS Sharpe", "样本外夏普比率"), value: row.osSharpe.toFixed(2), colorClass: osSharpeColor });
+        if (isVisible("fitness")) metrics.push({ label: tr("Fitness", "适应度"), value: row.fitness.toFixed(2), colorClass: fitnessColor });
+        if (isVisible("returns")) metrics.push({ label: tr("Returns", "收益率"), value: row.returns });
+        if (isVisible("turnover")) metrics.push({ label: tr("Turnover", "换手率"), value: row.turnover });
+        if (isVisible("drawdown")) metrics.push({ label: tr("Drawdown", "回撤"), value: row.drawdown, colorClass: "text-destructive" });
         if (isVisible("testsPassed")) {
           const testsValue = `${row.testsPassed}/${row.testsFailed}${row.testsPending > 0 ? `/${row.testsPending}` : ""}`;
-          metrics.push({ label: "Tests", value: testsValue });
+          metrics.push({ label: tr("Tests", "测试"), value: testsValue });
         }
 
         return (
@@ -161,15 +166,15 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
                 <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/20 px-3 py-2.5">
                   {isVisible("epochStatus") && (
                     <div className="min-w-0 flex-1">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">Arena Round</div>
+                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">{tr("Arena Round", "竞技场轮次")}</div>
                       {row.submissionStatus !== "passed" ? (
-                        <span className="text-xs font-mono text-muted-foreground/50">Ineligible</span>
+                        <span className="text-xs font-mono text-muted-foreground/50">{tr("Ineligible", "不可参赛")}</span>
                       ) : row.epochId ? (
                         <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
                           <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
                         </Link>
                       ) : (
-                        <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || "Not Entered"}</span>
+                        <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || tr("Not Entered", "未参赛")}</span>
                       )}
                     </div>
                   )}
@@ -196,13 +201,13 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
                       : "border-border/60 bg-background/30 text-[#ffb900] hover:border-[#ffb900]/50"
                   }`}
                   onClick={(e) => { e.stopPropagation(); onToggleStar(row.id); }}
-                  aria-label={starred.has(row.id) ? "Unfavorite" : "Favorite"}
+                  aria-label={starred.has(row.id) ? tr("Unfavorite", "取消收藏") : tr("Favorite", "收藏")}
                 >
                   <Star className={`h-[14px] w-[14px] ${starred.has(row.id) ? "fill-current" : ""}`} />
                 </button>
                 <Link href={`/alphas/${row.id}`}>
                   <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-[#020617] hover:bg-primary/90">
-                    View
+                    {tr("View", "查看")}
                     <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                   </Button>
                 </Link>
@@ -214,7 +219,7 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
 
       {rows.length === 0 && (
         <div className="col-span-full surface-card px-6 py-12 text-center">
-          <p className="text-sm text-muted-foreground">No alphas found matching the current filters.</p>
+          <p className="text-sm text-muted-foreground">{tr("No factors found matching the current filters.", "没有符合当前筛选条件的因子。")}</p>
         </div>
       )}
     </div>
