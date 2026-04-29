@@ -73,7 +73,7 @@ const navItems: NavItem[] = [
   },
   { path: "/trade", labelEn: "Trade", labelZh: "交易", icon: CandlestickChart },
   { path: "/leaderboard", labelEn: "Factor Arena", labelZh: "因子竞技场", icon: Trophy },
-  { path: "/subscription", labelEn: "Subscription", labelZh: "订阅", icon: CreditCard },
+  { path: "/subscription", labelEn: "Wallet & Credit", labelZh: "钱包&额度", icon: CreditCard },
   { path: "/account", labelEn: "Settings", labelZh: "设置", icon: Settings2 },
 ];
 

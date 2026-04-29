@@ -1,6 +1,6 @@
 import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Bot, Check, Code2, Play, Pause, Coins, RefreshCw, Trash2, ChevronDown, ChevronUp, X, Sparkles, Undo2 } from "lucide-react";
+import { ArrowLeft, Bot, Check, Code2, Play, Pause, RefreshCw, Trash2, ChevronDown, ChevronUp, X, Sparkles, Undo2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import AlphaDetail from "@/pages/AlphaDetail";
 import { factors as detailFactors } from "@/lib/mockData";
@@ -56,12 +57,33 @@ type GenerationRound = {
   results: RoundResult[];
 };
 
+const CREDIT_BALANCE_STORAGE_KEY = "otterquant:credit-balance";
+const DEFAULT_CREDIT_BALANCE = 3;
+const CREDIT_DISPLAY_RATE = 1000;
+
+function readCreditBalance() {
+  if (typeof window === "undefined") return DEFAULT_CREDIT_BALANCE;
+  const raw = window.localStorage.getItem(CREDIT_BALANCE_STORAGE_KEY);
+  const parsed = raw ? Number(raw) : DEFAULT_CREDIT_BALANCE;
+  return Number.isFinite(parsed) ? parsed : DEFAULT_CREDIT_BALANCE;
+}
+
+function writeCreditBalance(value: number) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CREDIT_BALANCE_STORAGE_KEY, value.toFixed(2));
+}
+
+function formatCreditUnits(value: number) {
+  return new Intl.NumberFormat("en-US").format(Math.round((Number(value) || 0) * CREDIT_DISPLAY_RATE));
+}
+
 const MODEL_OPTIONS: Array<{
   value: ModelKey;
   label: string;
   unitCost: number;
   provider: string;
   description: string;
+  descriptionZh: string;
   latency: string;
   brand: "openai" | "claude" | "gemini" | "deepseek";
 }> = [
@@ -71,6 +93,7 @@ const MODEL_OPTIONS: Array<{
     unitCost: 0.42,
     provider: "OpenAI",
     description: "Flagship reasoning model for complex factor exploration.",
+    descriptionZh: "适合复杂因子探索的旗舰推理模型。",
     latency: "35s",
     brand: "openai",
   },
@@ -80,6 +103,7 @@ const MODEL_OPTIONS: Array<{
     unitCost: 0.32,
     provider: "OpenAI",
     description: "Balanced model for most factor generation workflows.",
+    descriptionZh: "适合大多数因子生成流程的均衡模型。",
     latency: "28s",
     brand: "openai",
   },
@@ -89,6 +113,7 @@ const MODEL_OPTIONS: Array<{
     unitCost: 0.24,
     provider: "OpenAI",
     description: "Lightweight option for fast iteration and broad sampling.",
+    descriptionZh: "适合快速迭代和批量初筛的轻量模型。",
     latency: "22s",
     brand: "openai",
   },
@@ -98,6 +123,7 @@ const MODEL_OPTIONS: Array<{
     unitCost: 0.46,
     provider: "Anthropic",
     description: "Strong long-chain reasoning for structured research tasks.",
+    descriptionZh: "适合结构化研究任务的长链推理模型。",
     latency: "40s",
     brand: "claude",
   },
@@ -107,6 +133,7 @@ const MODEL_OPTIONS: Array<{
     unitCost: 0.34,
     provider: "Anthropic",
     description: "Balanced speed and quality for frequent factor iteration.",
+    descriptionZh: "在速度和质量之间均衡，适合高频因子迭代。",
     latency: "30s",
     brand: "claude",
   },
@@ -116,6 +143,7 @@ const MODEL_OPTIONS: Array<{
     unitCost: 0.36,
     provider: "Google",
     description: "Research-oriented model with strong multimodal context handling.",
+    descriptionZh: "偏研究型模型，具备较强的多模态上下文处理能力。",
     latency: "26s",
     brand: "gemini",
   },
@@ -125,6 +153,7 @@ const MODEL_OPTIONS: Array<{
     unitCost: 0.22,
     provider: "DeepSeek",
     description: "Low-cost, high-throughput option for large initial sweeps.",
+    descriptionZh: "低成本、高吞吐，适合大规模初始筛选。",
     latency: "18s",
     brand: "deepseek",
   },
@@ -210,43 +239,21 @@ function orderModels(models: ModelKey[]) {
   return MODEL_OPTIONS.filter((item) => models.includes(item.value)).map((item) => item.value);
 }
 
-function OpenAILogo() {
+function CreditIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#F8FAFC]" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 4.3a4.5 4.5 0 0 1 4.36 3.39l2.08 1.2a4.5 4.5 0 0 1 .02 7.8l-.02.02a4.5 4.5 0 0 1-1.68 6.12 4.5 4.5 0 0 1-6.22-1.06h-2.4a4.5 4.5 0 0 1-4.54-4.54 4.5 4.5 0 0 1 .18-1.25L2.7 14.8a4.5 4.5 0 0 1 1.65-6.17l.04-.02A4.5 4.5 0 0 1 9.14 2.9L12 4.3Z" />
-      <path d="M9.1 2.93 14.8 6.2M16.34 7.69v6.61M14.86 17.8l-5.72 3.27M7.65 16.31 4.32 10.6M7.64 7.72l8.7 5.03M7.67 16.3h8.64" />
-    </svg>
-  );
-}
-
-function ClaudeLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#FB923C]" fill="currentColor" aria-hidden="true">
-      <path d="m12 2.8 1.83 5.03 4.9-2.18-2.18 4.9L21.2 12l-4.65 1.45 2.18 4.9-4.9-2.18L12 21.2l-1.83-5.03-4.9 2.18 2.18-4.9L2.8 12l4.65-1.45-2.18-4.9 4.9 2.18L12 2.8Z" />
-    </svg>
-  );
-}
-
-function GeminiLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="gemini-gradient" x1="4" x2="20" y1="4" y2="20">
-          <stop offset="0%" stopColor="#60A5FA" />
-          <stop offset="50%" stopColor="#A78BFA" />
-          <stop offset="100%" stopColor="#34D399" />
-        </linearGradient>
-      </defs>
-      <path fill="url(#gemini-gradient)" d="M12 2.5c.56 4.54 4.46 8.44 9 9-.46.06-.92.1-1.38.12-4.07.22-7.25 3.4-7.47 7.47-.02.46-.06.92-.12 1.38-.56-4.54-4.46-8.44-9-9 4.54-.56 8.44-4.46 9-9Z" />
-    </svg>
-  );
-}
-
-function DeepSeekLogo() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#60A5FA]" fill="currentColor" aria-hidden="true">
-      <path d="M18.85 8.05c-1.55-1.85-3.97-3-6.66-3-4.67 0-8.45 3.45-8.45 7.7 0 2.4 1.2 4.54 3.08 5.95.53.4 1.17.66 1.83.75.58.08 1.18.04 1.74-.15.36-.12.67-.33.95-.58l1.55-1.42c.54-.5 1.38-.47 1.89.06l1.3 1.36c.28.29.66.47 1.07.49 2.26.12 4.11-1.68 4.11-4 0-1.84-1.18-3.41-2.85-4.01.34-.81.25-1.74-.56-2.15Z" />
-      <path d="M8.2 12.1c.84.28 1.76.12 2.46-.44l1.25-1a2.8 2.8 0 0 1 3.16-.26l1.34.73c.4.22.88.26 1.31.11" fill="none" stroke="#DBEAFE" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 64 64" className={className} fill="none" aria-hidden="true">
+      <path
+        d="M28 12C30.6 23.4 35.6 28.4 47 31C35.6 33.6 30.6 38.6 28 50C25.4 38.6 20.4 33.6 9 31C20.4 28.4 25.4 23.4 28 12Z"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M50 7C51.1 11.6 53.4 13.9 58 15C53.4 16.1 51.1 18.4 50 23C48.9 18.4 46.6 16.1 42 15C46.6 13.9 48.9 11.6 50 7Z"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -254,10 +261,43 @@ function DeepSeekLogo() {
 function ModelLogo({ model }: { model: ModelKey }) {
   const option = getModelOption(model);
 
-  if (option.brand === "openai") return <OpenAILogo />;
-  if (option.brand === "claude") return <ClaudeLogo />;
-  if (option.brand === "gemini") return <GeminiLogo />;
-  return <DeepSeekLogo />;
+  if (option.brand === "openai") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 text-foreground" fill="currentColor" aria-hidden="true">
+        <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9004A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9004 6.0462 6.0462 0 0 0 .7427 7.0966 5.9847 5.9847 0 0 0 .5157 4.9108 6.0462 6.0462 0 0 0 6.5098 2.9004A6.0651 6.0651 0 0 0 19.027 19.8182a5.9847 5.9847 0 0 0 3.9977-2.9004 6.0462 6.0462 0 0 0-.7428-7.0967ZM13.2599 22.43a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.0196 1.1665a.071.071 0 0 1 .0382.052v5.5826A4.504 4.504 0 0 1 13.26 22.43ZM3.6 18.304a4.4708 4.4708 0 0 1-.5359-3.0147l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.744 19.9502A4.4992 4.4992 0 0 1 3.6 18.304ZM2.366 7.8667a4.485 4.485 0 0 1 2.366-1.9731v5.6152a.7664.7664 0 0 0 .3879.6765l5.8144 3.3542-2.0206 1.1665a.0757.0757 0 0 1-.071 0L4.008 13.914a4.504 4.504 0 0 1-1.642-6.0472Zm16.5682 3.9477-5.8144-3.359v-2.331a.0804.0804 0 0 1 .0332-.0615l4.8354-2.7921a4.4992 4.4992 0 0 1 6.679 4.5756 4.4708 4.4708 0 0 1-.5359 3.0147l-.1419-.0852-4.783-2.7582a.7712.7712 0 0 0-.7806 0Zm.3338 5.7948v-5.6152a.7664.7664 0 0 0-.3879-.6765l-5.8144-3.3542 2.0206-1.1665a.0757.0757 0 0 1 .071 0l4.8354 2.7921a4.504 4.504 0 0 1-.7247 8.0203Zm-8.2134-2.7054-2.0206-1.1665a.0757.0757 0 0 1-.0382-.0615V8.0916a4.504 4.504 0 0 1 7.5012-3.3567l-.142.0804-4.783 2.7582a.7712.7712 0 0 0-.388.6765v6.7369Z" />
+      </svg>
+    );
+  }
+
+  if (option.brand === "claude") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#D97757]" fill="currentColor" aria-hidden="true">
+        <path d="m12 2.8 2.08 6.07 6.12-1.94-3.57 5.33 5.37 3.5-6.4.42.5 6.4L12 17.62l-4.1 4.96.5-6.4-6.4-.42 5.37-3.5L3.8 6.93l6.12 1.94L12 2.8Z" />
+      </svg>
+    );
+  }
+
+  if (option.brand === "gemini") {
+    return (
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="gemini-model-logo" x1="4" x2="20" y1="4" y2="20">
+            <stop offset="0%" stopColor="#60A5FA" />
+            <stop offset="50%" stopColor="#A78BFA" />
+            <stop offset="100%" stopColor="#34D399" />
+          </linearGradient>
+        </defs>
+        <path fill="url(#gemini-model-logo)" d="M12 2.6c.54 4.53 4.34 8.31 8.8 8.86.32.04.32.5 0 .54-4.46.55-8.26 4.33-8.8 8.86-.04.32-.5.32-.54 0-.54-4.53-4.34-8.31-8.8-8.86-.32-.04-.32-.5 0-.54 4.46-.55 8.26-4.33 8.8-8.86.04-.32.5-.32.54 0Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#4F8BFF]" fill="currentColor" aria-hidden="true">
+      <path d="M18.3 8.15c-1.48-1.75-3.8-2.84-6.38-2.84-4.48 0-8.1 3.25-8.1 7.26 0 2.26 1.15 4.28 2.95 5.62.5.38 1.12.62 1.75.7.56.08 1.13.04 1.67-.14.35-.12.64-.31.91-.55l1.48-1.34c.52-.47 1.32-.45 1.81.05l1.25 1.28c.27.28.63.45 1.02.47 2.17.11 3.94-1.58 3.94-3.77 0-1.73-1.13-3.21-2.73-3.78.32-.77.24-1.64-.54-2.03Z" />
+      <path d="M8 12.08c.82.27 1.7.12 2.37-.42l1.2-.95a2.69 2.69 0 0 1 3.03-.25l1.29.69c.38.21.84.25 1.25.1" fill="none" stroke="#DBEAFE" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function Sparkline({ data }: { data: number[] }) {
@@ -393,7 +433,7 @@ function ResultCard({
           </p>
         </div>
         <div className="min-w-0 rounded-xl border border-border/50 bg-accent/55 px-2.5 py-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">DD</p>
+          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">{tr("Drawdown", "回撤")}</p>
           <p className="mt-2 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-rose-400">
             -{result.drawdown.toFixed(1)}%
           </p>
@@ -472,6 +512,8 @@ export default function AlphaEdit() {
   const [selectedFactorId, setSelectedFactorId] = useState<string | null>(null);
   const [selectedPreview, setSelectedPreview] = useState<RoundResult | null>(null);
   const [pendingDeleteRoundId, setPendingDeleteRoundId] = useState<string | null>(null);
+  const [showInsufficientCreditDialog, setShowInsufficientCreditDialog] = useState(false);
+  const [availableCredit, setAvailableCredit] = useState(() => readCreditBalance());
   const [activeGeneratingRoundId, setActiveGeneratingRoundId] = useState<string | null>(null);
   const [latestRoundId, setLatestRoundId] = useState<string | null>(null);
 
@@ -547,6 +589,11 @@ export default function AlphaEdit() {
       return;
     }
 
+    if (availableCredit < estimatedCredit) {
+      setShowInsufficientCreditDialog(true);
+      return;
+    }
+
     const nextRound = buildRound({
       strategyType,
       prompt,
@@ -555,12 +602,27 @@ export default function AlphaEdit() {
       estimatedCredit,
       status: "generating",
     });
+    const nextCreditBalance = Number((availableCredit - estimatedCredit).toFixed(2));
+    setAvailableCredit(nextCreditBalance);
+    writeCreditBalance(nextCreditBalance);
     setRounds((prev) => [nextRound, ...prev]);
     setActiveGeneratingRoundId(nextRound.id);
     setLatestRoundId(nextRound.id);
 
     if (generationTimerRef.current) window.clearTimeout(generationTimerRef.current);
     generationTimerRef.current = window.setTimeout(() => finishGeneration(nextRound.id), 2400);
+  };
+
+  const refillComposerFromRound = (round: GenerationRound) => {
+    const perModelResultCount = Math.max(1, Math.round(round.resultCount / Math.max(round.models.length, 1)));
+    setStrategyType(round.strategyType);
+    setPrompt(round.prompt);
+    setPromptBeforeOptimization(null);
+    setSelectedModels(orderModels(round.models));
+    setResultCount(perModelResultCount);
+    setComposerCollapsed(false);
+    setModelMenuOpen(false);
+    setResultCountMenuOpen(false);
   };
 
   const toggleModelSelection = (nextModel: ModelKey) => {
@@ -711,7 +773,7 @@ export default function AlphaEdit() {
                 <article className="surface-card h-fit rounded-2xl border border-border p-4 text-sm">
                   <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
                     <span className="font-medium text-foreground">
-                      {round.status === "generating" ? tr("Generating", "生成中") : `${round.resultCount} ${tr("candidates", "候选项")}`}
+                      {round.status === "generating" ? tr("Generating", "生成中") : `${round.resultCount} ${tr("generations", "生成数量")}`}
                     </span>
                     <span>{formatMinutesAgo(round.createdAt, uiLang)}</span>
                   </div>
@@ -738,31 +800,40 @@ export default function AlphaEdit() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-[11px] text-muted-foreground">{tr("Candidates", "候选数量")}</p>
+                        <p className="text-[11px] text-muted-foreground">{tr("Generation Count", "生成数量")}</p>
                         <p className="text-[12px] font-medium text-foreground">{round.resultCount}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] text-muted-foreground">{tr("Credits", "积分")}</p>
+                        <p className="text-[11px] text-muted-foreground">{tr("Credit", "额度")}</p>
                         <p className="text-[12px] font-medium text-emerald-400">{round.estimatedCredit.toFixed(2)}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-3 pt-1.5 text-muted-foreground">
-                      <button
-                        className="transition hover:text-foreground"
-                        aria-label={tr("Regenerate", "重新生成")}
-                        title={tr("Regenerate", "重新生成")}
-                      >
-                        <RefreshCw className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        className="transition hover:text-destructive"
-                        aria-label={tr("Delete", "删除")}
-                        title={tr("Delete", "删除")}
-                        onClick={() => setPendingDeleteRoundId(round.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            className="transition hover:text-foreground"
+                            aria-label={tr("Regenerate", "重新生成")}
+                            onClick={() => refillComposerFromRound(round)}
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{tr("Regenerate", "重新生成")}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            className="transition hover:text-destructive"
+                            aria-label={tr("Delete", "删除")}
+                            onClick={() => setPendingDeleteRoundId(round.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{tr("Delete", "删除")}</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                 </article>
@@ -868,7 +939,7 @@ export default function AlphaEdit() {
                             <div className="flex min-w-0 flex-1 items-center gap-2">
                               <div className="flex items-center gap-1.5 shrink-0">
                                 {selectedLogoModels.slice(0, 2).map((item) => (
-                                  <span key={item} className="inline-flex h-4 w-4 items-center justify-center">
+                                  <span key={item} className="inline-flex h-5 w-5 items-center justify-center">
                                     <ModelLogo model={item} />
                                   </span>
                                 ))}
@@ -927,13 +998,9 @@ export default function AlphaEdit() {
                                   <span className="min-w-0 flex-1">
                                     <span className="flex items-center gap-2">
                                       <span className="truncate text-[14px] font-semibold text-foreground">{item.label}</span>
-                                      <span className="rounded-full bg-background/70 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                        {item.provider}
-                                      </span>
                                     </span>
-                                    <span className="mt-1 block text-[12px] leading-[1.45] text-muted-foreground">{item.description}</span>
-                                    <span className="mt-2 inline-flex rounded-md bg-background/70 px-2 py-1 text-[10px] font-medium text-muted-foreground">
-                                      {item.latency}
+                                    <span className="mt-1 block text-[12px] leading-[1.45] text-muted-foreground">
+                                      {tr(item.description, item.descriptionZh)}
                                     </span>
                                   </span>
 
@@ -953,6 +1020,8 @@ export default function AlphaEdit() {
                       </Popover>
                     </div>
 
+                    <span className="flex h-9 shrink-0 items-center justify-center px-1 text-sm font-semibold text-muted-foreground">x</span>
+
                     <div className="w-[188px]">
                       <Popover open={resultCountMenuOpen} onOpenChange={setResultCountMenuOpen}>
                         <PopoverTrigger asChild>
@@ -960,7 +1029,7 @@ export default function AlphaEdit() {
                             type="button"
                             className="flex h-9 w-full items-center gap-2 rounded-md border border-border bg-accent px-2.5 text-left text-sm text-foreground transition hover:border-primary/30 hover:bg-accent/90"
                           >
-                            <span className="shrink-0 text-xs text-muted-foreground">{tr("Candidate Count", "候选数量")}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{tr("Result Count", "结果数量")}</span>
                             <span className="ml-auto font-medium text-foreground">{resultCount}</span>
                             <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition ${resultCountMenuOpen ? "rotate-180" : ""}`} />
                           </button>
@@ -1002,19 +1071,25 @@ export default function AlphaEdit() {
                 </>
               ) : (
                 <div className="text-xs text-muted-foreground">
-                  {tr("Composer collapsed. Current setup:", "面板已折叠。当前配置：")} {strategyType === "time-series" ? tr("Time-Series", "时序因子") : tr("Cross-Sectional", "截面因子")}, {selectedModels.length} {tr(`model${selectedModels.length > 1 ? "s" : ""}`, "个模型")}, {resultCount} {tr(`candidate${resultCount > 1 ? "s" : ""} per model`, "个候选/模型")}.
+                  {tr("Composer collapsed. Current setup:", "面板已折叠。当前配置：")} {strategyType === "time-series" ? tr("Time-Series", "时序因子") : tr("Cross-Sectional", "截面因子")}, {selectedModels.length} {tr(`model${selectedModels.length > 1 ? "s" : ""}`, "个模型")}, {resultCount} {tr(`generation${resultCount > 1 ? "s" : ""} per model`, "个生成/模型")}.
                 </div>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
                 <div className="inline-flex items-center gap-2 text-sm text-foreground">
                   <span className="text-xs text-muted-foreground">
-                    {tr("Will run", "将运行")} {selectedModels.length} {tr(`model${selectedModels.length > 1 ? "s" : ""}`, "个模型")} · {totalResultCount} {tr(`candidate${totalResultCount > 1 ? "s" : ""}`, "个候选")}
+                    {tr(
+                      `Will run ${selectedModels.length} model${selectedModels.length > 1 ? "s" : ""}, each generating ${resultCount} output${resultCount > 1 ? "s" : ""}`,
+                      `将运行 ${selectedModels.length} 个模型，分别生成 ${resultCount} 个结果`
+                    )}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/12 px-2 py-0.5 text-sm font-semibold text-emerald-300">
-                    <Coins className="h-3.5 w-3.5" />
-                    {tr("Est.", "预计")} ${estimatedCredit.toFixed(2)}
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/12 px-2 py-0.5 text-sm font-semibold text-emerald-300">
+                    <CreditIcon className="h-4 w-4 shrink-0" />
+                    {tr(`Estimated ${formatCreditUnits(estimatedCredit)} credit`, `预计 ${formatCreditUnits(estimatedCredit)} 额度`)}
                   </span>
+                  {availableCredit < estimatedCredit ? (
+                    <span className="text-xs font-medium text-rose-400">{tr("Insufficient credit", "额度不足")}</span>
+                  ) : null}
                 </div>
 
                 <button
@@ -1069,6 +1144,29 @@ export default function AlphaEdit() {
           </aside>
         </div>
       ) : null}
+
+      <AlertDialog
+        open={showInsufficientCreditDialog}
+        onOpenChange={setShowInsufficientCreditDialog}
+      >
+        <AlertDialogContent className="border-border bg-card text-foreground">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{tr("Insufficient credit", "额度不足")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {tr(
+                `This generation requires ${estimatedCredit.toFixed(2)} credit, but your balance is ${availableCredit.toFixed(2)}.`,
+                `本次生成需消耗 ${estimatedCredit.toFixed(2)} 额度，当前余额为 ${availableCredit.toFixed(2)}。`
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{tr("Cancel", "取消")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => window.location.assign("/subscription")}>
+              {tr("Recharge credit", "去充值额度")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={Boolean(pendingDeleteRoundId)}

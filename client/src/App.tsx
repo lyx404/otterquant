@@ -27,6 +27,7 @@ const StrategyCreate = lazy(() => import("@/pages/StrategyCreate"));
 const Trade = lazy(() => import("@/pages/Trade"));
 const TradeDetail = lazy(() => import("@/pages/TradeDetail"));
 const LazySubscription = lazy(() => import("@/pages/Subscription"));
+const LinkCheckout = lazy(() => import("@/pages/LinkCheckout"));
 
 /* ── Onboarding context for reactive state ── */
 interface OnboardingCtx {
@@ -167,6 +168,9 @@ function Router() {
         <Route path="/subscription">
           <ProtectedRoute component={LazySubscription} />
         </Route>
+        <Route path="/link-checkout">
+          <ProtectedRoute component={LinkCheckout} />
+        </Route>
         <Route path="/account">
           <ProtectedRoute component={Account} />
         </Route>
@@ -181,7 +185,7 @@ function Router() {
 /* ── Layout wrapper: Landing/Auth/LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/launch-guide", "/landing", "/auth"];
+  const noLayoutPaths = ["/launch-guide", "/landing", "/auth", "/link-checkout"];
   const hideLayout = noLayoutPaths.some(
     (p) => location === p || location.startsWith(p)
   );

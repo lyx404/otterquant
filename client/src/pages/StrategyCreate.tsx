@@ -302,6 +302,21 @@ const STRATEGY_TEMPLATE_PREFILLS: Partial<Record<string, StrategyTemplatePrefill
   },
 };
 
+const CREDIT_BALANCE_STORAGE_KEY = "otterquant:credit-balance";
+const DEFAULT_CREDIT_BALANCE = 3;
+
+function readCreditBalance() {
+  if (typeof window === "undefined") return DEFAULT_CREDIT_BALANCE;
+  const raw = window.localStorage.getItem(CREDIT_BALANCE_STORAGE_KEY);
+  const parsed = raw ? Number(raw) : DEFAULT_CREDIT_BALANCE;
+  return Number.isFinite(parsed) ? parsed : DEFAULT_CREDIT_BALANCE;
+}
+
+function writeCreditBalance(value: number) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CREDIT_BALANCE_STORAGE_KEY, value.toFixed(2));
+}
+
 export default function StrategyCreate() {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -344,6 +359,8 @@ export default function StrategyCreate() {
 
   const [description] = useState(template.description);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableCredit, setAvailableCredit] = useState(() => readCreditBalance());
+  const [showInsufficientCreditDialog, setShowInsufficientCreditDialog] = useState(false);
   const [showValidationFeedback, setShowValidationFeedback] = useState(false);
   const [showAlphaPicker, setShowAlphaPicker] = useState(false);
   const [alphaSourceTab, setAlphaSourceTab] = useState<AlphaSourceTab>("official");
@@ -596,6 +613,17 @@ export default function StrategyCreate() {
   const rankMissing = strategyType === "cross-sectional" && !rankValue.trim();
   const aiChatPromptMissing = aiChatPrompt.trim().length === 0;
   const inferredAiScale = inferAiScaleFromPrompt(aiChatPrompt);
+  const estimatedStrategyCredit = useMemo(() => {
+    if (mode !== "platform") return 0;
+    if (platformInputMethod === "ai-chat") {
+      return inferredAiScale === "batch" ? 4.8 : 1.8;
+    }
+
+    const selectedFactorCost = Math.max(1, selectedFactors.length) * 0.28;
+    const selectedSymbolCost =
+      strategyType === "time-series" ? Math.max(1, selectedSymbolList.length) * 0.04 : 0.12;
+    return Number((0.8 + selectedFactorCost + selectedSymbolCost).toFixed(2));
+  }, [inferredAiScale, mode, platformInputMethod, selectedFactors.length, selectedSymbolList.length, strategyType]);
 
   useEffect(() => {
     if (weightMode !== "custom") return;
@@ -742,8 +770,18 @@ export default function StrategyCreate() {
   const handleSubmit = () => {
     if (!validateBeforeSubmit()) return;
 
+    if (mode === "platform" && availableCredit < estimatedStrategyCredit) {
+      setShowInsufficientCreditDialog(true);
+      return;
+    }
+
     setShowValidationFeedback(false);
     setIsSubmitting(true);
+    if (mode === "platform") {
+      const nextCreditBalance = Number((availableCredit - estimatedStrategyCredit).toFixed(2));
+      setAvailableCredit(nextCreditBalance);
+      writeCreditBalance(nextCreditBalance);
+    }
     const isAiChatFlow = platformInputMethod === "ai-chat";
     const creationScale = isAiChatFlow ? inferredAiScale : "single";
     const newStrategyId = `STR-${String(Math.floor(Math.random() * 900) + 100).padStart(3, "0")}`;
@@ -1322,7 +1360,15 @@ export default function StrategyCreate() {
             )}
           {(platformInputMethod === "ai-chat" || strategyType) && (
             <div className="flex items-center justify-between pt-2">
-            <div />
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/12 px-2 py-1 font-semibold text-emerald-300">
+                <Zap className="h-3.5 w-3.5" />
+                {tr("Credit", "额度")} {estimatedStrategyCredit.toFixed(2)}
+              </span>
+              <span className={availableCredit < estimatedStrategyCredit ? "text-rose-400" : "text-muted-foreground"}>
+                {tr("Balance", "余额")} {availableCredit.toFixed(2)}
+              </span>
+            </div>
             <button
               onClick={handleSubmit}
               disabled={isSubmitting}
@@ -1348,6 +1394,36 @@ export default function StrategyCreate() {
           )}
         </div>
       )}
+
+      <Dialog open={showInsufficientCreditDialog} onOpenChange={setShowInsufficientCreditDialog}>
+        <DialogContent className="border-border bg-card text-foreground">
+          <DialogHeader>
+            <DialogTitle>{tr("Insufficient credit", "额度不足")}</DialogTitle>
+            <DialogDescription>
+              {tr(
+                `Creating this strategy requires ${estimatedStrategyCredit.toFixed(2)} credit, but your balance is ${availableCredit.toFixed(2)}.`,
+                `创建该策略需消耗 ${estimatedStrategyCredit.toFixed(2)} 额度，当前余额为 ${availableCredit.toFixed(2)}。`
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setShowInsufficientCreditDialog(false)}
+              className="h-9 rounded-lg border border-border bg-card px-4 text-sm text-foreground transition hover:bg-accent"
+            >
+              {tr("Cancel", "取消")}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/subscription")}
+              className="h-9 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+            >
+              {tr("Recharge credit", "去充值额度")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={showSymbolPicker}

@@ -47,7 +47,6 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
-  Trophy,
   Plus,
 } from "lucide-react";
 import {
@@ -830,7 +829,6 @@ export default function MyAlphas() {
               onClick={handleRevealAllUnrevealedGrades}
               title={tr(`Reveal ${unrevealedPassedCount} unrevealed grades`, `揭示 ${unrevealedPassedCount} 个未揭示等级`)}
             >
-              <Trophy className="w-3.5 h-3.5" />
               {tr("Reveal all grades", "揭示全部等级")}
             </button>
           )}
