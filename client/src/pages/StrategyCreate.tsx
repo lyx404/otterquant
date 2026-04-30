@@ -1708,7 +1708,7 @@ export default function StrategyCreate() {
                             <div className="mt-1 flex flex-wrap items-center gap-2">
                               <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
                               <span className="rounded-full border border-border/70 bg-background/60 px-2 py-0.5 text-[10px] text-muted-foreground">
-                                {alphaSourceTab === "my" ? tr("My Alphas", "我的因子") : factor.category === "graduated" ? tr("Graduated", "三方") : tr("Official", "官方")}
+                                {(alphaSourceTab as string) === "my" ? tr("My Alphas", "我的因子") : factor.category === "graduated" ? tr("Graduated", "三方") : tr("Official", "官方")}
                               </span>
                               <span className="rounded-full border border-primary/15 bg-primary/5 px-2 py-0.5 text-[10px] text-primary/90">
                                 {translateOfficialLabel(officialCategory.subcategoryLabel)}
