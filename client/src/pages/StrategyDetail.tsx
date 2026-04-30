@@ -2,31 +2,40 @@
  * StrategyDetail — strategy backtest dashboard rebuilt into a
  * multi-panel quant research layout while preserving the top metrics block.
  */
-import { useMemo, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import { useParams, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { strategies } from "@/lib/mockData";
 import { buildSeries, parsePercent } from "@/lib/strategyUtils";
+import {
+  getExchangeVenueMeta,
+  readExchangeApiConnections,
+  type ExchangeApiConnection,
+} from "@/lib/exchangeApiConnections";
 import { deployStrategyToTrade, getStrategyDeployment } from "@/lib/tradeDeployments";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 import {
   Activity,
   ArrowLeft,
-  CheckCircle2,
   BarChart3,
   BriefcaseBusiness,
-  ChevronLeft,
   ClipboardList,
   Unplug,
-  ExternalLink,
   PieChart,
   Star,
   TrendingUp,
@@ -99,6 +108,12 @@ type SectionRow = {
   tone?: "positive" | "negative" | "neutral";
 };
 
+type StrategyConfigRow = {
+  key: string;
+  label: string;
+  value: string;
+};
+
 type CurvePoint = {
   x: number;
   y: number;
@@ -122,21 +137,6 @@ type PositionRecord = {
   closedAt: string;
   pnl: string;
 };
-
-type ExchangeId = "binance" | "bybit" | "okx";
-type LiveDeployView = "deploy" | "connect-list" | "connect-config";
-type ConnectFlowTab = "quick" | "api";
-
-const exchangeOptions: Array<{
-  id: ExchangeId;
-  label: string;
-  iconText: string;
-  iconClassName: string;
-}> = [
-  { id: "binance", label: "Binance", iconText: "BN", iconClassName: "bg-amber-400/20 text-amber-300 border-amber-400/30" },
-  { id: "bybit", label: "Bybit", iconText: "BY", iconClassName: "bg-orange-400/20 text-orange-300 border-orange-400/30" },
-  { id: "okx", label: "OKX", iconText: "OK", iconClassName: "bg-slate-200/20 text-slate-200 border-slate-200/30" },
-];
 
 const preferenceSlices: PreferenceSlice[] = [
   { label: "ETH", value: 14.3, color: "#7184F5" },
@@ -336,6 +336,8 @@ function DashboardPanel({
 }
 
 export default function StrategyDetail() {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
@@ -348,7 +350,7 @@ export default function StrategyDetail() {
   const strategyFromStore = strategies.find((item) => item.id === params.id);
   const strategy = strategyFromStore ?? {
     id: params.id,
-    name: customName || "Strategy Backtest",
+    name: customName || tr("Strategy", "策略"),
     description: "Draft strategy generated from the guided creation flow.",
     factorCount: Number(searchParams.get("signals") || "5"),
     market: "Mixed" as const,
@@ -362,7 +364,6 @@ export default function StrategyDetail() {
     updatedAt: "2026-04-17",
     tags: ["Draft"],
   };
-
   const [starred, setStarred] = useState(false);
   const [deploymentVersion, setDeploymentVersion] = useState(0);
   const [curveRange, setCurveRange] = useState<CurveRange>("365D");
@@ -372,14 +373,26 @@ export default function StrategyDetail() {
   const [activePreference, setActivePreference] = useState(0);
   const [isStrategyConfigOpen, setIsStrategyConfigOpen] = useState(false);
   const [isLiveDeployOpen, setIsLiveDeployOpen] = useState(false);
-  const [liveDeployView, setLiveDeployView] = useState<LiveDeployView>("deploy");
-  const [connectedExchangeIds, setConnectedExchangeIds] = useState<ExchangeId[]>([]);
-  const [selectedExchangeId, setSelectedExchangeId] = useState<ExchangeId | null>(null);
-  const [connectExchangeId, setConnectExchangeId] = useState<ExchangeId | null>(null);
-  const [connectTab, setConnectTab] = useState<ConnectFlowTab>("quick");
+  const [connectedExchangeApis, setConnectedExchangeApis] = useState<ExchangeApiConnection[]>(() =>
+    readExchangeApiConnections()
+  );
+  const [selectedExchangeApiId, setSelectedExchangeApiId] = useState<string>("");
   const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
 
   const strategyName = customName || strategy.name;
+  const strategyHeading = (() => {
+    if (isOfficialLibraryView) return strategyName;
+    if (uiLang === "zh") {
+      if (strategyName === "Strategy Backtest" || strategyName === "策略回测" || strategyName === "策略") {
+        return "策略回测";
+      }
+      return strategyName.endsWith("回测") ? strategyName : `${strategyName} 回测`;
+    }
+    if (strategyName === "策略回测" || strategyName === "Strategy Backtest" || strategyName === "Strategy") {
+      return "Strategy Backtest";
+    }
+    return strategyName.endsWith("Backtest") ? strategyName : `${strategyName} Backtest`;
+  })();
   const strategyId = strategy.id;
   const createdAt = searchParams.get("createdAt") || strategy.updatedAt;
   const paperDeployment = useMemo(
@@ -390,18 +403,19 @@ export default function StrategyDetail() {
     () => getStrategyDeployment(strategyId, "live"),
     [deploymentVersion, strategyId]
   );
-  const connectedExchanges = useMemo(
-    () => exchangeOptions.filter((item) => connectedExchangeIds.includes(item.id)),
-    [connectedExchangeIds]
-  );
   const selectedExchange = useMemo(
-    () => exchangeOptions.find((item) => item.id === selectedExchangeId) ?? null,
-    [selectedExchangeId]
+    () => connectedExchangeApis.find((item) => item.id === selectedExchangeApiId) ?? null,
+    [connectedExchangeApis, selectedExchangeApiId]
   );
-  const connectingExchange = useMemo(
-    () => exchangeOptions.find((item) => item.id === connectExchangeId) ?? null,
-    [connectExchangeId]
-  );
+  useEffect(() => {
+    if (connectedExchangeApis.length === 0) {
+      setSelectedExchangeApiId("");
+      return;
+    }
+    if (!selectedExchangeApiId || !connectedExchangeApis.some((item) => item.id === selectedExchangeApiId)) {
+      setSelectedExchangeApiId(connectedExchangeApis[0].id);
+    }
+  }, [connectedExchangeApis, selectedExchangeApiId]);
   const minLiveCapital = 100;
   const parsedLiveCapital = Number(liveCapitalInput);
   const isLiveCapitalNumeric = Number.isFinite(parsedLiveCapital);
@@ -439,6 +453,68 @@ export default function StrategyDetail() {
       .filter(Boolean);
     return items.length > 0 ? items.join(", ") : null;
   };
+  const toReadableItems = (value: string | null | undefined, splitter: RegExp) => {
+    const normalized = normalizeConfigValue(value);
+    if (!normalized) return [];
+    return normalized
+      .split(splitter)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  };
+  const formatConfigDate = (value: string) => {
+    const normalized = value.replace("T", " ").replace(/\.\d+Z?$/, "").replace(/Z$/, "").trim();
+    const match = normalized.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(\d{2}):(\d{2}))?/);
+    if (!match) return normalized;
+    return `${match[1]} ${match[2] ?? "00"}:${match[3] ?? "00"}`;
+  };
+  const formatDecimalWeight = (value: number) => Number(value.toFixed(2)).toString();
+  const formatCooldown = (value: string | null) => {
+    if (!value) return null;
+    const hours = value.match(/[\d.]+/)?.[0];
+    if (!hours) return value;
+    if (uiLang === "zh") return `${hours} 小时`;
+    return `${hours} ${Number(hours) === 1 ? "hour" : "hours"}`;
+  };
+  const inferSymbolFromName = (value: string) => {
+    const upperName = value.toUpperCase();
+    if (upperName.includes("BTC")) return "BTCUSDT";
+    if (upperName.includes("ETH")) return "ETHUSDT";
+    return null;
+  };
+  const translateMonthLabel = (label: string) => {
+    if (uiLang !== "zh") return label;
+    switch (label) {
+      case "Apr":
+        return "4月";
+      case "Jun":
+        return "6月";
+      case "Aug":
+        return "8月";
+      case "Oct":
+        return "10月";
+      case "Dec":
+        return "12月";
+      case "Feb":
+        return "2月";
+      default:
+        return label;
+    }
+  };
+  const translatePreferenceLabel = (label: string) => (label === "Other" ? tr("Other", "其他") : label);
+  const translatePositionContract = (contract: PositionRecord["contract"]) =>
+    contract === "Perp" ? tr("Perp", "永续") : contract;
+  const translatePositionSide = (side: PositionRecord["side"]) => {
+    switch (side) {
+      case "Cross Long":
+        return tr("Cross Long", "全仓多");
+      case "Cross Short":
+        return tr("Cross Short", "全仓空");
+      default:
+        return side;
+    }
+  };
+  const translatePositionStatus = (status: PositionRecord["status"]) =>
+    status === "Closed" ? tr("Closed", "已平仓") : status;
 
   const strategyTypeRaw = normalizeConfigValue(
     searchParams.get("strategyType") ?? searchParams.get("type")
@@ -451,6 +527,7 @@ export default function StrategyDetail() {
   );
   const rankValueRaw = normalizeConfigValue(searchParams.get("rankValue"));
   const rankModeRaw = normalizeConfigValue(searchParams.get("rankMode"));
+  const sortingRuleRaw = normalizeConfigValue(searchParams.get("sorting"));
   const stopLossRaw = normalizeConfigValue(
     searchParams.get("stopLoss") ?? searchParams.get("risk")
   );
@@ -461,86 +538,87 @@ export default function StrategyDetail() {
       searchParams.get("symbol"),
     /,/
   );
-  const signalSelectionRaw = toReadableList(searchParams.get("factors"), /\|/);
-  const strategyConfigRows: Array<{ label: string; value: string }> = [];
+  const signalItems = toReadableItems(searchParams.get("factors"), /\|/);
+  const signalSelectionRaw = signalItems.length > 0 ? signalItems.join(", ") : null;
   const strategyTypeKey = strategyTypeRaw?.toLowerCase().replace(/\s+/g, "-");
+  const isTimeSeriesStrategy = strategyTypeKey === "time-series";
+  const isCrossSectionStrategy =
+    strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section";
   const strategyTypeLabel =
     strategyTypeKey === "time-series"
-      ? "Time Series"
+      ? tr("Time Series", "时序策略")
       : strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section"
-        ? "Cross Section"
+        ? tr("Cross Section", "截面策略")
         : strategyTypeRaw;
-  if (strategyTypeLabel) {
-    strategyConfigRows.push({ label: "Strategy Type", value: strategyTypeLabel });
-  }
+  const factorWeightItems = (() => {
+    const explicitWeights = normalizeConfigValue(searchParams.get("weights"));
+    if (explicitWeights) {
+      const parsed = explicitWeights
+        .split("|")
+        .map((item) => {
+          const [label, weight] = item.split(":");
+          const parsedWeight = Number(weight);
+          if (!label?.trim() || !Number.isFinite(parsedWeight)) return null;
+          return {
+            label: label.trim(),
+            value: parsedWeight,
+          };
+        })
+        .filter((item): item is { label: string; value: number } => item !== null);
+      if (parsed.length > 0) return parsed;
+    }
 
-  if (symbolScopeRaw) {
-    strategyConfigRows.push({ label: "Symbol", value: symbolScopeRaw });
-  }
+    if (weightingModeRaw?.toLowerCase() === "equal" && signalItems.length > 0) {
+      const equalWeight = 1 / signalItems.length;
+      return signalItems.map((label) => ({ label, value: equalWeight }));
+    }
 
-  if (signalSelectionRaw) {
-    strategyConfigRows.push({ label: "Signal Selection", value: signalSelectionRaw });
-  }
-
-  const signalUniverseRaw = normalizeConfigValue(searchParams.get("market"));
-  if (signalUniverseRaw) {
-    strategyConfigRows.push({ label: "Signal Universe", value: signalUniverseRaw });
-  } else if (strategyFromStore) {
-    strategyConfigRows.push({ label: "Signal Universe", value: strategy.market });
-  }
-
-  const factorCountRaw = normalizeConfigValue(searchParams.get("signals"));
-  if (factorCountRaw) {
-    strategyConfigRows.push({ label: "Factor Count", value: factorCountRaw });
-  } else if (signalSelectionRaw) {
-    strategyConfigRows.push({
-      label: "Factor Count",
-      value: String(signalSelectionRaw.split(", ").length),
-    });
-  } else if (strategyFromStore) {
-    strategyConfigRows.push({ label: "Factor Count", value: String(strategy.factorCount) });
-  }
-
-  if (weightingModeRaw) {
-    const weightingKey = weightingModeRaw.toLowerCase();
-    const weightingLabel =
-      weightingKey === "equal"
-        ? "Equal Weight"
-        : weightingKey === "custom"
-          ? "Custom Weight"
-          : weightingModeRaw;
-    strategyConfigRows.push({ label: "Factor Weights", value: weightingLabel });
-  }
-
-  if (executionSideRaw === "long") {
-    strategyConfigRows.push({ label: "Execution Side", value: "Long-Only" });
-  } else if (executionSideRaw === "short") {
-    strategyConfigRows.push({ label: "Execution Side", value: "Short-Only" });
-  } else if (executionSideRaw === "neutral") {
-    strategyConfigRows.push({ label: "Execution Side", value: "Market-Neutral" });
-  }
-
-  if (strategyTypeKey === "cross-sectional" && rankValueRaw) {
-    strategyConfigRows.push({
-      label: "Top/Tail Rule",
-      value: `Top/Bottom ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`,
-    });
-  }
-
-  if (stopLossRaw) {
-    strategyConfigRows.push({
-      label: "Stop Loss",
-      value: stopLossRaw.includes("%") ? stopLossRaw : `${stopLossRaw}%`,
-    });
-  }
-
-  if (cooldownRaw) {
-    const cooldownHours = cooldownRaw.match(/[\d.]+/)?.[0];
-    strategyConfigRows.push({
-      label: "Cooldown (hours)",
-      value: cooldownHours ? `${cooldownHours} h` : cooldownRaw,
-    });
-  }
+    return [];
+  })();
+  const factorWeightSummary =
+    factorWeightItems.length > 0
+      ? factorWeightItems
+          .map((item) => `${item.label} ${formatDecimalWeight(item.value)}`)
+          .join(" | ")
+      : null;
+  const factorWeightTotal = factorWeightItems.reduce((sum, item) => sum + item.value, 0);
+  const factorWeightColors = ["#6E82F6", "#16E0A7", "#22D3EE", "#F0C13B", "#FF6B88"];
+  const strategySideValue =
+    executionSideRaw === "long"
+      ? tr("Long-Only", "仅做多")
+      : executionSideRaw === "short"
+        ? tr("Short-Only", "仅做空")
+        : executionSideRaw === "neutral"
+          ? tr("Market-Neutral", "市场中性")
+          : executionSideRaw;
+  const topTailRuleValue =
+    rankValueRaw && isCrossSectionStrategy
+      ? uiLang === "zh"
+        ? `头部/尾部 ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " 个标的"}`
+        : `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
+      : sortingRuleRaw;
+  const stopLossValue = stopLossRaw ? (stopLossRaw.includes("%") ? stopLossRaw : `${stopLossRaw}%`) : null;
+  const cooldownValue = formatCooldown(cooldownRaw);
+  const strategyConfigRows: StrategyConfigRow[] = [
+    { key: "strategy-id", label: tr("Strategy ID", "策略 ID"), value: strategyId },
+    { key: "created-date", label: tr("Created Date", "创建时间"), value: formatConfigDate(createdAt) },
+    ...(strategyTypeLabel ? [{ key: "strategy-type", label: tr("Strategy Type", "策略类型"), value: strategyTypeLabel }] : []),
+    {
+      key: "symbol",
+      label: tr("Symbol", "标的"),
+      value: symbolScopeRaw ?? inferSymbolFromName(strategyName) ?? tr("N/A", "未设置"),
+    },
+    ...(signalSelectionRaw ? [{ key: "signal", label: tr("Signal", "信号"), value: signalSelectionRaw }] : []),
+    ...(factorWeightSummary ? [{ key: "factor-weights", label: tr("Factor Weights", "因子权重"), value: factorWeightSummary }] : []),
+    ...(stopLossValue ? [{ key: "stop-loss", label: tr("Stop Loss", "止损"), value: stopLossValue }] : []),
+    ...(cooldownValue ? [{ key: "cooldown", label: tr("Cooldown", "冷却时间"), value: cooldownValue }] : []),
+    ...(!isTimeSeriesStrategy && strategySideValue
+      ? [{ key: "strategy-side", label: tr("Strategy Side", "策略方向"), value: strategySideValue }]
+      : []),
+    ...(!isTimeSeriesStrategy && topTailRuleValue
+      ? [{ key: "top-tail-rule", label: tr("Top/Tail Rule", "头尾分层规则"), value: topTailRuleValue }]
+      : []),
+  ];
 
   const initialEquity = 438000;
   const returnRate = parsePercent(strategy.annualReturn);
@@ -561,20 +639,20 @@ export default function StrategyDetail() {
 
   const fundRows: SectionRow[] = [
     {
-      label: "Peak Equity",
+      label: tr("Peak Equity", "最高权益"),
       value: `${peakEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
     },
     {
-      label: "Min Equity",
+      label: tr("Min Equity", "最低权益"),
       value: `${minEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
     },
     {
-      label: "Realized PnL",
+      label: tr("Realized PnL", "已实现盈亏"),
       value: `${fmtSigned(realizedPnl)} USDT`,
       tone: realizedPnl >= 0 ? "positive" : "negative",
     },
     {
-      label: "Unrealized PnL",
+      label: tr("Unrealized PnL", "未实现盈亏"),
       value: `${fmtSigned(unrealizedPnl)} USDT`,
       tone: unrealizedPnl >= 0 ? "positive" : "negative",
     },
@@ -582,33 +660,33 @@ export default function StrategyDetail() {
 
   const perfRows: SectionRow[] = [
     {
-      label: "Sharpe Ratio",
+      label: tr("Sharpe Ratio", "夏普比率"),
       value: strategy.sharpe.toFixed(2),
       tone: strategy.sharpe >= 1 ? "positive" : "neutral",
     },
     {
-      label: "Calmar Ratio",
+      label: tr("Calmar Ratio", "Calmar比率"),
       value: calmar.toFixed(2),
       tone: calmar >= 1 ? "positive" : "neutral",
     },
     {
-      label: "Win Rate",
+      label: tr("Win Rate", "胜率"),
       value: `${winRate.toFixed(2)}%`,
       tone: winRate >= 50 ? "positive" : "negative",
     },
     {
-      label: "Profit/Loss Ratio",
+      label: tr("Profit/Loss Ratio", "盈亏比"),
       value: profitLossRatio.toFixed(2),
       tone: profitLossRatio >= 1 ? "positive" : "neutral",
     },
   ];
 
   const tradeRows: SectionRow[] = [
-    { label: "Trading Days", value: `${tradingDays}` },
-    { label: "Total Trades", value: `${totalTrades}` },
-    { label: "Max Exposure", value: `${maxExposure.toFixed(2)}%` },
+    { label: tr("Trading Days", "交易天数"), value: `${tradingDays}` },
+    { label: tr("Total Trades", "总交易次数"), value: `${totalTrades}` },
+    { label: tr("Max Exposure", "最大敞口"), value: `${maxExposure.toFixed(2)}%` },
     {
-      label: "Total Fees",
+      label: tr("Total Fees", "总手续费"),
       value: `${totalFees.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT`,
     },
   ];
@@ -692,24 +770,30 @@ export default function StrategyDetail() {
     });
     setDeploymentVersion((prev) => prev + 1);
     if (environment === "paper") {
-      toast.success("Deployed to paper trading.");
+      toast.success(tr("Deployed to paper trading.", "已部署到模拟交易。"));
       return;
     }
     if (options?.exchangeLabel && options.capitalUsdt) {
       toast.success(
-        `Live deployment submitted to ${options.exchangeLabel} with ${options.capitalUsdt.toLocaleString()} USDT base capital.`
+        uiLang === "zh"
+          ? `已提交至 ${options.exchangeLabel} 的实盘部署，基础资金 ${options.capitalUsdt.toLocaleString()} USDT。`
+          : `Live deployment submitted to ${options.exchangeLabel} with ${options.capitalUsdt.toLocaleString()} USDT base capital.`
       );
       return;
     }
-    toast.success("Deployed to live trading.");
+    toast.success(tr("Deployed to live trading.", "已部署到实盘交易。"));
   };
 
   const openLiveDeployModal = () => {
-    if (connectedExchangeIds.length > 0 && !selectedExchangeId) {
-      setSelectedExchangeId(connectedExchangeIds[0]);
+    const latestExchangeApis = readExchangeApiConnections();
+    setConnectedExchangeApis(latestExchangeApis);
+    if (latestExchangeApis.length > 0) {
+      setSelectedExchangeApiId((current) =>
+        latestExchangeApis.some((item) => item.id === current) ? current : latestExchangeApis[0].id
+      );
+    } else {
+      setSelectedExchangeApiId("");
     }
-    setLiveDeployView("deploy");
-    setConnectTab("quick");
     setIsLiveDeployOpen(true);
   };
 
@@ -718,35 +802,26 @@ export default function StrategyDetail() {
     window.location.assign("/account?tab=exchangeApi");
   };
 
-  const connectSelectedExchange = () => {
-    if (!connectExchangeId) return;
-    setConnectedExchangeIds((prev) =>
-      prev.includes(connectExchangeId) ? prev : [...prev, connectExchangeId]
-    );
-    setSelectedExchangeId(connectExchangeId);
-    setLiveDeployView("deploy");
-    const exchangeLabel =
-      exchangeOptions.find((item) => item.id === connectExchangeId)?.label ?? "Exchange";
-    toast.success(`${exchangeLabel} connected successfully.`);
-  };
-
   const submitLiveDeployment = () => {
     if (!selectedExchange) {
-      toast.error("Select an exchange account before submitting live deployment.");
+      toast.error(tr("Select an exchange account before submitting live deployment.", "提交实盘部署前请先选择交易所账户。"));
       return;
     }
     if (!isLiveCapitalNumeric || parsedLiveCapital <= 0) {
-      toast.error("Enter a valid base capital amount in USDT.");
+      toast.error(tr("Enter a valid base capital amount in USDT.", "请输入有效的 USDT 基础资金金额。"));
       return;
     }
     if (parsedLiveCapital < minLiveCapital) {
       toast.error(
-        `Minimum activation capital is ${minLiveCapital} USDT. Deployment cannot be initiated below this threshold.`
+        uiLang === "zh"
+          ? `最低启用资金为 ${minLiveCapital} USDT，低于该阈值无法发起部署。`
+          : `Minimum activation capital is ${minLiveCapital} USDT. Deployment cannot be initiated below this threshold.`
       );
       return;
     }
+    const venue = getExchangeVenueMeta(selectedExchange.venue);
     deployStrategy("live", {
-      exchangeLabel: selectedExchange.label,
+      exchangeLabel: `${selectedExchange.accountName} (${venue.label})`,
       capitalUsdt: parsedLiveCapital,
     });
     setIsLiveDeployOpen(false);
@@ -756,7 +831,7 @@ export default function StrategyDetail() {
     strategyTier === "official"
       ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
       : "border-sky-500/30 bg-sky-500/10 text-sky-400";
-  const tierBadgeLabel = strategyTier === "official" ? "Official" : "Graduated";
+  const tierBadgeLabel = strategyTier === "official" ? tr("Official", "官方") : tr("Graduated", "三方");
   const activeSlice = preferenceSlices[activePreference];
 
   return (
@@ -772,11 +847,9 @@ export default function StrategyDetail() {
             }
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Back
+            {tr("Back", "返回")}
           </Button>
-          <h1 className="mt-3 text-foreground">
-            {isOfficialLibraryView ? strategyName : `${strategyName} Backtest`}
-          </h1>
+          <h1 className="mt-3 text-foreground">{strategyHeading}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {isOfficialLibraryView ? (
               <span
@@ -790,7 +863,7 @@ export default function StrategyDetail() {
               className="h-7 rounded-full border-border/70 bg-card px-3 text-[11px] font-medium text-foreground hover:bg-accent"
               onClick={() => setIsStrategyConfigOpen(true)}
             >
-              View Strategy Configuration
+              {tr("View Strategy Configuration", "查看策略配置")}
             </Button>
           </div>
         </div>
@@ -805,7 +878,7 @@ export default function StrategyDetail() {
                 )
               }
             >
-              Use Template
+              {tr("Use Template", "使用模板")}
             </Button>
           ) : (
             <>
@@ -814,9 +887,9 @@ export default function StrategyDetail() {
                 className="h-10 w-10 rounded-full border-border/80 bg-card p-0 text-foreground hover:bg-accent"
                 onClick={() => {
                   setStarred((prev) => !prev);
-                  toast.success(starred ? "Removed from favorites" : "Added to favorites");
+                  toast.success(starred ? tr("Removed from favorites", "已取消收藏") : tr("Added to favorites", "已加入收藏"));
                 }}
-                aria-label={starred ? "Unfavorite strategy" : "Favorite strategy"}
+                aria-label={starred ? tr("Unfavorite strategy", "取消收藏策略") : tr("Favorite strategy", "收藏策略")}
               >
                 <Star className={`h-4 w-4 ${starred ? "fill-current text-amber-400" : ""}`} />
               </Button>
@@ -830,7 +903,7 @@ export default function StrategyDetail() {
                   deployStrategy("paper");
                 }}
               >
-                {paperDeployment ? "View Paper Trade" : "Deploy to Paper Trading"}
+                {paperDeployment ? tr("View Paper Trade", "查看模拟交易") : tr("Deploy to Paper Trading", "部署到模拟交易")}
               </Button>
               <Button
                 variant="outline"
@@ -843,7 +916,7 @@ export default function StrategyDetail() {
                   openLiveDeployModal();
                 }}
               >
-                {liveDeployment ? "View Live Trade" : "Deploy to Live Trading"}
+                {liveDeployment ? tr("View Live Trade", "查看实盘交易") : tr("Deploy to Live Trading", "部署到实盘交易")}
               </Button>
             </>
           )}
@@ -853,49 +926,49 @@ export default function StrategyDetail() {
       <section className="surface-card space-y-6 p-6">
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 xl:grid-cols-6">
           <TopMetric
-            label="Total Equity (USDT)"
+            label={tr("Total Equity (USDT)", "总权益（USDT）")}
             value={currentEquity.toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
           />
           <TopMetric
-            label="PnL (USDT)"
+            label={tr("PnL (USDT)", "PnL（USDT）")}
             value={fmtSigned(totalReturn)}
             tone={totalReturn >= 0 ? "positive" : "negative"}
           />
           <TopMetric
-            label="ROI"
+            label={tr("ROI", "ROI")}
             value={`${fmtSigned(returnRate)}%`}
             tone={returnRate >= 0 ? "positive" : "negative"}
           />
           <TopMetric
-            label="Win Rate"
+            label={tr("Win Rate", "胜率")}
             value={`${winRate.toFixed(2)}%`}
             tone={winRate >= 50 ? "positive" : "neutral"}
           />
           <TopMetric
-            label="Sharpe"
+            label={tr("Sharpe", "夏普比率")}
             value={strategy.sharpe.toFixed(2)}
             tone={strategy.sharpe >= 1 ? "positive" : "neutral"}
           />
           <TopMetric
-            label="Max Drawdown"
+            label={tr("Max Drawdown", "最大回撤")}
             value={`${Math.abs(drawdownPct).toFixed(2)}%`}
             tone="negative"
           />
         </div>
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-          <DetailListCard title="Fund Snapshot" icon={Wallet} rows={fundRows} />
-          <DetailListCard title="Performance Metrics" icon={TrendingUp} rows={perfRows} />
-          <DetailListCard title="Trade Statistics" icon={ClipboardList} rows={tradeRows} />
+          <DetailListCard title={tr("Fund Snapshot", "资金快照")} icon={Wallet} rows={fundRows} />
+          <DetailListCard title={tr("Performance Metrics", "表现指标")} icon={TrendingUp} rows={perfRows} />
+          <DetailListCard title={tr("Trade Statistics", "交易统计")} icon={ClipboardList} rows={tradeRows} />
         </div>
       </section>
 
       <div className="grid grid-cols-1 gap-5">
         <DashboardPanel
-          title="Asset Curve"
+          title={tr("Asset Curve", "资产曲线")}
           icon={BarChart3}
           actions={
             <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
@@ -922,22 +995,22 @@ export default function StrategyDetail() {
           <div className="flex h-full min-h-[440px] flex-col gap-4">
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
               <span className="text-muted-foreground">
-                Total Return{" "}
+                {tr("Total Return", "总收益")}{" "}
                 <span className={curveStats.total >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                   {fmtSigned(curveStats.total)}%
                 </span>
               </span>
               <span className="text-muted-foreground">
-                Excess Return{" "}
+                {tr("Excess Return", "超额收益")}{" "}
                 <span className={curveStats.excess >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                   {fmtSigned(curveStats.excess)}%
                 </span>
               </span>
               <span className="text-muted-foreground">
-                Sharpe <span className="font-semibold text-foreground">{strategy.sharpe.toFixed(2)}</span>
+                {tr("Sharpe", "夏普比率")} <span className="font-semibold text-foreground">{strategy.sharpe.toFixed(2)}</span>
               </span>
               <span className="text-muted-foreground">
-                Calmar <span className="font-semibold text-foreground">{calmar.toFixed(2)}</span>
+                {tr("Calmar", "Calmar比率")} <span className="font-semibold text-foreground">{calmar.toFixed(2)}</span>
               </span>
             </div>
 
@@ -1045,7 +1118,7 @@ export default function StrategyDetail() {
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[#F0C13B]" />
-                    <span className="text-muted-foreground">Equity</span>
+                    <span className="text-muted-foreground">{tr("Equity", "权益")}</span>
                     <span className="font-semibold text-foreground">
                       {curveChart.equityValues[curveHoverIndex].toLocaleString(undefined, {
                         maximumFractionDigits: 0,
@@ -1054,7 +1127,7 @@ export default function StrategyDetail() {
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[#6E82F6]" />
-                    <span className="text-muted-foreground">Benchmark</span>
+                    <span className="text-muted-foreground">{tr("Benchmark", "基准")}</span>
                     <span className="font-semibold text-foreground">
                       {curveChart.benchmarkValues[curveHoverIndex].toLocaleString(undefined, {
                         maximumFractionDigits: 0,
@@ -1073,7 +1146,7 @@ export default function StrategyDetail() {
           </div>
         </DashboardPanel>
 
-        <DashboardPanel title="Asset Preferences" icon={PieChart}>
+        <DashboardPanel title={tr("Asset Preferences", "资产偏好")} icon={PieChart}>
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.85fr_1.15fr]">
             <div className="flex items-center justify-center">
               <div className="relative h-[260px] w-[260px]">
@@ -1108,9 +1181,9 @@ export default function StrategyDetail() {
                   })()}
                 </svg>
                 <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Top Asset</div>
-                  <div className="mt-1 text-2xl font-semibold text-foreground">{activeSlice.label}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{activeSlice.value.toFixed(2)}% allocation</div>
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{tr("Top Asset", "核心资产")}</div>
+                  <div className="mt-1 text-2xl font-semibold text-foreground">{translatePreferenceLabel(activeSlice.label)}</div>
+                  <div className="mt-1 text-sm text-muted-foreground">{activeSlice.value.toFixed(2)}% {tr("allocation", "仓位占比")}</div>
                 </div>
               </div>
             </div>
@@ -1130,7 +1203,7 @@ export default function StrategyDetail() {
                       className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: slice.color }}
                     />
-                    <span className="text-muted-foreground">{slice.label}</span>
+                    <span className="text-muted-foreground">{translatePreferenceLabel(slice.label)}</span>
                   </span>
                   <span className="font-medium text-foreground">{slice.value.toFixed(2)}%</span>
                 </button>
@@ -1141,18 +1214,18 @@ export default function StrategyDetail() {
       </div>
 
       <DashboardPanel
-        title="Daily Returns"
+        title={tr("Daily Returns", "日收益")}
         icon={Activity}
         actions={
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>
-              Avg{" "}
+              {tr("Avg", "均值")}{" "}
               <span className={returnSummary.avg >= 0 ? "font-semibold text-emerald-400" : "font-semibold text-rose-400"}>
                 {fmtSigned(returnSummary.avg, 3)}%
               </span>
             </span>
-            <span className="font-medium text-emerald-400">W{returnSummary.wins}</span>
-            <span className="font-medium text-rose-400">L{returnSummary.losses}</span>
+            <span className="font-medium text-emerald-400">{tr("W", "胜")}{returnSummary.wins}</span>
+            <span className="font-medium text-rose-400">{tr("L", "负")}{returnSummary.losses}</span>
             <div className="ml-1 flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
               {curveRanges.map((option) => (
                 <button
@@ -1246,7 +1319,7 @@ export default function StrategyDetail() {
               }}
             >
               <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-                {returnMeta[returnsRange].labels[
+                {translateMonthLabel(returnMeta[returnsRange].labels[
                   Math.min(
                     returnMeta[returnsRange].labels.length - 1,
                     Math.floor(
@@ -1254,7 +1327,7 @@ export default function StrategyDetail() {
                         returnMeta[returnsRange].labels.length
                     )
                   )
-                ]}
+                ])}
               </div>
               <div className={`mt-1 font-semibold ${dailyReturns[returnsHoverIndex] >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                 {fmtSigned(dailyReturns[returnsHoverIndex], 3)}%
@@ -1265,12 +1338,12 @@ export default function StrategyDetail() {
 
         <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
           {returnMeta[returnsRange].labels.map((label) => (
-            <span key={label}>{label}</span>
+            <span key={label}>{translateMonthLabel(label)}</span>
           ))}
         </div>
       </DashboardPanel>
 
-      <DashboardPanel title="Position History" icon={BriefcaseBusiness}>
+      <DashboardPanel title={tr("Position History", "持仓历史")} icon={BriefcaseBusiness}>
         <div className="space-y-3">
           {positionHistory.map((position) => (
             <article
@@ -1282,13 +1355,13 @@ export default function StrategyDetail() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-[16px] font-semibold text-foreground">{position.symbol}</h3>
                     <span className="inline-flex items-center justify-start rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                      {position.contract}
+                      {translatePositionContract(position.contract)}
                     </span>
                     <span className={`inline-flex items-center justify-start rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] ${sideClass(position.side)}`}>
-                      {position.side}
+                      {translatePositionSide(position.side)}
                     </span>
                     <span className="inline-flex items-center justify-start rounded-md border border-border/70 bg-accent/45 px-2 py-0.5 text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
-                      {position.status}
+                      {translatePositionStatus(position.status)}
                     </span>
                   </div>
                 </div>
@@ -1299,19 +1372,19 @@ export default function StrategyDetail() {
 
               <div className="mt-4 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Entry Price</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Entry Price", "开仓价")}</div>
                   <div className="mt-1 font-mono text-[14px] text-foreground">{position.entryPrice}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Max Open Interest</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Max Open Interest", "最大持仓量")}</div>
                   <div className="mt-1 font-mono text-[14px] text-foreground">{position.maxOpenInterest}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Opened</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Opened", "开仓时间")}</div>
                   <div className="mt-1 font-mono text-sm text-foreground">{position.openedAt}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Closed</div>
+                  <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Closed", "平仓时间")}</div>
                   <div className="mt-1 font-mono text-sm text-foreground">{position.closedAt}</div>
                 </div>
               </div>
@@ -1324,36 +1397,30 @@ export default function StrategyDetail() {
         open={isLiveDeployOpen}
         onOpenChange={(open) => {
           setIsLiveDeployOpen(open);
-          if (!open) {
-            setLiveDeployView("deploy");
-            setConnectExchangeId(null);
-            setConnectTab("quick");
-          }
         }}
       >
         <DialogContent className="max-w-2xl border-border bg-card p-0 text-foreground">
-          {liveDeployView === "deploy" ? (
-            <>
+          <>
               <DialogHeader className="border-b border-border/60 px-6 py-5">
-                <DialogTitle>Deploy Strategy to Live Trading</DialogTitle>
+                <DialogTitle>{tr("Deploy Strategy to Live Trading", "部署到实盘交易")}</DialogTitle>
               </DialogHeader>
 
               <div className="space-y-5 px-6 py-5">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                      Exchange
+                      {tr("Exchange", "交易所")}
                     </p>
                     <button
                       type="button"
                       className="text-xs text-primary hover:text-primary/80"
                       onClick={goToExchangeApi}
                     >
-                      Manage Connections
+                      {tr("Manage Connections", "管理连接")}
                     </button>
                   </div>
 
-                  {connectedExchanges.length === 0 ? (
+                  {connectedExchangeApis.length === 0 ? (
                     <div className="rounded-xl border border-dashed border-border/70 bg-accent/25 px-3 py-3">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div className="flex min-w-0 items-center gap-3">
@@ -1361,9 +1428,9 @@ export default function StrategyDetail() {
                             <Unplug className="h-4 w-4" />
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-foreground">No Exchange API Connected</p>
+                            <p className="text-sm font-medium text-foreground">{tr("No Exchange API Connected", "未连接交易所 API")}</p>
                             <p className="text-xs text-muted-foreground">
-                              Connect an exchange API account to enable live deployment.
+                              {tr("Connect an exchange API account to enable live deployment.", "连接交易所 API 账户后即可启用实盘部署。")}
                             </p>
                           </div>
                         </div>
@@ -1373,54 +1440,39 @@ export default function StrategyDetail() {
                           className="h-8 shrink-0 rounded-full border-border bg-card px-3 text-xs"
                           onClick={goToExchangeApi}
                         >
-                          Connect Exchange
+                          {tr("Connect Exchange", "连接交易所")}
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {connectedExchanges.map((exchange) => (
-                        <button
-                          key={exchange.id}
-                          type="button"
-                          onClick={() => setSelectedExchangeId(exchange.id)}
-                          aria-pressed={selectedExchangeId === exchange.id}
-                          className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition-colors ${
-                            selectedExchangeId === exchange.id
-                              ? "border-primary/50 bg-primary/10 text-primary"
-                              : "border-border/70 bg-background/35 text-foreground hover:bg-accent/35"
-                          }`}
-                        >
-                          <div className="flex min-w-0 items-center gap-3">
-                            <span
-                              className={`inline-flex h-8 w-8 items-center justify-center rounded-md border text-[10px] font-semibold uppercase tracking-[0.1em] ${exchange.iconClassName}`}
-                            >
-                              {exchange.iconText}
-                            </span>
-                            <span className="truncate text-sm font-medium">{exchange.label}</span>
-                          </div>
-                          <span
-                            className={`inline-flex h-4 w-4 items-center justify-center rounded-full border ${
-                              selectedExchangeId === exchange.id
-                                ? "border-primary/60 bg-primary/20"
-                                : "border-border/70 bg-background/35"
-                            }`}
-                          >
-                            <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                selectedExchangeId === exchange.id ? "bg-primary" : "bg-transparent"
-                              }`}
-                            />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                    <Select value={selectedExchangeApiId} onValueChange={setSelectedExchangeApiId}>
+                      <SelectTrigger className="h-11 w-full border-border/70 bg-background/35 text-foreground">
+                        <SelectValue placeholder={tr("Select exchange account", "选择交易所账户")} />
+                      </SelectTrigger>
+                      <SelectContent className="border-border bg-card text-foreground">
+                        {connectedExchangeApis.map((exchange) => {
+                          const venue = getExchangeVenueMeta(exchange.venue);
+                          return (
+                            <SelectItem key={exchange.id} value={exchange.id}>
+                              <span
+                                className={`inline-flex h-6 w-6 items-center justify-center rounded-md border text-[9px] font-semibold uppercase tracking-[0.08em] ${venue.iconClassName}`}
+                              >
+                                {venue.iconText}
+                              </span>
+                              <span className="truncate">
+                                {exchange.accountName} · {venue.label}
+                              </span>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                    Base Capital
+                    {tr("Base Capital", "基础资金")}
                   </p>
                   <div className="flex items-center gap-2">
                     <Input
@@ -1438,11 +1490,11 @@ export default function StrategyDetail() {
                   </div>
                   {isCapitalBelowMinimum ? (
                     <p className="text-xs text-rose-400">
-                      Minimum activation capital is 100 USDT. Deployment cannot be initiated below this threshold.
+                      {tr("Minimum activation capital is 100 USDT. Deployment cannot be initiated below this threshold.", "最低启用资金为 100 USDT，低于该阈值无法发起部署。")}
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Minimum activation capital: 100 USDT.
+                      {tr("Minimum activation capital: 100 USDT.", "最低启用资金：100 USDT。")}
                     </p>
                   )}
                 </div>
@@ -1454,228 +1506,85 @@ export default function StrategyDetail() {
                   className="h-9 rounded-full border-border bg-card px-4 text-xs"
                   onClick={() => setIsLiveDeployOpen(false)}
                 >
-                  Cancel
+                  {tr("Cancel", "取消")}
                 </Button>
                 <Button
                   className="h-9 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90"
                   disabled={!canSubmitLiveDeploy}
                   onClick={submitLiveDeployment}
                 >
-                  Submit Live Deployment
+                  {tr("Submit Live Deployment", "提交实盘部署")}
                 </Button>
               </div>
             </>
-          ) : liveDeployView === "connect-list" ? (
-            <>
-              <DialogHeader className="border-b border-border/60 px-6 py-5">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 rounded-full px-2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setLiveDeployView("deploy")}
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                    Back
-                  </Button>
-                </div>
-                <DialogTitle>Connect Exchange</DialogTitle>
-                <DialogDescription>
-                  Your assets remain in your exchange account. We use encrypted API credentials for strategy execution only.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 px-6 py-5">
-                <div className="rounded-xl border border-border/60 bg-accent/35 p-4 text-sm text-muted-foreground">
-                  Choose a venue to connect. You can manage multiple exchanges and pick one at deployment time.
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  {exchangeOptions.map((exchange) => {
-                    const isConnected = connectedExchangeIds.includes(exchange.id);
-                    return (
-                      <button
-                        key={exchange.id}
-                        type="button"
-                        onClick={() => {
-                          setConnectExchangeId(exchange.id);
-                          setConnectTab("quick");
-                          setLiveDeployView("connect-config");
-                        }}
-                        className="rounded-xl border border-border/70 bg-background/35 px-4 py-4 text-left transition-colors hover:bg-accent/25"
-                      >
-                        <div className="text-sm font-semibold text-foreground">{exchange.label}</div>
-                        <div className="mt-1 text-[11px] text-muted-foreground">
-                          {isConnected ? "Connected" : "Not connected"}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  Request another exchange integration
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <DialogHeader className="border-b border-border/60 px-6 py-5">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 rounded-full px-2 text-muted-foreground hover:text-foreground"
-                    onClick={() => setLiveDeployView("connect-list")}
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                    Back
-                  </Button>
-                </div>
-                <DialogTitle>Connect {connectingExchange?.label ?? "Exchange"}</DialogTitle>
-                <DialogDescription>
-                  Configure API access for live strategy execution and risk synchronization.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 px-6 py-5">
-                <div className="inline-flex items-center rounded-lg border border-border bg-card p-1">
-                  <button
-                    type="button"
-                    onClick={() => setConnectTab("quick")}
-                    className={`rounded-md px-3 py-1.5 text-xs transition-colors ${
-                      connectTab === "quick"
-                        ? "border border-primary/40 bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Quick Connect
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setConnectTab("api")}
-                    className={`ml-1 rounded-md px-3 py-1.5 text-xs transition-colors ${
-                      connectTab === "api"
-                        ? "border border-primary/40 bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    API Keys
-                  </button>
-                </div>
-
-                {connectTab === "quick" ? (
-                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/30 p-4">
-                    <div className="flex items-start gap-3 text-sm">
-                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
-                        1
-                      </span>
-                      <p className="text-muted-foreground">
-                        Sign in to your {connectingExchange?.label ?? "exchange"} account.
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-3 text-sm">
-                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
-                        2
-                      </span>
-                      <p className="text-muted-foreground">
-                        Authorize API access for order placement and position query.
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-3 text-sm">
-                      <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-accent text-xs font-semibold text-foreground">
-                        3
-                      </span>
-                      <p className="text-muted-foreground">
-                        Confirm risk permissions and activate strategy routing.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Import open positions on first sync
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3 rounded-xl border border-border/60 bg-background/30 p-4">
-                    <p className="text-xs text-muted-foreground">
-                      Create API credentials with trade and position permissions enabled.
-                    </p>
-                    <Input value={`My ${connectingExchange?.label ?? "Exchange"} Account`} readOnly />
-                    <Input placeholder="API Key" />
-                    <Input placeholder="API Secret" />
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                      Keep withdrawals disabled for security best practice.
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 border-t border-border/60 px-6 py-4">
-                <Button
-                  variant="outline"
-                  className="h-9 rounded-full border-border bg-card px-4 text-xs"
-                  onClick={() => setLiveDeployView("connect-list")}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="h-9 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90"
-                  onClick={connectSelectedExchange}
-                  disabled={!connectExchangeId}
-                >
-                  Connect Exchange
-                </Button>
-              </div>
-            </>
-          )}
         </DialogContent>
       </Dialog>
 
       <Dialog open={isStrategyConfigOpen} onOpenChange={setIsStrategyConfigOpen}>
-        <DialogContent className="max-w-2xl border-border bg-card p-0 text-foreground">
+        <DialogContent className="max-w-3xl border-border bg-card p-0 text-foreground">
           <DialogHeader className="border-b border-border/60 px-6 py-4">
-            <DialogTitle>Strategy Configuration</DialogTitle>
+            <DialogTitle>{tr("Strategy Configuration", "策略配置")}</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-3 px-6 py-4">
+          <div className="space-y-4 px-6 py-4">
             <section className="space-y-2">
               <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                Meta
+                {tr("Configuration", "配置")}
               </p>
-              <div className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-background/20 px-4 py-3 text-xs sm:grid-cols-2">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Strategy ID</p>
-                  <p className="font-semibold text-foreground">{strategyId}</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">Created At</p>
-                  <p className="font-semibold text-foreground">{createdAt}</p>
-                </div>
-              </div>
-            </section>
-
-            {strategyConfigRows.length > 0 ? (
-              <section className="space-y-2">
-                <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  Configured Parameters
-                </p>
-                <div className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-lg border border-border/60 bg-background/20 px-4 py-3 sm:grid-cols-2">
-                  {strategyConfigRows.map((row) => (
-                    <div key={row.label} className="space-y-0.5">
+              <div className="grid grid-cols-1 gap-2 rounded-2xl border border-border/60 bg-background/25 p-3 sm:grid-cols-2">
+                {strategyConfigRows.map((row) => (
+	                  <div
+	                    key={row.key}
+	                    className={`rounded-xl border border-border/40 bg-card/45 px-3 py-2.5 ${
+	                      row.key === "signal" || row.key === "factor-weights" ? "sm:col-span-2" : ""
+	                    }`}
+	                  >
+                    <div className="space-y-1">
                       <p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
                         {row.label}
                       </p>
-                      <p className="text-sm font-semibold text-foreground">{row.value}</p>
+                      <p className="text-sm font-semibold leading-relaxed text-foreground">{row.value}</p>
+                      {row.key === "factor-weights" && factorWeightItems.length > 0 ? (
+                        <div className="space-y-2 pt-2">
+                          <div className="flex h-3 overflow-hidden rounded-full bg-muted/40">
+                            {factorWeightItems.map((item, index) => {
+                              const width =
+                                factorWeightTotal > 0
+                                  ? Math.max(0, Math.min((item.value / factorWeightTotal) * 100, 100))
+                                  : 0;
+                              return (
+                                <div
+                                  key={`${item.label}-${index}`}
+                                  className="h-full"
+                                  style={{
+                                    width: `${width}%`,
+                                    backgroundColor: factorWeightColors[index % factorWeightColors.length],
+                                  }}
+                                  title={`${item.label} ${formatDecimalWeight(item.value)}`}
+                                />
+                              );
+                            })}
+                          </div>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+                            {factorWeightItems.map((item, index) => (
+                              <span key={`${item.label}-legend-${index}`} className="inline-flex items-center gap-1.5">
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{
+                                    backgroundColor: factorWeightColors[index % factorWeightColors.length],
+                                  }}
+                                />
+                                {item.label} {formatDecimalWeight(item.value)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                  ))}
-                </div>
-              </section>
-            ) : null}
+                  </div>
+                ))}
+              </div>
+            </section>
           </div>
 
           <div className="flex items-center justify-end border-t border-border/60 px-6 py-4">
@@ -1684,7 +1593,7 @@ export default function StrategyDetail() {
               className="h-9 rounded-full border-border bg-card px-4 text-xs"
               onClick={() => setIsStrategyConfigOpen(false)}
             >
-              Close
+                  {tr("Close", "关闭")}
             </Button>
           </div>
         </DialogContent>

@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 type Theme = "light" | "dark";
+type ThemePreference = Theme | "system";
 
 interface ThemeContextType {
   theme: Theme;
+  themePreference: ThemePreference;
+  setThemePreference?: (theme: ThemePreference) => void;
   toggleTheme?: () => void;
   switchable: boolean;
 }
@@ -12,7 +15,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  defaultTheme?: Theme;
+  defaultTheme?: ThemePreference;
   switchable?: boolean;
 }
 
@@ -21,13 +24,38 @@ export function ThemeProvider({
   defaultTheme = "light",
   switchable = false,
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
+  const [themePreference, setThemePreference] = useState<ThemePreference>(() => {
     if (switchable) {
       const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
+      return (stored as ThemePreference) || defaultTheme;
     }
     return defaultTheme;
   });
+  const [theme, setTheme] = useState<Theme>("light");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const resolveTheme = () => (themePreference === "system" ? (mediaQuery.matches ? "dark" : "light") : themePreference);
+    const applyTheme = () => setTheme(resolveTheme());
+
+    applyTheme();
+
+    const handleChange = () => {
+      if (themePreference === "system") {
+        applyTheme();
+      }
+    };
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, [themePreference]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -36,20 +64,22 @@ export function ThemeProvider({
     } else {
       root.classList.remove("dark");
     }
+  }, [theme]);
 
+  useEffect(() => {
     if (switchable) {
-      localStorage.setItem("theme", theme);
+      localStorage.setItem("theme", themePreference);
     }
-  }, [theme, switchable]);
+  }, [themePreference, switchable]);
 
   const toggleTheme = switchable
     ? () => {
-        setTheme(prev => (prev === "light" ? "dark" : "light"));
+        setThemePreference(theme === "dark" ? "light" : "dark");
       }
     : undefined;
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, switchable }}>
+    <ThemeContext.Provider value={{ theme, themePreference, setThemePreference, toggleTheme, switchable }}>
       {children}
     </ThemeContext.Provider>
   );

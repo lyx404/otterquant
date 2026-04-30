@@ -1,5 +1,5 @@
 // ============================================================
-// Otter Mock Data - Indigo/Sky + Slate Theme
+// Quandora Mock Data - Indigo/Sky + Slate Theme
 // All data is simulated for demo purposes
 // ============================================================
 
@@ -249,11 +249,11 @@ export interface Strategy {
 }
 
 export const strategies: Strategy[] = [
-  { id: "STR-001", name: "BTC Alpha Composite", description: "Multi-factor momentum strategy combining RSI cross, volume divergence, and funding rate signals for BTC perpetual futures.", factorCount: 5, market: "CEX", annualReturn: "45.2%", sharpe: 2.31, maxDrawdown: "8.5%", winRate: "62.3%", status: "live", subscribers: 342, author: "Otter Lab", updatedAt: "2026-03-14", tags: ["BTC", "Momentum", "Perpetual"] },
-  { id: "STR-002", name: "DeFi Yield Hunter", description: "Captures alpha from TVL flows, LP dynamics, and gas fee patterns across major DeFi protocols.", factorCount: 4, market: "DEX", annualReturn: "32.8%", sharpe: 1.85, maxDrawdown: "12.3%", winRate: "58.7%", status: "live", subscribers: 189, author: "Otter Lab", updatedAt: "2026-03-12", tags: ["DeFi", "Yield", "LP"] },
-  { id: "STR-003", name: "Cross-Exchange Arb Pro", description: "Exploits price discrepancies between major CEX platforms using spread analysis and order book depth.", factorCount: 3, market: "CEX", annualReturn: "28.5%", sharpe: 3.12, maxDrawdown: "3.2%", winRate: "71.5%", status: "live", subscribers: 567, author: "Otter Lab", updatedAt: "2026-03-15", tags: ["Arbitrage", "Low Risk", "HFT"] },
+  { id: "STR-001", name: "BTC Alpha Composite", description: "Multi-factor momentum strategy combining RSI cross, volume divergence, and funding rate signals for BTC perpetual futures.", factorCount: 5, market: "CEX", annualReturn: "45.2%", sharpe: 2.31, maxDrawdown: "8.5%", winRate: "62.3%", status: "live", subscribers: 342, author: "Quandora Lab", updatedAt: "2026-03-14", tags: ["BTC", "Momentum", "Perpetual"] },
+  { id: "STR-002", name: "DeFi Yield Hunter", description: "Captures alpha from TVL flows, LP dynamics, and gas fee patterns across major DeFi protocols.", factorCount: 4, market: "DEX", annualReturn: "32.8%", sharpe: 1.85, maxDrawdown: "12.3%", winRate: "58.7%", status: "live", subscribers: 189, author: "Quandora Lab", updatedAt: "2026-03-12", tags: ["DeFi", "Yield", "LP"] },
+  { id: "STR-003", name: "Cross-Exchange Arb Pro", description: "Exploits price discrepancies between major CEX platforms using spread analysis and order book depth.", factorCount: 3, market: "CEX", annualReturn: "28.5%", sharpe: 3.12, maxDrawdown: "3.2%", winRate: "71.5%", status: "live", subscribers: 567, author: "Quandora Lab", updatedAt: "2026-03-15", tags: ["Arbitrage", "Low Risk", "HFT"] },
   { id: "STR-004", name: "Altcoin Rotation", description: "Systematic rotation between top 50 altcoins based on momentum, whale tracking, and on-chain metrics.", factorCount: 6, market: "Mixed", annualReturn: "68.3%", sharpe: 1.52, maxDrawdown: "22.5%", winRate: "55.2%", status: "backtested", subscribers: 98, author: "Community", updatedAt: "2026-03-10", tags: ["Altcoin", "Rotation", "High Vol"] },
-  { id: "STR-005", name: "Stable Yield Optimizer", description: "Low-risk strategy focusing on funding rate arbitrage and basis trading with controlled exposure.", factorCount: 2, market: "CEX", annualReturn: "15.8%", sharpe: 4.25, maxDrawdown: "1.8%", winRate: "78.9%", status: "live", subscribers: 891, author: "Otter Lab", updatedAt: "2026-03-15", tags: ["Low Risk", "Stable", "Funding"] },
+  { id: "STR-005", name: "Stable Yield Optimizer", description: "Low-risk strategy focusing on funding rate arbitrage and basis trading with controlled exposure.", factorCount: 2, market: "CEX", annualReturn: "15.8%", sharpe: 4.25, maxDrawdown: "1.8%", winRate: "78.9%", status: "live", subscribers: 891, author: "Quandora Lab", updatedAt: "2026-03-15", tags: ["Low Risk", "Stable", "Funding"] },
   { id: "STR-006", name: "MEV Protection Alpha", description: "Generates alpha by detecting and avoiding MEV attacks while capturing sandwich-resistant opportunities.", factorCount: 3, market: "DEX", annualReturn: "22.1%", sharpe: 1.68, maxDrawdown: "10.5%", winRate: "60.1%", status: "new", subscribers: 45, author: "Community", updatedAt: "2026-03-08", tags: ["MEV", "Protection", "DEX"] },
 ];
 
@@ -486,9 +486,9 @@ export const notifications: Notification[] = [
   { id: 6, type: "alpha_test_result", title: "Test Failed", message: "Uniswap LP Flow failed OS testing — high drawdown", time: "8 hours ago", read: true, factorId: "AF-006", factorName: "Uniswap LP Flow", testResult: "failed" },
   { id: 7, type: "epoch_reward", title: "Reward Distributed", message: "Round 1 rewards distributed — you earned 310 USDT", time: "1 day ago", read: true, epochId: "Round 1", rewardAmount: "310 USDT" },
   { id: 8, type: "alpha_test_result", title: "Test Passed", message: "OI Delta Momentum passed OS testing with Sharpe 1.55", time: "1 day ago", read: true, factorId: "AF-009", factorName: "OI Delta Momentum", testResult: "passed" },
-  { id: 9, type: "skill_update", title: "Skill Updated: Momentum Scanner", message: "Momentum Scanner skill has been updated to v2.3 — improved signal accuracy and reduced latency.", time: "3 hours ago", read: false },
-  { id: 10, type: "skill_update", title: "New Skill Available: Whale Tracker", message: "A new skill 'Whale Tracker' is now available. Track large wallet movements across major DEXs.", time: "6 hours ago", read: false },
-  { id: 11, type: "skill_update", title: "Skill Deprecated: Legacy RSI", message: "Legacy RSI skill will be deprecated on Apr 30. Please migrate to RSI Pro for enhanced features.", time: "1 day ago", read: true },
+  { id: 9, type: "skill_update", title: "Skill Updated: Momentum Scanner", message: "Momentum Scanner has been updated to v2.3, with improved signal accuracy and lower latency.", time: "3 hours ago", read: false },
+  { id: 10, type: "skill_update", title: "New Skill Available: Whale Tracker", message: "Whale Tracker is now available. Track large wallet flows across major DEXs.", time: "6 hours ago", read: false },
+  { id: 11, type: "skill_update", title: "Skill Deprecated: Legacy RSI", message: "Legacy RSI will be deprecated on Apr 30. Please migrate to RSI Pro for enhanced signal features.", time: "1 day ago", read: true },
 ];
 
 // --- Correlation Data ---

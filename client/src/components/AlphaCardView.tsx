@@ -3,12 +3,15 @@
  * Receives pre-filtered & sorted data from parent (same as table view)
  * Field visibility fully synced with table view's visibleColumns
  */
+import { useId, useMemo } from "react";
 import { Link } from "wouter";
 import { ArrowUpRight, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   type Factor,
   type AlphaGrade,
+  generatePnLData,
 } from "@/lib/mockData";
 import ShinyTag from "@/components/ui/shiny-tag";
 
@@ -48,8 +51,62 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
   }
 }
 
+function buildSparklinePath(values: number[], width: number, height: number, padding = 6) {
+  if (values.length < 2) return "";
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const step = (width - padding * 2) / (values.length - 1);
+
+  return values
+    .map((value, index) => {
+      const x = padding + index * step;
+      const y = height - padding - ((value - min) / range) * (height - padding * 2);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+function PnlSparkline({ values, label }: { values: number[]; label: string }) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 420;
+  const height = 86;
+  const path = buildSparklinePath(values, width, height);
+  const areaPath = path ? `${path} L ${width - 6} ${height - 6} L 6 ${height - 6} Z` : "";
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2.5">
+      <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
+        <path d={areaPath} fill={`url(#${svgId}-alpha-card-pnl-fill)`} opacity="0.55" />
+        <path d={path} stroke={`url(#${svgId}-alpha-card-pnl-line)`} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <defs>
+          <linearGradient id={`${svgId}-alpha-card-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#818CF8" />
+            <stop offset="72%" stopColor="#818CF8" />
+            <stop offset="100%" stopColor="#34D399" />
+          </linearGradient>
+          <linearGradient id={`${svgId}-alpha-card-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+}
+
 export default function AlphaCardView({ rows, visibleColumns, starred, onToggleStar }: AlphaCardViewProps) {
+  const { uiLang } = useAppLanguage();
   const isVisible = (key: string) => visibleColumns.has(key);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const pnlValues = useMemo(() => {
+    const pnlData = generatePnLData();
+    const combined = [...pnlData.train, ...pnlData.test].map((item) => item.value);
+    const sampleEvery = Math.max(1, Math.floor(combined.length / 36));
+    return combined.filter((_, index) => index % sampleEvery === 0).slice(-36);
+  }, []);
 
   const renderStatus = (status: AlphaRow["submissionStatus"]) => {
     const mapped = status === "passed" ? "passed" : "failed";
@@ -57,7 +114,9 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background/40 px-2.5 py-1">
         <span className={`w-1.5 h-1.5 rounded-full ${s.dotClass}`} />
-        <span className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${s.textClass}`}>{s.label}</span>
+        <span className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${s.textClass}`}>
+          {s.label === "Passed" ? tr("Passed", "通过") : tr("Failed", "失败")}
+        </span>
       </span>
     );
   };
@@ -98,7 +157,7 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
   /* Metric cell: clearer label/value hierarchy */
   const MetricCell = ({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) => (
     <div className="rounded-xl border border-border/50 bg-background/30 px-3 py-2">
-      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">{label}</div>
+      <div className="mb-1 whitespace-nowrap text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
       <div className={`text-sm font-semibold font-mono tabular-nums ${colorClass || "text-foreground"}`}>{value}</div>
     </div>
   );
@@ -111,15 +170,15 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
 
         /* Collect visible metrics for the grid — synced with table columns */
         const metrics: { label: string; value: string; colorClass?: string }[] = [];
-        if (isVisible("sharpe")) metrics.push({ label: "IS Sharpe", value: row.sharpe.toFixed(2) });
-        if (isVisible("osSharpe")) metrics.push({ label: "OS Sharpe", value: row.osSharpe.toFixed(2), colorClass: osSharpeColor });
-        if (isVisible("fitness")) metrics.push({ label: "Fitness", value: row.fitness.toFixed(2), colorClass: fitnessColor });
-        if (isVisible("returns")) metrics.push({ label: "Returns", value: row.returns });
-        if (isVisible("turnover")) metrics.push({ label: "Turnover", value: row.turnover });
-        if (isVisible("drawdown")) metrics.push({ label: "Drawdown", value: row.drawdown, colorClass: "text-destructive" });
+        if (isVisible("sharpe")) metrics.push({ label: tr("IS Sharpe", "样本内夏普比率"), value: row.sharpe.toFixed(2) });
+        if (isVisible("osSharpe")) metrics.push({ label: tr("OS Sharpe", "样本外夏普比率"), value: row.osSharpe.toFixed(2), colorClass: osSharpeColor });
+        if (isVisible("fitness")) metrics.push({ label: tr("Fitness", "适应度"), value: row.fitness.toFixed(2), colorClass: fitnessColor });
+        if (isVisible("returns")) metrics.push({ label: tr("Returns", "收益率"), value: row.returns });
+        if (isVisible("turnover")) metrics.push({ label: tr("Turnover", "换手率"), value: row.turnover });
+        if (isVisible("drawdown")) metrics.push({ label: tr("Drawdown", "回撤"), value: row.drawdown, colorClass: "text-destructive" });
         if (isVisible("testsPassed")) {
           const testsValue = `${row.testsPassed}/${row.testsFailed}${row.testsPending > 0 ? `/${row.testsPending}` : ""}`;
-          metrics.push({ label: "Tests", value: testsValue });
+          metrics.push({ label: tr("Tests", "测试"), value: testsValue });
         }
 
         return (
@@ -157,30 +216,30 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
 
             {/* Card Body: metrics + secondary info */}
             <div className="px-4 py-3 flex-1 space-y-3">
-              {isVisible("epochStatus") && (
-                <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/20 px-3 py-2.5">
-                  {isVisible("epochStatus") && (
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">Arena Round</div>
-                      {row.submissionStatus !== "passed" ? (
-                        <span className="text-xs font-mono text-muted-foreground/50">Ineligible</span>
-                      ) : row.epochId ? (
-                        <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
-                          <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
-                        </Link>
-                      ) : (
-                        <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || "Not Entered"}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              <PnlSparkline values={pnlValues} label={tr("PnL Curve", "PNL 折线图")} />
 
               {metrics.length > 0 && (
                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-2.5">
                   {metrics.map((m) => (
                     <MetricCell key={m.label} label={m.label} value={m.value} colorClass={m.colorClass} />
                   ))}
+                </div>
+              )}
+
+              {isVisible("epochStatus") && (
+                <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/20 px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">{tr("Arena Round", "竞技场轮次")}</div>
+                    {row.submissionStatus !== "passed" ? (
+                      <span className="text-xs font-mono text-muted-foreground/50">{tr("Ineligible", "不可参赛")}</span>
+                    ) : row.epochId ? (
+                      <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
+                        <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
+                      </Link>
+                    ) : (
+                      <span className="text-xs font-mono text-muted-foreground">{row.epochStatus || tr("Not Entered", "未参赛")}</span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -196,13 +255,13 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
                       : "border-border/60 bg-background/30 text-[#ffb900] hover:border-[#ffb900]/50"
                   }`}
                   onClick={(e) => { e.stopPropagation(); onToggleStar(row.id); }}
-                  aria-label={starred.has(row.id) ? "Unfavorite" : "Favorite"}
+                  aria-label={starred.has(row.id) ? tr("Unfavorite", "取消收藏") : tr("Favorite", "收藏")}
                 >
                   <Star className={`h-[14px] w-[14px] ${starred.has(row.id) ? "fill-current" : ""}`} />
                 </button>
                 <Link href={`/alphas/${row.id}`}>
-                  <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-[#020617] hover:bg-primary/90">
-                    View
+                  <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-white shadow-sm hover:bg-primary/90 dark:text-[#020617]">
+                    {tr("View", "查看")}
                     <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                   </Button>
                 </Link>
@@ -214,7 +273,7 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
 
       {rows.length === 0 && (
         <div className="col-span-full surface-card px-6 py-12 text-center">
-          <p className="text-sm text-muted-foreground">No alphas found matching the current filters.</p>
+          <p className="text-sm text-muted-foreground">{tr("No factors found matching the current filters.", "没有符合当前筛选条件的因子。")}</p>
         </div>
       )}
     </div>

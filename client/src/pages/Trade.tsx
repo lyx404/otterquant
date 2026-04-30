@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { strategies } from "@/lib/mockData";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   tradeBots,
   tradePositionRows,
@@ -35,6 +36,8 @@ type PendingAction =
 type BotStatusFilter = "all" | "running" | "stop";
 
 export default function Trade() {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const search = useSearch();
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const envFromQuery = searchParams.get("env");
@@ -91,7 +94,7 @@ export default function Trade() {
 
   const stopBot = (botId: string) => {
     setStatusById((prev) => ({ ...prev, [botId]: "paused" }));
-    toast.success("Trading bot stopped");
+    toast.success(tr("Trading bot stopped", "交易机器人已停止"));
   };
 
   const deleteBot = (botId: string) => {
@@ -100,7 +103,7 @@ export default function Trade() {
       next.add(botId);
       return next;
     });
-    toast.success("Trading bot deleted");
+    toast.success(tr("Trading bot deleted", "交易机器人已删除"));
   };
 
   const resolveStrategyHref = (bot: (typeof visibleBots)[number]) => {
@@ -121,7 +124,12 @@ export default function Trade() {
   };
 
   const syncNow = () => {
-    toast.success("Trade state synced");
+    toast.success(tr("Trade state synced", "交易状态已同步"));
+  };
+  const marketLabel = (market: string) => {
+    if (market === "Perp") return tr("Perp", "永续");
+    if (market === "Spot") return tr("Spot", "现货");
+    return market;
   };
 
   useEffect(() => {
@@ -143,9 +151,9 @@ export default function Trade() {
     <div className="space-y-6 min-w-0">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-foreground">Trade</h1>
+          <h1 className="text-foreground">{tr("Trade", "交易")}</h1>
           <p className="mt-1 text-xs text-muted-foreground">
-            Manage paper trading and live trading bots in one workspace.
+            {tr("Manage paper trading and live trading bots in one workspace.", "在同一工作区中管理模拟交易与实盘交易机器人。")}
           </p>
         </div>
 
@@ -156,7 +164,7 @@ export default function Trade() {
             onClick={syncNow}
           >
             <RefreshCw className="mr-1 h-3.5 w-3.5" />
-            Sync
+            {tr("Sync", "同步")}
           </Button>
         </div>
       </div>
@@ -171,7 +179,7 @@ export default function Trade() {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Paper Trading
+          {tr("Paper Trading", "模拟交易")}
         </button>
         <button
           type="button"
@@ -182,7 +190,7 @@ export default function Trade() {
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Live Trading
+          {tr("Live Trading", "实盘交易")}
         </button>
       </div>
 
@@ -190,7 +198,7 @@ export default function Trade() {
         <div className="surface-card h-[105px] border border-border px-6 py-5">
           <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
-            Active Bots
+            {tr("Running Strategies", "进行中的策略")}
           </div>
           <p className="stat-value text-2xl font-bold text-foreground">{summary.activeBots}</p>
         </div>
@@ -198,7 +206,7 @@ export default function Trade() {
         <div className="surface-card h-[105px] border border-border px-6 py-5">
           <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
             <ArrowUpRight className="h-3.5 w-3.5 text-sky-400" />
-            Total Equity
+            {tr("Total Equity", "总权益")}
           </div>
           <p className="stat-value text-2xl font-bold text-foreground">
             {summary.totalEquity.toLocaleString(undefined, {
@@ -211,7 +219,7 @@ export default function Trade() {
         <div className="surface-card h-[105px] border border-border px-6 py-5">
           <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
             <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" />
-            Unrealized PnL
+            {tr("Unrealized PnL", "未实现盈亏")}
           </div>
           <p
             className={`stat-value text-2xl font-bold ${
@@ -225,7 +233,7 @@ export default function Trade() {
         <div className="surface-card h-[105px] border border-border px-6 py-5">
           <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
-            Avg Win Rate
+            {tr("Avg Win Rate", "平均胜率")}
           </div>
           <p className="stat-value text-2xl font-bold text-indigo-300">
             {summary.avgWinRate.toFixed(1)}%
@@ -235,7 +243,7 @@ export default function Trade() {
 
       <div className="surface-card overflow-hidden border border-border/70">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-5 py-3">
-          <div className="text-sm font-semibold text-foreground">Trading Bots</div>
+          <div className="text-sm font-semibold text-foreground">{tr("Strategy List", "策略列表")}</div>
           <div className="flex items-center gap-2">
             <div className="inline-flex h-8 items-center rounded-lg border border-border bg-card p-1">
               <button
@@ -247,7 +255,7 @@ export default function Trade() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                All
+                {tr("All", "全部")}
               </button>
               <button
                 type="button"
@@ -258,7 +266,7 @@ export default function Trade() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Running
+                {tr("Running", "运行中")}
               </button>
               <button
                 type="button"
@@ -269,7 +277,7 @@ export default function Trade() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Stop
+                {tr("Stopped", "已停止")}
               </button>
             </div>
           </div>
@@ -279,15 +287,15 @@ export default function Trade() {
           {filteredVisibleBots.length === 0 ? (
             <div className="rounded-2xl border border-border/60 bg-background/30 px-6 py-12 text-center">
               <p className="text-sm font-medium text-foreground">
-                No trading bots match the selected status.
+                {tr("No trading bots match the selected status.", "没有符合当前状态筛选条件的交易机器人。")}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Try switching status filter or create/deploy a strategy in Strategy workspace.
+                {tr("Try switching status filter or create/deploy a strategy in Strategy workspace.", "请尝试切换状态筛选，或前往策略工作区创建/部署策略。")}
               </p>
               <div className="mt-4 flex justify-center">
                 <Link href="/strategies">
                   <Button variant="outline" className="h-8 rounded-full border-border bg-card px-3 text-xs">
-                    Go to Strategy
+                    {tr("Go to Strategy", "前往策略")}
                   </Button>
                 </Link>
               </div>
@@ -318,11 +326,11 @@ export default function Trade() {
                             : "border-amber-500/25 bg-amber-500/10 text-amber-300"
                         }`}
                       >
-                        {bot.status === "running" ? "running" : "stopped"}
+                        {bot.status === "running" ? tr("running", "运行中") : tr("stopped", "已停止")}
                       </span>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {bot.id} · {bot.symbol} · {bot.market} · {bot.leverage}
+                      {bot.id} · {bot.symbol} · {marketLabel(bot.market)} · {bot.leverage}
                     </div>
                   </div>
                 </div>
@@ -330,7 +338,7 @@ export default function Trade() {
                 <div className="mt-3 grid grid-cols-3 gap-2">
                   <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
                     <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      Equity
+                      {tr("Equity", "权益")}
                     </div>
                     <div className="mt-1 text-xs font-semibold text-foreground">
                       {bot.equity.toLocaleString(undefined, {
@@ -353,7 +361,7 @@ export default function Trade() {
                   </div>
                   <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
                     <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      Win Rate
+                      {tr("Win Rate", "胜率")}
                     </div>
                     <div className="mt-1 text-xs font-semibold text-indigo-300">
                       {bot.winRate.toFixed(1)}%
@@ -362,14 +370,14 @@ export default function Trade() {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <div className="text-[11px] text-muted-foreground">Updated {bot.updatedAt}</div>
+                  <div className="text-[11px] text-muted-foreground">{tr("Updated", "更新于")} {bot.updatedAt}</div>
                   <div className="flex items-center gap-2">
                     <Link href={`/trade/${bot.id}?env=${bot.environment}&status=${bot.status}`}>
                       <Button
                         variant="outline"
                         className="h-8 rounded-full border-border bg-card px-3 text-xs"
                       >
-                        Details
+                        {tr("Details", "详情")}
                       </Button>
                     </Link>
                     {bot.status === "running" ? (
@@ -378,7 +386,7 @@ export default function Trade() {
                         className="h-8 rounded-full border-border bg-card px-3 text-xs"
                         onClick={() => setPendingAction({ type: "stop", botId: bot.id })}
                       >
-                        Stop
+                        {tr("Stop", "停止")}
                       </Button>
                     ) : (
                       <Button
@@ -386,7 +394,7 @@ export default function Trade() {
                         className="h-8 rounded-full border-border bg-card px-3 text-xs text-destructive hover:text-destructive"
                         onClick={() => setPendingAction({ type: "delete", botId: bot.id })}
                       >
-                        Delete
+                        {tr("Delete", "删除")}
                       </Button>
                     )}
                   </div>
@@ -401,18 +409,18 @@ export default function Trade() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {pendingAction?.type === "stop" ? "Stop Trading Bot" : "Delete Trading Bot"}
+              {pendingAction?.type === "stop" ? tr("Stop Trading Bot", "停止交易机器人") : tr("Delete Trading Bot", "删除交易机器人")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingAction?.type === "stop"
-                ? "Are you sure you want to stop this bot? Open positions and bot settings will be kept for future resume."
-                : "Are you sure you want to delete this stopped bot from the workspace? This action cannot be undone."}
+                ? tr("Are you sure you want to stop this bot? Open positions and bot settings will be kept for future resume.", "确认要停止这个机器人吗？当前持仓与机器人配置会被保留，后续可继续恢复。")
+                : tr("Are you sure you want to delete this stopped bot from the workspace? This action cannot be undone.", "确认要将这个已停止的机器人从工作区中删除吗？此操作不可撤销。")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{tr("Cancel", "取消")}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmPendingAction}>
-              {pendingAction?.type === "stop" ? "Confirm Stop" : "Confirm Delete"}
+              {pendingAction?.type === "stop" ? tr("Confirm Stop", "确认停止") : tr("Confirm Delete", "确认删除")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

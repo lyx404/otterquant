@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "wouter";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useId } from "react";
 import gsap from "gsap";
 import {
   ArrowUpDown,
@@ -47,7 +47,6 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
-  Trophy,
   Plus,
 } from "lucide-react";
 import {
@@ -60,6 +59,7 @@ import {
   getAlphaGrade,
   GRADE_CONFIG,
   type AlphaGrade,
+  generatePnLData,
 } from "@/lib/mockData";
 import ShinyTag from "@/components/ui/shiny-tag";
 import { StarButton } from "@/components/ui/star-button";
@@ -67,6 +67,7 @@ import ShinyText from "@/components/ui/shiny-text";
 import AlphaCardView from "@/components/AlphaCardView";
 import { LayoutGrid, Table2 } from "lucide-react";
 import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 
 type AlphaRow = Factor & {
   submissionStatus: "queued" | "backtesting" | "is_testing" | "os_testing" | "passed" | "failed" | "rejected";
@@ -92,6 +93,7 @@ const dataColumns: ColumnDef[] = [
   { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
   { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
+  { key: "pnl", label: "PnL Curve", defaultVisible: true, sortable: false, width: "126px", align: "center" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "80px", align: "right" },
@@ -124,12 +126,57 @@ type MyAlphasPrefs = {
 };
 
 const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
-const MY_ALPHAS_PREFS_VERSION = 2;
+const MY_ALPHAS_PREFS_VERSION = 3;
 const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
+
+function buildSparklinePath(values: number[], width: number, height: number, padding = 4) {
+  if (values.length < 2) return "";
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const step = (width - padding * 2) / (values.length - 1);
+
+  return values
+    .map((value, index) => {
+      const x = padding + index * step;
+      const y = height - padding - ((value - min) / range) * (height - padding * 2);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+function TablePnlSparkline({ values }: { values: number[] }) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 108;
+  const height = 42;
+  const path = buildSparklinePath(values, width, height);
+  const areaPath = path ? `${path} L ${width - 4} ${height - 4} L 4 ${height - 4} Z` : "";
+
+  return (
+    <div className="flex h-full min-h-[42px] w-[108px] items-center" aria-label="PNL折线图">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full overflow-visible" fill="none" aria-hidden="true">
+        <path d={areaPath} fill={`url(#${svgId}-table-pnl-fill)`} opacity="0.5" />
+        <path d={path} stroke={`url(#${svgId}-table-pnl-line)`} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+        <defs>
+          <linearGradient id={`${svgId}-table-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#818CF8" />
+            <stop offset="72%" stopColor="#818CF8" />
+            <stop offset="100%" stopColor="#34D399" />
+          </linearGradient>
+          <linearGradient id={`${svgId}-table-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+}
 
 function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
   if (mode === "beginner") {
-    return ["name", "grade", "epochStatus", "sharpe", "osSharpe", "fitness"];
+    return ["name", "grade", "epochStatus", "pnl", "sharpe", "osSharpe", "fitness"];
   }
   return [
     "name",
@@ -137,6 +184,7 @@ function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
     "grade",
     "epochStatus",
     "createdAt",
+    "pnl",
     "sharpe",
     "osSharpe",
     "fitness",
@@ -272,8 +320,29 @@ function getEpochStatus(factorId: string): { display: string; epochId: string | 
 }
 
 export default function MyAlphas() {
+  const { uiLang } = useAppLanguage();
   const storedPrefs = useMemo(() => readMyAlphasPrefs(), []);
   const { alphaViewMode } = useAlphaViewMode();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const columnLabelMap = useMemo(
+    () => ({
+      name: tr("Name", "名称"),
+      status_col: tr("Status", "状态"),
+      grade: tr("Grade", "等级"),
+      epochStatus: tr("Arena Round", "竞技场轮次"),
+      createdAt: tr("Date Created", "创建日期"),
+      pnl: tr("PnL Curve", "PNL曲线"),
+      sharpe: tr("IS Sharpe", "IS 夏普"),
+      osSharpe: tr("OS Sharpe", "OS 夏普"),
+      fitness: tr("Fitness", "适应度"),
+      returns: tr("Returns", "收益率"),
+      turnover: tr("Turnover", "换手率"),
+      drawdown: tr("Drawdown", "回撤"),
+      id: tr("ID", "ID"),
+      testsPassed: tr("Tests", "测试"),
+    }),
+    [uiLang]
+  );
   const [sortKey, setSortKey] = useState<string>(() => sanitizeSortKey(storedPrefs?.sortKey));
   const [sortDir, setSortDir] = useState<SortDir>(() => sanitizeSortDir(storedPrefs?.sortDir));
   const [visibleColumns, setVisibleColumns] = useState<Set<string>>(
@@ -290,6 +359,12 @@ export default function MyAlphas() {
   const [showRevealAllModal, setShowRevealAllModal] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
+  const tablePnlValues = useMemo(() => {
+    const pnlData = generatePnLData();
+    const combined = [...pnlData.train, ...pnlData.test].map((item) => item.value);
+    const sampleEvery = Math.max(1, Math.floor(combined.length / 28));
+    return combined.filter((_, index) => index % sampleEvery === 0).slice(-28);
+  }, []);
 
 
 
@@ -513,7 +588,7 @@ export default function MyAlphas() {
     const s = statusConfig[status] ?? statusConfig.failed;
     return (
       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${s.bgClass} ${s.colorClass} ${s.borderClass}`}>
-        {s.label}
+        {s.label === "PASSED" ? tr("PASSED", "通过") : tr("FAILED", "失败")}
       </span>
     );
   };
@@ -538,6 +613,8 @@ export default function MyAlphas() {
         );
       case "createdAt":
         return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{row.createdAt}</span>;
+      case "pnl":
+        return <TablePnlSparkline values={tablePnlValues} />;
       case "sharpe":
         return <span className="font-mono text-xs tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
       case "osSharpe":
@@ -575,8 +652,8 @@ export default function MyAlphas() {
           return (
             <span
               className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-              title="Unrevealed grade"
-              aria-label="Unrevealed grade"
+              title={tr("Unrevealed grade", "未揭示等级")}
+              aria-label={tr("Unrevealed grade", "未揭示等级")}
             >
               <span className="text-[11px] leading-none font-black text-slate-500 dark:text-slate-300 select-none">?</span>
             </span>
@@ -598,17 +675,18 @@ export default function MyAlphas() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="text-xs font-mono whitespace-nowrap text-muted-foreground/50 cursor-default">
-                  Ineligible
+                  {tr("Ineligible", "不可参赛")}
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top">
-                Only passed alphas are eligible to participate in the Arena
+                {tr("Only passed factors are eligible to participate in the Arena", "只有通过的因子才可进入竞技场")}
               </TooltipContent>
             </Tooltip>
           );
         }
-        const es = row.epochStatus || "Not Entered";
-        const isRanked = es !== "Not Entered";
+        const rawEpoch = row.epochStatus || "Not Entered";
+        const isRanked = rawEpoch !== "Not Entered";
+        const es = rawEpoch === "Not Entered" ? tr("Not Entered", "未参赛") : rawEpoch;
         if (isRanked && row.epochId) {
           return (
             <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
@@ -652,6 +730,12 @@ export default function MyAlphas() {
     return <ArrowUpDown className="w-3 h-3 opacity-30" />;
   };
 
+  const sortDirectionLabel = (direction: SortDir) => {
+    if (direction === "asc") return tr("Ascending", "升序");
+    if (direction === "desc") return tr("Descending", "降序");
+    return tr("Unsorted", "未排序");
+  };
+
   /* ── Pagination range ── */
   const getPageRange = () => {
     const maxVisible = 5;
@@ -682,7 +766,7 @@ export default function MyAlphas() {
         <div className="reveal-line">
           <div className="flex items-center justify-between">
             <h1 className="text-foreground">
-              My Alphas
+              {tr("My Factors", "我的因子")}
             </h1>
             <Link href="/alphas/new">
               <StarButton
@@ -694,7 +778,7 @@ export default function MyAlphas() {
               >
                 <Plus className="w-3.5 h-3.5 text-white fill-white" />
                 <ShinyText
-                  text="New Alpha"
+                  text={tr("New Factor", "新建因子")}
                   speed={2}
                   delay={0.1}
                   spread={120}
@@ -723,7 +807,7 @@ export default function MyAlphas() {
           }`}
         >
           <div className="flex items-center gap-2 label-upper mb-2">
-            <BarChart3 className="w-3.5 h-3.5" /> Total
+            <BarChart3 className="w-3.5 h-3.5" /> {tr("Total", "总数")}
           </div>
           <div className="stat-value text-2xl font-bold text-foreground truncate">{submissionStats.total}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate" />
@@ -737,7 +821,7 @@ export default function MyAlphas() {
           }`}
         >
           <div className="flex items-center gap-2 label-upper mb-2 text-amber-400">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> My Favorites
+            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {tr("My Favorites", "我的收藏")}
           </div>
           <div className="stat-value text-2xl font-bold text-amber-500 dark:text-amber-400 truncate">{starred.size}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate" />
@@ -751,7 +835,7 @@ export default function MyAlphas() {
           }`}
         >
           <div className="flex items-center gap-2 label-upper mb-2 text-success">
-            <CheckCircle className="w-3.5 h-3.5" /> Passed
+            <CheckCircle className="w-3.5 h-3.5" /> {tr("Passed", "通过")}
           </div>
           <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate" />
@@ -765,7 +849,7 @@ export default function MyAlphas() {
           }`}
         >
           <div className="flex items-center gap-2 label-upper mb-2 text-destructive">
-            <XCircle className="w-3.5 h-3.5" /> Failed
+            <XCircle className="w-3.5 h-3.5" /> {tr("Failed", "失败")}
           </div>
           <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + submissionStats.rejected}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate" />
@@ -781,7 +865,7 @@ export default function MyAlphas() {
           <div className="relative flex-1 min-w-[180px] max-w-[280px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
-              placeholder="Search by name or ID..."
+              placeholder={tr("Search by name or ID...", "按名称或 ID 搜索...")}
               value={filterName}
               onChange={(e) => { setFilterName(e.target.value); setPage(1); }}
               className="h-8 w-full rounded-xl border border-border bg-accent/30 pl-8 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
@@ -798,7 +882,7 @@ export default function MyAlphas() {
               }}
             >
               <X className="w-3 h-3" />
-              Clear filters
+              {tr("Clear filters", "清除筛选")}
             </button>
           )}
 
@@ -806,10 +890,9 @@ export default function MyAlphas() {
             <button
               className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
               onClick={handleRevealAllUnrevealedGrades}
-              title={`Reveal ${unrevealedPassedCount} unrevealed grades`}
+              title={tr(`Reveal ${unrevealedPassedCount} unrevealed grades`, `揭示 ${unrevealedPassedCount} 个未揭示等级`)}
             >
-              <Trophy className="w-3.5 h-3.5" />
-              Reveal all grade
+              {tr("Reveal all grades", "揭示全部等级")}
             </button>
           )}
 
@@ -817,14 +900,11 @@ export default function MyAlphas() {
             <PopoverTrigger asChild>
               <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                 <ArrowUpDown className="w-3.5 h-3.5" />
-                Sort
+                {tr("Sort", "排序")}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-64 rounded-2xl" align="end">
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {viewMode === "card" ? "Sort Cards" : "Sort Rows"}
-                  </p>
                   <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
                     {cardSortColumns.map((col) => {
                       const active = sortKey === col.key;
@@ -842,9 +922,9 @@ export default function MyAlphas() {
                             }
                           }}
                         >
-                          <span>{col.label}</span>
+                          <span>{columnLabelMap[col.key as keyof typeof columnLabelMap] ?? col.label}</span>
                           <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-                            {active ? (sortDir === "asc" ? "ASC" : "DESC") : "DEFAULT"}
+                            {active ? sortDirectionLabel(sortDir) : tr("Default", "默认")}
                           </span>
                         </button>
                       );
@@ -858,7 +938,7 @@ export default function MyAlphas() {
                           setSortDir(sortDir === "asc" ? "desc" : "asc");
                         }}
                       >
-                        Toggle direction
+                        {tr("Toggle direction", "切换方向")}
                       </button>
                       <button
                         className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-colors"
@@ -867,7 +947,7 @@ export default function MyAlphas() {
                           setSortDir(null);
                         }}
                       >
-                        Clear
+                        {tr("Clear", "清除")}
                       </button>
                     </div>
                   )}
@@ -879,12 +959,12 @@ export default function MyAlphas() {
             <PopoverTrigger asChild>
               <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                 <Settings2 className="w-3.5 h-3.5" />
-                Columns
+                    {tr("Display Items", "显示项")}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-56 rounded-2xl" align="end">
               <div className="space-y-1">
-                <p className="text-xs font-medium mb-2 text-muted-foreground">Toggle Columns</p>
+                <p className="text-xs font-medium mb-2 text-muted-foreground">{tr("Toggle Display Items", "切换显示项")}</p>
                 {dataColumns.map((col) => (
                   <label key={col.key} className="flex items-center gap-2 py-1 px-1 rounded-lg cursor-pointer">
                     <Checkbox
@@ -892,7 +972,7 @@ export default function MyAlphas() {
                       onCheckedChange={() => toggleColumn(col.key)}
                       className="h-3.5 w-3.5"
                     />
-                    <span className="text-xs text-foreground">{col.label}</span>
+                    <span className="text-xs text-foreground">{columnLabelMap[col.key as keyof typeof columnLabelMap] ?? col.label}</span>
                   </label>
                 ))}
               </div>
@@ -905,10 +985,10 @@ export default function MyAlphas() {
               onClick={() => setViewMode("table")}
               className={`inline-flex h-8 w-8 items-center justify-center transition-all duration-200 ease-in-out ${
                 viewMode === "table"
-                  ? "bg-primary/12 text-primary"
+                  ? "rounded-[10px] bg-primary/10 text-primary shadow-sm dark:bg-primary dark:text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
-              title="Table View"
+              title={tr("Table View", "表格视图")}
             >
               <Table2 className="w-4 h-4" />
             </button>
@@ -916,10 +996,10 @@ export default function MyAlphas() {
               onClick={() => setViewMode("card")}
               className={`inline-flex h-8 w-8 items-center justify-center transition-all duration-200 ease-in-out ${
                 viewMode === "card"
-                  ? "bg-primary text-[#020617]"
+                  ? "rounded-[10px] bg-primary/10 text-primary shadow-sm dark:bg-primary dark:text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
-              title="Card View"
+              title={tr("Card View", "卡片视图")}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -948,14 +1028,14 @@ export default function MyAlphas() {
                     onClick={() => col.sortable && handleSort(col.key)}
                   >
                     <span className={`flex items-center gap-1.5 label-upper whitespace-nowrap select-none ${col.align === "right" ? "justify-end" : col.align === "center" ? "justify-center" : ""}`}>
-                      {col.label}
+                      {columnLabelMap[col.key as keyof typeof columnLabelMap] ?? col.label}
                       {col.sortable && <SortIcon colKey={col.key} />}
                     </span>
                   </th>
                 ))}
                 {/* Actions header — sticky right */}
                 <th className="px-3 py-2.5 text-right sticky right-0 z-[2] bg-card border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)]">
-                  <span className="label-upper">Actions</span>
+                  <span className="label-upper">{tr("Actions", "操作")}</span>
                 </th>
               </tr>
             </thead>
@@ -966,7 +1046,7 @@ export default function MyAlphas() {
                   className={`transition-all duration-200 ease-in-out group border-t border-border/40 hover:bg-accent/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
                 >
                   {visibleCols.map((col) => (
-                    <td key={col.key} className={`px-3 py-2.5 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
+                    <td key={col.key} className={`px-3 ${col.key === "pnl" ? "py-1.5" : "py-2.5"} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
                       {renderCell(row, col.key)}
                     </td>
                   ))}
@@ -974,7 +1054,7 @@ export default function MyAlphas() {
                   <td className="px-3 py-2.5 text-right sticky right-0 z-[2] bg-card group-hover:bg-slate-50 dark:group-hover:bg-slate-800/30 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] transition-colors duration-200 ease-in-out">
                     <Link href={`/alphas/${row.id}`}>
                       <button className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-full transition-all duration-200 ease-in-out whitespace-nowrap text-muted-foreground border border-border hover:border-primary hover:text-primary hover:bg-primary/5">
-                        View
+                        {tr("View", "查看")}
                       </button>
                     </Link>
                   </td>
@@ -983,7 +1063,7 @@ export default function MyAlphas() {
               {paginated.length === 0 && (
                 <tr>
                   <td colSpan={visibleCols.length + 1} className="text-center py-12 text-sm text-muted-foreground">
-                    No alphas match the current filters.
+                    {tr("No factors match the current filters.", "没有符合当前筛选条件的因子。")}
                   </td>
                 </tr>
               )}
@@ -995,11 +1075,11 @@ export default function MyAlphas() {
         <div className="flex items-center justify-between px-6 py-4 border-t border-border/60 bg-card/40">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="font-mono tabular-nums">
-              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
+              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} {tr("of", "共")} {sorted.length}
             </span>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-1.5">
-              <span>Rows</span>
+              <span>{tr("Rows", "行数")}</span>
               <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
                 <SelectTrigger className="h-6 w-16 text-xs rounded-lg bg-transparent border-border">
                   <SelectValue />
@@ -1048,7 +1128,7 @@ export default function MyAlphas() {
         className="!fixed !left-0 !top-0 !z-50 !h-screen !w-screen !max-w-none !translate-x-0 !translate-y-0 rounded-none border-none bg-[#050814]/92 p-0 shadow-none"
         style={{ transform: "none", inset: 0 }}
       >
-        <DialogTitle className="sr-only">Reveal All Results</DialogTitle>
+        <DialogTitle className="sr-only">{tr("Reveal All Results", "揭示全部等级结果")}</DialogTitle>
         <div
           className="absolute inset-0 flex items-center justify-center p-3 sm:p-6"
           onClick={() => setShowRevealAllModal(false)}
@@ -1059,9 +1139,12 @@ export default function MyAlphas() {
           >
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 sm:px-6">
               <div>
-                <h3 className="text-base font-semibold text-foreground">Revealed Grades</h3>
+                <h3 className="text-base font-semibold text-foreground">{tr("Revealed Grades", "已揭示等级")}</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {revealAllResults.length} newly revealed in this round
+                  {tr(
+                    `${revealAllResults.length} newly revealed in this round`,
+                    `本轮新揭示 ${revealAllResults.length} 个等级`
+                  )}
                 </p>
               </div>
               <Button
@@ -1070,7 +1153,7 @@ export default function MyAlphas() {
                 className="h-8 rounded-full border-border"
                 onClick={() => setShowRevealAllModal(false)}
               >
-                Close
+                {tr("Close", "关闭")}
               </Button>
             </div>
 
@@ -1092,7 +1175,7 @@ export default function MyAlphas() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-border/60 bg-accent/20 px-4 py-8 text-center text-sm text-muted-foreground">
-                  No newly revealed grades.
+                  {tr("No newly revealed grades.", "本轮没有新揭示的等级。")}
                 </div>
               )}
             </div>

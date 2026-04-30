@@ -140,9 +140,9 @@ export default function Auth() {
       <div ref={cardRef} className="w-full max-w-[400px] relative z-10">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-10 h-10 rounded-full object-cover" />
+          <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Quandora" className="w-10 h-10 rounded-full object-cover" />
           <span className="font-semibold text-xl tracking-tight text-foreground">
-            Otter
+            Quandora
           </span>
         </div>
 

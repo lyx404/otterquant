@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import ShinyTag from "@/components/ui/shiny-tag";
 import ScratchCard from "@/components/ui/scratch-card";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import {
   factors, generatePnLData, generateSharpeData, generateTurnoverData,
@@ -36,7 +37,13 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 type ChartType = "pnl" | "sharpe" | "turnover" | "returns" | "drawdown";
 
-export default function AlphaDetail() {
+type AlphaDetailProps = {
+  embedded?: boolean;
+  factorIdOverride?: string;
+};
+
+export default function AlphaDetail({ embedded = false, factorIdOverride }: AlphaDetailProps = {}) {
+  const { uiLang } = useAppLanguage();
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const params = useParams<{ id: string }>();
@@ -47,7 +54,8 @@ export default function AlphaDetail() {
   const tierParam = searchParams.get("tier");
   const isGeneratingParam = searchParams.get("generating") === "true";
   const customName = searchParams.get("name");
-  const factor = factors.find((f) => f.id === params.id) || factors[0];
+  const resolvedFactorId = factorIdOverride ?? params.id;
+  const factor = factors.find((f) => f.id === resolvedFactorId) || factors[0];
   const officialTier: "official" | "graduated" =
     tierParam === "graduated"
       ? "graduated"
@@ -55,16 +63,17 @@ export default function AlphaDetail() {
         ? "graduated"
         : "official";
   const detailBackPath = isOfficialLibraryView ? "/alphas/official" : "/alphas";
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   /* ── Generating state ── */
   const [isGenerating, setIsGenerating] = useState(isGeneratingParam);
   const [genStep, setGenStep] = useState(0);
   const GEN_STEPS = [
-    { label: "Parsing strategy parameters", icon: Settings2, duration: 2000 },
-    { label: "Mining alpha factors", icon: FlaskConical, duration: 3000 },
-    { label: "Running backtests", icon: BarChart3, duration: 4000 },
-    { label: "Optimizing parameters", icon: LineChartIcon, duration: 3000 },
-    { label: "Evaluating performance", icon: Sparkles, duration: 2000 },
+    { label: tr("Parsing factor parameters", "解析因子参数"), icon: Settings2, duration: 2000 },
+    { label: tr("Mining factor ideas", "挖掘因子思路"), icon: FlaskConical, duration: 3000 },
+    { label: tr("Running backtests", "运行回测"), icon: BarChart3, duration: 4000 },
+    { label: tr("Optimizing parameters", "优化参数"), icon: LineChartIcon, duration: 3000 },
+    { label: tr("Evaluating performance", "评估表现"), icon: Sparkles, duration: 2000 },
   ];
 
   useEffect(() => {
@@ -148,6 +157,20 @@ export default function AlphaDetail() {
   const passItems = testingStatus.filter((t) => t.status === "pass");
   const failItems = testingStatus.filter((t) => t.status === "fail");
   const pendingItems = testingStatus.filter((t) => t.status === "pending");
+  const translateTestingText = (text: string) => {
+    if (uiLang === "en") return text;
+    return text
+      .replace("Turnover of ", "换手率 ")
+      .replace("Sharpe of ", "夏普比率 ")
+      .replace("Sub-universe Sharpe of ", "子宇宙夏普比率 ")
+      .replace("Fitness of ", "适应度 ")
+      .replace("Weight concentration ", "权重集中度 ")
+      .replace(" is above cutoff of ", " 高于阈值 ")
+      .replace(" is below cutoff of ", " 低于阈值 ")
+      .replace(" on ", " ，日期 ")
+      .replace("Competition Challenge matches.", "满足 Competition Challenge 条件。")
+      .replace("Self-correlation check pending.", "自相关检查待完成。");
+  };
 
   const summaryData = summaryPeriod === "IS" ? yearlySummary : osYearlySummary;
   const aggData = summaryPeriod === "IS" ? aggregateData : osAggregateData;
@@ -155,30 +178,32 @@ export default function AlphaDetail() {
 
   /* ── Beginner mode metrics ── */
   const beginnerMetrics = [
-    { label: "OS Sharpe", value: factor.osSharpe.toFixed(2), color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171", desc: factor.osSharpe >= 1.0 ? "Strong" : factor.osSharpe >= 0.5 ? "Moderate" : "Weak" },
-    { label: "Returns", value: factor.returns, color: "#34D399", desc: "Total return" },
-    { label: "Drawdown", value: factor.drawdown, color: "#F87171", desc: "Max loss" },
-    { label: "Tests", value: `${factor.testsPassed}/${factor.testsPassed + factor.testsFailed}`, color: factor.testsPassed > factor.testsFailed ? "#34D399" : "#F87171", desc: "Passed/Total" },
+    { label: tr("OS Sharpe", "样本外夏普比率"), value: factor.osSharpe.toFixed(2), color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171", desc: factor.osSharpe >= 1.0 ? tr("Strong", "强") : factor.osSharpe >= 0.5 ? tr("Moderate", "中等") : tr("Weak", "弱") },
+    { label: tr("Returns", "收益"), value: factor.returns, color: "#34D399", desc: tr("Total return", "总收益") },
+    { label: tr("Drawdown", "回撤"), value: factor.drawdown, color: "#F87171", desc: tr("Max loss", "最大亏损") },
+    { label: tr("Tests", "测试"), value: `${factor.testsPassed}/${factor.testsPassed + factor.testsFailed}`, color: factor.testsPassed > factor.testsFailed ? "#34D399" : "#F87171", desc: tr("Passed/Total", "通过/总数") },
   ];
 
   /* ── Generating Loading UI ── */
   if (isGenerating) {
-    const displayName = customName || params.id || "New Alpha";
+    const displayName = customName || resolvedFactorId || "New Alpha";
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
+          {!embedded ? (
+            <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
+              <ArrowLeft className="w-4 h-4" />
+              {tr("Back", "返回")}
+            </Button>
+          ) : null}
           <div className="flex-1">
             <h1 className="text-foreground">{displayName}</h1>
-            <p className="text-xs font-mono mt-1 text-muted-foreground">{params.id} &middot; Just created</p>
+            <p className="text-xs font-mono mt-1 text-muted-foreground">{resolvedFactorId} &middot; {tr("Just created", "刚创建")}</p>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-32">
           <Loader2 className="w-10 h-10 text-primary animate-spin" />
-          <p className="mt-4 text-sm text-muted-foreground">Generating alpha factor...</p>
+          <p className="mt-4 text-sm text-muted-foreground">{tr("Generating factor...", "正在生成因子...")}</p>
         </div>
       </div>
     );
@@ -188,10 +213,12 @@ export default function AlphaDetail() {
     <div className="space-y-6">
       {/* ═══ SECTION 1: Factor Name + Header ═══ */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
-          <ArrowLeft className="w-4 h-4" />
-          Back
-        </Button>
+        {!embedded ? (
+          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
+            <ArrowLeft className="w-4 h-4" />
+            {tr("Back", "返回")}
+          </Button>
+        ) : null}
         <div className="flex-1" ref={headerRef}>
           <div className="reveal-line flex items-center gap-3 flex-wrap">
             <h1 className="text-foreground">{factor.name}</h1>
@@ -205,7 +232,7 @@ export default function AlphaDetail() {
                     : "border-sky-500/25 bg-sky-500/10 text-sky-400"
                 }`}
               >
-                {officialTier === "official" ? "OFFICIAL" : "GRADUATED"}
+                {officialTier === "official" ? tr("OFFICIAL", "官方") : tr("GRADUATED", "三方") }
               </span>
             ) : (
               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
@@ -213,12 +240,12 @@ export default function AlphaDetail() {
                   ? "bg-success/10 text-success border-success/20"
                   : "bg-destructive/10 text-destructive border-destructive/20"
               }`}>
-                {factor.status === "active" || factor.status === "testing" ? "PASSED" : "FAILED"}
+                {factor.status === "active" || factor.status === "testing" ? tr("PASSED", "通过") : tr("FAILED", "失败")}
               </span>
             )}
             <p className="text-xs font-mono text-muted-foreground">
-              {factor.id} &middot; Created {factor.createdAt}
-              {isOfficialLibraryView ? " · Official Library" : ""}
+              {factor.id} &middot; {tr("Created", "创建于")} {factor.createdAt}
+              {isOfficialLibraryView ? ` · ${tr("Official Library", "官方库")}` : ""}
             </p>
           </div>
         </div>
@@ -251,9 +278,9 @@ export default function AlphaDetail() {
             <div className="px-6 py-4 pb-2">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">Performance</span>
+                <span className="text-base font-semibold text-foreground">{tr("Performance", "表现")}</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Cumulative profit and loss over time</p>
+              <p className="text-xs text-muted-foreground mt-1">{tr("Cumulative profit and loss over time", "累计盈亏走势")}</p>
             </div>
             <div className="px-6 pb-6">
               <div className="h-[300px]">
@@ -271,11 +298,11 @@ export default function AlphaDetail() {
               <div className="flex items-center justify-center gap-6 mt-2">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-0.5 rounded bg-primary" />
-                  <span className="text-xs text-muted-foreground">Train (In-Sample)</span>
+                  <span className="text-xs text-muted-foreground">{tr("Train (In-Sample)", "训练（样本内）")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-0.5 rounded bg-success" />
-                  <span className="text-xs text-muted-foreground">Test (Out-of-Sample)</span>
+                  <span className="text-xs text-muted-foreground">{tr("Test (Out-of-Sample)", "测试（样本外）")}</span>
                 </div>
               </div>
             </div>
@@ -287,22 +314,22 @@ export default function AlphaDetail() {
             <div className="px-6 py-4 pb-3">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-success" />
-                <span className="text-base font-semibold text-foreground">Test Results</span>
+                <span className="text-base font-semibold text-foreground">{tr("Test Results", "测试结果")}</span>
               </div>
             </div>
             <div className="px-6 pb-6">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-success" />
-                  <span className="text-sm text-foreground">{passItems.length} Passed</span>
+                  <span className="text-sm text-foreground">{passItems.length} {tr("Passed", "通过")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-destructive" />
-                  <span className="text-sm text-foreground">{failItems.length} Failed</span>
+                  <span className="text-sm text-foreground">{failItems.length} {tr("Failed", "失败")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-slate-400" />
-                  <span className="text-sm text-foreground">{pendingItems.length} Pending</span>
+                  <span className="text-sm text-foreground">{pendingItems.length} {tr("Pending", "待处理")}</span>
                 </div>
               </div>
               <div className="mt-3 h-2 rounded-full bg-accent overflow-hidden flex">
@@ -327,10 +354,10 @@ export default function AlphaDetail() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">{summaryPeriod} Summary</span>
+                  <span className="text-base font-semibold text-foreground">{summaryPeriod} {tr("Summary", "摘要")}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs mr-2 text-muted-foreground">Period</span>
+                  <span className="text-xs mr-2 text-muted-foreground">{tr("Period", "区间")}</span>
                   {(["IS", "OS"] as const).map((p) => (
                     <button
                       key={p}
@@ -358,7 +385,7 @@ export default function AlphaDetail() {
                 />
                 {/* Sharpe card — color follows list view osSharpe rule */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">SHARPE</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("SHARPE", "夏普比率")}</div>
                   <div className={`text-lg font-bold font-mono tabular-nums ${
                     (typeof aggData.sharpe === "number" ? aggData.sharpe : 0) >= 1 ? "text-success" : (typeof aggData.sharpe === "number" ? aggData.sharpe : 0) >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
                   }`}>
@@ -367,12 +394,12 @@ export default function AlphaDetail() {
                 </div>
                 {/* Turnover */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">TURNOVER</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("TURNOVER", "换手率")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.turnover}</div>
                 </div>
                 {/* Fitness — color follows list view fitness rule */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">FITNESS</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("FITNESS", "适应度")}</div>
                   <div className={`text-lg font-bold font-mono tabular-nums ${
                     (typeof aggData.fitness === "number" ? aggData.fitness : 0) >= 1 ? "text-success" : (typeof aggData.fitness === "number" ? aggData.fitness : 0) >= 0.5 ? "text-foreground" : "text-muted-foreground"
                   }`}>
@@ -381,26 +408,26 @@ export default function AlphaDetail() {
                 </div>
                 {/* Returns */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">RETURNS</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("RETURNS", "收益")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.returns}</div>
                 </div>
                 {/* Drawdown — always destructive like list view */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">DRAWDOWN</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("DRAWDOWN", "回撤")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-destructive">{aggData.drawdown}</div>
                 </div>
                 {/* Margin */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">MARGIN</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("MARGIN", "保证金")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.margin}</div>
                 </div>
                 {/* Tests card */}
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">TESTS</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("TESTS", "测试")}</div>
                   <div className={`text-lg font-bold font-mono tabular-nums ${factor.testsPassed > factor.testsFailed ? "text-success" : "text-destructive"}`}>
                     {factor.testsPassed}/{factor.testsPassed + factor.testsFailed}
                   </div>
-                  <div className="text-[9px] text-muted-foreground mt-0.5">Passed/Total</div>
+                  <div className="text-[9px] text-muted-foreground mt-0.5">{tr("Passed/Total", "通过/总数")}</div>
                 </div>
               </div>
 
@@ -408,15 +435,15 @@ export default function AlphaDetail() {
               <Table>
                 <TableHeader>
                   <TableRow className="border-border">
-                    <TableHead className="label-upper text-primary">Year</TableHead>
-                    <TableHead className="label-upper text-primary">Sharpe</TableHead>
-                    <TableHead className="label-upper text-primary">Turnover</TableHead>
-                    <TableHead className="label-upper text-primary">Fitness</TableHead>
-                    <TableHead className="label-upper text-primary">Returns</TableHead>
-                    <TableHead className="label-upper text-primary">Drawdown</TableHead>
-                    <TableHead className="label-upper text-primary">Margin</TableHead>
-                    <TableHead className="label-upper text-primary">Long Count</TableHead>
-                    <TableHead className="label-upper text-primary">Short Count</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Year", "年份")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Sharpe", "夏普比率")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Turnover", "换手率")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Fitness", "适应度")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Returns", "收益")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Drawdown", "回撤")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Margin", "保证金")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Long Count", "多头数量")}</TableHead>
+                    <TableHead className="label-upper text-primary">{tr("Short Count", "空头数量")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -449,7 +476,7 @@ export default function AlphaDetail() {
           {/* ── SECTION 3: Alpha Expression ── */}
           <div className="surface-card py-4 px-6">
             <div className="flex items-center gap-2">
-              <span className="label-upper">Expression:</span>
+              <span className="label-upper">{tr("Expression:", "表达式：")}</span>
               <code className="text-sm font-mono text-primary">{factor.expression}</code>
             </div>
           </div>
@@ -465,11 +492,11 @@ export default function AlphaDetail() {
               }`}
               onClick={() => setShowTestPeriod(!showTestPeriod)}
             >
-              {showTestPeriod ? "Hide test period" : "Show test period"}
+              {showTestPeriod ? tr("Hide test period", "隐藏测试区间") : tr("Show test period", "显示测试区间")}
             </button>
             {showTestPeriod && (
               <span className="text-xs px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
-                Test period and overall stats are hidden by default when test period is specified.
+                {tr("Test period and overall stats are hidden by default when test period is specified.", "指定测试区间后，测试期与总体统计默认隐藏。")}
               </span>
             )}
           </div>
@@ -480,7 +507,7 @@ export default function AlphaDetail() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">Performance</span>
+                  <span className="text-base font-semibold text-foreground">{tr("Performance", "表现")}</span>
                 </div>
                 <Select value={chartType} onValueChange={(v) => setChartType(v as ChartType)}>
                   <SelectTrigger className="w-[160px] h-8 text-sm rounded-lg bg-card border-border">
@@ -488,10 +515,10 @@ export default function AlphaDetail() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pnl">PnL</SelectItem>
-                    <SelectItem value="sharpe">Sharpe</SelectItem>
-                    <SelectItem value="turnover">Turnover</SelectItem>
-                    <SelectItem value="returns">Returns</SelectItem>
-                    <SelectItem value="drawdown">Drawdown</SelectItem>
+                    <SelectItem value="sharpe">{tr("Sharpe", "夏普比率")}</SelectItem>
+                    <SelectItem value="turnover">{tr("Turnover", "换手率")}</SelectItem>
+                    <SelectItem value="returns">{tr("Returns", "收益")}</SelectItem>
+                    <SelectItem value="drawdown">{tr("Drawdown", "回撤")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -524,12 +551,12 @@ export default function AlphaDetail() {
               <div className="flex items-center justify-center gap-6 mt-2">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-0.5 rounded bg-primary" />
-                  <span className="text-xs text-muted-foreground">Train</span>
+                  <span className="text-xs text-muted-foreground">{tr("Train", "训练")}</span>
                 </div>
                 {showTestPeriod && (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-0.5 rounded bg-success" />
-                    <span className="text-xs text-muted-foreground">Test (OS)</span>
+                    <span className="text-xs text-muted-foreground">{tr("Test (OS)", "测试（样本外）")}</span>
                   </div>
                 )}
               </div>
@@ -544,10 +571,10 @@ export default function AlphaDetail() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-4 h-4 text-primary" />
-                    <span className="text-base font-semibold text-foreground">Correlation</span>
+                  <span className="text-base font-semibold text-foreground">{tr("Correlation", "相关性")}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    Last Run: {correlationData.lastRun}
+                    {tr("Last Run:", "最近运行：")} {correlationData.lastRun}
                     <button className="p-1 rounded-lg transition-colors text-muted-foreground hover:text-foreground">
                       <RefreshCw className="w-3 h-3" />
                     </button>
@@ -557,14 +584,14 @@ export default function AlphaDetail() {
               <div className="px-6 pb-6">
                 <div className="flex items-center gap-8">
                   <div>
-                    <span className="label-upper">Self Correlation</span>
+                    <span className="label-upper">{tr("Self Correlation", "自相关")}</span>
                   </div>
                   <div>
-                    <span className="text-xs mr-2 text-primary">Maximum</span>
+                    <span className="text-xs mr-2 text-primary">{tr("Maximum", "最大值")}</span>
                     <span className="font-mono text-sm text-foreground">{correlationData.selfCorrelation.maximum}</span>
                   </div>
                   <div>
-                    <span className="text-xs mr-2 text-success">Minimum</span>
+                    <span className="text-xs mr-2 text-success">{tr("Minimum", "最小值")}</span>
                     <span className="font-mono text-sm text-foreground">{correlationData.selfCorrelation.minimum}</span>
                   </div>
                 </div>
@@ -576,7 +603,7 @@ export default function AlphaDetail() {
               <div className="px-6 py-4 pb-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-success" />
-                  <span className="text-base font-semibold text-foreground">IS Testing Status</span>
+                  <span className="text-base font-semibold text-foreground">{tr("IS Testing Status", "样本内测试状态")}</span>
                 </div>
               </div>
               <div className="px-6 pb-6 space-y-2">
@@ -586,7 +613,7 @@ export default function AlphaDetail() {
                   onClick={() => setExpandedTestSections((s) => ({ ...s, pass: !s.pass }))}
                 >
                   <div className="flex items-center justify-between px-4 py-2">
-                    <span className="text-sm font-medium text-success">{passItems.length} PASS</span>
+                    <span className="text-sm font-medium text-success">{passItems.length} {tr("PASS", "通过")}</span>
                     {expandedTestSections.pass ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                   {expandedTestSections.pass && (
@@ -594,7 +621,7 @@ export default function AlphaDetail() {
                       {passItems.map((t, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                           <span className="mt-0.5 text-success">{"\u25CF"}</span>
-                          <span>{t.text}</span>
+                          <span>{translateTestingText(t.text)}</span>
                         </div>
                       ))}
                     </div>
@@ -607,7 +634,7 @@ export default function AlphaDetail() {
                   onClick={() => setExpandedTestSections((s) => ({ ...s, fail: !s.fail }))}
                 >
                   <div className="flex items-center justify-between px-4 py-2">
-                    <span className="text-sm font-medium text-destructive">{failItems.length} FAIL</span>
+                    <span className="text-sm font-medium text-destructive">{failItems.length} {tr("FAIL", "失败")}</span>
                     {expandedTestSections.fail ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                   {expandedTestSections.fail && (
@@ -615,7 +642,7 @@ export default function AlphaDetail() {
                       {failItems.map((t, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                           <span className="mt-0.5 text-destructive">{"\u25CF"}</span>
-                          <span>{t.text}</span>
+                          <span>{translateTestingText(t.text)}</span>
                         </div>
                       ))}
                     </div>
@@ -628,7 +655,7 @@ export default function AlphaDetail() {
                   onClick={() => setExpandedTestSections((s) => ({ ...s, pending: !s.pending }))}
                 >
                   <div className="flex items-center justify-between px-4 py-2">
-                    <span className="text-sm font-medium text-muted-foreground">{pendingItems.length} PENDING</span>
+                    <span className="text-sm font-medium text-muted-foreground">{pendingItems.length} {tr("PENDING", "待处理")}</span>
                     {expandedTestSections.pending ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                   </div>
                   {expandedTestSections.pending && (
@@ -636,7 +663,7 @@ export default function AlphaDetail() {
                       {pendingItems.map((t, i) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
                           <span className="mt-0.5 text-slate-400">{"\u25CF"}</span>
-                          <span>{t.text}</span>
+                          <span>{translateTestingText(t.text)}</span>
                         </div>
                       ))}
                     </div>

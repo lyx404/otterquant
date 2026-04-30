@@ -1,5 +1,5 @@
 /*
- * Landing Page — Otter Platform Introduction
+ * Landing Page — Quandora Platform Introduction
  * Design System: "The Synthetic Neural" — Indigo Intelligence & Command Precision
  * Surface Base: #000000 dark / #FFFFFF light
  * Primary: #4F47E6 (Indigo) — the only chromatic accent
@@ -13,9 +13,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { ScrambleText } from "@/components/ui/scramble-text";
 import { TextLoop } from "@/components/ui/text-loop";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { currentEpoch, factors, strategies } from "@/lib/mockData";
 import {
   Tooltip,
   TooltipContent,
@@ -28,25 +30,19 @@ import {
   MessageSquare,
   BarChart3,
   Trophy,
-  Shield,
   Zap,
   Lock,
   Database,
-  Terminal,
-  RefreshCw,
+  Bot,
   CheckCircle,
-  Award,
 } from "lucide-react";
 
 /* ── CDN Assets ── */
 const HERO_BG =
   "https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/indigo-hero-bg-EsuKbHY6NkKkXtGAhTcqx2.webp";
-const IMG_MINING =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/indigo-feature-mining-6Zp44X4yVqYdzAcmzZa5u2.webp";
-const IMG_ARENA =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/indigo-feature-arena-kur4hYkEpQcJF32dLxFdPw.webp";
-const IMG_DEPLOY =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/indigo-feature-deploy-kmY3yFB94jLwDy7MwSrQkH.webp";
+const IMG_FACTOR_CREATION = "/landing/factor-creation.png";
+const IMG_OFFICIAL_FACTORS = "/landing/official-factors.png";
+const IMG_OFFICIAL_STRATEGIES = "/landing/official-strategies.png";
 
 /* ── Design Tokens ── */
 const T = {
@@ -75,26 +71,34 @@ const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
 const workflowSteps = [
   {
     num: "01",
-    title: "Deploy Skill",
-    desc: "Obtain your unique AI Agent credentials from the dashboard. Load the optimized Quant-Skill into your favorite AI assistant.",
-    icon: Terminal,
+    titleEn: "Choose how to start",
+    titleZh: "选择启动方式",
+    descEn: "Use Platform Agent for a guided flow, or connect your own AI agent with an API key and Quandora Skill prompt.",
+    descZh: "使用平台 Agent 进入引导流程，或通过 API Key 与 Quandora Skill 提示词连接你的自有 AI Agent。",
+    icon: Bot,
   },
   {
     num: "02",
-    title: "Iterate via Chat",
-    desc: 'Ask your AI: "Generate a mean-reversion factor based on RSI divergence." The Skill template enforces standardized output schemas.',
+    titleEn: "Create or collect factors",
+    titleZh: "创建或收集因子",
+    descEn: "Build new factors, review your own factor list, and browse official or community-contributed factor signals.",
+    descZh: "创建新因子、查看我的因子列表，并浏览官方库或三方因子信号。",
     icon: MessageSquare,
   },
   {
     num: "03",
-    title: "Instant Sync",
-    desc: "No manual coding required — the factor appears in your platform library in real-time, with pre-calculations against historical data.",
-    icon: RefreshCw,
+    titleEn: "Turn factors into strategies",
+    titleZh: "将因子转为策略",
+    descEn: "Create single or batch strategies, start from official strategy templates, and compare ROI, win rate, Sharpe, and drawdown.",
+    descZh: "创建单个或批量策略，从官方策略模板开始，并比较 ROI、胜率、夏普比率与回撤。",
+    icon: BarChart3,
   },
   {
     num: "04",
-    title: "Validate & Win",
-    desc: "Filter for factors with Sharpe > 2.0 and submit to the global leaderboard to earn rewards.",
+    titleEn: "Track arena, trade, and credits",
+    titleZh: "跟踪竞技场、交易与额度",
+    descEn: "Follow Factor Arena rounds, monitor strategy deployment, and review wallet, credit, and activity records.",
+    descZh: "关注因子竞技场轮次，监控策略部署，并查看钱包、额度与变更记录。",
     icon: CheckCircle,
   },
 ];
@@ -102,76 +106,108 @@ const workflowSteps = [
 /* ── Core Feature Modules (Section II) ── */
 const coreFeatures = [
   {
-    title: "NL2Factor Sync",
-    subtitle: "Seamless Cross-Platform Integration",
-    desc: "Copy our optimized Quant-Skill to your AI assistant. As you describe trading logic in natural language, the AI generates standardized factor expressions that sync instantly to your private cloud library via API.",
-    img: IMG_MINING,
+    titleEn: "Guided Factor Creation",
+    titleZh: "引导式因子创建",
+    subtitleEn: "Platform Agent or Own Agent",
+    subtitleZh: "平台 Agent 或自有 Agent",
+    descEn: "Start from the launch guide, choose Platform Agent or your own AI agent, then use structured prompts to create and test factor ideas.",
+    descZh: "从启动指引开始，选择平台 Agent 或自有 AI Agent，并使用结构化提示词创建与测试因子思路。",
+    img: IMG_FACTOR_CREATION,
     icon: MessageSquare,
     details: [
-      { label: "Input", text: 'Natural language prompts (e.g., "Find stocks with price momentum and decreasing volatility")' },
-      { label: "Processing", text: "The Skill template enforces the AI to output JSON/Expression schemas compatible with our engine" },
-      { label: "Output", text: "The platform automatically parses the expression and initiates pre-calculations against historical data" },
+      { labelEn: "Launch", labelZh: "启动", textEn: "The launch guide covers experience level, preferred markets, Agent mode, API key, and first-run examples.", textZh: "启动指引覆盖经验水平、偏好市场、Agent 模式、API Key 与首次运行示例。" },
+      { labelEn: "Prompt", labelZh: "提示词", textEn: "Example prompts cover factor creation, backtest analysis, and portfolio optimization.", textZh: "示例提示词覆盖因子创建、回测分析与组合优化。" },
+      { labelEn: "Copy", labelZh: "复制", textEn: "The API and Skill prompt can be copied for use in ChatGPT, Claude, or DeepSeek.", textZh: "API 与 Skill 提示词可复制到 ChatGPT、Claude 或 DeepSeek 中使用。" },
     ],
   },
   {
-    title: "Alpha Dashboard",
-    subtitle: "Professional Portfolio Management",
-    desc: "Every synced factor receives a comprehensive Lifecycle Report. Transform scattered AI inspirations into structured, actionable quantitative assets.",
-    img: IMG_DEPLOY,
+    titleEn: "Factor Library",
+    titleZh: "因子库",
+    subtitleEn: "My Factors, Official Library, Arena",
+    subtitleZh: "我的因子、官方库、竞技场",
+    descEn: "Manage your factor list, switch between table and card views, sort by quant metrics, and browse official or graduated factor signals.",
+    descZh: "管理你的因子列表，在表格与卡片视图间切换，按量化指标排序，并浏览官方或三方因子信号。",
+    img: IMG_OFFICIAL_FACTORS,
     icon: BarChart3,
     details: [
-      { label: "Predictive Power", text: "Automated IC/IR (Information Coefficient/Ratio) and T-Stats" },
-      { label: "Risk Metrics", text: "Sharpe Ratio, Turnover Rate, and Max Drawdown (MDD)" },
-      { label: "Version Control", text: "Track every iteration to prevent strategy drift and over-optimization" },
+      { labelEn: "Views", labelZh: "视图", textEn: "My Factors supports table/card display, visible item controls, favorites, status, grade, and arena round fields.", textZh: "我的因子支持表格/卡片展示、显示项控制、收藏、状态、等级与竞技场轮次字段。" },
+      { labelEn: "Metrics", labelZh: "指标", textEn: "Official factors can be sorted by IS Sharpe, OS Sharpe, fitness, returns, turnover, and drawdown.", textZh: "官方因子可按 IS 夏普、OS 夏普、适应度、收益率、换手率与回撤排序。" },
+      { labelEn: "Arena", labelZh: "竞技场", textEn: "Factor Arena shows rounds, prize pool, pass counts, rankings, and submission-oriented competition flow.", textZh: "因子竞技场展示轮次、奖池、通过数、排名与提交竞赛流程。" },
     ],
   },
   {
-    title: "Alpha Competition",
-    subtitle: "Incentivized Ecosystem",
-    desc: "A crowdsourced alpha discovery engine that rewards high-quality, non-correlated signals. Submit your best factors to periodic tournaments validated using Out-of-Sample testing.",
-    img: IMG_ARENA,
+    titleEn: "Strategy & Trading Workspace",
+    titleZh: "策略与交易工作区",
+    subtitleEn: "Strategies, Templates, Deployment",
+    subtitleZh: "策略、模板、部署",
+    descEn: "Create strategies from factors, browse official templates, and monitor paper/live trading deployments from the trade workspace.",
+    descZh: "基于因子创建策略，浏览官方策略模板，并在交易工作区监控模拟/实盘部署。",
+    img: IMG_OFFICIAL_STRATEGIES,
     icon: Trophy,
     details: [
-      { label: "Ranking", text: "Ranked by risk-adjusted returns and decay stability" },
-      { label: "Prize Pool", text: "Top-tier participants share USDT/Cash prize pool every epoch" },
-      { label: "Incubation", text: "Elite factors qualify for the Seed Fund with performance fee-sharing (Carry)" },
+      { labelEn: "Create", labelZh: "创建", textEn: "Strategy creation supports platform and own-agent flows, single or batch scale, and credit consumption preview.", textZh: "策略创建支持平台/自有 Agent 流程、单个或批量规模，并展示额度消耗预览。" },
+      { labelEn: "Library", labelZh: "库", textEn: "Official strategy templates can be filtered and sorted by ROI, win rate, Sharpe ratio, and max drawdown.", textZh: "官方策略模板可按 ROI、胜率、夏普比率与最大回撤筛选和排序。" },
+      { labelEn: "Trade", labelZh: "交易", textEn: "The trade page summarizes running strategies, equity, unrealized PnL, win rate, and deployment status.", textZh: "交易页汇总进行中的策略、总权益、未实现盈亏、胜率与部署状态。" },
     ],
   },
 ];
 
 /* ── Stats ── */
 const stats = [
-  { value: "2,400+", label: "Factors Synced" },
-  { value: "580+", label: "Active Quants" },
-  { value: "12", label: "Arena Epochs" },
-  { value: "99.8%", label: "Uptime" },
+  {
+    value: String(factors.filter((factor) => factor.category === "official").length),
+    labelEn: "Official Factor Library",
+    labelZh: "官方因子库",
+  },
+  {
+    value: String(strategies.filter((strategy) => strategy.author === "Quandora Lab").length),
+    labelEn: "Official Strategy Library",
+    labelZh: "官方策略库",
+  },
+  {
+    value: currentEpoch.totalPool,
+    labelEn: "Arena Prize Pool",
+    labelZh: "竞赛奖金金额",
+  },
 ];
 
-/* ── Technical Moat (Section III) ── */
+/* ── Workspace Coverage (Section III) ── */
 const moatItems = [
   {
     icon: Database,
-    dimension: "Data Integrity",
-    implementation: "Strict Point-in-Time data alignment",
-    value: "Eliminates look-ahead bias and ensures backtest validity.",
+    dimensionEn: "Structured factor records",
+    dimensionZh: "结构化因子记录",
+    implementationEn: "Status, grade, round, PnL curve, and quant metrics",
+    implementationZh: "状态、等级、轮次、PNL 曲线与量化指标",
+    valueEn: "Keep factor review centered on the fields already visible in My Factors and Official Library.",
+    valueZh: "围绕我的因子与官方库中已展示的字段进行因子复盘。",
   },
   {
     icon: Zap,
-    dimension: "Execution Fidelity",
-    implementation: "Advanced matching engine with Slippage & commissions",
-    value: 'Prevents "Paper Alpha" that fails in real-world liquidity.',
+    dimensionEn: "Strategy templates",
+    dimensionZh: "策略模板",
+    implementationEn: "Official library plus my strategy workspace",
+    implementationZh: "官方库与我的策略工作区",
+    valueEn: "Move from factor ideas to deployable strategy drafts using existing strategy pages and templates.",
+    valueZh: "通过现有策略页面与模板，把因子思路推进为可部署的策略草稿。",
   },
   {
     icon: BarChart3,
-    dimension: "Compute Power",
-    implementation: "High-performance Vectorized calculation engine",
-    value: "Enables rapid validation across high-frequency datasets.",
+    dimensionEn: "Trading overview",
+    dimensionZh: "交易概览",
+    implementationEn: "Paper/live deployment summaries",
+    implementationZh: "模拟/实盘部署摘要",
+    valueEn: "Review running strategies, total equity, unrealized PnL, average win rate, and strategy list in one place.",
+    valueZh: "集中查看进行中的策略、总权益、未实现盈亏、平均胜率和策略列表。",
   },
   {
     icon: Lock,
-    dimension: "Privacy & IP",
-    implementation: "Non-asymmetric encryption for Skill transfers",
-    value: "Your proprietary Alpha logic remains confidential.",
+    dimensionEn: "Wallet & credits",
+    dimensionZh: "钱包与额度",
+    implementationEn: "Credit balance, usage, and activity records",
+    implementationZh: "额度余额、消耗与变更记录",
+    valueEn: "Track credit consumption and account activity before creating or deploying strategies.",
+    valueZh: "在创建或部署策略前跟踪额度消耗与账户活动。",
   },
 ];
 
@@ -271,10 +307,12 @@ function HoverCard({
 export default function Landing() {
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated } = useAuth();
+  const { uiLang, setUiLang } = useAppLanguage();
   const [, navigate] = useLocation();
   const heroRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scrolled, setScrolled] = useState(false);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
   const isDark = theme === "dark";
   const bg = isDark ? T.surfaceDark : T.surfaceLight;
@@ -283,7 +321,7 @@ export default function Landing() {
   const border = isDark ? T.borderDark : T.borderLight;
 
   /* ── Hero headline text loop ── */
-  const heroLoopTexts = ["Tradable Alpha", "Quant Signals"];
+  const heroLoopTexts = uiLang === "zh" ? ["因子工作区", "策略工作流"] : ["Factor Workspace", "Strategy Workflow"];
 
   /* ── Scroll listener ── */
   useEffect(() => {
@@ -391,9 +429,9 @@ export default function Landing() {
     return () => obs.disconnect();
   }, []);
 
-  const handleCTA = () => navigate(isAuthenticated ? "/" : "/auth");
-  const handleExplorePrize = () =>
-    document.getElementById("alpha-competition")?.scrollIntoView({ behavior: "smooth" });
+  const handleCTA = () => navigate(isAuthenticated ? "/" : "/launch-guide");
+  const handleExplorePlatform = () =>
+    document.getElementById("platform-map")?.scrollIntoView({ behavior: "smooth" });
 
   return (
     <div
@@ -430,9 +468,9 @@ export default function Landing() {
           <div className="flex h-14 items-center justify-between">
             <Link href="/landing">
               <div className="flex items-center gap-2.5 cursor-pointer">
-                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-8 h-8 rounded-full object-cover" />
+                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Quandora" className="w-8 h-8 rounded-full object-cover" />
                 <span className="font-semibold text-base tracking-tight" style={{ color: textHigh }}>
-                  Otter
+                  Quandora
                 </span>
               </div>
             </Link>
@@ -446,8 +484,17 @@ export default function Landing() {
                   background: "transparent",
                   transitionTimingFunction: EASE,
                 }}
-                title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                title={isDark ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}
               />
+
+              <button
+                type="button"
+                onClick={() => setUiLang(uiLang === "zh" ? "en" : "zh")}
+                className="flex h-8 items-center rounded-full border border-border bg-accent px-3 text-xs font-medium text-foreground transition-colors hover:bg-slate-200 dark:hover:bg-slate-800"
+                title={tr("Switch language", "切换语言")}
+              >
+                <span>{uiLang === "zh" ? "中文" : "English"}</span>
+              </button>
 
               {isAuthenticated ? (
                 <Link href="/">
@@ -461,7 +508,7 @@ export default function Landing() {
                       transitionTimingFunction: EASE,
                     }}
                   >
-                    Dashboard
+                    {tr("Dashboard", "仪表盘")}
                     <ArrowRight className="w-3 h-3" />
                   </span>
                 </Link>
@@ -477,7 +524,7 @@ export default function Landing() {
                       transitionTimingFunction: EASE,
                     }}
                   >
-                    Log In
+                    {tr("Log In", "登录")}
                     <ArrowRight className="w-3 h-3" />
                   </span>
                 </Link>
@@ -534,7 +581,7 @@ export default function Landing() {
                   color: textHigh,
                 }}
               >
-                <span>Conversations into</span>
+                <span>{tr("Build your", "构建你的")}</span>
                 <TextLoop
                   texts={heroLoopTexts}
                   interval={2500}
@@ -552,23 +599,24 @@ export default function Landing() {
                   color: textMuted,
                 }}
               >
-                Bridge the gap between Generative AI and professional quantitative research.
-                Deploy our Quant-Skills to your favorite AI (ChatGPT / Claude / DeepSeek) to
-                automatically sync, backtest, and monetize your trading signals.
+                {tr(
+                  "Quandora connects factor creation, official libraries, strategy templates, trade monitoring, and wallet credits in one focused quant workspace.",
+                  "Quandora 将因子创建、官方库、策略模板、交易监控与钱包额度整合到一个专注的量化工作区。"
+                )}
               </p>
 
               {/* CTA */}
               <div data-anim className="flex flex-wrap gap-3 mb-10">
                 <IndigoButton onClick={handleCTA}>
-                  Get Your Skill Key
+                  {isAuthenticated ? tr("Open Dashboard", "打开仪表盘") : tr("Start Launch Guide", "开始启动指引")}
                   <ArrowRight className="w-4 h-4" />
                 </IndigoButton>
-                <IndigoButton variant="ghost" onClick={handleExplorePrize}>
-                  Explore Prize Pools
+                <IndigoButton variant="ghost" onClick={handleExplorePlatform}>
+                  {tr("View Platform Map", "查看平台地图")}
                 </IndigoButton>
               </div>
 
-              {/* Works with */}
+              {/* Agent options */}
               <div data-anim className="flex flex-col gap-3">
                 <span
                   className="text-[11px] font-medium uppercase"
@@ -578,7 +626,7 @@ export default function Landing() {
                     letterSpacing: "0.05em",
                   }}
                 >
-                  Works with
+                  {tr("Agent options", "Agent 选项")}
                 </span>
                 <TooltipProvider delayDuration={200}>
                   <div className="flex items-center gap-3">
@@ -586,8 +634,6 @@ export default function Landing() {
                       { name: "ChatGPT", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M20.562 10.188c.25-.688.313-1.376.25-2.063c-.062-.687-.312-1.375-.625-2c-.562-.937-1.375-1.687-2.312-2.125c-1-.437-2.063-.562-3.125-.312c-.5-.5-1.063-.938-1.688-1.25S11.687 2 11 2a5.17 5.17 0 0 0-3 .938c-.875.624-1.5 1.5-1.813 2.5c-.75.187-1.375.5-2 .875c-.562.437-1 1-1.375 1.562c-.562.938-.75 2-.625 3.063a5.44 5.44 0 0 0 1.25 2.874a4.7 4.7 0 0 0-.25 2.063c.063.688.313 1.375.625 2c.563.938 1.375 1.688 2.313 2.125c1 .438 2.062.563 3.125.313c.5.5 1.062.937 1.687 1.25S12.312 22 13 22a5.17 5.17 0 0 0 3-.937c.875-.625 1.5-1.5 1.812-2.5a4.54 4.54 0 0 0 1.938-.875c.562-.438 1.062-.938 1.375-1.563c.562-.937.75-2 .625-3.062c-.125-1.063-.5-2.063-1.188-2.876m-7.5 10.5c-1 0-1.75-.313-2.437-.875c0 0 .062-.063.125-.063l4-2.312a.5.5 0 0 0 .25-.25a.57.57 0 0 0 .062-.313V11.25l1.688 1v4.625a3.685 3.685 0 0 1-3.688 3.813M5 17.25c-.438-.75-.625-1.625-.438-2.5c0 0 .063.063.125.063l4 2.312a.56.56 0 0 0 .313.063c.125 0 .25 0 .312-.063l4.875-2.812v1.937l-4.062 2.375A3.7 3.7 0 0 1 7.312 19c-1-.25-1.812-.875-2.312-1.75M3.937 8.563a3.8 3.8 0 0 1 1.938-1.626v4.751c0 .124 0 .25.062.312a.5.5 0 0 0 .25.25l4.875 2.813l-1.687 1l-4-2.313a3.7 3.7 0 0 1-1.75-2.25c-.25-.937-.188-2.062.312-2.937M17.75 11.75l-4.875-2.812l1.687-1l4 2.312c.625.375 1.125.875 1.438 1.5s.5 1.313.437 2.063a3.7 3.7 0 0 1-.75 1.937c-.437.563-1 1-1.687 1.25v-4.75c0-.125 0-.25-.063-.312c0 0-.062-.126-.187-.188m1.687-2.5s-.062-.062-.125-.062l-4-2.313c-.125-.062-.187-.062-.312-.062s-.25 0-.313.062L9.812 9.688V7.75l4.063-2.375c.625-.375 1.312-.5 2.062-.5c.688 0 1.375.25 2 .688c.563.437 1.063 1 1.313 1.625s.312 1.375.187 2.062m-10.5 3.5l-1.687-1V7.063c0-.688.187-1.438.562-2C8.187 4.438 8.75 4 9.375 3.688a3.37 3.37 0 0 1 2.062-.313c.688.063 1.375.375 1.938.813c0 0-.063.062-.125.062l-4 2.313a.5.5 0 0 0-.25.25c-.063.125-.063.187-.063.312zm.875-2L12 9.5l2.187 1.25v2.5L12 14.5l-2.188-1.25z"/></svg>' },
                       { name: "Claude", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M16.765 5h-3.308l5.923 15h3.23zM7.226 5L1.38 20h3.308l1.307-3.154h6.154l1.23 3.077h3.309L10.688 5zm-.308 9.077l2-5.308l2.077 5.308z"/></svg>' },
                       { name: "DeepSeek", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M23.75 4.927c-.245-.12-.34.108-.482.224c-.049.038-.09.087-.131.13c-.357.384-.773.634-1.315.604c-.796-.044-1.474.207-2.074.818c-.127-.754-.551-1.203-1.195-1.492c-.338-.15-.68-.3-.915-.626c-.165-.231-.21-.49-.293-.744c-.052-.153-.105-.31-.28-.337c-.192-.03-.266.13-.341.265c-.3.55-.416 1.158-.406 1.772c.027 1.382.608 2.482 1.762 3.266c.132.09.166.18.124.311c-.079.27-.172.531-.255.8c-.052.173-.13.211-.314.135A5.3 5.3 0 0 1 15.97 8.92c-.82-.797-1.563-1.677-2.489-2.366a11 11 0 0 0-.66-.454c-.944-.922.125-1.679.372-1.768c.259-.093.09-.416-.747-.412c-.835.004-1.6.285-2.574.659c-.143.057-.326.153-.446.13a9.2 9.2 0 0 0-2.763-.096c-1.806.203-3.25 1.06-4.31 2.525c-1.275 1.76-1.574 3.759-1.207 5.846c.385 2.197 1.502 4.019 3.22 5.442c1.78 1.474 3.83 2.197 6.169 2.058c1.42-.081 3.003-.273 4.786-1.789c.45.224.922.313 1.707.381c.603.057 1.184-.03 1.634-.123c.704-.15.655-.804.4-.926c-2.065-.966-1.612-.573-2.024-.89c1.05-1.248 2.632-2.544 3.25-6.741c.049-.334.007-.543 0-.814c-.003-.163.034-.228.22-.247a4 4 0 0 0 1.482-.457c1.338-.734 1.867-1.939 1.995-3.385c.019-.22-.004-.45-.236-.565m-11.652 13.01c-2.002-1.58-2.972-2.1-3.373-2.078c-.375.021-.308.452-.225.733c.086.277.198.468.356.711c.109.162.184.402-.108.58c-.645.403-1.766-.134-1.82-.16c-1.303-.77-2.394-1.79-3.163-3.182c-.741-1.342-1.172-2.78-1.243-4.315c-.02-.372.09-.503.456-.57a4.5 4.5 0 0 1 1.466-.037c2.043.3 3.782 1.218 5.24 2.67c.832.829 1.462 1.817 2.11 2.783c.69 1.027 1.432 2.004 2.377 2.804c.333.281.6.495.854.653c-.768.085-2.05.104-2.927-.592m.96-6.199a.294.294 0 1 1 .588 0a.294.294 0 0 1-.296.296a.29.29 0 0 1-.293-.296m2.98 1.537c-.192.078-.383.146-.566.154a1.2 1.2 0 0 1-.765-.245c-.262-.22-.45-.343-.53-.73a1.7 1.7 0 0 1 .016-.566c.068-.315-.008-.516-.228-.7c-.18-.15-.408-.19-.66-.19a.5.5 0 0 1-.244-.076c-.105-.053-.191-.184-.109-.345a1 1 0 0 1 .185-.201c.34-.195.734-.13 1.098.015c.337.139.592.393.959.752c.375.434.442.555.656.88c.168.256.323.518.428.818c.063.186-.02.34-.24.434"/></svg>' },
-                      { name: "Cursor", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M11.503.131L1.891 5.678a.84.84 0 0 0-.42.726v11.188c0 .3.162.575.42.724l9.609 5.55a1 1 0 0 0 .998 0l9.61-5.55a.84.84 0 0 0 .42-.724V6.404a.84.84 0 0 0-.42-.726L12.497.131a1.01 1.01 0 0 0-.996 0M2.657 6.338h18.55c.263 0 .43.287.297.515L12.23 22.918c-.062.107-.229.064-.229-.06V12.335a.59.59 0 0 0-.295-.51l-9.11-5.257c-.109-.063-.064-.23.061-.23"/></svg>' },
-                      { name: "Windsurf", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M23.55 5.067a2.177 2.177 0 0 0-2.18 2.177v4.867a1.77 1.77 0 0 1-1.76 1.76a1.82 1.82 0 0 1-1.472-.766l-4.971-7.1a2.2 2.2 0 0 0-1.81-.942c-1.134 0-2.154.964-2.154 2.153v4.896c0 .972-.797 1.76-1.76 1.76c-.57 0-1.136-.287-1.472-.766L.408 5.16A.224.224 0 0 0 0 5.288v4.245c0 .215.066.423.188.6l5.475 7.818c.324.462.8.805 1.351.93a2.164 2.164 0 0 0 2.645-2.098V11.89c0-.972.787-1.76 1.76-1.76h.002a1.8 1.8 0 0 1 1.472.766l4.972 7.1a2.172 2.172 0 0 0 3.96-1.212v-4.895a1.76 1.76 0 0 1 1.76-1.76h.195a.22.22 0 0 0 .22-.22V5.287a.22.22 0 0 0-.22-.22Z"/></svg>' },
                     ].map((ai) => (
                       <Tooltip key={ai.name}>
                         <TooltipTrigger asChild>
@@ -638,7 +684,7 @@ export default function Landing() {
                 letterSpacing: "0.05em",
               }}
             >
-              How It Works
+              {tr("Platform Flow", "平台流程")}
             </p>
             <h2
               style={{
@@ -649,7 +695,7 @@ export default function Landing() {
                 color: textHigh,
               }}
             >
-              From chat to profit in four steps
+              {tr("From onboarding to monitoring in four steps", "从启动配置到监控复盘的四步流程")}
             </h2>
           </div>
 
@@ -667,7 +713,7 @@ export default function Landing() {
                         letterSpacing: "0.05em",
                       }}
                     >
-                      Step {step.num}
+                      {tr("Step", "步骤")} {step.num}
                     </span>
 
                     <div
@@ -684,7 +730,7 @@ export default function Landing() {
                       className="text-[15px] font-semibold mb-2"
                       style={{ color: textHigh, letterSpacing: "-0.01em" }}
                     >
-                      {step.title}
+                      {tr(step.titleEn, step.titleZh)}
                     </h3>
                     <p
                       style={{
@@ -693,7 +739,7 @@ export default function Landing() {
                         color: textMuted,
                       }}
                     >
-                      {step.desc}
+                      {tr(step.descEn, step.descZh)}
                     </p>
                   </div>
                 </HoverCard>
@@ -704,7 +750,7 @@ export default function Landing() {
       </section>
 
       {/* ═══════════ CORE FEATURES — 3 Modules (Section II) ═══════════ */}
-      <section className="py-24 sm:py-32" style={{ background: bg }}>
+      <section id="platform-map" className="py-24 sm:py-32" style={{ background: bg }}>
         <div className="mx-auto max-w-[1120px] px-6">
           <div className="text-center mb-16" data-reveal>
             <p
@@ -715,7 +761,7 @@ export default function Landing() {
                 letterSpacing: "0.05em",
               }}
             >
-              Core Features
+              {tr("Current Modules", "当前模块")}
             </p>
             <h2
               style={{
@@ -726,11 +772,11 @@ export default function Landing() {
                 color: textHigh,
               }}
             >
-              Sync, manage, and compete — all in one platform
+              {tr("The pages available in Quandora today", "当前 Quandora 已提供的页面")}
             </h2>
           </div>
 
-          {/* Feature 1: NL2Factor Sync — Full width with IPO model */}
+          {/* Feature 1: guided factor creation */}
           <div className="mb-5" data-reveal>
             <HoverCard isDark={isDark} className="overflow-hidden group">
               <div className="grid grid-cols-1 lg:grid-cols-2">
@@ -752,25 +798,25 @@ export default function Landing() {
                       letterSpacing: "0.05em",
                     }}
                   >
-                    {coreFeatures[0].subtitle}
+                    {tr(coreFeatures[0].subtitleEn, coreFeatures[0].subtitleZh)}
                   </p>
                   <h3
                     className="text-lg font-semibold mb-3"
                     style={{ color: textHigh, letterSpacing: "-0.01em" }}
                   >
-                    {coreFeatures[0].title}
+                    {tr(coreFeatures[0].titleEn, coreFeatures[0].titleZh)}
                   </h3>
                   <p
                     className="mb-6"
                     style={{ fontSize: "0.875rem", lineHeight: 1.6, color: textMuted }}
                   >
-                    {coreFeatures[0].desc}
+                    {tr(coreFeatures[0].descEn, coreFeatures[0].descZh)}
                   </p>
 
                   {/* IPO Model */}
                   <div className="space-y-3">
                     {coreFeatures[0].details.map((d) => (
-                      <div key={d.label} className="flex gap-3">
+                      <div key={d.labelEn} className="flex gap-3">
                         <span
                           className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-2 py-0.5 rounded"
                           style={{
@@ -780,10 +826,10 @@ export default function Landing() {
                             letterSpacing: "0.05em",
                           }}
                         >
-                          {d.label}
+                          {tr(d.labelEn, d.labelZh)}
                         </span>
                         <p style={{ fontSize: "0.8125rem", lineHeight: 1.5, color: textMuted }}>
-                          {d.text}
+                          {tr(d.textEn, d.textZh)}
                         </p>
                       </div>
                     ))}
@@ -793,7 +839,7 @@ export default function Landing() {
                   <div style={{ borderRadius: "10px", overflow: "hidden" }}>
                     <img
                       src={coreFeatures[0].img}
-                      alt={coreFeatures[0].title}
+                      alt={tr(coreFeatures[0].titleEn, coreFeatures[0].titleZh)}
                       className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                       style={{ transitionTimingFunction: EASE }}
                       loading="lazy"
@@ -809,7 +855,7 @@ export default function Landing() {
             {coreFeatures.slice(1).map((feature) => {
               const Icon = feature.icon;
               return (
-                <HoverCard key={feature.title} isDark={isDark} className="overflow-hidden group" >
+                <HoverCard key={feature.titleEn} isDark={isDark} className="overflow-hidden group" >
                   <div data-reveal>
                     <div className="p-6 pb-0">
                       <div
@@ -829,25 +875,25 @@ export default function Landing() {
                           letterSpacing: "0.05em",
                         }}
                       >
-                        {feature.subtitle}
+                        {tr(feature.subtitleEn, feature.subtitleZh)}
                       </p>
                       <h3
                         className="text-[15px] font-semibold mb-2"
                         style={{ color: textHigh, letterSpacing: "-0.01em" }}
                       >
-                        {feature.title}
+                        {tr(feature.titleEn, feature.titleZh)}
                       </h3>
                       <p
                         className="mb-4"
                         style={{ fontSize: "0.8125rem", lineHeight: 1.6, color: textMuted }}
                       >
-                        {feature.desc}
+                        {tr(feature.descEn, feature.descZh)}
                       </p>
 
                       {/* Detail bullets */}
                       <div className="space-y-2 mb-4">
                         {feature.details.map((d) => (
-                          <div key={d.label} className="flex gap-2.5">
+                          <div key={d.labelEn} className="flex gap-2.5">
                             <span
                               className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
                               style={{
@@ -857,10 +903,10 @@ export default function Landing() {
                                 letterSpacing: "0.04em",
                               }}
                             >
-                              {d.label}
+                              {tr(d.labelEn, d.labelZh)}
                             </span>
                             <p style={{ fontSize: "0.75rem", lineHeight: 1.5, color: textMuted }}>
-                              {d.text}
+                              {tr(d.textEn, d.textZh)}
                             </p>
                           </div>
                         ))}
@@ -870,7 +916,7 @@ export default function Landing() {
                       <div style={{ borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
                         <img
                           src={feature.img}
-                          alt={feature.title}
+                          alt={tr(feature.titleEn, feature.titleZh)}
                           className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                           style={{ transitionTimingFunction: EASE }}
                           loading="lazy"
@@ -895,9 +941,9 @@ export default function Landing() {
         }}
       >
         <div className="mx-auto max-w-[1120px] px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-12">
             {stats.map((stat, idx) => (
-              <div key={stat.label} data-reveal className="text-center">
+              <div key={stat.labelEn} data-reveal className="text-center">
                 <p
                   className="text-3xl sm:text-4xl font-bold mb-1.5"
                   style={{
@@ -912,7 +958,7 @@ export default function Landing() {
                     scrambleDuration={0.5}
                     stagger={0.02}
                     cycles={10}
-                    characters="0123456789$%+."
+                    characters="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ, $%+."
                     repeatInterval={5000}
                     initialDelay={800 + idx * 200}
                     style={{ color: "inherit", font: "inherit" }}
@@ -926,7 +972,7 @@ export default function Landing() {
                     letterSpacing: "0.05em",
                   }}
                 >
-                  {stat.label}
+                  {tr(stat.labelEn, stat.labelZh)}
                 </p>
               </div>
             ))}
@@ -946,7 +992,7 @@ export default function Landing() {
                 letterSpacing: "0.05em",
               }}
             >
-              Technical Moat
+              {tr("Workspace Coverage", "工作区覆盖范围")}
             </p>
             <h2
               style={{
@@ -957,7 +1003,7 @@ export default function Landing() {
                 color: textHigh,
               }}
             >
-              Precision & reliability at every layer
+              {tr("Built around the fields and pages already in the product", "围绕产品中已存在的字段与页面构建")}
             </h2>
           </div>
 
@@ -965,7 +1011,7 @@ export default function Landing() {
             {moatItems.map((item) => {
               const Icon = item.icon;
               return (
-                <HoverCard key={item.dimension} isDark={isDark} className="p-5">
+                <HoverCard key={item.dimensionEn} isDark={isDark} className="p-5">
                   <div data-reveal>
                     <div
                       className="w-9 h-9 flex items-center justify-center mb-3"
@@ -980,7 +1026,7 @@ export default function Landing() {
                       className="text-sm font-semibold mb-1"
                       style={{ color: textHigh }}
                     >
-                      {item.dimension}
+                      {tr(item.dimensionEn, item.dimensionZh)}
                     </h4>
                     <p
                       className="mb-2"
@@ -991,7 +1037,7 @@ export default function Landing() {
                         fontFamily: "'Geist Mono', monospace",
                       }}
                     >
-                      {item.implementation}
+                      {tr(item.implementationEn, item.implementationZh)}
                     </p>
                     <p
                       style={{
@@ -1000,7 +1046,7 @@ export default function Landing() {
                         color: textMuted,
                       }}
                     >
-                      {item.value}
+                      {tr(item.valueEn, item.valueZh)}
                     </p>
                   </div>
                 </HoverCard>
@@ -1012,7 +1058,7 @@ export default function Landing() {
 
       {/* ═══════════ CTA ═══════════ */}
       <section
-        id="alpha-competition"
+        id="start"
         className="py-24 sm:py-32 relative overflow-hidden"
         style={{ background: bg }}
       >
@@ -1042,7 +1088,7 @@ export default function Landing() {
               marginBottom: "12px",
             }}
           >
-            Ready to turn conversations into alpha?
+            {tr("Ready to explore Quandora?", "准备开始使用 Quandora？")}
           </h2>
           <p
             data-reveal
@@ -1053,12 +1099,14 @@ export default function Landing() {
               color: textMuted,
             }}
           >
-            Deploy the Quant-Skill, start chatting with your AI, and watch
-            tradable factors sync to your library in real-time.
+            {tr(
+              "Open the launch guide to configure your workflow, or go straight to the dashboard if your workspace is already set up.",
+              "打开启动指引配置你的工作流；如果工作区已设置完成，也可以直接进入仪表盘。"
+            )}
           </p>
           <div data-reveal>
             <IndigoButton onClick={handleCTA}>
-              {isAuthenticated ? "Go to Dashboard" : "Get Your Skill Key"}
+              {isAuthenticated ? tr("Go to Dashboard", "前往仪表盘") : tr("Start Launch Guide", "开始启动指引")}
               <ArrowRight className="w-4 h-4" />
             </IndigoButton>
           </div>
@@ -1075,16 +1123,16 @@ export default function Landing() {
       >
         <div className="mx-auto max-w-[1120px] px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-7 h-7 rounded-full object-cover" />
+            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Quandora" className="w-7 h-7 rounded-full object-cover" />
             <span className="text-sm font-semibold tracking-tight" style={{ color: textHigh }}>
-              Otter
+              Quandora
             </span>
           </div>
           <p
             className="text-xs"
             style={{ color: textMuted }}
           >
-            &copy; {new Date().getFullYear()} Otter. All rights reserved.
+            &copy; {new Date().getFullYear()} Quandora. {tr("All rights reserved.", "保留所有权利。")}
           </p>
         </div>
       </footer>

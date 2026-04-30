@@ -9,6 +9,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 
 type Grade = "S" | "A" | "B" | "C" | "D";
 type ScratchCardStatus = "passed" | "failed";
@@ -44,14 +45,6 @@ const UNREVEALED_CARD_STYLE = {
   border: "#B8BDC7",
   shadow: "0 0 20px rgba(148,163,184,0.16), inset 0 1px 0 rgba(255,255,255,0.08)",
   shadowHover: "0 0 32px rgba(148,163,184,0.24), inset 0 1px 0 rgba(255,255,255,0.12)",
-};
-
-const GRADE_SUBTITLE: Record<Grade, string> = {
-  S: "Exceptional",
-  A: "Excellent",
-  B: "Good",
-  C: "Average",
-  D: "Below Average",
 };
 
 const REVEAL_THRESHOLD = 0.6;
@@ -175,10 +168,22 @@ function RevealedGradeCard({
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
 }) {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const isHighlightGrade = grade === "S" || grade === "A";
   const revStyle = isHighlightGrade ? HIGHLIGHT_GRADE_THEME[grade] : null;
   const interactiveClass = interactive ? "transition-all duration-300 group" : "";
   const isModal = size === "modal";
+  const gradeSubtitle =
+    grade === "S"
+      ? tr("Exceptional", "杰出")
+      : grade === "A"
+        ? tr("Excellent", "优秀")
+        : grade === "B"
+          ? tr("Good", "良好")
+          : grade === "C"
+            ? tr("Average", "一般")
+            : tr("Below Average", "低于平均");
 
   return (
     <div
@@ -216,7 +221,7 @@ function RevealedGradeCard({
           }`}
           style={{ color: revStyle?.text, opacity: 0.65 }}
         >
-          GRADE
+          {tr("GRADE", "等级")}
         </div>
         <div
           className={`${isModal ? "text-[clamp(72px,10vw,122px)] leading-none" : "text-lg"} font-bold ${
@@ -235,7 +240,7 @@ function RevealedGradeCard({
           }`}
           style={{ color: revStyle?.text, opacity: 0.78 }}
         >
-          {GRADE_SUBTITLE[grade]}
+          {gradeSubtitle}
         </div>
       </div>
     </div>
@@ -243,6 +248,8 @@ function RevealedGradeCard({
 }
 
 function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void }) {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const isDrawingRef = useRef(false);
@@ -487,7 +494,7 @@ function ScratchSurface({ grade, onDone }: { grade: Grade; onDone: () => void })
           className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center text-center"
         >
           <span className="rounded-full px-4 py-1.5 text-sm font-medium tracking-[0.06em] text-slate-700/55">
-            Swipe to scratch
+            {tr("Swipe to scratch", "滑动刮开")}
           </span>
         </motion.div>
       )}
@@ -501,6 +508,8 @@ export default function ScratchCard({
   status = "passed",
   onReveal,
 }: ScratchCardProps) {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const storageKey = `${REVEALED_GRADE_STORAGE_PREFIX}${factorId}`;
   const normalizedGrade = normalizeGrade(grade);
   const isFailed = status === "failed";
@@ -532,9 +541,9 @@ export default function ScratchCard({
   if (isFailed) {
     return (
       <div className="text-center p-4 rounded-2xl relative overflow-hidden border border-border/60 bg-accent">
-        <div className="label-upper mb-1 text-[9px] text-muted-foreground">GRADE</div>
+        <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("GRADE", "等级")}</div>
         <div className="text-lg font-bold font-mono text-muted-foreground">-</div>
-        <div className="text-[9px] mt-0.5 text-muted-foreground/80">No grade</div>
+        <div className="text-[9px] mt-0.5 text-muted-foreground/80">{tr("No grade", "暂无等级")}</div>
       </div>
     );
   }
@@ -582,7 +591,7 @@ export default function ScratchCard({
           className="label-upper mb-1 text-[9px]"
           style={{ color: UNREVEALED_CARD_STYLE.text, opacity: 0.65 }}
         >
-          GRADE
+          {tr("GRADE", "等级")}
         </div>
         <div className="relative h-7 flex items-center justify-center">
           <div
@@ -603,7 +612,7 @@ export default function ScratchCard({
             opacity: 0.78,
           }}
         >
-          Tap to reveal
+          {tr("Tap to reveal", "点击揭晓")}
         </div>
       </div>
 
@@ -624,7 +633,7 @@ export default function ScratchCard({
           className="!fixed !left-0 !top-0 !z-50 !h-screen !w-screen !max-w-none !translate-x-0 !translate-y-0 rounded-none border-none bg-[#050814]/96 p-0 shadow-none data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100"
           style={{ transform: "none", inset: 0 }}
         >
-          <DialogTitle className="sr-only">Scratch card reveal</DialogTitle>
+          <DialogTitle className="sr-only">{tr("Scratch card reveal", "刮卡揭晓")}</DialogTitle>
 
           <div
             className="absolute inset-0 flex items-center justify-center overflow-hidden bg-[#050814]"

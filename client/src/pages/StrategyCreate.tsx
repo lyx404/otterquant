@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { factors, strategies, submissions, type Factor } from "@/lib/mockData";
 import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
+import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 
 type AgentMode = "platform" | "own" | null;
@@ -127,7 +128,7 @@ function generateApiKey() {
 }
 
 function buildGuidePrompt(key: string) {
-  return `# Otter Strategy Skill Configuration
+  return `# Quandora Strategy Skill Configuration
 
 ## API Key
 \`${key}\`
@@ -136,7 +137,7 @@ function buildGuidePrompt(key: string) {
 v2.4.1
 
 ## Setup Instructions
-Paste this prompt into your AI agent (ChatGPT / Claude / DeepSeek) to connect strategy generation with Otter.
+Paste this prompt into your AI agent (ChatGPT / Claude / DeepSeek) to connect strategy generation with Quandora.
 
 The agent can:
 - Create and refine strategy drafts
@@ -301,7 +302,48 @@ const STRATEGY_TEMPLATE_PREFILLS: Partial<Record<string, StrategyTemplatePrefill
   },
 };
 
+const CREDIT_BALANCE_STORAGE_KEY = "otterquant:credit-balance";
+const DEFAULT_CREDIT_BALANCE = 3;
+const CREDIT_DISPLAY_RATE = 1000;
+
+function readCreditBalance() {
+  if (typeof window === "undefined") return DEFAULT_CREDIT_BALANCE;
+  const raw = window.localStorage.getItem(CREDIT_BALANCE_STORAGE_KEY);
+  const parsed = raw ? Number(raw) : DEFAULT_CREDIT_BALANCE;
+  return Number.isFinite(parsed) ? parsed : DEFAULT_CREDIT_BALANCE;
+}
+
+function writeCreditBalance(value: number) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CREDIT_BALANCE_STORAGE_KEY, value.toFixed(2));
+}
+
+function formatCreditUnits(value: number) {
+  return new Intl.NumberFormat("en-US").format(Math.round((Number(value) || 0) * CREDIT_DISPLAY_RATE));
+}
+
+function CreditIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} fill="none" aria-hidden="true">
+      <path
+        d="M28 12C30.6 23.4 35.6 28.4 47 31C35.6 33.6 30.6 38.6 28 50C25.4 38.6 20.4 33.6 9 31C20.4 28.4 25.4 23.4 28 12Z"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M50 7C51.1 11.6 53.4 13.9 58 15C53.4 16.1 51.1 18.4 50 23C48.9 18.4 46.6 16.1 42 15C46.6 13.9 48.9 11.6 50 7Z"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function StrategyCreate() {
+  const { uiLang } = useAppLanguage();
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const templateId = searchParams.get("template");
@@ -341,6 +383,8 @@ export default function StrategyCreate() {
 
   const [description] = useState(template.description);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableCredit, setAvailableCredit] = useState(() => readCreditBalance());
+  const [showInsufficientCreditDialog, setShowInsufficientCreditDialog] = useState(false);
   const [showValidationFeedback, setShowValidationFeedback] = useState(false);
   const [showAlphaPicker, setShowAlphaPicker] = useState(false);
   const [alphaSourceTab, setAlphaSourceTab] = useState<AlphaSourceTab>("official");
@@ -358,6 +402,88 @@ export default function StrategyCreate() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [ownStep, setOwnStep] = useState<OwnStep>("api");
+  const translateOfficialLabel = (label: string) => {
+    switch (label) {
+      case "My Favorites":
+        return tr("My Favorites", "我的收藏");
+      case "Technical Factors":
+        return tr("Technical Factors", "技术因子");
+      case "Fundamental Factors":
+        return tr("Fundamental Factors", "基本面因子");
+      case "All":
+        return tr("All", "全部");
+      case "Momentum":
+        return tr("Momentum", "动量");
+      case "Volatility":
+        return tr("Volatility", "波动率");
+      case "Trend":
+        return tr("Trend", "趋势");
+      case "Oscillator":
+        return tr("Oscillator", "震荡指标");
+      case "Price-Volume":
+        return tr("Price-Volume", "量价");
+      case "Market Microstructure":
+        return tr("Market Microstructure", "市场微观结构");
+      case "Statistical":
+        return tr("Statistical", "统计");
+      case "Pattern Signals":
+        return tr("Pattern Signals", "形态信号");
+      case "Capital Flows":
+        return tr("Capital Flows", "资金流");
+      case "Derivatives Leverage":
+        return tr("Derivatives Leverage", "衍生品杠杆");
+      case "On-Chain Valuation":
+        return tr("On-Chain Valuation", "链上估值");
+      case "PnL Structure":
+        return tr("PnL Structure", "盈亏结构");
+      case "Holder Behavior":
+        return tr("Holder Behavior", "持仓者行为");
+      case "On-Chain Activity":
+        return tr("On-Chain Activity", "链上活跃度");
+      case "Supply Dynamics":
+        return tr("Supply Dynamics", "供给动态");
+      case "Miner Economics":
+        return tr("Miner Economics", "矿工经济");
+      case "Institutional Flows":
+        return tr("Institutional Flows", "机构资金流");
+      case "Network & Fees":
+        return tr("Network & Fees", "网络与手续费");
+      case "Sentiment & Dev Activity":
+        return tr("Sentiment & Dev Activity", "情绪与开发活跃度");
+      case "Composite":
+        return tr("Composite", "综合");
+      case "My Alphas":
+        return tr("My Alphas", "我的因子");
+      default:
+        return label;
+    }
+  };
+  const translateStrategyTypeLabel = (type: StrategyType) =>
+    type === "time-series" ? tr("Time Series", "时序策略") : tr("Cross Section", "截面策略");
+  const translateInputMethodLabel = (method: PlatformInputMethod) =>
+    method === "form" ? tr("Form", "表单") : tr("AI Chat", "AI 对话");
+  const translateGroupSelectionLabel = (groupKey: SymbolGroupKey) => {
+    const label = SYMBOL_GROUPS.find((item) => item.key === groupKey)?.label || "";
+    return uiLang === "zh" ? `分组 ${label}` : `Group ${label}`;
+  };
+  const translatedFirstRunPrompts = FIRST_RUN_PROMPTS.map((item) => ({
+    ...item,
+    category: item.category === "Time Series" ? tr("Time Series", "时序策略") : tr("Cross Section", "截面策略"),
+    prompt:
+      item.category === "Time Series"
+        ? tr(
+            item.prompt,
+            "创建一个运行在 BTCUSDT 上的时序策略，使用动量 + 波动率因子、等权重、8% 止损、24 小时冷却。"
+          )
+        : tr(
+            item.prompt,
+            "创建一个中性截面策略，使用 5 个因子，采用头尾 10%，8% 止损，1 天冷却，自定义权重且总和为 1。"
+          ),
+    desc:
+      item.category === "Time Series"
+        ? tr(item.desc, "用于测试单标的择时策略创建流程。")
+        : tr(item.desc, "用于测试基于排序的截面策略创建流程。"),
+  }));
 
   useEffect(() => {
     if (!templateId) return;
@@ -511,6 +637,17 @@ export default function StrategyCreate() {
   const rankMissing = strategyType === "cross-sectional" && !rankValue.trim();
   const aiChatPromptMissing = aiChatPrompt.trim().length === 0;
   const inferredAiScale = inferAiScaleFromPrompt(aiChatPrompt);
+  const estimatedStrategyCredit = useMemo(() => {
+    if (mode !== "platform") return 0;
+    if (platformInputMethod === "ai-chat") {
+      return inferredAiScale === "batch" ? 4.8 : 1.8;
+    }
+
+    const selectedFactorCost = Math.max(1, selectedFactors.length) * 0.28;
+    const selectedSymbolCost =
+      strategyType === "time-series" ? Math.max(1, selectedSymbolList.length) * 0.04 : 0.12;
+    return Number((0.8 + selectedFactorCost + selectedSymbolCost).toFixed(2));
+  }, [inferredAiScale, mode, platformInputMethod, selectedFactors.length, selectedSymbolList.length, strategyType]);
 
   useEffect(() => {
     if (weightMode !== "custom") return;
@@ -529,7 +666,11 @@ export default function StrategyCreate() {
         return next;
       }
       if (prev.length >= MAX_FACTOR_COUNT) {
-        toast.error(`You can select up to ${MAX_FACTOR_COUNT} factors.`);
+        toast.error(
+          uiLang === "zh"
+            ? `最多可选择 ${MAX_FACTOR_COUNT} 个因子。`
+            : `You can select up to ${MAX_FACTOR_COUNT} factors.`
+        );
         return prev;
       }
       return [...prev, factorName];
@@ -561,14 +702,19 @@ export default function StrategyCreate() {
     const trimmedPrompt = aiChatPrompt.trim();
     if (!trimmedPrompt) {
       setAiChatPrompt(
-        "Create a batch of deployable strategies. For each strategy, return: strategy type, factor set (max 5), weight plan, stop-loss threshold, cooldown, and expected execution profile."
+        tr(
+          "Create a batch of deployable strategies. For each strategy, return: strategy type, factor set (max 5), weight plan, stop-loss threshold, cooldown, and expected execution profile.",
+          "创建一批可部署的策略。对于每个策略，请返回：策略类型、因子集合（最多 5 个）、权重方案、止损阈值、冷却时间和预期执行特征。"
+        )
       );
     } else {
       setAiChatPrompt(
-        `Refine and structure the following strategy request for execution. Keep quant terminology precise and include clear risk controls.\n\n${trimmedPrompt}`
+        uiLang === "zh"
+          ? `请将以下策略请求优化为适合执行的结构化描述，保持量化术语准确，并补充明确的风险控制。\n\n${trimmedPrompt}`
+          : `Refine and structure the following strategy request for execution. Keep quant terminology precise and include clear risk controls.\n\n${trimmedPrompt}`
       );
     }
-    toast.success("Prompt optimized");
+    toast.success(tr("Prompt optimized", "提示词已优化"));
   };
 
   const handleCreateApiKey = () => {
@@ -580,7 +726,7 @@ export default function StrategyCreate() {
       updatedAt: new Date().toISOString().slice(0, 10),
     };
     setApiKeys((prev) => [...prev, newKey]);
-    toast.success("New API key created");
+    toast.success(tr("New API key created", "已创建新的 API Key"));
   };
 
   const toggleKeyVisibility = (id: string) => {
@@ -595,21 +741,21 @@ export default function StrategyCreate() {
   const copyApiKey = (key: string, id: string) => {
     navigator.clipboard.writeText(key);
     setCopiedKey(id);
-    toast.success("API key copied");
+    toast.success(tr("API key copied", "API Key 已复制"));
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
   const copyPrompt = (apiKey: string, id: string) => {
     navigator.clipboard.writeText(buildGuidePrompt(apiKey));
     setCopiedPrompt(id);
-    toast.success("Prompt copied");
+    toast.success(tr("Prompt copied", "提示词已复制"));
     setTimeout(() => setCopiedPrompt(null), 2000);
   };
 
   const copyCode = (code: string, id: string) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(id);
-    toast.success("Copied to clipboard");
+    toast.success(tr("Copied to clipboard", "已复制到剪贴板"));
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
@@ -648,8 +794,18 @@ export default function StrategyCreate() {
   const handleSubmit = () => {
     if (!validateBeforeSubmit()) return;
 
+    if (mode === "platform" && availableCredit < estimatedStrategyCredit) {
+      setShowInsufficientCreditDialog(true);
+      return;
+    }
+
     setShowValidationFeedback(false);
     setIsSubmitting(true);
+    if (mode === "platform") {
+      const nextCreditBalance = Number((availableCredit - estimatedStrategyCredit).toFixed(2));
+      setAvailableCredit(nextCreditBalance);
+      writeCreditBalance(nextCreditBalance);
+    }
     const isAiChatFlow = platformInputMethod === "ai-chat";
     const creationScale = isAiChatFlow ? inferredAiScale : "single";
     const newStrategyId = `STR-${String(Math.floor(Math.random() * 900) + 100).padStart(3, "0")}`;
@@ -689,7 +845,11 @@ export default function StrategyCreate() {
 
     window.setTimeout(() => {
       setIsSubmitting(false);
-      toast.success(isAiChatFlow && creationScale === "batch" ? "Batch strategy request created!" : "Strategy created!");
+      toast.success(
+        isAiChatFlow && creationScale === "batch"
+          ? tr("Batch strategy request created!", "批量策略请求已创建！")
+          : tr("Strategy created!", "策略已创建！")
+      );
       navigate(`/strategies/${newStrategyId}?${queryParams.toString()}`);
     }, 900);
   };
@@ -703,8 +863,8 @@ export default function StrategyCreate() {
           </button>
         </Link>
         <div>
-          <h1 className="text-foreground text-xl font-bold">Create New Strategy</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Choose how you want to create your strategy</p>
+          <h1 className="text-foreground text-xl font-bold">{tr("Create New Strategy", "创建新策略")}</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">{tr("Choose how you want to create your strategy", "选择你想要创建策略的方式")}</p>
         </div>
       </div>
 
@@ -720,7 +880,7 @@ export default function StrategyCreate() {
           <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${mode === "platform" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"}`}>
             <Bot className={`w-3.5 h-3.5 ${mode === "platform" ? "text-primary" : "text-muted-foreground"}`} />
           </div>
-          <span className="text-xs font-semibold text-foreground">Platform Agent</span>
+          <span className="text-xs font-semibold text-foreground">{tr("Platform Agent", "平台 Agent")}</span>
           {mode === "platform" && <Check className="w-3.5 h-3.5 text-primary ml-auto shrink-0" />}
         </button>
 
@@ -738,7 +898,7 @@ export default function StrategyCreate() {
           <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${mode === "own" ? "bg-primary/20" : "bg-slate-200 dark:bg-slate-800"}`}>
             <Code2 className={`w-3.5 h-3.5 ${mode === "own" ? "text-primary" : "text-muted-foreground"}`} />
           </div>
-          <span className="text-xs font-semibold text-foreground">Your Own Agent</span>
+          <span className="text-xs font-semibold text-foreground">{tr("Your Own Agent", "自有 Agent")}</span>
           {mode === "own" && <Check className="w-3.5 h-3.5 text-primary ml-auto shrink-0" />}
         </button>
       </div>
@@ -747,7 +907,7 @@ export default function StrategyCreate() {
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="space-y-2">
               <div>
-                <label className="text-xs font-medium text-muted-foreground">Input Method</label>
+                <label className="text-xs font-medium text-muted-foreground">{tr("Input Method", "输入方式")}</label>
               </div>
 
               <div className="grid w-full max-w-[320px] grid-cols-2 gap-3">
@@ -760,7 +920,7 @@ export default function StrategyCreate() {
                       : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                   }`}
                 >
-                  Form
+                  {translateInputMethodLabel("form")}
                 </button>
                 <button
                   type="button"
@@ -774,7 +934,7 @@ export default function StrategyCreate() {
                       : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                   }`}
                 >
-                  AI Chat
+                  {translateInputMethodLabel("ai-chat")}
                 </button>
               </div>
             </div>
@@ -782,28 +942,28 @@ export default function StrategyCreate() {
             <div className={platformInputMethod === "form" ? "space-y-8" : "hidden"}>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-muted-foreground">Strategy Type <span className="text-destructive">*</span></label>
+                  <label className="text-xs font-medium text-muted-foreground">{tr("Strategy Type", "策略类型")} <span className="text-destructive">*</span></label>
                   {showBeginnerHints && (
                     <Popover>
                       <PopoverTrigger asChild>
                         <button
                           type="button"
                           className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
-                          aria-label="Explain strategy type"
+                          aria-label={tr("Explain strategy type", "解释策略类型")}
                         >
                           <Info className="h-3.5 w-3.5" />
                         </button>
                       </PopoverTrigger>
                       <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
                         <div className="space-y-3 text-[11px] leading-5">
-                          <p className="text-xs font-semibold text-foreground">Strategy Type Notes</p>
+                          <p className="text-xs font-semibold text-foreground">{tr("Strategy Type Notes", "策略类型说明")}</p>
                           <div className="space-y-1.5">
-                            <p className="text-[11px] font-medium text-foreground/90">Time series -&gt; Find good Timing</p>
-                            <p className="text-[11px] text-muted-foreground">This means looking for patterns within one asset over time.</p>
+                            <p className="text-[11px] font-medium text-foreground/90">{tr("Time series -> Find good Timing", "时序策略 -> 寻找更好的择时")}</p>
+                            <p className="text-[11px] text-muted-foreground">{tr("This means looking for patterns within one asset over time.", "这意味着围绕单一资产随时间变化的模式寻找交易机会。")}</p>
                           </div>
                           <div className="space-y-1.5">
-                            <p className="text-[11px] font-medium text-foreground/90">Cross Section -&gt; Find good Symbols</p>
-                            <p className="text-[11px] text-muted-foreground">This means comparing many assets at the same time and choosing the stronger ones.</p>
+                            <p className="text-[11px] font-medium text-foreground/90">{tr("Cross Section -> Find good Symbols", "截面策略 -> 挑选更优标的")}</p>
+                            <p className="text-[11px] text-muted-foreground">{tr("This means comparing many assets at the same time and choosing the stronger ones.", "这意味着在同一时点比较多个资产，并选择相对更强的标的。")}</p>
                           </div>
                         </div>
                       </PopoverContent>
@@ -820,7 +980,7 @@ export default function StrategyCreate() {
                         : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                     }`}
                   >
-                    <div className="text-sm font-semibold text-foreground">Time series</div>
+                    <div className="text-sm font-semibold text-foreground">{tr("Time Series", "时序策略")}</div>
                   </button>
                   <button
                     type="button"
@@ -831,11 +991,11 @@ export default function StrategyCreate() {
                         : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                     }`}
                   >
-                    <div className="text-sm font-semibold text-foreground">Cross Section</div>
+                    <div className="text-sm font-semibold text-foreground">{tr("Cross Section", "截面策略")}</div>
                   </button>
                 </div>
                 {showValidationFeedback && strategyTypeMissing && (
-                  <p className="text-[11px] text-destructive">Please select a strategy type.</p>
+                  <p className="text-[11px] text-destructive">{tr("Please select a strategy type.", "请选择策略类型。")}</p>
                 )}
               </div>
 
@@ -844,7 +1004,7 @@ export default function StrategyCreate() {
                 {strategyType === "time-series" && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="text-xs font-medium text-muted-foreground">Symbol <span className="text-destructive">*</span></label>
+                      <label className="text-xs font-medium text-muted-foreground">{tr("Symbol", "标的")} <span className="text-destructive">*</span></label>
                     </div>
                     <button
                       type="button"
@@ -875,7 +1035,7 @@ export default function StrategyCreate() {
                               >
                                 <span className="truncate max-w-[150px]">
                                   {symbol.startsWith("__GROUP__:")
-                                    ? `Group ${SYMBOL_GROUPS.find((item) => item.key === symbol.replace("__GROUP__:", ""))?.label || ""}`
+                                    ? translateGroupSelectionLabel(symbol.replace("__GROUP__:", "") as SymbolGroupKey)
                                     : symbol}
                                 </span>
                                 <span className="text-primary/70">×</span>
@@ -885,18 +1045,18 @@ export default function StrategyCreate() {
                         </>
                       ) : (
                         <div className="text-xs text-muted-foreground">
-                          Click to choose symbols or add a top group.
+                          {tr("Click to choose symbols or add a top group.", "点击选择标的，或添加一个 Top 分组。")}
                         </div>
                       )}
                     </button>
                     {showValidationFeedback && symbolMissing && (
-                      <p className="text-[11px] text-destructive">Please select at least one symbol.</p>
+                      <p className="text-[11px] text-destructive">{tr("Please select at least one symbol.", "请至少选择一个标的。")}</p>
                     )}
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Alpha Selection <span className="text-destructive">*</span></label>
+                  <label className="text-xs font-medium text-muted-foreground">{tr("Alpha Selection", "因子选择")} <span className="text-destructive">*</span></label>
 
                   <button
                     type="button"
@@ -909,7 +1069,7 @@ export default function StrategyCreate() {
                   >
                     {selectedFactors.length === 0 ? (
                       <div className="text-xs text-muted-foreground">
-                        Click to choose factors from Official Library or My Alphas.
+                        {tr("Click to choose factors from Official Library or My Alphas.", "点击从官方库或我的因子中选择因子。")}
                       </div>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
@@ -929,20 +1089,20 @@ export default function StrategyCreate() {
                         ))}
                         {selectedFactors.length > 6 && (
                           <span className="inline-flex items-center rounded-full border border-border/60 bg-background/40 px-2 py-0.5 text-[11px] text-muted-foreground">
-                            +{selectedFactors.length - 6} more
+                            {uiLang === "zh" ? `+ 另外 ${selectedFactors.length - 6} 个` : `+${selectedFactors.length - 6} more`}
                           </span>
                         )}
                       </div>
                     )}
                   </button>
                   {showValidationFeedback && factorMissing && (
-                    <p className="text-[11px] text-destructive">Please select at least one factor.</p>
+                    <p className="text-[11px] text-destructive">{tr("Please select at least one factor.", "请至少选择一个因子。")}</p>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                    <label className="text-xs font-medium text-muted-foreground">Factor Weights <span className="text-destructive">*</span></label>
+                    <label className="text-xs font-medium text-muted-foreground">{tr("Factor Weights", "因子权重")} <span className="text-destructive">*</span></label>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <button
@@ -954,7 +1114,7 @@ export default function StrategyCreate() {
                           : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                       }`}
                     >
-                      Equal Weight
+                      {tr("Equal Weight", "等权重")}
                     </button>
                     <button
                       type="button"
@@ -965,11 +1125,11 @@ export default function StrategyCreate() {
                           : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                       }`}
                     >
-                      Custom Weight
+                      {tr("Custom Weight", "自定义权重")}
                     </button>
                   </div>
                   {showValidationFeedback && weightModeMissing && (
-                    <p className="text-[11px] text-destructive">Please choose a factor weight mode.</p>
+                    <p className="text-[11px] text-destructive">{tr("Please choose a factor weight mode.", "请选择因子权重模式。")}</p>
                   )}
 
                   {weightMode === "custom" && (
@@ -988,10 +1148,10 @@ export default function StrategyCreate() {
                         </div>
                       ))}
                       <p className={`text-[10px] ${isCustomWeightValid ? "text-emerald-400" : "text-destructive"}`}>
-                        Weight sum: {weightSum.toFixed(2)} {isCustomWeightValid ? "(valid)" : "(must be 1.00)"}
+                        {tr("Weight sum", "权重总和")}: {weightSum.toFixed(2)} {isCustomWeightValid ? tr("(valid)", "（有效）") : tr("(must be 1.00)", "（必须等于 1.00）")}
                       </p>
                       {showValidationFeedback && customWeightInvalid && (
-                        <p className="text-[11px] text-destructive">Custom weights must sum to 1.00.</p>
+                        <p className="text-[11px] text-destructive">{tr("Custom weights must sum to 1.00.", "自定义权重总和必须为 1.00。")}</p>
                       )}
                     </div>
                   )}
@@ -1000,12 +1160,12 @@ export default function StrategyCreate() {
                 {strategyType === "cross-sectional" && (
                   <>
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-muted-foreground">Strategy Side <span className="text-destructive">*</span></label>
+                      <label className="text-xs font-medium text-muted-foreground">{tr("Strategy Side", "策略方向")} <span className="text-destructive">*</span></label>
                       <div className="grid grid-cols-3 gap-3">
                         {([
-                          { value: "long", label: "Long Only" },
-                          { value: "short", label: "Short Only" },
-                          { value: "neutral", label: "Neutral" },
+                          { value: "long", label: tr("Long Only", "仅做多") },
+                          { value: "short", label: tr("Short Only", "仅做空") },
+                          { value: "neutral", label: tr("Neutral", "中性") },
                         ] as const).map((item) => (
                           <button
                             key={item.value}
@@ -1024,7 +1184,7 @@ export default function StrategyCreate() {
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-medium text-muted-foreground">Top/Tail Rule <span className="text-destructive">*</span></label>
+                      <label className="text-xs font-medium text-muted-foreground">{tr("Top/Tail Rule", "头尾分层规则")} <span className="text-destructive">*</span></label>
                       <div className="grid w-full max-w-[360px] grid-cols-[1fr_120px] gap-3">
                         <Input
                           value={rankValue}
@@ -1058,7 +1218,7 @@ export default function StrategyCreate() {
                         </div>
                       </div>
                       {showValidationFeedback && rankMissing && (
-                        <p className="text-[11px] text-destructive">Please enter a Top/Tail value.</p>
+                        <p className="text-[11px] text-destructive">{tr("Please enter a Top/Tail value.", "请输入头尾分层数值。")}</p>
                       )}
                     </div>
                   </>
@@ -1068,12 +1228,12 @@ export default function StrategyCreate() {
                   <div className="grid grid-cols-1 gap-8">
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-xs font-medium text-muted-foreground">Stop Loss (%) <span className="text-destructive">*</span></label>
+                        <label className="text-xs font-medium text-muted-foreground">{tr("Stop Loss (%)", "止损（%）")} <span className="text-destructive">*</span></label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <button
                               type="button"
-                              aria-label="Stop loss notes"
+                              aria-label={tr("Stop loss notes", "止损说明")}
                               className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
                             >
                               <Info className="h-3.5 w-3.5" />
@@ -1081,15 +1241,15 @@ export default function StrategyCreate() {
                           </PopoverTrigger>
                           <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
                             <div className="space-y-2.5 text-[11px] leading-5">
-                              <p className="text-xs font-semibold text-foreground">Stop Loss Notes</p>
+                              <p className="text-xs font-semibold text-foreground">{tr("Stop Loss Notes", "止损说明")}</p>
                               <p className="text-muted-foreground">
-                                When unrealized portfolio drawdown reaches this threshold, all positions are force-closed and the strategy enters cooldown.
+                                {tr("When unrealized portfolio drawdown reaches this threshold, all positions are force-closed and the strategy enters cooldown.", "当组合未实现回撤达到该阈值时，所有持仓将被强制平仓，策略进入冷却期。")}
                               </p>
                               <div className="space-y-1.5">
-                                <p className="text-[11px] font-medium text-foreground/90">Parameter guide:</p>
-                                <p className="text-muted-foreground">0%-10%: conservative risk cap</p>
-                                <p className="text-muted-foreground">10%-20%: baseline default range</p>
-                                <p className="text-muted-foreground">30%-100%: high-risk tolerance</p>
+                                <p className="text-[11px] font-medium text-foreground/90">{tr("Parameter guide:", "参数说明：")}</p>
+                                <p className="text-muted-foreground">{tr("0%-10%: conservative risk cap", "0%-10%：偏保守的风险上限")}</p>
+                                <p className="text-muted-foreground">{tr("10%-20%: baseline default range", "10%-20%：常用默认区间")}</p>
+                                <p className="text-muted-foreground">{tr("30%-100%: high-risk tolerance", "30%-100%：较高风险承受范围")}</p>
                               </div>
                             </div>
                           </PopoverContent>
@@ -1121,12 +1281,12 @@ export default function StrategyCreate() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <label className="text-xs font-medium text-muted-foreground">Cooldown (hours) <span className="text-destructive">*</span></label>
+                        <label className="text-xs font-medium text-muted-foreground">{tr("Cooldown (hours)", "冷却时间（小时）")} <span className="text-destructive">*</span></label>
                         <Popover>
                           <PopoverTrigger asChild>
                             <button
                               type="button"
-                              aria-label="Cooldown notes"
+                              aria-label={tr("Cooldown notes", "冷却时间说明")}
                               className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-colors hover:text-foreground hover:border-border"
                             >
                               <Info className="h-3.5 w-3.5" />
@@ -1134,16 +1294,16 @@ export default function StrategyCreate() {
                           </PopoverTrigger>
                           <PopoverContent align="start" side="top" className="w-[340px] border-border bg-card p-3">
                             <div className="space-y-2.5 text-[11px] leading-5">
-                              <p className="text-xs font-semibold text-foreground">Cooldown Notes</p>
+                              <p className="text-xs font-semibold text-foreground">{tr("Cooldown Notes", "冷却时间说明")}</p>
                               <p className="text-muted-foreground">
-                                After a stop-out is triggered, the strategy waits for the configured cooldown window before allowing re-entry.
+                                {tr("After a stop-out is triggered, the strategy waits for the configured cooldown window before allowing re-entry.", "触发止损后，策略会等待设定的冷却窗口结束后才允许再次入场。")}
                               </p>
                               <div className="space-y-1.5">
-                                <p className="text-[11px] font-medium text-foreground/90">Parameter guide:</p>
-                                <p className="text-muted-foreground">1-2h: short cooldown, fast recovery (high-frequency strategies)</p>
-                                <p className="text-muted-foreground">4-6h: balanced default for most intraday setups</p>
-                                <p className="text-muted-foreground">12-24h: long cooldown for daily-timeframe strategies</p>
-                                <p className="text-muted-foreground">48-72h: very long cooldown after major drawdown events</p>
+                                <p className="text-[11px] font-medium text-foreground/90">{tr("Parameter guide:", "参数说明：")}</p>
+                                <p className="text-muted-foreground">{tr("1-2h: short cooldown, fast recovery (high-frequency strategies)", "1-2 小时：短冷却，恢复快（适合高频策略）")}</p>
+                                <p className="text-muted-foreground">{tr("4-6h: balanced default for most intraday setups", "4-6 小时：适合多数日内策略的平衡默认值")}</p>
+                                <p className="text-muted-foreground">{tr("12-24h: long cooldown for daily-timeframe strategies", "12-24 小时：适合日线级别策略的长冷却")}</p>
+                                <p className="text-muted-foreground">{tr("48-72h: very long cooldown after major drawdown events", "48-72 小时：适合大幅回撤后的超长冷却")}</p>
                               </div>
                             </div>
                           </PopoverContent>
@@ -1181,10 +1341,10 @@ export default function StrategyCreate() {
             {strategyType ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <label className="text-xs font-medium text-muted-foreground">Strategy Name</label>
+                  <label className="text-xs font-medium text-muted-foreground">{tr("Strategy Name", "策略名称")}</label>
                 </div>
                 <Input
-                  placeholder="System default will be used if empty"
+                  placeholder={tr("System default will be used if empty", "留空则使用系统默认名称")}
                   value={strategyName}
                   onChange={(e) => setStrategyName(e.target.value)}
                   className="rounded-lg bg-accent border-border h-10 text-sm max-w-[420px]"
@@ -1196,60 +1356,99 @@ export default function StrategyCreate() {
             {platformInputMethod === "ai-chat" && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-3">
-                  <label className="text-xs font-medium text-muted-foreground">AI Chat Prompt <span className="text-destructive">*</span></label>
+                  <label className="text-xs font-medium text-muted-foreground">{tr("AI Chat Prompt", "AI 对话提示词")} <span className="text-destructive">*</span></label>
                   <button
                     type="button"
                     onClick={optimizeAiPrompt}
                     className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-medium text-primary transition-all duration-200 hover:bg-primary/15 hover:border-primary/30"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    Optimize Prompt
+                    {tr("Optimize Prompt", "优化提示词")}
                   </button>
                 </div>
                 <Textarea
                   value={aiChatPrompt}
                   onChange={(e) => setAiChatPrompt(e.target.value)}
                   onBlur={() => setAiChatTouched(true)}
-                  placeholder="Describe your strategy request in natural language. You can include multiple strategy blocks in one prompt for batch creation."
+                  placeholder={tr("Describe your strategy request in natural language. You can include multiple strategy blocks in one prompt for batch creation.", "请用自然语言描述你的策略需求。你也可以在一个提示词中包含多个策略模块，以触发批量创建。")}
                   rows={8}
                   className="rounded-xl bg-accent border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 resize-none"
                 />
                 {(showValidationFeedback || aiChatTouched) && aiChatPromptMissing && (
-                  <p className="text-[11px] text-destructive">Please enter a prompt for AI chat strategy creation.</p>
+                  <p className="text-[11px] text-destructive">{tr("Please enter a prompt for AI chat strategy creation.", "请输入用于 AI 对话创建策略的提示词。")}</p>
                 )}
                 <p className="text-[11px] text-muted-foreground">
-                  AI Chat mode supports batch strategy creation. Add multiple strategy instructions in one prompt to trigger batch output.
+                  {tr("AI Chat mode supports batch strategy creation. Add multiple strategy instructions in one prompt to trigger batch output.", "AI 对话模式支持批量创建策略。在一个提示词中加入多条策略指令即可触发批量输出。")}
                 </p>
               </div>
             )}
           {(platformInputMethod === "ai-chat" || strategyType) && (
             <div className="flex items-center justify-between pt-2">
-            <div />
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ease-in-out ${
-                !isSubmitting
-                  ? "bg-primary text-primary-foreground hover:brightness-110 hover:-translate-y-0.5 cursor-pointer"
-                  : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
-              }`}
-            >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Rocket className="w-4 h-4" />
-                  {platformInputMethod === "ai-chat" && inferredAiScale === "batch" ? "Create Strategies" : "Create Strategy"}
-                </>
-              )}
-            </button>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                  <span>{tr("Estimated spend", "预计消耗")}</span>
+                  <CreditIcon className="h-3.5 w-3.5 shrink-0" />
+                  <span>{formatCreditUnits(estimatedStrategyCredit)}</span>
+                </span>
+                {availableCredit < estimatedStrategyCredit ? (
+                  <span className="text-xs font-medium text-rose-600 dark:text-rose-400">{tr("Insufficient credit", "额度不足")}</span>
+                ) : null}
+              </div>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ease-in-out ${
+                  !isSubmitting
+                    ? "bg-primary text-primary-foreground hover:brightness-110 hover:-translate-y-0.5 cursor-pointer"
+                    : "bg-accent text-muted-foreground border border-border cursor-not-allowed"
+                }`}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    {tr("Creating...", "创建中...")}
+                  </>
+                ) : (
+                  <>
+                    <Rocket className="w-4 h-4" />
+                    {platformInputMethod === "ai-chat" && inferredAiScale === "batch" ? tr("Create Strategies", "创建策略集") : tr("Create Strategy", "创建策略")}
+                  </>
+                )}
+              </button>
             </div>
           )}
         </div>
       )}
+
+      <Dialog open={showInsufficientCreditDialog} onOpenChange={setShowInsufficientCreditDialog}>
+        <DialogContent className="border-border bg-card text-foreground">
+          <DialogHeader>
+            <DialogTitle>{tr("Insufficient credit", "额度不足")}</DialogTitle>
+            <DialogDescription>
+              {tr(
+                `Creating this strategy requires ${estimatedStrategyCredit.toFixed(2)} credit, but your balance is ${availableCredit.toFixed(2)}.`,
+                `创建该策略需消耗 ${estimatedStrategyCredit.toFixed(2)} 额度，当前余额为 ${availableCredit.toFixed(2)}。`
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setShowInsufficientCreditDialog(false)}
+              className="h-9 rounded-lg border border-border bg-card px-4 text-sm text-foreground transition hover:bg-accent"
+            >
+              {tr("Cancel", "取消")}
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/subscription")}
+              className="h-9 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+            >
+              {tr("Recharge credit", "去充值额度")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog
         open={showSymbolPicker}
@@ -1264,9 +1463,9 @@ export default function StrategyCreate() {
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="text-foreground">Symbol Selector</DialogTitle>
+            <DialogTitle className="text-foreground">{tr("Symbol Selector", "标的选择器")}</DialogTitle>
             <DialogDescription>
-              Individual selection and group selection are organized in tabs.
+              {tr("Individual selection and group selection are organized in tabs.", "单个选择与分组选择按标签页组织。")}
             </DialogDescription>
           </DialogHeader>
 
@@ -1274,7 +1473,7 @@ export default function StrategyCreate() {
             <Input
               value={symbolPickerQuery}
               onChange={(e) => setSymbolPickerQuery(e.target.value)}
-              placeholder="Search symbol..."
+              placeholder={tr("Search symbol...", "搜索标的...")}
               className="h-8 rounded-md border-border/70 bg-background/30 text-xs placeholder:text-[11px]"
             />
 
@@ -1288,7 +1487,7 @@ export default function StrategyCreate() {
                     : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                 }`}
               >
-                Individual
+                {tr("Individual", "单个")}
               </button>
               <button
                 type="button"
@@ -1299,7 +1498,7 @@ export default function StrategyCreate() {
                     : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                 }`}
               >
-                Group
+                {tr("Group", "分组")}
               </button>
             </div>
 
@@ -1322,7 +1521,7 @@ export default function StrategyCreate() {
                         <div className="flex items-center justify-between gap-3">
                           <span className="text-sm font-medium text-foreground">{symbol}</span>
                           <span className={`text-xs ${selected ? "text-primary" : "text-muted-foreground"}`}>
-                            {selected ? "Selected" : "Select"}
+                            {selected ? tr("Selected", "已选择") : tr("Select", "选择")}
                           </span>
                         </div>
                       </button>
@@ -1350,13 +1549,13 @@ export default function StrategyCreate() {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <div className="text-sm font-semibold text-foreground">{group.label}</div>
+                          <div className="text-sm font-semibold text-foreground">{translateGroupSelectionLabel(group.key)}</div>
                           <div className="mt-1 text-xs text-muted-foreground">
-                            {groupSymbols.length} symbols · {groupSymbols.slice(0, 4).join(", ")}
+                            {uiLang === "zh" ? `${groupSymbols.length} 个标的 · ${groupSymbols.slice(0, 4).join(", ")}` : `${groupSymbols.length} symbols · ${groupSymbols.slice(0, 4).join(", ")}`}
                           </div>
                         </div>
                         <span className={`text-xs ${selected ? "text-primary" : "text-muted-foreground"}`}>
-                          {selected ? "Selected" : "Select"}
+                          {selected ? tr("Selected", "已选择") : tr("Select", "选择")}
                         </span>
                       </div>
                     </button>
@@ -1372,7 +1571,7 @@ export default function StrategyCreate() {
               onClick={() => setShowSymbolPicker(false)}
               className="h-9 rounded-full border border-border bg-transparent px-4 text-xs font-medium text-foreground hover:bg-accent"
             >
-              Done ({selectedSymbolList.length})
+              {tr("Done", "完成")} ({selectedSymbolList.length})
             </button>
           </DialogFooter>
         </DialogContent>
@@ -1391,9 +1590,9 @@ export default function StrategyCreate() {
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="text-foreground">Alpha Selection</DialogTitle>
+            <DialogTitle className="text-foreground">{tr("Alpha Selection", "因子选择")}</DialogTitle>
             <DialogDescription>
-              Select up to {MAX_FACTOR_COUNT} factors from Official Library or My Alphas.
+              {uiLang === "zh" ? `最多从官方库或我的因子中选择 ${MAX_FACTOR_COUNT} 个因子。` : `Select up to ${MAX_FACTOR_COUNT} factors from Official Library or My Alphas.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -1401,7 +1600,7 @@ export default function StrategyCreate() {
             <Input
               value={alphaPickerQuery}
               onChange={(e) => setAlphaPickerQuery(e.target.value)}
-              placeholder="Search by name / id / tag..."
+              placeholder={tr("Search by name / id / tag...", "按名称 / ID / 标签搜索...")}
               className="h-8 rounded-md border-border/70 bg-background/30 text-xs placeholder:text-[11px]"
             />
 
@@ -1419,7 +1618,7 @@ export default function StrategyCreate() {
                     : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                 }`}
               >
-                Official Library ({officialAlphaPool.length})
+                {tr("Official Library", "官方库")} ({officialAlphaPool.length})
               </button>
               <button
                 type="button"
@@ -1433,7 +1632,7 @@ export default function StrategyCreate() {
                     : "bg-accent text-muted-foreground border-border hover:border-slate-300 dark:hover:border-slate-600"
                 }`}
               >
-                My Alphas ({myAlphaPool.length})
+                {tr("My Alphas", "我的因子")} ({myAlphaPool.length})
               </button>
             </div>
             {alphaSourceTab === "official" ? (
@@ -1447,7 +1646,7 @@ export default function StrategyCreate() {
                     ).map(([key, group]) => (
                       <div key={key} className="space-y-2">
                         <div className="px-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/60">
-                          {group.label}
+                          {translateOfficialLabel(group.label)}
                         </div>
                         <div className="ml-1 space-y-1 border-l border-border/60 pl-2.5">
                           {group.items.map((item) => {
@@ -1467,7 +1666,7 @@ export default function StrategyCreate() {
                                     : "text-foreground/80 hover:bg-accent hover:text-foreground"
                                 }`}
                               >
-                                {item.label}
+                                {translateOfficialLabel(item.label)}
                               </button>
                             );
                           })}
@@ -1480,7 +1679,7 @@ export default function StrategyCreate() {
                 <div className="max-h-[360px] overflow-auto space-y-2 pr-1">
                   {filteredAlphaPool.length === 0 && (
                     <div className="rounded-xl border border-border/70 bg-background/40 px-4 py-8 text-center text-sm text-muted-foreground">
-                      No factors found.
+                      {tr("No factors found.", "未找到符合条件的因子。")}
                     </div>
                   )}
 
@@ -1509,18 +1708,18 @@ export default function StrategyCreate() {
                             <div className="mt-1 flex flex-wrap items-center gap-2">
                               <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
                               <span className="rounded-full border border-border/70 bg-background/60 px-2 py-0.5 text-[10px] text-muted-foreground">
-                                {getSourceLabel(alphaSourceTab, factor)}
+                                {alphaSourceTab === "my" ? tr("My Alphas", "我的因子") : factor.category === "graduated" ? tr("Graduated", "三方") : tr("Official", "官方")}
                               </span>
                               <span className="rounded-full border border-primary/15 bg-primary/5 px-2 py-0.5 text-[10px] text-primary/90">
-                                {officialCategory.subcategoryLabel}
+                                {translateOfficialLabel(officialCategory.subcategoryLabel)}
                               </span>
                               <span className="rounded-full border border-border/70 bg-background/60 px-2 py-0.5 text-[10px] text-muted-foreground">
-                                OS Sharpe {factor.osSharpe.toFixed(2)}
+                                {tr("OS Sharpe", "样本外夏普比率")} {factor.osSharpe.toFixed(2)}
                               </span>
                             </div>
                           </div>
                           <span className={`mt-0.5 text-xs font-medium ${selected ? "text-primary" : "text-muted-foreground"}`}>
-                            {selected ? "Selected" : "Select"}
+                            {selected ? tr("Selected", "已选择") : tr("Select", "选择")}
                           </span>
                         </div>
                       </button>
@@ -1539,7 +1738,7 @@ export default function StrategyCreate() {
                     ).map(([key, group]) => (
                       <div key={key} className="space-y-2">
                         <div className="px-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-foreground/60">
-                          {group.label}
+                          {translateOfficialLabel(group.label)}
                         </div>
                         <div className="ml-1 space-y-1 border-l border-border/60 pl-2.5">
                           {group.items.map((item) => (
@@ -1553,7 +1752,7 @@ export default function StrategyCreate() {
                                   : "text-foreground/80 hover:bg-accent hover:text-foreground"
                               }`}
                             >
-                              {item.label}
+                              {translateOfficialLabel(item.label)}
                             </button>
                           ))}
                         </div>
@@ -1565,7 +1764,7 @@ export default function StrategyCreate() {
                 <div className="max-h-[360px] overflow-auto space-y-2 pr-1">
                   {filteredAlphaPool.length === 0 && (
                     <div className="rounded-xl border border-border/70 bg-background/40 px-4 py-8 text-center text-sm text-muted-foreground">
-                      No factors found.
+                      {tr("No factors found.", "未找到符合条件的因子。")}
                     </div>
                   )}
 
@@ -1593,15 +1792,15 @@ export default function StrategyCreate() {
                             <div className="mt-1 flex flex-wrap items-center gap-2">
                               <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
                               <span className="rounded-full border border-border/70 bg-background/60 px-2 py-0.5 text-[10px] text-muted-foreground">
-                                {getSourceLabel(alphaSourceTab, factor)}
+                                {alphaSourceTab === "my" ? tr("My Alphas", "我的因子") : factor.category === "graduated" ? tr("Graduated", "三方") : tr("Official", "官方")}
                               </span>
                               <span className="rounded-full border border-border/70 bg-background/60 px-2 py-0.5 text-[10px] text-muted-foreground">
-                                OS Sharpe {factor.osSharpe.toFixed(2)}
+                                {tr("OS Sharpe", "样本外夏普比率")} {factor.osSharpe.toFixed(2)}
                               </span>
                             </div>
                           </div>
                           <span className={`mt-0.5 text-xs font-medium ${selected ? "text-primary" : "text-muted-foreground"}`}>
-                            {selected ? "Selected" : "Select"}
+                            {selected ? tr("Selected", "已选择") : tr("Select", "选择")}
                           </span>
                         </div>
                       </button>
@@ -1618,7 +1817,7 @@ export default function StrategyCreate() {
               onClick={() => setShowAlphaPicker(false)}
               className="h-9 rounded-full border border-border bg-transparent px-4 text-xs font-medium text-foreground hover:bg-accent"
             >
-              Done ({selectedFactors.length}/{MAX_FACTOR_COUNT})
+              {tr("Done", "完成")} ({selectedFactors.length}/{MAX_FACTOR_COUNT})
             </button>
           </DialogFooter>
         </DialogContent>
@@ -1637,7 +1836,7 @@ export default function StrategyCreate() {
             >
               <div className="flex items-center gap-1.5">
                 <Key className="w-3.5 h-3.5" />
-                Agent API & Skill
+                {tr("Agent API & Skill", "Agent API 与 Skill")}
               </div>
             </button>
             <button
@@ -1650,7 +1849,7 @@ export default function StrategyCreate() {
             >
               <div className="flex items-center gap-1.5">
                 <Rocket className="w-3.5 h-3.5" />
-                First Run
+                {tr("First Run", "首次运行")}
               </div>
             </button>
           </div>
@@ -1662,7 +1861,7 @@ export default function StrategyCreate() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Key className="w-4 h-4 text-primary" />
-                      <span className="text-base font-semibold text-foreground">Agent API</span>
+                      <span className="text-base font-semibold text-foreground">{tr("Agent API", "Agent API")}</span>
                       <span className="text-xs text-muted-foreground ml-1">({apiKeys.length})</span>
                     </div>
                     <button
@@ -1670,7 +1869,7 @@ export default function StrategyCreate() {
                       onClick={handleCreateApiKey}
                     >
                       <Zap className="w-3.5 h-3.5" />
-                      New API Key
+                      {tr("New API Key", "新建 API Key")}
                     </button>
                   </div>
                 </div>
@@ -1679,8 +1878,8 @@ export default function StrategyCreate() {
                   {apiKeys.length === 0 ? (
                     <div className="text-center py-12">
                       <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
-                      <p className="text-sm text-muted-foreground">No API keys yet</p>
-                      <p className="text-xs text-muted-foreground/60 mt-1">Create your first API key to connect your AI agent</p>
+                      <p className="text-sm text-muted-foreground">{tr("No API keys yet", "还没有 API Key")}</p>
+                      <p className="text-xs text-muted-foreground/60 mt-1">{tr("Create your first API key to connect your AI agent", "创建你的第一个 API Key 以连接 AI Agent")}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -1700,12 +1899,12 @@ export default function StrategyCreate() {
                               }`}
                             >
                               {copiedPrompt === item.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                              {copiedPrompt === item.id ? "Copied" : item.skillVersion !== SKILL_LATEST ? "Copy Latest Prompt" : "Copy Prompt"}
+                              {copiedPrompt === item.id ? tr("Copied", "已复制") : item.skillVersion !== SKILL_LATEST ? tr("Copy Latest Prompt", "复制最新提示词") : tr("Copy Prompt", "复制提示词")}
                             </button>
                           </div>
 
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-14 shrink-0">API Key</span>
+                            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-14 shrink-0">{tr("API Key", "API Key")}</span>
                             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 flex-1 min-w-0">
                               <code className="font-mono text-xs text-primary truncate flex-1">
                                 {visibleKeys.has(item.id) ? item.apiKey : item.apiKey.slice(0, 6) + "\u2022".repeat(16) + "..."}
@@ -1721,13 +1920,13 @@ export default function StrategyCreate() {
 
                           <div className="flex items-center gap-4 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
-                              <span className="uppercase tracking-wider font-medium">Skill</span>
+                              <span className="uppercase tracking-wider font-medium">{tr("Skill", "Skill")}</span>
                               <span className="text-primary font-semibold">{item.skillVersion}</span>
                               {item.skillVersion !== SKILL_LATEST && (
-                                <span className="text-amber-500 ml-0.5">(update available: {SKILL_LATEST})</span>
+                                <span className="text-amber-500 ml-0.5">{tr(`(update available: ${SKILL_LATEST})`, `（可更新：${SKILL_LATEST}）`)}</span>
                               )}
                             </span>
-                            <span className="border-l border-border pl-4">Updated {item.updatedAt}</span>
+                            <span className="border-l border-border pl-4">{tr("Updated", "更新于")} {item.updatedAt}</span>
                           </div>
                         </div>
                       ))}
@@ -1742,14 +1941,14 @@ export default function StrategyCreate() {
             <div className="space-y-6 animate-in fade-in duration-200">
               <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
                 <div>
-                  <h2 className="text-base font-semibold text-foreground mb-1">First Run</h2>
+                  <h2 className="text-base font-semibold text-foreground mb-1">{tr("First Run", "首次运行")}</h2>
                   <p className="text-xs text-muted-foreground">
-                    Try these example prompts in your AI coding agent to test the Otter skill.
+                    {tr("Try these example prompts in your AI coding agent to test the Quandora skill.", "在你的 AI 编码 Agent 中试用以下示例提示词，测试 Quandora 技能。")}
                   </p>
                 </div>
 
                 <div className="space-y-4">
-                  {FIRST_RUN_PROMPTS.map((item) => (
+                  {translatedFirstRunPrompts.map((item) => (
                     <div key={item.category} className="p-5 rounded-xl border border-border bg-accent hover:border-primary/30 transition-all duration-200 ease-in-out">
                       <div className="flex items-center gap-2 mb-3">
                         <Rocket className="w-4 h-4 text-primary" />
@@ -1777,7 +1976,7 @@ export default function StrategyCreate() {
 
                 <div className="flex items-start gap-2 p-3 rounded-xl text-xs bg-primary/5 text-primary border border-primary/20">
                   <Zap className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>Tip: You can modify these prompts or create your own. The skill supports natural language instructions for all Otter platform operations.</span>
+                  <span>{tr("Tip: You can modify these prompts or create your own. The skill supports natural language instructions for all Quandora platform operations.", "提示：你可以修改这些提示词，或自行创建新的提示词。该技能支持对 Quandora 平台全部操作的自然语言指令。")}</span>
                 </div>
               </div>
             </div>
@@ -1790,8 +1989,8 @@ export default function StrategyCreate() {
           <div className="w-12 h-12 rounded-2xl bg-accent border border-border flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-6 h-6 text-muted-foreground" />
           </div>
-          <p className="text-sm text-muted-foreground">Select a mode above to get started</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Platform Agent for guided creation, or Your Own Agent for API integration</p>
+          <p className="text-sm text-muted-foreground">{tr("Select a mode above to get started", "请选择上方模式开始使用")}</p>
+          <p className="text-xs text-muted-foreground/60 mt-1">{tr("Platform Agent for guided creation, or Your Own Agent for API integration", "使用平台 Agent 进行引导式创建，或使用自有 Agent 进行 API 集成")}</p>
         </div>
       )}
     </div>
