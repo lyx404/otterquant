@@ -20,6 +20,7 @@ import {
 
 type MoneyActivityItem = {
   id: string;
+  orderNo: string;
   reasonEn: string;
   reasonZh: string;
   occurredAt: string;
@@ -30,6 +31,7 @@ type MoneyActivityItem = {
 
 type PointsActivityItem = {
   id: string;
+  orderNo: string;
   reasonEn: string;
   reasonZh: string;
   occurredAt: string;
@@ -52,6 +54,7 @@ type HostingHistoryItem = {
 const walletActivities: MoneyActivityItem[] = [
   {
     id: "wallet-1",
+    orderNo: "WLT-20260428-001",
     reasonEn: "Factor Arena prize",
     reasonZh: "因子竞技场奖金入账",
     occurredAt: "2026-04-28T10:24:00+08:00",
@@ -61,6 +64,7 @@ const walletActivities: MoneyActivityItem[] = [
   },
   {
     id: "wallet-3",
+    orderNo: "WLT-20260420-002",
     reasonEn: "Credit recharge",
     reasonZh: "额度充值",
     occurredAt: "2026-04-20T09:00:00+08:00",
@@ -73,6 +77,7 @@ const walletActivities: MoneyActivityItem[] = [
 const pointsActivities: PointsActivityItem[] = [
   {
     id: "points-1",
+    orderNo: "CRD-20260428-001",
     reasonEn: "Factor generation",
     reasonZh: "生成因子",
     occurredAt: "2026-04-28T11:36:00+08:00",
@@ -81,6 +86,7 @@ const pointsActivities: PointsActivityItem[] = [
   },
   {
     id: "points-2",
+    orderNo: "CRD-20260427-002",
     reasonEn: "Strategy generation",
     reasonZh: "生成策略",
     occurredAt: "2026-04-27T17:18:00+08:00",
@@ -89,6 +95,7 @@ const pointsActivities: PointsActivityItem[] = [
   },
   {
     id: "points-3",
+    orderNo: "CRD-20260401-003",
     reasonEn: "Credit purchase",
     reasonZh: "购买额度",
     occurredAt: "2026-04-01T00:00:00+08:00",
@@ -97,6 +104,7 @@ const pointsActivities: PointsActivityItem[] = [
   },
   {
     id: "points-4",
+    orderNo: "CRD-20260331-004",
     reasonEn: "Strategy hosting",
     reasonZh: "策略托管消耗",
     occurredAt: "2026-03-31T23:59:00+08:00",
@@ -105,6 +113,7 @@ const pointsActivities: PointsActivityItem[] = [
   },
   {
     id: "points-5",
+    orderNo: "CRD-20260301-005",
     reasonEn: "Credit expired",
     reasonZh: "额度过期",
     occurredAt: "2026-03-01T00:00:00+08:00",
@@ -1058,7 +1067,7 @@ function CreditsPage() {
               <div className="p-6">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Trophy className="h-4 w-4" />
-                  {tr("Arena prizes", "竞技场奖金")}
+                  {tr("Arena cumulative prizes", "竞技场累计奖金")}
                 </div>
                 <p className="mt-3 font-mono text-3xl font-semibold text-amber-400">
                   ${arenaPrizeTotal.toFixed(2)}
@@ -1072,9 +1081,10 @@ function CreditsPage() {
               <h3 className="text-xl font-semibold text-foreground">{tr("Wallet activity", "钱包活动记录")}</h3>
             </div>
             <div className="overflow-x-auto">
-              <div className="min-w-[720px]">
-                <div className="grid grid-cols-[1.2fr_1fr_0.8fr] gap-3 border-b border-border bg-accent/20 px-6 py-4 text-sm text-muted-foreground">
+              <div className="min-w-[840px]">
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr] gap-3 border-b border-border bg-accent/20 px-6 py-4 text-sm text-muted-foreground">
                   <span>{tr("Change", "变更记录")}</span>
+                  <span>{tr("Order No.", "单号")}</span>
                   <span>{tr("Time", "操作时间")}</span>
                   <span className="text-right">{tr("Amount", "金额")}</span>
                 </div>
@@ -1082,10 +1092,11 @@ function CreditsPage() {
                   {walletActivities.map((item) => {
                     const isIncrease = item.direction === "increase";
                     return (
-                      <div key={item.id} className="grid grid-cols-[1.2fr_1fr_0.8fr] gap-3 px-6 py-5 text-sm">
+                      <div key={item.id} className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr] gap-3 px-6 py-5 text-sm">
                         <span className="flex items-center font-medium text-foreground">
                           {tr(item.reasonEn, item.reasonZh)}
                         </span>
+                        <span className="flex items-center font-mono text-xs text-muted-foreground">{item.orderNo}</span>
                         <span className="flex items-center text-muted-foreground">{formatDateTime(item.occurredAt)}</span>
                         <span className={`text-right font-mono font-semibold ${isIncrease ? "text-emerald-400" : "text-rose-400"}`}>
                           {isIncrease ? "+" : "-"}${item.amount.toFixed(2)}
@@ -1146,9 +1157,10 @@ function CreditsPage() {
               <h3 className="text-xl font-semibold text-foreground">{tr("Credit activity", "额度活动记录")}</h3>
             </div>
             <div className="overflow-x-auto">
-              <div className="min-w-[720px]">
-                <div className="grid grid-cols-[1.2fr_1fr_0.8fr] gap-3 border-b border-border bg-accent/20 px-6 py-4 text-sm text-muted-foreground">
+              <div className="min-w-[840px]">
+                <div className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr] gap-3 border-b border-border bg-accent/20 px-6 py-4 text-sm text-muted-foreground">
                   <span>{tr("Change", "变更记录")}</span>
+                  <span>{tr("Order No.", "单号")}</span>
                   <span>{tr("Time", "操作时间")}</span>
                   <span className="text-right">{tr("Credit", "额度")}</span>
                 </div>
@@ -1156,10 +1168,11 @@ function CreditsPage() {
                   {pointsActivities.map((item) => {
                     const isIncrease = item.direction === "increase";
                     return (
-                      <div key={item.id} className="grid grid-cols-[1.2fr_1fr_0.8fr] gap-3 px-6 py-5 text-sm">
+                      <div key={item.id} className="grid grid-cols-[1.2fr_1fr_1fr_0.8fr] gap-3 px-6 py-5 text-sm">
                         <span className="flex items-center font-medium text-foreground">
                           {tr(item.reasonEn, item.reasonZh)}
                         </span>
+                        <span className="flex items-center font-mono text-xs text-muted-foreground">{item.orderNo}</span>
                         <span className="flex items-center text-muted-foreground">{formatDateTime(item.occurredAt)}</span>
                         <span className={`text-right font-mono font-semibold ${isIncrease ? "text-emerald-400" : "text-rose-400"}`}>
                           {isIncrease ? "+" : "-"}{item.points.toLocaleString()}

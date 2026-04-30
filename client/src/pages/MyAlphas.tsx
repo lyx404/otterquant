@@ -652,8 +652,8 @@ export default function MyAlphas() {
           return (
             <span
               className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-              title="Unrevealed grade"
-              aria-label="Unrevealed grade"
+              title={tr("Unrevealed grade", "未揭示等级")}
+              aria-label={tr("Unrevealed grade", "未揭示等级")}
             >
               <span className="text-[11px] leading-none font-black text-slate-500 dark:text-slate-300 select-none">?</span>
             </span>
@@ -728,6 +728,12 @@ export default function MyAlphas() {
     if (sortDir === "desc") return <ArrowDown className="w-3 h-3 text-primary" />;
     if (sortDir === "asc") return <ArrowUp className="w-3 h-3 text-primary" />;
     return <ArrowUpDown className="w-3 h-3 opacity-30" />;
+  };
+
+  const sortDirectionLabel = (direction: SortDir) => {
+    if (direction === "asc") return tr("Ascending", "升序");
+    if (direction === "desc") return tr("Descending", "降序");
+    return tr("Unsorted", "未排序");
   };
 
   /* ── Pagination range ── */
@@ -899,9 +905,6 @@ export default function MyAlphas() {
             </PopoverTrigger>
             <PopoverContent className="w-64 rounded-2xl" align="end">
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    {viewMode === "card" ? tr("Sort Cards", "卡片排序") : tr("Sort Rows", "表格排序")}
-                  </p>
                   <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
                     {cardSortColumns.map((col) => {
                       const active = sortKey === col.key;
@@ -921,7 +924,7 @@ export default function MyAlphas() {
                         >
                           <span>{columnLabelMap[col.key as keyof typeof columnLabelMap] ?? col.label}</span>
                           <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
-                            {active ? (sortDir === "asc" ? "ASC" : "DESC") : tr("DEFAULT", "默认")}
+                            {active ? sortDirectionLabel(sortDir) : tr("Default", "默认")}
                           </span>
                         </button>
                       );
@@ -956,12 +959,12 @@ export default function MyAlphas() {
             <PopoverTrigger asChild>
               <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
                 <Settings2 className="w-3.5 h-3.5" />
-                {tr("Columns", "列")}
+                    {tr("Display Items", "显示项")}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-56 rounded-2xl" align="end">
               <div className="space-y-1">
-                <p className="text-xs font-medium mb-2 text-muted-foreground">{tr("Toggle Columns", "切换显示列")}</p>
+                <p className="text-xs font-medium mb-2 text-muted-foreground">{tr("Toggle Display Items", "切换显示项")}</p>
                 {dataColumns.map((col) => (
                   <label key={col.key} className="flex items-center gap-2 py-1 px-1 rounded-lg cursor-pointer">
                     <Checkbox
@@ -982,7 +985,7 @@ export default function MyAlphas() {
               onClick={() => setViewMode("table")}
               className={`inline-flex h-8 w-8 items-center justify-center transition-all duration-200 ease-in-out ${
                 viewMode === "table"
-                  ? "bg-primary/12 text-primary"
+                  ? "rounded-[10px] bg-primary/10 text-primary shadow-sm dark:bg-primary dark:text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
               title={tr("Table View", "表格视图")}
@@ -993,7 +996,7 @@ export default function MyAlphas() {
               onClick={() => setViewMode("card")}
               className={`inline-flex h-8 w-8 items-center justify-center transition-all duration-200 ease-in-out ${
                 viewMode === "card"
-                  ? "bg-primary text-[#020617]"
+                  ? "rounded-[10px] bg-primary/10 text-primary shadow-sm dark:bg-primary dark:text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
               title={tr("Card View", "卡片视图")}
@@ -1060,7 +1063,7 @@ export default function MyAlphas() {
               {paginated.length === 0 && (
                 <tr>
                   <td colSpan={visibleCols.length + 1} className="text-center py-12 text-sm text-muted-foreground">
-                    No alphas match the current filters.
+                    {tr("No factors match the current filters.", "没有符合当前筛选条件的因子。")}
                   </td>
                 </tr>
               )}
@@ -1072,11 +1075,11 @@ export default function MyAlphas() {
         <div className="flex items-center justify-between px-6 py-4 border-t border-border/60 bg-card/40">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="font-mono tabular-nums">
-              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
+              {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} {tr("of", "共")} {sorted.length}
             </span>
             <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-1.5">
-              <span>Rows</span>
+              <span>{tr("Rows", "行数")}</span>
               <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
                 <SelectTrigger className="h-6 w-16 text-xs rounded-lg bg-transparent border-border">
                   <SelectValue />
@@ -1125,7 +1128,7 @@ export default function MyAlphas() {
         className="!fixed !left-0 !top-0 !z-50 !h-screen !w-screen !max-w-none !translate-x-0 !translate-y-0 rounded-none border-none bg-[#050814]/92 p-0 shadow-none"
         style={{ transform: "none", inset: 0 }}
       >
-        <DialogTitle className="sr-only">Reveal All Results</DialogTitle>
+        <DialogTitle className="sr-only">{tr("Reveal All Results", "揭示全部等级结果")}</DialogTitle>
         <div
           className="absolute inset-0 flex items-center justify-center p-3 sm:p-6"
           onClick={() => setShowRevealAllModal(false)}
@@ -1136,9 +1139,12 @@ export default function MyAlphas() {
           >
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 sm:px-6">
               <div>
-                <h3 className="text-base font-semibold text-foreground">Revealed Grades</h3>
+                <h3 className="text-base font-semibold text-foreground">{tr("Revealed Grades", "已揭示等级")}</h3>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {revealAllResults.length} newly revealed in this round
+                  {tr(
+                    `${revealAllResults.length} newly revealed in this round`,
+                    `本轮新揭示 ${revealAllResults.length} 个等级`
+                  )}
                 </p>
               </div>
               <Button
@@ -1147,7 +1153,7 @@ export default function MyAlphas() {
                 className="h-8 rounded-full border-border"
                 onClick={() => setShowRevealAllModal(false)}
               >
-                Close
+                {tr("Close", "关闭")}
               </Button>
             </div>
 
@@ -1169,7 +1175,7 @@ export default function MyAlphas() {
                 </div>
               ) : (
                 <div className="rounded-xl border border-border/60 bg-accent/20 px-4 py-8 text-center text-sm text-muted-foreground">
-                  No newly revealed grades.
+                  {tr("No newly revealed grades.", "本轮没有新揭示的等级。")}
                 </div>
               )}
             </div>

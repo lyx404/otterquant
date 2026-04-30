@@ -198,7 +198,7 @@ export default function Trade() {
         <div className="surface-card h-[105px] border border-border px-6 py-5">
           <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
             <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
-            {tr("Active Bots", "活跃机器人")}
+            {tr("Running Strategies", "进行中的策略")}
           </div>
           <p className="stat-value text-2xl font-bold text-foreground">{summary.activeBots}</p>
         </div>
@@ -243,7 +243,7 @@ export default function Trade() {
 
       <div className="surface-card overflow-hidden border border-border/70">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-5 py-3">
-          <div className="text-sm font-semibold text-foreground">{tr("Trading Bots", "交易机器人")}</div>
+          <div className="text-sm font-semibold text-foreground">{tr("Strategy List", "策略列表")}</div>
           <div className="flex items-center gap-2">
             <div className="inline-flex h-8 items-center rounded-lg border border-border bg-card p-1">
               <button

@@ -9,16 +9,24 @@ const SKILL_LATEST = "v2.4.1";
 
 const FIRST_RUN_PROMPTS = [
   {
-    category: "Time Series Factor",
-    prompt:
+    categoryEn: "Time Series Factor",
+    categoryZh: "时序因子",
+    promptEn:
       "Create a time-series factor on BTCUSDT using funding-rate mean reversion and a volatility filter. Return signal logic, normalization method, failure cases, and expected execution profile.",
-    desc: "Test single-symbol factor drafting flow.",
+    promptZh:
+      "为 BTCUSDT 创建一个时序因子，结合资金费率均值回归与波动率过滤器。请返回信号逻辑、归一化方法、失效场景和预期执行特征。",
+    descEn: "Test the single-symbol factor drafting workflow.",
+    descZh: "测试单标的时序因子草拟流程。",
   },
   {
-    category: "Cross Section Factor",
-    prompt:
+    categoryEn: "Cross-Sectional Factor",
+    categoryZh: "截面因子",
+    promptEn:
       "Create a cross-sectional factor for the top 50 liquid perpetuals. Combine momentum, funding pressure, and liquidity quality into a ranked signal with weighting logic and risk-aware constraints.",
-    desc: "Test ranked multi-symbol factor drafting flow.",
+    promptZh:
+      "为流动性最高的 50 个永续合约创建一个截面因子，将动量、资金费率压力与流动性质量合成为排序信号，并给出权重逻辑和风险约束。",
+    descEn: "Test the ranked multi-symbol factor drafting workflow.",
+    descZh: "测试多标的排序型截面因子草拟流程。",
   },
 ];
 
@@ -31,8 +39,27 @@ function generateApiKey() {
   return key;
 }
 
-function buildGuidePrompt(key: string) {
-  return `# Otter Factor Skill Configuration
+function buildGuidePrompt(key: string, uiLang: "en" | "zh") {
+  if (uiLang === "zh") {
+    return `# Quandora 因子技能配置
+
+## API Key
+\`${key}\`
+
+## Skill 版本
+${SKILL_LATEST}
+
+## 配置说明
+将这段提示词粘贴到你的 AI Agent（ChatGPT / Claude / DeepSeek）中，用于连接 Quandora 因子生成流程。
+
+Agent 可以：
+- 草拟并优化因子定义
+- 组织因子逻辑与归一化方法
+- 生成可用于回测的因子规格
+- 将因子提交到“我的因子”或官方库工作流`;
+  }
+
+  return `# Quandora Factor Skill Configuration
 
 ## API Key
 \`${key}\`
@@ -41,7 +68,7 @@ function buildGuidePrompt(key: string) {
 ${SKILL_LATEST}
 
 ## Setup Instructions
-Paste this prompt into your AI agent (ChatGPT / Claude / DeepSeek) to connect factor generation with Otter.
+Paste this prompt into your AI agent (ChatGPT / Claude / DeepSeek) to connect factor generation with Quandora.
 
 The agent can:
 - Draft and refine factor definitions
@@ -54,25 +81,30 @@ export default function OwnAgentPanel() {
   const { uiLang } = useAppLanguage();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [apiKeys, setApiKeys] = useState([
-    { id: "1", name: "My Factor Bot", apiKey: "ot_sk_7x9kM2nP4qR8sT6uW3yA1bC5dE0fG2h", skillVersion: "v2.4.1", updatedAt: "2026-03-28" },
-    { id: "2", name: "Factor Research Agent", apiKey: "ot_sk_hJ2kL4mN6pQ8rS0tU2vW4xY6zA8bC0dE", skillVersion: "v2.3.0", updatedAt: "2026-03-15" },
+    { id: "1", nameEn: "My Factor Bot", nameZh: "我的因子机器人", apiKey: "ot_sk_7x9kM2nP4qR8sT6uW3yA1bC5dE0fG2h", skillVersion: "v2.4.1", updatedAt: "2026-03-28" },
+    { id: "2", nameEn: "Factor Research Agent", nameZh: "因子研究 Agent", apiKey: "ot_sk_hJ2kL4mN6pQ8rS0tU2vW4xY6zA8bC0dE", skillVersion: "v2.3.0", updatedAt: "2026-03-15" },
   ]);
   const [visibleKeys, setVisibleKeys] = useState<Set<string>>(new Set());
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [ownStep, setOwnStep] = useState<OwnStep>("api");
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const getPromptText = (item: (typeof FIRST_RUN_PROMPTS)[number]) => tr(item.promptEn, item.promptZh);
+  const getPromptCategory = (item: (typeof FIRST_RUN_PROMPTS)[number]) => tr(item.categoryEn, item.categoryZh);
+  const getAgentName = (item: (typeof apiKeys)[number]) => tr(item.nameEn, item.nameZh);
 
   const handleCreateApiKey = () => {
+    const index = apiKeys.length + 1;
     const newKey = {
       id: String(Date.now()),
-      name: `Factor Agent ${apiKeys.length + 1}`,
+      nameEn: `Factor Agent ${index}`,
+      nameZh: `因子 Agent ${index}`,
       apiKey: generateApiKey(),
       skillVersion: SKILL_LATEST,
       updatedAt: new Date().toISOString().slice(0, 10),
     };
     setApiKeys((prev) => [...prev, newKey]);
-    toast.success(tr("New API key created", "已创建新的 API key"));
+    toast.success(tr("New API Key created", "已创建新的 API Key"));
   };
 
   const toggleKeyVisibility = (id: string) => {
@@ -87,14 +119,14 @@ export default function OwnAgentPanel() {
   const copyApiKey = (key: string, id: string) => {
     navigator.clipboard.writeText(key);
     setCopiedKey(id);
-    toast.success(tr("API key copied", "API key 已复制"));
+    toast.success(tr("API Key copied", "API Key 已复制"));
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
   const copyPrompt = (apiKey: string, id: string) => {
-    navigator.clipboard.writeText(buildGuidePrompt(apiKey));
+    navigator.clipboard.writeText(buildGuidePrompt(apiKey, uiLang));
     setCopiedPrompt(id);
-    toast.success(tr("Prompt copied", "提示词已复制"));
+    toast.success(tr("Setup prompt copied", "配置提示词已复制"));
     setTimeout(() => setCopiedPrompt(null), 2000);
   };
 
@@ -164,7 +196,7 @@ export default function OwnAgentPanel() {
                     className="rounded-2xl border border-border bg-accent/50 p-4 transition-colors duration-200 hover:border-primary/20"
                   >
                     <div className="mb-3 flex items-center justify-between">
-                      <span className="truncate text-sm font-semibold text-foreground">{item.name}</span>
+                      <span className="truncate text-sm font-semibold text-foreground">{getAgentName(item)}</span>
                       <button
                         onClick={() => copyPrompt(item.apiKey, item.id)}
                         className={`flex h-7 items-center gap-1 rounded-full border px-2.5 text-xs transition-all duration-200 ease-in-out ${
@@ -186,14 +218,14 @@ export default function OwnAgentPanel() {
                         </code>
                         <button
                           onClick={() => toggleKeyVisibility(item.id)}
-                          aria-label={visibleKeys.has(item.id) ? `Hide API key for ${item.name}` : `Show API key for ${item.name}`}
+                          aria-label={visibleKeys.has(item.id) ? tr(`Hide API Key for ${getAgentName(item)}`, `隐藏 ${getAgentName(item)} 的 API Key`) : tr(`Show API Key for ${getAgentName(item)}`, `显示 ${getAgentName(item)} 的 API Key`)}
                           className="shrink-0 p-0.5 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           {visibleKeys.has(item.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                         </button>
                         <button
                           onClick={() => copyApiKey(item.apiKey, item.id)}
-                          aria-label={`Copy API key for ${item.name}`}
+                          aria-label={tr(`Copy API Key for ${getAgentName(item)}`, `复制 ${getAgentName(item)} 的 API Key`)}
                           className="shrink-0 p-0.5 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           {copiedKey === item.id ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
@@ -225,36 +257,40 @@ export default function OwnAgentPanel() {
             <div>
                   <h2 className="mb-1 text-base font-semibold text-foreground">{tr("First Run", "首次运行")}</h2>
                   <p className="text-xs text-muted-foreground">
-                    {tr("Try these example prompts in your AI coding agent to test the Otter factor skill.", "在你的 AI 编码 Agent 中试用以下示例提示词，测试 Otter 因子技能。")}
+                    {tr("Try these example prompts in your AI coding agent to test the Quandora factor skill.", "在你的 AI 编码 Agent 中试用以下示例提示词，测试 Quandora 因子技能。")}
                   </p>
             </div>
 
             <div className="space-y-4">
-              {FIRST_RUN_PROMPTS.map((item) => (
-                <div key={item.category} className="rounded-xl border border-border bg-accent p-5 transition-all duration-200 ease-in-out hover:border-primary/30">
+              {FIRST_RUN_PROMPTS.map((item) => {
+                const category = getPromptCategory(item);
+                const promptText = getPromptText(item);
+                return (
+                <div key={item.categoryEn} className="rounded-xl border border-border bg-accent p-5 transition-all duration-200 ease-in-out hover:border-primary/30">
                   <div className="mb-3 flex items-center gap-2">
                     <Rocket className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-primary">{category}</span>
                   </div>
                   <div className="relative mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700/50 dark:bg-slate-950">
                     <pre className="overflow-x-auto whitespace-pre-wrap p-4 pr-12 font-mono text-xs leading-relaxed text-slate-800 dark:text-slate-100">
-                      {item.prompt}
+                      {promptText}
                     </pre>
                     <button
-                      onClick={() => copyCode(item.prompt, item.category)}
-                      aria-label={`Copy ${item.category} example prompt`}
+                      onClick={() => copyCode(promptText, item.categoryEn)}
+                      aria-label={tr(`Copy ${item.categoryEn} example prompt`, `复制${item.categoryZh}示例提示词`)}
                       className={`absolute top-2.5 right-2.5 rounded-lg border p-1.5 transition-all duration-200 ease-in-out ${
-                        copiedCode === item.category
+                        copiedCode === item.categoryEn
                           ? "border-emerald-500/30 text-emerald-500 bg-slate-200 dark:bg-slate-800"
                           : "border-slate-300 dark:border-slate-700 text-slate-500 bg-slate-200 dark:bg-slate-800 hover:border-primary hover:text-primary"
                       }`}
                     >
-                      {copiedCode === item.category ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedCode === item.categoryEn ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                     </button>
                   </div>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  <p className="text-xs text-muted-foreground">{tr(item.descEn, item.descZh)}</p>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

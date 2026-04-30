@@ -56,7 +56,7 @@ function generateApiKey(): string {
 const SKILL_LATEST = "v2.4.1";
 
 function buildPrompt(apiKey: string, skillVersion: string): string {
-  return `# Otter Trading Skill Configuration
+  return `# Quandora Trading Skill Configuration
 
 ## API Key
 \`${apiKey}\`
@@ -65,16 +65,16 @@ function buildPrompt(apiKey: string, skillVersion: string): string {
 ${skillVersion}
 
 ## Setup Instructions
-Paste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.
+Paste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Quandora Trading capabilities.
 
 Your agent will be able to:
 - Mine and backtest alpha factors automatically
 - Access real-time market data (CEX & DEX)
-- Submit strategies to the Otter Arena
+- Submit strategies to the Quandora Arena
 - Monitor portfolio performance
 
 ## Connection Endpoint
-https://api.otter.trade/v1/agent
+https://api.quandora.trade/v1/agent
 
 ## Authentication
 Include the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
@@ -1498,7 +1498,7 @@ export default function Account() {
             {/* Step 2: Show Prompt */}
             {createStep === 2 && (
               <div className="px-6 pb-6 space-y-4">
-                <p className="text-xs text-muted-foreground">{tr("Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Otter Trading.", "复制下方提示词并粘贴到你的 AI Agent（ChatGPT / Claude / DeepSeek）即可开始使用 Otter Trading。")}</p>
+                <p className="text-xs text-muted-foreground">{tr("Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Quandora Trading.", "复制下方提示词并粘贴到你的 AI Agent（ChatGPT / Claude / DeepSeek）即可开始使用 Quandora Trading。")}</p>
 
                 {/* Prompt preview */}
                 <div>

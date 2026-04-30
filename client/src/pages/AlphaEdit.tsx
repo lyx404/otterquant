@@ -1126,7 +1126,7 @@ export default function AlphaEdit() {
                 </>
               ) : (
                 <div className="text-xs text-muted-foreground">
-                  {tr("Composer collapsed. Current setup:", "面板已折叠。当前配置：")} {strategyType === "time-series" ? tr("Time-Series", "时序因子") : tr("Cross-Sectional", "截面因子")}, {selectedModels.length} {tr(`model${selectedModels.length > 1 ? "s" : ""}`, "个模型")}, {resultCount} {tr(`generation${resultCount > 1 ? "s" : ""} per model`, "个生成/模型")}.
+                  {tr("Current setup:", "当前配置：")} {strategyType === "time-series" ? tr("Time-Series", "时序因子") : tr("Cross-Sectional", "截面因子")}, {selectedModels.length} {tr(`model${selectedModels.length > 1 ? "s" : ""}`, "个模型")}, {resultCount} {tr(`generation${resultCount > 1 ? "s" : ""} per model`, "个生成/模型")}.
                 </div>
               )}
 

@@ -7,7 +7,7 @@
  * Animation: 200ms ease-in-out | Bouncy: 300ms cubic-bezier(0.34,1.56,0.64,1)
  *
  * Auth-aware: shows Login button when not authenticated, user pill when authenticated
- * Logo "Otter" links to /landing
+ * Logo "Quandora" links to /landing
  */
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -176,9 +176,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* Logo — links to landing page */}
             <Link href="/landing">
               <div className="flex items-center gap-2.5 shrink-0">
-                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Otter" className="w-6 h-6 rounded-full object-cover" />
+                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Quandora" className="w-6 h-6 rounded-full object-cover" />
                 <span className="font-semibold text-base tracking-tight text-foreground">
-                  Otter
+                  Quandora
                 </span>
               </div>
             </Link>

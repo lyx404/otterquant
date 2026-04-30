@@ -7,6 +7,7 @@ import { useState, useMemo, useRef, useEffect, useId } from "react";
 import { Link } from "wouter";
 import gsap from "gsap";
 import {
+  ArrowUpDown,
   Search,
   Star,
   Users,
@@ -17,12 +18,25 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { factors, type Factor, generatePnLData } from "@/lib/mockData";
 import { toast } from "sonner";
 import { useAlphaViewMode, type AlphaViewMode } from "@/contexts/AlphaViewModeContext";
 
 type CategoryFilter = "all" | "official" | "graduated";
+type FactorSortKey = "isSharpe" | "osSharpe" | "fitness" | "returns" | "turnover" | "drawdown";
+type SortDir = "asc" | "desc" | null;
+
+function getDefaultFactorSortDir(key: FactorSortKey): Exclude<SortDir, null> {
+  return key === "turnover" || key === "drawdown" ? "asc" : "desc";
+}
+
+function parseMetricValue(value: string | number) {
+  if (typeof value === "number") return value;
+  const parsed = Number(value.replace(/[%\s,]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
 
 function buildSparklinePath(values: number[], width: number, height: number, padding = 6) {
   if (values.length < 2) return "";
@@ -240,6 +254,8 @@ export default function OfficialLibrary() {
   const { uiLang } = useAppLanguage();
   const { alphaViewMode } = useAlphaViewMode();
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [sortKey, setSortKey] = useState<FactorSortKey | null>("isSharpe");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-001", "AF-004"]));
   const [showFlywheelInfo, setShowFlywheelInfo] = useState(false);
@@ -252,7 +268,26 @@ export default function OfficialLibrary() {
   }, []);
 
   const filtered = useMemo(() => {
-    return libraryFactors.filter((f) => {
+    const sortValue = (factor: Factor) => {
+      switch (sortKey) {
+        case "isSharpe":
+          return factor.sharpe;
+        case "osSharpe":
+          return factor.osSharpe;
+        case "fitness":
+          return factor.fitness;
+        case "returns":
+          return parseMetricValue(factor.returns);
+        case "turnover":
+          return parseMetricValue(factor.turnover);
+        case "drawdown":
+          return parseMetricValue(factor.drawdown);
+        default:
+          return 0;
+      }
+    };
+
+    const filteredFactors = libraryFactors.filter((f) => {
       if (categoryFilter !== "all" && f.category !== categoryFilter) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -264,7 +299,12 @@ export default function OfficialLibrary() {
       }
       return true;
     });
-  }, [libraryFactors, categoryFilter, searchQuery]);
+
+    if (!sortKey || !sortDir) return filteredFactors;
+
+    const direction = sortDir === "asc" ? 1 : -1;
+    return filteredFactors.sort((a, b) => (sortValue(a) - sortValue(b)) * direction);
+  }, [libraryFactors, categoryFilter, searchQuery, sortKey, sortDir]);
 
   // Entrance animation
   useEffect(() => {
@@ -282,13 +322,26 @@ export default function OfficialLibrary() {
     { key: "official", label: tr("Official", "官方") },
     { key: "graduated", label: tr("Graduated", "三方") },
   ];
+  const sortOptions: { key: FactorSortKey; label: string }[] = [
+    { key: "isSharpe", label: tr("IS Sharpe", "IS夏普") },
+    { key: "osSharpe", label: tr("OS Sharpe", "OS 夏普") },
+    { key: "fitness", label: tr("Fitness", "适应度") },
+    { key: "returns", label: tr("Returns", "收益率") },
+    { key: "turnover", label: tr("Turnover", "换手率") },
+    { key: "drawdown", label: tr("Drawdown", "回撤") },
+  ];
+  const sortDirectionLabel = (direction: SortDir) => {
+    if (direction === "asc") return tr("Ascending", "升序");
+    if (direction === "desc") return tr("Descending", "降序");
+    return tr("Default", "默认");
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <h1 className="text-4xl font-bold text-foreground tracking-tight">{tr("Official Library", "官方库")}</h1>
+          <h1 className="text-4xl font-bold text-foreground tracking-tight">{tr("Official Factor Library", "官方因子库")}</h1>
           <button
             onClick={() => setShowFlywheelInfo(true)}
             className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-200"
@@ -334,7 +387,7 @@ export default function OfficialLibrary() {
       )}
 
       {/* Search + Category Tabs */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="relative flex-1 min-w-[180px] max-w-[420px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
           <Input
@@ -345,20 +398,80 @@ export default function OfficialLibrary() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setCategoryFilter(tab.key)}
-              className={`flex h-8 items-center rounded-full border px-3 text-xs transition-all duration-200 ease-in-out ${
-                categoryFilter === tab.key
-                  ? "bg-primary/10 border-primary/20 text-primary"
-                  : "bg-card border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex items-center gap-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setCategoryFilter(tab.key)}
+                className={`flex h-8 items-center rounded-full border px-3 text-xs transition-all duration-200 ease-in-out ${
+                  categoryFilter === tab.key
+                    ? "bg-primary/10 border-primary/20 text-primary"
+                    : "bg-card border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
+                <ArrowUpDown className="w-3.5 h-3.5" />
+                {tr("Sort", "排序")}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 rounded-2xl" align="end">
+              <div className="space-y-2">
+                <div className="max-h-72 space-y-1 overflow-y-auto pr-1">
+                  {sortOptions.map((option) => {
+                    const active = sortKey === option.key;
+                    return (
+                      <button
+                        key={option.key}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs transition-colors ${
+                          active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-accent"
+                        }`}
+                        onClick={() => {
+                          if (active) {
+                            setSortDir(sortDir === "asc" ? "desc" : "asc");
+                          } else {
+                            setSortKey(option.key);
+                            setSortDir(getDefaultFactorSortDir(option.key));
+                          }
+                        }}
+                      >
+                        <span>{option.label}</span>
+                        <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                          {active ? sortDirectionLabel(sortDir) : tr("Default", "默认")}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {sortKey && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-colors"
+                      onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
+                    >
+                      {tr("Toggle direction", "切换方向")}
+                    </button>
+                    <button
+                      className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition-colors"
+                      onClick={() => {
+                        setSortKey(null);
+                        setSortDir(null);
+                      }}
+                    >
+                      {tr("Clear", "清除")}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 

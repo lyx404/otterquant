@@ -257,7 +257,7 @@ export default function Leaderboard() {
   );
 
   /* ── Current user's alphas in the selected round ── */
-  const CURRENT_USER_ID = "U-004"; // Otter User = AlphaSeeker_88
+  const CURRENT_USER_ID = "U-004"; // Quandora User = AlphaSeeker_88
   const userAlphasInRound = useMemo(
     () => factorData.filter((e) => e.userId === CURRENT_USER_ID),
     [factorData]
@@ -446,8 +446,8 @@ export default function Leaderboard() {
                 </div>
                 <span className="text-xs text-muted-foreground">
                   {uiLang === "zh"
-                    ? `Otter User — 已提交 ${userAlphasInRound.length} 个信号`
-                    : `Otter User — ${userAlphasInRound.length} signal${userAlphasInRound.length !== 1 ? "s" : ""} entered`}
+                    ? `Quandora User — 已提交 ${userAlphasInRound.length} 个信号`
+                    : `Quandora User — ${userAlphasInRound.length} signal${userAlphasInRound.length !== 1 ? "s" : ""} entered`}
                 </span>
               </div>
             </div>

@@ -62,7 +62,7 @@ const DASHBOARD_API_KEYS: DashboardApiKey[] = [
 ];
 
 function buildPrompt(apiKey: string, skillVersion: string): string {
-  return `# Otter Trading Skill Configuration\n\n## API Key\n\`${apiKey}\`\n\n## Skill Version\n${skillVersion}\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Otter Trading capabilities.`;
+  return `# Quandora Trading Skill Configuration\n\n## API Key\n\`${apiKey}\`\n\n## Skill Version\n${skillVersion}\n\n## Setup Instructions\nPaste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Quandora Trading capabilities.`;
 }
 
 /* ── Dashboard Copy Prompt button ── */
@@ -386,9 +386,9 @@ export default function Dashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FlaskConical className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-sm font-medium text-muted-foreground">{tr("Factors", "因子")}</span>
+            <span className="text-sm font-medium text-muted-foreground">{tr("My Factors", "我的因子")}</span>
           </div>
-          <Link href="/my-alphas">
+          <Link href="/alphas">
             <Button
               variant="outline"
               size="sm"
@@ -546,7 +546,7 @@ export default function Dashboard() {
       </div>
       <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
         <div className="min-w-0">
-          <span className="label-upper truncate block mb-2">{tr("ACTIVE BOTS", "活跃机器人")}</span>
+          <span className="label-upper truncate block mb-2">{tr("RUNNING STRATEGIES", "进行中的策略")}</span>
           <div className="text-2xl stat-value font-bold truncate text-foreground">{tradeSummary.active}</div>
         </div>
         <div className="min-w-0">

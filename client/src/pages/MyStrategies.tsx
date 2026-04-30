@@ -87,10 +87,10 @@ function toStrategyViewRow(index: number): StrategyViewRow {
 
   const statusClass =
     executionMode === "live"
-      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
+      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
       : executionMode === "paper"
-        ? "border-indigo-500/20 bg-indigo-500/10 text-indigo-400"
-        : "border-sky-500/20 bg-sky-500/10 text-sky-400";
+        ? "border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
+        : "border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-300";
 
   return {
     id: `STR-${463 + index}`,
@@ -124,9 +124,9 @@ function MetricBox({
       <p
         className={`mt-1 text-sm font-semibold font-mono tabular-nums ${
           tone === "positive"
-            ? "text-[#00d492]"
+            ? "text-emerald-600 dark:text-[#00d492]"
             : tone === "negative"
-              ? "text-[#ff637e]"
+              ? "text-rose-500 dark:text-[#ff637e]"
               : "text-foreground"
         }`}
       >
@@ -201,8 +201,8 @@ function StrategyCard({
             type="button"
             className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${
               starred
-                ? "border-[#ffb900]/60 bg-[#ffb900]/30 text-[#ffb900]"
-                : "border-border/60 bg-background/30 text-[#ffb900] hover:border-[#ffb900]/50"
+                ? "border-amber-400/70 bg-amber-400/20 text-amber-600 dark:border-[#ffb900]/60 dark:bg-[#ffb900]/30 dark:text-[#ffb900]"
+                : "border-border/70 bg-card text-amber-500 hover:border-amber-400/60 dark:border-border/60 dark:bg-background/30 dark:text-[#ffb900]"
             }`}
             onClick={onToggleStar}
             aria-label={tr("Toggle favorite", "切换收藏")}
@@ -211,7 +211,7 @@ function StrategyCard({
           </button>
 
           <Link href={`/strategies/${row.id}`}>
-            <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-[#020617] hover:bg-primary/90">
+            <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-primary-foreground hover:bg-primary/90">
               {tr("View", "查看")}
               <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
             </Button>
@@ -344,17 +344,17 @@ export default function MyStrategies() {
       key: "paper" as const,
       label: "Paper Trading",
       value: String(paperCount),
-      icon: <Circle className="h-3.5 w-3.5 text-indigo-400" />,
-      tone: "text-indigo-400",
-      labelClass: "text-indigo-400",
+      icon: <Circle className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />,
+      tone: "text-indigo-600 dark:text-indigo-400",
+      labelClass: "text-indigo-600 dark:text-indigo-400",
     },
     {
       key: "live" as const,
       label: "Live Trading",
       value: String(liveCount),
-      icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />,
-      tone: "text-emerald-400",
-      labelClass: "text-emerald-400",
+      icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />,
+      tone: "text-emerald-600 dark:text-emerald-400",
+      labelClass: "text-emerald-600 dark:text-emerald-400",
     },
   ];
 
@@ -363,7 +363,7 @@ export default function MyStrategies() {
       <div className="flex items-start justify-between gap-4">
           <h1 className="text-foreground">{tr("My Strategy", "我的策略")}</h1>
         <Link href="/strategies/new?creationMode=platform&scale=single">
-          <Button className="h-10 rounded-full bg-primary px-4 text-sm text-primary-foreground hover:bg-primary/90">
+            <Button className="h-10 rounded-full bg-primary px-4 text-sm text-primary-foreground shadow-sm hover:bg-primary/90">
             <Plus className="mr-1 h-3.5 w-3.5" />
             {tr("New Strategy", "新建策略")}
           </Button>
@@ -428,7 +428,7 @@ export default function MyStrategies() {
             </button>
 
             {showSortMenu ? (
-              <div className="surface-elevated absolute right-0 z-40 mt-2 w-48 p-2">
+              <div className="absolute right-0 z-40 mt-2 w-48 rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-dropdown)]">
                 {(["updated", "name", "roi", "winRate", "sharpe"] as SortKey[]).map((key) => (
                   <button
                     key={key}
@@ -456,7 +456,7 @@ export default function MyStrategies() {
                               ? tr("Win Rate", "胜率")
                               : tr("Sharpe", "夏普比率")}
                     </span>
-                    {sortKey === key ? <span>{sortDesc ? "DESC" : "ASC"}</span> : null}
+                    {sortKey === key ? <span>{sortDesc ? tr("Descending", "降序") : tr("Ascending", "升序")}</span> : null}
                   </button>
                 ))}
               </div>
@@ -470,11 +470,11 @@ export default function MyStrategies() {
               onClick={() => setShowColumnsMenu((prev) => !prev)}
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
-                {tr("Columns", "列")}
+                {tr("Display Items", "显示项")}
             </button>
 
             {showColumnsMenu ? (
-              <div className="surface-elevated absolute right-0 z-40 mt-2 w-44 p-2">
+              <div className="absolute right-0 z-40 mt-2 w-44 rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-dropdown)]">
                 {([
                   { key: "roi", label: "ROI" },
                   { key: "winRate", label: tr("Win Rate", "胜率") },
@@ -514,7 +514,7 @@ export default function MyStrategies() {
             <button
               type="button"
               className={`inline-flex h-8 w-8 items-center justify-center ${
-                viewMode === "grid" ? "bg-primary text-[#020617]" : "text-muted-foreground hover:text-foreground"
+                viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
               onClick={() => setViewMode("grid")}
               aria-label="Grid view"
@@ -603,13 +603,13 @@ export default function MyStrategies() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-xs text-muted-foreground">{row.updatedAt}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-[#00d492]">{row.roi}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-[#00d492]">{row.winRate}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-[#00d492]">{row.sharpe}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-[#ff637e]">{row.maxDrawdown}</td>
+                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.roi}</td>
+                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.winRate}</td>
+                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.sharpe}</td>
+                    <td className="px-4 py-4 text-right font-mono text-sm text-rose-500 dark:text-[#ff637e]">{row.maxDrawdown}</td>
                     <td className="px-5 py-4 text-right">
                       <Link href={`/strategies/${row.id}`}>
-                        <Button className="h-8 rounded-full bg-primary px-4 text-xs text-[#020617] hover:bg-primary/90">
+                        <Button className="h-8 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90">
                           {tr("View", "查看")}
                           <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
                         </Button>

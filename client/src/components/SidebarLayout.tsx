@@ -58,6 +58,7 @@ const navItems: NavItem[] = [
     icon: FlaskConical,
     children: [
       { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FileText },
+      { path: "/leaderboard", labelEn: "Factor Arena", labelZh: "因子竞技场", icon: Trophy },
       { path: "/alphas/official", labelEn: "Official Library", labelZh: "官方库", icon: Library },
     ],
   },
@@ -72,7 +73,6 @@ const navItems: NavItem[] = [
     ],
   },
   { path: "/trade", labelEn: "Trade", labelZh: "交易", icon: CandlestickChart },
-  { path: "/leaderboard", labelEn: "Factor Arena", labelZh: "因子竞技场", icon: Trophy },
   { path: "/subscription", labelEn: "Wallet & Credit", labelZh: "钱包&额度", icon: CreditCard },
   { path: "/account", labelEn: "Settings", labelZh: "设置", icon: Settings2 },
 ];
@@ -119,7 +119,12 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     return location.startsWith(path);
   };
 
-  const isSectionActive = (sectionPath: string) => location === sectionPath || location.startsWith(`${sectionPath}/`);
+  const isSectionActive = (sectionPath: string) => {
+    if (location === sectionPath || location.startsWith(`${sectionPath}/`)) return true;
+
+    const section = navItems.find((item) => item.path === sectionPath);
+    return Boolean(section?.children?.some((child) => isActive(child.path)));
+  };
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -210,7 +215,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <div className="flex items-center justify-center shrink-0">
                 <img
                   src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
-                  alt="Otter"
+                  alt="Quandora"
                   className="w-7 h-7 rounded-full object-cover shrink-0"
                 />
               </div>
@@ -222,11 +227,11 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <div className="flex items-center gap-2.5 shrink-0">
                 <img
                   src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
-                  alt="Otter"
+                  alt="Quandora"
                   className="w-7 h-7 rounded-full object-cover shrink-0"
                 />
                 <span className="font-semibold text-base tracking-tight text-foreground">
-                  Otter
+                  Quandora
                 </span>
               </div>
             </Link>
@@ -490,10 +495,10 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2">
               <img
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
-                alt="Otter"
+                alt="Quandora"
                 className="w-6 h-6 rounded-full object-cover"
               />
-              <span className="font-semibold text-sm text-foreground">Otter</span>
+              <span className="font-semibold text-sm text-foreground">Quandora</span>
             </div>
           </Link>
         </header>
