@@ -486,9 +486,9 @@ export const notifications: Notification[] = [
   { id: 6, type: "alpha_test_result", title: "Test Failed", message: "Uniswap LP Flow failed OS testing — high drawdown", time: "8 hours ago", read: true, factorId: "AF-006", factorName: "Uniswap LP Flow", testResult: "failed" },
   { id: 7, type: "epoch_reward", title: "Reward Distributed", message: "Round 1 rewards distributed — you earned 310 USDT", time: "1 day ago", read: true, epochId: "Round 1", rewardAmount: "310 USDT" },
   { id: 8, type: "alpha_test_result", title: "Test Passed", message: "OI Delta Momentum passed OS testing with Sharpe 1.55", time: "1 day ago", read: true, factorId: "AF-009", factorName: "OI Delta Momentum", testResult: "passed" },
-  { id: 9, type: "skill_update", title: "Skill Updated: Momentum Scanner", message: "Momentum Scanner skill has been updated to v2.3 — improved signal accuracy and reduced latency.", time: "3 hours ago", read: false },
-  { id: 10, type: "skill_update", title: "New Skill Available: Whale Tracker", message: "A new skill 'Whale Tracker' is now available. Track large wallet movements across major DEXs.", time: "6 hours ago", read: false },
-  { id: 11, type: "skill_update", title: "Skill Deprecated: Legacy RSI", message: "Legacy RSI skill will be deprecated on Apr 30. Please migrate to RSI Pro for enhanced features.", time: "1 day ago", read: true },
+  { id: 9, type: "skill_update", title: "Skill Updated: Momentum Scanner", message: "Momentum Scanner has been updated to v2.3, with improved signal accuracy and lower latency.", time: "3 hours ago", read: false },
+  { id: 10, type: "skill_update", title: "New Skill Available: Whale Tracker", message: "Whale Tracker is now available. Track large wallet flows across major DEXs.", time: "6 hours ago", read: false },
+  { id: 11, type: "skill_update", title: "Skill Deprecated: Legacy RSI", message: "Legacy RSI will be deprecated on Apr 30. Please migrate to RSI Pro for enhanced signal features.", time: "1 day ago", read: true },
 ];
 
 // --- Correlation Data ---

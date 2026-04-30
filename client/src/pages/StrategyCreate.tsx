@@ -304,6 +304,7 @@ const STRATEGY_TEMPLATE_PREFILLS: Partial<Record<string, StrategyTemplatePrefill
 
 const CREDIT_BALANCE_STORAGE_KEY = "otterquant:credit-balance";
 const DEFAULT_CREDIT_BALANCE = 3;
+const CREDIT_DISPLAY_RATE = 1000;
 
 function readCreditBalance() {
   if (typeof window === "undefined") return DEFAULT_CREDIT_BALANCE;
@@ -315,6 +316,29 @@ function readCreditBalance() {
 function writeCreditBalance(value: number) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(CREDIT_BALANCE_STORAGE_KEY, value.toFixed(2));
+}
+
+function formatCreditUnits(value: number) {
+  return new Intl.NumberFormat("en-US").format(Math.round((Number(value) || 0) * CREDIT_DISPLAY_RATE));
+}
+
+function CreditIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 64" className={className} fill="none" aria-hidden="true">
+      <path
+        d="M28 12C30.6 23.4 35.6 28.4 47 31C35.6 33.6 30.6 38.6 28 50C25.4 38.6 20.4 33.6 9 31C20.4 28.4 25.4 23.4 28 12Z"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M50 7C51.1 11.6 53.4 13.9 58 15C53.4 16.1 51.1 18.4 50 23C48.9 18.4 46.6 16.1 42 15C46.6 13.9 48.9 11.6 50 7Z"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
 export default function StrategyCreate() {
@@ -1361,13 +1385,13 @@ export default function StrategyCreate() {
           {(platformInputMethod === "ai-chat" || strategyType) && (
             <div className="flex items-center justify-between pt-2">
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/12 px-2 py-1 font-semibold text-emerald-300">
-                <Zap className="h-3.5 w-3.5" />
-                {tr("Credit", "额度")} {estimatedStrategyCredit.toFixed(2)}
+              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/12 px-1.5 py-0.5 text-xs font-semibold text-emerald-300">
+                <CreditIcon className="h-3.5 w-3.5 shrink-0" />
+                {tr(`Estimated spend ${formatCreditUnits(estimatedStrategyCredit)}`, `预计消耗 ${formatCreditUnits(estimatedStrategyCredit)}`)}
               </span>
-              <span className={availableCredit < estimatedStrategyCredit ? "text-rose-400" : "text-muted-foreground"}>
-                {tr("Balance", "余额")} {availableCredit.toFixed(2)}
-              </span>
+              {availableCredit < estimatedStrategyCredit ? (
+                <span className="text-xs font-medium text-rose-400">{tr("Insufficient credit", "额度不足")}</span>
+              ) : null}
             </div>
             <button
               onClick={handleSubmit}

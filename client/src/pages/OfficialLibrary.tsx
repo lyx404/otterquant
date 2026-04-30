@@ -3,7 +3,7 @@
  * Design: Card-based view with category filtering
  * Reuses FactorCard pattern from AlphaCardView
  */
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useId } from "react";
 import { Link } from "wouter";
 import gsap from "gsap";
 import {
@@ -18,11 +18,57 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
-import { factors, type Factor } from "@/lib/mockData";
+import { factors, type Factor, generatePnLData } from "@/lib/mockData";
 import { toast } from "sonner";
 import { useAlphaViewMode, type AlphaViewMode } from "@/contexts/AlphaViewModeContext";
 
 type CategoryFilter = "all" | "official" | "graduated";
+
+function buildSparklinePath(values: number[], width: number, height: number, padding = 6) {
+  if (values.length < 2) return "";
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const step = (width - padding * 2) / (values.length - 1);
+
+  return values
+    .map((value, index) => {
+      const x = padding + index * step;
+      const y = height - padding - ((value - min) / range) * (height - padding * 2);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+function PnlSparkline({ values, label }: { values: number[]; label: string }) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 420;
+  const height = 86;
+  const path = buildSparklinePath(values, width, height);
+  const areaPath = path ? `${path} L ${width - 6} ${height - 6} L 6 ${height - 6} Z` : "";
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2.5">
+      <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
+        <path d={areaPath} fill={`url(#${svgId}-official-pnl-fill)`} opacity="0.55" />
+        <path d={path} stroke={`url(#${svgId}-official-pnl-line)`} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        <defs>
+          <linearGradient id={`${svgId}-official-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#818CF8" />
+            <stop offset="72%" stopColor="#818CF8" />
+            <stop offset="100%" stopColor="#34D399" />
+          </linearGradient>
+          <linearGradient id={`${svgId}-official-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+}
 
 /* ── Factor Flywheel Banner ── */
 function FlywheelBanner() {
@@ -63,6 +109,13 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
   const isGraduated = factor.category === "graduated";
   const isBeginnerMode = viewMode === "beginner";
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const usedCount = new Intl.NumberFormat(uiLang === "zh" ? "zh-CN" : "en-US").format(factor.userCount ?? 0);
+  const pnlValues = useMemo(() => {
+    const pnlData = generatePnLData();
+    const combined = [...pnlData.train, ...pnlData.test].map((item) => item.value);
+    const sampleEvery = Math.max(1, Math.floor(combined.length / 36));
+    return combined.filter((_, index) => index % sampleEvery === 0).slice(-36);
+  }, []);
 
   const statusClass = isGraduated
     ? "border-purple-500/25 bg-purple-500/10 text-purple-400"
@@ -106,7 +159,7 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
 
   const MetricCell = ({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) => (
     <div className="rounded-xl border border-border/50 bg-background/30 px-3 py-2">
-      <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div className="mb-1 whitespace-nowrap text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
       <div className={`text-sm font-semibold font-mono tabular-nums ${colorClass || "text-foreground"}`}>
         {value}
       </div>
@@ -123,7 +176,11 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
                 {factor.name}
               </span>
             </Link>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                <Users className="h-3.5 w-3.5" />
+                {uiLang === "zh" ? `已使用${usedCount}次` : `Used ${usedCount} times`}
+              </span>
               <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusClass}`}>
                 {isGraduated ? tr("Graduated", "三方") : tr("Official", "官方")}
               </span>
@@ -141,13 +198,7 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
       </div>
 
       <div className="flex-1 space-y-3 px-4 py-3">
-        <div className="flex items-start gap-3 rounded-xl border border-border/50 bg-background/20 px-3 py-2.5">
-          <Users className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Adoption", "采用度")}</div>
-            <span className="text-xs font-mono text-muted-foreground">{tr("Used", "已使用")} {factor.userCount ?? 0} {tr("times", "次")}</span>
-          </div>
-        </div>
+        <PnlSparkline values={pnlValues} label={tr("PnL Curve", "PNL 折线图")} />
 
         <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-3">
           <MetricCell label={tr("IS Sharpe", "样本内夏普比率")} value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} />
@@ -173,7 +224,7 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
             <Star className={`h-[14px] w-[14px] ${isStarred ? "fill-current" : ""}`} />
           </button>
           <Link href={`/alphas/${factor.id}?source=official&tier=${factor.category === "graduated" ? "graduated" : "official"}`}>
-            <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-[#020617] hover:bg-primary/90">
+            <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-white hover:bg-primary/90 dark:text-[#020617]">
               {tr("View", "查看")}
               <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
             </Button>

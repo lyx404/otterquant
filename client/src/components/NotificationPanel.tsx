@@ -34,8 +34,8 @@ type AnnouncementItem = {
 const announcements = [
   {
     id: 101,
-    title: "Alpha Arena Season 3 Now Live",
-    message: "Submit your best alphas and compete for the $50K prize pool. New evaluation metrics and expanded asset coverage.",
+    title: "Factor Arena Season 3 Is Live",
+    message: "Submit your best factors and compete for the $50K prize pool. New evaluation metrics and broader asset coverage are now live.",
     time: "Apr 12",
     read: false,
   },
@@ -49,14 +49,14 @@ const announcements = [
   {
     id: 103,
     title: "New Feature: AI Factor Mining",
-    message: "Create alpha factors through natural language conversation with our built-in AI agent. Try it now in the Launch Guide.",
+    message: "Create factors through natural language conversations with the built-in AI agent. Try it now in the Launch Guide.",
     time: "Apr 8",
     read: true,
   },
   {
     id: 104,
     title: "Official Library Expanded",
-    message: "15 new graduated factors added to the Official Library. Browse proven trading signals and use them in your strategies.",
+    message: "15 new graduated factors have been added to the Official Library. Browse validated trading signals and use them in your strategies.",
     time: "Apr 5",
     read: true,
   },
@@ -93,22 +93,38 @@ export default function NotificationPanel() {
   );
   const translateAnnouncement = (item: AnnouncementItem) => {
     if (uiLang !== "zh") return item;
-    const map: Record<number, { title: string; message: string }> = {
+    const map: Record<number, { title: string; message: string; time?: string }> = {
+      9: {
+        title: "技能更新：Momentum Scanner",
+        message: "Momentum Scanner 已更新至 v2.3，信号准确率提升，延迟降低。",
+      },
+      10: {
+        title: "新技能上线：Whale Tracker",
+        message: "Whale Tracker 已上线，可追踪主流 DEX 的大额钱包资金流。",
+      },
+      11: {
+        title: "技能下线：Legacy RSI",
+        message: "Legacy RSI 将于 4 月 30 日下线。请迁移至 RSI Pro，以获得更强的信号能力。",
+      },
       101: {
-        title: "Alpha Arena 第 3 季现已开启",
-        message: "提交你最优秀的因子，角逐 5 万美元奖池。全新评估指标与更广泛的资产覆盖已上线。",
+        title: "因子竞技场第 3 赛季已开启",
+        message: "提交你最优秀的因子，角逐 5 万美元奖池。全新评估指标与更广的资产覆盖已上线。",
+        time: "4 月 12 日",
       },
       102: {
         title: "平台维护已完成",
         message: "所有系统已恢复在线，回测引擎性能提升 40%。",
+        time: "4 月 10 日",
       },
       103: {
         title: "新功能：AI 因子挖掘",
         message: "通过自然语言与内置 AI Agent 对话来创建因子。现在即可在启动指引中体验。",
+        time: "4 月 8 日",
       },
       104: {
         title: "官方库已扩容",
         message: "官方库新增 15 个毕业因子。浏览经过验证的交易信号，并将其用于你的策略。",
+        time: "4 月 5 日",
       },
     };
     const translated = map[item.id];
@@ -161,7 +177,8 @@ export default function NotificationPanel() {
       .replace(" hour ago", " 小时前")
       .replace(" hours ago", " 小时前")
       .replace(" day ago", " 天前")
-      .replace(" days ago", " 天前");
+      .replace(" days ago", " 天前")
+      .replace(/^Apr (\d+)$/, "4 月 $1 日");
   };
   const [readIds, setReadIds] = useState<Set<number>>(() => {
     const stored = localStorage.getItem("otter_read_notifications");
@@ -215,17 +232,6 @@ export default function NotificationPanel() {
       navigate(`/alphas?highlight=${n.factorId}`);
     } else if (n.type === "epoch_reward" && n.epochId) {
       navigate(`/leaderboard?epoch=${encodeURIComponent(n.epochId)}`);
-    }
-  };
-
-  const handleAnnouncementClick = (a: AnnouncementItem) => {
-    const newRead = new Set(readAnnouncementIds);
-    newRead.add(a.id);
-    setReadAnnouncementIds(newRead);
-    localStorage.setItem("otter_read_announcements", JSON.stringify(Array.from(newRead)));
-    if (a.source === "skill_update") {
-      setOpen(false);
-      navigate("/launch");
     }
   };
 
@@ -387,8 +393,7 @@ export default function NotificationPanel() {
                   return (
                     <div
                       key={a.id}
-                      onClick={() => handleAnnouncementClick(a)}
-                      className={`px-4 py-3.5 border-b border-border/30 last:border-0 cursor-pointer transition-colors duration-150 hover:bg-accent/60 ${
+                      className={`px-4 py-3.5 border-b border-border/30 last:border-0 ${
                         !isRead ? "bg-primary/[0.03]" : ""
                       }`}
                     >

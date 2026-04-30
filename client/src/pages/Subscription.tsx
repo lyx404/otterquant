@@ -180,10 +180,15 @@ const modalTheme = {
     faint: { light: "text-slate-400", dark: "text-slate-500" },
   },
   input: {
-    light: "border-slate-200 bg-white text-slate-950 placeholder:text-slate-300 focus:border-[#635bff] focus:ring-[#635bff]/10",
+    light: "border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 focus:border-[#635bff] focus:ring-[#635bff]/10",
     dark: "border-slate-700 bg-slate-950 text-slate-50 placeholder:text-slate-600 focus:border-[#8b7cff] focus:ring-[#8b7cff]/10",
   },
 };
+
+function getCurrentThemeMode(): ThemeMode {
+  if (typeof document === "undefined") return "dark";
+  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+}
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -615,8 +620,8 @@ function FundsModalShell({
   return (
     <AnimatePresence>
       {open ? (
-        <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/76 p-6 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <motion.div initial={{ opacity: 0, y: 22, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }} transition={{ type: "spring", damping: 24, stiffness: 280 }} className={cx("relative grid h-[92vh] w-full max-w-[1120px] overflow-hidden rounded-[32px] border shadow-[0_32px_100px_rgba(15,23,42,0.38)] lg:grid-cols-[1.06fr_0.94fr]", modalTheme.modal.shell[mode])}>
+        <motion.div className={cx("fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-xl", mode === "dark" ? "bg-[#020617]/76" : "bg-slate-900/30")} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div initial={{ opacity: 0, y: 22, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }} transition={{ type: "spring", damping: 24, stiffness: 280 }} className={cx("relative grid h-[92vh] w-full max-w-[1120px] overflow-hidden rounded-[32px] border lg:grid-cols-[1.06fr_0.94fr]", mode === "dark" ? "shadow-[0_32px_100px_rgba(15,23,42,0.38)]" : "shadow-[0_30px_90px_rgba(15,23,42,0.18)]", modalTheme.modal.shell[mode])}>
             <button onClick={onClose} type="button" className={cx("absolute right-5 top-5 z-20 rounded-full p-2 transition", modalTheme.text.faint[mode], mode === "dark" ? "hover:bg-slate-800 hover:text-slate-200" : "hover:bg-slate-100 hover:text-slate-700")} aria-label="Close">
               <ModalIcon name="x" className="h-5 w-5" />
             </button>
@@ -951,7 +956,7 @@ function WalletWithdrawModal({ open, onClose, mode = "dark" }: { open: boolean; 
       />
       <AnimatePresence>
         {confirmUnbindOpen ? (
-          <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-6 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className={cx("fixed inset-0 z-[70] flex items-center justify-center p-6 backdrop-blur-sm", mode === "dark" ? "bg-slate-950/50" : "bg-slate-900/25")} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12, scale: 0.98 }} className={cx("w-full max-w-[380px] rounded-3xl border p-6 shadow-[0_28px_80px_rgba(15,23,42,0.28)]", modalTheme.card[mode])}>
               <p className={cx("text-lg font-semibold", modalTheme.text.title[mode])}>确认解绑钱包？</p>
               <p className={cx("mt-2 text-sm leading-6", modalTheme.text.muted[mode])}>解绑后将清空当前网络和钱包地址，需要重新绑定后才能提现。</p>
@@ -971,12 +976,23 @@ function CreditsPage() {
   const { uiLang } = useAppLanguage();
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
   const [creditRechargeOpen, setCreditRechargeOpen] = useState(false);
+  const [fundsModalMode, setFundsModalMode] = useState<ThemeMode>(() => getCurrentThemeMode());
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const walletBalance = 74.19;
   const arenaPrizeTotal = 32;
   const pointBalance = 12840;
   const monthlyPointUsage = 2460;
   const hostedStrategyCount = 8;
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const syncThemeMode = () => setFundsModalMode(root.classList.contains("dark") ? "dark" : "light");
+    syncThemeMode();
+
+    const observer = new MutationObserver(syncThemeMode);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   const formatDateTime = (value: string) => {
     const date = new Date(value);
@@ -1161,10 +1177,12 @@ function CreditsPage() {
       <CreditsRechargeModal
         open={creditRechargeOpen}
         onClose={() => setCreditRechargeOpen(false)}
+        mode={fundsModalMode}
       />
       <WalletWithdrawModal
         open={walletWithdrawOpen}
         onClose={() => setWalletWithdrawOpen(false)}
+        mode={fundsModalMode}
       />
     </div>
   );

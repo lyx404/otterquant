@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "wouter";
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useId } from "react";
 import gsap from "gsap";
 import {
   ArrowUpDown,
@@ -59,6 +59,7 @@ import {
   getAlphaGrade,
   GRADE_CONFIG,
   type AlphaGrade,
+  generatePnLData,
 } from "@/lib/mockData";
 import ShinyTag from "@/components/ui/shiny-tag";
 import { StarButton } from "@/components/ui/star-button";
@@ -92,6 +93,7 @@ const dataColumns: ColumnDef[] = [
   { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
   { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
+  { key: "pnl", label: "PnL Curve", defaultVisible: true, sortable: false, width: "126px", align: "center" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "80px", align: "right" },
@@ -124,12 +126,57 @@ type MyAlphasPrefs = {
 };
 
 const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
-const MY_ALPHAS_PREFS_VERSION = 2;
+const MY_ALPHAS_PREFS_VERSION = 3;
 const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
+
+function buildSparklinePath(values: number[], width: number, height: number, padding = 4) {
+  if (values.length < 2) return "";
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const step = (width - padding * 2) / (values.length - 1);
+
+  return values
+    .map((value, index) => {
+      const x = padding + index * step;
+      const y = height - padding - ((value - min) / range) * (height - padding * 2);
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
+}
+
+function TablePnlSparkline({ values }: { values: number[] }) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 108;
+  const height = 42;
+  const path = buildSparklinePath(values, width, height);
+  const areaPath = path ? `${path} L ${width - 4} ${height - 4} L 4 ${height - 4} Z` : "";
+
+  return (
+    <div className="flex h-full min-h-[42px] w-[108px] items-center" aria-label="PNL折线图">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full overflow-visible" fill="none" aria-hidden="true">
+        <path d={areaPath} fill={`url(#${svgId}-table-pnl-fill)`} opacity="0.5" />
+        <path d={path} stroke={`url(#${svgId}-table-pnl-line)`} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+        <defs>
+          <linearGradient id={`${svgId}-table-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#818CF8" />
+            <stop offset="72%" stopColor="#818CF8" />
+            <stop offset="100%" stopColor="#34D399" />
+          </linearGradient>
+          <linearGradient id={`${svgId}-table-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+}
 
 function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
   if (mode === "beginner") {
-    return ["name", "grade", "epochStatus", "sharpe", "osSharpe", "fitness"];
+    return ["name", "grade", "epochStatus", "pnl", "sharpe", "osSharpe", "fitness"];
   }
   return [
     "name",
@@ -137,6 +184,7 @@ function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
     "grade",
     "epochStatus",
     "createdAt",
+    "pnl",
     "sharpe",
     "osSharpe",
     "fitness",
@@ -283,8 +331,9 @@ export default function MyAlphas() {
       grade: tr("Grade", "等级"),
       epochStatus: tr("Arena Round", "竞技场轮次"),
       createdAt: tr("Date Created", "创建日期"),
-      sharpe: tr("IS Sharpe", "样本内夏普比率"),
-      osSharpe: tr("OS Sharpe", "样本外夏普比率"),
+      pnl: tr("PnL Curve", "PNL曲线"),
+      sharpe: tr("IS Sharpe", "IS 夏普"),
+      osSharpe: tr("OS Sharpe", "OS 夏普"),
       fitness: tr("Fitness", "适应度"),
       returns: tr("Returns", "收益率"),
       turnover: tr("Turnover", "换手率"),
@@ -310,6 +359,12 @@ export default function MyAlphas() {
   const [showRevealAllModal, setShowRevealAllModal] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
+  const tablePnlValues = useMemo(() => {
+    const pnlData = generatePnLData();
+    const combined = [...pnlData.train, ...pnlData.test].map((item) => item.value);
+    const sampleEvery = Math.max(1, Math.floor(combined.length / 28));
+    return combined.filter((_, index) => index % sampleEvery === 0).slice(-28);
+  }, []);
 
 
 
@@ -558,6 +613,8 @@ export default function MyAlphas() {
         );
       case "createdAt":
         return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{row.createdAt}</span>;
+      case "pnl":
+        return <TablePnlSparkline values={tablePnlValues} />;
       case "sharpe":
         return <span className="font-mono text-xs tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
       case "osSharpe":
@@ -986,7 +1043,7 @@ export default function MyAlphas() {
                   className={`transition-all duration-200 ease-in-out group border-t border-border/40 hover:bg-accent/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
                 >
                   {visibleCols.map((col) => (
-                    <td key={col.key} className={`px-3 py-2.5 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
+                    <td key={col.key} className={`px-3 ${col.key === "pnl" ? "py-1.5" : "py-2.5"} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>
                       {renderCell(row, col.key)}
                     </td>
                   ))}

@@ -260,42 +260,97 @@ function CreditIcon({ className = "h-4 w-4" }: { className?: string }) {
 
 function ModelLogo({ model }: { model: ModelKey }) {
   const option = getModelOption(model);
+  const svgId = useId().replace(/:/g, "");
 
   if (option.brand === "openai") {
     return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5 text-foreground" fill="currentColor" aria-hidden="true">
-        <path d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9004A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9004 6.0462 6.0462 0 0 0 .7427 7.0966 5.9847 5.9847 0 0 0 .5157 4.9108 6.0462 6.0462 0 0 0 6.5098 2.9004A6.0651 6.0651 0 0 0 19.027 19.8182a5.9847 5.9847 0 0 0 3.9977-2.9004 6.0462 6.0462 0 0 0-.7428-7.0967ZM13.2599 22.43a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.0196 1.1665a.071.071 0 0 1 .0382.052v5.5826A4.504 4.504 0 0 1 13.26 22.43ZM3.6 18.304a4.4708 4.4708 0 0 1-.5359-3.0147l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.744 19.9502A4.4992 4.4992 0 0 1 3.6 18.304ZM2.366 7.8667a4.485 4.485 0 0 1 2.366-1.9731v5.6152a.7664.7664 0 0 0 .3879.6765l5.8144 3.3542-2.0206 1.1665a.0757.0757 0 0 1-.071 0L4.008 13.914a4.504 4.504 0 0 1-1.642-6.0472Zm16.5682 3.9477-5.8144-3.359v-2.331a.0804.0804 0 0 1 .0332-.0615l4.8354-2.7921a4.4992 4.4992 0 0 1 6.679 4.5756 4.4708 4.4708 0 0 1-.5359 3.0147l-.1419-.0852-4.783-2.7582a.7712.7712 0 0 0-.7806 0Zm.3338 5.7948v-5.6152a.7664.7664 0 0 0-.3879-.6765l-5.8144-3.3542 2.0206-1.1665a.0757.0757 0 0 1 .071 0l4.8354 2.7921a4.504 4.504 0 0 1-.7247 8.0203Zm-8.2134-2.7054-2.0206-1.1665a.0757.0757 0 0 1-.0382-.0615V8.0916a4.504 4.504 0 0 1 7.5012-3.3567l-.142.0804-4.783 2.7582a.7712.7712 0 0 0-.388.6765v6.7369Z" />
+      <svg viewBox="0 0 24 24" className="h-5 w-5 text-foreground" fill="currentColor" fillRule="evenodd" aria-hidden="true">
+        <path d="M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z" />
       </svg>
     );
   }
 
   if (option.brand === "claude") {
     return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#D97757]" fill="currentColor" aria-hidden="true">
-        <path d="m12 2.8 2.08 6.07 6.12-1.94-3.57 5.33 5.37 3.5-6.4.42.5 6.4L12 17.62l-4.1 4.96.5-6.4-6.4-.42 5.37-3.5L3.8 6.93l6.12 1.94L12 2.8Z" />
+      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="#D97757" aria-hidden="true">
+        <path d="m4.7144 15.9555 4.7174-2.6471.079-.2307-.079-.1275h-.2307l-.7893-.0486-2.6956-.0729-2.3375-.0971-2.2646-.1214-.5707-.1215-.5343-.7042.0546-.3522.4797-.3218.686.0608 1.5179.1032 2.2767.1578 1.6514.0972 2.4468.255h.3886l.0546-.1579-.1336-.0971-.1032-.0972L6.973 9.8356l-2.55-1.6879-1.3356-.9714-.7225-.4918-.3643-.4614-.1578-1.0078.6557-.7225.8803.0607.2246.0607.8925.686 1.9064 1.4754 2.4893 1.8336.3643.3035.1457-.1032.0182-.0728-.164-.2733-1.3539-2.4467-1.445-2.4893-.6435-1.032-.17-.6194c-.0607-.255-.1032-.4674-.1032-.7285L6.287.1335 6.6997 0l.9957.1336.419.3642.6192 1.4147 1.0018 2.2282 1.5543 3.0296.4553.8985.2429.8318.091.255h.1579v-.1457l.1275-1.706.2368-2.0947.2307-2.6957.0789-.7589.3764-.9107.7468-.4918.5828.2793.4797.686-.0668.4433-.2853 1.8517-.5586 2.9021-.3643 1.9429h.2125l.2429-.2429.9835-1.3053 1.6514-2.0643.7286-.8196.85-.9046.5464-.4311h1.0321l.759 1.1293-.34 1.1657-1.0625 1.3478-.8804 1.1414-1.2628 1.7-.7893 1.36.0729.1093.1882-.0183 2.8535-.607 1.5421-.2794 1.8396-.3157.8318.3886.091.3946-.3278.8075-1.967.4857-2.3072.4614-3.4364.8136-.0425.0304.0486.0607 1.5482.1457.6618.0364h1.621l3.0175.2247.7892.522.4736.6376-.079.4857-1.2142.6193-1.6393-.3886-3.825-.9107-1.3113-.3279h-.1822v.1093l1.0929 1.0686 2.0035 1.8092 2.5075 2.3314.1275.5768-.3218.4554-.34-.0486-2.2039-1.6575-.85-.7468-1.9246-1.621h-.1275v.17l.4432.6496 2.3436 3.5214.1214 1.0807-.17.3521-.6071.2125-.6679-.1214-1.3721-1.9246L14.38 17.959l-1.1414-1.9428-.1397.079-.674 7.2552-.3156.3703-.7286.2793-.6071-.4614-.3218-.7468.3218-1.4753.3886-1.9246.3157-1.53.2853-1.9004.17-.6314-.0121-.0425-.1397.0182-1.4328 1.9672-2.1796 2.9446-1.7243 1.8456-.4128.164-.7164-.3704.0667-.6618.4008-.5889 2.386-3.0357 1.4389-1.882.929-1.0868-.0062-.1579h-.0546l-6.3385 4.1164-1.1293.1457-.4857-.4554.0608-.7467.2307-.2429 1.9064-1.3114Z" />
       </svg>
     );
   }
 
   if (option.brand === "gemini") {
     return (
-      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
+      <svg viewBox="0 0 296 298" className="h-5 w-5" fill="none" aria-hidden="true">
+        <mask id={`${svgId}-gemini-mask`} width="296" height="298" x="0" y="0" maskUnits="userSpaceOnUse" style={{ maskType: "alpha" }}>
+          <path fill="#3186FF" d="M141.201 4.886c2.282-6.17 11.042-6.071 13.184.148l5.985 17.37a184.004 184.004 0 0 0 111.257 113.049l19.304 6.997c6.143 2.227 6.156 10.91.02 13.155l-19.35 7.082a184.001 184.001 0 0 0-109.495 109.385l-7.573 20.629c-2.241 6.105-10.869 6.121-13.133.025l-7.908-21.296a184 184 0 0 0-109.02-108.658l-19.698-7.239c-6.102-2.243-6.118-10.867-.025-13.132l20.083-7.467A183.998 183.998 0 0 0 133.291 26.28l7.91-21.394Z" />
+        </mask>
+        <g mask={`url(#${svgId}-gemini-mask)`}>
+          <g filter={`url(#${svgId}-gemini-b)`}>
+            <ellipse cx="163" cy="149" fill="#3689FF" rx="196" ry="159" />
+          </g>
+          <g filter={`url(#${svgId}-gemini-c)`}>
+            <ellipse cx="33.5" cy="142.5" fill="#F6C013" rx="68.5" ry="72.5" />
+          </g>
+          <g filter={`url(#${svgId}-gemini-d)`}>
+            <ellipse cx="19.5" cy="148.5" fill="#F6C013" rx="68.5" ry="72.5" />
+          </g>
+          <g filter={`url(#${svgId}-gemini-e)`}>
+            <path fill="#FA4340" d="M194 10.5C172 82.5 65.5 134.333 22.5 135L144-66l50 76.5Z" />
+          </g>
+          <g filter={`url(#${svgId}-gemini-f)`}>
+            <path fill="#FA4340" d="M190.5-12.5C168.5 59.5 62 111.333 19 112L140.5-89l50 76.5Z" />
+          </g>
+          <g filter={`url(#${svgId}-gemini-g)`}>
+            <path fill="#14BB69" d="M194.5 279.5C172.5 207.5 66 155.667 23 155l121.5 201 50-76.5Z" />
+          </g>
+          <g filter={`url(#${svgId}-gemini-h)`}>
+            <path fill="#14BB69" d="M196.5 320.5C174.5 248.5 68 196.667 25 196l121.5 201 50-76.5Z" />
+          </g>
+        </g>
         <defs>
-          <linearGradient id="gemini-model-logo" x1="4" x2="20" y1="4" y2="20">
-            <stop offset="0%" stopColor="#60A5FA" />
-            <stop offset="50%" stopColor="#A78BFA" />
-            <stop offset="100%" stopColor="#34D399" />
-          </linearGradient>
+          <filter id={`${svgId}-gemini-b`} width="464" height="390" x="-69" y="-46" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feGaussianBlur result="effect1_foregroundBlur_69_17998" stdDeviation="18" />
+          </filter>
+          <filter id={`${svgId}-gemini-c`} width="265" height="273" x="-99" y="6" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feGaussianBlur result="effect1_foregroundBlur_69_17998" stdDeviation="32" />
+          </filter>
+          <filter id={`${svgId}-gemini-d`} width="265" height="273" x="-113" y="12" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feGaussianBlur result="effect1_foregroundBlur_69_17998" stdDeviation="32" />
+          </filter>
+          <filter id={`${svgId}-gemini-e`} width="299.5" height="329" x="-41.5" y="-130" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feGaussianBlur result="effect1_foregroundBlur_69_17998" stdDeviation="32" />
+          </filter>
+          <filter id={`${svgId}-gemini-f`} width="299.5" height="329" x="-45" y="-153" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feGaussianBlur result="effect1_foregroundBlur_69_17998" stdDeviation="32" />
+          </filter>
+          <filter id={`${svgId}-gemini-g`} width="299.5" height="329" x="-41" y="91" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feGaussianBlur result="effect1_foregroundBlur_69_17998" stdDeviation="32" />
+          </filter>
+          <filter id={`${svgId}-gemini-h`} width="299.5" height="329" x="-39" y="132" colorInterpolationFilters="sRGB" filterUnits="userSpaceOnUse">
+            <feFlood floodOpacity="0" result="BackgroundImageFix" />
+            <feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+            <feGaussianBlur result="effect1_foregroundBlur_69_17998" stdDeviation="32" />
+          </filter>
         </defs>
-        <path fill="url(#gemini-model-logo)" d="M12 2.6c.54 4.53 4.34 8.31 8.8 8.86.32.04.32.5 0 .54-4.46.55-8.26 4.33-8.8 8.86-.04.32-.5.32-.54 0-.54-4.53-4.34-8.31-8.8-8.86-.32-.04-.32-.5 0-.54 4.46-.55 8.26-4.33 8.8-8.86.04-.32.5-.32.54 0Z" />
       </svg>
     );
   }
 
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5 text-[#4F8BFF]" fill="currentColor" aria-hidden="true">
-      <path d="M18.3 8.15c-1.48-1.75-3.8-2.84-6.38-2.84-4.48 0-8.1 3.25-8.1 7.26 0 2.26 1.15 4.28 2.95 5.62.5.38 1.12.62 1.75.7.56.08 1.13.04 1.67-.14.35-.12.64-.31.91-.55l1.48-1.34c.52-.47 1.32-.45 1.81.05l1.25 1.28c.27.28.63.45 1.02.47 2.17.11 3.94-1.58 3.94-3.77 0-1.73-1.13-3.21-2.73-3.78.32-.77.24-1.64-.54-2.03Z" />
-      <path d="M8 12.08c.82.27 1.7.12 2.37-.42l1.2-.95a2.69 2.69 0 0 1 3.03-.25l1.29.69c.38.21.84.25 1.25.1" fill="none" stroke="#DBEAFE" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" />
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path fill="#4D6BFE" d="M23.748 4.482c-.254-.124-.364.113-.512.234-.051.039-.094.09-.137.136-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.156-.708-.311-.955-.65-.172-.241-.219-.51-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.093.172.187.129.323-.082.28-.18.552-.266.833-.055.179-.137.217-.329.14a5.526 5.526 0 0 1-1.736-1.18c-.857-.828-1.631-1.742-2.597-2.458a11.365 11.365 0 0 0-.689-.471c-.985-.957.13-1.743.388-1.836.27-.098.093-.432-.779-.428-.872.004-1.67.295-2.687.684a3.055 3.055 0 0 1-.465.137 9.597 9.597 0 0 0-2.883-.102c-1.885.21-3.39 1.102-4.497 2.623C.082 8.606-.231 10.684.152 12.85c.403 2.284 1.569 4.175 3.36 5.653 1.858 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.133-.284 4.994-1.86.47.234.962.327 1.78.397.63.059 1.236-.03 1.705-.128.735-.156.684-.837.419-.961-2.155-1.004-1.682-.595-2.113-.926 1.096-1.296 2.746-2.642 3.392-7.003.05-.347.007-.565 0-.845-.004-.17.035-.237.23-.256a4.173 4.173 0 0 0 1.545-.475c1.396-.763 1.96-2.015 2.093-3.517.02-.23-.004-.467-.247-.588zM11.581 18c-2.089-1.642-3.102-2.183-3.52-2.16-.392.024-.321.471-.235.763.09.288.207.486.371.739.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.167-1.361-.802-2.5-1.86-3.301-3.307-.774-1.393-1.224-2.887-1.298-4.482-.02-.386.093-.522.477-.592a4.696 4.696 0 0 1 1.529-.039c2.132.312 3.946 1.265 5.468 2.774.868.86 1.525 1.887 2.202 2.891.72 1.066 1.494 2.082 2.48 2.914.348.292.625.514.891.677-.802.09-2.14.11-3.054-.614zm1-6.44a.306.306 0 0 1 .415-.287.302.302 0 0 1 .2.288.306.306 0 0 1-.31.307.303.303 0 0 1-.304-.308zm3.11 1.596c-.2.081-.399.151-.59.16a1.245 1.245 0 0 1-.798-.254c-.274-.23-.47-.358-.552-.758a1.73 1.73 0 0 1 .016-.588c.07-.327-.008-.537-.239-.727-.187-.156-.426-.199-.688-.199a.559.559 0 0 1-.254-.078.253.253 0 0 1-.114-.358c.028-.054.16-.186.192-.21.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.391.451.462.576.685.914.176.265.336.537.445.848.067.195-.019.354-.25.452z" />
     </svg>
   );
 }
@@ -805,7 +860,7 @@ export default function AlphaEdit() {
                       </div>
                       <div>
                         <p className="text-[11px] text-muted-foreground">{tr("Credit", "额度")}</p>
-                        <p className="text-[12px] font-medium text-emerald-400">{round.estimatedCredit.toFixed(2)}</p>
+                        <p className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400">{round.estimatedCredit.toFixed(2)}</p>
                       </div>
                     </div>
 
@@ -857,7 +912,7 @@ export default function AlphaEdit() {
             ))}
           </div>
 
-          <div className="sticky bottom-0 z-10 mx-auto self-auto w-[800px] max-w-full rounded-xl border border-border bg-card/95 p-2.5 shadow-[0_-14px_24px_rgba(2,6,23,0.3)] backdrop-blur md:p-3">
+          <div className="sticky bottom-0 z-10 mx-auto self-auto w-[800px] max-w-full rounded-xl border border-border bg-card/95 p-2.5 shadow-[0_-18px_50px_rgba(15,23,42,0.12)] backdrop-blur dark:shadow-[0_-14px_24px_rgba(2,6,23,0.3)] md:p-3">
             <div className={`relative ${composerCollapsed ? "space-y-2 pt-0.5" : "space-y-3 pt-6"}`}>
               <button
                 type="button"
@@ -882,7 +937,7 @@ export default function AlphaEdit() {
                           className={`h-9 rounded-md border px-2.5 text-left text-sm font-semibold transition ${
                             strategyType === "time-series"
                               ? "border-primary/40 bg-primary/10 text-primary"
-                              : "border-border bg-accent text-foreground"
+                              : "border-border bg-accent/70 text-foreground hover:border-primary/25 hover:bg-accent"
                           }`}
                         >
                           {tr("Time-Series", "时序因子")}
@@ -893,7 +948,7 @@ export default function AlphaEdit() {
                           className={`h-9 rounded-md border px-2.5 text-left text-sm font-semibold transition ${
                             strategyType === "cross-sectional"
                               ? "border-primary/40 bg-primary/10 text-primary"
-                              : "border-border bg-accent text-foreground"
+                              : "border-border bg-accent/70 text-foreground hover:border-primary/25 hover:bg-accent"
                           }`}
                         >
                           {tr("Cross-Sectional", "截面因子")}
@@ -908,7 +963,7 @@ export default function AlphaEdit() {
                           type="button"
                           onClick={promptOptimized ? undoPromptOptimization : optimizePrompt}
                           disabled={!promptOptimized && !prompt.trim()}
-                          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-accent px-2 text-xs font-medium text-muted-foreground transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
+                          className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-accent/70 px-2 text-xs font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
                         >
                           {promptOptimized ? <Undo2 className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
                           {promptOptimized ? tr("Revert", "撤回") : tr("Optimize Prompt", "优化提示词")}
@@ -922,7 +977,7 @@ export default function AlphaEdit() {
                           "描述因子假设、市场逻辑和所需输入..."
                         )}
                         rows={2}
-                        className="h-[64px] resize-none rounded-md border-border bg-accent px-3 py-2 text-sm"
+                        className="h-[64px] resize-none rounded-md border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:ring-primary/20"
                       />
                     </div>
                   </div>
@@ -933,7 +988,7 @@ export default function AlphaEdit() {
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="flex h-9 w-full items-center gap-2 rounded-md border border-border bg-accent px-2.5 text-left text-sm text-foreground transition hover:border-primary/30 hover:bg-accent/90"
+                            className="flex h-9 w-full items-center gap-2 rounded-md border border-border bg-accent/70 px-2.5 text-left text-sm text-foreground transition hover:border-primary/30 hover:bg-accent"
                           >
                             <span className="shrink-0 text-xs text-muted-foreground">{tr("Model", "模型")}</span>
                             <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -944,7 +999,7 @@ export default function AlphaEdit() {
                                   </span>
                                 ))}
                                 {selectedLogoModels.length > 2 ? (
-                                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-card px-1 text-[9px] font-semibold text-muted-foreground">
+                                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-muted px-1 text-[9px] font-semibold text-muted-foreground">
                                     +{selectedLogoModels.length - 2}
                                   </span>
                                 ) : null}
@@ -958,7 +1013,7 @@ export default function AlphaEdit() {
                           align="start"
                           side="top"
                           sideOffset={10}
-                          className="w-[min(520px,calc(100vw-4rem))] rounded-[24px] border border-border bg-popover/95 p-0 text-popover-foreground shadow-[0_24px_60px_rgba(2,6,23,0.5)] backdrop-blur-xl"
+                          className="w-[min(520px,calc(100vw-4rem))] rounded-[24px] border border-border bg-popover/95 p-0 text-popover-foreground shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:shadow-[0_24px_60px_rgba(2,6,23,0.5)]"
                         >
                           <div className="border-b border-border px-5 py-4">
                             <div className="flex items-center justify-between gap-4">
@@ -987,11 +1042,11 @@ export default function AlphaEdit() {
                                   tabIndex={0}
                                   className={`flex w-full items-start gap-3 rounded-[18px] px-3 py-3 text-left transition ${
                                     selected
-                                      ? "bg-accent/80 ring-1 ring-primary/25"
-                                      : "bg-transparent hover:bg-accent/50"
+                                      ? "bg-primary/10 ring-1 ring-primary/25"
+                                      : "bg-transparent hover:bg-accent/70"
                                   }`}
                                 >
-                                  <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background/70">
+                                  <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background">
                                     <ModelLogo model={item.value} />
                                   </span>
 
@@ -1009,7 +1064,7 @@ export default function AlphaEdit() {
                                       checked={selected}
                                       aria-hidden="true"
                                       tabIndex={-1}
-                                      className="h-6 w-6 rounded-[8px] border-border bg-background/70 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                      className="h-6 w-6 rounded-[8px] border-border bg-background data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
                                     />
                                   </span>
                                 </div>
@@ -1027,7 +1082,7 @@ export default function AlphaEdit() {
                         <PopoverTrigger asChild>
                           <button
                             type="button"
-                            className="flex h-9 w-full items-center gap-2 rounded-md border border-border bg-accent px-2.5 text-left text-sm text-foreground transition hover:border-primary/30 hover:bg-accent/90"
+                            className="flex h-9 w-full items-center gap-2 rounded-md border border-border bg-accent/70 px-2.5 text-left text-sm text-foreground transition hover:border-primary/30 hover:bg-accent"
                           >
                             <span className="shrink-0 text-xs text-muted-foreground">{tr("Result Count", "结果数量")}</span>
                             <span className="ml-auto font-medium text-foreground">{resultCount}</span>
@@ -1038,7 +1093,7 @@ export default function AlphaEdit() {
                           align="end"
                           side="top"
                           sideOffset={10}
-                          className="w-[188px] rounded-[18px] border border-white/10 bg-[#111827]/98 p-2 shadow-[0_20px_50px_rgba(2,6,23,0.45)] backdrop-blur-xl"
+                          className="w-[188px] rounded-[18px] border border-border bg-popover p-2 text-popover-foreground shadow-[0_20px_50px_rgba(15,23,42,0.16)] backdrop-blur-xl dark:shadow-[0_20px_50px_rgba(2,6,23,0.45)]"
                         >
                           <div className="space-y-1">
                             {[1, 2, 3, 4, 8, 10].map((count) => {
@@ -1054,8 +1109,8 @@ export default function AlphaEdit() {
                                   }}
                                   className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-sm transition ${
                                     selected
-                                      ? "bg-white/[0.06] text-[#F8FAFC] ring-1 ring-primary/25"
-                                      : "text-[#CBD5E1] hover:bg-white/[0.04]"
+                                      ? "bg-primary/10 text-primary ring-1 ring-primary/25"
+                                      : "text-popover-foreground hover:bg-accent/70"
                                   }`}
                                 >
                                   <span>{count}</span>
@@ -1083,12 +1138,13 @@ export default function AlphaEdit() {
                       `将运行 ${selectedModels.length} 个模型，分别生成 ${resultCount} 个结果`
                     )}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/12 px-2 py-0.5 text-sm font-semibold text-emerald-300">
-                    <CreditIcon className="h-4 w-4 shrink-0" />
-                    {tr(`Estimated ${formatCreditUnits(estimatedCredit)} credit`, `预计 ${formatCreditUnits(estimatedCredit)} 额度`)}
+                  <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                    <span>{tr("Estimated spend", "预计消耗")}</span>
+                    <CreditIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span>{formatCreditUnits(estimatedCredit)}</span>
                   </span>
                   {availableCredit < estimatedCredit ? (
-                    <span className="text-xs font-medium text-rose-400">{tr("Insufficient credit", "额度不足")}</span>
+                    <span className="text-xs font-medium text-rose-600 dark:text-rose-400">{tr("Insufficient credit", "额度不足")}</span>
                   ) : null}
                 </div>
 
