@@ -1023,7 +1023,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
               <div className="px-6 py-4 pb-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-base font-semibold text-foreground">{tr("IS Testing Status", "样本内测试状态")}</span>
+                  <span className="text-base font-semibold text-foreground">{tr("Test Results", "测试结果")}</span>
                 </div>
               </div>
               <div className="px-6 pb-6">
