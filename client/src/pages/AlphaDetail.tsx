@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useParams, useSearch } from "wouter";
-import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment, type ReactNode } from "react";
 import { toast } from "sonner";
 import gsap from "gsap";
 import {
@@ -579,16 +579,18 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
           {/* Key Metrics Cards — Pro style */}
           <div className={`grid gap-3 ${isOfficialLibraryView ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-5"}`}>
             {beginnerMetrics.map((m) => (
-              withPlainExplanation(
+              <Fragment key={m.label}>
+              {withPlainExplanation(
                 m.explanation,
-              <div key={m.label} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+              <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                 <div className="label-upper mb-1 text-[9px]">{m.label}</div>
                 <div className="text-lg font-bold font-mono tabular-nums" style={{ color: m.color }}>
                   {m.value}
                 </div>
                 <div className="text-[9px] text-muted-foreground mt-0.5">{m.desc}</div>
               </div>
-              )
+              )}
+              </Fragment>
             ))}
             {!isOfficialLibraryView && withPlainExplanation(
               proMetricExplanations.grade,
