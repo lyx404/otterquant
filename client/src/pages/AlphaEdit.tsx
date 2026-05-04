@@ -480,7 +480,7 @@ function ResultCard({
       </div>
 
       <div className="flex flex-none flex-col space-y-2">
-        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("PnL Curve", "盈亏曲线")}</div>
+        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("PnL Curve", "PNL折线图")}</div>
         <Sparkline data={result.pnlSeries} />
       </div>
 
@@ -507,14 +507,13 @@ function ResultCard({
 
       <div className="mt-3 flex min-w-0 items-center gap-2">
         <span
-          className={`inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] font-medium ${
+          className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.15em] ${
             isPassed
-              ? "text-success"
-              : "text-destructive"
+              ? "border-success/20 bg-success/10 text-success"
+              : "border-destructive/20 bg-destructive/10 text-destructive"
           }`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${isPassed ? "bg-success" : "bg-destructive"}`} />
-          {isPassed ? tr("Passed", "已通过") : tr("Failed", "未通过")}
+          {isPassed ? tr("PASSED", "通过") : tr("FAILED", "失败")}
         </span>
         <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">
           {result.model}
