@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Link } from "wouter";
-import { useState, useMemo, useEffect, useRef, useId } from "react";
+import { useState, useMemo, useEffect, useRef, useId, type ReactNode } from "react";
 import gsap from "gsap";
 import {
   ArrowUpDown,
@@ -36,6 +36,7 @@ import {
   ArrowUp,
   ArrowDown,
   Settings2,
+  HelpCircle,
   Star,
   ChevronLeft,
   ChevronRight,
@@ -128,6 +129,7 @@ type MyAlphasPrefs = {
 const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
 const MY_ALPHAS_PREFS_VERSION = 3;
 const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
+const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 
 function buildSparklinePath(values: number[], width: number, height: number, padding = 4) {
   if (values.length < 2) return "";
@@ -357,6 +359,13 @@ export default function MyAlphas() {
   const [gradeRevealTick, setGradeRevealTick] = useState(0);
   const [revealAllResults, setRevealAllResults] = useState<Array<{ id: string; name: string; grade: AlphaGrade }>>([]);
   const [showRevealAllModal, setShowRevealAllModal] = useState(false);
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+    if (stored === "true") return true;
+    if (stored === "false") return false;
+    return true;
+  });
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const tablePnlValues = useMemo(() => {
@@ -427,6 +436,11 @@ export default function MyAlphas() {
     visibleColumns,
     alphaViewMode,
   ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
+  }, [plainExplainEnabled]);
 
   /* ── Data — build rows, assign submission status, epoch status ── */
   const alphaRows: AlphaRow[] = useMemo(() => {
@@ -696,6 +710,23 @@ export default function MyAlphas() {
             </Link>
           );
         }
+        if (rawEpoch === "Not Entered") {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-xs font-mono whitespace-nowrap text-amber-500 dark:text-amber-400 cursor-default">
+                  {tr("Pending", "待定")}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[240px] text-xs leading-5">
+                {tr(
+                  "Passed factors are automatically entered into Factor Arena. This factor will join when the next round starts.",
+                  "通过状态的因子会自动参与因子竞技；当前轮次尚未开始，等待下一轮开始后自动参与。"
+                )}
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
         return (
           <span className="text-xs font-mono whitespace-nowrap text-muted-foreground">
             {es}
@@ -757,6 +788,19 @@ export default function MyAlphas() {
       <col style={{ width: "100px" }} />
     </colgroup>
   );
+
+  const withPlainExplanation = (content: string, child: ReactNode) => {
+    if (alphaViewMode !== "beginner" || !plainExplainEnabled) return child;
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>{child}</TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[220px] text-xs leading-5">
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
 
   return (
     <>
@@ -826,34 +870,46 @@ export default function MyAlphas() {
           <div className="stat-value text-2xl font-bold text-amber-500 dark:text-amber-400 truncate">{starred.size}</div>
           <div className="text-sm mt-1 text-muted-foreground truncate" />
         </button>
-        <button
-          onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
-          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-            cardFilter === "passed"
-              ? "border-success/40 bg-success/[0.06]"
-              : "border-border hover:border-border/80"
-          }`}
-        >
-          <div className="flex items-center gap-2 label-upper mb-2 text-success">
-            <CheckCircle className="w-3.5 h-3.5" /> {tr("Passed", "通过")}
-          </div>
-          <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate" />
-        </button>
-        <button
-          onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
-          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-            cardFilter === "failed"
-              ? "border-destructive/40 bg-destructive/[0.06]"
-              : "border-border hover:border-border/80"
-          }`}
-        >
-          <div className="flex items-center gap-2 label-upper mb-2 text-destructive">
-            <XCircle className="w-3.5 h-3.5" /> {tr("Failed", "失败")}
-          </div>
-          <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + submissionStats.rejected}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate" />
-        </button>
+        {withPlainExplanation(
+          tr(
+            "Basic validation passed. Ready for strategy testing and Factor Arena.",
+            "通过基础验证，可加入策略测试、参与因子竞技"
+          ),
+          <button
+            onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
+            className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
+              cardFilter === "passed"
+                ? "border-success/40 bg-success/[0.06]"
+                : "border-border hover:border-border/80"
+            }`}
+          >
+            <div className="flex items-center gap-2 label-upper mb-2 text-success">
+              <CheckCircle className="w-3.5 h-3.5" /> {tr("Passed", "通过")}
+            </div>
+            <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
+            <div className="text-sm mt-1 text-muted-foreground truncate" />
+          </button>
+        )}
+        {withPlainExplanation(
+          tr(
+            "Unstable performance or validation failure. Not eligible for strategy testing or Factor Arena.",
+            "表现不稳定/验证失败，不可加入策略测试、参与因子竞技"
+          ),
+          <button
+            onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
+            className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
+              cardFilter === "failed"
+                ? "border-destructive/40 bg-destructive/[0.06]"
+                : "border-border hover:border-border/80"
+            }`}
+          >
+            <div className="flex items-center gap-2 label-upper mb-2 text-destructive">
+              <XCircle className="w-3.5 h-3.5" /> {tr("Failed", "失败")}
+            </div>
+            <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + submissionStats.rejected}</div>
+            <div className="text-sm mt-1 text-muted-foreground truncate" />
+          </button>
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════
@@ -979,6 +1035,23 @@ export default function MyAlphas() {
             </PopoverContent>
           </Popover>
 
+          {alphaViewMode === "beginner" && (
+            <button
+              type="button"
+              onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
+              className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
+                plainExplainEnabled
+                  ? "border-primary/50 bg-primary/12 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
+              }`}
+              aria-pressed={plainExplainEnabled}
+              title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              {tr("Plain explanations", "通俗解释")}
+            </button>
+          )}
+
           {/* View Mode Toggle */}
           <div className="inline-flex h-[34px] items-center overflow-hidden rounded-xl border border-border bg-card p-px">
             <button
@@ -1009,7 +1082,13 @@ export default function MyAlphas() {
         {/* Card View */}
         {viewMode === "card" && (
           <div className="pt-4">
-            <AlphaCardView rows={sorted} visibleColumns={visibleColumns} starred={starred} onToggleStar={toggleStar} />
+            <AlphaCardView
+              rows={sorted}
+              visibleColumns={visibleColumns}
+              starred={starred}
+              onToggleStar={toggleStar}
+              plainExplainEnabled={alphaViewMode === "beginner" && plainExplainEnabled}
+            />
           </div>
         )}
 
@@ -1043,7 +1122,7 @@ export default function MyAlphas() {
               {paginated.map((row, i) => (
                 <tr
                   key={row.id}
-                  className={`transition-all duration-200 ease-in-out group border-t border-border/40 hover:bg-accent/30 ${starred.has(row.id) ? "bg-amber-500/[0.03] dark:bg-amber-500/[0.04]" : ""}`}
+                  className="transition-all duration-200 ease-in-out group border-t border-border/40 hover:bg-accent/30"
                 >
                   {visibleCols.map((col) => (
                     <td key={col.key} className={`px-3 ${col.key === "pnl" ? "py-1.5" : "py-2.5"} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : ""}`}>

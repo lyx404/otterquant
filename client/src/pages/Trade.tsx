@@ -283,9 +283,9 @@ export default function Trade() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 p-4">
+        <div className="space-y-3 p-4">
           {filteredVisibleBots.length === 0 ? (
-            <div className="rounded-2xl border border-border/60 bg-background/30 px-6 py-12 text-center">
+            <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-foreground">
                 {tr("No trading bots match the selected status.", "没有符合当前状态筛选条件的交易机器人。")}
               </p>
@@ -305,73 +305,70 @@ export default function Trade() {
               <div
                 key={bot.id}
                 id={`trade-bot-${bot.id}`}
-                className={`rounded-2xl border bg-background/35 p-4 transition-all ${
+                className={`rounded-2xl border bg-background/25 px-4 py-4 transition-all ${
                   focusedBotId === bot.id
-                    ? "border-primary/55 ring-1 ring-primary/35"
-                    : "border-border/60"
+                    ? "border-primary/55 bg-primary/5 ring-1 ring-primary/35"
+                    : "border-border/55"
                 }`}
               >
-                <div className="flex flex-wrap items-start gap-2">
+                <div className="grid gap-4 lg:grid-cols-[minmax(230px,1fr)_minmax(360px,1.8fr)_auto] lg:items-center">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Link href={resolveStrategyHref(bot)}>
-                        <div className="text-sm font-semibold text-foreground transition-colors hover:text-primary cursor-pointer">
-                          {bot.name}
-                        </div>
-                      </Link>
-                      <span
-                        className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${
-                          bot.status === "running"
-                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
-                            : "border-amber-500/25 bg-amber-500/10 text-amber-300"
-                        }`}
-                      >
-                        {bot.status === "running" ? tr("running", "运行中") : tr("stopped", "已停止")}
-                      </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                    <Link href={resolveStrategyHref(bot)}>
+                      <div className="text-sm font-semibold text-foreground transition-colors hover:text-primary cursor-pointer">
+                        {bot.name}
+                      </div>
+                    </Link>
+                    <span
+                      className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+                        bot.status === "running"
+                          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+                          : "border-amber-500/25 bg-amber-500/10 text-amber-300"
+                      }`}
+                    >
+                      {bot.status === "running" ? tr("running", "运行中") : tr("stopped", "已停止")}
+                    </span>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {bot.id} · {bot.symbol} · {marketLabel(bot.market)} · {bot.leverage}
                     </div>
+                    <div className="mt-3 text-[11px] text-muted-foreground">{tr("Updated", "更新于")} {bot.updatedAt}</div>
                   </div>
-                </div>
 
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      {tr("Equity", "权益")}
+                  <div className="grid grid-cols-3 gap-x-6 gap-y-4 border-t border-border/50 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        {tr("Equity", "权益")}
+                      </div>
+                      <div className="mt-1 text-xs font-semibold text-foreground">
+                        {bot.equity.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs font-semibold text-foreground">
-                      {bot.equity.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        UPNL
+                      </div>
+                      <div
+                        className={`mt-1 text-xs font-semibold ${
+                          bot.unrealizedPnl >= 0 ? "text-emerald-400" : "text-rose-400"
+                        }`}
+                      >
+                        {formatSigned(bot.unrealizedPnl)}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                        {tr("Win Rate", "胜率")}
+                      </div>
+                      <div className="mt-1 text-xs font-semibold text-indigo-300">
+                        {bot.winRate.toFixed(1)}%
+                      </div>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      UPNL
-                    </div>
-                    <div
-                      className={`mt-1 text-xs font-semibold ${
-                        bot.unrealizedPnl >= 0 ? "text-emerald-400" : "text-rose-400"
-                      }`}
-                    >
-                      {formatSigned(bot.unrealizedPnl)}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
-                    <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                      {tr("Win Rate", "胜率")}
-                    </div>
-                    <div className="mt-1 text-xs font-semibold text-indigo-300">
-                      {bot.winRate.toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="text-[11px] text-muted-foreground">{tr("Updated", "更新于")} {bot.updatedAt}</div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 border-t border-border/50 pt-4 lg:justify-end lg:border-t-0 lg:pt-0">
                     <Link href={`/trade/${bot.id}?env=${bot.environment}&status=${bot.status}`}>
                       <Button
                         variant="outline"

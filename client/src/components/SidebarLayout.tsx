@@ -97,6 +97,16 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     "/alphas": false,
     "/strategies": false,
   });
+  const currentPathname = location.split("?")[0];
+  const currentSearch = location.includes("?")
+    ? location.slice(location.indexOf("?"))
+    : typeof window !== "undefined"
+      ? window.location.search
+      : "";
+  const isOfficialAlphaDetail =
+    currentPathname.startsWith("/alphas/") &&
+    currentPathname !== "/alphas/official" &&
+    new URLSearchParams(currentSearch).get("source") === "official";
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -104,23 +114,23 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   }, [location]);
 
   const isActive = (path: string) => {
-    if (path === "/") return location === "/";
-    if (path === "/alphas/official") return location === "/alphas/official";
-    if (path === "/strategies/official") return location === "/strategies/official";
+    if (path === "/") return currentPathname === "/";
+    if (path === "/alphas/official") return currentPathname === "/alphas/official" || isOfficialAlphaDetail;
+    if (path === "/strategies/official") return currentPathname === "/strategies/official";
 
     if (path === "/alphas") {
-      return location === "/alphas" || (location.startsWith("/alphas/") && !location.startsWith("/alphas/official"));
+      return currentPathname === "/alphas" || (currentPathname.startsWith("/alphas/") && !currentPathname.startsWith("/alphas/official") && !isOfficialAlphaDetail);
     }
 
     if (path === "/strategies") {
-      return location === "/strategies" || (location.startsWith("/strategies/") && !location.startsWith("/strategies/official"));
+      return currentPathname === "/strategies" || (currentPathname.startsWith("/strategies/") && !currentPathname.startsWith("/strategies/official"));
     }
 
-    return location.startsWith(path);
+    return currentPathname.startsWith(path);
   };
 
   const isSectionActive = (sectionPath: string) => {
-    if (location === sectionPath || location.startsWith(`${sectionPath}/`)) return true;
+    if (currentPathname === sectionPath || currentPathname.startsWith(`${sectionPath}/`)) return true;
 
     const section = navItems.find((item) => item.path === sectionPath);
     return Boolean(section?.children?.some((child) => isActive(child.path)));

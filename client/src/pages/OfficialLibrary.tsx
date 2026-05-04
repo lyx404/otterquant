@@ -3,8 +3,8 @@
  * Design: Card-based view with category filtering
  * Reuses FactorCard pattern from AlphaCardView
  */
-import { useState, useMemo, useRef, useEffect, useId } from "react";
-import { Link } from "wouter";
+import { useState, useMemo, useRef, useEffect, useId, type ReactNode } from "react";
+import { Link, useLocation } from "wouter";
 import gsap from "gsap";
 import {
   ArrowUpDown,
@@ -15,10 +15,16 @@ import {
   Info,
   X,
   ArrowUpRight,
+  HelpCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { factors, type Factor, generatePnLData } from "@/lib/mockData";
 import { toast } from "sonner";
@@ -27,6 +33,7 @@ import { useAlphaViewMode, type AlphaViewMode } from "@/contexts/AlphaViewModeCo
 type CategoryFilter = "all" | "official" | "graduated";
 type FactorSortKey = "isSharpe" | "osSharpe" | "fitness" | "returns" | "turnover" | "drawdown";
 type SortDir = "asc" | "desc" | null;
+const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 
 function getDefaultFactorSortDir(key: FactorSortKey): Exclude<SortDir, null> {
   return key === "turnover" || key === "drawdown" ? "asc" : "desc";
@@ -55,7 +62,38 @@ function buildSparklinePath(values: number[], width: number, height: number, pad
     .join(" ");
 }
 
-function PnlSparkline({ values, label }: { values: number[]; label: string }) {
+function MaybeExplainTooltip({
+  enabled,
+  explanation,
+  children,
+}: {
+  enabled?: boolean;
+  explanation: string;
+  children: ReactNode;
+}) {
+  if (!enabled) return <>{children}</>;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[220px] text-xs leading-5">
+        {explanation}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function PnlSparkline({
+  values,
+  label,
+  explainEnabled,
+  explanation,
+}: {
+  values: number[];
+  label: string;
+  explainEnabled?: boolean;
+  explanation: string;
+}) {
   const svgId = useId().replace(/:/g, "");
   const width = 420;
   const height = 86;
@@ -63,8 +101,9 @@ function PnlSparkline({ values, label }: { values: number[]; label: string }) {
   const areaPath = path ? `${path} L ${width - 6} ${height - 6} L 6 ${height - 6} Z` : "";
 
   return (
-    <div className="rounded-xl border border-border/60 bg-background/30 px-3 py-2.5">
-      <div className="mb-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+    <MaybeExplainTooltip enabled={explainEnabled} explanation={explanation}>
+    <div className="space-y-2">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
         <path d={areaPath} fill={`url(#${svgId}-official-pnl-fill)`} opacity="0.55" />
         <path d={path} stroke={`url(#${svgId}-official-pnl-line)`} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
@@ -81,6 +120,7 @@ function PnlSparkline({ values, label }: { values: number[]; label: string }) {
         </defs>
       </svg>
     </div>
+    </MaybeExplainTooltip>
   );
 }
 
@@ -112,18 +152,21 @@ function FlywheelBanner() {
 }
 
 /* ── Single Factor Card ── */
-function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
+function FactorCard({ factor, isStarred, onToggleStar, viewMode, plainExplainEnabled }: {
   factor: Factor;
   isStarred: boolean;
   onToggleStar: () => void;
   viewMode: AlphaViewMode;
+  plainExplainEnabled: boolean;
 }) {
   const { uiLang } = useAppLanguage();
+  const [, navigate] = useLocation();
   const isOfficial = factor.category === "official";
   const isGraduated = factor.category === "graduated";
   const isBeginnerMode = viewMode === "beginner";
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const usedCount = new Intl.NumberFormat(uiLang === "zh" ? "zh-CN" : "en-US").format(factor.userCount ?? 0);
+  const detailHref = `/alphas/${factor.id}?source=official&tier=${isGraduated ? "graduated" : "official"}`;
   const pnlValues = useMemo(() => {
     const pnlData = generatePnLData();
     const combined = [...pnlData.train, ...pnlData.test].map((item) => item.value);
@@ -147,45 +190,63 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
     ? "text-amber-500 dark:text-amber-400"
     : "text-foreground";
 
-  const factorDescription = (() => {
-    if (uiLang !== "zh") return factor.description;
-    switch (factor.id) {
-      case "AF-001":
-        return "利用 RSI 交叉信号，在加密资产中捕捉 7 日价格动量。";
-      case "AF-002":
-        return "识别 ETH 交易对中相对于 20 日均值的异常成交量激增。";
-      case "AF-004":
-        return "利用主流 CEX 平台之间的价格差异，通过价差分析捕捉套利机会。";
-      case "AF-005":
-        return "基于资金费率与持仓兴趣确认，构建均值回归信号。";
-      case "AF-007":
-        return "追踪巨鲸钱包的聪明钱流动模式，挖掘交易信号。";
-      case "AF-009":
-        return "利用 OI Delta 信号，并结合近期波动率进行风险调整收益归一化。";
-      case "AF-013":
-        return "识别连环强平事件，并为均值回归布局。";
-      case "AF-016":
-        return "在现货与期货之间优化基差交易，并结合成交量衰减权重。";
-      default:
-        return factor.description;
-    }
-  })();
+  const sharpeLevel = (value: number) => {
+    if (value >= 1) return tr("relatively steady", "相对稳定");
+    if (value >= 0.5) return tr("moderate", "中等");
+    return tr("less steady", "不够稳定");
+  };
+  const fitnessLevel = (value: number) => {
+    if (value >= 1) return tr("strong", "较强");
+    if (value >= 0.5) return tr("usable", "可用");
+    return tr("weak", "偏弱");
+  };
+  const metricExplanations = {
+    sharpe: tr(
+      `Higher Sharpe means steadier returns. ${factor.sharpe.toFixed(2)} is ${sharpeLevel(factor.sharpe)}.`,
+      `夏普比率越高代表越稳定，${factor.sharpe.toFixed(2)} 为${sharpeLevel(factor.sharpe)}。`
+    ),
+    osSharpe: tr(
+      `Higher OS Sharpe means better robustness. ${factor.osSharpe.toFixed(2)} is ${sharpeLevel(factor.osSharpe)}.`,
+      `样本外夏普越高代表泛化越稳，${factor.osSharpe.toFixed(2)} 为${sharpeLevel(factor.osSharpe)}。`
+    ),
+    fitness: tr(
+      `Higher fitness means better overall quality. ${factor.fitness.toFixed(2)} is ${fitnessLevel(factor.fitness)}.`,
+      `适应度越高代表综合质量越好，${factor.fitness.toFixed(2)} 为${fitnessLevel(factor.fitness)}。`
+    ),
+    pnl: tr(
+      `This line shows cumulative profit and loss. In this preview it moves from about ${pnlValues[0]?.toLocaleString() ?? "0"} to ${pnlValues[pnlValues.length - 1]?.toLocaleString() ?? "0"}.`,
+      `这条线表示累计收益变化。当前示例大约从 ${pnlValues[0]?.toLocaleString() ?? "0"} 走到 ${pnlValues[pnlValues.length - 1]?.toLocaleString() ?? "0"}。`
+    ),
+  };
 
-  const MetricCell = ({ label, value, colorClass }: { label: string; value: string; colorClass?: string }) => (
-    <div className="rounded-xl border border-border/50 bg-background/30 px-3 py-2">
+  const MetricCell = ({ label, value, colorClass, explanation }: { label: string; value: string; colorClass?: string; explanation?: string }) => (
+    <MaybeExplainTooltip enabled={plainExplainEnabled && Boolean(explanation)} explanation={explanation ?? ""}>
+    <div className="min-w-0">
       <div className="mb-1 whitespace-nowrap text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
       <div className={`text-sm font-semibold font-mono tabular-nums ${colorClass || "text-foreground"}`}>
         {value}
       </div>
     </div>
+    </MaybeExplainTooltip>
   );
 
   return (
-    <div className="surface-card group flex h-full flex-col overflow-hidden transition-all duration-200 hover:border-primary/30">
-      <div className="border-b border-border/50 px-4 pt-4 pb-3">
+    <div
+      className="surface-card group flex h-full cursor-pointer flex-col overflow-hidden transition-all duration-200 hover:border-primary/30"
+      role="link"
+      tabIndex={0}
+      onClick={() => navigate(detailHref)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          navigate(detailHref);
+        }
+      }}
+    >
+      <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <Link href={`/alphas/${factor.id}?source=official&tier=${factor.category === "graduated" ? "graduated" : "official"}`}>
+            <Link href={detailHref}>
               <span className="block cursor-pointer truncate text-sm font-semibold leading-5 text-foreground transition-colors duration-200 hover:text-primary">
                 {factor.name}
               </span>
@@ -202,32 +263,35 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
                 <span className="text-[10px] font-mono text-muted-foreground">{factor.id}</span>
               )}
             </div>
-            {factorDescription && (
-              <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                {factorDescription}
-              </p>
-            )}
           </div>
         </div>
       </div>
 
-      <div className="flex-1 space-y-3 px-4 py-3">
-        <PnlSparkline values={pnlValues} label={tr("PnL Curve", "PNL 折线图")} />
+      <div className="flex-1 space-y-4 px-4 py-3">
+        <PnlSparkline
+          values={pnlValues}
+          label={tr("PnL Curve", "PNL 折线图")}
+          explainEnabled={plainExplainEnabled}
+          explanation={metricExplanations.pnl}
+        />
 
-        <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-3">
-          <MetricCell label={tr("IS Sharpe", "样本内夏普比率")} value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} />
-          <MetricCell label={tr("OS Sharpe", "样本外夏普比率")} value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} />
-          <MetricCell label={tr("Fitness", "适应度")} value={factor.fitness.toFixed(2)} />
+        <div className="grid grid-cols-2 gap-x-5 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-3">
+          <MetricCell label={tr("IS Sharpe", "样本内夏普比率")} value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} explanation={metricExplanations.sharpe} />
+          <MetricCell label={tr("OS Sharpe", "样本外夏普比率")} value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} explanation={metricExplanations.osSharpe} />
+          <MetricCell label={tr("Fitness", "适应度")} value={factor.fitness.toFixed(2)} explanation={metricExplanations.fitness} />
           {!isBeginnerMode && <MetricCell label={tr("Returns", "收益")} value={factor.returns} />}
           {!isBeginnerMode && <MetricCell label={tr("Turnover", "换手率")} value={factor.turnover} />}
           {!isBeginnerMode && <MetricCell label={tr("Drawdown", "回撤")} value={factor.drawdown} colorClass="text-destructive" />}
         </div>
       </div>
 
-      <div className="mt-auto border-t border-border/30 bg-accent/20 px-4 py-3">
+      <div className="mt-auto border-t border-border/40 px-4 py-3">
         <div className="flex items-center justify-end gap-2">
           <button
-            onClick={onToggleStar}
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleStar();
+            }}
             className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${
               isStarred
                 ? "border-[#ffb900]/60 bg-[#ffb900]/30 text-[#ffb900]"
@@ -237,7 +301,7 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode }: {
           >
             <Star className={`h-[14px] w-[14px] ${isStarred ? "fill-current" : ""}`} />
           </button>
-          <Link href={`/alphas/${factor.id}?source=official&tier=${factor.category === "graduated" ? "graduated" : "official"}`}>
+          <Link href={detailHref}>
             <Button className="h-8 rounded-full bg-primary px-4 text-xs font-medium text-white hover:bg-primary/90 dark:text-[#020617]">
               {tr("View", "查看")}
               <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
@@ -259,6 +323,13 @@ export default function OfficialLibrary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-001", "AF-004"]));
   const [showFlywheelInfo, setShowFlywheelInfo] = useState(false);
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+    if (stored === "true") return true;
+    if (stored === "false") return false;
+    return true;
+  });
   const listRef = useRef<HTMLDivElement>(null);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
@@ -316,6 +387,11 @@ export default function OfficialLibrary() {
       duration: 0.4, stagger: 0.05, ease: "power3.out",
     });
   }, [categoryFilter, searchQuery]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
+  }, [plainExplainEnabled]);
 
   const tabs: { key: CategoryFilter; label: string }[] = [
     { key: "all", label: tr("All", "全部") },
@@ -472,6 +548,23 @@ export default function OfficialLibrary() {
               </div>
             </PopoverContent>
           </Popover>
+
+          {alphaViewMode === "beginner" && (
+            <button
+              type="button"
+              onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
+              className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
+                plainExplainEnabled
+                  ? "border-primary/50 bg-primary/12 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
+              }`}
+              aria-pressed={plainExplainEnabled}
+              title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              {tr("Plain explanations", "通俗解释")}
+            </button>
+          )}
         </div>
       </div>
 
@@ -483,6 +576,7 @@ export default function OfficialLibrary() {
               factor={factor}
               isStarred={starred.has(factor.id)}
               viewMode={alphaViewMode}
+              plainExplainEnabled={alphaViewMode === "beginner" && plainExplainEnabled}
               onToggleStar={() => {
                 setStarred((prev) => {
                   const next = new Set(prev);

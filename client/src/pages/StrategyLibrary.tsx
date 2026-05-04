@@ -40,7 +40,7 @@ function MetricPill({
   tone?: "positive" | "negative" | "neutral";
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-3 shadow-[0_1px_2px_rgba(15,23,42,0.03)] dark:border-border/60 dark:bg-background/35 dark:shadow-none">
+    <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <div
         className={`mt-1 text-sm font-semibold font-mono tabular-nums ${
@@ -248,7 +248,7 @@ export default function StrategyLibrary() {
               key={strategy.id}
               className="surface-card overflow-hidden border border-slate-200/80 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.05)] dark:border-border/70 dark:bg-card dark:shadow-none"
             >
-              <div className="border-b border-slate-200/70 px-5 py-4 dark:border-border/50">
+              <div className="px-5 py-4">
                 <Link href={`/strategies/${strategy.id}?source=official&tier=${tier}`}>
                   <h3 className="cursor-pointer truncate text-lg font-semibold leading-7 text-foreground transition-colors hover:text-primary">
                     {strategy.name}
@@ -263,17 +263,17 @@ export default function StrategyLibrary() {
                 </div>
               </div>
 
-              <div className="px-5 pb-4 pt-3">
+              <div className="px-5 pb-4 pt-2">
                 <p className="line-clamp-2 text-sm leading-7 text-muted-foreground">{translateDescription(strategy)}</p>
 
-                <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
+                <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-200/70 pt-4 dark:border-border/50 xl:grid-cols-4">
                   <MetricPill label={tr("ROI", "ROI")} value={strategy.annualReturn} tone="positive" />
                   <MetricPill label={tr("Win Rate", "胜率")} value={strategy.winRate} tone="positive" />
                   <MetricPill label={tr("Sharpe", "夏普比率")} value={strategy.sharpe.toFixed(2)} tone="positive" />
                   <MetricPill label={tr("Max Drawdown", "最大回撤")} value={strategy.maxDrawdown} tone="negative" />
                 </div>
 
-                <div className="mt-3 flex items-center justify-end gap-2">
+                <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-200/70 pt-3 dark:border-border/40">
                   <Link href={`/strategies/new?template=${strategy.id}&creationMode=platform&scale=single&inputMethod=form`}>
                     <Button
                       variant="outline"
