@@ -119,7 +119,7 @@ function MetricBox({
   tone?: "positive" | "negative" | "neutral";
 }) {
   return (
-    <div className="rounded-2xl border border-border/60 bg-background/35 p-3">
+    <div className="min-w-0">
       <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
       <p
         className={`mt-1 text-sm font-semibold font-mono tabular-nums ${
@@ -171,7 +171,7 @@ function StrategyCard({
   })();
   return (
     <div className="surface-card overflow-hidden border border-border/70">
-      <div className="border-b border-border/50 px-5 py-4">
+      <div className="px-5 py-4">
         <p className="text-lg font-semibold leading-7 text-foreground">{row.name}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className={`inline-flex h-[25px] items-center rounded-full border px-[11px] py-[5px] text-[10px] font-semibold uppercase tracking-[0.18em] ${row.statusClass}`}>
@@ -186,17 +186,17 @@ function StrategyCard({
         </div>
       </div>
 
-      <div className="px-5 pb-4 pt-3">
+      <div className="px-5 pb-4 pt-2">
         <p className="text-sm leading-7 text-muted-foreground">{translatedDescription}</p>
 
-        <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-4">
           {visibleMetrics.roi ? <MetricBox label="ROI" value={row.roi} tone="positive" /> : null}
           {visibleMetrics.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} tone="positive" /> : null}
           {visibleMetrics.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} tone="positive" /> : null}
           {visibleMetrics.maxDrawdown ? <MetricBox label={tr("Max Drawdown", "最大回撤")} value={row.maxDrawdown} tone="negative" /> : null}
         </div>
 
-        <div className="mt-3 flex items-center justify-end gap-2">
+        <div className="mt-4 flex items-center justify-end gap-2 border-t border-border/40 pt-3">
           <button
             type="button"
             className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${

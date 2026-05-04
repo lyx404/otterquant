@@ -176,21 +176,21 @@ const DEFAULT_WITHDRAWAL_NETWORK = WITHDRAWAL_NETWORKS[0];
 
 const modalTheme = {
   modal: {
-    shell: { light: "border-slate-200 bg-white", dark: "border-slate-700 bg-slate-950" },
-    left: { light: "bg-white", dark: "bg-slate-950" },
-    right: { light: "bg-[#f8fafc]", dark: "bg-[#070b16]" },
+    shell: { light: "border-slate-200 bg-white", dark: "border-slate-700/80 bg-slate-900" },
+    left: { light: "bg-white", dark: "bg-slate-900" },
+    right: { light: "bg-[#f8fafc]", dark: "bg-slate-900" },
   },
-  card: { light: "border-slate-200 bg-white", dark: "border-slate-700 bg-slate-900" },
-  subtleCard: { light: "border-slate-200 bg-slate-50/80", dark: "border-slate-700 bg-slate-900/80" },
+  card: { light: "border-slate-200 bg-white", dark: "border-slate-700/80 bg-slate-900" },
+  subtleCard: { light: "border-slate-200 bg-slate-50/70", dark: "border-slate-700/80 bg-slate-900/40" },
   text: {
     title: { light: "text-slate-950", dark: "text-slate-50" },
-    body: { light: "text-slate-600", dark: "text-slate-300" },
-    muted: { light: "text-slate-500", dark: "text-slate-400" },
-    faint: { light: "text-slate-400", dark: "text-slate-500" },
+    body: { light: "text-slate-600", dark: "text-slate-200" },
+    muted: { light: "text-slate-500", dark: "text-slate-300" },
+    faint: { light: "text-slate-400", dark: "text-slate-400" },
   },
   input: {
     light: "border-slate-200 bg-white text-slate-950 placeholder:text-slate-400 focus:border-[#635bff] focus:ring-[#635bff]/10",
-    dark: "border-slate-700 bg-slate-950 text-slate-50 placeholder:text-slate-600 focus:border-[#8b7cff] focus:ring-[#8b7cff]/10",
+    dark: "border-slate-600 bg-slate-950/70 text-slate-50 placeholder:text-slate-500 focus:border-[#9b8cff] focus:ring-[#9b8cff]/15",
   },
 };
 
@@ -338,20 +338,20 @@ function AmountCard({
       type="button"
       onClick={onClick}
       className={cx(
-        "rounded-2xl border p-4 text-left transition-all",
+        "rounded-xl border px-3 py-3 text-left transition-all",
         selected
-          ? "border-[#635bff] bg-[#635bff]/[0.07] shadow-[0_18px_38px_rgba(99,91,255,0.12)]"
+          ? "border-[#635bff] bg-[#635bff]/[0.08] dark:border-[#9b8cff] dark:bg-[#9b8cff]/[0.12]"
           : mode === "dark"
-            ? "border-slate-700 bg-slate-900 hover:border-slate-600 hover:bg-slate-800"
+            ? "border-slate-700/80 bg-transparent hover:border-slate-500 hover:bg-slate-800/50"
             : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
       )}
     >
-      <p className={cx("text-xs font-medium", selected ? "text-[#5546f6]" : modalTheme.text.faint[mode])}>预设金额</p>
+      <p className={cx("text-xs font-medium", selected ? "text-[#5546f6] dark:text-[#c9c2ff]" : modalTheme.text.faint[mode])}>预设金额</p>
       <div className="mt-2 flex items-baseline gap-1">
-        <span className={cx("text-2xl font-semibold tracking-tight", selected ? "text-[#5546f6]" : modalTheme.text.title[mode])}>
+        <span className={cx("text-2xl font-semibold tracking-tight", selected ? "text-[#5546f6] dark:text-[#c9c2ff]" : modalTheme.text.title[mode])}>
           {value}
         </span>
-        <span className={cx("text-xs font-bold", selected ? "text-[#5546f6]" : modalTheme.text.muted[mode])}>USD</span>
+        <span className={cx("text-xs font-bold", selected ? "text-[#5546f6] dark:text-[#c9c2ff]" : modalTheme.text.muted[mode])}>USD</span>
       </div>
       {variant !== "wallet" ? <p className={cx("mt-2 text-xs", modalTheme.text.faint[mode])}>{formatCredits(usdToCredits(value))} 额度</p> : null}
     </button>
@@ -405,11 +405,11 @@ function MockStripePaymentElement({
 
   if (!ready) return <SkeletonStripeElement mode={mode} />;
 
-  const baseCard = cx("w-full rounded-2xl border p-4 text-left transition", modalTheme.card[mode]);
+  const baseCard = cx("w-full border-t px-1 py-4 text-left transition first:border-t-0", mode === "dark" ? "border-slate-700/80 hover:bg-slate-800/35" : "border-slate-200 hover:bg-slate-50/80");
 
   return (
-    <div className="space-y-3">
-      <button type="button" onClick={() => setStripeMethod("link")} className={cx(baseCard, stripeMethod === "link" && "border-emerald-300 bg-emerald-50/80 shadow-[0_10px_24px_rgba(16,185,129,0.12)] dark:border-emerald-400/40 dark:bg-emerald-950/30")}>
+    <div className="rounded-xl border border-slate-200 px-3 dark:border-slate-700/80">
+      <button type="button" onClick={() => setStripeMethod("link")} className={cx(baseCard, stripeMethod === "link" && "bg-emerald-50/70 dark:bg-emerald-950/25")}>
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-sm font-bold text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300">link</div>
           <div className="min-w-0 flex-1">
@@ -432,13 +432,7 @@ function MockStripePaymentElement({
         </div>
       </button>
 
-      <div className="flex items-center gap-3 py-1">
-        <div className={cx("h-px flex-1", mode === "dark" ? "bg-slate-700" : "bg-slate-200")} />
-        <span className={cx("text-xs font-medium", modalTheme.text.faint[mode])}>或使用其他在线支付方式</span>
-        <div className={cx("h-px flex-1", mode === "dark" ? "bg-slate-700" : "bg-slate-200")} />
-      </div>
-
-      <button type="button" onClick={() => setStripeMethod("alipay")} className={cx(baseCard, stripeMethod === "alipay" && "border-blue-300 bg-blue-50/70 shadow-[0_10px_24px_rgba(37,99,235,0.10)] dark:border-blue-400/40 dark:bg-blue-950/30")}>
+      <button type="button" onClick={() => setStripeMethod("alipay")} className={cx(baseCard, stripeMethod === "alipay" && "bg-blue-50/70 dark:bg-blue-950/25")}>
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl font-bold text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">支</div>
           <div className="min-w-0 flex-1">
@@ -449,12 +443,12 @@ function MockStripePaymentElement({
               </div>
               <PaymentMethodRadio selected={stripeMethod === "alipay"} color="blue" mode={mode} />
             </div>
-            {stripeMethod === "alipay" ? <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className={cx("mt-4 rounded-xl border px-4 py-3 text-xs leading-5", mode === "dark" ? "border-blue-500/20 bg-slate-950 text-slate-400" : "border-blue-100 bg-white text-slate-500")}>真实接入时由 Stripe Payment Element 处理跳转与返回。</motion.div> : null}
+            {stripeMethod === "alipay" ? <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className={cx("mt-4 border-t pt-3 text-xs leading-5", mode === "dark" ? "border-blue-400/30 text-slate-300" : "border-blue-100 text-slate-500")}>真实接入时由 Stripe Payment Element 处理跳转与返回。</motion.div> : null}
           </div>
         </div>
       </button>
 
-      <button type="button" onClick={() => setStripeMethod("card")} className={cx(baseCard, stripeMethod === "card" && "border-[#635bff] bg-[#635bff]/[0.06] shadow-[0_10px_24px_rgba(99,91,255,0.10)]")}>
+      <button type="button" onClick={() => setStripeMethod("card")} className={cx(baseCard, stripeMethod === "card" && "bg-[#635bff]/[0.06]")}>
         <div className="flex items-start gap-3">
           <div className={cx("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold", mode === "dark" ? "bg-slate-800 text-slate-300" : "bg-slate-100 text-slate-600")}>卡</div>
           <div className="min-w-0 flex-1">
@@ -540,16 +534,16 @@ function UnifiedPaymentCard({
         <p className={cx("text-base font-semibold", modalTheme.text.title[mode])}>支付方式</p>
         <p className={cx("mt-1 text-sm leading-6", modalTheme.text.muted[mode])}>选择一种方式完成本次充值。</p>
       </div>
-      <div className={cx("grid grid-cols-2 gap-2 rounded-2xl p-1", mode === "dark" ? "bg-slate-800/80" : "bg-slate-200/70")}>
-        <button type="button" onClick={() => { setPaymentMethod("stripe"); setStatus("idle"); setError(""); }} className={cx("rounded-xl px-3 py-3 text-sm font-semibold transition", paymentMethod === "stripe" ? "bg-white text-[#5546f6] shadow-sm dark:bg-slate-950" : cx(modalTheme.text.muted[mode], "hover:text-slate-900 dark:hover:text-slate-100"))}>在线支付</button>
-        <button type="button" onClick={() => { setPaymentMethod("wallet"); setStatus("idle"); setError(""); }} className={cx("rounded-xl px-3 py-3 text-sm font-semibold transition", paymentMethod === "wallet" ? "bg-white text-[#5546f6] shadow-sm dark:bg-slate-950" : cx(modalTheme.text.muted[mode], "hover:text-slate-900 dark:hover:text-slate-100"))}>钱包余额</button>
+      <div className={cx("grid grid-cols-2 gap-1 rounded-xl p-1", mode === "dark" ? "bg-slate-800/80" : "bg-slate-200/70")}>
+        <button type="button" onClick={() => { setPaymentMethod("stripe"); setStatus("idle"); setError(""); }} className={cx("rounded-lg px-3 py-3 text-sm font-semibold transition", paymentMethod === "stripe" ? "bg-white text-[#5546f6] shadow-sm dark:bg-[#9b8cff] dark:text-slate-950" : cx(modalTheme.text.muted[mode], "hover:text-slate-900 dark:hover:text-slate-100"))}>在线支付</button>
+        <button type="button" onClick={() => { setPaymentMethod("wallet"); setStatus("idle"); setError(""); }} className={cx("rounded-lg px-3 py-3 text-sm font-semibold transition", paymentMethod === "wallet" ? "bg-white text-[#5546f6] shadow-sm dark:bg-[#9b8cff] dark:text-slate-950" : cx(modalTheme.text.muted[mode], "hover:text-slate-900 dark:hover:text-slate-100"))}>钱包余额</button>
       </div>
 
       <AnimatePresence mode="wait">
         {paymentMethod === "wallet" ? (
-          <motion.div key="wallet-inline" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="rounded-2xl border border-[#635bff]/20 bg-[#635bff]/[0.045] p-4">
+          <motion.div key="wallet-inline" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className={cx("border-t pt-5", mode === "dark" ? "border-slate-700/80" : "border-slate-200")}>
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-[#5546f6] shadow-sm dark:bg-slate-950">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#635bff]/10 text-[#5546f6] dark:bg-[#9b8cff]/[0.18] dark:text-[#c9c2ff]">
                 <ModalIcon name="wallet" className="h-5 w-5" />
               </div>
               <div>
@@ -557,13 +551,13 @@ function UnifiedPaymentCard({
                 <p className={cx("mt-1 text-xs leading-5", modalTheme.text.muted[mode])}>无需跳转，直接从当前钱包余额扣款。</p>
               </div>
             </div>
-            <div className={cx("mt-4 grid gap-2 rounded-2xl border p-4", modalTheme.card[mode])}>
+            <div className="mt-5 grid gap-3">
               <SummaryRow label="钱包余额" value={formatUsd(WALLET_BALANCE_USD)} mode={mode} />
               <SummaryRow label="本次支付" value={formatUsd(amount)} mode={mode} />
               <div className={cx("h-px", mode === "dark" ? "bg-slate-700" : "bg-slate-200")} />
               <SummaryRow label="支付后余额" value={formatUsd(walletAvailableAfter)} highlight mode={mode} />
             </div>
-            {!walletEnough ? <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-300">钱包余额不足，还差 {formatUsd(walletMissing)}，本次可使用在线支付。</div> : null}
+            {!walletEnough ? <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-200">钱包余额不足，还差 {formatUsd(walletMissing)}，本次可使用在线支付。</div> : null}
           </motion.div>
         ) : (
           <motion.div key="stripe-inline" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
@@ -572,18 +566,17 @@ function UnifiedPaymentCard({
         )}
       </AnimatePresence>
 
-      <div className={cx("rounded-2xl border p-4", modalTheme.card[mode])}>
+      <div className={cx("border-t pt-4", mode === "dark" ? "border-slate-700/80" : "border-slate-200")}>
         <div className="space-y-3">
           <SummaryRow label="支付金额" value={formatUsd(amount)} mode={mode} />
           {paymentMethod === "wallet" ? <SummaryRow label="支付后钱包余额" value={formatUsd(walletAvailableAfter)} mode={mode} /> : null}
-          <div className={cx("h-px", mode === "dark" ? "bg-slate-700" : "bg-slate-200")} />
           <SummaryRow label="到账金额" value={`${formatCredits(credits)} 额度`} highlight mode={mode} />
         </div>
       </div>
 
       {status === "error" ? <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700 dark:border-red-500/30 dark:bg-red-950/30 dark:text-red-300">{error}</motion.div> : null}
       {status === "success" ? <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-200"><div className="flex items-start gap-3"><ModalIcon name="check" className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-300" /><div><p className="font-semibold">充值成功</p><p>{formatCredits(credits)} 额度已到账。</p></div></div></motion.div> : null}
-      <Button onClick={handlePay} disabled={!canSubmit} className="h-12 w-full rounded-2xl bg-[#5546f6] text-base font-semibold text-white shadow-[0_18px_40px_rgba(85,70,246,0.25)] transition hover:bg-[#4637e8] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-slate-800 dark:disabled:text-slate-500">
+      <Button onClick={handlePay} disabled={!canSubmit} className="h-12 w-full rounded-xl bg-[#5546f6] text-base font-semibold text-white shadow-[0_14px_32px_rgba(85,70,246,0.22)] transition hover:bg-[#4637e8] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none dark:bg-[#8b7cff] dark:text-slate-950 dark:hover:bg-[#a79bff] dark:disabled:bg-slate-800 dark:disabled:text-slate-500">
         {isSubmitting ? (paymentMethod === "wallet" ? "扣款中..." : "Processing...") : status === "success" ? "已完成" : paymentMethod === "wallet" ? `使用钱包支付 ${formatUsd(amount)}` : `支付 ${formatUsd(amount)}`}
       </Button>
       <div className={cx("flex items-center justify-center gap-2 text-xs", modalTheme.text.faint[mode])}>
@@ -630,7 +623,7 @@ function FundsModalShell({
     <AnimatePresence>
       {open ? (
         <motion.div className={cx("fixed inset-0 z-50 flex items-center justify-center p-6 backdrop-blur-xl", mode === "dark" ? "bg-[#020617]/76" : "bg-slate-900/30")} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <motion.div initial={{ opacity: 0, y: 22, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }} transition={{ type: "spring", damping: 24, stiffness: 280 }} className={cx("relative grid h-[92vh] w-full max-w-[1120px] overflow-hidden rounded-[32px] border lg:grid-cols-[1.06fr_0.94fr]", mode === "dark" ? "shadow-[0_32px_100px_rgba(15,23,42,0.38)]" : "shadow-[0_30px_90px_rgba(15,23,42,0.18)]", modalTheme.modal.shell[mode])}>
+          <motion.div initial={{ opacity: 0, y: 22, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16, scale: 0.98 }} transition={{ type: "spring", damping: 24, stiffness: 280 }} className={cx("relative grid h-[92vh] w-full max-w-[1120px] overflow-hidden rounded-[28px] border lg:grid-cols-[1.06fr_0.94fr]", mode === "dark" ? "shadow-[0_32px_100px_rgba(2,6,23,0.52)]" : "shadow-[0_30px_90px_rgba(15,23,42,0.18)]", modalTheme.modal.shell[mode])}>
             <button onClick={onClose} type="button" className={cx("absolute right-5 top-5 z-20 rounded-full p-2 transition", modalTheme.text.faint[mode], mode === "dark" ? "hover:bg-slate-800 hover:text-slate-200" : "hover:bg-slate-100 hover:text-slate-700")} aria-label="Close">
               <ModalIcon name="x" className="h-5 w-5" />
             </button>
@@ -656,10 +649,10 @@ function FundsModalShell({
                     ))}
                   </div>
                 )}
-                <div className={cx("mt-6 rounded-3xl border p-4", modalTheme.subtleCard[mode])}>
+                <div className={cx("mt-7 border-t pt-5", mode === "dark" ? "border-slate-700/80" : "border-slate-200")}>
                   <label className="w-full">
                     <span className={cx("mb-2 block text-xs font-semibold", modalTheme.text.muted[mode])}>{amountLabel}</span>
-                    <div className={cx("flex h-14 items-center rounded-2xl border px-4 transition focus-within:ring-4", modalTheme.input[mode])}>
+                    <div className={cx("flex h-14 items-center rounded-xl border px-4 transition focus-within:ring-4", modalTheme.input[mode])}>
                       <input value={amount || ""} onChange={(event) => handleAmountChange(event.target.value)} inputMode="decimal" className="w-full bg-transparent text-xl font-semibold outline-none" placeholder="输入金额" />
                       <span className={cx("text-sm font-bold", modalTheme.text.faint[mode])}>USD</span>
                     </div>
@@ -668,7 +661,7 @@ function FundsModalShell({
                 </div>
               </div>
             </div>
-            <div className={cx("relative h-full min-h-0 overflow-y-scroll p-5 [scrollbar-gutter:stable] md:p-6", modalTheme.modal.right[mode])}>{rightContent}</div>
+            <div className={cx("relative h-full min-h-0 overflow-y-scroll border-t p-5 [scrollbar-gutter:stable] md:p-6 lg:border-l lg:border-t-0", mode === "dark" ? "border-slate-700/80" : "border-slate-200", modalTheme.modal.right[mode])}>{rightContent}</div>
           </motion.div>
         </motion.div>
       ) : null}
@@ -797,28 +790,28 @@ function WithdrawCard({
         <p className={cx("mt-1 text-sm leading-6", modalTheme.text.muted[mode])}>将钱包余额提现到已绑定的钱包地址。</p>
       </div>
       {accountBound ? (
-        <div className={cx("rounded-2xl border p-4", modalTheme.card[mode])}>
+        <div className={cx("border-t pt-5", mode === "dark" ? "border-slate-700/80" : "border-slate-200")}>
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#635bff]/10 text-[#5546f6]">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#635bff]/10 text-[#5546f6] dark:bg-[#9b8cff]/[0.18] dark:text-[#c9c2ff]">
               <ModalIcon name="wallet" className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
               <p className={cx("text-sm font-semibold", modalTheme.text.title[mode])}>提现到绑定钱包</p>
               <p className={cx("mt-1 text-xs leading-5", modalTheme.text.muted[mode])}>{selectedNetwork}</p>
               <p className={cx("mt-1 break-all text-xs leading-5", modalTheme.text.muted[mode])}>{walletAddress}</p>
-              <Button onClick={onRequestUnbind} variant="outline" className={cx("mt-4 h-9 rounded-xl px-3 text-xs font-semibold", mode === "dark" ? "border-slate-700 bg-slate-900 text-slate-300 hover:bg-slate-800" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}>解绑钱包</Button>
+              <Button onClick={onRequestUnbind} variant="outline" className={cx("mt-4 h-9 rounded-lg px-3 text-xs font-semibold", mode === "dark" ? "border-slate-600 bg-transparent text-slate-200 hover:bg-slate-800" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50")}>解绑钱包</Button>
             </div>
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-500/30 dark:bg-amber-950/30">
+        <div className="border-t border-amber-200 pt-5 dark:border-amber-400/40">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm dark:bg-slate-950 dark:text-amber-300">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-200">
               <ModalIcon name="wallet" className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
               <p className={cx("text-sm font-semibold", modalTheme.text.title[mode])}>未绑定提现钱包</p>
-              <p className="mt-1 text-xs leading-5 text-amber-700 dark:text-amber-300">请选择提现网络并输入钱包地址，绑定后才能提交提现申请。</p>
+              <p className="mt-1 text-xs leading-5 text-amber-700 dark:text-amber-200">请选择提现网络并输入钱包地址，绑定后才能提交提现申请。</p>
               <div className="mt-4 space-y-3">
                 <label className="block">
                   <span className={cx("mb-1.5 block text-xs font-medium", modalTheme.text.body[mode])}>选择网络</span>
@@ -831,28 +824,27 @@ function WithdrawCard({
                 </label>
                 <label className="block">
                   <span className={cx("mb-1.5 block text-xs font-medium", modalTheme.text.body[mode])}>钱包地址</span>
-                  <input value={walletAddress} onChange={(event) => { setWalletAddress(event.target.value); setAddressError(""); }} placeholder="输入钱包地址" className={cx("h-11 w-full rounded-xl border px-3 text-sm outline-none placeholder:text-slate-300 focus:ring-4 dark:placeholder:text-slate-600", hasAddressError ? "border-red-400 bg-white text-slate-950 focus:border-red-500 focus:ring-red-500/10 dark:bg-slate-950 dark:text-slate-50" : modalTheme.input[mode])} />
-                  <p className={cx("mt-1.5 text-xs leading-5", hasAddressError ? "text-red-600 dark:text-red-300" : "text-amber-700 dark:text-amber-300")}>{hasAddressError ? addressError : addressHint}</p>
+                  <input value={walletAddress} onChange={(event) => { setWalletAddress(event.target.value); setAddressError(""); }} placeholder="输入钱包地址" className={cx("h-11 w-full rounded-xl border px-3 text-sm outline-none placeholder:text-slate-300 focus:ring-4 dark:placeholder:text-slate-500", hasAddressError ? "border-red-400 bg-white text-slate-950 focus:border-red-500 focus:ring-red-500/10 dark:bg-slate-950 dark:text-slate-50" : modalTheme.input[mode])} />
+                  <p className={cx("mt-1.5 text-xs leading-5", hasAddressError ? "text-red-600 dark:text-red-300" : "text-amber-700 dark:text-amber-200")}>{hasAddressError ? addressError : addressHint}</p>
                 </label>
               </div>
-              <Button onClick={onBindAccount} className="mt-4 h-10 rounded-xl bg-[#5546f6] px-4 text-sm font-semibold text-white hover:bg-[#4637e8]">绑定钱包</Button>
+              <Button onClick={onBindAccount} className="mt-4 h-10 rounded-lg bg-[#5546f6] px-4 text-sm font-semibold text-white hover:bg-[#4637e8] dark:bg-[#8b7cff] dark:text-slate-950 dark:hover:bg-[#a79bff]">绑定钱包</Button>
             </div>
           </div>
         </div>
       )}
 
-      <div className={cx("rounded-2xl border p-4", modalTheme.card[mode])}>
+      <div className={cx("border-t pt-4", mode === "dark" ? "border-slate-700/80" : "border-slate-200")}>
         <div className="space-y-3">
           <SummaryRow label="钱包余额" value={formatUsd(WALLET_BALANCE_USD)} mode={mode} />
           <SummaryRow label="提现金额" value={formatUsd(amount)} mode={mode} />
-          <div className={cx("h-px", mode === "dark" ? "bg-slate-700" : "bg-slate-200")} />
           <SummaryRow label="提现后余额" value={formatUsd(walletAfterWithdraw)} highlight mode={mode} />
         </div>
       </div>
-      {overBalance ? <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-300">提现金额超过钱包余额，请调整金额后再提交。</div> : null}
+      {overBalance ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-700 dark:border-amber-400/40 dark:bg-amber-950/40 dark:text-amber-200">提现金额超过钱包余额，请调整金额后再提交。</div> : null}
       {status === "error" ? <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700 dark:border-red-500/30 dark:bg-red-950/30 dark:text-red-300">{error}</motion.div> : null}
       {status === "success" ? <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm leading-6 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-950/30 dark:text-emerald-200"><div className="flex items-start gap-3"><ModalIcon name="check" className="mt-0.5 h-5 w-5 text-emerald-600 dark:text-emerald-300" /><div><p className="font-semibold">提现申请已提交</p><p>{successMessage}</p></div></div></motion.div> : null}
-      <Button onClick={handleWithdraw} disabled={!canSubmit} className="h-12 w-full rounded-2xl bg-[#5546f6] text-base font-semibold text-white shadow-[0_18px_40px_rgba(85,70,246,0.25)] transition hover:bg-[#4637e8] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-slate-800 dark:disabled:text-slate-500">
+      <Button onClick={handleWithdraw} disabled={!canSubmit} className="h-12 w-full rounded-xl bg-[#5546f6] text-base font-semibold text-white shadow-[0_14px_32px_rgba(85,70,246,0.22)] transition hover:bg-[#4637e8] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none dark:bg-[#8b7cff] dark:text-slate-950 dark:hover:bg-[#a79bff] dark:disabled:bg-slate-800 dark:disabled:text-slate-500">
         {isSubmitting ? "提交中..." : status === "success" ? "已提交" : `提现 ${formatUsd(amount)}`}
       </Button>
       <div className={cx("flex items-center justify-center gap-2 text-xs", modalTheme.text.faint[mode])}>
@@ -917,7 +909,7 @@ function WalletWithdrawModal({ open, onClose, mode = "dark" }: { open: boolean; 
   }
 
   const leftHero = (
-    <div className="rounded-3xl border border-[#635bff]/15 bg-[#635bff]/[0.06] p-5">
+    <div className="border-t border-[#635bff]/20 pt-5 dark:border-[#9b8cff]/35">
       <p className="text-xs font-semibold text-[#5546f6]">钱包余额</p>
       <p className={cx("mt-2 text-3xl font-semibold tracking-tight", modalTheme.text.title[mode])}>{formatUsd(WALLET_BALANCE_USD)}</p>
       <p className={cx("mt-2 text-sm", modalTheme.text.muted[mode])}>可提现余额</p>
@@ -1043,10 +1035,10 @@ function CreditsPage() {
         </TabsList>
 
         <TabsContent value="wallet" className="space-y-6">
-          <section className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="grid grid-cols-1 divide-y divide-border lg:grid-cols-[1.4fr_1fr] lg:divide-x lg:divide-y-0">
+          <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/70">
+            <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr]">
               <div className="p-6">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-300">
                   <Wallet className="h-4 w-4" />
                   {tr("Wallet balance", "钱包余额")}
                 </div>
@@ -1056,7 +1048,7 @@ function CreditsPage() {
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Button
                     variant="outline"
-                    className="h-9 rounded-lg border-border bg-card px-4 text-sm text-foreground hover:bg-accent"
+                    className="h-9 rounded-lg border-sky-400/45 bg-sky-400/10 px-4 text-sm font-medium text-sky-700 hover:border-sky-500/60 hover:bg-sky-400/15 dark:border-sky-300/45 dark:bg-sky-300/12 dark:text-sky-100 dark:hover:bg-sky-300/18"
                     onClick={() => setWalletWithdrawOpen(true)}
                   >
                     <CreditCard className="mr-2 h-4 w-4" />
@@ -1064,8 +1056,8 @@ function CreditsPage() {
                   </Button>
                 </div>
               </div>
-              <div className="p-6">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="border-t border-border/60 p-6 lg:border-l lg:border-t-0">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-300">
                   <Trophy className="h-4 w-4" />
                   {tr("Arena cumulative prizes", "竞技场累计奖金")}
                 </div>
@@ -1111,16 +1103,16 @@ function CreditsPage() {
         </TabsContent>
 
         <TabsContent value="points" className="space-y-6">
-          <section className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="grid grid-cols-1 divide-y divide-border md:grid-cols-3 md:divide-x md:divide-y-0">
+          <section className="overflow-hidden rounded-2xl border border-border/70 bg-card/70">
+            <div className="grid grid-cols-1 md:grid-cols-3">
               <div className="p-6">
-                <p className="text-sm text-muted-foreground">{tr("Remaining credit", "当前剩余额度")}</p>
+                <p className="text-sm text-muted-foreground dark:text-slate-300">{tr("Remaining credit", "当前剩余额度")}</p>
                 <p className="mt-3 font-mono text-4xl font-semibold text-foreground">
                   {pointBalance.toLocaleString()}
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   <Button
-                    className="h-9 rounded-lg bg-foreground px-4 text-sm font-medium text-background hover:bg-foreground/90"
+                    className="h-9 rounded-lg bg-indigo-500 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-400 dark:bg-indigo-400 dark:text-slate-950 dark:hover:bg-indigo-300"
                     onClick={() => setCreditRechargeOpen(true)}
                   >
                     <Wallet className="mr-2 h-4 w-4" />
@@ -1128,24 +1120,24 @@ function CreditsPage() {
                   </Button>
                 </div>
               </div>
-              <div className="p-6">
-                <p className="text-sm text-muted-foreground">{tr("Credit used this month", "本月共消费额度")}</p>
+              <div className="border-t border-border/60 p-6 md:border-l md:border-t-0">
+                <p className="text-sm text-muted-foreground dark:text-slate-300">{tr("Credit used this month", "本月共消费额度")}</p>
                 <p className="mt-3 font-mono text-4xl font-semibold text-amber-400">
                   {monthlyPointUsage.toLocaleString()}
                 </p>
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="mt-4 text-sm text-muted-foreground dark:text-slate-300">
                   {tr("Credit is valid for 12 months.", "额度有效期为 12 个月")}
                 </p>
               </div>
-              <div className="p-6">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="border-t border-border/60 p-6 md:border-l md:border-t-0">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground dark:text-slate-300">
                   <Layers3 className="h-4 w-4" />
                   {tr("Hosted strategies", "当前托管策略数量")}
                 </div>
                 <p className="mt-3 font-mono text-4xl font-semibold text-foreground">
                   {hostedStrategyCount}
                 </p>
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="mt-4 text-sm text-muted-foreground dark:text-slate-300">
                   {tr("Strategy hosting fee: 500 credit / strategy / month", "策略托管费：500额度/个/月")}
                 </p>
               </div>
