@@ -584,6 +584,11 @@ export default function MyAlphas() {
     });
   };
 
+  const restoreDefaultColumns = () => {
+    setVisibleColumns(new Set(getDefaultVisibleColumnKeysForMode(alphaViewMode)));
+    setPage(1);
+  };
+
   const toggleStar = (id: string) => {
     setStarred((prev) => {
       const next = new Set(prev);
@@ -1031,6 +1036,15 @@ export default function MyAlphas() {
                     <span className="text-xs text-foreground">{columnLabelMap[col.key as keyof typeof columnLabelMap] ?? col.label}</span>
                   </label>
                 ))}
+                <div className="mt-2 border-t border-border/60 pt-2">
+                  <button
+                    type="button"
+                    className="w-full rounded-lg px-2 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    onClick={restoreDefaultColumns}
+                  >
+                    {tr("Restore defaults", "恢复默认")}
+                  </button>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
