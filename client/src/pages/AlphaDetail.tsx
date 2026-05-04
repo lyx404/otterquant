@@ -446,6 +446,20 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     tr("Performance is unstable in some years", "在某些年份表现不稳定"),
     tr("May not be suitable as a standalone factor", "可能不适合单独使用"),
   ];
+  const beginnerSuggestionItems = [
+    tr(
+      "Factor tuning: review the parameter window and add liquidity or volatility filters to improve stability.",
+      "因子调整：检查参数窗口，可加入流动性或波动率过滤，提升信号稳定性。"
+    ),
+    tr(
+      "Factor usage: use it as a supporting signal in a portfolio; avoid using it as the only trading basis.",
+      "因子使用：建议作为组合中的辅助信号，不建议单独作为交易依据。"
+    ),
+    tr(
+      "Validation path: add it to a simulated strategy first, then observe turnover, drawdown, and yearly performance.",
+      "验证路径：先加入模拟策略，重点观察换手率、回撤和分年度表现。"
+    ),
+  ];
   const conclusionSection = (
     <div className="surface-card">
       <div className="px-6 py-4 pb-3">
@@ -682,12 +696,14 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                 </div>
                 <div className="space-y-2 md:border-l md:border-border/60 md:pl-8">
                   <div className="label-upper text-[9px] text-primary">{tr("Suggestion", "建议")}</div>
-                  <p className="text-sm leading-6 text-foreground">
-                    {tr(
-                      "Add it to a simulated strategy first. Do not use it directly in live trading.",
-                      "先加入模拟策略，不建议直接用于实盘。"
-                    )}
-                  </p>
+                  <ul className="space-y-1.5 text-sm leading-6 text-foreground">
+                    {beginnerSuggestionItems.map((item) => (
+                      <li key={item} className="flex items-start gap-2">
+                        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
             </div>

@@ -496,6 +496,15 @@ export default function MyStrategies() {
                     />
                   </label>
                 ))}
+                <div className="mt-1 border-t border-border/60 pt-1">
+                  <button
+                    type="button"
+                    className="flex w-full items-center rounded-lg px-2.5 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    onClick={() => setVisibleMetrics({ ...defaultVisibleMetrics })}
+                  >
+                    {tr("Restore defaults", "恢复默认")}
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>

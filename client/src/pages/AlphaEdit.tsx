@@ -13,12 +13,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import AlphaDetail from "@/pages/AlphaDetail";
 import { factors as detailFactors } from "@/lib/mockData";
-import { useTheme } from "@/contexts/ThemeContext";
 
 type AgentMode = "platform" | "own";
 type StrategyType = "time-series" | "cross-sectional";
@@ -45,6 +50,18 @@ type RoundResult = {
   pnlSeries: number[];
 };
 
+type ReferenceFactor = Pick<RoundResult, "id" | "factorName">;
+
+type ComposerSnapshot = {
+  strategyType: StrategyType | null;
+  prompt: string;
+  promptBeforeOptimization: string | null;
+  selectedModels: ModelKey[];
+  resultCount: number | null;
+  referenceFactors: ReferenceFactor[];
+  composerCollapsed: boolean;
+};
+
 type GenerationRound = {
   id: string;
   createdAt: string;
@@ -57,9 +74,9 @@ type GenerationRound = {
   results: RoundResult[];
 };
 
-const CREDIT_BALANCE_STORAGE_KEY = "otterquant:credit-balance";
-const DEFAULT_CREDIT_BALANCE = 3;
-const CREDIT_DISPLAY_RATE = 1000;
+const CREDIT_DISPLAY_RATE = 100;
+const CREDIT_BALANCE_STORAGE_KEY = "otterquant:credit-balance:v2";
+const DEFAULT_CREDIT_BALANCE = 12840 / CREDIT_DISPLAY_RATE;
 
 function readCreditBalance() {
   if (typeof window === "undefined") return DEFAULT_CREDIT_BALANCE;
@@ -193,6 +210,17 @@ function formatMinutesAgo(timestamp: string, uiLang: "en" | "zh") {
   const delta = Math.max(1, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000));
   if (uiLang === "zh") return `${delta} 分钟前`;
   return `${delta} minute${delta === 1 ? "" : "s"} ago`;
+}
+
+function formatGeneratedAt(timestamp: string) {
+  const date = new Date(timestamp);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  if (Number.isNaN(date.getTime())) return "--";
+
+  return [
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    `${pad(date.getHours())}:${pad(date.getSeconds())}`,
+  ].join(" ");
 }
 
 function buildPnlSeries(seed: number) {
@@ -356,57 +384,36 @@ function ModelLogo({ model }: { model: ModelKey }) {
 }
 
 function Sparkline({ data }: { data: number[] }) {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
   const gradientId = useId().replace(/:/g, "");
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
-  const points = data.map((value, index) => {
-    const x = (index / (data.length - 1 || 1)) * 100;
-    const y = 84 - ((value - min) / range) * 68;
-    return { x, y };
-  });
-  const allPoints = points.map(({ x, y }) => `${x},${y}`).join(" ");
-  const testStartIndex = Math.max(1, data.length - Math.max(4, Math.round(data.length * 0.28)));
-  const trainPoints = points.slice(0, testStartIndex + 1).map(({ x, y }) => `${x},${y}`).join(" ");
-  const testPoints = points.slice(testStartIndex).map(({ x, y }) => `${x},${y}`).join(" ");
-  const lastPoint = points[points.length - 1];
-  const trainColor = isDark ? "#818CF8" : "#4F46E5";
-  const testColor = isDark ? "#34D399" : "#10B981";
-  const areaBaseY = 90;
+  const width = 420;
+  const height = 86;
+  const padding = 6;
+  const step = (width - padding * 2) / Math.max(data.length - 1, 1);
+  const points = data.map((value, index) => ({
+    x: padding + index * step,
+    y: height - padding - ((value - min) / range) * (height - padding * 2),
+  }));
+  const path = points.map(({ x, y }, index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
+  const areaPath = path ? `${path} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z` : "";
 
   return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
+      <path d={areaPath} fill={`url(#${gradientId}-alpha-edit-pnl-fill)`} opacity="0.55" />
+      <path d={path} stroke={`url(#${gradientId}-alpha-edit-pnl-line)`} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
       <defs>
-        <linearGradient id={`${gradientId}-pnl-fill`} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={isDark ? "rgba(129,140,248,0.32)" : "rgba(79,70,229,0.26)"} />
-          <stop offset="68%" stopColor={isDark ? "rgba(52,211,153,0.12)" : "rgba(16,185,129,0.08)"} />
-          <stop offset="100%" stopColor="rgba(15,23,42,0.02)" />
+        <linearGradient id={`${gradientId}-alpha-edit-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#818CF8" />
+          <stop offset="72%" stopColor="#818CF8" />
+          <stop offset="100%" stopColor="#34D399" />
+        </linearGradient>
+        <linearGradient id={`${gradientId}-alpha-edit-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#818CF8" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      <polyline
-        fill={`url(#${gradientId}-pnl-fill)`}
-        stroke="none"
-        points={`${allPoints} 100,${areaBaseY} 0,${areaBaseY}`}
-      />
-      <polyline
-        fill="none"
-        stroke={trainColor}
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={trainPoints}
-      />
-      <polyline
-        fill="none"
-        stroke={testColor}
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={testPoints}
-      />
-      <circle cx={lastPoint.x} cy={lastPoint.y} r="2.3" fill={testColor} />
     </svg>
   );
 }
@@ -414,12 +421,18 @@ function Sparkline({ data }: { data: number[] }) {
 function ResultCard({
   result,
   onSelect,
+  onUseAsReference,
+  referenceDisabled = false,
+  referenceActive = false,
   className = "",
   active = false,
   status = "complete",
 }: {
   result: RoundResult;
   onSelect?: () => void;
+  onUseAsReference?: () => void;
+  referenceDisabled?: boolean;
+  referenceActive?: boolean;
   className?: string;
   active?: boolean;
   status?: GenerationStatus;
@@ -430,10 +443,11 @@ function ResultCard({
   const clickable = Boolean(onSelect) && !isGenerating;
   const detailFactor = detailFactors.find((item) => item.id === result.factorId);
   const isPassed = detailFactor?.status === "active" || detailFactor?.status === "testing";
+  const canUseReference = Boolean(onUseAsReference) && !isGenerating;
 
-  return (
+  const card = (
     <article
-      className={`surface-card relative flex h-full min-w-0 flex-col gap-0 overflow-hidden rounded-2xl border border-border px-[8px] py-[12px] ${
+      className={`surface-card relative flex min-w-0 flex-col gap-0 overflow-hidden rounded-2xl border border-border px-4 py-4 ${
         clickable ? "cursor-pointer transition hover:border-primary/35 hover:bg-primary/5" : ""
       } ${active ? "border-primary/45 ring-1 ring-primary/35" : ""} ${className}`}
       onClick={clickable ? onSelect : undefined}
@@ -460,56 +474,73 @@ function ResultCard({
         ) : null}
 
       <div className="mb-3 min-w-0">
-        <p className="line-clamp-2 break-words pl-2 text-[12px] font-semibold leading-[1.25] tracking-[-0.01em] text-foreground">
+        <p className="line-clamp-2 break-words text-[12px] font-semibold leading-[1.25] tracking-[-0.01em] text-foreground">
           {result.factorName}
         </p>
       </div>
 
-      <div className="flex flex-none flex-col rounded-[1.1rem] border border-border/70 bg-[linear-gradient(180deg,rgba(99,102,241,0.08),rgba(15,23,42,0.02))] px-3 py-3">
-        <div className="mb-2 flex items-center gap-2">
-          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/90">{tr("PnL Curve", "盈亏曲线")}</p>
-        </div>
-        <div className="aspect-video w-full min-h-0">
-          <Sparkline data={result.pnlSeries} />
-        </div>
+      <div className="flex flex-none flex-col space-y-2">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("PnL Curve", "PNL折线图")}</div>
+        <Sparkline data={result.pnlSeries} />
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-[6px] text-[12px]">
-        <div className="min-w-0 rounded-xl border border-border/50 bg-accent/55 px-2.5 py-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">{tr("Fitness", "适应度")}</p>
-          <p className="mt-2 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-foreground">
+      <div className="mt-3 grid grid-cols-3 border-y border-border/60 py-2.5 text-[12px]">
+        <div className="min-w-0 pr-2.5">
+          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground">{tr("Fitness", "适应度")}</p>
+          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-foreground">
             {result.fitness.toFixed(2)}
           </p>
         </div>
-        <div className="min-w-0 rounded-xl border border-border/50 bg-accent/55 px-2.5 py-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">{tr("Returns", "收益率")}</p>
-          <p className="mt-2 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-emerald-400">
+        <div className="min-w-0 px-2.5">
+          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground">{tr("Returns", "收益率")}</p>
+          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-emerald-400">
             +{result.returns.toFixed(1)}%
           </p>
         </div>
-        <div className="min-w-0 rounded-xl border border-border/50 bg-accent/55 px-2.5 py-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground/85">{tr("Drawdown", "回撤")}</p>
-          <p className="mt-2 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-rose-400">
+        <div className="min-w-0 pl-2.5">
+          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground">{tr("Drawdown", "回撤")}</p>
+          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-rose-400">
             -{result.drawdown.toFixed(1)}%
           </p>
         </div>
       </div>
 
-      <div className="mt-auto flex items-center gap-2 pt-2">
+      <div className="mt-3 flex min-w-0 items-center gap-2">
         <span
-          className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-mono tracking-[0.15em] ${
+          className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.15em] ${
             isPassed
               ? "border-success/20 bg-success/10 text-success"
               : "border-destructive/20 bg-destructive/10 text-destructive"
           }`}
         >
-          {isPassed ? tr("PASSED", "已通过") : tr("FAILED", "未通过")}
+          {isPassed ? tr("PASSED", "通过") : tr("FAILED", "失败")}
         </span>
-        <span className="max-w-full truncate rounded-full bg-accent px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+        <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">
           {result.model}
         </span>
       </div>
     </article>
+  );
+
+  if (!canUseReference) return card;
+
+  return (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
+      <ContextMenuContent className="w-36 rounded-xl">
+        <ContextMenuItem
+          disabled={referenceDisabled || referenceActive}
+          onSelect={() => onUseAsReference?.()}
+          className="text-xs"
+        >
+          {referenceActive
+            ? tr("Already referenced", "已用作参考")
+            : referenceDisabled
+              ? tr("Up to 5 references", "最多 5 个参考")
+              : tr("Use as reference", "用作参考")}
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -566,35 +597,37 @@ export default function AlphaEdit() {
   const [resultCountMenuOpen, setResultCountMenuOpen] = useState(false);
   const [selectedFactorId, setSelectedFactorId] = useState<string | null>(null);
   const [selectedPreview, setSelectedPreview] = useState<RoundResult | null>(null);
+  const [referenceFactors, setReferenceFactors] = useState<ReferenceFactor[]>([]);
   const [pendingDeleteRoundId, setPendingDeleteRoundId] = useState<string | null>(null);
   const [showInsufficientCreditDialog, setShowInsufficientCreditDialog] = useState(false);
   const [availableCredit, setAvailableCredit] = useState(() => readCreditBalance());
   const [activeGeneratingRoundId, setActiveGeneratingRoundId] = useState<string | null>(null);
   const [latestRoundId, setLatestRoundId] = useState<string | null>(null);
 
-  const [strategyType, setStrategyType] = useState<StrategyType>("time-series");
+  const [strategyType, setStrategyType] = useState<StrategyType | null>(null);
   const [prompt, setPrompt] = useState("");
   const [promptBeforeOptimization, setPromptBeforeOptimization] = useState<string | null>(null);
-  const [selectedModels, setSelectedModels] = useState<ModelKey[]>(["chatgpt-5-4"]);
-  const [resultCount, setResultCount] = useState(4);
-  const [rounds, setRounds] = useState<GenerationRound[]>([
+  const [selectedModels, setSelectedModels] = useState<ModelKey[]>([]);
+  const [resultCount, setResultCount] = useState<number | null>(null);
+  const [rounds, setRounds] = useState<GenerationRound[]>(() => [
     buildRound({
       strategyType: "time-series",
       prompt: "Generate robust mean-reversion factors for BTC perpetual futures.",
       models: ["chatgpt-5-4"],
       resultCount: 3,
-      estimatedCredit: 0.96,
+      estimatedCredit: 1.18,
     }),
   ]);
 
   const estimatedCredit = useMemo(() => {
+    if (!resultCount || selectedModels.length === 0) return 0;
     const modelCost = selectedModels.reduce((sum, item) => sum + getModelOption(item).unitCost, 0);
     const promptCost = prompt.trim().length > 0 ? Math.min(0.22, prompt.trim().length * 0.0015) : 0;
     return Number((modelCost * resultCount + promptCost).toFixed(2));
   }, [prompt, resultCount, selectedModels]);
 
-  const totalResultCount = resultCount * selectedModels.length;
-  const selectedModelSummary = useMemo(() => formatModelSummary(selectedModels), [selectedModels]);
+  const totalResultCount = (resultCount ?? 0) * selectedModels.length;
+  const selectedModelSummary = useMemo(() => (selectedModels.length > 0 ? formatModelSummary(selectedModels) : ""), [selectedModels]);
   const selectedLogoModels = useMemo(() => {
     const seenBrands = new Set<string>();
     return selectedModels.filter((item) => {
@@ -607,9 +640,10 @@ export default function AlphaEdit() {
 
   const promptOptimized = promptBeforeOptimization !== null;
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const composerReady = Boolean(strategyType && selectedModels.length > 0 && resultCount);
 
   const optimizePrompt = () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !strategyType) return;
     setPromptBeforeOptimization(prompt);
     setPrompt(optimizePromptText(prompt, strategyType));
   };
@@ -638,34 +672,79 @@ export default function AlphaEdit() {
     setActiveGeneratingRoundId(null);
   };
 
+  const readComposerSnapshot = (): ComposerSnapshot => ({
+    strategyType,
+    prompt,
+    promptBeforeOptimization,
+    selectedModels,
+    resultCount,
+    referenceFactors,
+    composerCollapsed,
+  });
+
+  const restoreComposerSnapshot = (snapshot: ComposerSnapshot) => {
+    setStrategyType(snapshot.strategyType);
+    setPrompt(snapshot.prompt);
+    setPromptBeforeOptimization(snapshot.promptBeforeOptimization);
+    setSelectedModels(snapshot.selectedModels);
+    setResultCount(snapshot.resultCount);
+    setReferenceFactors(snapshot.referenceFactors);
+    setComposerCollapsed(snapshot.composerCollapsed);
+    setModelMenuOpen(false);
+    setResultCountMenuOpen(false);
+  };
+
+  const resetComposerToDefault = () => {
+    setStrategyType(null);
+    setPrompt("");
+    setPromptBeforeOptimization(null);
+    setSelectedModels([]);
+    setResultCount(null);
+    setReferenceFactors([]);
+    setComposerCollapsed(false);
+    setModelMenuOpen(false);
+    setResultCountMenuOpen(false);
+  };
+
   const runGeneration = () => {
     if (activeGeneratingRoundId) {
       pauseGeneration();
       return;
     }
 
-    if (availableCredit < estimatedCredit) {
-      setShowInsufficientCreditDialog(true);
+    const submittedComposer = readComposerSnapshot();
+    if (!submittedComposer.strategyType || submittedComposer.selectedModels.length === 0 || !submittedComposer.resultCount) {
       return;
     }
 
-    const nextRound = buildRound({
-      strategyType,
-      prompt,
-      models: selectedModels,
-      resultCount,
-      estimatedCredit,
-      status: "generating",
-    });
-    const nextCreditBalance = Number((availableCredit - estimatedCredit).toFixed(2));
-    setAvailableCredit(nextCreditBalance);
-    writeCreditBalance(nextCreditBalance);
-    setRounds((prev) => [nextRound, ...prev]);
-    setActiveGeneratingRoundId(nextRound.id);
-    setLatestRoundId(nextRound.id);
+    if (availableCredit < estimatedCredit) {
+      setShowInsufficientCreditDialog(true);
+      restoreComposerSnapshot(submittedComposer);
+      return;
+    }
 
-    if (generationTimerRef.current) window.clearTimeout(generationTimerRef.current);
-    generationTimerRef.current = window.setTimeout(() => finishGeneration(nextRound.id), 2400);
+    try {
+      const nextRound = buildRound({
+        strategyType: submittedComposer.strategyType,
+        prompt: submittedComposer.prompt,
+        models: submittedComposer.selectedModels,
+        resultCount: submittedComposer.resultCount,
+        estimatedCredit,
+        status: "generating",
+      });
+      const nextCreditBalance = Number((availableCredit - estimatedCredit).toFixed(2));
+      setAvailableCredit(nextCreditBalance);
+      writeCreditBalance(nextCreditBalance);
+      setRounds((prev) => [nextRound, ...prev]);
+      setActiveGeneratingRoundId(nextRound.id);
+      setLatestRoundId(nextRound.id);
+      resetComposerToDefault();
+
+      if (generationTimerRef.current) window.clearTimeout(generationTimerRef.current);
+      generationTimerRef.current = window.setTimeout(() => finishGeneration(nextRound.id), 2400);
+    } catch {
+      restoreComposerSnapshot(submittedComposer);
+    }
   };
 
   const refillComposerFromRound = (round: GenerationRound) => {
@@ -678,6 +757,18 @@ export default function AlphaEdit() {
     setComposerCollapsed(false);
     setModelMenuOpen(false);
     setResultCountMenuOpen(false);
+  };
+
+  const addReferenceFactor = (result: RoundResult) => {
+    setReferenceFactors((prev) => {
+      if (prev.some((item) => item.id === result.id)) return prev;
+      if (prev.length >= 5) return prev;
+      return [...prev, { id: result.id, factorName: result.factorName }];
+    });
+  };
+
+  const removeReferenceFactor = (id: string) => {
+    setReferenceFactors((prev) => prev.filter((item) => item.id !== id));
   };
 
   const toggleModelSelection = (nextModel: ModelKey) => {
@@ -819,6 +910,25 @@ export default function AlphaEdit() {
       ) : (
         <>
           <div className="flex-1 space-y-5 overflow-y-auto pb-72">
+            {rounds.length === 0 ? (
+              <div className="flex min-h-[420px] items-center justify-center px-4 py-10 text-center">
+                <div className="flex flex-col items-center">
+                  <div className="relative h-28 w-32">
+                    <div className="absolute inset-x-4 bottom-2 h-10 rounded-full bg-primary/10 blur-xl" />
+                    <svg viewBox="0 0 160 128" className="relative h-full w-full" fill="none" aria-hidden="true">
+                      <rect x="34" y="30" width="92" height="62" rx="18" className="fill-card stroke-border" strokeWidth="2" />
+                      <path d="M51 72C61 58 69 82 80 66C91 50 99 58 109 45" className="stroke-primary" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M51 82H109" className="stroke-border" strokeWidth="3" strokeLinecap="round" />
+                      <circle cx="52" cy="28" r="8" className="fill-primary/15 stroke-primary/35" strokeWidth="2" />
+                      <circle cx="122" cy="83" r="6" className="fill-emerald-400/20 stroke-emerald-400/50" strokeWidth="2" />
+                      <path d="M80 12L84 21L94 24L84 28L80 37L76 28L66 24L76 21L80 12Z" className="fill-primary/20 stroke-primary/40" strokeWidth="2" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <p className="mt-3 text-sm font-medium text-foreground">{tr("No records yet", "暂无记录")}</p>
+                </div>
+              </div>
+            ) : null}
+
             {rounds.map((round) => (
               <section
                 key={round.id}
@@ -826,13 +936,6 @@ export default function AlphaEdit() {
                 className="scroll-mt-4 grid items-start gap-4 md:grid-cols-3 xl:grid-cols-4"
               >
                 <article className="surface-card h-fit rounded-2xl border border-border p-4 text-sm">
-                  <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="font-medium text-foreground">
-                      {round.status === "generating" ? tr("Generating", "生成中") : `${round.resultCount} ${tr("generations", "生成数量")}`}
-                    </span>
-                    <span>{formatMinutesAgo(round.createdAt, uiLang)}</span>
-                  </div>
-
                   <div className="space-y-2.5 text-xs">
                     <div>
                       <p className="text-[11px] text-muted-foreground">{tr("Factor Type", "因子类型")}</p>
@@ -859,48 +962,55 @@ export default function AlphaEdit() {
                         <p className="text-[12px] font-medium text-foreground">{round.resultCount}</p>
                       </div>
                       <div>
-                        <p className="text-[11px] text-muted-foreground">{tr("Credit", "额度")}</p>
-                        <p className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400">{round.estimatedCredit.toFixed(2)}</p>
+                        <p className="text-[11px] text-muted-foreground">{tr("Credit Used", "使用额度")}</p>
+                        <p className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400">{formatCreditUnits(round.estimatedCredit)}</p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 pt-1.5 text-muted-foreground">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            className="transition hover:text-foreground"
-                            aria-label={tr("Regenerate", "重新生成")}
-                            onClick={() => refillComposerFromRound(round)}
-                          >
-                            <RefreshCw className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{tr("Regenerate", "重新生成")}</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            className="transition hover:text-destructive"
-                            aria-label={tr("Delete", "删除")}
-                            onClick={() => setPendingDeleteRoundId(round.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>{tr("Delete", "删除")}</TooltipContent>
-                      </Tooltip>
+                    <div className="flex items-center justify-between gap-3 pt-1.5 text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="transition hover:text-foreground"
+                              aria-label={tr("Regenerate", "重新生成")}
+                              onClick={() => refillComposerFromRound(round)}
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>{tr("Regenerate", "重新生成")}</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="transition hover:text-destructive"
+                              aria-label={tr("Delete", "删除")}
+                              onClick={() => setPendingDeleteRoundId(round.id)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>{tr("Delete", "删除")}</TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <span className="whitespace-nowrap text-[11px] tabular-nums text-muted-foreground/50">
+                        {formatGeneratedAt(round.createdAt)}
+                      </span>
                     </div>
                   </div>
                 </article>
 
-                <div className="grid gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-3 xl:grid-cols-3">
+                <div className="grid items-start gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-3 xl:grid-cols-3">
                   {round.results.map((result) => (
                     <ResultCard
                       key={result.id}
                       result={result}
                       status={round.status}
-                      className="sm:min-h-[300px]"
                       active={selectedFactorId === result.factorId}
+                      referenceActive={referenceFactors.some((item) => item.id === result.id)}
+                      referenceDisabled={referenceFactors.length >= 5 && !referenceFactors.some((item) => item.id === result.id)}
+                      onUseAsReference={() => addReferenceFactor(result)}
                       onSelect={() => {
                         setSelectedFactorId(result.factorId);
                         setSelectedPreview(result);
@@ -922,6 +1032,29 @@ export default function AlphaEdit() {
               >
                 {composerCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
+
+              {referenceFactors.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2 pr-9">
+                  <span className="text-xs font-normal text-muted-foreground">{tr("Reference Factors:", "参考因子：")}</span>
+                  {referenceFactors.map((item) => (
+                    <span
+                      key={item.id}
+                      className="group inline-flex h-7 max-w-[190px] items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2.5 text-xs text-primary"
+                      title={item.factorName}
+                    >
+                      <span className="truncate">{item.factorName}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeReferenceFactor(item.id)}
+                        className="ml-1 hidden h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-background/75 text-muted-foreground transition hover:border-primary/35 hover:bg-background hover:text-primary group-hover:inline-flex"
+                        aria-label={tr(`Remove ${item.factorName}`, `关闭 ${item.factorName}`)}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : null}
 
               {!composerCollapsed ? (
                 <>
@@ -962,7 +1095,7 @@ export default function AlphaEdit() {
                         <button
                           type="button"
                           onClick={promptOptimized ? undoPromptOptimization : optimizePrompt}
-                          disabled={!promptOptimized && !prompt.trim()}
+                          disabled={!promptOptimized && (!prompt.trim() || !strategyType)}
                           className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-accent/70 px-2 text-xs font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45"
                         >
                           {promptOptimized ? <Undo2 className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -990,7 +1123,10 @@ export default function AlphaEdit() {
                             type="button"
                             className="flex h-9 w-full items-center gap-2 rounded-md border border-border bg-accent/70 px-2.5 text-left text-sm text-foreground transition hover:border-primary/30 hover:bg-accent"
                           >
-                            <span className="shrink-0 text-xs text-muted-foreground">{tr("Model", "模型")}</span>
+                            <span className="inline-flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
+                              {tr("Model", "模型")}
+                              <span className="text-destructive">*</span>
+                            </span>
                             <div className="flex min-w-0 flex-1 items-center gap-2">
                               <div className="flex items-center gap-1.5 shrink-0">
                                 {selectedLogoModels.slice(0, 2).map((item) => (
@@ -1004,7 +1140,9 @@ export default function AlphaEdit() {
                                   </span>
                                 ) : null}
                               </div>
-                              <span className="truncate font-medium text-foreground">{selectedModelSummary}</span>
+                              <span className={`truncate font-medium ${selectedModelSummary ? "text-foreground" : "text-muted-foreground"}`}>
+                                {selectedModelSummary || tr("Select model", "请选择模型")}
+                              </span>
                             </div>
                             <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition ${modelMenuOpen ? "rotate-180" : ""}`} />
                           </button>
@@ -1084,8 +1222,13 @@ export default function AlphaEdit() {
                             type="button"
                             className="flex h-9 w-full items-center gap-2 rounded-md border border-border bg-accent/70 px-2.5 text-left text-sm text-foreground transition hover:border-primary/30 hover:bg-accent"
                           >
-                            <span className="shrink-0 text-xs text-muted-foreground">{tr("Result Count", "结果数量")}</span>
-                            <span className="ml-auto font-medium text-foreground">{resultCount}</span>
+                            <span className="inline-flex shrink-0 items-center gap-0.5 text-xs text-muted-foreground">
+                              {tr("Result Count", "结果数量")}
+                              <span className="text-destructive">*</span>
+                            </span>
+                            <span className={`ml-auto font-medium ${resultCount ? "text-foreground" : "text-muted-foreground"}`}>
+                              {resultCount ?? tr("Select", "请选择")}
+                            </span>
                             <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition ${resultCountMenuOpen ? "rotate-180" : ""}`} />
                           </button>
                         </PopoverTrigger>
@@ -1126,24 +1269,28 @@ export default function AlphaEdit() {
                 </>
               ) : (
                 <div className="text-xs text-muted-foreground">
-                  {tr("Current setup:", "当前配置：")} {strategyType === "time-series" ? tr("Time-Series", "时序因子") : tr("Cross-Sectional", "截面因子")}, {selectedModels.length} {tr(`model${selectedModels.length > 1 ? "s" : ""}`, "个模型")}, {resultCount} {tr(`generation${resultCount > 1 ? "s" : ""} per model`, "个生成/模型")}.
+                  {composerReady
+                    ? `${tr("Current setup:", "当前配置：")} ${strategyType === "time-series" ? tr("Time-Series", "时序因子") : tr("Cross-Sectional", "截面因子")}, ${selectedModels.length} ${tr(`model${selectedModels.length > 1 ? "s" : ""}`, "个模型")}, ${resultCount} ${tr(`generation${Number(resultCount) > 1 ? "s" : ""} per model`, "个生成/模型")}.`
+                    : tr("Please complete factor type, model, and result count.", "请选择因子类型、模型和结果数量。")}
                 </div>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
                 <div className="inline-flex items-center gap-2 text-sm text-foreground">
                   <span className="text-xs text-muted-foreground">
-                    {tr(
-                      `Will run ${selectedModels.length} model${selectedModels.length > 1 ? "s" : ""}, each generating ${resultCount} output${resultCount > 1 ? "s" : ""}`,
-                      `将运行 ${selectedModels.length} 个模型，分别生成 ${resultCount} 个结果`
-                    )}
+                    {composerReady
+                      ? tr(
+                          `Will run ${selectedModels.length} model${selectedModels.length > 1 ? "s" : ""}, each generating ${resultCount} output${Number(resultCount) > 1 ? "s" : ""}`,
+                          `将运行 ${selectedModels.length} 个模型，分别生成 ${resultCount} 个结果`
+                        )
+                      : tr("Complete required fields to generate", "填写必选项后可生成")}
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                     <span>{tr("Estimated spend", "预计消耗")}</span>
                     <CreditIcon className="h-3.5 w-3.5 shrink-0" />
                     <span>{formatCreditUnits(estimatedCredit)}</span>
                   </span>
-                  {availableCredit < estimatedCredit ? (
+                  {estimatedCredit > 0 && availableCredit < estimatedCredit ? (
                     <span className="text-xs font-medium text-rose-600 dark:text-rose-400">{tr("Insufficient credit", "额度不足")}</span>
                   ) : null}
                 </div>
@@ -1151,7 +1298,8 @@ export default function AlphaEdit() {
                 <button
                   type="button"
                   onClick={runGeneration}
-                  className="inline-flex h-9 min-w-[120px] items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:brightness-110"
+                  disabled={!activeGeneratingRoundId && !composerReady}
+                  className="inline-flex h-9 min-w-[120px] items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:brightness-100"
                 >
                   {activeGeneratingRoundId ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
                   {activeGeneratingRoundId ? tr("Pause", "暂停") : tr("Generate", "生成")}
@@ -1208,11 +1356,18 @@ export default function AlphaEdit() {
         <AlertDialogContent className="border-border bg-card text-foreground">
           <AlertDialogHeader>
             <AlertDialogTitle>{tr("Insufficient credit", "额度不足")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {tr(
-                `This generation requires ${estimatedCredit.toFixed(2)} credit, but your balance is ${availableCredit.toFixed(2)}.`,
-                `本次生成需消耗 ${estimatedCredit.toFixed(2)} 额度，当前余额为 ${availableCredit.toFixed(2)}。`
-              )}
+            <AlertDialogDescription className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+              <span>{tr("This generation requires", "本次生成需消耗")}</span>
+              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                <CreditIcon className="h-3.5 w-3.5 shrink-0" />
+                {formatCreditUnits(estimatedCredit)}
+              </span>
+              <span>{tr("and your current balance is", "，当前余额为")}</span>
+              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+                <CreditIcon className="h-3.5 w-3.5 shrink-0" />
+                {formatCreditUnits(availableCredit)}
+              </span>
+              <span>{tr(".", "。")}</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
