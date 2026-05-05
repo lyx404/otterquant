@@ -5,8 +5,13 @@
  */
 import { useId, useMemo, type ReactNode } from "react";
 import { Link } from "wouter";
-import { ArrowUpRight, Star } from "lucide-react";
+import { ArrowUpRight, MoreHorizontal, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -39,6 +44,7 @@ interface AlphaCardViewProps {
   visibleColumns: Set<string>;
   starred: Set<string>;
   onToggleStar: (id: string) => void;
+  onRequestDelete: (row: AlphaRow) => void;
   plainExplainEnabled?: boolean;
 }
 
@@ -161,7 +167,14 @@ function percentLevel(value: string, tr: (en: string, zh: string) => string, hig
   return tr("high risk", "风险较高");
 }
 
-export default function AlphaCardView({ rows, visibleColumns, starred, onToggleStar, plainExplainEnabled = false }: AlphaCardViewProps) {
+export default function AlphaCardView({
+  rows,
+  visibleColumns,
+  starred,
+  onToggleStar,
+  onRequestDelete,
+  plainExplainEnabled = false,
+}: AlphaCardViewProps) {
   const { uiLang } = useAppLanguage();
   const isVisible = (key: string) => visibleColumns.has(key);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -351,7 +364,14 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
                   <div className="min-w-0 flex-1">
                     <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground mb-1">{tr("Arena Round", "竞技场轮次")}</div>
                     {row.submissionStatus !== "passed" ? (
-                      <span className="text-xs font-mono text-muted-foreground/50">{tr("Ineligible", "不可参赛")}</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-xs font-mono text-muted-foreground/50 cursor-default">{tr("Ineligible", "不可参赛")}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {tr("Only passed factors are eligible to participate in the Arena", "只有通过的因子才可进入竞技场")}
+                        </TooltipContent>
+                      </Tooltip>
                     ) : row.epochId ? (
                       <Link href={`/leaderboard?epoch=${encodeURIComponent(row.epochId)}`}>
                         <span className="text-xs font-mono text-primary hover:underline cursor-pointer">{row.epochStatus || "Not Entered"}</span>
@@ -359,7 +379,7 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
                     ) : (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="text-xs font-mono text-amber-500 dark:text-amber-400 cursor-default">{tr("Pending", "待定")}</span>
+                          <span className="text-xs font-mono text-muted-foreground/50 cursor-default">{tr("Pending Entry", "待参赛")}</span>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-[240px] text-xs leading-5">
                           {tr(
@@ -377,6 +397,27 @@ export default function AlphaCardView({ rows, visibleColumns, starred, onToggleS
             {/* Card Footer: actions */}
             <div className="mt-auto border-t border-border/40 px-4 py-3">
               <div className="flex items-center justify-end gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:text-foreground"
+                      aria-label={tr("More actions", "更多操作")}
+                    >
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-32 rounded-xl p-1" align="end">
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-destructive transition-colors hover:bg-destructive/10"
+                      onClick={() => onRequestDelete(row)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      {tr("Delete", "删除")}
+                    </button>
+                  </PopoverContent>
+                </Popover>
                 <button
                   type="button"
                   className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${

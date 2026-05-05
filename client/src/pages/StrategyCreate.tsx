@@ -427,7 +427,7 @@ export default function StrategyCreate() {
       case "Statistical":
         return tr("Statistical", "统计");
       case "Pattern Signals":
-        return tr("Pattern Signals", "形态信号");
+        return tr("Pattern Signals", "形态因子");
       case "Capital Flows":
         return tr("Capital Flows", "资金流");
       case "Derivatives Leverage":
@@ -481,7 +481,7 @@ export default function StrategyCreate() {
           ),
     desc:
       item.category === "Time Series"
-        ? tr(item.desc, "用于测试单标的择时策略创建流程。")
+        ? tr(item.desc, "用于测试单交易对择时策略创建流程。")
         : tr(item.desc, "用于测试基于排序的截面策略创建流程。"),
   }));
 
@@ -962,8 +962,8 @@ export default function StrategyCreate() {
                             <p className="text-[11px] text-muted-foreground">{tr("This means looking for patterns within one asset over time.", "这意味着围绕单一资产随时间变化的模式寻找交易机会。")}</p>
                           </div>
                           <div className="space-y-1.5">
-                            <p className="text-[11px] font-medium text-foreground/90">{tr("Cross Section -> Find good Symbols", "截面策略 -> 挑选更优标的")}</p>
-                            <p className="text-[11px] text-muted-foreground">{tr("This means comparing many assets at the same time and choosing the stronger ones.", "这意味着在同一时点比较多个资产，并选择相对更强的标的。")}</p>
+                            <p className="text-[11px] font-medium text-foreground/90">{tr("Cross Section -> Find good Symbols", "截面策略 -> 挑选更优交易对")}</p>
+                            <p className="text-[11px] text-muted-foreground">{tr("This means comparing many assets at the same time and choosing the stronger ones.", "这意味着在同一时点比较多个资产，并选择相对更强的交易对。")}</p>
                           </div>
                         </div>
                       </PopoverContent>
@@ -1004,7 +1004,7 @@ export default function StrategyCreate() {
                 {strategyType === "time-series" && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
-                      <label className="text-xs font-medium text-muted-foreground">{tr("Symbol", "标的")} <span className="text-destructive">*</span></label>
+                      <label className="text-xs font-medium text-muted-foreground">{tr("Symbol", "交易对")} <span className="text-destructive">*</span></label>
                     </div>
                     <button
                       type="button"
@@ -1045,12 +1045,12 @@ export default function StrategyCreate() {
                         </>
                       ) : (
                         <div className="text-xs text-muted-foreground">
-                          {tr("Click to choose symbols or add a top group.", "点击选择标的，或添加一个 Top 分组。")}
+                          {tr("Click to choose symbols or add a top group.", "点击选择交易对，或添加一个 Top 分组。")}
                         </div>
                       )}
                     </button>
                     {showValidationFeedback && symbolMissing && (
-                      <p className="text-[11px] text-destructive">{tr("Please select at least one symbol.", "请至少选择一个标的。")}</p>
+                      <p className="text-[11px] text-destructive">{tr("Please select at least one symbol.", "请至少选择一个交易对。")}</p>
                     )}
                   </div>
                 )}
@@ -1463,7 +1463,7 @@ export default function StrategyCreate() {
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>
-            <DialogTitle className="text-foreground">{tr("Symbol Selector", "标的选择器")}</DialogTitle>
+            <DialogTitle className="text-foreground">{tr("Symbol Selector", "交易对选择器")}</DialogTitle>
             <DialogDescription>
               {tr("Individual selection and group selection are organized in tabs.", "单个选择与分组选择按标签页组织。")}
             </DialogDescription>
@@ -1473,7 +1473,7 @@ export default function StrategyCreate() {
             <Input
               value={symbolPickerQuery}
               onChange={(e) => setSymbolPickerQuery(e.target.value)}
-              placeholder={tr("Search symbol...", "搜索标的...")}
+              placeholder={tr("Search symbol...", "搜索交易对...")}
               className="h-8 rounded-md border-border/70 bg-background/30 text-xs placeholder:text-[11px]"
             />
 
@@ -1551,7 +1551,7 @@ export default function StrategyCreate() {
                         <div>
                           <div className="text-sm font-semibold text-foreground">{translateGroupSelectionLabel(group.key)}</div>
                           <div className="mt-1 text-xs text-muted-foreground">
-                            {uiLang === "zh" ? `${groupSymbols.length} 个标的 · ${groupSymbols.slice(0, 4).join(", ")}` : `${groupSymbols.length} symbols · ${groupSymbols.slice(0, 4).join(", ")}`}
+                            {uiLang === "zh" ? `${groupSymbols.length} 个交易对 · ${groupSymbols.slice(0, 4).join(", ")}` : `${groupSymbols.length} symbols · ${groupSymbols.slice(0, 4).join(", ")}`}
                           </div>
                         </div>
                         <span className={`text-xs ${selected ? "text-primary" : "text-muted-foreground"}`}>

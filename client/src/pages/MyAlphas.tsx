@@ -49,6 +49,8 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Plus,
+  MoreHorizontal,
+  Trash2,
 } from "lucide-react";
 import {
   factors,
@@ -127,6 +129,7 @@ type MyAlphasPrefs = {
 };
 
 const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
+const DELETED_FACTORS_STORAGE_KEY = "otterquant:myalphas:deleted-factors";
 const MY_ALPHAS_PREFS_VERSION = 3;
 const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
@@ -278,6 +281,19 @@ function readMyAlphasPrefs(): Partial<MyAlphasPrefs> | null {
   }
 }
 
+function readDeletedFactorIds() {
+  if (typeof window === "undefined") return new Set<string>();
+
+  try {
+    const raw = window.localStorage.getItem(DELETED_FACTORS_STORAGE_KEY);
+    if (!raw) return new Set<string>();
+    const parsed = JSON.parse(raw);
+    return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
 function readRevealedGrade(factorId: string): AlphaGrade | null {
   if (typeof window === "undefined") return null;
 
@@ -300,8 +316,14 @@ const statusConfig: Record<string, { label: string; colorClass: string; bgClass:
   rejected: { label: "FAILED", colorClass: "text-destructive", bgClass: "bg-destructive/10", borderClass: "border-destructive/20" },
 };
 
+const demoPendingArenaFactorIds = new Set(["AF-003"]);
+
 /* Build epoch status lookup from leaderboard data — returns { display, epochId } */
 function getEpochStatus(factorId: string): { display: string; epochId: string | null } {
+  if (demoPendingArenaFactorIds.has(factorId)) {
+    return { display: "Not Entered", epochId: null };
+  }
+
   // Check current epoch first
   const currentEntries = leaderboardByFactorByEpoch[currentEpoch.id] || [];
   const currentEntry = currentEntries.find(e => e.factorId === factorId);
@@ -356,6 +378,8 @@ export default function MyAlphas() {
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
   const [cardFilter, setCardFilter] = useState<MyAlphasCardFilter>(() => sanitizeCardFilter(storedPrefs?.cardFilter));
   const [viewMode, setViewMode] = useState<MyAlphasViewMode>(() => sanitizeViewMode(storedPrefs?.viewMode));
+  const [deletedFactorIds, setDeletedFactorIds] = useState<Set<string>>(() => readDeletedFactorIds());
+  const [pendingDeleteFactor, setPendingDeleteFactor] = useState<AlphaRow | null>(null);
   const [gradeRevealTick, setGradeRevealTick] = useState(0);
   const [revealAllResults, setRevealAllResults] = useState<Array<{ id: string; name: string; grade: AlphaGrade }>>([]);
   const [showRevealAllModal, setShowRevealAllModal] = useState(false);
@@ -442,6 +466,11 @@ export default function MyAlphas() {
     window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
   }, [plainExplainEnabled]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(DELETED_FACTORS_STORAGE_KEY, JSON.stringify(Array.from(deletedFactorIds)));
+  }, [deletedFactorIds]);
+
   /* ── Data — build rows, assign submission status, epoch status ── */
   const alphaRows: AlphaRow[] = useMemo(() => {
     return factors.map((f) => {
@@ -459,15 +488,20 @@ export default function MyAlphas() {
     });
   }, []);
 
+  const activeAlphaRows = useMemo(
+    () => alphaRows.filter((row) => !deletedFactorIds.has(row.id)),
+    [alphaRows, deletedFactorIds]
+  );
+
   const filtered = useMemo(() => {
-    return alphaRows.filter((r) => {
+    return activeAlphaRows.filter((r) => {
       if (filterName && !r.name.toLowerCase().includes(filterName.toLowerCase()) && !r.id.toLowerCase().includes(filterName.toLowerCase())) return false;
       if (cardFilter === "passed" && r.submissionStatus !== "passed") return false;
       if (cardFilter === "starred" && !starred.has(r.id)) return false;
       if (cardFilter === "failed" && r.submissionStatus !== "failed") return false;
       return true;
     });
-  }, [alphaRows, filterName, cardFilter, starred]);
+  }, [activeAlphaRows, filterName, cardFilter, starred]);
 
   const sorted = useMemo(() => {
     if (!sortDir || !sortKey) return filtered;
@@ -598,6 +632,21 @@ export default function MyAlphas() {
     });
   };
 
+  const requestDeleteFactor = (row: AlphaRow) => {
+    setPendingDeleteFactor(row);
+  };
+
+  const confirmDeleteFactor = () => {
+    if (!pendingDeleteFactor) return;
+    setDeletedFactorIds((prev) => {
+      const next = new Set(prev);
+      next.add(pendingDeleteFactor.id);
+      return next;
+    });
+    setPendingDeleteFactor(null);
+    setPage(1);
+  };
+
   const visibleCols = dataColumns.filter((c) => visibleColumns.has(c.key));
   const cardSortColumns = dataColumns.filter((c) => c.sortable && c.key !== "id" && c.key !== "testsPassed");
   const hasActiveFilters = Boolean(filterName);
@@ -719,8 +768,8 @@ export default function MyAlphas() {
           return (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-xs font-mono whitespace-nowrap text-amber-500 dark:text-amber-400 cursor-default">
-                  {tr("Pending", "待定")}
+                <span className="text-xs font-mono whitespace-nowrap text-muted-foreground/50 cursor-default">
+                  {tr("Pending Entry", "待参赛")}
                 </span>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-[240px] text-xs leading-5">
@@ -790,7 +839,7 @@ export default function MyAlphas() {
       {visibleCols.map((col) => (
         <col key={col.key} style={{ width: col.width }} />
       ))}
-      <col style={{ width: "100px" }} />
+      <col style={{ width: "92px" }} />
     </colgroup>
   );
 
@@ -877,8 +926,8 @@ export default function MyAlphas() {
         </button>
         {withPlainExplanation(
           tr(
-            "Basic validation passed. Ready for strategy testing and Factor Arena.",
-            "通过基础验证，可加入策略测试、参与因子竞技"
+            "Validation passed. Eligible for strategy testing and Factor Arena.",
+            "已通过验证，可加入策略测试和因子竞技。"
           ),
           <button
             onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
@@ -897,8 +946,8 @@ export default function MyAlphas() {
         )}
         {withPlainExplanation(
           tr(
-            "Unstable performance or validation failure. Not eligible for strategy testing or Factor Arena.",
-            "表现不稳定/验证失败，不可加入策略测试、参与因子竞技"
+            "Validation failed. Not eligible for strategy testing or Factor Arena.",
+            "未通过验证，不可加入策略测试和因子竞技。"
           ),
           <button
             onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
@@ -1101,6 +1150,7 @@ export default function MyAlphas() {
               visibleColumns={visibleColumns}
               starred={starred}
               onToggleStar={toggleStar}
+              onRequestDelete={requestDeleteFactor}
               plainExplainEnabled={alphaViewMode === "beginner" && plainExplainEnabled}
             />
           </div>
@@ -1127,7 +1177,7 @@ export default function MyAlphas() {
                   </th>
                 ))}
                 {/* Actions header — sticky right */}
-                <th className="px-3 py-2.5 text-right sticky right-0 z-[2] bg-card border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)]">
+                <th className="w-px whitespace-nowrap px-3 py-2.5 text-right sticky right-0 z-[2] bg-card border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)]">
                   <span className="label-upper">{tr("Actions", "操作")}</span>
                 </th>
               </tr>
@@ -1144,12 +1194,35 @@ export default function MyAlphas() {
                     </td>
                   ))}
                   {/* Actions — always visible, sticky right */}
-                  <td className="px-3 py-2.5 text-right sticky right-0 z-[2] bg-card group-hover:bg-slate-50 dark:group-hover:bg-slate-800/30 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] transition-colors duration-200 ease-in-out">
-                    <Link href={`/alphas/${row.id}`}>
-                      <button className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-full transition-all duration-200 ease-in-out whitespace-nowrap text-muted-foreground border border-border hover:border-primary hover:text-primary hover:bg-primary/5">
-                        {tr("View", "查看")}
-                      </button>
-                    </Link>
+                  <td className="w-px whitespace-nowrap px-3 py-2.5 text-right sticky right-0 z-[2] bg-card group-hover:bg-slate-50 dark:group-hover:bg-slate-800/30 border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)] transition-colors duration-200 ease-in-out">
+                    <div className="inline-flex items-center justify-end gap-1.5">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:bg-accent/50 hover:text-foreground"
+                            aria-label={tr("More actions", "更多操作")}
+                          >
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-32 rounded-xl p-1" align="end">
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-destructive transition-colors hover:bg-destructive/10"
+                            onClick={() => requestDeleteFactor(row)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {tr("Delete", "删除")}
+                          </button>
+                        </PopoverContent>
+                      </Popover>
+                      <Link href={`/alphas/${row.id}`}>
+                        <button className="text-[10px] uppercase tracking-[0.15em] font-medium px-2.5 py-1 rounded-full transition-all duration-200 ease-in-out whitespace-nowrap text-muted-foreground border border-border hover:border-primary hover:text-primary hover:bg-primary/5">
+                          {tr("View", "查看")}
+                        </button>
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1273,6 +1346,38 @@ export default function MyAlphas() {
               )}
             </div>
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={Boolean(pendingDeleteFactor)} onOpenChange={(open) => !open && setPendingDeleteFactor(null)}>
+      <DialogContent className="max-w-md rounded-2xl border-border bg-card p-0 text-foreground">
+        <div className="border-b border-border/60 px-5 py-4">
+          <DialogTitle className="text-base font-semibold">{tr("Delete Factor", "删除因子")}</DialogTitle>
+        </div>
+        <div className="px-5 py-4">
+          <p className="text-sm leading-6 text-foreground">
+            {pendingDeleteFactor?.name
+              ? tr(
+                  `Confirm deleting ${pendingDeleteFactor.name} (${pendingDeleteFactor.id})? This action cannot be undone.`,
+                  `确认删除 ${pendingDeleteFactor.name}（${pendingDeleteFactor.id}）？删除后无法恢复。`
+                )
+              : tr("Confirm deleting this factor? This action cannot be undone.", "确认删除该因子？删除后无法恢复。")}
+          </p>
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-border/60 px-5 py-4">
+          <Button
+            variant="outline"
+            className="h-8 rounded-full border-border bg-card px-3 text-xs"
+            onClick={() => setPendingDeleteFactor(null)}
+          >
+            {tr("Cancel", "取消")}
+          </Button>
+          <Button
+            className="h-8 rounded-full bg-destructive px-3 text-xs text-destructive-foreground hover:bg-destructive/90"
+            onClick={confirmDeleteFactor}
+          >
+            {tr("Delete", "删除")}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

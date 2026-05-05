@@ -3,9 +3,15 @@
  * Structure: Header + Summary cards + Toolbar + Strategy cards (grid/list)
  * Visual style stays aligned with existing My Alphas dark design tokens.
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -13,8 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { strategies } from "@/lib/mockData";
 import { parsePercent } from "@/lib/strategyUtils";
+import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   ArrowUpDown,
@@ -23,29 +35,31 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  CheckCircle2,
   Circle,
   Columns3,
   Grid2x2,
+  HelpCircle,
   List,
+  MoreHorizontal,
   Plus,
   Search,
   SlidersHorizontal,
   Star,
+  Trash2,
 } from "lucide-react";
 
 type SortKey = "updated" | "name" | "roi" | "winRate" | "sharpe";
 type ViewMode = "grid" | "list";
 type MetricKey = "roi" | "winRate" | "sharpe" | "maxDrawdown";
-type StrategyFilter = "all" | "favorites" | "paper" | "live";
-type ExecutionMode = "paper" | "live" | "backtest";
+type StrategyFilter = "all" | "favorites" | "trading" | "idle";
+type ExecutionMode = "paper" | "live" | "idle";
 
 interface StrategyViewRow {
   id: string;
   name: string;
   description: string;
   updatedAt: string;
-  statusLabel: "Paper Trading" | "Live Trading" | "Backtest";
+  statusLabel: "Paper Trading" | "Live Trading" | "Not Running";
   executionMode: ExecutionMode;
   statusClass: string;
   roi: string;
@@ -53,6 +67,9 @@ interface StrategyViewRow {
   sharpe: string;
   maxDrawdown: string;
 }
+
+const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+const DELETED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:deleted-strategies";
 
 const sortLabels: Record<SortKey, string> = {
   updated: "Updated Time",
@@ -71,29 +88,38 @@ const defaultVisibleMetrics: Record<MetricKey, boolean> = {
 
 function toStrategyViewRow(index: number): StrategyViewRow {
   const strategy = strategies[index % strategies.length];
-  const executionMode: ExecutionMode =
+  const baseExecutionMode: ExecutionMode =
     strategy.status === "live"
       ? "live"
-      : strategy.status === "backtested"
-        ? "backtest"
-        : "paper";
+      : strategy.status === "paper"
+        ? "paper"
+        : "idle";
+  const id = `STR-${463 + index}`;
+  const statusSamples: Partial<Record<string, ExecutionMode>> = {
+    "STR-467": "idle",
+    "STR-471": "live",
+    "STR-473": "paper",
+    "STR-477": "idle",
+  };
+  const demoStatusSequence: ExecutionMode[] = ["idle", "live", "paper", "idle"];
+  const executionMode = statusSamples[id] ?? demoStatusSequence[index % demoStatusSequence.length] ?? baseExecutionMode;
 
   const statusLabel =
     executionMode === "live"
       ? "Live Trading"
       : executionMode === "paper"
         ? "Paper Trading"
-        : "Backtest";
+        : "Not Running";
 
   const statusClass =
     executionMode === "live"
       ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
       : executionMode === "paper"
         ? "border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
-        : "border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-300";
+        : "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300";
 
   return {
-    id: `STR-${463 + index}`,
+    id,
     name: strategy.name,
     description: strategy.description,
     updatedAt: strategy.updatedAt,
@@ -109,16 +135,113 @@ function toStrategyViewRow(index: number): StrategyViewRow {
 
 const strategyRows: StrategyViewRow[] = Array.from({ length: 20 }, (_, index) => toStrategyViewRow(index));
 
+function getStatusLabel(label: StrategyViewRow["statusLabel"], tr: (en: string, zh: string) => string) {
+  if (label === "Live Trading") return tr("Live Trading", "实盘交易");
+  if (label === "Paper Trading") return tr("Paper Trading", "模拟交易");
+  return tr("Not Running", "未运行");
+}
+
+function readDeletedStrategyIds() {
+  if (typeof window === "undefined") return new Set<string>();
+
+  try {
+    const raw = window.localStorage.getItem(DELETED_STRATEGIES_STORAGE_KEY);
+    if (!raw) return new Set<string>();
+    const parsed = JSON.parse(raw);
+    return new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []);
+  } catch {
+    return new Set<string>();
+  }
+}
+
+function MaybeExplainTooltip({
+  enabled,
+  explanation,
+  children,
+}: {
+  enabled?: boolean;
+  explanation: string;
+  children: ReactNode;
+}) {
+  if (!enabled) return <>{children}</>;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[240px] text-xs leading-5">
+        {explanation}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function percentLevel(value: string, tr: (en: string, zh: string) => string, higherIsBetter = true) {
+  const parsed = Math.abs(parsePercent(value));
+  if (Number.isNaN(parsed)) return tr("for reference", "仅供参考");
+
+  if (higherIsBetter) {
+    if (parsed >= 20) return tr("high", "较高");
+    if (parsed >= 10) return tr("moderate", "中等");
+    return tr("low", "较低");
+  }
+
+  if (parsed <= 5) return tr("well controlled", "控制较好");
+  if (parsed <= 12) return tr("noticeable", "需要关注");
+  return tr("high risk", "风险较高");
+}
+
+function sharpeLevel(value: string, tr: (en: string, zh: string) => string) {
+  const parsed = Number(value);
+  if (Number.isNaN(parsed)) return tr("for reference", "仅供参考");
+  if (parsed >= 3) return tr("very steady", "非常稳定");
+  if (parsed >= 1.5) return tr("relatively steady", "相对稳定");
+  if (parsed >= 1) return tr("usable", "可用");
+  return tr("less steady", "不够稳定");
+}
+
+function getMetricExplanation(
+  key: MetricKey,
+  row: StrategyViewRow,
+  tr: (en: string, zh: string) => string
+) {
+  if (key === "roi") {
+    return tr(
+      `ROI shows return. ${row.roi} is ${percentLevel(row.roi, tr)}.`,
+      `ROI 表示收益率，${row.roi} 属于${percentLevel(row.roi, tr)}。`
+    );
+  }
+  if (key === "winRate") {
+    return tr(
+      `Win rate is profitable trades divided by total trades. ${row.winRate} is ${percentLevel(row.winRate, tr)}.`,
+      `盈利交易次数占总交易次数的比例，${row.winRate} 属于${percentLevel(row.winRate, tr)}。`
+    );
+  }
+  if (key === "sharpe") {
+    return tr(
+      `Sharpe measures return stability. ${row.sharpe} is ${sharpeLevel(row.sharpe, tr)}.`,
+      `夏普比率衡量收益稳定性，${row.sharpe} 属于${sharpeLevel(row.sharpe, tr)}。`
+    );
+  }
+  return tr(
+    `Max drawdown is the largest decline. ${row.maxDrawdown} risk is ${percentLevel(row.maxDrawdown, tr, false)}.`,
+    `最大回撤表示期间最大下跌幅度，${row.maxDrawdown} 风险${percentLevel(row.maxDrawdown, tr, false)}。`
+  );
+}
+
 function MetricBox({
   label,
   value,
   tone = "neutral",
+  explanation,
+  explainEnabled,
 }: {
   label: string;
   value: string;
   tone?: "positive" | "negative" | "neutral";
+  explanation?: string;
+  explainEnabled?: boolean;
 }) {
-  return (
+  const content = (
     <div className="min-w-0">
       <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
       <p
@@ -134,19 +257,29 @@ function MetricBox({
       </p>
     </div>
   );
+
+  return (
+    <MaybeExplainTooltip enabled={explainEnabled && Boolean(explanation)} explanation={explanation ?? ""}>
+      {content}
+    </MaybeExplainTooltip>
+  );
 }
 
 function StrategyCard({
   row,
   starred,
   onToggleStar,
+  onRequestDelete,
   visibleMetrics,
+  plainExplainEnabled,
   uiLang,
 }: {
   row: StrategyViewRow;
   starred: boolean;
   onToggleStar: () => void;
+  onRequestDelete: () => void;
   visibleMetrics: Record<MetricKey, boolean>;
+  plainExplainEnabled: boolean;
   uiLang: "en" | "zh";
 }) {
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -175,11 +308,7 @@ function StrategyCard({
         <p className="text-lg font-semibold leading-7 text-foreground">{row.name}</p>
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span className={`inline-flex h-[25px] items-center rounded-full border px-[11px] py-[5px] text-[10px] font-semibold uppercase tracking-[0.18em] ${row.statusClass}`}>
-            {row.statusLabel === "Live Trading"
-              ? tr("Live Trading", "实盘交易")
-              : row.statusLabel === "Paper Trading"
-                ? tr("Paper Trading", "模拟交易")
-                : tr("Backtest", "回测")}
+            {getStatusLabel(row.statusLabel, tr)}
           </span>
           <span className="text-xs text-muted-foreground">{tr("Updated", "更新于")}:{row.updatedAt}</span>
           <span className="text-xs text-muted-foreground">ID:{row.id}</span>
@@ -190,13 +319,35 @@ function StrategyCard({
         <p className="text-sm leading-7 text-muted-foreground">{translatedDescription}</p>
 
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-4">
-          {visibleMetrics.roi ? <MetricBox label="ROI" value={row.roi} tone="positive" /> : null}
-          {visibleMetrics.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} tone="positive" /> : null}
-          {visibleMetrics.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} tone="positive" /> : null}
-          {visibleMetrics.maxDrawdown ? <MetricBox label={tr("Max Drawdown", "最大回撤")} value={row.maxDrawdown} tone="negative" /> : null}
+          {visibleMetrics.roi ? <MetricBox label="ROI" value={row.roi} tone="positive" explanation={getMetricExplanation("roi", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleMetrics.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} tone="positive" explanation={getMetricExplanation("winRate", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleMetrics.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} tone="positive" explanation={getMetricExplanation("sharpe", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleMetrics.maxDrawdown ? <MetricBox label={tr("Max Drawdown", "最大回撤")} value={row.maxDrawdown} tone="negative" explanation={getMetricExplanation("maxDrawdown", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2 border-t border-border/40 pt-3">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-card text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:bg-accent/50 hover:text-foreground"
+                aria-label={tr("More actions", "更多操作")}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-32 rounded-xl p-1" align="end">
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-destructive transition-colors hover:bg-destructive/10"
+                onClick={onRequestDelete}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {tr("Delete", "删除")}
+              </button>
+            </PopoverContent>
+          </Popover>
+
           <button
             type="button"
             className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${
@@ -224,6 +375,7 @@ function StrategyCard({
 
 export default function MyStrategies() {
   const { uiLang } = useAppLanguage();
+  const { alphaViewMode } = useAlphaViewMode();
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("updated");
   const [sortDesc, setSortDesc] = useState(true);
@@ -235,7 +387,17 @@ export default function MyStrategies() {
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [visibleMetrics, setVisibleMetrics] = useState<Record<MetricKey, boolean>>(defaultVisibleMetrics);
   const [starred, setStarred] = useState<Set<string>>(new Set(["STR-463", "STR-470"]));
+  const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
+  const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+    if (stored === "true") return true;
+    if (stored === "false") return false;
+    return true;
+  });
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const shouldShowPlainExplanations = alphaViewMode === "beginner" && plainExplainEnabled;
 
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
@@ -255,18 +417,33 @@ export default function MyStrategies() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
+  }, [plainExplainEnabled]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(DELETED_STRATEGIES_STORAGE_KEY, JSON.stringify(Array.from(deletedStrategyIds)));
+  }, [deletedStrategyIds]);
+
+  const activeStrategyRows = useMemo(
+    () => strategyRows.filter((row) => !deletedStrategyIds.has(row.id)),
+    [deletedStrategyIds]
+  );
+
   const filtered = useMemo(() => {
-    const byTopFilter = strategyRows.filter((row) => {
+    const byTopFilter = activeStrategyRows.filter((row) => {
       if (strategyFilter === "favorites") return starred.has(row.id);
-      if (strategyFilter === "paper") return row.executionMode === "paper";
-      if (strategyFilter === "live") return row.executionMode === "live";
+      if (strategyFilter === "trading") return row.executionMode === "paper" || row.executionMode === "live";
+      if (strategyFilter === "idle") return row.executionMode === "idle";
       return true;
     });
 
     const keyword = query.trim().toLowerCase();
     if (!keyword) return byTopFilter;
     return byTopFilter.filter((row) => row.name.toLowerCase().includes(keyword) || row.id.toLowerCase().includes(keyword));
-  }, [query, strategyFilter, starred]);
+  }, [activeStrategyRows, query, strategyFilter, starred]);
 
   const sorted = useMemo(() => {
     const rows = [...filtered];
@@ -314,20 +491,46 @@ export default function MyStrategies() {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
   };
 
-  const paperCount = useMemo(
-    () => strategyRows.filter((row) => row.executionMode === "paper").length,
-    []
+  const tradingCount = useMemo(
+    () => activeStrategyRows.filter((row) => row.executionMode === "paper" || row.executionMode === "live").length,
+    [activeStrategyRows]
   );
-  const liveCount = useMemo(
-    () => strategyRows.filter((row) => row.executionMode === "live").length,
-    []
+  const idleCount = useMemo(
+    () => activeStrategyRows.filter((row) => row.executionMode === "idle").length,
+    [activeStrategyRows]
   );
+  const favoriteCount = useMemo(
+    () => activeStrategyRows.filter((row) => starred.has(row.id)).length,
+    [activeStrategyRows, starred]
+  );
+
+  const requestDeleteStrategy = (row: StrategyViewRow) => {
+    setPendingDeleteStrategy(row);
+  };
+
+  const confirmDeleteStrategy = () => {
+    if (!pendingDeleteStrategy) return;
+    const strategyId = pendingDeleteStrategy.id;
+    setDeletedStrategyIds((prev) => {
+      const next = new Set(prev);
+      next.add(strategyId);
+      return next;
+    });
+    setStarred((prev) => {
+      if (!prev.has(strategyId)) return prev;
+      const next = new Set(prev);
+      next.delete(strategyId);
+      return next;
+    });
+    setPendingDeleteStrategy(null);
+    setPage(1);
+  };
 
   const topStats = [
     {
       key: "all" as const,
       label: "Total",
-      value: String(strategyRows.length),
+      value: String(activeStrategyRows.length),
       icon: <List className="h-3.5 w-3.5 text-slate-400" />,
       tone: "text-foreground",
       labelClass: "text-muted-foreground",
@@ -335,26 +538,26 @@ export default function MyStrategies() {
     {
       key: "favorites" as const,
       label: "My Favorites",
-      value: String(starred.size),
+      value: String(favoriteCount),
       icon: <Star className="h-3.5 w-3.5 text-[#ffb900]" />,
       tone: "text-[#ffb900]",
       labelClass: "text-[#ffb900]",
     },
     {
-      key: "paper" as const,
-      label: "Paper Trading",
-      value: String(paperCount),
-      icon: <Circle className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />,
+      key: "trading" as const,
+      label: "Trading",
+      value: String(tradingCount),
+      icon: <ArrowUpDown className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />,
       tone: "text-indigo-600 dark:text-indigo-400",
       labelClass: "text-indigo-600 dark:text-indigo-400",
     },
     {
-      key: "live" as const,
-      label: "Live Trading",
-      value: String(liveCount),
-      icon: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />,
-      tone: "text-emerald-600 dark:text-emerald-400",
-      labelClass: "text-emerald-600 dark:text-emerald-400",
+      key: "idle" as const,
+      label: "Not Running",
+      value: String(idleCount),
+      icon: <Circle className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />,
+      tone: "text-slate-600 dark:text-slate-300",
+      labelClass: "text-slate-600 dark:text-slate-300",
     },
   ];
 
@@ -380,10 +583,10 @@ export default function MyStrategies() {
               strategyFilter === item.key
                 ? item.key === "favorites"
                   ? "border-amber-400/40 bg-amber-400/[0.06]"
-                  : item.key === "paper"
+                  : item.key === "trading"
                     ? "border-indigo-400/40 bg-indigo-400/[0.06]"
-                    : item.key === "live"
-                      ? "border-emerald-400/40 bg-emerald-400/[0.06]"
+                    : item.key === "idle"
+                      ? "border-slate-400/40 bg-slate-400/[0.06]"
                       : "border-primary/30 bg-primary/[0.06]"
                 : "border-border hover:border-border/80"
             }`}
@@ -395,9 +598,9 @@ export default function MyStrategies() {
                   ? tr("Total", "总数")
                   : item.label === "My Favorites"
                     ? tr("My Favorites", "我的收藏")
-                    : item.label === "Paper Trading"
-                      ? tr("Paper Trading", "模拟交易")
-                      : tr("Live Trading", "实盘交易")}
+                    : item.label === "Trading"
+                      ? tr("Trading", "交易中")
+                      : tr("Not Running", "未运行")}
               </p>
             </div>
             <p className={`stat-value text-2xl font-bold ${item.tone}`}>{item.value}</p>
@@ -509,6 +712,23 @@ export default function MyStrategies() {
             ) : null}
           </div>
 
+          {alphaViewMode === "beginner" && (
+            <button
+              type="button"
+              onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
+              className={`inline-flex h-8 items-center gap-1 rounded-full border px-3 text-xs transition-colors ${
+                plainExplainEnabled
+                  ? "border-primary/50 bg-primary/12 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+              aria-pressed={plainExplainEnabled}
+              title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              {tr("Plain explanations", "通俗解释")}
+            </button>
+          )}
+
           <div className="inline-flex h-[34px] items-center overflow-hidden rounded-xl border border-border bg-card p-px">
             <button
               type="button"
@@ -549,7 +769,9 @@ export default function MyStrategies() {
                   return next;
                 })
               }
+              onRequestDelete={() => requestDeleteStrategy(row)}
               visibleMetrics={visibleMetrics}
+              plainExplainEnabled={shouldShowPlainExplanations}
               uiLang={uiLang}
             />
           ))}
@@ -575,9 +797,7 @@ export default function MyStrategies() {
                 {paginated.map((row) => (
                   <tr
                     key={row.id}
-                    className={`group border-t border-border/40 transition-colors ${
-                      starred.has(row.id) ? "bg-amber-500/[0.03]" : ""
-                    }`}
+                    className="group border-t border-border/40 transition-colors"
                   >
                     <td className="px-3 py-4">
                       <button
@@ -604,25 +824,60 @@ export default function MyStrategies() {
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${row.statusClass}`}>
-                        {row.statusLabel === "Live Trading"
-                          ? tr("Live Trading", "实盘交易")
-                          : row.statusLabel === "Paper Trading"
-                            ? tr("Paper Trading", "模拟交易")
-                            : tr("Backtest", "回测")}
+                        {getStatusLabel(row.statusLabel, tr)}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-xs text-muted-foreground">{row.updatedAt}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.roi}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.winRate}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.sharpe}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-rose-500 dark:text-[#ff637e]">{row.maxDrawdown}</td>
+                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">
+                      <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("roi", row, tr)}>
+                        <span>{row.roi}</span>
+                      </MaybeExplainTooltip>
+                    </td>
+                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">
+                      <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("winRate", row, tr)}>
+                        <span>{row.winRate}</span>
+                      </MaybeExplainTooltip>
+                    </td>
+                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">
+                      <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("sharpe", row, tr)}>
+                        <span>{row.sharpe}</span>
+                      </MaybeExplainTooltip>
+                    </td>
+                    <td className="px-4 py-4 text-right font-mono text-sm text-rose-500 dark:text-[#ff637e]">
+                      <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("maxDrawdown", row, tr)}>
+                        <span>{row.maxDrawdown}</span>
+                      </MaybeExplainTooltip>
+                    </td>
                     <td className="px-5 py-4 text-right">
-                      <Link href={`/strategies/${row.id}`}>
-                        <Button className="h-8 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90">
-                          {tr("View", "查看")}
-                          <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
-                        </Button>
-                      </Link>
+                      <div className="inline-flex items-center justify-end gap-2">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button
+                              type="button"
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/70 bg-card text-muted-foreground transition-colors hover:border-muted-foreground/40 hover:bg-accent/50 hover:text-foreground"
+                              aria-label={tr("More actions", "更多操作")}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-32 rounded-xl p-1" align="end">
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs text-destructive transition-colors hover:bg-destructive/10"
+                              onClick={() => requestDeleteStrategy(row)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              {tr("Delete", "删除")}
+                            </button>
+                          </PopoverContent>
+                        </Popover>
+                        <Link href={`/strategies/${row.id}`}>
+                          <Button className="h-8 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90">
+                            {tr("View", "查看")}
+                            <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                          </Button>
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -718,6 +973,38 @@ export default function MyStrategies() {
           </div>
         </div>
       )}
+      <Dialog open={Boolean(pendingDeleteStrategy)} onOpenChange={(open) => !open && setPendingDeleteStrategy(null)}>
+        <DialogContent className="max-w-md rounded-2xl border-border bg-card p-0 text-foreground">
+          <div className="border-b border-border/60 px-5 py-4">
+            <DialogTitle className="text-base font-semibold">{tr("Delete Strategy", "删除策略")}</DialogTitle>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-sm leading-6 text-foreground">
+              {pendingDeleteStrategy?.name
+                ? tr(
+                    `Confirm deleting ${pendingDeleteStrategy.name} (${pendingDeleteStrategy.id})? This action cannot be undone.`,
+                    `确认删除 ${pendingDeleteStrategy.name}（${pendingDeleteStrategy.id}）？删除后无法恢复。`
+                  )
+                : tr("Confirm deleting this strategy? This action cannot be undone.", "确认删除该策略？删除后无法恢复。")}
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-2 border-t border-border/60 px-5 py-4">
+            <Button
+              variant="outline"
+              className="h-8 rounded-full border-border bg-card px-3 text-xs"
+              onClick={() => setPendingDeleteStrategy(null)}
+            >
+              {tr("Cancel", "取消")}
+            </Button>
+            <Button
+              className="h-8 rounded-full bg-destructive px-3 text-xs text-destructive-foreground hover:bg-destructive/90"
+              onClick={confirmDeleteStrategy}
+            >
+              {tr("Delete", "删除")}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
