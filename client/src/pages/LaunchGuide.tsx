@@ -323,12 +323,21 @@ https://api.quandora.trade/v1/agent
       {/* ── Content area ── */}
       <div className="flex-1 overflow-y-auto" ref={contentRef}>
         <div className="mx-auto max-w-[860px] px-6 sm:px-10 py-10">
-          {/* Title + Stepper Row */}
-          <div className="mb-10 flex items-center justify-between gap-6">
-            <h1 className="whitespace-nowrap text-[16px] font-normal px-4 py-1 rounded-full border-[0.5px] border-primary bg-[#f2f1f8] dark:bg-primary/10 text-primary">{tr("Launch Guide", "启动指引")}</h1>
+          {/* Intro + Stepper Row */}
+          <div className="mb-10 flex items-start justify-between gap-6">
+            {currentStep === 0 ? (
+              <div className="min-w-0">
+                <h1 className="text-foreground">{tr("Welcome", "欢迎")}</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {tr("Let's set up your Quandora workspace. This only takes a minute.", "让我们配置你的 Quandora 工作区，这只需要一分钟。")}
+                </p>
+              </div>
+            ) : (
+              <div />
+            )}
 
             {/* ── Compact Horizontal Stepper ── */}
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="mt-3 flex items-center gap-1 sm:gap-2">
               {STEPS.map((step, i) => {
                 const isCompleted = completedSteps.has(i);
                 const isCurrent = i === currentStep;
@@ -372,21 +381,16 @@ https://api.quandora.trade/v1/agent
           <div className="min-h-[400px]">
             {/* ═══ STEP 0: Welcome + Mode Selection ═══ */}
             {currentStep === 0 && (
-              <div className="space-y-8 animate-in fade-in duration-300">
-                <div>
-                  <h2 className="mb-1 text-foreground">{tr("Welcome", "欢迎")}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {tr("Let's set up your Quandora workspace. This only takes a minute.", "让我们配置你的 Quandora 工作区，这只需要一分钟。")}
-                  </p>
-                </div>
-
+              <div className="space-y-10 animate-in fade-in duration-300">
                 {/* Experience Level */}
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-foreground">
-                    {tr("What best describes your experience?", "哪项最符合你的经验水平？")}
-                  </label>
-                  <p className="text-xs text-muted-foreground">{tr("This helps us tailor the platform to your needs", "这有助于我们根据你的需求定制平台体验")}</p>
-                  <div className="space-y-2">
+                <div className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-foreground">
+                      {tr("What best describes your experience?", "哪项最符合你的经验水平？")}
+                    </label>
+                    <p className="text-xs text-muted-foreground">{tr("This helps us tailor the platform to your needs", "这有助于我们根据你的需求定制平台体验")}</p>
+                  </div>
+                  <div className="space-y-2.5">
                     {EXPERIENCE_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
@@ -413,7 +417,7 @@ https://api.quandora.trade/v1/agent
                 </div>
 
                 {/* Preferred Markets */}
-                <div className="space-y-3">
+                <div className="space-y-4 pt-1">
                   <label className="text-sm font-medium text-foreground">
                     {tr("Preferred Markets", "偏好市场")}
                     <span className="font-normal ml-1 text-muted-foreground">(optional)</span>
@@ -719,11 +723,14 @@ https://api.quandora.trade/v1/agent
                     },
                   ].map((item) => (
                     <div key={item.category} className="p-5 rounded-2xl border border-border bg-accent hover:border-primary/30 transition-all duration-200 ease-in-out">
-                      <div className="flex items-center gap-2 mb-3">
-                        <item.icon className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                        <div className="flex items-center gap-2">
+                          <item.icon className="w-4 h-4 text-primary" />
+                          <span className="text-xs font-semibold uppercase tracking-wider text-primary">{item.category}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
                       </div>
-                      <div className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50 mb-3">
+                      <div className="relative rounded-xl overflow-hidden bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-700/50">
                         <pre className="p-4 pr-12 text-xs font-mono leading-relaxed overflow-x-auto text-slate-800 dark:text-slate-100 whitespace-pre-wrap">
                           {item.prompt}
                         </pre>
@@ -738,7 +745,6 @@ https://api.quandora.trade/v1/agent
                           {copiedCode === item.category ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                         </button>
                       </div>
-                      <p className="text-xs text-muted-foreground">{item.desc}</p>
                     </div>
                   ))}
                 </div>

@@ -77,6 +77,26 @@ type GenerationRound = {
 const CREDIT_DISPLAY_RATE = 100;
 const CREDIT_BALANCE_STORAGE_KEY = "otterquant:credit-balance:v2";
 const DEFAULT_CREDIT_BALANCE = 12840 / CREDIT_DISPLAY_RATE;
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function getChartColorTokens(mode: ChartColorMode) {
+  return mode === "redUpGreenDown"
+    ? {
+        upHex: "#F43F5E",
+        downHex: "#10B981",
+      }
+    : {
+        upHex: "#10B981",
+        downHex: "#F43F5E",
+      };
+}
 
 function readCreditBalance() {
   if (typeof window === "undefined") return DEFAULT_CREDIT_BALANCE;
@@ -383,10 +403,63 @@ function ModelLogo({ model }: { model: ModelKey }) {
   );
 }
 
-function Sparkline({ data }: { data: number[] }) {
+type SparklinePoint = { x: number; y: number; value: number };
+
+function buildSparklinePath(points: SparklinePoint[]) {
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+}
+
+function buildSparklineAreaPath(points: SparklinePoint[], zeroY: number) {
+  if (points.length < 2) return "";
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${buildSparklinePath(points)} L ${last.x.toFixed(2)} ${zeroY.toFixed(2)} L ${first.x.toFixed(2)} ${zeroY.toFixed(2)} Z`;
+}
+
+function buildSparklineAreaRuns(points: SparklinePoint[], upColor: string, downColor: string, zeroY: number) {
+  if (points.length < 2) return [];
+
+  const runs: Array<{ color: string; points: SparklinePoint[] }> = [];
+  const appendRun = (color: string, segmentPoints: SparklinePoint[]) => {
+    if (segmentPoints.length < 2) return;
+    const previous = runs[runs.length - 1];
+    if (previous?.color === color) {
+      previous.points.push(...segmentPoints.slice(1));
+      return;
+    }
+    runs.push({ color, points: segmentPoints });
+  };
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const previousIsPositive = previous.value >= 0;
+    const pointIsPositive = point.value >= 0;
+
+    if (previousIsPositive === pointIsPositive || previous.value === 0 || point.value === 0) {
+      appendRun(pointIsPositive ? upColor : downColor, [previous, point]);
+      continue;
+    }
+
+    const ratio = (0 - previous.value) / (point.value - previous.value);
+    const zeroPoint = {
+      value: 0,
+      x: previous.x + (point.x - previous.x) * ratio,
+      y: zeroY,
+    };
+    appendRun(previousIsPositive ? upColor : downColor, [previous, zeroPoint]);
+    appendRun(pointIsPositive ? upColor : downColor, [zeroPoint, point]);
+  }
+
+  return runs.filter((run) => run.points.length > 1);
+}
+
+function Sparkline({ data, upColor, downColor }: { data: number[]; upColor: string; downColor: string }) {
   const gradientId = useId().replace(/:/g, "");
-  const min = Math.min(...data);
-  const max = Math.max(...data);
+  const min = Math.min(0, ...data);
+  const max = Math.max(0, ...data);
   const range = max - min || 1;
   const width = 420;
   const height = 86;
@@ -395,24 +468,46 @@ function Sparkline({ data }: { data: number[] }) {
   const points = data.map((value, index) => ({
     x: padding + index * step,
     y: height - padding - ((value - min) / range) * (height - padding * 2),
+    value,
   }));
-  const path = points.map(({ x, y }, index) => `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
-  const areaPath = path ? `${path} L ${width - padding} ${height - padding} L ${padding} ${height - padding} Z` : "";
+  const zeroY = height - padding - ((0 - min) / range) * (height - padding * 2);
+  const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
-      <path d={areaPath} fill={`url(#${gradientId}-alpha-edit-pnl-fill)`} opacity="0.55" />
-      <path d={path} stroke={`url(#${gradientId}-alpha-edit-pnl-line)`} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+      {runs.map((run, index) => (
+        <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
+          <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${gradientId}-alpha-edit-pnl-fill-${index})`} />
+          <path
+            d={buildSparklinePath(run.points)}
+            stroke={run.color}
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </g>
+      ))}
       <defs>
-        <linearGradient id={`${gradientId}-alpha-edit-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#818CF8" />
-          <stop offset="72%" stopColor="#818CF8" />
-          <stop offset="100%" stopColor="#34D399" />
-        </linearGradient>
-        <linearGradient id={`${gradientId}-alpha-edit-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#818CF8" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
-        </linearGradient>
+        {runs.map((run, index) => {
+          const isPositiveRun = run.points.some((point) => point.value > 0);
+          const lineEdgeY = isPositiveRun
+            ? Math.min(...run.points.map((point) => point.y))
+            : Math.max(...run.points.map((point) => point.y));
+          return (
+            <linearGradient
+              key={`${gradientId}-alpha-edit-pnl-fill-${index}`}
+              id={`${gradientId}-alpha-edit-pnl-fill-${index}`}
+              x1="0"
+              x2="0"
+              y1={isPositiveRun ? lineEdgeY : zeroY}
+              y2={isPositiveRun ? zeroY : lineEdgeY}
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stopColor={run.color} stopOpacity="0.58" />
+              <stop offset="100%" stopColor={run.color} stopOpacity="0.12" />
+            </linearGradient>
+          );
+        })}
       </defs>
     </svg>
   );
@@ -439,11 +534,23 @@ function ResultCard({
 }) {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
+  const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
   const isGenerating = status === "generating";
   const clickable = Boolean(onSelect) && !isGenerating;
   const detailFactor = detailFactors.find((item) => item.id === result.factorId);
   const isPassed = detailFactor?.status === "active" || detailFactor?.status === "testing";
   const canUseReference = Boolean(onUseAsReference) && !isGenerating;
+
+  useEffect(() => {
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
+    };
+  }, []);
 
   const card = (
     <article
@@ -481,7 +588,7 @@ function ResultCard({
 
       <div className="flex flex-none flex-col space-y-2">
         <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("PnL Curve", "PNL折线图")}</div>
-        <Sparkline data={result.pnlSeries} />
+        <Sparkline data={result.pnlSeries} upColor={chartColors.upHex} downColor={chartColors.downHex} />
       </div>
 
       <div className="mt-3 grid grid-cols-3 border-y border-border/60 py-2.5 text-[12px]">
@@ -493,13 +600,13 @@ function ResultCard({
         </div>
         <div className="min-w-0 px-2.5">
           <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground">{tr("Returns", "收益率")}</p>
-          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-emerald-400">
+          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums" style={{ color: chartColors.upHex }}>
             +{result.returns.toFixed(1)}%
           </p>
         </div>
         <div className="min-w-0 pl-2.5">
           <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground">{tr("Drawdown", "回撤")}</p>
-          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-rose-400">
+          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums" style={{ color: chartColors.downHex }}>
             -{result.drawdown.toFixed(1)}%
           </p>
         </div>
@@ -935,8 +1042,8 @@ export default function AlphaEdit() {
                 ref={round.id === latestRoundId ? latestRoundRef : null}
                 className="scroll-mt-4 grid items-start gap-4 md:grid-cols-3 xl:grid-cols-4"
               >
-                <article className="surface-card h-fit rounded-2xl border border-border p-4 text-sm">
-                  <div className="space-y-2.5 text-xs">
+                <article className="surface-card h-fit rounded-2xl border border-border p-5 text-sm">
+                  <div className="space-y-4 text-xs">
                     <div>
                       <p className="text-[11px] text-muted-foreground">{tr("Factor Type", "因子类型")}</p>
                       <p className="text-[12px] font-medium text-foreground">
@@ -945,7 +1052,7 @@ export default function AlphaEdit() {
                     </div>
                     <div>
                       <p className="text-[11px] text-muted-foreground">{tr("Factor Prompt", "因子提示词")}</p>
-                      <p className="line-clamp-3 text-[12px] text-foreground/90">{round.prompt.trim() || "--"}</p>
+                      <p className="mt-1 line-clamp-4 text-[12px] leading-5 text-foreground/90">{round.prompt.trim() || "--"}</p>
                     </div>
                     <div>
                       <p className="text-[11px] text-muted-foreground">{tr("Model", "模型")}</p>
@@ -956,7 +1063,7 @@ export default function AlphaEdit() {
                         </p>
                       ) : null}
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-4">
                       <div>
                         <p className="text-[11px] text-muted-foreground">{tr("Generation Count", "生成数量")}</p>
                         <p className="text-[12px] font-medium text-foreground">{round.resultCount}</p>
@@ -967,7 +1074,7 @@ export default function AlphaEdit() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between gap-3 pt-1.5 text-muted-foreground">
+                    <div className="flex items-center justify-between gap-3 pt-1 text-muted-foreground">
                       <div className="flex items-center gap-3">
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1022,16 +1129,16 @@ export default function AlphaEdit() {
             ))}
           </div>
 
-          <div className="sticky bottom-0 z-10 mx-auto self-auto w-[800px] max-w-full rounded-xl border border-border bg-card/95 p-2.5 shadow-[0_-18px_50px_rgba(15,23,42,0.12)] backdrop-blur dark:shadow-[0_-14px_24px_rgba(2,6,23,0.3)] md:p-3">
-            <div className={`relative ${composerCollapsed ? "space-y-2 pt-0.5" : "space-y-3 pt-6"}`}>
-              <button
-                type="button"
-                onClick={() => setComposerCollapsed((prev) => !prev)}
-                className="absolute right-0 top-0 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-accent text-muted-foreground transition hover:text-foreground"
-                aria-label={composerCollapsed ? tr("Expand composer", "展开编辑器") : tr("Collapse composer", "收起编辑器")}
-              >
-                {composerCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </button>
+          <div className="sticky bottom-0 z-10 mx-auto w-fit max-w-[calc(100vw-2rem)] self-auto rounded-xl border border-border bg-card/95 p-2.5 shadow-[0_-18px_50px_rgba(15,23,42,0.12)] backdrop-blur dark:shadow-[0_-14px_24px_rgba(2,6,23,0.3)] md:p-3">
+            <button
+              type="button"
+              onClick={() => setComposerCollapsed((prev) => !prev)}
+              className="absolute right-5 top-3 inline-flex h-7 w-7 items-center justify-center rounded-md border border-border bg-accent text-muted-foreground transition hover:text-foreground"
+              aria-label={composerCollapsed ? tr("Expand composer", "展开编辑器") : tr("Collapse composer", "收起编辑器")}
+            >
+              {composerCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </button>
+            <div className={`${composerCollapsed ? "space-y-2" : "space-y-3"} w-[720px] max-w-[calc(100vw-4rem)] pt-8`}>
 
               {referenceFactors.length > 0 ? (
                 <div className="flex flex-wrap items-center gap-2 pr-9">

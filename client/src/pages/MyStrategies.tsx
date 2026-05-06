@@ -3,7 +3,7 @@
  * Structure: Header + Summary cards + Toolbar + Strategy cards (grid/list)
  * Visual style stays aligned with existing My Alphas dark design tokens.
  */
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { strategies } from "@/lib/mockData";
-import { parsePercent } from "@/lib/strategyUtils";
+import { buildSeries, parsePercent } from "@/lib/strategyUtils";
 import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
@@ -70,6 +70,171 @@ interface StrategyViewRow {
 
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 const DELETED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:deleted-strategies";
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function getChartColorTokens(mode: ChartColorMode) {
+  return mode === "redUpGreenDown"
+    ? {
+        upHex: "#F43F5E",
+        downHex: "#10B981",
+      }
+    : {
+        upHex: "#10B981",
+        downHex: "#F43F5E",
+      };
+}
+
+type ChartColorTokens = ReturnType<typeof getChartColorTokens>;
+
+function strategyMetricColor(key: MetricKey, value: string, chartColors: ChartColorTokens) {
+  if (key === "roi") return parsePercent(value) < 0 ? chartColors.downHex : chartColors.upHex;
+  if (key === "maxDrawdown") return parsePercent(value) === 0 ? undefined : chartColors.downHex;
+  return undefined;
+}
+
+const strategyCardEquityValues = buildSeries(64, 99100, 138, 260);
+const strategyCardCurveValues = strategyCardEquityValues.map((value) =>
+  Number((value - strategyCardEquityValues[0]).toFixed(2))
+);
+
+function buildSparklinePoints(values: number[], width: number, height: number, padding = 6) {
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const step = (width - padding * 2) / Math.max(1, values.length - 1);
+
+  return values.map((value, index) => ({
+    x: padding + index * step,
+    y: height - padding - ((value - min) / range) * (height - padding * 2),
+    value,
+  }));
+}
+
+function buildSparklineAreaPath(points: Array<{ x: number; y: number }>, zeroY: number) {
+  if (points.length < 2) return "";
+  const path = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${path} L ${last.x.toFixed(2)} ${zeroY.toFixed(2)} L ${first.x.toFixed(2)} ${zeroY.toFixed(2)} Z`;
+}
+
+function buildSparklineAreaRuns(
+  points: Array<{ x: number; y: number; value: number }>,
+  upColor: string,
+  downColor: string,
+  zeroY: number
+) {
+  if (points.length < 2) return [];
+
+  const runs: Array<{ color: string; points: typeof points }> = [];
+  const appendRun = (color: string, segmentPoints: typeof points) => {
+    if (segmentPoints.length < 2) return;
+    const previous = runs[runs.length - 1];
+    if (previous?.color === color) {
+      previous.points.push(...segmentPoints.slice(1));
+      return;
+    }
+    runs.push({ color, points: segmentPoints });
+  };
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const previousIsPositive = previous.value >= 0;
+    const pointIsPositive = point.value >= 0;
+
+    if (previousIsPositive === pointIsPositive || previous.value === 0 || point.value === 0) {
+      appendRun(pointIsPositive ? upColor : downColor, [previous, point]);
+      continue;
+    }
+
+    const ratio = (0 - previous.value) / (point.value - previous.value);
+    const zeroPoint = {
+      value: 0,
+      x: previous.x + (point.x - previous.x) * ratio,
+      y: zeroY,
+    };
+    appendRun(previousIsPositive ? upColor : downColor, [previous, zeroPoint]);
+    appendRun(pointIsPositive ? upColor : downColor, [zeroPoint, point]);
+  }
+
+  return runs.filter((run) => run.points.length > 1);
+}
+
+function StrategyCurveSparkline({
+  values,
+  label,
+  upColor,
+  downColor,
+}: {
+  values: number[];
+  label: string;
+  upColor: string;
+  downColor: string;
+}) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 420;
+  const height = 86;
+  const points = buildSparklinePoints(values, width, height);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const zeroY = height - 6 - ((0 - min) / range) * (height - 12);
+  const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
+
+  return (
+    <div className="mt-4 space-y-2 border-t border-border/50 pt-4">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
+        {runs.map((run, index) => (
+          <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
+            <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${svgId}-strategy-curve-fill-${index})`} />
+            <path
+              d={run.points
+                .map((point, pointIndex) => `${pointIndex === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+                .join(" ")}
+              stroke={run.color}
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+        ))}
+        <defs>
+          {runs.map((run, index) => {
+            const isPositiveRun = run.points.some((point) => point.value > 0);
+            const lineEdgeY = isPositiveRun
+              ? Math.min(...run.points.map((point) => point.y))
+              : Math.max(...run.points.map((point) => point.y));
+            return (
+              <linearGradient
+                key={`${svgId}-strategy-curve-fill-${index}`}
+                id={`${svgId}-strategy-curve-fill-${index}`}
+                x1="0"
+                x2="0"
+                y1={isPositiveRun ? lineEdgeY : zeroY}
+                y2={isPositiveRun ? zeroY : lineEdgeY}
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor={run.color} stopOpacity="0.58" />
+                <stop offset="100%" stopColor={run.color} stopOpacity="0.12" />
+              </linearGradient>
+            );
+          })}
+        </defs>
+      </svg>
+    </div>
+  );
+}
 
 const sortLabels: Record<SortKey, string> = {
   updated: "Updated Time",
@@ -232,12 +397,14 @@ function MetricBox({
   label,
   value,
   tone = "neutral",
+  valueColor,
   explanation,
   explainEnabled,
 }: {
   label: string;
   value: string;
   tone?: "positive" | "negative" | "neutral";
+  valueColor?: string;
   explanation?: string;
   explainEnabled?: boolean;
 }) {
@@ -246,12 +413,15 @@ function MetricBox({
       <p className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
       <p
         className={`mt-1 text-sm font-semibold font-mono tabular-nums ${
-          tone === "positive"
+          valueColor
+            ? ""
+            : tone === "positive"
             ? "text-emerald-600 dark:text-[#00d492]"
             : tone === "negative"
               ? "text-rose-500 dark:text-[#ff637e]"
               : "text-foreground"
         }`}
+        style={valueColor ? { color: valueColor } : undefined}
       >
         {value}
       </p>
@@ -273,6 +443,7 @@ function StrategyCard({
   visibleMetrics,
   plainExplainEnabled,
   uiLang,
+  chartColors,
 }: {
   row: StrategyViewRow;
   starred: boolean;
@@ -281,6 +452,7 @@ function StrategyCard({
   visibleMetrics: Record<MetricKey, boolean>;
   plainExplainEnabled: boolean;
   uiLang: "en" | "zh";
+  chartColors: ChartColorTokens;
 }) {
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const translatedDescription = (() => {
@@ -310,7 +482,7 @@ function StrategyCard({
           <span className={`inline-flex h-[25px] items-center rounded-full border px-[11px] py-[5px] text-[10px] font-semibold uppercase tracking-[0.18em] ${row.statusClass}`}>
             {getStatusLabel(row.statusLabel, tr)}
           </span>
-          <span className="text-xs text-muted-foreground">{tr("Updated", "更新于")}:{row.updatedAt}</span>
+          <span className="text-xs text-muted-foreground">{tr("Created", "创建日期")}:{row.updatedAt}</span>
           <span className="text-xs text-muted-foreground">ID:{row.id}</span>
         </div>
       </div>
@@ -318,11 +490,18 @@ function StrategyCard({
       <div className="px-5 pb-4 pt-2">
         <p className="text-sm leading-7 text-muted-foreground">{translatedDescription}</p>
 
+        <StrategyCurveSparkline
+          values={strategyCardCurveValues}
+          label={tr("Asset Curve", "资产曲线")}
+          upColor={chartColors.upHex}
+          downColor={chartColors.downHex}
+        />
+
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-4">
-          {visibleMetrics.roi ? <MetricBox label="ROI" value={row.roi} tone="positive" explanation={getMetricExplanation("roi", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
-          {visibleMetrics.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} tone="positive" explanation={getMetricExplanation("winRate", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
-          {visibleMetrics.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} tone="positive" explanation={getMetricExplanation("sharpe", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
-          {visibleMetrics.maxDrawdown ? <MetricBox label={tr("Max Drawdown", "最大回撤")} value={row.maxDrawdown} tone="negative" explanation={getMetricExplanation("maxDrawdown", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleMetrics.roi ? <MetricBox label="ROI" value={row.roi} valueColor={strategyMetricColor("roi", row.roi, chartColors)} explanation={getMetricExplanation("roi", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleMetrics.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} explanation={getMetricExplanation("winRate", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleMetrics.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} explanation={getMetricExplanation("sharpe", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleMetrics.maxDrawdown ? <MetricBox label={tr("Max Drawdown", "最大回撤")} value={row.maxDrawdown} valueColor={strategyMetricColor("maxDrawdown", row.maxDrawdown, chartColors)} explanation={getMetricExplanation("maxDrawdown", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2 border-t border-border/40 pt-3">
@@ -389,6 +568,7 @@ export default function MyStrategies() {
   const [starred, setStarred] = useState<Set<string>>(new Set(["STR-463", "STR-470"]));
   const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
   const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
     const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
@@ -398,6 +578,7 @@ export default function MyStrategies() {
   });
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const shouldShowPlainExplanations = alphaViewMode === "beginner" && plainExplainEnabled;
+  const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
 
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
@@ -421,6 +602,17 @@ export default function MyStrategies() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
   }, [plainExplainEnabled]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -755,7 +947,7 @@ export default function MyStrategies() {
       </div>
 
       {viewMode === "grid" ? (
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
           {sorted.slice(0, 8).map((row) => (
             <StrategyCard
               key={row.id}
@@ -773,6 +965,7 @@ export default function MyStrategies() {
               visibleMetrics={visibleMetrics}
               plainExplainEnabled={shouldShowPlainExplanations}
               uiLang={uiLang}
+              chartColors={chartColors}
             />
           ))}
         </div>
@@ -785,7 +978,7 @@ export default function MyStrategies() {
                   <th className="w-10 px-3 py-3" />
                   <th className="px-5 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Name", "名称")}</th>
                   <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Status", "状态")}</th>
-                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Updated", "更新于")}</th>
+                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Created", "创建日期")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">ROI</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Win Rate", "胜率")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Sharpe", "夏普比率")}</th>
@@ -828,22 +1021,22 @@ export default function MyStrategies() {
                       </span>
                     </td>
                     <td className="px-4 py-4 text-xs text-muted-foreground">{row.updatedAt}</td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">
+                    <td className="px-4 py-4 text-right font-mono text-sm" style={{ color: strategyMetricColor("roi", row.roi, chartColors) }}>
                       <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("roi", row, tr)}>
                         <span>{row.roi}</span>
                       </MaybeExplainTooltip>
                     </td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">
+                    <td className="px-4 py-4 text-right font-mono text-sm text-foreground">
                       <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("winRate", row, tr)}>
                         <span>{row.winRate}</span>
                       </MaybeExplainTooltip>
                     </td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">
+                    <td className="px-4 py-4 text-right font-mono text-sm text-foreground">
                       <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("sharpe", row, tr)}>
                         <span>{row.sharpe}</span>
                       </MaybeExplainTooltip>
                     </td>
-                    <td className="px-4 py-4 text-right font-mono text-sm text-rose-500 dark:text-[#ff637e]">
+                    <td className="px-4 py-4 text-right font-mono text-sm" style={{ color: strategyMetricColor("maxDrawdown", row.maxDrawdown, chartColors) }}>
                       <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("maxDrawdown", row, tr)}>
                         <span>{row.maxDrawdown}</span>
                       </MaybeExplainTooltip>

@@ -3,7 +3,7 @@
  * Receives pre-filtered & sorted data from parent (same as table view)
  * Field visibility fully synced with table view's visibleColumns
  */
-import { useId, useMemo, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { ArrowUpRight, MoreHorizontal, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,30 @@ interface AlphaCardViewProps {
 }
 
 const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v4_";
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function getChartColorTokens(mode: ChartColorMode) {
+  return mode === "redUpGreenDown"
+    ? {
+        upClass: "text-rose-500",
+        downClass: "text-emerald-500",
+        upHex: "#F43F5E",
+        downHex: "#10B981",
+      }
+    : {
+        upClass: "text-emerald-500",
+        downClass: "text-rose-500",
+        upHex: "#10B981",
+        downHex: "#F43F5E",
+      };
+}
 
 function readRevealedGrade(factorId: string): AlphaGrade | null {
   if (typeof window === "undefined") return null;
@@ -66,8 +90,14 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
 function buildSparklinePath(values: number[], width: number, height: number, padding = 6) {
   if (values.length < 2) return "";
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  return buildSparklinePoints(values, width, height, padding)
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+}
+
+function buildSparklinePoints(values: number[], width: number, height: number, padding = 6) {
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
   const range = max - min || 1;
   const step = (width - padding * 2) / (values.length - 1);
 
@@ -75,8 +105,68 @@ function buildSparklinePath(values: number[], width: number, height: number, pad
     .map((value, index) => {
       const x = padding + index * step;
       const y = height - padding - ((value - min) / range) * (height - padding * 2);
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
+      return { x, y, value };
+    });
+}
+
+function buildSparklineAreaRuns(
+  points: Array<{ x: number; y: number; value: number }>,
+  upColor: string,
+  downColor: string,
+  zeroY: number
+) {
+  if (points.length < 2) return [];
+
+  const runs: Array<{ color: string; points: typeof points }> = [];
+  const appendRun = (color: string, segmentPoints: typeof points) => {
+    if (segmentPoints.length < 2) return;
+    const previous = runs[runs.length - 1];
+    if (previous?.color === color) {
+      previous.points.push(...segmentPoints.slice(1));
+      return;
+    }
+    runs.push({ color, points: segmentPoints });
+  };
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const previousIsPositive = previous.value >= 0;
+    const pointIsPositive = point.value >= 0;
+
+    if (previousIsPositive === pointIsPositive || previous.value === 0 || point.value === 0) {
+      appendRun(pointIsPositive ? upColor : downColor, [previous, point]);
+      continue;
+    }
+
+    const ratio = (0 - previous.value) / (point.value - previous.value);
+    const zeroPoint = {
+      value: 0,
+      x: previous.x + (point.x - previous.x) * ratio,
+      y: zeroY,
+    };
+    appendRun(previousIsPositive ? upColor : downColor, [previous, zeroPoint]);
+    appendRun(pointIsPositive ? upColor : downColor, [zeroPoint, point]);
+  }
+
+  return runs.filter((run) => run.points.length > 1);
+}
+
+function buildSparklineAreaPath(points: Array<{ x: number; y: number }>, zeroY: number) {
+  if (points.length < 2) return "";
+
+  const topPath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+  const first = points[0];
+  const last = points[points.length - 1];
+
+  return `${topPath} L ${last.x.toFixed(2)} ${zeroY.toFixed(2)} L ${first.x.toFixed(2)} ${zeroY.toFixed(2)} Z`;
+}
+
+function buildSparklineLinePath(points: Array<{ x: number; y: number }>) {
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
     .join(" ");
 }
 
@@ -104,41 +194,67 @@ function MaybeExplainTooltip({
 function PnlSparkline({
   values,
   label,
-  explainEnabled,
-  explanation,
+  upColor,
+  downColor,
 }: {
   values: number[];
   label: string;
-  explainEnabled?: boolean;
-  explanation: string;
+  upColor: string;
+  downColor: string;
 }) {
   const svgId = useId().replace(/:/g, "");
   const width = 420;
   const height = 86;
-  const path = buildSparklinePath(values, width, height);
-  const areaPath = path ? `${path} L ${width - 6} ${height - 6} L 6 ${height - 6} Z` : "";
+  const points = buildSparklinePoints(values, width, height);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const zeroY = height - 6 - ((0 - min) / range) * (height - 12);
+  const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
 
   return (
-    <MaybeExplainTooltip enabled={explainEnabled} explanation={explanation}>
     <div className="space-y-2">
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
-        <path d={areaPath} fill={`url(#${svgId}-alpha-card-pnl-fill)`} opacity="0.55" />
-        <path d={path} stroke={`url(#${svgId}-alpha-card-pnl-line)`} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        {runs.map((run, index) => {
+          const fillId = `${svgId}-alpha-card-pnl-fill-${index}`;
+          return (
+            <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}`}>
+              <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${fillId})`} />
+              <path
+                d={buildSparklineLinePath(run.points)}
+                stroke={run.color}
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+          );
+        })}
         <defs>
-          <linearGradient id={`${svgId}-alpha-card-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#818CF8" />
-            <stop offset="72%" stopColor="#818CF8" />
-            <stop offset="100%" stopColor="#34D399" />
-          </linearGradient>
-          <linearGradient id={`${svgId}-alpha-card-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
-          </linearGradient>
+          {runs.map((run, index) => {
+            const isPositiveRun = run.points.some((point) => point.value > 0);
+            const lineEdgeY = isPositiveRun
+              ? Math.min(...run.points.map((point) => point.y))
+              : Math.max(...run.points.map((point) => point.y));
+            return (
+              <linearGradient
+                key={`${svgId}-alpha-card-pnl-fill-${index}`}
+                id={`${svgId}-alpha-card-pnl-fill-${index}`}
+                x1="0"
+                x2="0"
+                y1={isPositiveRun ? lineEdgeY : zeroY}
+                y2={isPositiveRun ? zeroY : lineEdgeY}
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor={run.color} stopOpacity="0.58" />
+                <stop offset="100%" stopColor={run.color} stopOpacity="0.12" />
+              </linearGradient>
+            );
+          })}
         </defs>
       </svg>
     </div>
-    </MaybeExplainTooltip>
   );
 }
 
@@ -176,13 +292,25 @@ export default function AlphaCardView({
   plainExplainEnabled = false,
 }: AlphaCardViewProps) {
   const { uiLang } = useAppLanguage();
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
   const isVisible = (key: string) => visibleColumns.has(key);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
   const pnlValues = useMemo(() => {
     const pnlData = generatePnLData();
     const combined = [...pnlData.train, ...pnlData.test].map((item) => item.value);
     const sampleEvery = Math.max(1, Math.floor(combined.length / 36));
     return combined.filter((_, index) => index % sampleEvery === 0).slice(-36);
+  }, []);
+
+  useEffect(() => {
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
+    };
   }, []);
 
   const renderStatus = (status: AlphaRow["submissionStatus"]) => {
@@ -260,8 +388,16 @@ export default function AlphaCardView({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
       {rows.map((row) => {
-        const osSharpeColor = row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive";
-        const fitnessColor = row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground";
+        const returnValue = parseFloat(row.returns);
+        const drawdownValue = Math.abs(parseFloat(row.drawdown));
+        const returnsColor = Number.isNaN(returnValue)
+          ? undefined
+          : returnValue > 0
+            ? chartColors.upClass
+            : returnValue < 0
+              ? chartColors.downClass
+              : undefined;
+        const drawdownColor = Number.isNaN(drawdownValue) || drawdownValue === 0 ? undefined : chartColors.downClass;
         const metricExplanations: Record<string, string> = {
           sharpe: tr(
             `Higher Sharpe means steadier returns. ${row.sharpe.toFixed(2)} is ${sharpeLevel(row.sharpe, tr)}.`,
@@ -296,11 +432,11 @@ export default function AlphaCardView({
         /* Collect visible metrics for the grid — synced with table columns */
         const metrics: { label: string; value: string; colorClass?: string; explanation?: string }[] = [];
         if (isVisible("sharpe")) metrics.push({ label: tr("IS Sharpe", "样本内夏普比率"), value: row.sharpe.toFixed(2), explanation: metricExplanations.sharpe });
-        if (isVisible("osSharpe")) metrics.push({ label: tr("OS Sharpe", "样本外夏普比率"), value: row.osSharpe.toFixed(2), colorClass: osSharpeColor, explanation: metricExplanations.osSharpe });
-        if (isVisible("fitness")) metrics.push({ label: tr("Fitness", "适应度"), value: row.fitness.toFixed(2), colorClass: fitnessColor, explanation: metricExplanations.fitness });
-        if (isVisible("returns")) metrics.push({ label: tr("Returns", "收益率"), value: row.returns, explanation: metricExplanations.returns });
+        if (isVisible("osSharpe")) metrics.push({ label: tr("OS Sharpe", "样本外夏普比率"), value: row.osSharpe.toFixed(2), explanation: metricExplanations.osSharpe });
+        if (isVisible("fitness")) metrics.push({ label: tr("Fitness", "适应度"), value: row.fitness.toFixed(2), explanation: metricExplanations.fitness });
+        if (isVisible("returns")) metrics.push({ label: tr("Returns", "收益率"), value: row.returns, colorClass: returnsColor, explanation: metricExplanations.returns });
         if (isVisible("turnover")) metrics.push({ label: tr("Turnover", "换手率"), value: row.turnover, explanation: metricExplanations.turnover });
-        if (isVisible("drawdown")) metrics.push({ label: tr("Drawdown", "回撤"), value: row.drawdown, colorClass: "text-destructive", explanation: metricExplanations.drawdown });
+        if (isVisible("drawdown")) metrics.push({ label: tr("Drawdown", "回撤"), value: row.drawdown, colorClass: drawdownColor, explanation: metricExplanations.drawdown });
         if (isVisible("testsPassed")) {
           const testsValue = `${row.testsPassed}/${row.testsFailed}${row.testsPending > 0 ? `/${row.testsPending}` : ""}`;
           metrics.push({ label: tr("Tests", "测试"), value: testsValue, explanation: metricExplanations.testsPassed });
@@ -326,7 +462,7 @@ export default function AlphaCardView({
                   )}
                   {(isVisible("createdAt") || isVisible("id")) && (
                     <div className="mt-2 text-xs font-mono text-muted-foreground whitespace-nowrap">
-                      {isVisible("createdAt") ? `Created:${row.createdAt}` : ""}
+                      {isVisible("createdAt") ? `${tr("Created", "创建日期")}:${row.createdAt}` : ""}
                       {isVisible("createdAt") && isVisible("id") ? "  " : ""}
                       {isVisible("id") ? `ID: ${row.id}` : ""}
                     </div>
@@ -343,12 +479,9 @@ export default function AlphaCardView({
             <div className="px-4 py-3 flex-1 space-y-4">
               <PnlSparkline
                 values={pnlValues}
-                label={tr("PnL Curve", "PNL 折线图")}
-                explainEnabled={plainExplainEnabled}
-                explanation={tr(
-                  `This line shows cumulative profit and loss. In this preview it moves from about ${pnlValues[0]?.toLocaleString() ?? "0"} to ${pnlValues[pnlValues.length - 1]?.toLocaleString() ?? "0"}.`,
-                  `这条线表示累计收益变化。当前示例大约从 ${pnlValues[0]?.toLocaleString() ?? "0"} 走到 ${pnlValues[pnlValues.length - 1]?.toLocaleString() ?? "0"}。`
-                )}
+                label={tr("PnL", "PNL")}
+                upColor={chartColors.upHex}
+                downColor={chartColors.downHex}
               />
 
               {metrics.length > 0 && (
