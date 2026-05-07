@@ -42,11 +42,13 @@ import {
   BarChart3,
   BriefcaseBusiness,
   ClipboardList,
-  HelpCircle,
+  Eye,
+  EyeOff,
   Unplug,
   PieChart,
   Star,
   TrendingUp,
+  Users,
   Wallet,
   X,
 } from "lucide-react";
@@ -524,7 +526,8 @@ export default function StrategyDetail() {
   );
   const [selectedExchangeApiId, setSelectedExchangeApiId] = useState<string>("");
   const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
-  const shouldShowPlainExplanations = alphaViewMode === "beginner" && plainExplainEnabled;
+  const isBeginnerMode = alphaViewMode === "beginner";
+  const shouldShowPlainExplanations = isBeginnerMode && plainExplainEnabled;
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
   const semanticColorVars = useMemo(
     () =>
@@ -979,6 +982,18 @@ export default function StrategyDetail() {
     return { avg, wins, losses };
   }, [dailyReturns]);
 
+  const displayPreferenceSlices = useMemo(() => {
+    if (!isBeginnerMode || preferenceSlices.length <= 5) return preferenceSlices;
+    const primarySlices = preferenceSlices.slice(0, 4);
+    const remainingValue = preferenceSlices
+      .slice(4)
+      .reduce((sum, slice) => sum + slice.value, 0);
+    return [
+      ...primarySlices,
+      { label: "Other", value: remainingValue, color: "var(--muted-foreground)" },
+    ];
+  }, [isBeginnerMode]);
+
   const openTradePage = (environment: "paper" | "live", focusTradeId?: string) => {
     const query = new URLSearchParams({
       env: environment,
@@ -1061,7 +1076,9 @@ export default function StrategyDetail() {
 
   const tierBadgeClass = "border-primary/30 bg-primary/10 text-primary";
   const tierBadgeLabel = strategyTier === "official" ? tr("Official", "官方") : tr("Graduated", "三方");
-  const activeSlice = preferenceSlices[activePreference];
+  const usedCount = strategy.subscribers ?? 0;
+  const activePreferenceIndex = Math.min(activePreference, displayPreferenceSlices.length - 1);
+  const activeSlice = displayPreferenceSlices[activePreferenceIndex] ?? displayPreferenceSlices[0];
   const equityCurveColor = curveStats.total >= 0 ? "var(--semantic-up)" : "var(--semantic-down)";
   const curveHoverPoint =
     curveHoverIndex !== null ? curveChart.equityPoints[curveHoverIndex] : null;
@@ -1130,6 +1147,33 @@ export default function StrategyDetail() {
       "负收益日数量。"
     ),
   };
+  const headerUtilityButtons = (
+    <>
+      <button
+        type="button"
+        className="inline-flex h-8 items-center gap-1 rounded-full border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        onClick={() => setIsStrategyConfigOpen(true)}
+      >
+        {tr("View Strategy Configuration", "查看策略配置")}
+      </button>
+      {isBeginnerMode ? (
+        <button
+          type="button"
+          onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
+          className={`inline-flex h-8 items-center gap-1 rounded-full border px-3 text-xs transition-colors ${
+            plainExplainEnabled
+              ? "border-primary/50 bg-primary/12 text-primary"
+              : "border-border bg-card text-muted-foreground hover:text-foreground"
+          }`}
+          aria-pressed={plainExplainEnabled}
+          title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
+        >
+          {plainExplainEnabled ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+          {tr("Plain explanations", "通俗解释")}
+        </button>
+      ) : null}
+    </>
+  );
 
   return (
     <div className="space-y-6 min-w-0" style={semanticColorVars}>
@@ -1150,42 +1194,21 @@ export default function StrategyDetail() {
           <div className="min-w-0">
             <h1 className="text-foreground">{strategyHeading}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+              {isOfficialLibraryView ? (
+                <>
+                  <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-3 text-xs font-semibold text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" />
+                    {uiLang === "zh" ? `已使用${usedCount}次` : `Used ${usedCount} times`}
+                  </span>
+                  <span className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium ${tierBadgeClass}`}>
+                    {tierBadgeLabel}
+                  </span>
+                </>
+              ) : null}
               <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 <span className="font-mono">{strategyId}</span>
                 <span>·</span>
                 <span>{tr("Created", "创建于")} {formatConfigDate(createdAt)}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {isOfficialLibraryView ? (
-                  <span
-                    className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium ${tierBadgeClass}`}
-                  >
-                    {tierBadgeLabel}
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  className="inline-flex h-8 items-center gap-1 rounded-full border border-border bg-card px-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  onClick={() => setIsStrategyConfigOpen(true)}
-                >
-                  {tr("View Strategy Configuration", "查看策略配置")}
-                </button>
-                {alphaViewMode === "beginner" ? (
-                  <button
-                    type="button"
-                    onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
-                    className={`inline-flex h-8 items-center gap-1 rounded-full border px-3 text-xs transition-colors ${
-                      plainExplainEnabled
-                        ? "border-primary/50 bg-primary/12 text-primary"
-                        : "border-border bg-card text-muted-foreground hover:text-foreground"
-                    }`}
-                    aria-pressed={plainExplainEnabled}
-                    title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
-                  >
-                    <HelpCircle className="h-3.5 w-3.5" />
-                    {tr("Plain explanations", "通俗解释")}
-                  </button>
-                ) : null}
               </div>
             </div>
           </div>
@@ -1205,6 +1228,7 @@ export default function StrategyDetail() {
               >
                 <Star className={`h-4 w-4 ${starred ? "fill-current text-amber-400" : ""}`} />
               </Button>
+              {headerUtilityButtons}
               <Button
                 className="h-10 rounded-lg bg-primary px-3 text-primary-foreground hover:bg-primary/90"
                 onClick={() =>
@@ -1229,6 +1253,7 @@ export default function StrategyDetail() {
               >
                 <Star className={`h-4 w-4 ${starred ? "fill-current text-amber-400" : ""}`} />
               </Button>
+              {headerUtilityButtons}
               <Button
                 className="h-10 rounded-lg bg-primary px-3 text-primary-foreground hover:bg-primary/90"
                 onClick={() => {
@@ -1305,26 +1330,28 @@ export default function StrategyDetail() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
-          <DetailListCard
-            title={tr("Fund Snapshot", "资金快照")}
-            icon={Wallet}
-            rows={fundRows}
-            explainEnabled={shouldShowPlainExplanations}
-          />
-          <DetailListCard
-            title={tr("Performance Metrics", "表现指标")}
-            icon={TrendingUp}
-            rows={perfRows}
-            explainEnabled={shouldShowPlainExplanations}
-          />
-          <DetailListCard
-            title={tr("Trade Statistics", "交易统计")}
-            icon={ClipboardList}
-            rows={tradeRows}
-            explainEnabled={shouldShowPlainExplanations}
-          />
-        </div>
+        {!isBeginnerMode ? (
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+            <DetailListCard
+              title={tr("Fund Snapshot", "资金快照")}
+              icon={Wallet}
+              rows={fundRows}
+              explainEnabled={shouldShowPlainExplanations}
+            />
+            <DetailListCard
+              title={tr("Performance Metrics", "表现指标")}
+              icon={TrendingUp}
+              rows={perfRows}
+              explainEnabled={shouldShowPlainExplanations}
+            />
+            <DetailListCard
+              title={tr("Trade Statistics", "交易统计")}
+              icon={ClipboardList}
+              rows={tradeRows}
+              explainEnabled={shouldShowPlainExplanations}
+            />
+          </div>
+        ) : null}
       </section>
 
       <div className="grid grid-cols-1 gap-5">
@@ -1356,40 +1383,42 @@ export default function StrategyDetail() {
           }
         >
           <div className="flex min-h-[285px] flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <ChartLegendItem color={equityCurveColor} label={tr("Equity", "权益")} />
-                <ChartLegendItem color="var(--chart-1)" label={tr("Benchmark", "基准")} />
+            {!isBeginnerMode ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <ChartLegendItem color={equityCurveColor} label={tr("Equity", "权益")} />
+                  <ChartLegendItem color="var(--chart-1)" label={tr("Benchmark", "基准")} />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <ExplainStat
+                    label={tr("Total Return", "总收益")}
+                    value={`${fmtSigned(curveStats.total)}%`}
+                    tone={curveStats.total >= 0 ? "positive" : "negative"}
+                    explanation={topMetricExplanations.totalReturn}
+                    explainEnabled={shouldShowPlainExplanations}
+                  />
+                  <ExplainStat
+                    label={tr("Excess Return", "超额收益")}
+                    value={`${fmtSigned(curveStats.excess)}%`}
+                    tone={curveStats.excess >= 0 ? "positive" : "negative"}
+                    explanation={topMetricExplanations.excessReturn}
+                    explainEnabled={shouldShowPlainExplanations}
+                  />
+                  <ExplainStat
+                    label={tr("Sharpe", "夏普比率")}
+                    value={strategy.sharpe.toFixed(2)}
+                    explanation={topMetricExplanations.sharpe}
+                    explainEnabled={shouldShowPlainExplanations}
+                  />
+                  <ExplainStat
+                    label={tr("Calmar", "Calmar比率")}
+                    value={calmar.toFixed(2)}
+                    explanation={topMetricExplanations.calmar}
+                    explainEnabled={shouldShowPlainExplanations}
+                  />
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-                <ExplainStat
-                  label={tr("Total Return", "总收益")}
-                  value={`${fmtSigned(curveStats.total)}%`}
-                  tone={curveStats.total >= 0 ? "positive" : "negative"}
-                  explanation={topMetricExplanations.totalReturn}
-                  explainEnabled={shouldShowPlainExplanations}
-                />
-                <ExplainStat
-                  label={tr("Excess Return", "超额收益")}
-                  value={`${fmtSigned(curveStats.excess)}%`}
-                  tone={curveStats.excess >= 0 ? "positive" : "negative"}
-                  explanation={topMetricExplanations.excessReturn}
-                  explainEnabled={shouldShowPlainExplanations}
-                />
-                <ExplainStat
-                  label={tr("Sharpe", "夏普比率")}
-                  value={strategy.sharpe.toFixed(2)}
-                  explanation={topMetricExplanations.sharpe}
-                  explainEnabled={shouldShowPlainExplanations}
-                />
-                <ExplainStat
-                  label={tr("Calmar", "Calmar比率")}
-                  value={calmar.toFixed(2)}
-                  explanation={topMetricExplanations.calmar}
-                  explainEnabled={shouldShowPlainExplanations}
-                />
-              </div>
-            </div>
+            ) : null}
 
             <div className="relative h-[205px] sm:h-[225px]">
               <svg
@@ -1446,15 +1475,17 @@ export default function StrategyDetail() {
                   strokeLinejoin="round"
                   strokeLinecap="round"
                 />
-                <path
-                  d={curveChart.benchmarkPath}
-                  fill="none"
-                  stroke="var(--chart-1)"
-                  strokeWidth="2.3"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  opacity="0.85"
-                />
+                {!isBeginnerMode ? (
+                  <path
+                    d={curveChart.benchmarkPath}
+                    fill="none"
+                    stroke="var(--chart-1)"
+                    strokeWidth="2.3"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                    opacity="0.85"
+                  />
+                ) : null}
                 {curveHoverIndex !== null ? (
                   <>
                     <line
@@ -1470,7 +1501,7 @@ export default function StrategyDetail() {
                 ) : null}
               </svg>
 
-              {curveHoverPoint && benchmarkHoverPoint ? (
+              {curveHoverPoint ? (
                 <>
                   <span
                     className="pointer-events-none absolute z-10 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background shadow-sm"
@@ -1480,13 +1511,15 @@ export default function StrategyDetail() {
                       backgroundColor: equityCurveColor,
                     }}
                   />
-                  <span
-                    className="pointer-events-none absolute z-10 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-[var(--chart-1)] shadow-sm"
-                    style={{
-                      left: `${(benchmarkHoverPoint.x / curveChart.width) * 100}%`,
-                      top: `${(benchmarkHoverPoint.y / curveChart.height) * 100}%`,
-                    }}
-                  />
+                  {!isBeginnerMode && benchmarkHoverPoint ? (
+                    <span
+                      className="pointer-events-none absolute z-10 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background bg-[var(--chart-1)] shadow-sm"
+                      style={{
+                        left: `${(benchmarkHoverPoint.x / curveChart.width) * 100}%`,
+                        top: `${(benchmarkHoverPoint.y / curveChart.height) * 100}%`,
+                      }}
+                    />
+                  ) : null}
                 </>
               ) : null}
 
@@ -1516,15 +1549,17 @@ export default function StrategyDetail() {
                       })}
                     </span>
                   </div>
-                  <div className="mt-1 grid grid-cols-[auto_auto_1fr] items-center gap-2 whitespace-nowrap">
-                    <span className="h-2 w-2 rounded-full bg-[var(--chart-1)]" />
-                    <span className="text-muted-foreground">{tr("Benchmark", "基准")}</span>
-                    <span className="text-right font-semibold text-foreground">
-                      {curveChart.benchmarkValues[curveHoverIndex].toLocaleString(undefined, {
-                        maximumFractionDigits: 0,
-                      })}
-                    </span>
-                  </div>
+                  {!isBeginnerMode ? (
+                    <div className="mt-1 grid grid-cols-[auto_auto_1fr] items-center gap-2 whitespace-nowrap">
+                      <span className="h-2 w-2 rounded-full bg-[var(--chart-1)]" />
+                      <span className="text-muted-foreground">{tr("Benchmark", "基准")}</span>
+                      <span className="text-right font-semibold text-foreground">
+                        {curveChart.benchmarkValues[curveHoverIndex].toLocaleString(undefined, {
+                          maximumFractionDigits: 0,
+                        })}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -1546,7 +1581,7 @@ export default function StrategyDetail() {
                   {(() => {
                     const circumference = 2 * Math.PI * 84;
                     let offset = 0;
-                    return preferenceSlices.map((slice, index) => {
+                    return displayPreferenceSlices.map((slice, index) => {
                       const length = (slice.value / 100) * circumference;
                       const node = (
                         <circle
@@ -1556,12 +1591,12 @@ export default function StrategyDetail() {
                           r="84"
                           fill="none"
                           stroke={slice.color}
-                          strokeWidth={activePreference === index ? 38 : 34}
+                          strokeWidth={activePreferenceIndex === index ? 38 : 34}
                           strokeLinecap="butt"
                           strokeDasharray={`${length} ${circumference - length}`}
                           strokeDashoffset={-offset}
                           transform="rotate(-90 130 130)"
-                          opacity={activePreference === index ? 1 : 0.9}
+                          opacity={activePreferenceIndex === index ? 1 : 0.9}
                           style={{ cursor: "pointer", transition: "all 180ms ease" }}
                           onMouseEnter={() => setActivePreference(index)}
                         />
@@ -1580,13 +1615,13 @@ export default function StrategyDetail() {
             </div>
 
             <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 text-xs sm:grid-cols-2">
-              {preferenceSlices.map((slice, index) => (
+              {displayPreferenceSlices.map((slice, index) => (
                 <button
                   key={slice.label}
                   type="button"
                   onMouseEnter={() => setActivePreference(index)}
                   className={`flex min-h-8 items-center justify-between rounded-lg px-2.5 py-1.5 text-left transition-colors ${
-                    activePreference === index ? "bg-primary/10" : "hover:bg-accent/35"
+                    activePreferenceIndex === index ? "bg-primary/10" : "hover:bg-accent/35"
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -1604,60 +1639,61 @@ export default function StrategyDetail() {
         </DashboardPanel>
       </div>
 
-      <DashboardPanel
-        title={tr("Daily Returns", "日收益")}
-        icon={Activity}
-        showHeaderDivider={false}
-        flushHeaderBottom
-        actions={
-          <div className="flex flex-wrap items-center justify-end gap-3 text-xs text-muted-foreground">
-            <ExplainStat
-              label={tr("Avg", "均值")}
-              value={`${fmtSigned(returnSummary.avg, 3)}%`}
-              tone={returnSummary.avg >= 0 ? "positive" : "negative"}
-              explanation={topMetricExplanations.avgDailyReturn}
-              explainEnabled={shouldShowPlainExplanations}
-            />
-            <MaybeExplainTooltip
-              enabled={shouldShowPlainExplanations}
-              explanation={topMetricExplanations.wins}
-            >
-              <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-[var(--semantic-up)]">
-                <span className="h-2.5 w-2.5 rounded-full bg-[var(--semantic-up)]" />
-                {tr("W", "胜")}{returnSummary.wins}
-              </span>
-            </MaybeExplainTooltip>
-            <MaybeExplainTooltip
-              enabled={shouldShowPlainExplanations}
-              explanation={topMetricExplanations.losses}
-            >
-              <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-[var(--semantic-down)]">
-                <span className="h-2.5 w-2.5 rounded-full bg-[var(--semantic-down)]" />
-                {tr("L", "负")}{returnSummary.losses}
-              </span>
-            </MaybeExplainTooltip>
-            <div className="ml-1 flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
-              {curveRanges.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => {
-                    setReturnsRange(option);
-                    setReturnsHoverIndex(null);
-                  }}
-                  className={`rounded-md px-2.5 py-1.5 text-[10px] font-medium tracking-[0.08em] transition-colors ${
-                    option === returnsRange
-                      ? "border border-primary/45 bg-primary/15 text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {option}
-                </button>
-              ))}
+      {!isBeginnerMode ? (
+        <DashboardPanel
+          title={tr("Daily Returns", "日收益")}
+          icon={Activity}
+          showHeaderDivider={false}
+          flushHeaderBottom
+          actions={
+            <div className="flex flex-wrap items-center justify-end gap-3 text-xs text-muted-foreground">
+              <ExplainStat
+                label={tr("Avg", "均值")}
+                value={`${fmtSigned(returnSummary.avg, 3)}%`}
+                tone={returnSummary.avg >= 0 ? "positive" : "negative"}
+                explanation={topMetricExplanations.avgDailyReturn}
+                explainEnabled={shouldShowPlainExplanations}
+              />
+              <MaybeExplainTooltip
+                enabled={shouldShowPlainExplanations}
+                explanation={topMetricExplanations.wins}
+              >
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-[var(--semantic-up)]">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[var(--semantic-up)]" />
+                  {tr("W", "胜")}{returnSummary.wins}
+                </span>
+              </MaybeExplainTooltip>
+              <MaybeExplainTooltip
+                enabled={shouldShowPlainExplanations}
+                explanation={topMetricExplanations.losses}
+              >
+                <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-[var(--semantic-down)]">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[var(--semantic-down)]" />
+                  {tr("L", "负")}{returnSummary.losses}
+                </span>
+              </MaybeExplainTooltip>
+              <div className="ml-1 flex items-center gap-1 rounded-lg border border-border/70 bg-accent/35 p-1">
+                {curveRanges.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      setReturnsRange(option);
+                      setReturnsHoverIndex(null);
+                    }}
+                    className={`rounded-md px-2.5 py-1.5 text-[10px] font-medium tracking-[0.08em] transition-colors ${
+                      option === returnsRange
+                        ? "border border-primary/45 bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        }
-      >
+          }
+        >
         <div className="relative">
           <svg
             viewBox="0 0 1120 280"
@@ -1762,9 +1798,11 @@ export default function StrategyDetail() {
             <span key={label}>{translateMonthLabel(label)}</span>
           ))}
         </div>
-      </DashboardPanel>
+        </DashboardPanel>
+      ) : null}
 
-      <DashboardPanel title={tr("Position History", "持仓历史")} icon={BriefcaseBusiness} contentClassName="px-4 pb-4 pt-2" showHeaderDivider={false} flushHeaderBottom>
+      {!isBeginnerMode ? (
+        <DashboardPanel title={tr("Position History", "持仓历史")} icon={BriefcaseBusiness} contentClassName="px-4 pb-4 pt-2" showHeaderDivider={false} flushHeaderBottom>
         <div className="space-y-1">
           <div className="hidden rounded-lg bg-accent/30 px-3 py-2 text-[10px] leading-4 text-muted-foreground md:grid md:grid-cols-[minmax(210px,1.4fr)_minmax(0,4fr)_96px] md:gap-4">
             <div>{tr("Position", "持仓")}</div>
@@ -1821,7 +1859,8 @@ export default function StrategyDetail() {
             </article>
           ))}
         </div>
-      </DashboardPanel>
+        </DashboardPanel>
+      ) : null}
 
       <Dialog
         open={isLiveDeployOpen}

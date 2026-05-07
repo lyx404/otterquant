@@ -51,6 +51,7 @@ import {
 type SortKey = "updated" | "name" | "roi" | "winRate" | "sharpe";
 type ViewMode = "grid" | "list";
 type MetricKey = "roi" | "winRate" | "sharpe" | "maxDrawdown";
+type DisplayItemKey = MetricKey | "createdAt" | "id";
 type StrategyFilter = "all" | "favorites" | "trading" | "idle";
 type ExecutionMode = "paper" | "live" | "idle";
 
@@ -192,9 +193,9 @@ function StrategyCurveSparkline({
   const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
 
   return (
-    <div className="mt-4 space-y-2 border-t border-border/50 pt-4">
+    <div className="mt-3 space-y-1.5 border-t border-border/50 pt-3">
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[62px] w-full overflow-visible" fill="none" aria-hidden="true">
         {runs.map((run, index) => (
           <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
             <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${svgId}-strategy-curve-fill-${index})`} />
@@ -236,6 +237,69 @@ function StrategyCurveSparkline({
   );
 }
 
+function StrategyTableCurveSparkline({
+  values,
+  upColor,
+  downColor,
+}: {
+  values: number[];
+  upColor: string;
+  downColor: string;
+}) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 108;
+  const height = 42;
+  const points = buildSparklinePoints(values, width, height, 4);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const zeroY = height - 4 - ((0 - min) / range) * (height - 8);
+  const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
+
+  return (
+    <div className="flex h-full min-h-[42px] w-[108px] items-center" aria-label="资产曲线">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full overflow-visible" fill="none" aria-hidden="true">
+        {runs.map((run, index) => (
+          <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
+            <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${svgId}-strategy-table-curve-fill-${index})`} />
+            <path
+              d={run.points
+                .map((point, pointIndex) => `${pointIndex === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+                .join(" ")}
+              stroke={run.color}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+        ))}
+        <defs>
+          {runs.map((run, index) => {
+            const isPositiveRun = run.points.some((point) => point.value > 0);
+            const lineEdgeY = isPositiveRun
+              ? Math.min(...run.points.map((point) => point.y))
+              : Math.max(...run.points.map((point) => point.y));
+            return (
+              <linearGradient
+                key={`${svgId}-strategy-table-curve-fill-${index}`}
+                id={`${svgId}-strategy-table-curve-fill-${index}`}
+                x1="0"
+                x2="0"
+                y1={isPositiveRun ? lineEdgeY : zeroY}
+                y2={isPositiveRun ? zeroY : lineEdgeY}
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor={run.color} stopOpacity="0.58" />
+                <stop offset="100%" stopColor={run.color} stopOpacity="0.12" />
+              </linearGradient>
+            );
+          })}
+        </defs>
+      </svg>
+    </div>
+  );
+}
+
 const sortLabels: Record<SortKey, string> = {
   updated: "Updated Time",
   name: "Name",
@@ -244,11 +308,13 @@ const sortLabels: Record<SortKey, string> = {
   sharpe: "Sharpe",
 };
 
-const defaultVisibleMetrics: Record<MetricKey, boolean> = {
+const defaultVisibleItems: Record<DisplayItemKey, boolean> = {
   roi: true,
   winRate: true,
   sharpe: true,
   maxDrawdown: true,
+  createdAt: true,
+  id: true,
 };
 
 function toStrategyViewRow(index: number): StrategyViewRow {
@@ -440,7 +506,7 @@ function StrategyCard({
   starred,
   onToggleStar,
   onRequestDelete,
-  visibleMetrics,
+  visibleItems,
   plainExplainEnabled,
   uiLang,
   chartColors,
@@ -449,7 +515,7 @@ function StrategyCard({
   starred: boolean;
   onToggleStar: () => void;
   onRequestDelete: () => void;
-  visibleMetrics: Record<MetricKey, boolean>;
+  visibleItems: Record<DisplayItemKey, boolean>;
   plainExplainEnabled: boolean;
   uiLang: "en" | "zh";
   chartColors: ChartColorTokens;
@@ -474,21 +540,26 @@ function StrategyCard({
         return row.description;
     }
   })();
+  const metaItems = [
+    visibleItems.createdAt ? `${tr("Created", "创建日期")}:${row.updatedAt}` : null,
+    visibleItems.id ? `ID:${row.id}` : null,
+  ].filter(Boolean);
+
   return (
     <div className="surface-card overflow-hidden border border-border/70">
       <div className="px-5 py-4">
-        <p className="text-lg font-semibold leading-7 text-foreground">{row.name}</p>
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <span className={`inline-flex h-[25px] items-center rounded-full border px-[11px] py-[5px] text-[10px] font-semibold uppercase tracking-[0.18em] ${row.statusClass}`}>
-            {getStatusLabel(row.statusLabel, tr)}
-          </span>
-          <span className="text-xs text-muted-foreground">{tr("Created", "创建日期")}:{row.updatedAt}</span>
-          <span className="text-xs text-muted-foreground">ID:{row.id}</span>
+        <div className="flex items-center gap-3">
+          <p className="min-w-0 truncate text-lg font-semibold leading-7 text-foreground">{row.name}</p>
         </div>
+        {metaItems.length > 0 ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            {metaItems.join("  ")}
+          </p>
+        ) : null}
       </div>
 
-      <div className="px-5 pb-4 pt-2">
-        <p className="text-sm leading-7 text-muted-foreground">{translatedDescription}</p>
+      <div className="px-5 pb-4 pt-1">
+        <p className="text-xs leading-5 text-muted-foreground">{translatedDescription}</p>
 
         <StrategyCurveSparkline
           values={strategyCardCurveValues}
@@ -497,11 +568,11 @@ function StrategyCard({
           downColor={chartColors.downHex}
         />
 
-        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-4">
-          {visibleMetrics.roi ? <MetricBox label="ROI" value={row.roi} valueColor={strategyMetricColor("roi", row.roi, chartColors)} explanation={getMetricExplanation("roi", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
-          {visibleMetrics.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} explanation={getMetricExplanation("winRate", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
-          {visibleMetrics.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} explanation={getMetricExplanation("sharpe", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
-          {visibleMetrics.maxDrawdown ? <MetricBox label={tr("Max Drawdown", "最大回撤")} value={row.maxDrawdown} valueColor={strategyMetricColor("maxDrawdown", row.maxDrawdown, chartColors)} explanation={getMetricExplanation("maxDrawdown", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border/50 pt-3 xl:grid-cols-4">
+          {visibleItems.roi ? <MetricBox label="ROI" value={row.roi} valueColor={strategyMetricColor("roi", row.roi, chartColors)} explanation={getMetricExplanation("roi", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleItems.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} explanation={getMetricExplanation("winRate", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleItems.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} explanation={getMetricExplanation("sharpe", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
+          {visibleItems.maxDrawdown ? <MetricBox label={tr("Max DD", "最大回撤")} value={row.maxDrawdown} valueColor={strategyMetricColor("maxDrawdown", row.maxDrawdown, chartColors)} explanation={getMetricExplanation("maxDrawdown", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
         </div>
 
         <div className="mt-4 flex items-center justify-end gap-2 border-t border-border/40 pt-3">
@@ -564,7 +635,7 @@ export default function MyStrategies() {
   const [strategyFilter, setStrategyFilter] = useState<StrategyFilter>("all");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
-  const [visibleMetrics, setVisibleMetrics] = useState<Record<MetricKey, boolean>>(defaultVisibleMetrics);
+  const [visibleItems, setVisibleItems] = useState<Record<DisplayItemKey, boolean>>(defaultVisibleItems);
   const [starred, setStarred] = useState<Set<string>>(new Set(["STR-463", "STR-470"]));
   const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
   const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
@@ -765,42 +836,7 @@ export default function MyStrategies() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {topStats.map((item) => (
-          <button
-            key={item.label}
-            type="button"
-            onClick={() => setStrategyFilter((prev) => (prev === item.key ? "all" : item.key))}
-            className={`surface-card h-[105px] border px-6 py-5 text-left transition-colors ${
-              strategyFilter === item.key
-                ? item.key === "favorites"
-                  ? "border-amber-400/40 bg-amber-400/[0.06]"
-                  : item.key === "trading"
-                    ? "border-indigo-400/40 bg-indigo-400/[0.06]"
-                    : item.key === "idle"
-                      ? "border-slate-400/40 bg-slate-400/[0.06]"
-                      : "border-primary/30 bg-primary/[0.06]"
-                : "border-border hover:border-border/80"
-            }`}
-          >
-            <div className="mb-2 flex items-center gap-2 label-upper">
-              {item.icon}
-              <p className={`${item.labelClass}`}>
-                {item.label === "Total"
-                  ? tr("Total", "总数")
-                  : item.label === "My Favorites"
-                    ? tr("My Favorites", "我的收藏")
-                    : item.label === "Trading"
-                      ? tr("Trading", "交易中")
-                      : tr("Not Running", "未运行")}
-              </p>
-            </div>
-            <p className={`stat-value text-2xl font-bold ${item.tone}`}>{item.value}</p>
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <div className="relative w-full max-w-[280px]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -875,14 +911,16 @@ export default function MyStrategies() {
                   { key: "winRate", label: tr("Win Rate", "胜率") },
                   { key: "sharpe", label: tr("Sharpe", "夏普比率") },
                   { key: "maxDrawdown", label: tr("Max Drawdown", "最大回撤") },
-                ] as Array<{ key: MetricKey; label: string }>).map((item) => (
+                  { key: "createdAt", label: tr("Created Date", "创建日期") },
+                  { key: "id", label: "ID" },
+                ] as Array<{ key: DisplayItemKey; label: string }>).map((item) => (
                   <label key={item.key} className="flex cursor-pointer items-center justify-between rounded-lg px-2.5 py-2 text-xs text-muted-foreground hover:bg-accent hover:text-foreground">
                     <span>{item.label}</span>
                     <input
                       type="checkbox"
-                      checked={visibleMetrics[item.key]}
+                      checked={visibleItems[item.key]}
                       onChange={() =>
-                        setVisibleMetrics((prev) => ({
+                        setVisibleItems((prev) => ({
                           ...prev,
                           [item.key]: !prev[item.key],
                         }))
@@ -895,7 +933,7 @@ export default function MyStrategies() {
                   <button
                     type="button"
                     className="flex w-full items-center rounded-lg px-2.5 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                    onClick={() => setVisibleMetrics({ ...defaultVisibleMetrics })}
+                    onClick={() => setVisibleItems({ ...defaultVisibleItems })}
                   >
                     {tr("Restore defaults", "恢复默认")}
                   </button>
@@ -962,7 +1000,7 @@ export default function MyStrategies() {
                 })
               }
               onRequestDelete={() => requestDeleteStrategy(row)}
-              visibleMetrics={visibleMetrics}
+              visibleItems={visibleItems}
               plainExplainEnabled={shouldShowPlainExplanations}
               uiLang={uiLang}
               chartColors={chartColors}
@@ -975,14 +1013,14 @@ export default function MyStrategies() {
             <table className="w-full min-w-[920px]">
               <thead className="border-b border-border/60">
                 <tr>
-                  <th className="w-10 px-3 py-3" />
                   <th className="px-5 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Name", "名称")}</th>
                   <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Status", "状态")}</th>
-                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Created", "创建日期")}</th>
+                  <th className="w-[126px] px-4 py-3 text-center text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Asset Curve", "资产曲线")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">ROI</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Win Rate", "胜率")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Sharpe", "夏普比率")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Max Drawdown", "最大回撤")}</th>
+                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Created", "创建日期")}</th>
                   <th className="px-5 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Action", "操作")}</th>
                 </tr>
               </thead>
@@ -992,35 +1030,45 @@ export default function MyStrategies() {
                     key={row.id}
                     className="group border-t border-border/40 transition-colors"
                   >
-                    <td className="px-3 py-4">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setStarred((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(row.id)) next.delete(row.id);
-                            else next.add(row.id);
-                            return next;
-                          })
-                        }
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-[#ffb900]"
-                        aria-label={tr("Toggle favorite", "切换收藏")}
-                      >
-                        <Star
-                          className={`h-3.5 w-3.5 ${starred.has(row.id) ? "fill-[#ffb900] text-[#ffb900]" : ""}`}
-                        />
-                      </button>
-                    </td>
                     <td className="px-5 py-4">
-                      <p className="text-sm font-semibold text-foreground">{row.name}</p>
-                      <p className="text-xs text-muted-foreground">ID:{row.id}</p>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setStarred((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(row.id)) next.delete(row.id);
+                              else next.add(row.id);
+                              return next;
+                            })
+                          }
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-[#ffb900]"
+                          aria-label={tr("Toggle favorite", "切换收藏")}
+                        >
+                          <Star
+                            className={`h-3.5 w-3.5 ${starred.has(row.id) ? "fill-[#ffb900] text-[#ffb900]" : ""}`}
+                          />
+                        </button>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-foreground">{row.name}</p>
+                          <p className="text-xs text-muted-foreground">ID:{row.id}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-4">
                       <span className={`inline-flex rounded-full border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${row.statusClass}`}>
                         {getStatusLabel(row.statusLabel, tr)}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-xs text-muted-foreground">{row.updatedAt}</td>
+                    <td className="px-4 py-1.5">
+                      <div className="flex justify-center">
+                        <StrategyTableCurveSparkline
+                          values={strategyCardCurveValues}
+                          upColor={chartColors.upHex}
+                          downColor={chartColors.downHex}
+                        />
+                      </div>
+                    </td>
                     <td className="px-4 py-4 text-right font-mono text-sm" style={{ color: strategyMetricColor("roi", row.roi, chartColors) }}>
                       <MaybeExplainTooltip enabled={shouldShowPlainExplanations} explanation={getMetricExplanation("roi", row, tr)}>
                         <span>{row.roi}</span>
@@ -1041,6 +1089,7 @@ export default function MyStrategies() {
                         <span>{row.maxDrawdown}</span>
                       </MaybeExplainTooltip>
                     </td>
+                    <td className="px-4 py-4 text-xs text-muted-foreground">{row.updatedAt}</td>
                     <td className="px-5 py-4 text-right">
                       <div className="inline-flex items-center justify-end gap-2">
                         <Popover>
