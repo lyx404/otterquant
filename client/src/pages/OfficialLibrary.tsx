@@ -15,7 +15,6 @@ import {
   Info,
   X,
   ArrowUpRight,
-  HelpCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -48,6 +47,14 @@ function readChartColorMode(): ChartColorMode {
   if (typeof window === "undefined") return "greenUpRedDown";
   const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
   return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function readPlainExplanationEnabled() {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+  if (stored === "true") return true;
+  if (stored === "false") return false;
+  return true;
 }
 
 function getChartColorTokens(mode: ChartColorMode) {
@@ -430,13 +437,7 @@ export default function OfficialLibrary() {
   const [searchQuery, setSearchQuery] = useState("");
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-001", "AF-004"]));
   const [showFlywheelInfo, setShowFlywheelInfo] = useState(false);
-  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
-    if (stored === "true") return true;
-    if (stored === "false") return false;
-    return true;
-  });
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const listRef = useRef<HTMLDivElement>(null);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
 
@@ -497,8 +498,14 @@ export default function OfficialLibrary() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
-  }, [plainExplainEnabled]);
+    const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
+    window.addEventListener("storage", syncPlainExplanation);
+    window.addEventListener("focus", syncPlainExplanation);
+    return () => {
+      window.removeEventListener("storage", syncPlainExplanation);
+      window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
 
   const tabs: { key: CategoryFilter; label: string }[] = [
     { key: "all", label: tr("All", "全部") },
@@ -660,22 +667,6 @@ export default function OfficialLibrary() {
             </PopoverContent>
           </Popover>
 
-          {alphaViewMode === "beginner" && (
-            <button
-              type="button"
-              onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
-              className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
-                plainExplainEnabled
-                  ? "border-primary/50 bg-primary/12 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
-              }`}
-              aria-pressed={plainExplainEnabled}
-              title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              {tr("Plain explanations", "通俗解释")}
-            </button>
-          )}
         </div>
       </div>
 

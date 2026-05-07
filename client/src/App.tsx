@@ -13,7 +13,6 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const MyAlphas = lazy(() => import("@/pages/MyAlphas"));
 const AlphaDetail = lazy(() => import("@/pages/AlphaDetail"));
-const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
 const Account = lazy(() => import("@/pages/Account"));
 const LaunchGuide = lazy(() => import("@/pages/LaunchGuide"));
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -158,9 +157,6 @@ function Router() {
         </Route>
         <Route path="/trade">
           <ProtectedRoute component={Trade} />
-        </Route>
-        <Route path="/leaderboard">
-          <ProtectedRoute component={Leaderboard} />
         </Route>
         <Route path="/subscription/hosting">
           <ProtectedRoute component={LazySubscription} />

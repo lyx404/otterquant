@@ -31,6 +31,8 @@ import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   ArrowUpDown,
   ArrowUpRight,
+  Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -38,7 +40,6 @@ import {
   Circle,
   Columns3,
   Grid2x2,
-  HelpCircle,
   List,
   MoreHorizontal,
   Plus,
@@ -78,6 +79,14 @@ function readChartColorMode(): ChartColorMode {
   if (typeof window === "undefined") return "greenUpRedDown";
   const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
   return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function readPlainExplanationEnabled() {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+  if (stored === "true") return true;
+  if (stored === "false") return false;
+  return true;
 }
 
 function getChartColorTokens(mode: ChartColorMode) {
@@ -633,6 +642,7 @@ export default function MyStrategies() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [strategyFilter, setStrategyFilter] = useState<StrategyFilter>("all");
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [visibleItems, setVisibleItems] = useState<Record<DisplayItemKey, boolean>>(defaultVisibleItems);
@@ -640,23 +650,21 @@ export default function MyStrategies() {
   const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
   const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
-  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
-    if (stored === "true") return true;
-    if (stored === "false") return false;
-    return true;
-  });
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const shouldShowPlainExplanations = alphaViewMode === "beginner" && plainExplainEnabled;
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
 
+  const filterMenuRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
       const target = event.target as Node;
+      if (filterMenuRef.current && !filterMenuRef.current.contains(target)) {
+        setShowFilterMenu(false);
+      }
       if (sortMenuRef.current && !sortMenuRef.current.contains(target)) {
         setShowSortMenu(false);
       }
@@ -671,8 +679,14 @@ export default function MyStrategies() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
-  }, [plainExplainEnabled]);
+    const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
+    window.addEventListener("storage", syncPlainExplanation);
+    window.addEventListener("focus", syncPlainExplanation);
+    return () => {
+      window.removeEventListener("storage", syncPlainExplanation);
+      window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -837,17 +851,69 @@ export default function MyStrategies() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-        <div className="relative w-full max-w-[280px]">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-              placeholder={tr("Search by name or ID...", "按名称或 ID 搜索...")}
-            className="h-8 w-full rounded-xl border border-border bg-accent/30 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
-          />
+        <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
+          <div className="relative w-full max-w-[280px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+                placeholder={tr("Search by name or ID...", "按名称或 ID 搜索...")}
+              className="h-8 w-full rounded-xl border border-border bg-accent/30 pl-9 pr-3 text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="relative" ref={filterMenuRef}>
+            <button
+              type="button"
+              className="inline-flex h-8 items-center gap-1 rounded-full border border-border bg-card px-3 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                setShowFilterMenu((prev) => !prev);
+                setShowSortMenu(false);
+                setShowColumnsMenu(false);
+              }}
+            >
+              <span>{strategyFilter === "favorites" ? tr("My Favorites", "我的收藏") : tr("All", "全部")}</span>
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+
+            {showFilterMenu ? (
+              <div className="absolute right-0 z-40 mt-2 w-36 rounded-2xl border border-border bg-popover p-2 text-popover-foreground shadow-[var(--shadow-dropdown)]">
+                {([
+                  { key: "all", label: tr("All", "全部") },
+                  { key: "favorites", label: tr("My Favorites", "我的收藏") },
+                ] as Array<{ key: StrategyFilter; label: string }>).map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors ${
+                      strategyFilter === item.key
+                        ? "bg-primary/12 text-primary"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                    }`}
+                    onClick={() => {
+                      setStrategyFilter(item.key);
+                      setShowFilterMenu(false);
+                      setPage(1);
+                    }}
+                  >
+                    <span>{item.label}</span>
+                    <span
+                      className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors ${
+                        strategyFilter === item.key
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card"
+                      }`}
+                    >
+                      {strategyFilter === item.key ? <Check className="h-2.5 w-2.5" /> : null}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
           <div className="relative" ref={sortMenuRef}>
             <button
               type="button"
@@ -941,23 +1007,6 @@ export default function MyStrategies() {
               </div>
             ) : null}
           </div>
-
-          {alphaViewMode === "beginner" && (
-            <button
-              type="button"
-              onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
-              className={`inline-flex h-8 items-center gap-1 rounded-full border px-3 text-xs transition-colors ${
-                plainExplainEnabled
-                  ? "border-primary/50 bg-primary/12 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground"
-              }`}
-              aria-pressed={plainExplainEnabled}
-              title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
-            >
-              <HelpCircle className="h-3.5 w-3.5" />
-              {tr("Plain explanations", "通俗解释")}
-            </button>
-          )}
 
           <div className="inline-flex h-[34px] items-center overflow-hidden rounded-xl border border-border bg-card p-px">
             <button

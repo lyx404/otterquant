@@ -35,8 +35,9 @@ import {
   ArrowUpRight,
   ArrowUp,
   ArrowDown,
+  Check,
+  ChevronDown,
   Settings2,
-  HelpCircle,
   Star,
   ChevronLeft,
   ChevronRight,
@@ -92,7 +93,7 @@ interface ColumnDef {
 
 const dataColumns: ColumnDef[] = [
   { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
-  { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "pnl", label: "PnL", defaultVisible: true, sortable: false, width: "126px", align: "center" },
@@ -101,7 +102,6 @@ const dataColumns: ColumnDef[] = [
   { key: "turnover", label: "Turnover", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
-  { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
   { key: "id", label: "ID", defaultVisible: false, sortable: true, width: "80px" },
   { key: "testsPassed", label: "Tests", defaultVisible: false, sortable: true, width: "72px", align: "right" },
@@ -142,16 +142,33 @@ function readChartColorMode(): ChartColorMode {
   return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
 }
 
+function readPlainExplanationEnabled() {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+  if (stored === "true") return true;
+  if (stored === "false") return false;
+  return true;
+}
+
 function getChartColorTokens(mode: ChartColorMode) {
   return mode === "redUpGreenDown"
     ? {
+        upClass: "text-rose-500",
+        downClass: "text-emerald-500",
         upHex: "#F43F5E",
         downHex: "#10B981",
       }
     : {
+        upClass: "text-emerald-500",
+        downClass: "text-rose-500",
         upHex: "#10B981",
         downHex: "#F43F5E",
       };
+}
+
+function parsePercentValue(value: string) {
+  const parsed = Number.parseFloat(value.replace(/[,%]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function buildSparklinePoints(values: number[], width: number, height: number, padding = 4) {
@@ -291,7 +308,7 @@ function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
   }
   return [
     "name",
-    "status_col",
+    "grade",
     "sharpe",
     "osSharpe",
     "pnl",
@@ -300,7 +317,6 @@ function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
     "turnover",
     "fitness",
     "epochStatus",
-    "grade",
     "createdAt",
   ];
 }
@@ -405,10 +421,14 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
 
   try {
     const value = window.localStorage.getItem(`${REVEALED_GRADE_STORAGE_PREFIX}${factorId}`);
-    return value === "S" || value === "A" || value === "B" || value === "C" || value === "D" ? value : null;
+  return value === "S" || value === "A" || value === "B" || value === "C" || value === "D" ? value : null;
   } catch {
     return null;
   }
+}
+
+function getRowGrade(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">): AlphaGrade {
+  return row.submissionStatus === "passed" ? getAlphaGrade(row.osSharpe) : "F";
 }
 
 function getSubmissionStatusFromFactorStatus(status: string): AlphaRow["submissionStatus"] {
@@ -457,7 +477,6 @@ export default function MyAlphas() {
   const columnLabelMap = useMemo(
     () => ({
       name: tr("Name", "名称"),
-      status_col: tr("Status", "状态"),
       grade: tr("Grade", "等级"),
       epochStatus: tr("Arena Round", "竞技场轮次"),
       createdAt: tr("Date Created", "创建日期"),
@@ -489,14 +508,9 @@ export default function MyAlphas() {
   const [gradeRevealTick, setGradeRevealTick] = useState(0);
   const [revealAllResults, setRevealAllResults] = useState<Array<{ id: string; name: string; grade: AlphaGrade }>>([]);
   const [showRevealAllModal, setShowRevealAllModal] = useState(false);
+  const [showToolbarFilterMenu, setShowToolbarFilterMenu] = useState(false);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
-  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
-    if (stored === "true") return true;
-    if (stored === "false") return false;
-    return true;
-  });
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const tablePnlValues = useMemo(() => {
@@ -506,6 +520,11 @@ export default function MyAlphas() {
     return combined.filter((_, index) => index % sampleEvery === 0).slice(-28);
   }, []);
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
+  const directionalTextClass = (value: number) => {
+    if (value > 0) return chartColors.upClass;
+    if (value < 0) return chartColors.downClass;
+    return "text-foreground";
+  };
 
 
 
@@ -571,8 +590,14 @@ export default function MyAlphas() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
-  }, [plainExplainEnabled]);
+    const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
+    window.addEventListener("storage", syncPlainExplanation);
+    window.addEventListener("focus", syncPlainExplanation);
+    return () => {
+      window.removeEventListener("storage", syncPlainExplanation);
+      window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
 
   useEffect(() => {
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -632,9 +657,9 @@ export default function MyAlphas() {
         av = parseFloat(String(a[sortKey as keyof AlphaRow])) || 0;
         bv = parseFloat(String(b[sortKey as keyof AlphaRow])) || 0;
       } else if (sortKey === "grade") {
-        const gradeOrder: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
-        av = gradeOrder[getAlphaGrade(a.osSharpe)];
-        bv = gradeOrder[getAlphaGrade(b.osSharpe)];
+        const gradeOrder: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, F: 5 };
+        av = gradeOrder[getRowGrade(a)];
+        bv = gradeOrder[getRowGrade(b)];
       } else if (sortKey === "submissionStatus" || sortKey === "status_col") {
         const order = { passed: 0, failed: 1, os_testing: 2, is_testing: 3, backtesting: 4, queued: 5, rejected: 6 };
         av = order[a.submissionStatus] ?? 99;
@@ -690,7 +715,7 @@ export default function MyAlphas() {
 
     if (updated > 0) {
       setGradeRevealTick((v) => v + 1);
-      const order: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
+      const order: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, F: 5 };
       revealedThisRound.sort((a, b) => {
         const rankDelta = order[a.grade] - order[b.grade];
         if (rankDelta !== 0) return rankDelta;
@@ -805,31 +830,33 @@ export default function MyAlphas() {
         return <span className="font-mono text-xs tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
       case "osSharpe":
         return (
-          <span className={`font-mono text-xs tabular-nums ${
-            row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
-          }`}>
+          <span className="font-mono text-xs tabular-nums text-foreground">
             {row.osSharpe.toFixed(2)}
           </span>
         );
       case "fitness":
         return (
-          <span className={`font-mono text-xs tabular-nums ${
-            row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"
-          }`}>
+          <span className="font-mono text-xs tabular-nums text-foreground">
             {row.fitness.toFixed(2)}
           </span>
         );
       case "returns":
-        return <span className="font-mono text-xs tabular-nums text-foreground whitespace-nowrap">{row.returns}</span>;
+        return <span className={`font-mono text-xs tabular-nums whitespace-nowrap ${directionalTextClass(parsePercentValue(row.returns))}`}>{row.returns}</span>;
       case "turnover":
         return <span className="font-mono text-xs tabular-nums text-foreground whitespace-nowrap">{row.turnover}</span>;
       case "drawdown":
-        return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
+        return (
+          <span className={`font-mono text-xs tabular-nums whitespace-nowrap ${
+            parsePercentValue(row.drawdown) === 0 ? "text-foreground" : chartColors.downClass
+          }`}>
+            {row.drawdown}
+          </span>
+        );
       case "grade": {
         if (row.submissionStatus !== "passed") {
           return (
             <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-700 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300">
-              -
+              F
             </span>
           );
         }
@@ -1124,6 +1151,47 @@ export default function MyAlphas() {
             </button>
           )}
 
+          <Popover open={showToolbarFilterMenu} onOpenChange={setShowToolbarFilterMenu}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
+                <span>{cardFilter === "starred" ? tr("My Favorites", "我的收藏") : tr("All", "全部")}</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-36 rounded-2xl p-2" align="end">
+              {([
+                { key: "all", label: tr("All", "全部") },
+                { key: "starred", label: tr("My Favorites", "我的收藏") },
+              ] as Array<{ key: MyAlphasCardFilter; label: string }>).map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors ${
+                    cardFilter === item.key
+                      ? "bg-primary/12 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                  onClick={() => {
+                    setCardFilter(item.key);
+                    setShowToolbarFilterMenu(false);
+                    setPage(1);
+                  }}
+                >
+                  <span>{item.label}</span>
+                  <span
+                    className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors ${
+                      cardFilter === item.key
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    {cardFilter === item.key ? <Check className="h-2.5 w-2.5" /> : null}
+                  </span>
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
+
           <Popover>
             <PopoverTrigger asChild>
               <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
@@ -1215,23 +1283,6 @@ export default function MyAlphas() {
               </div>
             </PopoverContent>
           </Popover>
-
-          {alphaViewMode === "beginner" && (
-            <button
-              type="button"
-              onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
-              className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
-                plainExplainEnabled
-                  ? "border-primary/50 bg-primary/12 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
-              }`}
-              aria-pressed={plainExplainEnabled}
-              title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              {tr("Plain explanations", "通俗解释")}
-            </button>
-          )}
 
           {/* View Mode Toggle */}
           <div className="inline-flex h-[34px] items-center overflow-hidden rounded-xl border border-border bg-card p-px">

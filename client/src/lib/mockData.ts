@@ -4,7 +4,7 @@
 // ============================================================
 
 // --- Alpha Grade System ---
-export type AlphaGrade = "S" | "A" | "B" | "C" | "D";
+export type AlphaGrade = "S" | "A" | "B" | "C" | "D" | "F";
 
 export function getAlphaGrade(osSharpe: number): AlphaGrade {
   if (osSharpe >= 1.5) return "S";
@@ -20,6 +20,7 @@ export const GRADE_CONFIG: Record<AlphaGrade, { label: string; color: string; bg
   B: { label: "Good", color: "#34D399", bg: "rgba(52, 211, 153, 0.1)", border: "rgba(52, 211, 153, 0.3)", glow: "0 0 40px rgba(52, 211, 153, 0.3)" },
   C: { label: "Average", color: "#FBBF24", bg: "rgba(251, 191, 36, 0.1)", border: "rgba(251, 191, 36, 0.3)", glow: "0 0 40px rgba(251, 191, 36, 0.3)" },
   D: { label: "Needs Work", color: "#F87171", bg: "rgba(248, 113, 113, 0.1)", border: "rgba(248, 113, 113, 0.3)", glow: "0 0 40px rgba(248, 113, 113, 0.3)" },
+  F: { label: "Failed", color: "#64748B", bg: "rgba(100, 116, 139, 0.1)", border: "rgba(100, 116, 139, 0.28)", glow: "0 0 28px rgba(100, 116, 139, 0.18)" },
 };
 
 // --- Time Series Generator ---
