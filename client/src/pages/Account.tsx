@@ -29,12 +29,15 @@ import {
 } from "@/lib/exchangeApiConnections";
 
 type TabId = "general" | "profile" | "exchangeApi" | "api";
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementType }[] = [
   { id: "general", labelEn: "General", labelZh: "通用", icon: Shield },
   { id: "profile", labelEn: "Profile", labelZh: "资料", icon: User },
   { id: "exchangeApi", labelEn: "Exchange API", labelZh: "交易所 API", icon: Link2 },
   { id: "api", labelEn: "Agent API", labelZh: "Agent API", icon: Key },
 ];
+
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 
 /* ── API Key data model ── */
 interface ApiKeyItem {
@@ -142,6 +145,23 @@ function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion, uiLang = "en" }
   );
 }
 
+function ChartColorPreview({ mode }: { mode: ChartColorMode }) {
+  const firstColor = mode === "redUpGreenDown" ? "bg-rose-500" : "bg-emerald-500";
+  const secondColor = mode === "redUpGreenDown" ? "bg-emerald-500" : "bg-rose-500";
+  return (
+    <span className="inline-flex h-7 items-center gap-1.5" aria-hidden="true">
+      <span className="relative inline-flex h-5 w-2.5 items-center justify-center">
+        <span className={`h-4 w-1.5 rounded-sm ${firstColor}`} />
+        <span className={`absolute h-5 w-px ${firstColor}`} />
+      </span>
+      <span className="relative inline-flex h-5 w-2.5 items-center justify-center">
+        <span className={`h-4 w-1.5 rounded-sm ${secondColor}`} />
+        <span className={`absolute h-5 w-px ${secondColor}`} />
+      </span>
+    </span>
+  );
+}
+
 export default function Account() {
   const { user, updateUser, logout } = useAuth();
   const { uiLang, setUiLang } = useAppLanguage();
@@ -164,6 +184,11 @@ export default function Account() {
   const [alphasNotify, setAlphasNotify] = useState(true);
   const [arenaNotify, setArenaNotify] = useState(true);
   const [systemNotify, setSystemNotify] = useState(true);
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => {
+    if (typeof window === "undefined") return "greenUpRedDown";
+    const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+    return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+  });
   const headerRef = useRef<HTMLDivElement>(null);
   const [exchangeApiItems, setExchangeApiItems] = useState<ExchangeApiConnection[]>(() =>
     readExchangeApiConnections()
@@ -225,6 +250,11 @@ export default function Account() {
   useEffect(() => {
     writeExchangeApiConnections(exchangeApiItems);
   }, [exchangeApiItems]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(CHART_COLOR_MODE_STORAGE_KEY, chartColorMode);
+  }, [chartColorMode]);
 
   const handleRefreshSkill = useCallback((id: string) => {
     const now = new Date().toISOString().split("T")[0];
@@ -439,16 +469,16 @@ export default function Account() {
       {/* ═══════════════ General Tab ═══════════════ */}
       {activeTab === "general" && (
         <div className="space-y-6">
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
+          <div className="surface-card overflow-hidden">
+            <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
                 <span className="text-base font-semibold text-foreground">{tr("General Settings", "通用设置")}</span>
               </div>
             </div>
 
-            <div className="px-6 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="px-6 pb-6 pt-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
                 <div>
                   <div className="text-sm font-semibold text-foreground">{tr("Language", "语言")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -475,7 +505,7 @@ export default function Account() {
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
                 <div>
                   <div className="text-sm font-semibold text-foreground">{tr("Theme", "主题")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -502,18 +532,47 @@ export default function Account() {
                   ))}
                 </div>
               </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("Color Configuration", "颜色配置")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Choose how rising and falling values are colored.", "选择上涨与下跌数值的颜色显示。")}
+                  </div>
+                </div>
+                <div className="inline-flex flex-wrap items-center gap-2">
+                  {([
+                    { value: "redUpGreenDown", en: "Red up, green down", zh: "红涨绿跌" },
+                    { value: "greenUpRedDown", en: "Green up, red down", zh: "绿涨红跌" },
+                  ] as const).map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setChartColorMode(item.value)}
+                      className={`inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors ${
+                        chartColorMode === item.value
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-border bg-accent text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span>{tr(item.en, item.zh)}</span>
+                      <ChartColorPreview mode={item.value} />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
+          <div className="surface-card overflow-hidden">
+            <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />
                 <span className="text-base font-semibold text-foreground">{tr("Notification Settings", "通知设置")}</span>
               </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between py-2">
+            <div className="px-6 pb-6 pt-5 space-y-3">
+              <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
                 <div>
                   <div className="text-sm font-medium text-foreground">{tr("Signals Notifications", "信号通知")}</div>
                   <div className="text-xs text-muted-foreground">{tr("Get notified about signal status changes, test results, and performance updates", "接收信号状态变化、回测结果与绩效更新通知")}</div>
@@ -525,7 +584,7 @@ export default function Account() {
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
-              <div className="flex items-center justify-between py-2 border-t border-border">
+              <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
                 <div>
                   <div className="text-sm font-medium text-foreground">{tr("Arena Notifications", "竞技场通知")}</div>
                   <div className="text-xs text-muted-foreground">{tr("Get notified about competition rounds, rankings, and prize pool updates", "接收比赛轮次、排名与奖池更新通知")}</div>
@@ -537,7 +596,7 @@ export default function Account() {
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${arenaNotify ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
-              <div className="flex items-center justify-between py-2 border-t border-border">
+              <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
                 <div className="pr-6">
                   <div className="text-sm font-medium text-foreground">{tr("System Messages", "系统消息")}</div>
                   <div className="text-xs text-muted-foreground">
@@ -563,8 +622,8 @@ export default function Account() {
       {activeTab === "profile" && (
         <div className="space-y-8">
           {/* Account Settings */}
-          <div className="surface-card">
-              <div className="px-6 py-4 pb-3 border-b border-border">
+          <div className="surface-card overflow-hidden pb-6">
+              <div className="px-6 pt-5 pb-0">
                 <div className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-primary" />
                   <span className="text-base font-semibold text-foreground">{tr("Account Settings", "账户信息设置")}</span>
@@ -572,7 +631,7 @@ export default function Account() {
               </div>
 
             {/* 1. Profile (Nickname & Avatar) */}
-            <div className="px-6 pt-5 pb-4">
+            <div className="mx-6 mt-5 rounded-2xl bg-accent/30 p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-primary" />
@@ -659,7 +718,7 @@ export default function Account() {
             </div>
 
             {/* 2. Change Email */}
-            <div className="px-6 py-4 pb-3 border-t border-border">
+            <div className="mx-6 mt-3 rounded-t-2xl bg-accent/30 px-5 pt-5 pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-primary" />
@@ -684,7 +743,7 @@ export default function Account() {
                 )}
               </div>
             </div>
-            <div className="px-6 pb-6 space-y-4">
+            <div className="mx-6 rounded-b-2xl bg-accent/30 px-5 pb-5 space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="label-upper">{tr("Current Email", "当前邮箱")}</Label>
@@ -745,7 +804,7 @@ export default function Account() {
             </div>
 
             {/* 3. Change Password */}
-            <div className="px-6 py-4 pb-3 border-t border-border">
+            <div className="mx-6 mt-3 rounded-2xl bg-accent/30 px-5 py-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-primary" />
@@ -771,7 +830,7 @@ export default function Account() {
               </div>
             </div>
             {editingPassword ? (
-              <div className="px-6 pb-6 space-y-4">
+              <div className="mx-6 mt-3 rounded-2xl bg-accent/30 px-5 py-5 space-y-4">
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label className="label-upper">{tr("Email", "邮箱")}</Label>
@@ -829,8 +888,8 @@ export default function Account() {
       {/* ═══════════════ Exchange API Tab ═══════════════ */}
       {activeTab === "exchangeApi" && (
         <div className="space-y-6">
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
+          <div className="surface-card overflow-hidden">
+            <div className="px-6 pt-5 pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Link2 className="w-4 h-4 text-primary" />
@@ -847,7 +906,7 @@ export default function Account() {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="px-6 pb-6 pt-3">
               {exchangeApiItems.length === 0 ? (
                 <div className="text-center py-12">
                   <Link2 className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
@@ -865,7 +924,7 @@ export default function Account() {
                     return (
                       <div
                         key={item.id}
-                        className="p-4 rounded-2xl border border-border bg-accent/50 hover:border-primary/20 transition-colors duration-200"
+                        className="rounded-2xl bg-accent/35 px-5 py-4 transition-colors duration-200 hover:bg-accent/55"
                       >
                         <div className="flex items-center justify-between mb-3 gap-3">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -940,7 +999,7 @@ export default function Account() {
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-16 shrink-0">
                             {tr("Venue", "交易所")}
                           </span>
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 text-xs text-foreground">
+                          <div className="flex items-center gap-1.5 rounded-lg bg-background/55 px-2.5 py-1 text-xs text-foreground">
                             <span className={item.venue === "binance" ? "text-amber-400 font-semibold" : "text-foreground font-semibold"}>
                               {venue.badge}
                             </span>
@@ -951,7 +1010,7 @@ export default function Account() {
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-16 shrink-0">
                             {tr("API Key", "API 密钥")}
                           </span>
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 flex-1 min-w-0">
+                          <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg bg-background/55 px-2.5 py-1">
                             <code className="font-mono text-xs text-primary truncate flex-1">
                               {keyVisible ? item.apiKey : maskedKey}
                             </code>
@@ -979,8 +1038,8 @@ export default function Account() {
       {activeTab === "api" && (
         <div className="space-y-6">
           {/* Header + Create Button */}
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-3 border-b border-border">
+          <div className="surface-card overflow-hidden">
+            <div className="px-6 pt-5 pb-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Key className="w-4 h-4 text-primary" />
@@ -1000,7 +1059,7 @@ export default function Account() {
             </div>
 
             {/* API Keys List */}
-            <div className="p-6">
+            <div className="px-6 pb-6 pt-3">
               {apiKeys.length === 0 ? (
                 <div className="text-center py-12">
                   <Key className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
@@ -1012,7 +1071,7 @@ export default function Account() {
                   {apiKeys.map((item) => (
                     <div
                       key={item.id}
-                      className="p-4 rounded-2xl border border-border bg-accent/50 hover:border-primary/20 transition-colors duration-200"
+                      className="rounded-2xl bg-accent/35 px-5 py-4 transition-colors duration-200 hover:bg-accent/55"
                     >
                       {/* Row 1: Name + Actions */}
                       <div className="flex items-center justify-between mb-3">
@@ -1081,7 +1140,7 @@ export default function Account() {
                       {/* Row 2: API Key */}
                       <div className="flex items-center gap-2 mb-2">
                           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium w-14 shrink-0">{tr("API Key", "API 密钥")}</span>
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background/60 border border-border/60 flex-1 min-w-0">
+                        <div className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg bg-background/55 px-2.5 py-1">
                           <code className="font-mono text-xs text-primary truncate flex-1">
                             {visibleKeys.has(item.id) ? item.apiKey : item.apiKey.slice(0, 6) + "\u2022".repeat(16) + "..."}
                           </code>
@@ -1102,7 +1161,7 @@ export default function Account() {
                               <span className="text-amber-500 ml-0.5">{tr(`(update available: ${SKILL_LATEST})`, `（可更新至：${SKILL_LATEST}）`)}</span>
                             )}
                           </span>
-                          <span className="border-l border-border pl-4 flex items-center gap-1.5">
+                          <span className="flex items-center gap-1.5">
                             {tr("Updated", "更新于")} {item.updatedAt}
                             <button
                               className="p-0.5 rounded-md text-muted-foreground hover:text-primary transition-colors"

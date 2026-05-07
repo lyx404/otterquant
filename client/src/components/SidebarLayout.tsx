@@ -107,6 +107,10 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     currentPathname.startsWith("/alphas/") &&
     currentPathname !== "/alphas/official" &&
     new URLSearchParams(currentSearch).get("source") === "official";
+  const isOfficialStrategyDetail =
+    currentPathname.startsWith("/strategies/") &&
+    currentPathname !== "/strategies/official" &&
+    new URLSearchParams(currentSearch).get("source") === "official";
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -116,14 +120,14 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const isActive = (path: string) => {
     if (path === "/") return currentPathname === "/";
     if (path === "/alphas/official") return currentPathname === "/alphas/official" || isOfficialAlphaDetail;
-    if (path === "/strategies/official") return currentPathname === "/strategies/official";
+    if (path === "/strategies/official") return currentPathname === "/strategies/official" || isOfficialStrategyDetail;
 
     if (path === "/alphas") {
       return currentPathname === "/alphas" || (currentPathname.startsWith("/alphas/") && !currentPathname.startsWith("/alphas/official") && !isOfficialAlphaDetail);
     }
 
     if (path === "/strategies") {
-      return currentPathname === "/strategies" || (currentPathname.startsWith("/strategies/") && !currentPathname.startsWith("/strategies/official"));
+      return currentPathname === "/strategies" || (currentPathname.startsWith("/strategies/") && !currentPathname.startsWith("/strategies/official") && !isOfficialStrategyDetail);
     }
 
     return currentPathname.startsWith(path);

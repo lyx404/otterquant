@@ -294,11 +294,17 @@ export default function Leaderboard() {
         </div>
 
         {/* Epoch Selector */}
-        <div className="flex items-center gap-3">
-          <span className="label-upper shrink-0">{tr("Round", "轮次")}</span>
+        <div className="flex items-center">
           <Select value={selectedEpochId} onValueChange={setSelectedEpochId}>
-            <SelectTrigger className="w-[260px] h-9 text-sm font-mono rounded-lg bg-card border-border">
-              <SelectValue />
+            <SelectTrigger className="h-9 w-fit max-w-full rounded-lg border-border bg-card font-mono text-sm">
+              <span className="flex items-center gap-2">
+                {selectedEpoch.distributed ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+                ) : (
+                  <Timer className="h-3.5 w-3.5 shrink-0 text-primary" />
+                )}
+                <span className="text-foreground">{selectedEpoch.id}</span>
+              </span>
             </SelectTrigger>
             <SelectContent>
               {allEpochs.map((epoch) => (

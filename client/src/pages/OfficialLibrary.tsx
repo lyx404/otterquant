@@ -21,6 +21,13 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -34,6 +41,30 @@ type CategoryFilter = "all" | "official" | "graduated";
 type FactorSortKey = "isSharpe" | "osSharpe" | "fitness" | "returns" | "turnover" | "drawdown";
 type SortDir = "asc" | "desc" | null;
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function getChartColorTokens(mode: ChartColorMode) {
+  return mode === "redUpGreenDown"
+    ? {
+        upClass: "text-rose-500",
+        downClass: "text-emerald-500",
+        upHex: "#F43F5E",
+        downHex: "#10B981",
+      }
+    : {
+        upClass: "text-emerald-500",
+        downClass: "text-rose-500",
+        upHex: "#10B981",
+        downHex: "#F43F5E",
+      };
+}
 
 function getDefaultFactorSortDir(key: FactorSortKey): Exclude<SortDir, null> {
   return key === "turnover" || key === "drawdown" ? "asc" : "desc";
@@ -48,8 +79,14 @@ function parseMetricValue(value: string | number) {
 function buildSparklinePath(values: number[], width: number, height: number, padding = 6) {
   if (values.length < 2) return "";
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  return buildSparklinePoints(values, width, height, padding)
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+}
+
+function buildSparklinePoints(values: number[], width: number, height: number, padding = 6) {
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
   const range = max - min || 1;
   const step = (width - padding * 2) / (values.length - 1);
 
@@ -57,9 +94,59 @@ function buildSparklinePath(values: number[], width: number, height: number, pad
     .map((value, index) => {
       const x = padding + index * step;
       const y = height - padding - ((value - min) / range) * (height - padding * 2);
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
-    .join(" ");
+      return { x, y, value };
+    });
+}
+
+function buildSparklineAreaRuns(
+  points: Array<{ x: number; y: number; value: number }>,
+  upColor: string,
+  downColor: string,
+  zeroY: number
+) {
+  if (points.length < 2) return [];
+
+  const runs: Array<{ color: string; points: typeof points }> = [];
+  const appendRun = (color: string, segmentPoints: typeof points) => {
+    if (segmentPoints.length < 2) return;
+    const previous = runs[runs.length - 1];
+    if (previous?.color === color) {
+      previous.points.push(...segmentPoints.slice(1));
+      return;
+    }
+    runs.push({ color, points: segmentPoints });
+  };
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const previousIsPositive = previous.value >= 0;
+    const pointIsPositive = point.value >= 0;
+
+    if (previousIsPositive === pointIsPositive || previous.value === 0 || point.value === 0) {
+      appendRun(pointIsPositive ? upColor : downColor, [previous, point]);
+      continue;
+    }
+
+    const ratio = (0 - previous.value) / (point.value - previous.value);
+    const zeroPoint = {
+      value: 0,
+      x: previous.x + (point.x - previous.x) * ratio,
+      y: zeroY,
+    };
+    appendRun(previousIsPositive ? upColor : downColor, [previous, zeroPoint]);
+    appendRun(pointIsPositive ? upColor : downColor, [zeroPoint, point]);
+  }
+
+  return runs.filter((run) => run.points.length > 1);
+}
+
+function buildSparklineAreaPath(points: Array<{ x: number; y: number }>, zeroY: number) {
+  if (points.length < 2) return "";
+  const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${path} L ${last.x.toFixed(2)} ${zeroY.toFixed(2)} L ${first.x.toFixed(2)} ${zeroY.toFixed(2)} Z`;
 }
 
 function MaybeExplainTooltip({
@@ -86,41 +173,64 @@ function MaybeExplainTooltip({
 function PnlSparkline({
   values,
   label,
-  explainEnabled,
-  explanation,
+  upColor,
+  downColor,
 }: {
   values: number[];
   label: string;
-  explainEnabled?: boolean;
-  explanation: string;
+  upColor: string;
+  downColor: string;
 }) {
   const svgId = useId().replace(/:/g, "");
   const width = 420;
   const height = 86;
-  const path = buildSparklinePath(values, width, height);
-  const areaPath = path ? `${path} L ${width - 6} ${height - 6} L 6 ${height - 6} Z` : "";
+  const points = buildSparklinePoints(values, width, height);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const zeroY = height - 6 - ((0 - min) / range) * (height - 12);
+  const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
 
   return (
-    <MaybeExplainTooltip enabled={explainEnabled} explanation={explanation}>
     <div className="space-y-2">
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
-        <path d={areaPath} fill={`url(#${svgId}-official-pnl-fill)`} opacity="0.55" />
-        <path d={path} stroke={`url(#${svgId}-official-pnl-line)`} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        {runs.map((run, index) => (
+          <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
+            <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${svgId}-official-pnl-fill-${index})`} />
+            <path
+              d={run.points.map((point, pointIndex) => `${pointIndex === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ")}
+              stroke={run.color}
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+        ))}
         <defs>
-          <linearGradient id={`${svgId}-official-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#818CF8" />
-            <stop offset="72%" stopColor="#818CF8" />
-            <stop offset="100%" stopColor="#34D399" />
-          </linearGradient>
-          <linearGradient id={`${svgId}-official-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
-          </linearGradient>
+          {runs.map((run, index) => {
+            const isPositiveRun = run.points.some((point) => point.value > 0);
+            const lineEdgeY = isPositiveRun
+              ? Math.min(...run.points.map((point) => point.y))
+              : Math.max(...run.points.map((point) => point.y));
+            return (
+              <linearGradient
+                key={`${svgId}-official-pnl-fill-${index}`}
+                id={`${svgId}-official-pnl-fill-${index}`}
+                x1="0"
+                x2="0"
+                y1={isPositiveRun ? lineEdgeY : zeroY}
+                y2={isPositiveRun ? zeroY : lineEdgeY}
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor={run.color} stopOpacity="0.58" />
+                <stop offset="100%" stopColor={run.color} stopOpacity="0.12" />
+              </linearGradient>
+            );
+          })}
         </defs>
       </svg>
     </div>
-    </MaybeExplainTooltip>
   );
 }
 
@@ -165,6 +275,8 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode, plainExplainEna
   const isGraduated = factor.category === "graduated";
   const isBeginnerMode = viewMode === "beginner";
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
+  const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
   const usedCount = new Intl.NumberFormat(uiLang === "zh" ? "zh-CN" : "en-US").format(factor.userCount ?? 0);
   const detailHref = `/alphas/${factor.id}?source=official&tier=${isGraduated ? "graduated" : "official"}`;
   const pnlValues = useMemo(() => {
@@ -174,21 +286,20 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode, plainExplainEna
     return combined.filter((_, index) => index % sampleEvery === 0).slice(-36);
   }, []);
 
-  const statusClass = isGraduated
-    ? "border-purple-500/25 bg-purple-500/10 text-purple-400"
-    : "border-amber-500/25 bg-amber-500/10 text-amber-400";
+  useEffect(() => {
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
+    };
+  }, []);
 
-  const osSharpeColor = factor.osSharpe >= 1.0
-    ? "text-success"
-    : factor.osSharpe >= 0.5
-    ? "text-amber-500 dark:text-amber-400"
-    : "text-foreground";
+  const statusClass = "border-primary/30 bg-primary/10 text-primary";
 
-  const isSharpeColor = factor.sharpe >= 1.0
-    ? "text-success"
-    : factor.sharpe >= 0.5
-    ? "text-amber-500 dark:text-amber-400"
-    : "text-foreground";
+  const returnsColor = parseMetricValue(factor.returns) >= 0 ? chartColors.upClass : chartColors.downClass;
+  const drawdownColor = parseMetricValue(factor.drawdown) === 0 ? undefined : chartColors.downClass;
 
   const sharpeLevel = (value: number) => {
     if (value >= 1) return tr("relatively steady", "相对稳定");
@@ -212,10 +323,6 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode, plainExplainEna
     fitness: tr(
       `Higher fitness means better overall quality. ${factor.fitness.toFixed(2)} is ${fitnessLevel(factor.fitness)}.`,
       `适应度越高代表综合质量越好，${factor.fitness.toFixed(2)} 为${fitnessLevel(factor.fitness)}。`
-    ),
-    pnl: tr(
-      `This line shows cumulative profit and loss. In this preview it moves from about ${pnlValues[0]?.toLocaleString() ?? "0"} to ${pnlValues[pnlValues.length - 1]?.toLocaleString() ?? "0"}.`,
-      `这条线表示累计收益变化。当前示例大约从 ${pnlValues[0]?.toLocaleString() ?? "0"} 走到 ${pnlValues[pnlValues.length - 1]?.toLocaleString() ?? "0"}。`
     ),
   };
 
@@ -270,18 +377,18 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode, plainExplainEna
       <div className="flex-1 space-y-4 px-4 py-3">
         <PnlSparkline
           values={pnlValues}
-          label={tr("PnL Curve", "PNL 折线图")}
-          explainEnabled={plainExplainEnabled}
-          explanation={metricExplanations.pnl}
+          label={tr("PnL", "PNL")}
+          upColor={chartColors.upHex}
+          downColor={chartColors.downHex}
         />
 
         <div className="grid grid-cols-2 gap-x-5 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-3">
-          <MetricCell label={tr("IS Sharpe", "样本内夏普比率")} value={factor.sharpe.toFixed(2)} colorClass={isSharpeColor} explanation={metricExplanations.sharpe} />
-          <MetricCell label={tr("OS Sharpe", "样本外夏普比率")} value={factor.osSharpe.toFixed(2)} colorClass={osSharpeColor} explanation={metricExplanations.osSharpe} />
+          <MetricCell label={tr("IS Sharpe", "样本内夏普比率")} value={factor.sharpe.toFixed(2)} explanation={metricExplanations.sharpe} />
+          <MetricCell label={tr("OS Sharpe", "样本外夏普比率")} value={factor.osSharpe.toFixed(2)} explanation={metricExplanations.osSharpe} />
           <MetricCell label={tr("Fitness", "适应度")} value={factor.fitness.toFixed(2)} explanation={metricExplanations.fitness} />
-          {!isBeginnerMode && <MetricCell label={tr("Returns", "收益")} value={factor.returns} />}
+          {!isBeginnerMode && <MetricCell label={tr("Returns", "收益")} value={factor.returns} colorClass={returnsColor} />}
           {!isBeginnerMode && <MetricCell label={tr("Turnover", "换手率")} value={factor.turnover} />}
-          {!isBeginnerMode && <MetricCell label={tr("Drawdown", "回撤")} value={factor.drawdown} colorClass="text-destructive" />}
+          {!isBeginnerMode && <MetricCell label={tr("Drawdown", "回撤")} value={factor.drawdown} colorClass={drawdownColor} />}
         </div>
       </div>
 
@@ -475,21 +582,25 @@ export default function OfficialLibrary() {
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <div className="flex items-center gap-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setCategoryFilter(tab.key)}
-                className={`flex h-8 items-center rounded-full border px-3 text-xs transition-all duration-200 ease-in-out ${
-                  categoryFilter === tab.key
-                    ? "bg-primary/10 border-primary/20 text-primary"
-                    : "bg-card border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          <Select
+            value={categoryFilter}
+            onValueChange={(value) => setCategoryFilter(value as CategoryFilter)}
+          >
+            <SelectTrigger
+              size="sm"
+              className="h-8 w-fit rounded-full border-border bg-card px-3 text-xs text-foreground shadow-none transition-all duration-200 ease-in-out hover:border-slate-300 dark:hover:border-slate-600"
+              aria-label={tr("Category filter", "分类筛选")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end" className="rounded-xl">
+              {tabs.map((tab) => (
+                <SelectItem key={tab.key} value={tab.key} className="text-xs">
+                  {tab.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Popover>
             <PopoverTrigger asChild>

@@ -2,19 +2,49 @@
  * StrategyLibrary — Official strategy template library
  * Aligned with My Alphas / My Strategy page layout and toolbar style
  */
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { strategies } from "@/lib/mockData";
+import { buildSeries } from "@/lib/strategyUtils";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
-import { ArrowUpDown, ArrowUpRight, Search } from "lucide-react";
+import { ArrowUpDown, ArrowUpRight, Search, Star } from "lucide-react";
 
 const filterOptions = ["all", "official", "graduated"] as const;
 type FilterKey = (typeof filterOptions)[number];
 type StrategySortKey = "roi" | "winRate" | "sharpe" | "maxDrawdown";
 type SortDir = "asc" | "desc" | null;
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function getChartColorTokens(mode: ChartColorMode) {
+  return mode === "redUpGreenDown"
+    ? {
+        upHex: "#F43F5E",
+        downHex: "#10B981",
+      }
+    : {
+        upHex: "#10B981",
+        downHex: "#F43F5E",
+      };
+}
+
+type ChartColorTokens = ReturnType<typeof getChartColorTokens>;
 
 function getDefaultStrategySortDir(key: StrategySortKey): Exclude<SortDir, null> {
   return key === "maxDrawdown" ? "asc" : "desc";
@@ -30,26 +60,175 @@ function getStrategyTier(strategy: (typeof strategies)[number]): Exclude<FilterK
   return strategy.author.toLowerCase().includes("quandora") ? "official" : "graduated";
 }
 
+function strategyMetricColor(key: StrategySortKey, value: string | number, chartColors: ChartColorTokens) {
+  const parsed = parseMetricValue(value);
+  if (key === "roi") return parsed < 0 ? chartColors.downHex : chartColors.upHex;
+  if (key === "maxDrawdown") return parsed === 0 ? undefined : chartColors.downHex;
+  return undefined;
+}
+
+const strategyCardEquityValues = buildSeries(64, 99100, 138, 260);
+const strategyCardCurveValues = strategyCardEquityValues.map((value) =>
+  Number((value - strategyCardEquityValues[0]).toFixed(2))
+);
+
+function buildSparklinePoints(values: number[], width: number, height: number, padding = 6) {
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const step = (width - padding * 2) / Math.max(1, values.length - 1);
+
+  return values.map((value, index) => ({
+    x: padding + index * step,
+    y: height - padding - ((value - min) / range) * (height - padding * 2),
+    value,
+  }));
+}
+
+function buildSparklineAreaPath(points: Array<{ x: number; y: number }>, zeroY: number) {
+  if (points.length < 2) return "";
+  const path = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${path} L ${last.x.toFixed(2)} ${zeroY.toFixed(2)} L ${first.x.toFixed(2)} ${zeroY.toFixed(2)} Z`;
+}
+
+function buildSparklineAreaRuns(
+  points: Array<{ x: number; y: number; value: number }>,
+  upColor: string,
+  downColor: string,
+  zeroY: number
+) {
+  if (points.length < 2) return [];
+
+  const runs: Array<{ color: string; points: typeof points }> = [];
+  const appendRun = (color: string, segmentPoints: typeof points) => {
+    if (segmentPoints.length < 2) return;
+    const previous = runs[runs.length - 1];
+    if (previous?.color === color) {
+      previous.points.push(...segmentPoints.slice(1));
+      return;
+    }
+    runs.push({ color, points: segmentPoints });
+  };
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const previousIsPositive = previous.value >= 0;
+    const pointIsPositive = point.value >= 0;
+
+    if (previousIsPositive === pointIsPositive || previous.value === 0 || point.value === 0) {
+      appendRun(pointIsPositive ? upColor : downColor, [previous, point]);
+      continue;
+    }
+
+    const ratio = (0 - previous.value) / (point.value - previous.value);
+    const zeroPoint = {
+      value: 0,
+      x: previous.x + (point.x - previous.x) * ratio,
+      y: zeroY,
+    };
+    appendRun(previousIsPositive ? upColor : downColor, [previous, zeroPoint]);
+    appendRun(pointIsPositive ? upColor : downColor, [zeroPoint, point]);
+  }
+
+  return runs.filter((run) => run.points.length > 1);
+}
+
+function StrategyCurveSparkline({
+  values,
+  label,
+  upColor,
+  downColor,
+}: {
+  values: number[];
+  label: string;
+  upColor: string;
+  downColor: string;
+}) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 420;
+  const height = 86;
+  const points = buildSparklinePoints(values, width, height);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const zeroY = height - 6 - ((0 - min) / range) * (height - 12);
+  const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
+
+  return (
+    <div className="mt-4 space-y-2 border-t border-slate-200/70 pt-4 dark:border-border/50">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
+        {runs.map((run, index) => (
+          <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
+            <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${svgId}-strategy-library-curve-fill-${index})`} />
+            <path
+              d={run.points
+                .map((point, pointIndex) => `${pointIndex === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+                .join(" ")}
+              stroke={run.color}
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </g>
+        ))}
+        <defs>
+          {runs.map((run, index) => {
+            const isPositiveRun = run.points.some((point) => point.value > 0);
+            const lineEdgeY = isPositiveRun
+              ? Math.min(...run.points.map((point) => point.y))
+              : Math.max(...run.points.map((point) => point.y));
+            return (
+              <linearGradient
+                key={`${svgId}-strategy-library-curve-fill-${index}`}
+                id={`${svgId}-strategy-library-curve-fill-${index}`}
+                x1="0"
+                x2="0"
+                y1={isPositiveRun ? lineEdgeY : zeroY}
+                y2={isPositiveRun ? zeroY : lineEdgeY}
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor={run.color} stopOpacity="0.58" />
+                <stop offset="100%" stopColor={run.color} stopOpacity="0.12" />
+              </linearGradient>
+            );
+          })}
+        </defs>
+      </svg>
+    </div>
+  );
+}
+
 function MetricPill({
   label,
   value,
   tone = "neutral",
+  valueColor,
 }: {
   label: string;
   value: string;
   tone?: "positive" | "negative" | "neutral";
+  valueColor?: string;
 }) {
   return (
     <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
       <div
         className={`mt-1 text-sm font-semibold font-mono tabular-nums ${
-          tone === "positive"
+          valueColor
+            ? ""
+            : tone === "positive"
             ? "text-emerald-600 dark:text-[#00d492]"
             : tone === "negative"
               ? "text-rose-500 dark:text-[#ff637e]"
               : "text-foreground"
         }`}
+        style={valueColor ? { color: valueColor } : undefined}
       >
         {value}
       </div>
@@ -64,6 +243,9 @@ export default function StrategyLibrary() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [sortKey, setSortKey] = useState<StrategySortKey | null>("roi");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
+  const [starredStrategies, setStarredStrategies] = useState<Set<string>>(() => new Set());
+  const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
   const filterLabels: Record<FilterKey, string> = {
     all: tr("All", "全部"),
     official: tr("Official", "官方"),
@@ -135,6 +317,17 @@ export default function StrategyLibrary() {
     return tr("Default", "默认");
   };
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
+    };
+  }, []);
+
   return (
     <div className="space-y-6 min-w-0">
       <div className="flex items-start justify-between gap-4">
@@ -158,21 +351,22 @@ export default function StrategyLibrary() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {filterOptions.map((option) => (
-              <button
-                key={option}
-                onClick={() => setFilter(option)}
-                className={`inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition-colors ${
-                  filter === option
-                    ? "border-primary/20 bg-primary/10 text-primary"
-                    : "border-border bg-card text-muted-foreground shadow-sm hover:border-primary/20 hover:text-foreground"
-                }`}
-              >
-                {filterLabels[option]}
-              </button>
-            ))}
-          </div>
+          <Select value={filter} onValueChange={(value) => setFilter(value as FilterKey)}>
+            <SelectTrigger
+              size="sm"
+              className="h-8 w-fit rounded-full border-border bg-card px-3 text-xs text-foreground shadow-none transition-all duration-200 ease-in-out hover:border-slate-300 dark:hover:border-slate-600"
+              aria-label={tr("Category filter", "分类筛选")}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end" className="rounded-xl">
+              {filterOptions.map((option) => (
+                <SelectItem key={option} value={option} className="text-xs">
+                  {filterLabels[option]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Popover>
             <PopoverTrigger asChild>
@@ -234,21 +428,19 @@ export default function StrategyLibrary() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {filteredStrategies.map((strategy) => {
           const tier = getStrategyTier(strategy);
-          const statusClass =
-            tier === "official"
-              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
-              : "border-sky-500/25 bg-sky-500/10 text-sky-600 dark:text-sky-300";
+          const statusClass = "border-primary/30 bg-primary/10 text-primary";
           const statusLabel = tier === "official" ? tr("Official", "官方") : tr("Graduated", "三方");
+          const isStarred = starredStrategies.has(strategy.id);
 
           return (
             <div
               key={strategy.id}
               className="surface-card overflow-hidden border border-slate-200/80 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.05)] dark:border-border/70 dark:bg-card dark:shadow-none"
             >
-              <div className="px-5 py-4">
+              <div className="px-5 pb-2 pt-4">
                 <Link href={`/strategies/${strategy.id}?source=official&tier=${tier}`}>
                   <h3 className="cursor-pointer truncate text-lg font-semibold leading-7 text-foreground transition-colors hover:text-primary">
                     {strategy.name}
@@ -263,21 +455,51 @@ export default function StrategyLibrary() {
                 </div>
               </div>
 
-              <div className="px-5 pb-4 pt-2">
-                <p className="line-clamp-2 text-sm leading-7 text-muted-foreground">{translateDescription(strategy)}</p>
+              <div className="px-5 pb-3 pt-2">
+                <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{translateDescription(strategy)}</p>
+
+                <StrategyCurveSparkline
+                  values={strategyCardCurveValues}
+                  label={tr("Asset Curve", "资产曲线")}
+                  upColor={chartColors.upHex}
+                  downColor={chartColors.downHex}
+                />
 
                 <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-200/70 pt-4 dark:border-border/50 xl:grid-cols-4">
-                  <MetricPill label={tr("ROI", "ROI")} value={strategy.annualReturn} tone="positive" />
-                  <MetricPill label={tr("Win Rate", "胜率")} value={strategy.winRate} tone="positive" />
-                  <MetricPill label={tr("Sharpe", "夏普比率")} value={strategy.sharpe.toFixed(2)} tone="positive" />
-                  <MetricPill label={tr("Max Drawdown", "最大回撤")} value={strategy.maxDrawdown} tone="negative" />
+                  <MetricPill label={tr("ROI", "ROI")} value={strategy.annualReturn} valueColor={strategyMetricColor("roi", strategy.annualReturn, chartColors)} />
+                  <MetricPill label={tr("Win Rate", "胜率")} value={strategy.winRate} />
+                  <MetricPill label={tr("Sharpe", "夏普比率")} value={strategy.sharpe.toFixed(2)} />
+                  <MetricPill label={tr("Max Drawdown", "最大回撤")} value={strategy.maxDrawdown} valueColor={strategyMetricColor("maxDrawdown", strategy.maxDrawdown, chartColors)} />
                 </div>
 
-                <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-200/70 pt-3 dark:border-border/40">
+                <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-200/70 pt-2 dark:border-border/40">
+                  <button
+                    type="button"
+                    className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${
+                      isStarred
+                        ? "border-amber-400/70 bg-amber-400/20 text-amber-600 dark:border-[#ffb900]/60 dark:bg-[#ffb900]/30 dark:text-[#ffb900]"
+                        : "border-border/70 bg-card text-amber-500 hover:border-amber-400/60 dark:border-border/60 dark:bg-background/30 dark:text-[#ffb900]"
+                    }`}
+                    onClick={() =>
+                      setStarredStrategies((current) => {
+                        const next = new Set(current);
+                        if (next.has(strategy.id)) {
+                          next.delete(strategy.id);
+                        } else {
+                          next.add(strategy.id);
+                        }
+                        return next;
+                      })
+                    }
+                    aria-pressed={isStarred}
+                    aria-label={isStarred ? tr("Unfavorite strategy", "取消收藏策略") : tr("Favorite strategy", "收藏策略")}
+                  >
+                    <Star className={`h-[14px] w-[14px] ${isStarred ? "fill-current" : ""}`} />
+                  </button>
                   <Link href={`/strategies/new?template=${strategy.id}&creationMode=platform&scale=single&inputMethod=form`}>
                     <Button
                       variant="outline"
-                      className="h-8 rounded-full border-slate-200 bg-white px-4 text-xs font-medium text-foreground shadow-sm hover:border-primary/20 hover:bg-primary/5 hover:text-primary dark:border-border/60 dark:bg-background/30"
+                      className="h-8 rounded-full border-border/70 bg-card px-4 text-xs font-medium text-foreground hover:border-muted-foreground/40 hover:bg-accent/50 hover:text-foreground"
                     >
                       {tr("Use Template", "使用模板")}
                     </Button>

@@ -9,40 +9,31 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useParams, useSearch } from "wouter";
-import { useState, useMemo, useEffect, useRef, Fragment, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useId, useRef, Fragment, type ReactNode } from "react";
 import { toast } from "sonner";
 import gsap from "gsap";
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine,
-} from "recharts";
-import {
   ArrowLeft, CheckCircle, XCircle, BarChart3, TrendingUp,
   ChevronDown, ChevronUp, RefreshCw, Sparkles,
-  Loader2, FlaskConical, LineChart as LineChartIcon, Settings2, BookOpenText, HelpCircle, Copy,
+  Loader2, FlaskConical, LineChart as LineChartIcon, Settings2, BookOpenText, HelpCircle, Copy, Star,
 } from "lucide-react";
 import ShinyTag from "@/components/ui/shiny-tag";
 import ScratchCard from "@/components/ui/scratch-card";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import {
-  factors, generatePnLData, generateSharpeData, generateTurnoverData,
-  generateReturnsData, generateDrawdownData, aggregateData, osAggregateData,
+  factors, generatePnLData, aggregateData, osAggregateData,
   yearlySummary, osYearlySummary, testingStatus, correlationData,
   getAlphaGrade, GRADE_CONFIG,
 } from "@/lib/mockData";
-import { useTheme } from "@/contexts/ThemeContext";
 
-type ChartType = "pnl" | "sharpe" | "turnover" | "returns" | "drawdown";
 type SummaryPeriod = "IS" | "OS" | "DIFF";
+type PnlSamplePeriod = "IS" | "OS";
 
 type AlphaDetailProps = {
   embedded?: boolean;
@@ -50,11 +41,297 @@ type AlphaDetailProps = {
 };
 
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function getChartColorTokens(mode: ChartColorMode) {
+  return mode === "redUpGreenDown"
+    ? {
+        upClass: "text-rose-500",
+        downClass: "text-emerald-500",
+        upHex: "#F43F5E",
+        downHex: "#10B981",
+      }
+    : {
+        upClass: "text-emerald-500",
+        downClass: "text-rose-500",
+        upHex: "#10B981",
+        downHex: "#F43F5E",
+      };
+}
+
+type PnlChartPoint = { date: string; value: number };
+type PnlScreenPoint = PnlChartPoint & { x: number; y: number };
+type PnlAreaRun = { color: string; points: PnlScreenPoint[] };
+
+function formatPnlValue(value: number) {
+  return Math.round(value).toLocaleString();
+}
+
+function buildPnlPath(points: PnlScreenPoint[]) {
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+}
+
+function buildPnlAreaPath(points: PnlScreenPoint[], zeroY: number) {
+  if (points.length < 2) return "";
+  const linePath = buildPnlPath(points);
+  const first = points[0];
+  const last = points[points.length - 1];
+  return `${linePath} L ${last.x.toFixed(2)} ${zeroY.toFixed(2)} L ${first.x.toFixed(2)} ${zeroY.toFixed(2)} Z`;
+}
+
+function getNiceTickStep(range: number) {
+  const roughStep = range / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(Math.max(roughStep, 0.0001)));
+  const normalized = roughStep / magnitude;
+  const multiplier = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return multiplier * magnitude;
+}
+
+function buildPnlAreaRuns(points: PnlScreenPoint[], upColor: string, downColor: string, zeroY: number) {
+  if (points.length < 2) return [];
+
+  const runs: PnlAreaRun[] = [];
+  const appendRun = (color: string, segmentPoints: PnlScreenPoint[]) => {
+    if (segmentPoints.length < 2) return;
+    const previous = runs[runs.length - 1];
+    if (previous?.color === color) {
+      previous.points.push(...segmentPoints.slice(1));
+      return;
+    }
+    runs.push({ color, points: segmentPoints });
+  };
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const previousIsPositive = previous.value >= 0;
+    const pointIsPositive = point.value >= 0;
+
+    if (previousIsPositive === pointIsPositive || previous.value === 0 || point.value === 0) {
+      appendRun(pointIsPositive ? upColor : downColor, [previous, point]);
+      continue;
+    }
+
+    const ratio = (0 - previous.value) / (point.value - previous.value);
+    const zeroPoint: PnlScreenPoint = {
+      date: point.date,
+      value: 0,
+      x: previous.x + (point.x - previous.x) * ratio,
+      y: zeroY,
+    };
+    appendRun(previousIsPositive ? upColor : downColor, [previous, zeroPoint]);
+    appendRun(pointIsPositive ? upColor : downColor, [zeroPoint, point]);
+  }
+
+  return runs.filter((run) => run.points.length > 1);
+}
+
+function PnlLineChart({
+  data,
+  upColor,
+  downColor,
+}: {
+  data: PnlChartPoint[];
+  upColor: string;
+  downColor: string;
+}) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 1120;
+  const height = 300;
+  const padding = { top: 14, right: 58, bottom: 30, left: 118 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  const values = data.map((point) => point.value);
+  const rawMin = Math.min(0, ...values);
+  const rawMax = Math.max(0, ...values);
+  const rawRange = rawMax - rawMin || 1;
+  const tickStep = getNiceTickStep(rawRange * 1.12);
+  const domainMin = Math.floor((rawMin - rawRange * 0.06) / tickStep) * tickStep;
+  const domainMax = Math.ceil((rawMax + rawRange * 0.06) / tickStep) * tickStep;
+  const domainRange = domainMax - domainMin || 1;
+  const yTicks: number[] = [];
+  for (let tick = domainMin; tick <= domainMax + tickStep / 2; tick += tickStep) {
+    yTicks.push(Number(tick.toFixed(6)));
+  }
+  const xTicks = Array.from(
+    new Set(
+      Array.from({ length: Math.min(6, data.length) }, (_, index) =>
+        Math.round((index * (data.length - 1)) / Math.max(1, Math.min(6, data.length) - 1))
+      )
+    )
+  );
+
+  const points = data.map((point, index) => {
+    const x = padding.left + (index / Math.max(1, data.length - 1)) * plotWidth;
+    const y = padding.top + ((domainMax - point.value) / domainRange) * plotHeight;
+    return { ...point, x, y };
+  });
+  const zeroY = padding.top + ((domainMax - 0) / domainRange) * plotHeight;
+  const runs = buildPnlAreaRuns(points, upColor, downColor, zeroY);
+  const hoveredPoint = hoverIndex === null ? null : points[hoverIndex];
+  const chartGridColor = "rgba(100,116,139,0.22)";
+  const chartZeroColor = "rgba(100,116,139,0.34)";
+  const chartTickColor = "rgba(100,116,139,0.84)";
+
+  return (
+    <div
+      className="relative h-full w-full overflow-hidden rounded-lg"
+      onMouseLeave={() => setHoverIndex(null)}
+      onMouseMove={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        const nextIndex = Math.round(ratio * (data.length - 1));
+        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
+      }}
+    >
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-full w-full"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label="PNL line chart"
+      >
+        {yTicks.map((tick) => {
+          const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+          return (
+            <g key={tick}>
+              <line
+                x1={padding.left}
+                x2={width - padding.right}
+                y1={y}
+                y2={y}
+                stroke={chartGridColor}
+                strokeDasharray="5 4"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
+          );
+        })}
+        <line x1={padding.left} x2={width - padding.right} y1={zeroY} y2={zeroY} stroke={chartZeroColor} strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+        <defs>
+          {runs.map((run, index) => {
+            const fillId = `${svgId}-pnl-area-${index}`;
+            const isPositiveRun = run.points.some((point) => point.value > 0);
+            const lineEdgeY = isPositiveRun
+              ? Math.min(...run.points.map((point) => point.y))
+              : Math.max(...run.points.map((point) => point.y));
+            return (
+              <linearGradient
+                key={fillId}
+                id={fillId}
+                x1="0"
+                x2="0"
+                y1={isPositiveRun ? lineEdgeY : zeroY}
+                y2={isPositiveRun ? zeroY : lineEdgeY}
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor={run.color} stopOpacity="0.58" />
+                <stop offset="100%" stopColor={run.color} stopOpacity="0.12" />
+              </linearGradient>
+            );
+          })}
+        </defs>
+        {runs.map((run, index) => (
+          <g key={`${run.points[0].date}-${run.points[run.points.length - 1].date}-${run.color}`}>
+            <path
+              d={buildPnlAreaPath(run.points, zeroY)}
+              fill={`url(#${svgId}-pnl-area-${index})`}
+            />
+            <path
+              d={buildPnlPath(run.points)}
+              fill="none"
+              stroke={run.color}
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          </g>
+        ))}
+        {hoveredPoint ? (
+          <>
+            <line x1={hoveredPoint.x} x2={hoveredPoint.x} y1={padding.top} y2={height - padding.bottom} stroke={chartZeroColor} strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+            <circle cx={hoveredPoint.x} cy={hoveredPoint.y} r="3.5" fill="#FFFFFF" stroke={hoveredPoint.value >= 0 ? upColor : downColor} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+          </>
+        ) : null}
+      </svg>
+      {yTicks.map((tick) => {
+        const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+        return (
+          <div
+            key={tick}
+            className="pointer-events-none absolute -translate-y-1/2 pr-2 text-right text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: 0,
+              top: `${(y / height) * 100}%`,
+              width: `${(padding.left / width) * 100}%`,
+              color: chartTickColor,
+            }}
+          >
+            {formatPnlValue(tick)}
+          </div>
+        );
+      })}
+      {xTicks.map((index) => {
+        const point = points[index];
+        if (!point) return null;
+        const isFirstTick = index === 0;
+        const isLastTick = index === data.length - 1;
+        return (
+          <div
+            key={point.date}
+            className="pointer-events-none absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: `${(point.x / width) * 100}%`,
+              top: `${((height - 8) / height) * 100}%`,
+              transform: isFirstTick ? "translate(0, -50%)" : isLastTick ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
+              color: chartTickColor,
+            }}
+          >
+            {point.date.substring(0, 7)}
+          </div>
+        );
+      })}
+      {hoveredPoint ? (
+        <div
+          className="pointer-events-none absolute rounded-lg border border-border/80 bg-background/95 px-3 py-2 text-xs shadow-xl"
+          style={{
+            left: `${(hoveredPoint.x / width) * 100}%`,
+            top: `${(hoveredPoint.y / height) * 100}%`,
+            transform:
+              hoverIndex === 0
+                ? "translate(0, calc(-100% - 8px))"
+                : hoverIndex === data.length - 1
+                  ? "translate(-100%, calc(-100% - 8px))"
+                  : "translate(-50%, calc(-100% - 8px))",
+          }}
+        >
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {hoveredPoint.date}
+          </div>
+          <div className="mt-1 font-semibold" style={{ color: hoveredPoint.value >= 0 ? upColor : downColor }}>
+            PNL {formatPnlValue(hoveredPoint.value)}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export default function AlphaDetail({ embedded = false, factorIdOverride }: AlphaDetailProps = {}) {
   const { uiLang } = useAppLanguage();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
   const params = useParams<{ id: string }>();
   const searchStr = useSearch();
   const searchParams = new URLSearchParams(searchStr);
@@ -74,6 +351,8 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
         : "official";
   const detailBackPath = isOfficialLibraryView ? "/alphas/official" : "/alphas";
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
+  const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
 
   /* ── Generating state ── */
   const [isGenerating, setIsGenerating] = useState(isGeneratingParam);
@@ -100,7 +379,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const { alphaViewMode: viewMode } = useAlphaViewMode();
-  const [chartType, setChartType] = useState<ChartType>("pnl");
+  const [pnlSamplePeriod, setPnlSamplePeriod] = useState<PnlSamplePeriod>("IS");
   const [summaryPeriod, setSummaryPeriod] = useState<SummaryPeriod>("IS");
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -114,6 +393,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     pass: false, fail: true, pending: false,
   });
   const [copiedExpression, setCopiedExpression] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
 
   async function handleCopyExpression() {
@@ -138,17 +418,6 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     D: tr("Needs Work", "需优化"),
   }[grade];
 
-  const CHART = {
-    train: isDark ? "#818CF8" : "#4F46E5",
-    test: isDark ? "#34D399" : "#10B981",
-    grid: isDark ? "rgba(148,163,184,0.08)" : "rgba(15,23,42,0.06)",
-    tick: isDark ? "rgba(148,163,184,0.5)" : "rgba(15,23,42,0.4)",
-    tooltipBg: isDark ? "#0F172A" : "#FFFFFF",
-    tooltipBorder: isDark ? "rgba(148,163,184,0.15)" : "rgba(15,23,42,0.1)",
-    tooltipText: isDark ? "#F8FAFC" : "#0F172A",
-    refLine: isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.1)",
-  };
-
   useEffect(() => {
     if (!headerRef.current) return;
     const lines = headerRef.current.querySelectorAll(".reveal-line");
@@ -160,41 +429,28 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
   }, []);
 
   useEffect(() => {
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
   }, [plainExplainEnabled]);
 
   const pnlData = useMemo(() => generatePnLData(), []);
-  const sharpeData = useMemo(() => generateSharpeData(), []);
-  const turnoverData = useMemo(() => generateTurnoverData(), []);
-  const returnsData = useMemo(() => generateReturnsData(), []);
-  const drawdownData = useMemo(() => generateDrawdownData(), []);
-
-  const getChartData = () => {
-    const dataMap = { pnl: pnlData, sharpe: sharpeData, turnover: turnoverData, returns: returnsData, drawdown: drawdownData };
-    const raw = dataMap[chartType];
-    const trainMap = new Map(raw.train.map((d) => [d.date, d.value]));
-    const testMap = new Map(raw.test.map((d) => [d.date, d.value]));
-    const allDatesSet = new Set([...raw.train.map((d) => d.date), ...raw.test.map((d) => d.date)]);
-    const allDates = Array.from(allDatesSet).sort();
-    return allDates.map((date) => ({
-      date,
-      train: trainMap.get(date) ?? null,
-      test: showTestPeriod ? (testMap.get(date) ?? null) : null,
-    }));
-  };
-
-  const chartData = useMemo(getChartData, [chartType, showTestPeriod, pnlData, sharpeData, turnoverData, returnsData, drawdownData]);
-
-  const formatYAxis = (val: number) => {
-    if (chartType === "pnl") {
-      if (Math.abs(val) >= 1000000) return `${(val / 1000000).toFixed(1)}M`;
-      if (Math.abs(val) >= 1000) return `${(val / 1000).toFixed(0)}K`;
-      return val.toString();
-    }
-    if (chartType === "turnover" || chartType === "returns" || chartType === "drawdown") return `${val.toFixed(0)}%`;
-    return val.toFixed(2);
-  };
+  const proPnlData = useMemo(() => {
+    const sourceData = pnlSamplePeriod === "IS" ? pnlData.train : pnlData.test;
+    return sourceData.map((item) => ({ date: item.date, value: item.value }));
+  }, [pnlSamplePeriod, pnlData]);
+  const beginnerPnlData = useMemo(() => {
+    return [...pnlData.train, ...pnlData.test].map((item) => ({ date: item.date, value: item.value }));
+  }, [pnlData]);
 
   const passItems = testingStatus.filter((t) => t.status === "pass");
   const failItems = testingStatus.filter((t) => t.status === "fail");
@@ -305,6 +561,15 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     if (typeof value === "number") return value;
     return parseFloat(value.replace("%", "").replace("‰", ""));
   };
+  const trendTextClass = (value: string | number) => {
+    const parsed = parseMetric(value);
+    if (Number.isNaN(parsed) || parsed === 0) return "text-foreground";
+    return parsed > 0 ? chartColors.upClass : chartColors.downClass;
+  };
+  const drawdownTextClass = (value: string | number) => {
+    const parsed = Math.abs(parseMetric(value));
+    return Number.isNaN(parsed) || parsed === 0 ? "text-foreground" : chartColors.downClass;
+  };
   const formatDiff = (value: number, unit = "") => `${value >= 0 ? "+" : ""}${value.toFixed(2)}${unit}`;
   const summaryData = summaryPeriod === "OS" ? osYearlySummary : yearlySummary;
   const diffAggData = {
@@ -409,7 +674,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     {
       label: tr("Sharpe", "夏普比率"),
       value: factor.osSharpe.toFixed(2),
-      color: factor.osSharpe >= 1.0 ? "#34D399" : factor.osSharpe >= 0.5 ? "#FBBF24" : "#F87171",
+      color: undefined,
       desc: tr("Out-of-sample", "样本外"),
       explanation: tr(
         `Higher Sharpe means steadier returns. ${factor.osSharpe.toFixed(2)} is ${factor.osSharpe >= 1 ? "relatively steady" : factor.osSharpe >= 0.5 ? "moderate" : "less steady"}.`,
@@ -419,21 +684,21 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     {
       label: tr("Returns", "收益"),
       value: factor.returns,
-      color: "#34D399",
+      color: parseMetric(factor.returns) >= 0 ? chartColors.upHex : chartColors.downHex,
       desc: tr("Total return", "总收益"),
       explanation: tr(`Higher return means stronger backtest gain. ${factor.returns} is high.`, `收益率越高代表回测收益越强，${factor.returns} 为较高。`),
     },
     {
       label: tr("Max Drawdown", "最大回撤"),
       value: factor.drawdown,
-      color: "#F87171",
+      color: chartColors.downHex,
       desc: tr("Max loss", "最大亏损"),
       explanation: tr(`Lower drawdown means smoother risk. ${factor.drawdown} is controlled.`, `回撤越低代表风险越平滑，${factor.drawdown} 为控制较好。`),
     },
     {
       label: tr("Test Pass Rate", "测试通过率"),
       value: `${factor.testsPassed}/${factor.testsPassed + factor.testsFailed}`,
-      color: factor.testsPassed > factor.testsFailed ? "#34D399" : "#F87171",
+      color: undefined,
       desc: tr("Passed/Total", "通过/总数"),
       explanation: tr(
         `More passed checks means safer validation. ${factor.testsPassed}/${factor.testsPassed + factor.testsFailed} passed.`,
@@ -542,11 +807,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                   {uiLang === "zh" ? `已使用${usedCount}次` : `Used ${usedCount} times`}
                 </span>
                 <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${
-                    officialTier === "official"
-                      ? "border-amber-500/25 bg-amber-500/10 text-amber-400"
-                      : "border-purple-500/25 bg-purple-500/10 text-purple-400"
-                  }`}
+                  className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary"
                 >
                   {officialTier === "official" ? tr("Official", "官方") : tr("Graduated", "三方") }
                 </span>
@@ -566,6 +827,18 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
             </p>
           </div>
         </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-10 w-10 shrink-0 rounded-full border-border/80 bg-card p-0 text-foreground hover:bg-accent"
+          onClick={() => {
+            setIsFavorite((value) => !value);
+            toast.success(isFavorite ? tr("Removed from favorites", "已取消收藏") : tr("Added to favorites", "已加入收藏"));
+          }}
+          aria-label={isFavorite ? tr("Unfavorite factor", "取消收藏因子") : tr("Favorite factor", "收藏因子")}
+        >
+          <Star className={`h-4 w-4 ${isFavorite ? "fill-current text-amber-400" : ""}`} />
+        </Button>
         {viewMode === "beginner" && (
           <button
             type="button"
@@ -623,32 +896,16 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
             <div className="px-6 py-4 pb-2">
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">{tr("Performance", "表现")}</span>
+                <span className="text-base font-semibold text-foreground">PNL</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-1">{tr("Cumulative profit and loss over time", "累计盈亏走势")}</p>
             </div>
             <div className="px-6 pb-6">
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART.tick }} tickFormatter={(d) => d.substring(0, 7)} interval={Math.floor(chartData.length / 6)} />
-                    <YAxis tick={{ fontSize: 10, fill: CHART.tick }} tickFormatter={formatYAxis} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: CHART.tooltipBg, border: `1px solid ${CHART.tooltipBorder}`, borderRadius: "16px", fontSize: "12px", fontFamily: "'Roboto Mono', monospace", color: CHART.tooltipText }} labelStyle={{ color: CHART.tick }} />
-                    <Line type="monotone" dataKey="train" stroke={CHART.train} strokeWidth={1.5} dot={false} name="Train" connectNulls={false} />
-                    <Line type="monotone" dataKey="test" stroke={CHART.test} strokeWidth={1.5} dot={false} name="Test" connectNulls={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex items-center justify-center gap-6 mt-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 rounded bg-primary" />
-                  <span className="text-xs text-muted-foreground">{tr("Train (In-Sample)", "训练（样本内）")}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 rounded bg-success" />
-                  <span className="text-xs text-muted-foreground">{tr("Test (Out-of-Sample)", "测试（样本外）")}</span>
-                </div>
+                <PnlLineChart
+                  data={beginnerPnlData}
+                  upColor={chartColors.upHex}
+                  downColor={chartColors.downHex}
+                />
               </div>
             </div>
           </div>
@@ -758,9 +1015,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                   proMetricExplanations.sharpe,
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                   <div className="label-upper mb-1 text-[9px]">{tr("SHARPE", "夏普比率")}</div>
-                  <div className={`text-lg font-bold font-mono tabular-nums ${
-                    (typeof aggData.sharpe === "number" ? aggData.sharpe : 0) >= 1 ? "text-success" : (typeof aggData.sharpe === "number" ? aggData.sharpe : 0) >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
-                  }`}>
+                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">
                     {typeof aggData.sharpe === "number" ? aggData.sharpe.toFixed(2) : aggData.sharpe}
                   </div>
                 </div>
@@ -770,15 +1025,15 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                   proMetricExplanations.returns,
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                   <div className="label-upper mb-1 text-[9px]">{tr("RETURNS", "收益")}</div>
-                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.returns}</div>
+                  <div className={`text-lg font-bold font-mono tabular-nums ${trendTextClass(aggData.returns)}`}>{aggData.returns}</div>
                 </div>
                 )}
-                {/* Drawdown — always destructive like list view */}
+                {/* Drawdown */}
                 {withPlainExplanation(
                   proMetricExplanations.drawdown,
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                   <div className="label-upper mb-1 text-[9px]">{tr("MAX DRAWDOWN", "最大回撤")}</div>
-                  <div className="text-lg font-bold font-mono tabular-nums text-destructive">{aggData.drawdown}</div>
+                  <div className={`text-lg font-bold font-mono tabular-nums ${drawdownTextClass(aggData.drawdown)}`}>{aggData.drawdown}</div>
                 </div>
                 )}
                 {/* Turnover */}
@@ -794,9 +1049,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                   proMetricExplanations.fitness,
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                   <div className="label-upper mb-1 text-[9px]">{tr("FITNESS", "适应度")}</div>
-                  <div className={`text-lg font-bold font-mono tabular-nums ${
-                    (typeof aggData.fitness === "number" ? aggData.fitness : 0) >= 1 ? "text-success" : (typeof aggData.fitness === "number" ? aggData.fitness : 0) >= 0.5 ? "text-foreground" : "text-muted-foreground"
-                  }`}>
+                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">
                     {typeof aggData.fitness === "number" ? aggData.fitness.toFixed(2) : aggData.fitness}
                   </div>
                 </div>
@@ -806,7 +1059,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                   proMetricExplanations.testsPassed,
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
                   <div className="label-upper mb-1 text-[9px]">{tr("TEST PASS RATE", "测试通过率")}</div>
-                  <div className={`text-lg font-bold font-mono tabular-nums ${factor.testsPassed > factor.testsFailed ? "text-success" : "text-destructive"}`}>
+                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">
                     {factor.testsPassed}/{factor.testsPassed + factor.testsFailed}
                   </div>
                   <div className="text-[9px] text-muted-foreground mt-0.5">{tr("Passed/Total", "通过/总数")}</div>
@@ -851,7 +1104,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                         <TableCell className="text-sm font-medium text-foreground">{row.metric}</TableCell>
                         <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.isValue}</TableCell>
                         <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.osValue}</TableCell>
-                        <TableCell className="font-mono text-sm tabular-nums text-primary">{row.diff}</TableCell>
+                        <TableCell className={`font-mono text-sm tabular-nums ${trendTextClass(row.diff)}`}>{row.diff}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -875,19 +1128,15 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                   {summaryData.map((row) => (
                     <TableRow key={row.year} className="border-border hover:bg-slate-50 dark:hover:bg-slate-800/30">
                       <TableCell className="font-mono text-sm font-medium text-foreground">{row.year}</TableCell>
-                      <TableCell className={`font-mono text-sm tabular-nums ${
-                        row.sharpe >= 1 ? "text-success" : row.sharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
-                      }`}>
+                      <TableCell className="font-mono text-sm tabular-nums text-foreground">
                         {row.sharpe.toFixed(2)}
                       </TableCell>
                       <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.turnover}</TableCell>
-                      <TableCell className={`font-mono text-sm tabular-nums ${
-                        row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"
-                      }`}>
+                      <TableCell className="font-mono text-sm tabular-nums text-foreground">
                         {row.fitness.toFixed(2)}
                       </TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.returns}</TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums text-destructive">{row.drawdown}</TableCell>
+                      <TableCell className={`font-mono text-sm tabular-nums ${trendTextClass(row.returns)}`}>{row.returns}</TableCell>
+                      <TableCell className={`font-mono text-sm tabular-nums ${drawdownTextClass(row.drawdown)}`}>{row.drawdown}</TableCell>
                       <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.margin}</TableCell>
                       <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.longCount.toLocaleString()}</TableCell>
                       <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.shortCount.toLocaleString()}</TableCell>
@@ -942,61 +1191,39 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
           {/* Chart Section */}
           <div className="surface-card">
             <div className="px-6 py-4 pb-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">{tr("Performance", "表现")}</span>
+                  <span className="text-base font-semibold text-foreground">PNL</span>
                 </div>
-                <Select value={chartType} onValueChange={(v) => setChartType(v as ChartType)}>
-                  <SelectTrigger className="w-[160px] h-8 text-sm rounded-lg bg-card border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pnl">PnL</SelectItem>
-                    <SelectItem value="sharpe">{tr("Sharpe", "夏普比率")}</SelectItem>
-                    <SelectItem value="turnover">{tr("Turnover", "换手率")}</SelectItem>
-                    <SelectItem value="returns">{tr("Returns", "收益")}</SelectItem>
-                    <SelectItem value="drawdown">{tr("Drawdown", "回撤")}</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent/35 p-1">
+                  {([
+                    ["IS", tr("In-Sample", "样本内")],
+                    ["OS", tr("Out-of-Sample", "样本外")],
+                  ] as const).map(([period, label]) => (
+                    <button
+                      key={period}
+                      type="button"
+                      onClick={() => setPnlSamplePeriod(period)}
+                      className={`h-7 rounded-full px-3 text-xs font-medium transition-colors ${
+                        pnlSamplePeriod === period
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="px-6 pb-6">
               <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  {chartType === "turnover" ? (
-                    <BarChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART.tick }} tickFormatter={(d) => d.substring(0, 7)} interval={Math.floor(chartData.length / 8)} />
-                      <YAxis tick={{ fontSize: 10, fill: CHART.tick }} tickFormatter={formatYAxis} />
-                      <RechartsTooltip contentStyle={{ backgroundColor: CHART.tooltipBg, border: `1px solid ${CHART.tooltipBorder}`, borderRadius: "16px", fontSize: "12px", fontFamily: "'Roboto Mono', monospace", color: CHART.tooltipText }} labelStyle={{ color: CHART.tick }} />
-                      <Bar dataKey="train" fill={isDark ? "rgba(129,140,248,0.6)" : "rgba(79,70,229,0.6)"} name="Train" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="test" fill={isDark ? "rgba(52,211,153,0.6)" : "rgba(16,185,129,0.6)"} name="Test" radius={[2, 2, 0, 0]} />
-                    </BarChart>
-                  ) : (
-                    <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART.tick }} tickFormatter={(d) => d.substring(0, 7)} interval={Math.floor(chartData.length / 8)} />
-                      <YAxis tick={{ fontSize: 10, fill: CHART.tick }} tickFormatter={formatYAxis} />
-                      {chartType === "sharpe" && <ReferenceLine y={0} stroke={CHART.refLine} />}
-                      <RechartsTooltip contentStyle={{ backgroundColor: CHART.tooltipBg, border: `1px solid ${CHART.tooltipBorder}`, borderRadius: "16px", fontSize: "12px", fontFamily: "'Roboto Mono', monospace", color: CHART.tooltipText }} labelStyle={{ color: CHART.tick }} />
-                      <Line type="monotone" dataKey="train" stroke={CHART.train} strokeWidth={1.5} dot={false} name="Train" connectNulls={false} />
-                      <Line type="monotone" dataKey="test" stroke={CHART.test} strokeWidth={1.5} dot={false} name="Test" connectNulls={false} />
-                    </LineChart>
-                  )}
-                </ResponsiveContainer>
-              </div>
-              <div className="flex items-center justify-center gap-6 mt-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 rounded bg-primary" />
-                  <span className="text-xs text-muted-foreground">{tr("Train", "训练")}</span>
-                </div>
-                {showTestPeriod && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-0.5 rounded bg-success" />
-                    <span className="text-xs text-muted-foreground">{tr("Test (OS)", "测试（样本外）")}</span>
-                  </div>
-                )}
+                <PnlLineChart
+                  data={proPnlData}
+                  upColor={chartColors.upHex}
+                  downColor={chartColors.downHex}
+                />
               </div>
             </div>
           </div>
@@ -1025,11 +1252,11 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                     <span className="label-upper">{tr("Self Correlation", "自相关")}</span>
                   </div>
                   <div>
-                    <span className="text-xs mr-2 text-primary">{tr("Maximum", "最大值")}</span>
+                    <span className="text-xs mr-2 text-muted-foreground">{tr("Maximum", "最大值")}</span>
                     <span className="font-mono text-sm text-foreground">{correlationData.selfCorrelation.maximum}</span>
                   </div>
                   <div>
-                    <span className="text-xs mr-2 text-success">{tr("Minimum", "最小值")}</span>
+                    <span className="text-xs mr-2 text-muted-foreground">{tr("Minimum", "最小值")}</span>
                     <span className="font-mono text-sm text-foreground">{correlationData.selfCorrelation.minimum}</span>
                   </div>
                 </div>
