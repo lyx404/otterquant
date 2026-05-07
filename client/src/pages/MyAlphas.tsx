@@ -93,16 +93,16 @@ interface ColumnDef {
 const dataColumns: ColumnDef[] = [
   { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
   { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "90px" },
-  { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
-  { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
-  { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
-  { key: "pnl", label: "PnL Curve", defaultVisible: true, sortable: false, width: "126px", align: "center" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
-  { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "80px", align: "right" },
+  { key: "pnl", label: "PnL", defaultVisible: true, sortable: false, width: "126px", align: "center" },
   { key: "returns", label: "Returns", defaultVisible: true, sortable: true, width: "80px", align: "right" },
-  { key: "turnover", label: "Turnover", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "drawdown", label: "Drawdown", defaultVisible: true, sortable: true, width: "90px", align: "right" },
+  { key: "turnover", label: "Turnover", defaultVisible: true, sortable: true, width: "80px", align: "right" },
+  { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "80px", align: "right" },
+  { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
+  { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
+  { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
   { key: "id", label: "ID", defaultVisible: false, sortable: true, width: "80px" },
   { key: "testsPassed", label: "Tests", defaultVisible: false, sortable: true, width: "72px", align: "right" },
 
@@ -133,12 +133,30 @@ const DELETED_FACTORS_STORAGE_KEY = "otterquant:myalphas:deleted-factors";
 const MY_ALPHAS_PREFS_VERSION = 3;
 const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 
-function buildSparklinePath(values: number[], width: number, height: number, padding = 4) {
-  if (values.length < 2) return "";
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+function getChartColorTokens(mode: ChartColorMode) {
+  return mode === "redUpGreenDown"
+    ? {
+        upHex: "#F43F5E",
+        downHex: "#10B981",
+      }
+    : {
+        upHex: "#10B981",
+        downHex: "#F43F5E",
+      };
+}
+
+function buildSparklinePoints(values: number[], width: number, height: number, padding = 4) {
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
   const range = max - min || 1;
   const step = (width - padding * 2) / (values.length - 1);
 
@@ -146,33 +164,121 @@ function buildSparklinePath(values: number[], width: number, height: number, pad
     .map((value, index) => {
       const x = padding + index * step;
       const y = height - padding - ((value - min) / range) * (height - padding * 2);
-      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-    })
+      return { x, y, value };
+    });
+}
+
+function buildSparklineAreaRuns(
+  points: Array<{ x: number; y: number; value: number }>,
+  upColor: string,
+  downColor: string,
+  zeroY: number
+) {
+  if (points.length < 2) return [];
+
+  const runs: Array<{ color: string; points: typeof points }> = [];
+  const appendRun = (color: string, segmentPoints: typeof points) => {
+    if (segmentPoints.length < 2) return;
+    const previous = runs[runs.length - 1];
+    if (previous?.color === color) {
+      previous.points.push(...segmentPoints.slice(1));
+      return;
+    }
+    runs.push({ color, points: segmentPoints });
+  };
+
+  for (let index = 1; index < points.length; index += 1) {
+    const previous = points[index - 1];
+    const point = points[index];
+    const previousIsPositive = previous.value >= 0;
+    const pointIsPositive = point.value >= 0;
+
+    if (previousIsPositive === pointIsPositive || previous.value === 0 || point.value === 0) {
+      appendRun(pointIsPositive ? upColor : downColor, [previous, point]);
+      continue;
+    }
+
+    const ratio = (0 - previous.value) / (point.value - previous.value);
+    const zeroPoint = {
+      value: 0,
+      x: previous.x + (point.x - previous.x) * ratio,
+      y: zeroY,
+    };
+    appendRun(previousIsPositive ? upColor : downColor, [previous, zeroPoint]);
+    appendRun(pointIsPositive ? upColor : downColor, [zeroPoint, point]);
+  }
+
+  return runs.filter((run) => run.points.length > 1);
+}
+
+function buildSparklineAreaPath(points: Array<{ x: number; y: number }>, zeroY: number) {
+  if (points.length < 2) return "";
+
+  const topPath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+  const first = points[0];
+  const last = points[points.length - 1];
+
+  return `${topPath} L ${last.x.toFixed(2)} ${zeroY.toFixed(2)} L ${first.x.toFixed(2)} ${zeroY.toFixed(2)} Z`;
+}
+
+function buildSparklineLinePath(points: Array<{ x: number; y: number }>) {
+  return points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
     .join(" ");
 }
 
-function TablePnlSparkline({ values }: { values: number[] }) {
+function TablePnlSparkline({ values, upColor, downColor }: { values: number[]; upColor: string; downColor: string }) {
   const svgId = useId().replace(/:/g, "");
   const width = 108;
   const height = 42;
-  const path = buildSparklinePath(values, width, height);
-  const areaPath = path ? `${path} L ${width - 4} ${height - 4} L 4 ${height - 4} Z` : "";
+  const points = buildSparklinePoints(values, width, height);
+  const min = Math.min(0, ...values);
+  const max = Math.max(0, ...values);
+  const range = max - min || 1;
+  const zeroY = height - 4 - ((0 - min) / range) * (height - 8);
+  const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
 
   return (
     <div className="flex h-full min-h-[42px] w-[108px] items-center" aria-label="PNL折线图">
       <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full overflow-visible" fill="none" aria-hidden="true">
-        <path d={areaPath} fill={`url(#${svgId}-table-pnl-fill)`} opacity="0.5" />
-        <path d={path} stroke={`url(#${svgId}-table-pnl-line)`} strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+        {runs.map((run, index) => {
+          const fillId = `${svgId}-table-pnl-fill-${index}`;
+          return (
+            <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}`}>
+              <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${fillId})`} />
+              <path
+                d={buildSparklineLinePath(run.points)}
+                stroke={run.color}
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </g>
+          );
+        })}
         <defs>
-          <linearGradient id={`${svgId}-table-pnl-line`} x1="0" x2={width} y1="0" y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#818CF8" />
-            <stop offset="72%" stopColor="#818CF8" />
-            <stop offset="100%" stopColor="#34D399" />
-          </linearGradient>
-          <linearGradient id={`${svgId}-table-pnl-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#818CF8" stopOpacity="0.2" />
-            <stop offset="100%" stopColor="#34D399" stopOpacity="0.02" />
-          </linearGradient>
+          {runs.map((run, index) => {
+            const isPositiveRun = run.points.some((point) => point.value > 0);
+            const lineEdgeY = isPositiveRun
+              ? Math.min(...run.points.map((point) => point.y))
+              : Math.max(...run.points.map((point) => point.y));
+            return (
+              <linearGradient
+                key={`${svgId}-table-pnl-fill-${index}`}
+                id={`${svgId}-table-pnl-fill-${index}`}
+                x1="0"
+                x2="0"
+                y1={isPositiveRun ? lineEdgeY : zeroY}
+                y2={isPositiveRun ? zeroY : lineEdgeY}
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor={run.color} stopOpacity="0.58" />
+                <stop offset="100%" stopColor={run.color} stopOpacity="0.12" />
+              </linearGradient>
+            );
+          })}
         </defs>
       </svg>
     </div>
@@ -186,16 +292,16 @@ function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
   return [
     "name",
     "status_col",
-    "grade",
-    "epochStatus",
-    "createdAt",
-    "pnl",
     "sharpe",
     "osSharpe",
-    "fitness",
+    "pnl",
     "returns",
-    "turnover",
     "drawdown",
+    "turnover",
+    "fitness",
+    "epochStatus",
+    "grade",
+    "createdAt",
   ];
 }
 
@@ -355,7 +461,7 @@ export default function MyAlphas() {
       grade: tr("Grade", "等级"),
       epochStatus: tr("Arena Round", "竞技场轮次"),
       createdAt: tr("Date Created", "创建日期"),
-      pnl: tr("PnL Curve", "PNL曲线"),
+      pnl: tr("PnL", "PNL"),
       sharpe: tr("IS Sharpe", "IS 夏普"),
       osSharpe: tr("OS Sharpe", "OS 夏普"),
       fitness: tr("Fitness", "适应度"),
@@ -383,6 +489,7 @@ export default function MyAlphas() {
   const [gradeRevealTick, setGradeRevealTick] = useState(0);
   const [revealAllResults, setRevealAllResults] = useState<Array<{ id: string; name: string; grade: AlphaGrade }>>([]);
   const [showRevealAllModal, setShowRevealAllModal] = useState(false);
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
     if (typeof window === "undefined") return true;
     const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
@@ -398,6 +505,7 @@ export default function MyAlphas() {
     const sampleEvery = Math.max(1, Math.floor(combined.length / 28));
     return combined.filter((_, index) => index % sampleEvery === 0).slice(-28);
   }, []);
+  const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
 
 
 
@@ -465,6 +573,16 @@ export default function MyAlphas() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
   }, [plainExplainEnabled]);
+
+  useEffect(() => {
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -682,7 +800,7 @@ export default function MyAlphas() {
       case "createdAt":
         return <span className="font-mono text-xs text-muted-foreground whitespace-nowrap">{row.createdAt}</span>;
       case "pnl":
-        return <TablePnlSparkline values={tablePnlValues} />;
+        return <TablePnlSparkline values={tablePnlValues} upColor={chartColors.upHex} downColor={chartColors.downHex} />;
       case "sharpe":
         return <span className="font-mono text-xs tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
       case "osSharpe":

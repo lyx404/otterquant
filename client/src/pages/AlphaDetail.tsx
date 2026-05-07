@@ -20,7 +20,7 @@ import gsap from "gsap";
 import {
   ArrowLeft, CheckCircle, XCircle, BarChart3, TrendingUp,
   ChevronDown, ChevronUp, RefreshCw, Sparkles,
-  Loader2, FlaskConical, LineChart as LineChartIcon, Settings2, BookOpenText, HelpCircle, Copy, Star,
+  Loader2, FlaskConical, LineChart as LineChartIcon, Settings2, BookOpenText, Copy, Eye, EyeOff, Star,
 } from "lucide-react";
 import ShinyTag from "@/components/ui/shiny-tag";
 import ScratchCard from "@/components/ui/scratch-card";
@@ -725,30 +725,63 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
       "验证路径：先加入模拟策略，重点观察换手率、回撤和分年度表现。"
     ),
   ];
-  const conclusionSection = (
-    <div className="surface-card">
-      <div className="px-6 py-4 pb-3">
-        <div className="flex items-center gap-2">
-          <BookOpenText className="w-4 h-4 text-primary" />
-          <span className="text-base font-semibold text-foreground">{tr("Factor Description", "因子说明")}</span>
+  const factorDescriptionContent = (
+    <div className="grid gap-1.5 text-sm leading-6 text-muted-foreground">
+      {conclusionItems.map((item) => (
+        <div key={item.label} className="flex items-start gap-2.5">
+          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/55" />
+          <p>
+            <span className="text-foreground">{item.label}：</span>
+            {item.text}
+          </p>
         </div>
-      </div>
-      <div className="px-6 pb-6">
-        <div className="grid gap-2 text-sm leading-6 text-foreground">
-          {conclusionItems.map((item) => (
-            <div key={item.label} className="flex items-start gap-2.5">
-              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
-              <p>
-                <span>{item.label}：</span>
-                {item.text}
-              </p>
+      ))}
+    </div>
+  );
+  const factorIntroHeader = (
+    <div className="flex items-center gap-2">
+      <BookOpenText className="w-4 h-4 text-primary" />
+      <span className="text-base font-semibold text-foreground">{tr("Factor Introduction", "因子介绍")}</span>
+    </div>
+  );
+  const beginnerMetricCards = (
+    <div className={`grid gap-3 ${isOfficialLibraryView ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-5"}`}>
+      {beginnerMetrics.map((m) => (
+        withPlainExplanation(
+          m.explanation,
+          <div key={m.label} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+            <div className="label-upper mb-1 text-[9px]">{m.label}</div>
+            <div className="text-lg font-bold font-mono tabular-nums" style={{ color: m.color }}>
+              {m.value}
             </div>
-          ))}
+            <div className="text-[9px] text-muted-foreground mt-0.5">{m.desc}</div>
+          </div>
+        )
+      ))}
+      {!isOfficialLibraryView && withPlainExplanation(
+        proMetricExplanations.grade,
+        <div>
+          <ScratchCard
+            factorId={factor.id}
+            grade={grade}
+            status={factor.status === "active" || factor.status === "testing" ? "passed" : "failed"}
+          />
+        </div>
+      )}
+    </div>
+  );
+  const beginnerIntroSection = (
+    <div className="surface-card">
+      <div className="px-6 py-4 pb-3">{factorIntroHeader}</div>
+      <div className="px-6 pb-6">
+        {factorDescriptionContent}
+        <div className="mt-5 border-t border-border/60 pt-4">
+          {beginnerMetricCards}
         </div>
       </div>
     </div>
   );
-  const withPlainExplanation = (content: string, child: ReactNode) => {
+  function withPlainExplanation(content: string, child: ReactNode) {
     if (viewMode !== "beginner" || !plainExplainEnabled) return child;
 
     return (
@@ -759,7 +792,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
         </TooltipContent>
       </Tooltip>
     );
-  };
+  }
 
   /* ── Generating Loading UI ── */
   if (isGenerating) {
@@ -823,7 +856,6 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
             )}
             <p className="text-xs font-mono text-muted-foreground">
               {factor.id} &middot; {tr("Created", "创建于")} {factor.createdAt}
-              {isOfficialLibraryView ? ` · ${tr("Official Library", "官方库")}` : ""}
             </p>
           </div>
         </div>
@@ -851,7 +883,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
             aria-pressed={plainExplainEnabled}
             title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
           >
-            <HelpCircle className="w-3.5 h-3.5" />
+            {plainExplainEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
             {tr("Plain explanations", "通俗解释")}
           </button>
         )}
@@ -861,35 +893,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
       {/* ═══ BEGINNER MODE ═══ */}
       {viewMode === "beginner" && (
         <div className="space-y-6 animate-in fade-in duration-300">
-          {conclusionSection}
-
-          {/* Key Metrics Cards — Pro style */}
-          <div className={`grid gap-3 ${isOfficialLibraryView ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-5"}`}>
-            {beginnerMetrics.map((m) => (
-              <Fragment key={m.label}>
-              {withPlainExplanation(
-                m.explanation,
-              <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                <div className="label-upper mb-1 text-[9px]">{m.label}</div>
-                <div className="text-lg font-bold font-mono tabular-nums" style={{ color: m.color }}>
-                  {m.value}
-                </div>
-                <div className="text-[9px] text-muted-foreground mt-0.5">{m.desc}</div>
-              </div>
-              )}
-              </Fragment>
-            ))}
-            {!isOfficialLibraryView && withPlainExplanation(
-              proMetricExplanations.grade,
-              <div>
-                <ScratchCard
-                  factorId={factor.id}
-                  grade={grade}
-                  status={factor.status === "active" || factor.status === "testing" ? "passed" : "failed"}
-                />
-              </div>
-            )}
-          </div>
+          {beginnerIntroSection}
 
           {/* Simplified Chart — PnL only */}
           <div className="surface-card">
@@ -974,12 +978,14 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
       {viewMode === "pro" && (
         <div className="space-y-6 animate-in fade-in duration-300">
 
-          {conclusionSection}
-
-          {/* ── SECTION 2: Factor Overview + IS/OS Summary (merged) ── */}
           <div className="surface-card">
             <div className="px-6 py-4 pb-3">
-              <div className="flex items-center justify-between">
+              {factorIntroHeader}
+            </div>
+            <div className="px-6 pb-6">
+              {factorDescriptionContent}
+              <div className="mt-5 border-t border-border/60 pt-4">
+                <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="w-4 h-4 text-primary" />
                   <span className="text-base font-semibold text-foreground">{summaryTitle}</span>
@@ -1004,6 +1010,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                     </button>
                   ))}
                 </div>
+              </div>
               </div>
             </div>
             <div className="px-6 pb-6 space-y-4">

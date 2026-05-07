@@ -363,7 +363,7 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode, plainExplainEna
                 <Users className="h-3.5 w-3.5" />
                 {uiLang === "zh" ? `已使用${usedCount}次` : `Used ${usedCount} times`}
               </span>
-              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusClass}`}>
+              <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold font-sans uppercase tracking-normal ${statusClass}`}>
                 {isGraduated ? tr("Graduated", "三方") : tr("Official", "官方")}
               </span>
               {!isBeginnerMode && (

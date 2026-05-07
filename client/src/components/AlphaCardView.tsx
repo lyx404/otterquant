@@ -319,7 +319,7 @@ export default function AlphaCardView({
     return (
       <span className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-background/40 px-2.5 py-1">
         <span className={`w-1.5 h-1.5 rounded-full ${s.dotClass}`} />
-        <span className={`text-[10px] font-semibold tracking-[0.14em] uppercase ${s.textClass}`}>
+        <span className={`text-[10px] font-semibold font-sans tracking-normal uppercase ${s.textClass}`}>
           {s.label === "Passed" ? tr("Passed", "通过") : tr("Failed", "失败")}
         </span>
       </span>
@@ -460,6 +460,15 @@ export default function AlphaCardView({
                   ) : (
                     <span className="block text-sm font-semibold text-foreground truncate leading-5">{row.name}</span>
                   )}
+                </div>
+                {(isVisible("status_col") || isVisible("grade")) && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    {isVisible("status_col") && renderStatus(row.submissionStatus)}
+                    {isVisible("grade") && renderGrade(row)}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
                   {(isVisible("createdAt") || isVisible("id")) && (
                     <div className="mt-2 text-xs font-mono text-muted-foreground whitespace-nowrap">
                       {isVisible("createdAt") ? `${tr("Created", "创建日期")}:${row.createdAt}` : ""}
@@ -467,11 +476,6 @@ export default function AlphaCardView({
                       {isVisible("id") ? `ID: ${row.id}` : ""}
                     </div>
                   )}
-                  <div className="mt-2 flex items-center gap-2">
-                    {isVisible("status_col") && renderStatus(row.submissionStatus)}
-                    {isVisible("grade") && renderGrade(row)}
-                  </div>
-                </div>
               </div>
             </div>
 

@@ -17,7 +17,7 @@ import {
 import { strategies } from "@/lib/mockData";
 import { buildSeries } from "@/lib/strategyUtils";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
-import { ArrowUpDown, ArrowUpRight, Search, Star } from "lucide-react";
+import { ArrowUpDown, ArrowUpRight, Search, Star, Users } from "lucide-react";
 
 const filterOptions = ["all", "official", "graduated"] as const;
 type FilterKey = (typeof filterOptions)[number];
@@ -434,6 +434,7 @@ export default function StrategyLibrary() {
           const statusClass = "border-primary/30 bg-primary/10 text-primary";
           const statusLabel = tier === "official" ? tr("Official", "官方") : tr("Graduated", "三方");
           const isStarred = starredStrategies.has(strategy.id);
+          const usedCount = strategy.subscribers ?? 0;
 
           return (
             <div
@@ -446,12 +447,17 @@ export default function StrategyLibrary() {
                     {strategy.name}
                   </h3>
                 </Link>
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <span className={`inline-flex h-[25px] items-center rounded-full border px-[11px] py-[5px] text-[10px] font-semibold uppercase tracking-[0.18em] ${statusClass}`}>
+                <p className="mt-2 text-xs text-slate-500 dark:text-muted-foreground">
+                  {tr("Created Date", "创建日期")}:{strategy.updatedAt} ID:{strategy.id}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                    <Users className="h-3.5 w-3.5" />
+                    {uiLang === "zh" ? `已使用${usedCount}次` : `Used ${usedCount} times`}
+                  </span>
+                  <span className={`inline-flex h-[25px] items-center rounded-full border px-[11px] py-[5px] text-[10px] font-semibold font-sans uppercase tracking-normal ${statusClass}`}>
                     {statusLabel}
                   </span>
-                  <span className="text-xs text-slate-500 dark:text-muted-foreground">{tr("Updated", "更新于")}:{strategy.updatedAt}</span>
-                  <span className="text-xs text-slate-500 dark:text-muted-foreground">ID:{strategy.id}</span>
                 </div>
               </div>
 
@@ -499,7 +505,7 @@ export default function StrategyLibrary() {
                   <Link href={`/strategies/new?template=${strategy.id}&creationMode=platform&scale=single&inputMethod=form`}>
                     <Button
                       variant="outline"
-                      className="h-8 rounded-full border-border/70 bg-card px-4 text-xs font-medium text-foreground hover:border-muted-foreground/40 hover:bg-accent/50 hover:text-foreground"
+                      className="h-8 rounded-full border-border/70 bg-card px-4 text-xs font-medium text-foreground shadow-none hover:border-muted-foreground/40 hover:bg-accent/50 hover:text-foreground hover:shadow-none"
                     >
                       {tr("Use Template", "使用模板")}
                     </Button>

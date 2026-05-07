@@ -361,10 +361,10 @@ export default function Trade() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                        {tr("Win Rate", "胜率")}
+                        ROI
                       </div>
                       <div className="mt-1 text-xs font-semibold text-indigo-300">
-                        {bot.winRate.toFixed(1)}%
+                        {((bot.unrealizedPnl / Math.max(bot.equity, 1)) * 100).toFixed(1)}%
                       </div>
                     </div>
                   </div>
