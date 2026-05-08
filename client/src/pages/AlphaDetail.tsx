@@ -22,7 +22,6 @@ import {
   ChevronDown, ChevronUp, RefreshCw, Sparkles,
   Loader2, FlaskConical, LineChart as LineChartIcon, Settings2, BookOpenText, Copy, Star,
 } from "lucide-react";
-import ShinyTag from "@/components/ui/shiny-tag";
 import ScratchCard from "@/components/ui/scratch-card";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
@@ -812,7 +811,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
     </div>
   );
   function withPlainExplanation(content: string, child: ReactNode) {
-    if (viewMode !== "beginner" || !plainExplainEnabled) return child;
+    if (!plainExplainEnabled) return child;
 
     return (
       <Tooltip>

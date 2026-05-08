@@ -53,6 +53,18 @@ const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v4_";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 
+function UnrevealedGradeTag({ label = "Unrevealed grade" }: { label?: string }) {
+  return (
+    <span
+      className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 px-2.5 py-1 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+      title={label}
+      aria-label={label}
+    >
+      <span className="select-none text-[11px] font-black leading-none text-slate-500 dark:text-slate-300">?</span>
+    </span>
+  );
+}
+
 function readChartColorMode(): ChartColorMode {
   if (typeof window === "undefined") return "greenUpRedDown";
   const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
@@ -357,35 +369,15 @@ export default function AlphaCardView({
 
   const renderGrade = (row: AlphaRow) => {
     if (row.submissionStatus !== "passed") {
-      return (
-        <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-700 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300">
-          F
-        </span>
-      );
+      return <ShinyTag tier="F" />;
     }
 
     const revealedGrade = readRevealedGrade(row.id);
     if (!revealedGrade) {
-      return (
-        <span
-          className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-          title="Unrevealed grade"
-          aria-label="Unrevealed grade"
-        >
-          <span className="text-[11px] leading-none font-black text-slate-500 dark:text-slate-300 select-none">?</span>
-        </span>
-      );
+      return <UnrevealedGradeTag label={tr("Unrevealed grade", "未揭示等级")} />;
     }
 
-    if (revealedGrade === "S" || revealedGrade === "A") {
-      return <ShinyTag tier={revealedGrade} />;
-    }
-
-    return (
-      <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-900 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-100">
-        {revealedGrade}
-      </span>
-    );
+    return <ShinyTag tier={revealedGrade} />;
   };
 
   /* Metric cell: clearer label/value hierarchy */

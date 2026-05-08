@@ -581,15 +581,7 @@ function ResultCard({
   }, []);
 
   const renderGrade = (grade: AlphaGrade) => {
-    if (grade === "S" || grade === "A") {
-      return <ShinyTag tier={grade} />;
-    }
-
-    return (
-      <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-900 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-100">
-        {grade}
-      </span>
-    );
+    return <ShinyTag tier={grade} />;
   };
 
   const MetricCell = ({

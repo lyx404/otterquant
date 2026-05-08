@@ -11,31 +11,66 @@ import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 
-type Grade = "S" | "A" | "B" | "C" | "D";
+type Grade = "S" | "A" | "B" | "C" | "D" | "F";
 type ScratchCardStatus = "passed" | "failed";
 
-type HighlightGradeTheme = {
+type GradeTheme = {
   bg: string;
   text: string;
   border: string;
   shadow: string;
   shadowHover: string;
+  glow: string;
 };
 
-const HIGHLIGHT_GRADE_THEME: Record<Extract<Grade, "S" | "A">, HighlightGradeTheme> = {
+const GRADE_CARD_THEME: Record<Grade, GradeTheme> = {
   S: {
-    bg: "linear-gradient(135deg, #E7C65B 0%, #F3DA84 50%, #E2BC45 100%)",
-    text: "#6A4B00",
-    border: "#E5C35A",
-    shadow: "0 0 20px rgba(229,195,90,0.10), inset 0 1px 0 rgba(255,255,255,0.10)",
-    shadowHover: "0 0 30px rgba(229,195,90,0.18), inset 0 1px 0 rgba(255,255,255,0.18)",
+    bg: "linear-gradient(135deg, #F8B22B 0%, #FBE38C 48%, #F97316 100%)",
+    text: "#7A4B00",
+    border: "#E5B63A",
+    shadow: "0 0 24px rgba(245,158,11,0.16), inset 0 1px 0 rgba(255,255,255,0.30)",
+    shadowHover: "0 0 36px rgba(245,158,11,0.28), inset 0 1px 0 rgba(255,255,255,0.36)",
+    glow: "rgba(245,158,11,0.30)",
   },
   A: {
-    bg: "linear-gradient(135deg, #7B61FF 0%, #9B86FF 50%, #6B4FEA 100%)",
+    bg: "linear-gradient(135deg, #EC4899 0%, #F9A8D4 52%, #DB2777 100%)",
     text: "#FFFFFF",
-    border: "#9C86F8",
-    shadow: "0 0 20px rgba(129,102,248,0.10), inset 0 1px 0 rgba(255,255,255,0.08)",
-    shadowHover: "0 0 30px rgba(129,102,248,0.18), inset 0 1px 0 rgba(255,255,255,0.14)",
+    border: "#EC5FAF",
+    shadow: "0 0 24px rgba(236,72,153,0.14), inset 0 1px 0 rgba(255,255,255,0.24)",
+    shadowHover: "0 0 36px rgba(236,72,153,0.26), inset 0 1px 0 rgba(255,255,255,0.32)",
+    glow: "rgba(236,72,153,0.28)",
+  },
+  B: {
+    bg: "linear-gradient(135deg, #7C3AED 0%, #C084FC 52%, #6D28D9 100%)",
+    text: "#FFFFFF",
+    border: "#9B6CFF",
+    shadow: "0 0 24px rgba(124,58,237,0.14), inset 0 1px 0 rgba(255,255,255,0.22)",
+    shadowHover: "0 0 36px rgba(124,58,237,0.24), inset 0 1px 0 rgba(255,255,255,0.30)",
+    glow: "rgba(124,58,237,0.27)",
+  },
+  C: {
+    bg: "linear-gradient(135deg, #10B981 0%, #A7F3D0 52%, #059669 100%)",
+    text: "#064E3B",
+    border: "#34D399",
+    shadow: "0 0 24px rgba(16,185,129,0.14), inset 0 1px 0 rgba(255,255,255,0.24)",
+    shadowHover: "0 0 36px rgba(16,185,129,0.24), inset 0 1px 0 rgba(255,255,255,0.32)",
+    glow: "rgba(16,185,129,0.26)",
+  },
+  D: {
+    bg: "linear-gradient(135deg, #38BDF8 0%, #BAE6FD 52%, #0284C7 100%)",
+    text: "#075985",
+    border: "#38BDF8",
+    shadow: "0 0 24px rgba(14,165,233,0.14), inset 0 1px 0 rgba(255,255,255,0.24)",
+    shadowHover: "0 0 36px rgba(14,165,233,0.24), inset 0 1px 0 rgba(255,255,255,0.32)",
+    glow: "rgba(14,165,233,0.26)",
+  },
+  F: {
+    bg: "linear-gradient(135deg, #CBD5E1 0%, #F8FAFC 52%, #94A3B8 100%)",
+    text: "#334155",
+    border: "#94A3B8",
+    shadow: "0 0 24px rgba(148,163,184,0.14), inset 0 1px 0 rgba(255,255,255,0.30)",
+    shadowHover: "0 0 36px rgba(148,163,184,0.24), inset 0 1px 0 rgba(255,255,255,0.38)",
+    glow: "rgba(148,163,184,0.26)",
   },
 };
 
@@ -66,10 +101,10 @@ interface ScratchCardProps {
 }
 
 function normalizeGrade(value: string): Grade {
-  if (value === "S" || value === "A" || value === "B" || value === "C" || value === "D") {
+  if (value === "S" || value === "A" || value === "B" || value === "C" || value === "D" || value === "F") {
     return value;
   }
-  return "D";
+  return "F";
 }
 
 function shouldCelebrate(grade: Grade): boolean {
@@ -170,13 +205,12 @@ function RevealedGradeCard({
 }) {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
-  const isHighlightGrade = grade === "S" || grade === "A";
-  const revStyle = isHighlightGrade ? HIGHLIGHT_GRADE_THEME[grade] : null;
+  const revStyle = GRADE_CARD_THEME[grade];
   const interactiveClass = interactive ? "transition-all duration-300 group" : "";
   const isModal = size === "modal";
   const gradeSubtitle =
     grade === "S"
-      ? tr("Exceptional", "杰出")
+        ? tr("Exceptional", "杰出")
       : grade === "A"
         ? tr("Excellent", "优秀")
         : grade === "B"
@@ -189,23 +223,15 @@ function RevealedGradeCard({
     <div
       className={`text-center relative overflow-hidden ${
         isModal ? "rounded-[28px]" : "rounded-2xl"
-      } ${
-        isHighlightGrade
-          ? ""
-          : "border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800"
       } ${interactiveClass} ${className}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{
-        backgroundImage: revStyle?.bg,
-        border: revStyle ? `1px solid ${revStyle.border}66` : undefined,
-        boxShadow: revStyle
-          ? isHovered
-            ? revStyle.shadowHover
-            : revStyle.shadow
-          : undefined,
-        backgroundSize: revStyle ? "200% 200%" : undefined,
-        backgroundPosition: revStyle ? (isHovered ? "100% 50%" : "0% 50%") : undefined,
+        backgroundImage: revStyle.bg,
+        border: `1px solid ${revStyle.border}66`,
+        boxShadow: isHovered ? revStyle.shadowHover : revStyle.shadow,
+        backgroundSize: "200% 200%",
+        backgroundPosition: isHovered ? "100% 50%" : "0% 50%",
         transform: interactive
           ? isHovered
             ? "translateY(-1px) scale(1.01)"
@@ -216,29 +242,23 @@ function RevealedGradeCard({
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_30%,rgba(255,255,255,0.12)_50%,transparent_70%)] bg-[size:180%_100%] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <div className={`relative z-10 flex h-full w-full flex-col items-center justify-center ${isModal ? "gap-4" : "gap-1"}`}>
         <div
-          className={`label-upper ${isModal ? "text-[clamp(14px,1.8vw,18px)]" : "text-[9px]"} ${
-            isHighlightGrade ? "" : "text-slate-600 dark:text-slate-400"
-          }`}
-          style={{ color: revStyle?.text, opacity: 0.65 }}
+          className={`label-upper ${isModal ? "text-[clamp(14px,1.8vw,18px)]" : "text-[9px]"}`}
+          style={{ color: revStyle.text, opacity: 0.65 }}
         >
           {tr("GRADE", "等级")}
         </div>
         <div
-          className={`${isModal ? "text-[clamp(72px,10vw,122px)] leading-none" : "text-lg"} font-bold ${
-            isHighlightGrade ? "" : "text-slate-900 dark:text-slate-100"
-          }`}
+          className={`${isModal ? "text-[clamp(72px,10vw,122px)] leading-none" : "text-lg"} font-bold`}
           style={{
-            color: revStyle?.text,
-            textShadow: revStyle ? "0 0 10px rgba(255,255,255,0.12)" : undefined,
+            color: revStyle.text,
+            textShadow: "0 0 10px rgba(255,255,255,0.16)",
           }}
         >
           {grade}
         </div>
         <div
-          className={`${isModal ? "text-[clamp(20px,2.6vw,30px)]" : "text-[9px]"} ${
-            isHighlightGrade ? "" : "text-slate-700 dark:text-slate-300"
-          }`}
-          style={{ color: revStyle?.text, opacity: 0.78 }}
+          className={`${isModal ? "text-[clamp(20px,2.6vw,30px)]" : "text-[9px]"}`}
+          style={{ color: revStyle.text, opacity: 0.78 }}
         >
           {gradeSubtitle}
         </div>
@@ -519,6 +539,7 @@ export default function ScratchCard({
   const [showModal, setShowModal] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [modalRevealed, setModalRevealed] = useState(false);
+  const modalGradeTheme = GRADE_CARD_THEME[normalizedGrade];
 
   const openModal = () => {
     if (isFailed) return;
@@ -659,8 +680,14 @@ export default function ScratchCard({
                 className="relative mx-auto w-full max-w-[620px] px-6"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="pointer-events-none absolute inset-[-32px] -z-10 rounded-[44px] bg-[radial-gradient(circle_at_50%_50%,rgba(112,87,255,0.28),rgba(74,155,255,0.12),transparent_68%)] blur-2xl" />
-                <div className="pointer-events-none absolute inset-x-[12%] top-[-20px] -z-10 h-20 rounded-full bg-violet-300/18 blur-3xl" />
+                <div
+                  className="pointer-events-none absolute inset-[-32px] -z-10 rounded-[44px] blur-2xl"
+                  style={{ background: `radial-gradient(circle at 50% 50%, ${modalGradeTheme.glow}, rgba(74,155,255,0.10), transparent 68%)` }}
+                />
+                <div
+                  className="pointer-events-none absolute inset-x-[12%] top-[-20px] -z-10 h-20 rounded-full blur-3xl"
+                  style={{ backgroundColor: modalGradeTheme.glow }}
+                />
 
                 <motion.div
                   animate={modalRevealed ? { scale: [1, 1.03, 1] } : { scale: 1 }}
