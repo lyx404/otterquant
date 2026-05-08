@@ -943,11 +943,11 @@ export default function MyAlphas() {
         if (!revealedGrade) {
           return (
             <span
-              className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-              title={tr("Unrevealed grade", "未揭示等级")}
-              aria-label={tr("Unrevealed grade", "未揭示等级")}
+              className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 px-2.5 py-1 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+              title={tr("Pending reveal", "待揭开")}
+              aria-label={tr("Pending reveal", "待揭开")}
             >
-              <span className="text-[11px] leading-none font-black text-slate-500 dark:text-slate-300 select-none">?</span>
+              <span className="select-none whitespace-nowrap text-[10px] font-semibold leading-none text-slate-500 dark:text-slate-300">{tr("Pending", "待揭开")}</span>
             </span>
           );
         }

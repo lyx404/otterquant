@@ -1,6 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +39,51 @@ type PendingAction =
   | null;
 
 type BotStatusFilter = "all" | "running" | "stop";
+type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function getTrendClass(value: number, mode: ChartColorMode) {
+  if (value === 0) return "text-foreground";
+  const upClass = mode === "redUpGreenDown" ? "text-rose-400" : "text-emerald-400";
+  const downClass = mode === "redUpGreenDown" ? "text-emerald-400" : "text-rose-400";
+  return value > 0 ? upClass : downClass;
+}
+
+function readPlainExplanationEnabled() {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+  if (stored === "true") return true;
+  if (stored === "false") return false;
+  return true;
+}
+
+function MaybeExplainTooltip({
+  enabled,
+  explanation,
+  children,
+}: {
+  enabled: boolean;
+  explanation: string;
+  children: ReactNode;
+}) {
+  if (!enabled) return <>{children}</>;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[260px] text-xs leading-5">
+        {explanation}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 export default function Trade() {
   const { uiLang } = useAppLanguage();
@@ -51,6 +101,8 @@ export default function Trade() {
   const [hiddenBotIds, setHiddenBotIds] = useState<Set<string>>(new Set());
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [statusFilter, setStatusFilter] = useState<BotStatusFilter>("all");
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const allTradeBots = useMemo(() => getTradeBotsWithDeployments(tradeBots), []);
   const [statusById, setStatusById] = useState<Record<string, BotStatus>>(() =>
     Object.fromEntries(allTradeBots.map((bot, index) => [bot.id, index % 4 === 1 ? "paused" : "running"]))
@@ -61,6 +113,26 @@ export default function Trade() {
       setEnvironment(envFromQuery);
     }
   }, [envFromQuery]);
+
+  useEffect(() => {
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
+    window.addEventListener("storage", syncPlainExplanation);
+    window.addEventListener("focus", syncPlainExplanation);
+    return () => {
+      window.removeEventListener("storage", syncPlainExplanation);
+      window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
 
   const visibleBots = useMemo(
     () =>
@@ -131,6 +203,45 @@ export default function Trade() {
     if (market === "Spot") return tr("Spot", "现货");
     return market;
   };
+  const formatMetricNumber = (value: number, digits = 2) =>
+    value.toLocaleString(undefined, {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+  const formatBotRoi = (bot: (typeof visibleBots)[number]) =>
+    ((bot.unrealizedPnl / Math.max(bot.equity, 1)) * 100).toFixed(1);
+  const metricExplanations = {
+    activeBots: tr(
+      "Number of strategies currently running automated trading. Running strategies = count of strategies in running status.",
+      "当前处于自动交易状态的策略数量，进行中的策略 = 运行中策略数量。"
+    ),
+    totalEquity: tr(
+      "Current total equity across all strategies. Total equity = sum of each strategy's account equity.",
+      "当前所有策略的账户权益总额，总权益 = 各策略账户权益之和。"
+    ),
+    unrealizedPnl: tr(
+      "Current floating profit or loss of open positions. Unrealized PnL = current position value - entry cost.",
+      "当前未平仓仓位的浮动盈亏，未实现盈亏 = 当前持仓价值 - 开仓成本。"
+    ),
+    avgWinRate: tr(
+      "Average profitability ratio across visible strategies. Average win rate = sum of strategy win rates / number of strategies.",
+      "当前可见策略盈利交易占比的平均水平，平均胜率 = 各策略胜率之和 / 策略数量。"
+    ),
+  };
+  const botMetricExplanations = () => ({
+    equity: tr(
+      "Current total account equity. Equity = balance + unrealized PnL.",
+      "当前账户权益总额，权益总额 = 账户余额 + 未实现盈亏。"
+    ),
+    upnl: tr(
+      "Current floating profit or loss. UPNL = current position value - entry cost.",
+      "当前未平仓浮动盈亏，UPNL = 当前持仓价值 - 开仓成本。"
+    ),
+    roi: tr(
+      "Current return ratio. ROI = UPNL / equity.",
+      "当前收益率，ROI = UPNL / 权益总额。"
+    ),
+  });
 
   useEffect(() => {
     if (!focusStrategyId && !focusTradeId) return;
@@ -195,50 +306,56 @@ export default function Trade() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="surface-card h-[105px] border border-border px-6 py-5">
-          <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
-            {tr("Running Strategies", "进行中的策略")}
+        <MaybeExplainTooltip enabled={plainExplainEnabled} explanation={metricExplanations.activeBots}>
+          <div className="surface-card h-[105px] border border-border px-6 py-5">
+            <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-slate-400" />
+              {tr("Running Strategies", "进行中的策略")}
+            </div>
+            <p className="stat-value text-2xl font-bold text-foreground">{summary.activeBots}</p>
           </div>
-          <p className="stat-value text-2xl font-bold text-foreground">{summary.activeBots}</p>
-        </div>
+        </MaybeExplainTooltip>
 
-        <div className="surface-card h-[105px] border border-border px-6 py-5">
-          <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
-            <ArrowUpRight className="h-3.5 w-3.5 text-sky-400" />
-            {tr("Total Equity", "总权益")}
+        <MaybeExplainTooltip enabled={plainExplainEnabled} explanation={metricExplanations.totalEquity}>
+          <div className="surface-card h-[105px] border border-border px-6 py-5">
+            <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
+              <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
+              {tr("Total Equity", "总权益")}
+            </div>
+            <p className="stat-value text-2xl font-bold text-foreground">
+              {summary.totalEquity.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </p>
           </div>
-          <p className="stat-value text-2xl font-bold text-foreground">
-            {summary.totalEquity.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </p>
-        </div>
+        </MaybeExplainTooltip>
 
-        <div className="surface-card h-[105px] border border-border px-6 py-5">
-          <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
-            <ArrowUpRight className="h-3.5 w-3.5 text-emerald-400" />
-            {tr("Unrealized PnL", "未实现盈亏")}
+        <MaybeExplainTooltip enabled={plainExplainEnabled} explanation={metricExplanations.unrealizedPnl}>
+          <div className="surface-card h-[105px] border border-border px-6 py-5">
+            <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
+              <ArrowUpRight className={`h-3.5 w-3.5 ${getTrendClass(summary.totalUnrealized, chartColorMode)}`} />
+              {tr("Unrealized PnL", "未实现盈亏")}
+            </div>
+            <p
+              className={`stat-value text-2xl font-bold ${getTrendClass(summary.totalUnrealized, chartColorMode)}`}
+            >
+              {formatSigned(summary.totalUnrealized)}
+            </p>
           </div>
-          <p
-            className={`stat-value text-2xl font-bold ${
-              summary.totalUnrealized >= 0 ? "text-emerald-400" : "text-rose-400"
-            }`}
-          >
-            {formatSigned(summary.totalUnrealized)}
-          </p>
-        </div>
+        </MaybeExplainTooltip>
 
-        <div className="surface-card h-[105px] border border-border px-6 py-5">
-          <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5 text-indigo-400" />
-            {tr("Avg Win Rate", "平均胜率")}
+        <MaybeExplainTooltip enabled={plainExplainEnabled} explanation={metricExplanations.avgWinRate}>
+          <div className="surface-card h-[105px] border border-border px-6 py-5">
+            <div className="mb-2 flex items-center gap-2 label-upper text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 text-muted-foreground" />
+              {tr("Avg Win Rate", "平均胜率")}
+            </div>
+            <p className="stat-value text-2xl font-bold text-foreground">
+              {summary.avgWinRate.toFixed(1)}%
+            </p>
           </div>
-          <p className="stat-value text-2xl font-bold text-indigo-300">
-            {summary.avgWinRate.toFixed(1)}%
-          </p>
-        </div>
+        </MaybeExplainTooltip>
       </div>
 
       <div className="surface-card overflow-hidden border border-border/70">
@@ -301,7 +418,10 @@ export default function Trade() {
               </div>
             </div>
           ) : (
-            filteredVisibleBots.map((bot) => (
+            filteredVisibleBots.map((bot) => {
+              const explanations = botMetricExplanations(bot);
+
+              return (
               <div
                 key={bot.id}
                 id={`trade-bot-${bot.id}`}
@@ -336,37 +456,41 @@ export default function Trade() {
                   </div>
 
                   <div className="grid grid-cols-3 gap-x-6 gap-y-4 border-t border-border/50 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-                    <div className="min-w-0">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                        {tr("Equity", "权益")}
+                    <MaybeExplainTooltip enabled={plainExplainEnabled} explanation={explanations.equity}>
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          {tr("Equity", "权益")}
+                        </div>
+                        <div className="mt-1 text-xs font-semibold text-foreground">
+                          {bot.equity.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
                       </div>
-                      <div className="mt-1 text-xs font-semibold text-foreground">
-                        {bot.equity.toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
+                    </MaybeExplainTooltip>
+                    <MaybeExplainTooltip enabled={plainExplainEnabled} explanation={explanations.upnl}>
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          UPNL
+                        </div>
+                        <div
+                          className={`mt-1 text-xs font-semibold ${getTrendClass(bot.unrealizedPnl, chartColorMode)}`}
+                        >
+                          {formatSigned(bot.unrealizedPnl)}
+                        </div>
                       </div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                        UPNL
+                    </MaybeExplainTooltip>
+                    <MaybeExplainTooltip enabled={plainExplainEnabled} explanation={explanations.roi}>
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                          ROI
+                        </div>
+                        <div className="mt-1 text-xs font-semibold text-foreground">
+                          {((bot.unrealizedPnl / Math.max(bot.equity, 1)) * 100).toFixed(1)}%
+                        </div>
                       </div>
-                      <div
-                        className={`mt-1 text-xs font-semibold ${
-                          bot.unrealizedPnl >= 0 ? "text-emerald-400" : "text-rose-400"
-                        }`}
-                      >
-                        {formatSigned(bot.unrealizedPnl)}
-                      </div>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                        ROI
-                      </div>
-                      <div className="mt-1 text-xs font-semibold text-indigo-300">
-                        {((bot.unrealizedPnl / Math.max(bot.equity, 1)) * 100).toFixed(1)}%
-                      </div>
-                    </div>
+                    </MaybeExplainTooltip>
                   </div>
                   <div className="flex items-center gap-2 border-t border-border/50 pt-4 lg:justify-end lg:border-t-0 lg:pt-0">
                     <Link href={`/trade/${bot.id}?env=${bot.environment}&status=${bot.status}`}>
@@ -397,7 +521,8 @@ export default function Trade() {
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
