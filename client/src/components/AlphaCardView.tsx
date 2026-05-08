@@ -3,7 +3,7 @@
  * Receives pre-filtered & sorted data from parent (same as table view)
  * Field visibility fully synced with table view's visibleColumns
  */
-import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import { Link } from "wouter";
 import { ArrowUpRight, MoreHorizontal, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,13 @@ function getRewardAmount(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">) {
 function formatRewardAmount(amount: number) {
   return amount.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
+
+const REWARD_TEXT_GRADIENT = {
+  background: "linear-gradient(90deg, #FE9A00 0%, #FDC700 50%, #E17100 100%)",
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  backgroundClip: "text",
+};
 
 function buildSparklinePath(values: number[], width: number, height: number, padding = 6) {
   if (values.length < 2) return "";
@@ -386,17 +393,19 @@ export default function AlphaCardView({
     label,
     value,
     colorClass,
+    style,
     explanation,
   }: {
     label: string;
     value: string;
     colorClass?: string;
+    style?: CSSProperties;
     explanation?: string;
   }) => {
     const cell = (
       <div className="min-w-0">
         <div className="mb-1 whitespace-nowrap text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
-        <div className={`text-sm font-semibold font-mono tabular-nums ${colorClass || "text-foreground"}`}>{value}</div>
+        <div className={`text-sm font-semibold font-mono tabular-nums ${colorClass || "text-foreground"}`} style={style}>{value}</div>
       </div>
     );
 
@@ -452,13 +461,14 @@ export default function AlphaCardView({
         };
 
         /* Collect visible metrics for the grid — synced with table columns */
-        const metrics: { label: string; value: string; colorClass?: string; explanation?: string }[] = [];
+        const metrics: { label: string; value: string; colorClass?: string; style?: CSSProperties; explanation?: string }[] = [];
         if (isVisible("rewardAmount")) {
           const rewardAmount = getRewardAmount(row);
           metrics.push({
             label: tr("Bonus (USD)", "奖金(USD)"),
             value: formatRewardAmount(rewardAmount),
             colorClass: rewardAmount > 0 ? undefined : "text-muted-foreground/60",
+            style: rewardAmount > 0 ? REWARD_TEXT_GRADIENT : undefined,
           });
         }
         if (isVisible("sharpe")) metrics.push({ label: tr("IS Sharpe", "样本内夏普比率"), value: row.sharpe.toFixed(2), explanation: metricExplanations.sharpe });
@@ -499,10 +509,19 @@ export default function AlphaCardView({
               </div>
               <div className="min-w-0">
                   {(isVisible("createdAt") || isVisible("id")) && (
-                    <div className="mt-2 text-xs font-mono text-muted-foreground whitespace-nowrap">
-                      {isVisible("createdAt") ? `${tr("Created", "创建日期")}:${row.createdAt}` : ""}
-                      {isVisible("createdAt") && isVisible("id") ? "  " : ""}
-                      {isVisible("id") ? `ID: ${row.id}` : ""}
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                      {isVisible("createdAt") && (
+                        <div className="inline-flex items-baseline gap-1.5">
+                          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">{tr("Created", "创建日期")}</span>
+                          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">{row.createdAt}</span>
+                        </div>
+                      )}
+                      {isVisible("id") && (
+                        <div className="inline-flex items-baseline gap-1.5">
+                          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">ID</span>
+                          <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">{row.id}</span>
+                        </div>
+                      )}
                     </div>
                   )}
               </div>
@@ -518,7 +537,7 @@ export default function AlphaCardView({
               />
 
               {metrics.length > 0 && (
-                <div className="grid grid-cols-2 gap-x-5 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-3">
+                <div className="grid grid-cols-2 gap-x-5 gap-y-4 xl:grid-cols-3">
                   {isVisible("grade") && (
                     <div className="min-w-0">
                       <div className="mb-1 whitespace-nowrap text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{tr("Grade", "等级")}</div>
@@ -526,7 +545,7 @@ export default function AlphaCardView({
                     </div>
                   )}
                   {metrics.map((m) => (
-                    <MetricCell key={m.label} label={m.label} value={m.value} colorClass={m.colorClass} explanation={m.explanation} />
+                    <MetricCell key={m.label} label={m.label} value={m.value} colorClass={m.colorClass} style={m.style} explanation={m.explanation} />
                   ))}
                 </div>
               )}

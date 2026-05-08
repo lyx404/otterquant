@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Bot, Check, Code2, Play, Pause, RefreshCw, Trash2, ChevronDown, ChevronUp, X, Sparkles, Undo2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,7 +23,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import AlphaDetail from "@/pages/AlphaDetail";
-import { factors as detailFactors } from "@/lib/mockData";
+import { factors as detailFactors, getAlphaGrade, type AlphaGrade } from "@/lib/mockData";
+import ShinyTag from "@/components/ui/shiny-tag";
 
 type AgentMode = "platform" | "own";
 type StrategyType = "time-series" | "cross-sectional";
@@ -47,6 +48,8 @@ type RoundResult = {
   fitness: number;
   returns: number;
   drawdown: number;
+  creditSpent: number;
+  duration: string;
   pnlSeries: number[];
 };
 
@@ -283,6 +286,30 @@ function formatModelSummary(models: ModelKey[]) {
   return `${models.length} models`;
 }
 
+const REWARD_AMOUNT_BY_GRADE: Record<AlphaGrade, number> = {
+  S: 1,
+  A: 0.5,
+  B: 0.3,
+  C: 0.2,
+  D: 0.1,
+  F: 0,
+};
+
+function getGeneratedRewardAmount(grade: AlphaGrade) {
+  return REWARD_AMOUNT_BY_GRADE[grade];
+}
+
+function formatRewardAmount(amount: number) {
+  return amount.toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
+
+const REWARD_TEXT_GRADIENT = {
+  background: "linear-gradient(90deg, #FE9A00 0%, #FDC700 50%, #E17100 100%)",
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  backgroundClip: "text",
+};
+
 function orderModels(models: ModelKey[]) {
   return MODEL_OPTIONS.filter((item) => models.includes(item.value)).map((item) => item.value);
 }
@@ -474,7 +501,7 @@ function Sparkline({ data, upColor, downColor }: { data: number[]; upColor: stri
   const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-[60px] w-full overflow-visible" fill="none" aria-hidden="true">
       {runs.map((run, index) => (
         <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
           <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${gradientId}-alpha-edit-pnl-fill-${index})`} />
@@ -538,9 +565,9 @@ function ResultCard({
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
   const isGenerating = status === "generating";
   const clickable = Boolean(onSelect) && !isGenerating;
-  const detailFactor = detailFactors.find((item) => item.id === result.factorId);
-  const isPassed = detailFactor?.status === "active" || detailFactor?.status === "testing";
   const canUseReference = Boolean(onUseAsReference) && !isGenerating;
+  const generatedGrade = getAlphaGrade(result.fitness);
+  const generatedRewardAmount = getGeneratedRewardAmount(generatedGrade);
 
   useEffect(() => {
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -551,6 +578,31 @@ function ResultCard({
       window.removeEventListener("focus", syncChartColorMode);
     };
   }, []);
+
+  const renderGrade = (grade: AlphaGrade) => {
+    if (grade === "S" || grade === "A") {
+      return <ShinyTag tier={grade} />;
+    }
+
+    return (
+      <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-900 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-100">
+        {grade}
+      </span>
+    );
+  };
+
+  const MetricCell = ({
+    label,
+    children,
+  }: {
+    label: string;
+    children: ReactNode;
+  }) => (
+    <div className="min-w-0">
+      <div className="mb-1 whitespace-nowrap text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
+      <div className="flex h-5 items-center text-sm font-semibold font-mono tabular-nums text-foreground">{children}</div>
+    </div>
+  );
 
   const card = (
     <article
@@ -586,45 +638,49 @@ function ResultCard({
         </p>
       </div>
 
-      <div className="flex flex-none flex-col space-y-2">
+      <div className="flex flex-none flex-col space-y-1">
         <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("PnL Curve", "PNL折线图")}</div>
         <Sparkline data={result.pnlSeries} upColor={chartColors.upHex} downColor={chartColors.downHex} />
       </div>
 
-      <div className="mt-3 grid grid-cols-3 border-y border-border/60 py-2.5 text-[12px]">
-        <div className="min-w-0 pr-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground">{tr("Fitness", "适应度")}</p>
-          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums text-foreground">
-            {result.fitness.toFixed(2)}
-          </p>
-        </div>
-        <div className="min-w-0 px-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground">{tr("Returns", "收益率")}</p>
-          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums" style={{ color: chartColors.upHex }}>
-            +{result.returns.toFixed(1)}%
-          </p>
-        </div>
-        <div className="min-w-0 pl-2.5">
-          <p className="text-[10px] font-medium uppercase leading-[10px] tracking-[0.08em] text-muted-foreground">{tr("Drawdown", "回撤")}</p>
-          <p className="mt-1.5 truncate font-mono text-[12px] font-semibold leading-none tabular-nums" style={{ color: chartColors.downHex }}>
-            -{result.drawdown.toFixed(1)}%
-          </p>
-        </div>
+      <div className="mt-2 grid grid-cols-3 gap-x-4 border-b border-border/60 pb-2">
+        <MetricCell label={tr("Grade", "等级")}>
+          {renderGrade(generatedGrade)}
+        </MetricCell>
+        <MetricCell label={tr("Bonus (USD)", "奖金(USD)")}>
+          <span
+            className={`font-mono text-xs tabular-nums whitespace-nowrap ${
+              generatedRewardAmount > 0 ? "font-semibold" : "text-muted-foreground/60"
+            }`}
+            style={generatedRewardAmount > 0 ? REWARD_TEXT_GRADIENT : undefined}
+          >
+            {formatRewardAmount(generatedRewardAmount)}
+          </span>
+        </MetricCell>
+        <MetricCell label={tr("Returns", "收益率")}>
+          <span
+            className="font-mono text-sm font-semibold tabular-nums"
+            style={{ color: result.returns >= 0 ? chartColors.upHex : chartColors.downHex }}
+          >
+            {result.returns >= 0 ? "+" : ""}
+            {result.returns.toFixed(1)}%
+          </span>
+        </MetricCell>
       </div>
 
-      <div className="mt-3 flex min-w-0 items-center gap-2">
-        <span
-          className={`inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] tracking-[0.15em] ${
-            isPassed
-              ? "border-success/20 bg-success/10 text-success"
-              : "border-destructive/20 bg-destructive/10 text-destructive"
-          }`}
-        >
-          {isPassed ? tr("PASSED", "通过") : tr("FAILED", "失败")}
-        </span>
-        <span className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">
-          {result.model}
-        </span>
+      <div className="mt-2 grid grid-cols-3 gap-x-2 text-[10px] text-muted-foreground/50">
+        <div className="min-w-0">
+          <div className="mb-0.5 whitespace-nowrap text-[9px] uppercase tracking-[0.08em]">{tr("Model", "模型")}</div>
+          <div className="truncate font-normal tabular-nums">{result.model}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="mb-0.5 whitespace-nowrap text-[9px] uppercase tracking-[0.08em]">{tr("Credits", "消耗额度")}</div>
+          <div className="truncate font-normal tabular-nums">{formatCreditUnits(result.creditSpent)}</div>
+        </div>
+        <div className="min-w-0">
+          <div className="mb-0.5 whitespace-nowrap text-[9px] uppercase tracking-[0.08em]">{tr("Time", "耗时")}</div>
+          <div className="truncate font-normal tabular-nums">{result.duration}</div>
+        </div>
       </div>
     </article>
   );
@@ -663,11 +719,13 @@ function buildRound(input: {
   const results: RoundResult[] = Array.from({ length: totalResultCount }).map((_, index) => {
     const seed = Date.now() + index;
     const modelKey = input.models[Math.floor(index / input.resultCount)] ?? input.models[0];
-    const modelLabel = getModelOption(modelKey).label;
+    const modelOption = getModelOption(modelKey);
+    const modelLabel = modelOption.label;
     const pnlSeries = buildPnlSeries(seed % 17);
     const fitness = Number((1.2 + (index + 1) * 0.18).toFixed(2));
     const returns = Number((8 + index * 3.4 + (seed % 9) * 0.3).toFixed(2));
     const drawdown = Number((4.2 + index * 1.1 + (seed % 5) * 0.5).toFixed(2));
+    const creditSpent = Number((input.estimatedCredit / Math.max(totalResultCount, 1)).toFixed(2));
 
     return {
       id: `${seed}-${index}`,
@@ -677,6 +735,8 @@ function buildRound(input: {
       fitness,
       returns,
       drawdown,
+      creditSpent,
+      duration: modelOption.latency,
       pnlSeries,
     };
   });

@@ -486,67 +486,12 @@ export default function Account() {
           <div className="surface-card overflow-hidden">
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">{tr("General Settings", "通用设置")}</span>
+                <Compass className="w-4 h-4 text-primary" />
+                <span className="text-base font-semibold text-foreground">{tr("General", "常规")}</span>
               </div>
             </div>
 
             <div className="px-6 pb-6 pt-5 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("Language", "语言")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Set display language for UI and notifications.", "设置界面与通知的显示语言。")}
-                  </div>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent/35 p-1">
-                  <button
-                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                      uiLang === "en" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    onClick={() => setUiLang("en")}
-                  >
-                    EN
-                  </button>
-                  <button
-                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                      uiLang === "zh" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    onClick={() => setUiLang("zh")}
-                  >
-                    中文
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("Theme", "主题")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Choose light, dark, or system theme.", "选择浅色、深色或跟随系统主题。")}
-                  </div>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent p-1">
-                  {([
-                    { value: "dark", en: "Dark", zh: "深色模式" },
-                    { value: "light", en: "Light", zh: "浅色模式" },
-                    { value: "system", en: "System", zh: "跟随系统" },
-                  ] as const).map((item) => (
-                    <button
-                      key={item.value}
-                      onClick={() => setThemePreference?.(item.value)}
-                      className={`h-8 rounded-full px-3 text-xs font-medium transition-colors ${
-                        themePreference === item.value
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {tr(item.en, item.zh)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
                 <div>
                   <div className="text-sm font-semibold text-foreground">{tr("View Mode", "视角模式")}</div>
@@ -634,8 +579,75 @@ export default function Account() {
           <div className="surface-card overflow-hidden">
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-base font-semibold text-foreground">{tr("Appearance", "外观")}</span>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6 pt-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("Language", "语言")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Set display language for UI and notifications.", "设置界面与通知的显示语言。")}
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent/35 p-1">
+                  <button
+                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                      uiLang === "en" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => setUiLang("en")}
+                  >
+                    EN
+                  </button>
+                  <button
+                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
+                      uiLang === "zh" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                    onClick={() => setUiLang("zh")}
+                  >
+                    中文
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("Theme", "主题")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Choose light, dark, or system theme.", "选择浅色、深色或跟随系统主题。")}
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent p-1">
+                  {([
+                    { value: "dark", en: "Dark", zh: "深色模式" },
+                    { value: "light", en: "Light", zh: "浅色模式" },
+                    { value: "system", en: "System", zh: "跟随系统" },
+                  ] as const).map((item) => (
+                    <button
+                      key={item.value}
+                      onClick={() => setThemePreference?.(item.value)}
+                      className={`h-8 rounded-full px-3 text-xs font-medium transition-colors ${
+                        themePreference === item.value
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {tr(item.en, item.zh)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div className="surface-card overflow-hidden">
+            <div className="px-6 pt-5 pb-0">
+              <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">{tr("Notification Settings", "通知设置")}</span>
+                <span className="text-base font-semibold text-foreground">{tr("Notifications", "通知")}</span>
               </div>
             </div>
             <div className="px-6 pb-6 pt-5 space-y-3">

@@ -59,7 +59,6 @@ import {
   currentEpoch,
   type Factor,
   getAlphaGrade,
-  GRADE_CONFIG,
   type AlphaGrade,
   generatePnLData,
 } from "@/lib/mockData";
@@ -443,6 +442,32 @@ const REWARD_TEXT_GRADIENT = {
   WebkitTextFillColor: "transparent",
   backgroundClip: "text",
 };
+const GRADE_DISTRIBUTION_TAG_STYLES: Record<AlphaGrade, { bar: string; text: string }> = {
+  S: {
+    bar: "linear-gradient(135deg,#E7C65B 0%,#F3DA84 50%,#E2BC45 100%)",
+    text: "#6A4B00",
+  },
+  A: {
+    bar: "linear-gradient(135deg,#7B61FF 0%,#9B86FF 50%,#6B4FEA 100%)",
+    text: "#7B61FF",
+  },
+  B: {
+    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
+    text: "#334155",
+  },
+  C: {
+    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
+    text: "#334155",
+  },
+  D: {
+    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
+    text: "#334155",
+  },
+  F: {
+    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
+    text: "#334155",
+  },
+};
 
 function getRewardAmount(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">) {
   return REWARD_AMOUNT_BY_GRADE[getRowGrade(row)];
@@ -530,6 +555,7 @@ export default function MyAlphas() {
   const [revealAllResults, setRevealAllResults] = useState<Array<{ id: string; name: string; grade: AlphaGrade }>>([]);
   const [showRevealAllModal, setShowRevealAllModal] = useState(false);
   const [showToolbarFilterMenu, setShowToolbarFilterMenu] = useState(false);
+  const [showRewardDetails, setShowRewardDetails] = useState(false);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const headerRef = useRef<HTMLDivElement>(null);
@@ -678,6 +704,21 @@ export default function MyAlphas() {
   const totalRewardAmount = useMemo(
     () => activeAlphaRows.reduce((sum, row) => sum + getRewardAmount(row), 0),
     [activeAlphaRows]
+  );
+
+  const rewardBreakdown = useMemo(
+    () =>
+      gradeOrder.map((grade) => {
+        const count = activeAlphaRows.filter((row) => getRowGrade(row) === grade).length;
+        const unitReward = REWARD_AMOUNT_BY_GRADE[grade];
+        return {
+          grade,
+          count,
+          unitReward,
+          totalReward: count * unitReward,
+        };
+      }),
+    [activeAlphaRows, gradeOrder]
   );
 
   const filtered = useMemo(() => {
@@ -1102,9 +1143,18 @@ export default function MyAlphas() {
         </div>
 
         <div className="fade-item surface-card min-h-[118px] border border-border/70 bg-white px-6 py-5 dark:bg-card">
-          <div className="flex items-center gap-2 label-upper text-muted-foreground">
-            <Coins className="w-3.5 h-3.5 text-amber-500" />
-            {tr("Cumulative Bonus", "累计奖金")}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 label-upper text-muted-foreground">
+              <Coins className="w-3.5 h-3.5 text-amber-500" />
+              {tr("Cumulative Bonus", "累计奖金")}
+            </div>
+            <button
+              type="button"
+              className="text-xs font-medium text-primary transition-colors hover:text-primary/75"
+              onClick={() => setShowRewardDetails(true)}
+            >
+              {tr("Details", "明细")}
+            </button>
           </div>
           <div className="mt-4 flex items-end gap-2">
             <div
@@ -1118,36 +1168,35 @@ export default function MyAlphas() {
         </div>
 
         <div className="fade-item surface-card min-h-[118px] border border-border/70 bg-card px-6 py-5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start">
             <div className="label-upper text-muted-foreground">{tr("Factor Grade Distribution", "因子等级分布")}</div>
-            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
-              {gradeOrder.map((grade) => (
-                <div key={grade} className="flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: GRADE_CONFIG[grade].color }} />
-                  <span className="text-[10px] font-semibold font-mono text-muted-foreground">{grade}</span>
-                </div>
-              ))}
-            </div>
           </div>
           <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-muted">
             {gradeOrder.map((grade) => {
               const count = gradeDistribution[grade];
-              const color = GRADE_CONFIG[grade].color;
+              const color = GRADE_DISTRIBUTION_TAG_STYLES[grade].bar;
               const widthPercent = activeAlphaRows.length === 0 ? 0 : (count / activeAlphaRows.length) * 100;
               if (count === 0) return null;
               return (
-                <div
-                  key={grade}
-                  className="h-full transition-all duration-300"
-                  style={{ width: `${widthPercent}%`, backgroundColor: color }}
-                />
+                <Tooltip key={grade}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="h-full transition-all duration-300 hover:brightness-95"
+                      style={{ width: `${widthPercent}%`, background: color }}
+                      aria-label={`${grade}: ${count}`}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {tr("Grade", "等级")} {grade}: {count} ({widthPercent.toFixed(1)}%)
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
             {gradeOrder.map((grade) => (
               <div key={grade} className="inline-flex min-w-[46px] items-baseline gap-0.5 rounded-full bg-muted/40 px-2 py-1">
-                <span className="text-xs font-semibold font-mono" style={{ color: GRADE_CONFIG[grade].color }}>{grade}:</span>
+                <span className="text-xs font-semibold font-mono" style={{ color: GRADE_DISTRIBUTION_TAG_STYLES[grade].text }}>{grade}:</span>
                 <span className="text-xs font-mono text-foreground tabular-nums">{gradeDistribution[grade]}</span>
               </div>
             ))}
@@ -1507,6 +1556,49 @@ export default function MyAlphas() {
       </div>
 
     </div>
+    <Dialog open={showRewardDetails} onOpenChange={setShowRewardDetails}>
+      <DialogContent className="max-w-xl rounded-2xl border-border bg-card p-0 text-foreground">
+        <div className="flex items-start justify-between gap-4 pb-3 pl-6 pr-12 pt-5">
+          <div>
+            <DialogTitle className="text-base font-semibold">{tr("Bonus Details", "奖金明细")}</DialogTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {tr("Breakdown by factor grade", "按因子等级汇总")}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Total", "总计")}</div>
+            <div className="mt-1 flex items-end justify-end gap-1.5">
+              <span className="text-2xl font-bold tabular-nums" style={REWARD_TEXT_GRADIENT}>
+                {formatRewardAmount(totalRewardAmount)}
+              </span>
+              <span className="pb-1 text-xs font-medium text-muted-foreground">USD</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-5 pt-2">
+          <div className="grid grid-cols-[1fr_1fr_1fr_1fr] border-b border-border/60 pb-2 text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+              <div>{tr("Grade", "等级")}</div>
+              <div className="text-right">{tr("Count", "数量")}</div>
+              <div className="text-right">{tr("Unit", "单个奖金")}</div>
+              <div className="text-right">{tr("Subtotal", "小计")}</div>
+            </div>
+            {rewardBreakdown.map((item) => (
+              <div
+                key={item.grade}
+                className="grid grid-cols-[1fr_1fr_1fr_1fr] items-center border-b border-border/50 py-3 text-xs last:border-b-0"
+              >
+                <div>{renderRevealResultGrade(item.grade)}</div>
+                <div className="text-right font-mono tabular-nums text-foreground">{item.count}</div>
+                <div className="text-right font-mono tabular-nums text-muted-foreground">{formatRewardAmount(item.unitReward)}</div>
+                <div className="text-right font-mono font-semibold tabular-nums" style={item.totalReward > 0 ? REWARD_TEXT_GRADIENT : undefined}>
+                  {formatRewardAmount(item.totalReward)}
+                </div>
+              </div>
+            ))}
+        </div>
+      </DialogContent>
+    </Dialog>
     <Dialog open={showRevealAllModal} onOpenChange={setShowRevealAllModal}>
       <DialogContent
         showCloseButton={false}

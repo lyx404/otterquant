@@ -389,7 +389,7 @@ function FactorCard({ factor, isStarred, onToggleStar, viewMode, plainExplainEna
           downColor={chartColors.downHex}
         />
 
-        <div className="grid grid-cols-2 gap-x-5 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-3">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-4 xl:grid-cols-3">
           <MetricCell label={tr("IS Sharpe", "样本内夏普比率")} value={factor.sharpe.toFixed(2)} explanation={metricExplanations.sharpe} />
           <MetricCell label={tr("OS Sharpe", "样本外夏普比率")} value={factor.osSharpe.toFixed(2)} explanation={metricExplanations.osSharpe} />
           <MetricCell label={tr("Fitness", "适应度")} value={factor.fitness.toFixed(2)} explanation={metricExplanations.fitness} />

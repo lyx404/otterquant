@@ -160,9 +160,9 @@ function StrategyCurveSparkline({
   const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
 
   return (
-    <div className="mt-4 space-y-2 border-t border-slate-200/70 pt-4 dark:border-border/50">
+    <div className="mt-3 space-y-1.5 border-t border-slate-200/70 pt-3 dark:border-border/50">
       <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-[78px] w-full overflow-visible" fill="none" aria-hidden="true">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-[62px] w-full overflow-visible" fill="none" aria-hidden="true">
         {runs.map((run, index) => (
           <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
             <path d={buildSparklineAreaPath(run.points, zeroY)} fill={`url(#${svgId}-strategy-library-curve-fill-${index})`} />
@@ -441,16 +441,23 @@ export default function StrategyLibrary() {
               key={strategy.id}
               className="surface-card overflow-hidden border border-slate-200/80 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.05)] dark:border-border/70 dark:bg-card dark:shadow-none"
             >
-              <div className="px-5 pb-2 pt-4">
+              <div className="px-5 py-4">
                 <Link href={`/strategies/${strategy.id}?source=official&tier=${tier}`}>
                   <h3 className="cursor-pointer truncate text-lg font-semibold leading-7 text-foreground transition-colors hover:text-primary">
                     {strategy.name}
                   </h3>
                 </Link>
-                <p className="mt-2 text-xs text-slate-500 dark:text-muted-foreground">
-                  {tr("Created Date", "创建日期")}:{strategy.updatedAt} ID:{strategy.id}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                  <div className="inline-flex items-baseline gap-1.5">
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">{tr("Created", "创建日期")}</span>
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">{strategy.updatedAt}</span>
+                  </div>
+                  <div className="inline-flex items-baseline gap-1.5">
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">ID</span>
+                    <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">{strategy.id}</span>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
                     <Users className="h-3.5 w-3.5" />
                     {uiLang === "zh" ? `已使用${usedCount}次` : `Used ${usedCount} times`}
@@ -461,7 +468,7 @@ export default function StrategyLibrary() {
                 </div>
               </div>
 
-              <div className="px-5 pb-3 pt-2">
+              <div className="px-5 pb-4 pt-1">
                 <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{translateDescription(strategy)}</p>
 
                 <StrategyCurveSparkline
@@ -471,14 +478,14 @@ export default function StrategyLibrary() {
                   downColor={chartColors.downHex}
                 />
 
-                <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-200/70 pt-4 dark:border-border/50 xl:grid-cols-4">
+                <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 xl:grid-cols-4">
                   <MetricPill label={tr("ROI", "ROI")} value={strategy.annualReturn} valueColor={strategyMetricColor("roi", strategy.annualReturn, chartColors)} />
                   <MetricPill label={tr("Win Rate", "胜率")} value={strategy.winRate} />
                   <MetricPill label={tr("Sharpe", "夏普比率")} value={strategy.sharpe.toFixed(2)} />
                   <MetricPill label={tr("Max Drawdown", "最大回撤")} value={strategy.maxDrawdown} valueColor={strategyMetricColor("maxDrawdown", strategy.maxDrawdown, chartColors)} />
                 </div>
 
-                <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-200/70 pt-2 dark:border-border/40">
+                <div className="mt-4 flex items-center justify-end gap-2 border-t border-slate-200/70 pt-3 dark:border-border/40">
                   <button
                     type="button"
                     className={`inline-flex h-8 items-center justify-center rounded-full border px-3 transition-colors ${

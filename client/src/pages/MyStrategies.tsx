@@ -550,9 +550,9 @@ function StrategyCard({
     }
   })();
   const metaItems = [
-    visibleItems.createdAt ? `${tr("Created", "创建日期")}:${row.updatedAt}` : null,
-    visibleItems.id ? `ID:${row.id}` : null,
-  ].filter(Boolean);
+    visibleItems.createdAt ? { label: tr("Created", "创建日期"), value: row.updatedAt } : null,
+    visibleItems.id ? { label: "ID", value: row.id } : null,
+  ].filter((item): item is { label: string; value: string } => Boolean(item));
 
   return (
     <div className="surface-card overflow-hidden border border-border/70">
@@ -561,9 +561,14 @@ function StrategyCard({
           <p className="min-w-0 truncate text-lg font-semibold leading-7 text-foreground">{row.name}</p>
         </div>
         {metaItems.length > 0 ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            {metaItems.join("  ")}
-          </p>
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            {metaItems.map((item) => (
+              <div key={item.label} className="inline-flex items-baseline gap-1.5">
+                <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">{item.label}</span>
+                <span className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground/70">{item.value}</span>
+              </div>
+            ))}
+          </div>
         ) : null}
       </div>
 
@@ -577,7 +582,7 @@ function StrategyCard({
           downColor={chartColors.downHex}
         />
 
-        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-border/50 pt-3 xl:grid-cols-4">
+        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-4 xl:grid-cols-4">
           {visibleItems.roi ? <MetricBox label="ROI" value={row.roi} valueColor={strategyMetricColor("roi", row.roi, chartColors)} explanation={getMetricExplanation("roi", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
           {visibleItems.winRate ? <MetricBox label={tr("Win Rate", "胜率")} value={row.winRate} explanation={getMetricExplanation("winRate", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
           {visibleItems.sharpe ? <MetricBox label={tr("Sharpe", "夏普比率")} value={row.sharpe} explanation={getMetricExplanation("sharpe", row, tr)} explainEnabled={plainExplainEnabled} /> : null}
