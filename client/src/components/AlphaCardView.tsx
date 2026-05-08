@@ -21,6 +21,7 @@ import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   type Factor,
   type AlphaGrade,
+  getAlphaGrade,
   generatePnLData,
 } from "@/lib/mockData";
 import ShinyTag from "@/components/ui/shiny-tag";
@@ -85,6 +86,27 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
   } catch {
     return null;
   }
+}
+
+const REWARD_AMOUNT_BY_GRADE: Record<AlphaGrade, number> = {
+  S: 1,
+  A: 0.5,
+  B: 0.3,
+  C: 0.2,
+  D: 0.1,
+  F: 0,
+};
+
+function getRewardGrade(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">): AlphaGrade {
+  return row.submissionStatus === "passed" ? getAlphaGrade(row.osSharpe) : "F";
+}
+
+function getRewardAmount(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">) {
+  return REWARD_AMOUNT_BY_GRADE[getRewardGrade(row)];
+}
+
+function formatRewardAmount(amount: number) {
+  return amount.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
 function buildSparklinePath(values: number[], width: number, height: number, padding = 6) {
@@ -431,6 +453,14 @@ export default function AlphaCardView({
 
         /* Collect visible metrics for the grid — synced with table columns */
         const metrics: { label: string; value: string; colorClass?: string; explanation?: string }[] = [];
+        if (isVisible("rewardAmount")) {
+          const rewardAmount = getRewardAmount(row);
+          metrics.push({
+            label: tr("Bonus (USD)", "奖金(USD)"),
+            value: formatRewardAmount(rewardAmount),
+            colorClass: rewardAmount > 0 ? undefined : "text-muted-foreground/60",
+          });
+        }
         if (isVisible("sharpe")) metrics.push({ label: tr("IS Sharpe", "样本内夏普比率"), value: row.sharpe.toFixed(2), explanation: metricExplanations.sharpe });
         if (isVisible("osSharpe")) metrics.push({ label: tr("OS Sharpe", "样本外夏普比率"), value: row.osSharpe.toFixed(2), explanation: metricExplanations.osSharpe });
         if (isVisible("fitness")) metrics.push({ label: tr("Fitness", "适应度"), value: row.fitness.toFixed(2), explanation: metricExplanations.fitness });
@@ -461,10 +491,9 @@ export default function AlphaCardView({
                     <span className="block text-sm font-semibold text-foreground truncate leading-5">{row.name}</span>
                   )}
                 </div>
-                {(isVisible("status_col") || isVisible("grade")) && (
+                {isVisible("status_col") && (
                   <div className="flex shrink-0 items-center gap-2">
-                    {isVisible("status_col") && renderStatus(row.submissionStatus)}
-                    {isVisible("grade") && renderGrade(row)}
+                    {renderStatus(row.submissionStatus)}
                   </div>
                 )}
               </div>
@@ -490,6 +519,12 @@ export default function AlphaCardView({
 
               {metrics.length > 0 && (
                 <div className="grid grid-cols-2 gap-x-5 gap-y-4 border-t border-border/50 pt-4 xl:grid-cols-3">
+                  {isVisible("grade") && (
+                    <div className="min-w-0">
+                      <div className="mb-1 whitespace-nowrap text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{tr("Grade", "等级")}</div>
+                      <div className="flex h-5 items-center">{renderGrade(row)}</div>
+                    </div>
+                  )}
                   {metrics.map((m) => (
                     <MetricCell key={m.label} label={m.label} value={m.value} colorClass={m.colorClass} explanation={m.explanation} />
                   ))}

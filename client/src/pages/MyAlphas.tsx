@@ -41,9 +41,8 @@ import {
   Star,
   ChevronLeft,
   ChevronRight,
+  Coins,
   Search,
-  CheckCircle,
-  XCircle,
   Loader2,
   BarChart3,
   X,
@@ -56,7 +55,6 @@ import {
 import {
   factors,
   submissions,
-  submissionStats,
   leaderboardByFactorByEpoch,
   currentEpoch,
   type Factor,
@@ -94,6 +92,7 @@ interface ColumnDef {
 const dataColumns: ColumnDef[] = [
   { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
   { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
+  { key: "rewardAmount", label: "Bonus (USD)", defaultVisible: true, sortable: true, width: "118px", align: "right" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "pnl", label: "PnL", defaultVisible: true, sortable: false, width: "126px", align: "center" },
@@ -101,7 +100,6 @@ const dataColumns: ColumnDef[] = [
   { key: "drawdown", label: "Drawdown", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "turnover", label: "Turnover", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "80px", align: "right" },
-  { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
   { key: "id", label: "ID", defaultVisible: false, sortable: true, width: "80px" },
   { key: "testsPassed", label: "Tests", defaultVisible: false, sortable: true, width: "72px", align: "right" },
@@ -130,7 +128,7 @@ type MyAlphasPrefs = {
 
 const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
 const DELETED_FACTORS_STORAGE_KEY = "otterquant:myalphas:deleted-factors";
-const MY_ALPHAS_PREFS_VERSION = 3;
+const MY_ALPHAS_PREFS_VERSION = 4;
 const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
@@ -304,11 +302,12 @@ function TablePnlSparkline({ values, upColor, downColor }: { values: number[]; u
 
 function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
   if (mode === "beginner") {
-    return ["name", "grade", "epochStatus", "pnl", "sharpe", "osSharpe", "fitness"];
+    return ["name", "grade", "rewardAmount", "pnl", "sharpe", "osSharpe", "fitness"];
   }
   return [
     "name",
     "grade",
+    "rewardAmount",
     "sharpe",
     "osSharpe",
     "pnl",
@@ -316,7 +315,6 @@ function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
     "drawdown",
     "turnover",
     "fitness",
-    "epochStatus",
     "createdAt",
   ];
 }
@@ -431,6 +429,29 @@ function getRowGrade(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">): Alph
   return row.submissionStatus === "passed" ? getAlphaGrade(row.osSharpe) : "F";
 }
 
+const REWARD_AMOUNT_BY_GRADE: Record<AlphaGrade, number> = {
+  S: 1,
+  A: 0.5,
+  B: 0.3,
+  C: 0.2,
+  D: 0.1,
+  F: 0,
+};
+const REWARD_TEXT_GRADIENT = {
+  background: "linear-gradient(90deg, #FE9A00 0%, #FDC700 50%, #E17100 100%)",
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  backgroundClip: "text",
+};
+
+function getRewardAmount(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">) {
+  return REWARD_AMOUNT_BY_GRADE[getRowGrade(row)];
+}
+
+function formatRewardAmount(amount: number) {
+  return amount.toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
+
 function getSubmissionStatusFromFactorStatus(status: string): AlphaRow["submissionStatus"] {
   return status === "active" || status === "testing" ? "passed" : "failed";
 }
@@ -478,7 +499,7 @@ export default function MyAlphas() {
     () => ({
       name: tr("Name", "名称"),
       grade: tr("Grade", "等级"),
-      epochStatus: tr("Arena Round", "竞技场轮次"),
+      rewardAmount: tr("Bonus (USD)", "奖金(USD)"),
       createdAt: tr("Date Created", "创建日期"),
       pnl: tr("PnL", "PNL"),
       sharpe: tr("IS Sharpe", "IS 夏普"),
@@ -636,6 +657,29 @@ export default function MyAlphas() {
     [alphaRows, deletedFactorIds]
   );
 
+  const gradeOrder: AlphaGrade[] = ["S", "A", "B", "C", "D", "F"];
+  const gradeDistribution = useMemo(() => {
+    const distribution: Record<AlphaGrade, number> = {
+      S: 0,
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      F: 0,
+    };
+
+    activeAlphaRows.forEach((row) => {
+      distribution[getRowGrade(row)] += 1;
+    });
+
+    return distribution;
+  }, [activeAlphaRows]);
+
+  const totalRewardAmount = useMemo(
+    () => activeAlphaRows.reduce((sum, row) => sum + getRewardAmount(row), 0),
+    [activeAlphaRows]
+  );
+
   const filtered = useMemo(() => {
     return activeAlphaRows.filter((r) => {
       if (filterName && !r.name.toLowerCase().includes(filterName.toLowerCase()) && !r.id.toLowerCase().includes(filterName.toLowerCase())) return false;
@@ -664,15 +708,9 @@ export default function MyAlphas() {
         const order = { passed: 0, failed: 1, os_testing: 2, is_testing: 3, backtesting: 4, queued: 5, rejected: 6 };
         av = order[a.submissionStatus] ?? 99;
         bv = order[b.submissionStatus] ?? 99;
-      } else if (sortKey === "epochStatus") {
-        // Sort by rank number, "Not Entered" last
-        const extractRank = (s?: string) => {
-          if (!s || s === "Not Entered") return 999;
-          const m = s.match(/#(\d+)/);
-          return m ? parseInt(m[1]) : 999;
-        };
-        av = extractRank(a.epochStatus);
-        bv = extractRank(b.epochStatus);
+      } else if (sortKey === "rewardAmount") {
+        av = getRewardAmount(a);
+        bv = getRewardAmount(b);
       } else {
         av = a[sortKey as keyof AlphaRow] ?? 0;
         bv = b[sortKey as keyof AlphaRow] ?? 0;
@@ -840,6 +878,17 @@ export default function MyAlphas() {
             {row.fitness.toFixed(2)}
           </span>
         );
+      case "rewardAmount": {
+        const amount = getRewardAmount(row);
+        return (
+          <span
+            className={`font-mono text-xs tabular-nums whitespace-nowrap ${amount > 0 ? "font-semibold" : "text-muted-foreground/60"}`}
+            style={amount > 0 ? REWARD_TEXT_GRADIENT : undefined}
+          >
+            {formatRewardAmount(amount)}
+          </span>
+        );
+      }
       case "returns":
         return <span className={`font-mono text-xs tabular-nums whitespace-nowrap ${directionalTextClass(parsePercentValue(row.returns))}`}>{row.returns}</span>;
       case "turnover":
@@ -1039,76 +1088,71 @@ export default function MyAlphas() {
 
       </div>
 
-      {/* Pipeline Stats — Total / My Favorites / Passed / Failed */}
-      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
-        <button
-          onClick={() => { setCardFilter("all"); setPage(1); }}
-          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-            cardFilter === "all"
-              ? "border-primary/30 bg-primary/[0.06]"
-              : "border-border hover:border-border/80"
-          }`}
-        >
-          <div className="flex items-center gap-2 label-upper mb-2">
-            <BarChart3 className="w-3.5 h-3.5" /> {tr("Total", "总数")}
+      {/* Portfolio Stats — read-only overview */}
+      <div ref={statsRef} className="grid grid-cols-1 gap-4 min-w-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.55fr)]">
+        <div className="fade-item surface-card min-h-[118px] border border-border/70 bg-white px-6 py-5 dark:bg-card">
+          <div className="flex items-center gap-2 label-upper text-muted-foreground">
+            <BarChart3 className="w-3.5 h-3.5 text-primary" />
+            {tr("Factor Total", "因子总数")}
           </div>
-          <div className="stat-value text-2xl font-bold text-foreground truncate">{submissionStats.total}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate" />
-        </button>
-        <button
-          onClick={() => { setCardFilter(cardFilter === "starred" ? "all" : "starred"); setPage(1); }}
-          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-            cardFilter === "starred"
-              ? "border-amber-400/40 bg-amber-400/[0.06]"
-              : "border-border hover:border-border/80"
-          }`}
-        >
-          <div className="flex items-center gap-2 label-upper mb-2 text-amber-400">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {tr("My Favorites", "我的收藏")}
+          <div className="mt-4 flex items-end gap-2">
+            <div className="stat-value text-3xl font-bold text-foreground tabular-nums">{activeAlphaRows.length}</div>
+            <div className="pb-1 text-xs text-muted-foreground">{tr("factors", "个因子")}</div>
           </div>
-          <div className="stat-value text-2xl font-bold text-amber-500 dark:text-amber-400 truncate">{starred.size}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate" />
-        </button>
-        {withPlainExplanation(
-          tr(
-            "Validation passed. Eligible for strategy testing and Factor Arena.",
-            "已通过验证，可加入策略测试和因子竞技。"
-          ),
-          <button
-            onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
-            className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-              cardFilter === "passed"
-                ? "border-success/40 bg-success/[0.06]"
-                : "border-border hover:border-border/80"
-            }`}
-          >
-            <div className="flex items-center gap-2 label-upper mb-2 text-success">
-              <CheckCircle className="w-3.5 h-3.5" /> {tr("Passed", "通过")}
+        </div>
+
+        <div className="fade-item surface-card min-h-[118px] border border-border/70 bg-white px-6 py-5 dark:bg-card">
+          <div className="flex items-center gap-2 label-upper text-muted-foreground">
+            <Coins className="w-3.5 h-3.5 text-amber-500" />
+            {tr("Cumulative Bonus", "累计奖金")}
+          </div>
+          <div className="mt-4 flex items-end gap-2">
+            <div
+              className="stat-value text-3xl font-bold tabular-nums"
+              style={REWARD_TEXT_GRADIENT}
+            >
+              {formatRewardAmount(totalRewardAmount)}
             </div>
-            <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
-            <div className="text-sm mt-1 text-muted-foreground truncate" />
-          </button>
-        )}
-        {withPlainExplanation(
-          tr(
-            "Validation failed. Not eligible for strategy testing or Factor Arena.",
-            "未通过验证，不可加入策略测试和因子竞技。"
-          ),
-          <button
-            onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
-            className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-              cardFilter === "failed"
-                ? "border-destructive/40 bg-destructive/[0.06]"
-                : "border-border hover:border-border/80"
-            }`}
-          >
-            <div className="flex items-center gap-2 label-upper mb-2 text-destructive">
-              <XCircle className="w-3.5 h-3.5" /> {tr("Failed", "失败")}
+            <div className="pb-1 text-xs font-medium text-muted-foreground">USD</div>
+          </div>
+        </div>
+
+        <div className="fade-item surface-card min-h-[118px] border border-border/70 bg-card px-6 py-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="label-upper text-muted-foreground">{tr("Factor Grade Distribution", "因子等级分布")}</div>
+            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+              {gradeOrder.map((grade) => (
+                <div key={grade} className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: GRADE_CONFIG[grade].color }} />
+                  <span className="text-[10px] font-semibold font-mono text-muted-foreground">{grade}</span>
+                </div>
+              ))}
             </div>
-            <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + submissionStats.rejected}</div>
-            <div className="text-sm mt-1 text-muted-foreground truncate" />
-          </button>
-        )}
+          </div>
+          <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-muted">
+            {gradeOrder.map((grade) => {
+              const count = gradeDistribution[grade];
+              const color = GRADE_CONFIG[grade].color;
+              const widthPercent = activeAlphaRows.length === 0 ? 0 : (count / activeAlphaRows.length) * 100;
+              if (count === 0) return null;
+              return (
+                <div
+                  key={grade}
+                  className="h-full transition-all duration-300"
+                  style={{ width: `${widthPercent}%`, backgroundColor: color }}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+            {gradeOrder.map((grade) => (
+              <div key={grade} className="inline-flex min-w-[46px] items-baseline gap-0.5 rounded-full bg-muted/40 px-2 py-1">
+                <span className="text-xs font-semibold font-mono" style={{ color: GRADE_CONFIG[grade].color }}>{grade}:</span>
+                <span className="text-xs font-mono text-foreground tabular-nums">{gradeDistribution[grade]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════
@@ -1333,18 +1377,24 @@ export default function MyAlphas() {
             <ColGroup />
             <thead>
               <tr className="border-b border-border/60">
-                {visibleCols.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.key === "name" ? "pl-10" : ""} ${col.sortable ? "cursor-pointer hover:bg-accent/40" : ""} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
-                    onClick={() => col.sortable && handleSort(col.key)}
-                  >
+                {visibleCols.map((col) => {
+                  const headerContent = (
                     <span className={`flex items-center gap-1.5 label-upper whitespace-nowrap select-none ${col.align === "right" ? "justify-end" : col.align === "center" ? "justify-center" : ""}`}>
                       {columnLabelMap[col.key as keyof typeof columnLabelMap] ?? col.label}
                       {col.sortable && <SortIcon colKey={col.key} />}
                     </span>
-                  </th>
-                ))}
+                  );
+
+                  return (
+                    <th
+                      key={col.key}
+                      className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.key === "name" ? "pl-10" : ""} ${col.sortable ? "cursor-pointer hover:bg-accent/40" : ""} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+                      onClick={() => col.sortable && handleSort(col.key)}
+                    >
+                      {headerContent}
+                    </th>
+                  );
+                })}
                 {/* Actions header — sticky right */}
                 <th className="w-px whitespace-nowrap px-3 py-2.5 text-right sticky right-0 z-[2] bg-card border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)]">
                   <span className="label-upper">{tr("Actions", "操作")}</span>
