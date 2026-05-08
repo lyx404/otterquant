@@ -1,6 +1,6 @@
 /**
  * ShinyTag — Flat-gradient rarity badge with subtle shine sweep
- * Tiers: S (Flat Gold) | A (Flat Purple) | B (Flat Blue) | C (Flat Green) | D/F (Flat Grey)
+ * Tiers: S (Gold) | A (Pink) | B (Purple) | C (Green) | D (Blue) | F (Silver)
  * Shape: rounded-full pill, h-[22px], min-w-[22px]
  * Effect: bg-position shift on hover + subtle white shine sweep on hover
  *
@@ -9,14 +9,14 @@
  */
 import { type AlphaGrade } from "@/lib/mockData";
 
-/* ── Per-tier class bundles — flat 3-stop gradients ── */
+/* ── Per-tier class bundles — gem-rank gradients ── */
 const TIER_CLASSES: Record<AlphaGrade, string> = {
-  S: "border-[#E5C35A] text-[#6A4B00] bg-[linear-gradient(135deg,#E7C65B_0%,#F3DA84_50%,#E2BC45_100%)]",
-  A: "border-[#9C86F8] text-white bg-[linear-gradient(135deg,#7B61FF_0%,#9B86FF_50%,#6B4FEA_100%)]",
-  B: "border-[#69B2FF] text-white bg-[linear-gradient(135deg,#4B94F8_0%,#73B3FF_50%,#387FE0_100%)]",
-  C: "border-[#72CB92] text-white bg-[linear-gradient(135deg,#43AF6D_0%,#72CB92_50%,#32935A_100%)]",
-  D: "border-[#98A1AF] text-white bg-[linear-gradient(135deg,#7B8494_0%,#9EA6B4_50%,#687180_100%)]",
-  F: "border-[#98A1AF] text-white bg-[linear-gradient(135deg,#64748B_0%,#94A3B8_50%,#475569_100%)]",
+  S: "border-[#E5B63A] text-[#7A4B00] bg-[linear-gradient(135deg,#F8B22B_0%,#FBE38C_48%,#F97316_100%)]",
+  A: "border-[#EC5FAF] text-white bg-[linear-gradient(135deg,#EC4899_0%,#F9A8D4_52%,#DB2777_100%)]",
+  B: "border-[#9B6CFF] text-white bg-[linear-gradient(135deg,#7C3AED_0%,#C084FC_52%,#6D28D9_100%)]",
+  C: "border-[#34D399] text-white bg-[linear-gradient(135deg,#10B981_0%,#A7F3D0_52%,#059669_100%)]",
+  D: "border-[#38BDF8] text-white bg-[linear-gradient(135deg,#38BDF8_0%,#BAE6FD_52%,#0284C7_100%)]",
+  F: "border-[#94A3B8] text-[#334155] bg-[linear-gradient(135deg,#CBD5E1_0%,#F8FAFC_52%,#94A3B8_100%)]",
 };
 
 interface ShinyTagProps {

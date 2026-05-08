@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/tooltip";
 import { strategies } from "@/lib/mockData";
 import { buildSeries, parsePercent } from "@/lib/strategyUtils";
-import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   ArrowUpDown,
@@ -639,7 +638,6 @@ function StrategyCard({
 
 export default function MyStrategies() {
   const { uiLang } = useAppLanguage();
-  const { alphaViewMode } = useAlphaViewMode();
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("updated");
   const [sortDesc, setSortDesc] = useState(true);
@@ -657,7 +655,7 @@ export default function MyStrategies() {
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
-  const shouldShowPlainExplanations = alphaViewMode === "beginner" && plainExplainEnabled;
+  const shouldShowPlainExplanations = plainExplainEnabled;
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
 
   const filterMenuRef = useRef<HTMLDivElement>(null);

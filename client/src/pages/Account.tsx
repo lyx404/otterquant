@@ -531,7 +531,7 @@ export default function Account() {
                 <div>
                   <div className="text-sm font-semibold text-foreground">{tr("Plain Explanations", "通俗解释")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Show beginner-friendly explanations across factor and strategy pages.", "在因子与策略页面显示面向初学者的通俗解释。")}
+                    {tr("Show plain explanations across factor and strategy pages.", "在因子与策略页面显示通俗解释。")}
                   </div>
                 </div>
                 <button

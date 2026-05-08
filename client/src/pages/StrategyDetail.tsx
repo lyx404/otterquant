@@ -527,7 +527,7 @@ export default function StrategyDetail() {
   const [selectedExchangeApiId, setSelectedExchangeApiId] = useState<string>("");
   const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
   const isBeginnerMode = alphaViewMode === "beginner";
-  const shouldShowPlainExplanations = isBeginnerMode && plainExplainEnabled;
+  const shouldShowPlainExplanations = plainExplainEnabled;
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
   const semanticColorVars = useMemo(
     () =>
