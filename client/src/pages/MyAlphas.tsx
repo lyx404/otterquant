@@ -35,14 +35,14 @@ import {
   ArrowUpRight,
   ArrowUp,
   ArrowDown,
+  Check,
+  ChevronDown,
   Settings2,
-  HelpCircle,
   Star,
   ChevronLeft,
   ChevronRight,
+  Coins,
   Search,
-  CheckCircle,
-  XCircle,
   Loader2,
   BarChart3,
   X,
@@ -55,12 +55,10 @@ import {
 import {
   factors,
   submissions,
-  submissionStats,
   leaderboardByFactorByEpoch,
   currentEpoch,
   type Factor,
   getAlphaGrade,
-  GRADE_CONFIG,
   type AlphaGrade,
   generatePnLData,
 } from "@/lib/mockData";
@@ -92,7 +90,8 @@ interface ColumnDef {
 
 const dataColumns: ColumnDef[] = [
   { key: "name", label: "Name", defaultVisible: true, sortable: true, width: "200px" },
-  { key: "status_col", label: "Status", defaultVisible: true, sortable: true, width: "90px" },
+  { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
+  { key: "rewardAmount", label: "Bonus (USD)", defaultVisible: true, sortable: true, width: "118px", align: "right" },
   { key: "sharpe", label: "IS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "osSharpe", label: "OS Sharpe", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "pnl", label: "PnL", defaultVisible: true, sortable: false, width: "126px", align: "center" },
@@ -100,8 +99,6 @@ const dataColumns: ColumnDef[] = [
   { key: "drawdown", label: "Drawdown", defaultVisible: true, sortable: true, width: "90px", align: "right" },
   { key: "turnover", label: "Turnover", defaultVisible: true, sortable: true, width: "80px", align: "right" },
   { key: "fitness", label: "Fitness", defaultVisible: true, sortable: true, width: "80px", align: "right" },
-  { key: "epochStatus", label: "Arena Round", defaultVisible: true, sortable: true, width: "120px" },
-  { key: "grade", label: "Grade", defaultVisible: true, sortable: true, width: "72px", align: "center" },
   { key: "createdAt", label: "Date Created", defaultVisible: true, sortable: true, width: "110px" },
   { key: "id", label: "ID", defaultVisible: false, sortable: true, width: "80px" },
   { key: "testsPassed", label: "Tests", defaultVisible: false, sortable: true, width: "72px", align: "right" },
@@ -130,7 +127,7 @@ type MyAlphasPrefs = {
 
 const MY_ALPHAS_PREFS_KEY = "otterquant:myalphas:view-prefs";
 const DELETED_FACTORS_STORAGE_KEY = "otterquant:myalphas:deleted-factors";
-const MY_ALPHAS_PREFS_VERSION = 3;
+const MY_ALPHAS_PREFS_VERSION = 4;
 const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
@@ -142,16 +139,33 @@ function readChartColorMode(): ChartColorMode {
   return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
 }
 
+function readPlainExplanationEnabled() {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+  if (stored === "true") return true;
+  if (stored === "false") return false;
+  return true;
+}
+
 function getChartColorTokens(mode: ChartColorMode) {
   return mode === "redUpGreenDown"
     ? {
+        upClass: "text-rose-500",
+        downClass: "text-emerald-500",
         upHex: "#F43F5E",
         downHex: "#10B981",
       }
     : {
+        upClass: "text-emerald-500",
+        downClass: "text-rose-500",
         upHex: "#10B981",
         downHex: "#F43F5E",
       };
+}
+
+function parsePercentValue(value: string) {
+  const parsed = Number.parseFloat(value.replace(/[,%]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function buildSparklinePoints(values: number[], width: number, height: number, padding = 4) {
@@ -287,11 +301,12 @@ function TablePnlSparkline({ values, upColor, downColor }: { values: number[]; u
 
 function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
   if (mode === "beginner") {
-    return ["name", "grade", "epochStatus", "pnl", "sharpe", "osSharpe", "fitness"];
+    return ["name", "grade", "rewardAmount", "pnl", "sharpe", "osSharpe", "fitness"];
   }
   return [
     "name",
-    "status_col",
+    "grade",
+    "rewardAmount",
     "sharpe",
     "osSharpe",
     "pnl",
@@ -299,8 +314,6 @@ function getDefaultVisibleColumnKeysForMode(mode: AlphaViewMode) {
     "drawdown",
     "turnover",
     "fitness",
-    "epochStatus",
-    "grade",
     "createdAt",
   ];
 }
@@ -405,10 +418,63 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
 
   try {
     const value = window.localStorage.getItem(`${REVEALED_GRADE_STORAGE_PREFIX}${factorId}`);
-    return value === "S" || value === "A" || value === "B" || value === "C" || value === "D" ? value : null;
+  return value === "S" || value === "A" || value === "B" || value === "C" || value === "D" ? value : null;
   } catch {
     return null;
   }
+}
+
+function getRowGrade(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">): AlphaGrade {
+  return row.submissionStatus === "passed" ? getAlphaGrade(row.osSharpe) : "F";
+}
+
+const REWARD_AMOUNT_BY_GRADE: Record<AlphaGrade, number> = {
+  S: 1,
+  A: 0.5,
+  B: 0.3,
+  C: 0.2,
+  D: 0.1,
+  F: 0,
+};
+const REWARD_TEXT_GRADIENT = {
+  background: "linear-gradient(90deg, #FE9A00 0%, #FDC700 50%, #E17100 100%)",
+  WebkitBackgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+  backgroundClip: "text",
+};
+const GRADE_DISTRIBUTION_TAG_STYLES: Record<AlphaGrade, { bar: string; text: string }> = {
+  S: {
+    bar: "linear-gradient(135deg,#E7C65B 0%,#F3DA84 50%,#E2BC45 100%)",
+    text: "#6A4B00",
+  },
+  A: {
+    bar: "linear-gradient(135deg,#7B61FF 0%,#9B86FF 50%,#6B4FEA 100%)",
+    text: "#7B61FF",
+  },
+  B: {
+    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
+    text: "#334155",
+  },
+  C: {
+    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
+    text: "#334155",
+  },
+  D: {
+    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
+    text: "#334155",
+  },
+  F: {
+    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
+    text: "#334155",
+  },
+};
+
+function getRewardAmount(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">) {
+  return REWARD_AMOUNT_BY_GRADE[getRowGrade(row)];
+}
+
+function formatRewardAmount(amount: number) {
+  return amount.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
 function getSubmissionStatusFromFactorStatus(status: string): AlphaRow["submissionStatus"] {
@@ -457,9 +523,8 @@ export default function MyAlphas() {
   const columnLabelMap = useMemo(
     () => ({
       name: tr("Name", "名称"),
-      status_col: tr("Status", "状态"),
       grade: tr("Grade", "等级"),
-      epochStatus: tr("Arena Round", "竞技场轮次"),
+      rewardAmount: tr("Bonus (USD)", "奖金(USD)"),
       createdAt: tr("Date Created", "创建日期"),
       pnl: tr("PnL", "PNL"),
       sharpe: tr("IS Sharpe", "IS 夏普"),
@@ -489,14 +554,10 @@ export default function MyAlphas() {
   const [gradeRevealTick, setGradeRevealTick] = useState(0);
   const [revealAllResults, setRevealAllResults] = useState<Array<{ id: string; name: string; grade: AlphaGrade }>>([]);
   const [showRevealAllModal, setShowRevealAllModal] = useState(false);
+  const [showToolbarFilterMenu, setShowToolbarFilterMenu] = useState(false);
+  const [showRewardDetails, setShowRewardDetails] = useState(false);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
-  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
-    if (stored === "true") return true;
-    if (stored === "false") return false;
-    return true;
-  });
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const headerRef = useRef<HTMLDivElement>(null);
   const statsRef = useRef<HTMLDivElement>(null);
   const tablePnlValues = useMemo(() => {
@@ -506,6 +567,11 @@ export default function MyAlphas() {
     return combined.filter((_, index) => index % sampleEvery === 0).slice(-28);
   }, []);
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
+  const directionalTextClass = (value: number) => {
+    if (value > 0) return chartColors.upClass;
+    if (value < 0) return chartColors.downClass;
+    return "text-foreground";
+  };
 
 
 
@@ -571,8 +637,14 @@ export default function MyAlphas() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
-  }, [plainExplainEnabled]);
+    const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
+    window.addEventListener("storage", syncPlainExplanation);
+    window.addEventListener("focus", syncPlainExplanation);
+    return () => {
+      window.removeEventListener("storage", syncPlainExplanation);
+      window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
 
   useEffect(() => {
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -611,6 +683,44 @@ export default function MyAlphas() {
     [alphaRows, deletedFactorIds]
   );
 
+  const gradeOrder: AlphaGrade[] = ["S", "A", "B", "C", "D", "F"];
+  const gradeDistribution = useMemo(() => {
+    const distribution: Record<AlphaGrade, number> = {
+      S: 0,
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0,
+      F: 0,
+    };
+
+    activeAlphaRows.forEach((row) => {
+      distribution[getRowGrade(row)] += 1;
+    });
+
+    return distribution;
+  }, [activeAlphaRows]);
+
+  const totalRewardAmount = useMemo(
+    () => activeAlphaRows.reduce((sum, row) => sum + getRewardAmount(row), 0),
+    [activeAlphaRows]
+  );
+
+  const rewardBreakdown = useMemo(
+    () =>
+      gradeOrder.map((grade) => {
+        const count = activeAlphaRows.filter((row) => getRowGrade(row) === grade).length;
+        const unitReward = REWARD_AMOUNT_BY_GRADE[grade];
+        return {
+          grade,
+          count,
+          unitReward,
+          totalReward: count * unitReward,
+        };
+      }),
+    [activeAlphaRows, gradeOrder]
+  );
+
   const filtered = useMemo(() => {
     return activeAlphaRows.filter((r) => {
       if (filterName && !r.name.toLowerCase().includes(filterName.toLowerCase()) && !r.id.toLowerCase().includes(filterName.toLowerCase())) return false;
@@ -632,22 +742,16 @@ export default function MyAlphas() {
         av = parseFloat(String(a[sortKey as keyof AlphaRow])) || 0;
         bv = parseFloat(String(b[sortKey as keyof AlphaRow])) || 0;
       } else if (sortKey === "grade") {
-        const gradeOrder: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
-        av = gradeOrder[getAlphaGrade(a.osSharpe)];
-        bv = gradeOrder[getAlphaGrade(b.osSharpe)];
+        const gradeOrder: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, F: 5 };
+        av = gradeOrder[getRowGrade(a)];
+        bv = gradeOrder[getRowGrade(b)];
       } else if (sortKey === "submissionStatus" || sortKey === "status_col") {
         const order = { passed: 0, failed: 1, os_testing: 2, is_testing: 3, backtesting: 4, queued: 5, rejected: 6 };
         av = order[a.submissionStatus] ?? 99;
         bv = order[b.submissionStatus] ?? 99;
-      } else if (sortKey === "epochStatus") {
-        // Sort by rank number, "Not Entered" last
-        const extractRank = (s?: string) => {
-          if (!s || s === "Not Entered") return 999;
-          const m = s.match(/#(\d+)/);
-          return m ? parseInt(m[1]) : 999;
-        };
-        av = extractRank(a.epochStatus);
-        bv = extractRank(b.epochStatus);
+      } else if (sortKey === "rewardAmount") {
+        av = getRewardAmount(a);
+        bv = getRewardAmount(b);
       } else {
         av = a[sortKey as keyof AlphaRow] ?? 0;
         bv = b[sortKey as keyof AlphaRow] ?? 0;
@@ -690,7 +794,7 @@ export default function MyAlphas() {
 
     if (updated > 0) {
       setGradeRevealTick((v) => v + 1);
-      const order: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
+      const order: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, F: 5 };
       revealedThisRound.sort((a, b) => {
         const rankDelta = order[a.grade] - order[b.grade];
         if (rankDelta !== 0) return rankDelta;
@@ -805,31 +909,44 @@ export default function MyAlphas() {
         return <span className="font-mono text-xs tabular-nums text-foreground">{row.sharpe.toFixed(2)}</span>;
       case "osSharpe":
         return (
-          <span className={`font-mono text-xs tabular-nums ${
-            row.osSharpe >= 1 ? "text-success" : row.osSharpe >= 0.5 ? "text-amber-500 dark:text-amber-400" : "text-destructive"
-          }`}>
+          <span className="font-mono text-xs tabular-nums text-foreground">
             {row.osSharpe.toFixed(2)}
           </span>
         );
       case "fitness":
         return (
-          <span className={`font-mono text-xs tabular-nums ${
-            row.fitness >= 1 ? "text-success" : row.fitness >= 0.5 ? "text-foreground" : "text-muted-foreground"
-          }`}>
+          <span className="font-mono text-xs tabular-nums text-foreground">
             {row.fitness.toFixed(2)}
           </span>
         );
+      case "rewardAmount": {
+        const amount = getRewardAmount(row);
+        return (
+          <span
+            className={`font-mono text-xs tabular-nums whitespace-nowrap ${amount > 0 ? "font-semibold" : "text-muted-foreground/60"}`}
+            style={amount > 0 ? REWARD_TEXT_GRADIENT : undefined}
+          >
+            {formatRewardAmount(amount)}
+          </span>
+        );
+      }
       case "returns":
-        return <span className="font-mono text-xs tabular-nums text-foreground whitespace-nowrap">{row.returns}</span>;
+        return <span className={`font-mono text-xs tabular-nums whitespace-nowrap ${directionalTextClass(parsePercentValue(row.returns))}`}>{row.returns}</span>;
       case "turnover":
         return <span className="font-mono text-xs tabular-nums text-foreground whitespace-nowrap">{row.turnover}</span>;
       case "drawdown":
-        return <span className="font-mono text-xs tabular-nums text-destructive whitespace-nowrap">{row.drawdown}</span>;
+        return (
+          <span className={`font-mono text-xs tabular-nums whitespace-nowrap ${
+            parsePercentValue(row.drawdown) === 0 ? "text-foreground" : chartColors.downClass
+          }`}>
+            {row.drawdown}
+          </span>
+        );
       case "grade": {
         if (row.submissionStatus !== "passed") {
           return (
             <span className="inline-flex items-center justify-center h-[22px] min-w-[22px] px-2.5 py-1 rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 text-[10px] font-semibold font-mono text-slate-700 dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300">
-              -
+              F
             </span>
           );
         }
@@ -1012,76 +1129,79 @@ export default function MyAlphas() {
 
       </div>
 
-      {/* Pipeline Stats — Total / My Favorites / Passed / Failed */}
-      <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-4 gap-4 min-w-0">
-        <button
-          onClick={() => { setCardFilter("all"); setPage(1); }}
-          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-            cardFilter === "all"
-              ? "border-primary/30 bg-primary/[0.06]"
-              : "border-border hover:border-border/80"
-          }`}
-        >
-          <div className="flex items-center gap-2 label-upper mb-2">
-            <BarChart3 className="w-3.5 h-3.5" /> {tr("Total", "总数")}
+      {/* Portfolio Stats — read-only overview */}
+      <div ref={statsRef} className="grid grid-cols-1 gap-4 min-w-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,1.55fr)]">
+        <div className="fade-item surface-card min-h-[118px] border border-border/70 bg-white px-6 py-5 dark:bg-card">
+          <div className="flex items-center gap-2 label-upper text-muted-foreground">
+            <BarChart3 className="w-3.5 h-3.5 text-primary" />
+            {tr("Factor Total", "因子总数")}
           </div>
-          <div className="stat-value text-2xl font-bold text-foreground truncate">{submissionStats.total}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate" />
-        </button>
-        <button
-          onClick={() => { setCardFilter(cardFilter === "starred" ? "all" : "starred"); setPage(1); }}
-          className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-            cardFilter === "starred"
-              ? "border-amber-400/40 bg-amber-400/[0.06]"
-              : "border-border hover:border-border/80"
-          }`}
-        >
-          <div className="flex items-center gap-2 label-upper mb-2 text-amber-400">
-            <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> {tr("My Favorites", "我的收藏")}
+          <div className="mt-4 flex items-end gap-2">
+            <div className="stat-value text-3xl font-bold text-foreground tabular-nums">{activeAlphaRows.length}</div>
+            <div className="pb-1 text-xs text-muted-foreground">{tr("factors", "个因子")}</div>
           </div>
-          <div className="stat-value text-2xl font-bold text-amber-500 dark:text-amber-400 truncate">{starred.size}</div>
-          <div className="text-sm mt-1 text-muted-foreground truncate" />
-        </button>
-        {withPlainExplanation(
-          tr(
-            "Validation passed. Eligible for strategy testing and Factor Arena.",
-            "已通过验证，可加入策略测试和因子竞技。"
-          ),
-          <button
-            onClick={() => { setCardFilter(cardFilter === "passed" ? "all" : "passed"); setPage(1); }}
-            className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-              cardFilter === "passed"
-                ? "border-success/40 bg-success/[0.06]"
-                : "border-border hover:border-border/80"
-            }`}
-          >
-            <div className="flex items-center gap-2 label-upper mb-2 text-success">
-              <CheckCircle className="w-3.5 h-3.5" /> {tr("Passed", "通过")}
+        </div>
+
+        <div className="fade-item surface-card min-h-[118px] border border-border/70 bg-white px-6 py-5 dark:bg-card">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 label-upper text-muted-foreground">
+              <Coins className="w-3.5 h-3.5 text-amber-500" />
+              {tr("Cumulative Bonus", "累计奖金")}
             </div>
-            <div className="stat-value text-2xl font-bold text-success truncate">{submissionStats.passed}</div>
-            <div className="text-sm mt-1 text-muted-foreground truncate" />
-          </button>
-        )}
-        {withPlainExplanation(
-          tr(
-            "Validation failed. Not eligible for strategy testing or Factor Arena.",
-            "未通过验证，不可加入策略测试和因子竞技。"
-          ),
-          <button
-            onClick={() => { setCardFilter(cardFilter === "failed" ? "all" : "failed"); setPage(1); }}
-            className={`fade-item surface-card h-[105px] border px-6 py-5 text-left cursor-pointer transition-colors ${
-              cardFilter === "failed"
-                ? "border-destructive/40 bg-destructive/[0.06]"
-                : "border-border hover:border-border/80"
-            }`}
-          >
-            <div className="flex items-center gap-2 label-upper mb-2 text-destructive">
-              <XCircle className="w-3.5 h-3.5" /> {tr("Failed", "失败")}
+            <button
+              type="button"
+              className="text-xs font-medium text-primary transition-colors hover:text-primary/75"
+              onClick={() => setShowRewardDetails(true)}
+            >
+              {tr("Details", "明细")}
+            </button>
+          </div>
+          <div className="mt-4 flex items-end gap-2">
+            <div
+              className="stat-value text-3xl font-bold tabular-nums"
+              style={REWARD_TEXT_GRADIENT}
+            >
+              {formatRewardAmount(totalRewardAmount)}
             </div>
-            <div className="stat-value text-2xl font-bold text-destructive truncate">{submissionStats.failed + submissionStats.rejected}</div>
-            <div className="text-sm mt-1 text-muted-foreground truncate" />
-          </button>
-        )}
+            <div className="pb-1 text-xs font-medium text-muted-foreground">USD</div>
+          </div>
+        </div>
+
+        <div className="fade-item surface-card min-h-[118px] border border-border/70 bg-card px-6 py-5">
+          <div className="flex items-start">
+            <div className="label-upper text-muted-foreground">{tr("Factor Grade Distribution", "因子等级分布")}</div>
+          </div>
+          <div className="mt-5 flex h-3 overflow-hidden rounded-full bg-muted">
+            {gradeOrder.map((grade) => {
+              const count = gradeDistribution[grade];
+              const color = GRADE_DISTRIBUTION_TAG_STYLES[grade].bar;
+              const widthPercent = activeAlphaRows.length === 0 ? 0 : (count / activeAlphaRows.length) * 100;
+              if (count === 0) return null;
+              return (
+                <Tooltip key={grade}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="h-full transition-all duration-300 hover:brightness-95"
+                      style={{ width: `${widthPercent}%`, background: color }}
+                      aria-label={`${grade}: ${count}`}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {tr("Grade", "等级")} {grade}: {count} ({widthPercent.toFixed(1)}%)
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2">
+            {gradeOrder.map((grade) => (
+              <div key={grade} className="inline-flex min-w-[46px] items-baseline gap-0.5 rounded-full bg-muted/40 px-2 py-1">
+                <span className="text-xs font-semibold font-mono" style={{ color: GRADE_DISTRIBUTION_TAG_STYLES[grade].text }}>{grade}:</span>
+                <span className="text-xs font-mono text-foreground tabular-nums">{gradeDistribution[grade]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════
@@ -1123,6 +1243,47 @@ export default function MyAlphas() {
               {tr("Reveal all grades", "揭示全部等级")}
             </button>
           )}
+
+          <Popover open={showToolbarFilterMenu} onOpenChange={setShowToolbarFilterMenu}>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out bg-card border border-border text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600">
+                <span>{cardFilter === "starred" ? tr("My Favorites", "我的收藏") : tr("All", "全部")}</span>
+                <ChevronDown className="w-3.5 h-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-36 rounded-2xl p-2" align="end">
+              {([
+                { key: "all", label: tr("All", "全部") },
+                { key: "starred", label: tr("My Favorites", "我的收藏") },
+              ] as Array<{ key: MyAlphasCardFilter; label: string }>).map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors ${
+                    cardFilter === item.key
+                      ? "bg-primary/12 text-primary"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  }`}
+                  onClick={() => {
+                    setCardFilter(item.key);
+                    setShowToolbarFilterMenu(false);
+                    setPage(1);
+                  }}
+                >
+                  <span>{item.label}</span>
+                  <span
+                    className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors ${
+                      cardFilter === item.key
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card"
+                    }`}
+                  >
+                    {cardFilter === item.key ? <Check className="h-2.5 w-2.5" /> : null}
+                  </span>
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
 
           <Popover>
             <PopoverTrigger asChild>
@@ -1216,23 +1377,6 @@ export default function MyAlphas() {
             </PopoverContent>
           </Popover>
 
-          {alphaViewMode === "beginner" && (
-            <button
-              type="button"
-              onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
-              className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
-                plainExplainEnabled
-                  ? "border-primary/50 bg-primary/12 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
-              }`}
-              aria-pressed={plainExplainEnabled}
-              title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              {tr("Plain explanations", "通俗解释")}
-            </button>
-          )}
-
           {/* View Mode Toggle */}
           <div className="inline-flex h-[34px] items-center overflow-hidden rounded-xl border border-border bg-card p-px">
             <button
@@ -1282,18 +1426,24 @@ export default function MyAlphas() {
             <ColGroup />
             <thead>
               <tr className="border-b border-border/60">
-                {visibleCols.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.key === "name" ? "pl-10" : ""} ${col.sortable ? "cursor-pointer hover:bg-accent/40" : ""} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
-                    onClick={() => col.sortable && handleSort(col.key)}
-                  >
+                {visibleCols.map((col) => {
+                  const headerContent = (
                     <span className={`flex items-center gap-1.5 label-upper whitespace-nowrap select-none ${col.align === "right" ? "justify-end" : col.align === "center" ? "justify-center" : ""}`}>
                       {columnLabelMap[col.key as keyof typeof columnLabelMap] ?? col.label}
                       {col.sortable && <SortIcon colKey={col.key} />}
                     </span>
-                  </th>
-                ))}
+                  );
+
+                  return (
+                    <th
+                      key={col.key}
+                      className={`px-3 py-2.5 transition-all duration-200 ease-in-out ${col.key === "name" ? "pl-10" : ""} ${col.sortable ? "cursor-pointer hover:bg-accent/40" : ""} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"} ${sortKey === col.key ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+                      onClick={() => col.sortable && handleSort(col.key)}
+                    >
+                      {headerContent}
+                    </th>
+                  );
+                })}
                 {/* Actions header — sticky right */}
                 <th className="w-px whitespace-nowrap px-3 py-2.5 text-right sticky right-0 z-[2] bg-card border-l border-border shadow-[-6px_0_12px_rgba(0,0,0,0.04)] dark:shadow-[-6px_0_12px_rgba(0,0,0,0.3)]">
                   <span className="label-upper">{tr("Actions", "操作")}</span>
@@ -1406,6 +1556,49 @@ export default function MyAlphas() {
       </div>
 
     </div>
+    <Dialog open={showRewardDetails} onOpenChange={setShowRewardDetails}>
+      <DialogContent className="max-w-xl rounded-2xl border-border bg-card p-0 text-foreground">
+        <div className="flex items-start justify-between gap-4 pb-3 pl-6 pr-12 pt-5">
+          <div>
+            <DialogTitle className="text-base font-semibold">{tr("Bonus Details", "奖金明细")}</DialogTitle>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {tr("Breakdown by factor grade", "按因子等级汇总")}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Total", "总计")}</div>
+            <div className="mt-1 flex items-end justify-end gap-1.5">
+              <span className="text-2xl font-bold tabular-nums" style={REWARD_TEXT_GRADIENT}>
+                {formatRewardAmount(totalRewardAmount)}
+              </span>
+              <span className="pb-1 text-xs font-medium text-muted-foreground">USD</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 pb-5 pt-2">
+          <div className="grid grid-cols-[1fr_1fr_1fr_1fr] border-b border-border/60 pb-2 text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+              <div>{tr("Grade", "等级")}</div>
+              <div className="text-right">{tr("Count", "数量")}</div>
+              <div className="text-right">{tr("Unit", "单个奖金")}</div>
+              <div className="text-right">{tr("Subtotal", "小计")}</div>
+            </div>
+            {rewardBreakdown.map((item) => (
+              <div
+                key={item.grade}
+                className="grid grid-cols-[1fr_1fr_1fr_1fr] items-center border-b border-border/50 py-3 text-xs last:border-b-0"
+              >
+                <div>{renderRevealResultGrade(item.grade)}</div>
+                <div className="text-right font-mono tabular-nums text-foreground">{item.count}</div>
+                <div className="text-right font-mono tabular-nums text-muted-foreground">{formatRewardAmount(item.unitReward)}</div>
+                <div className="text-right font-mono font-semibold tabular-nums" style={item.totalReward > 0 ? REWARD_TEXT_GRADIENT : undefined}>
+                  {formatRewardAmount(item.totalReward)}
+                </div>
+              </div>
+            ))}
+        </div>
+      </DialogContent>
+    </Dialog>
     <Dialog open={showRevealAllModal} onOpenChange={setShowRevealAllModal}>
       <DialogContent
         showCloseButton={false}

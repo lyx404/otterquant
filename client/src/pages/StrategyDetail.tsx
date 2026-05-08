@@ -42,8 +42,6 @@ import {
   BarChart3,
   BriefcaseBusiness,
   ClipboardList,
-  Eye,
-  EyeOff,
   Unplug,
   PieChart,
   Star,
@@ -63,6 +61,14 @@ function readChartColorMode(): ChartColorMode {
   if (typeof window === "undefined") return "greenUpRedDown";
   const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
   return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function readPlainExplanationEnabled() {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+  if (stored === "true") return true;
+  if (stored === "false") return false;
+  return true;
 }
 
 function getChartColorTokens(mode: ChartColorMode) {
@@ -514,13 +520,7 @@ export default function StrategyDetail() {
   const [isStrategyConfigOpen, setIsStrategyConfigOpen] = useState(false);
   const [isLiveDeployOpen, setIsLiveDeployOpen] = useState(false);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
-  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
-    if (stored === "true") return true;
-    if (stored === "false") return false;
-    return true;
-  });
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const [connectedExchangeApis, setConnectedExchangeApis] = useState<ExchangeApiConnection[]>(() =>
     readExchangeApiConnections()
   );
@@ -565,8 +565,14 @@ export default function StrategyDetail() {
   }, [connectedExchangeApis, selectedExchangeApiId]);
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
-  }, [plainExplainEnabled]);
+    const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
+    window.addEventListener("storage", syncPlainExplanation);
+    window.addEventListener("focus", syncPlainExplanation);
+    return () => {
+      window.removeEventListener("storage", syncPlainExplanation);
+      window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -1156,22 +1162,6 @@ export default function StrategyDetail() {
       >
         {tr("View Strategy Configuration", "查看策略配置")}
       </button>
-      {isBeginnerMode ? (
-        <button
-          type="button"
-          onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
-          className={`inline-flex h-8 items-center gap-1 rounded-full border px-3 text-xs transition-colors ${
-            plainExplainEnabled
-              ? "border-primary/50 bg-primary/12 text-primary"
-              : "border-border bg-card text-muted-foreground hover:text-foreground"
-          }`}
-          aria-pressed={plainExplainEnabled}
-          title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
-        >
-          {plainExplainEnabled ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-          {tr("Plain explanations", "通俗解释")}
-        </button>
-      ) : null}
     </>
   );
 

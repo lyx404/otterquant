@@ -9,7 +9,6 @@ import { useLocation } from "wouter";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   Bell,
-  Trophy,
   CheckCircle2,
   XCircle,
   ChevronRight,
@@ -32,13 +31,6 @@ type AnnouncementItem = {
 
 /* Mock announcements data */
 const announcements = [
-  {
-    id: 101,
-    title: "Factor Arena Season 3 Is Live",
-    message: "Submit your best factors and compete for the $50K prize pool. New evaluation metrics and broader asset coverage are now live.",
-    time: "Apr 12",
-    read: false,
-  },
   {
     id: 102,
     title: "Platform Maintenance Complete",
@@ -69,7 +61,7 @@ export default function NotificationPanel() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabType>("interactive");
   const interactiveNotifications = useMemo(
-    () => notifications.filter((n) => n.type !== "skill_update"),
+    () => notifications.filter((n) => n.type !== "skill_update" && n.type !== "epoch_reward"),
     []
   );
   const announcementItems = useMemo<AnnouncementItem[]>(
@@ -105,11 +97,6 @@ export default function NotificationPanel() {
       11: {
         title: "技能下线：Legacy RSI",
         message: "Legacy RSI 将于 4 月 30 日下线。请迁移至 RSI Pro，以获得更强的信号能力。",
-      },
-      101: {
-        title: "因子竞技场第 3 赛季已开启",
-        message: "提交你最优秀的因子，角逐 5 万美元奖池。全新评估指标与更广的资产覆盖已上线。",
-        time: "4 月 12 日",
       },
       102: {
         title: "平台维护已完成",
@@ -230,8 +217,6 @@ export default function NotificationPanel() {
 
     if (n.type === "alpha_test_result" && n.factorId) {
       navigate(`/alphas?highlight=${n.factorId}`);
-    } else if (n.type === "epoch_reward" && n.epochId) {
-      navigate(`/leaderboard?epoch=${encodeURIComponent(n.epochId)}`);
     }
   };
 
@@ -332,7 +317,6 @@ export default function NotificationPanel() {
                 interactiveNotifications.map(rawNotification => {
                   const n = translateInteractiveNotification(rawNotification);
                   const isRead = readIds.has(n.id);
-                  const isTestResult = n.type === "alpha_test_result";
                   const isPassed = n.testResult === "passed";
 
                   return (
@@ -345,17 +329,11 @@ export default function NotificationPanel() {
                     >
                       {/* Icon */}
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                        isTestResult
-                          ? isPassed
-                            ? "bg-emerald-500/10 text-emerald-500"
-                            : "bg-red-500/10 text-red-500"
-                          : "bg-amber-500/10 text-amber-500"
+                        isPassed
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : "bg-red-500/10 text-red-500"
                       }`}>
-                        {isTestResult ? (
-                          isPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />
-                        ) : (
-                          <Trophy className="w-4 h-4" />
-                        )}
+                        {isPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                       </div>
 
                       {/* Content */}

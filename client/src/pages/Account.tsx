@@ -11,11 +11,12 @@ import gsap from "gsap";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
+import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
-  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
+  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut, Sparkles,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementTy
 ];
 
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 
 /* ── API Key data model ── */
 interface ApiKeyItem {
@@ -165,6 +167,7 @@ function ChartColorPreview({ mode }: { mode: ChartColorMode }) {
 export default function Account() {
   const { user, updateUser, logout } = useAuth();
   const { uiLang, setUiLang } = useAppLanguage();
+  const { alphaViewMode, setAlphaViewMode } = useAlphaViewMode();
   const { themePreference, setThemePreference } = useTheme();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>("general");
@@ -182,12 +185,18 @@ export default function Account() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [alphasNotify, setAlphasNotify] = useState(true);
-  const [arenaNotify, setArenaNotify] = useState(true);
   const [systemNotify, setSystemNotify] = useState(true);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => {
     if (typeof window === "undefined") return "greenUpRedDown";
     const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
     return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+  });
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+    if (stored === "true") return true;
+    if (stored === "false") return false;
+    return true;
   });
   const headerRef = useRef<HTMLDivElement>(null);
   const [exchangeApiItems, setExchangeApiItems] = useState<ExchangeApiConnection[]>(() =>
@@ -255,6 +264,11 @@ export default function Account() {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(CHART_COLOR_MODE_STORAGE_KEY, chartColorMode);
   }, [chartColorMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
+  }, [plainExplainEnabled]);
 
   const handleRefreshSkill = useCallback((id: string) => {
     const now = new Date().toISOString().split("T")[0];
@@ -472,8 +486,101 @@ export default function Account() {
           <div className="surface-card overflow-hidden">
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
+                <Compass className="w-4 h-4 text-primary" />
+                <span className="text-base font-semibold text-foreground">{tr("General", "常规")}</span>
+              </div>
+            </div>
+
+            <div className="px-6 pb-6 pt-5 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("View Mode", "视角模式")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Choose beginner-friendly or professional views across the app.", "选择全站使用初学者视角或专业视角。")}
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent p-1">
+                  <button
+                    type="button"
+                    onClick={() => setAlphaViewMode("beginner")}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors ${
+                      alphaViewMode === "beginner"
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    {tr("Beginner", "初学者")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAlphaViewMode("pro")}
+                    className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors ${
+                      alphaViewMode === "pro"
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {tr("Pro", "专业")}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("Plain Explanations", "通俗解释")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Show beginner-friendly explanations across factor and strategy pages.", "在因子与策略页面显示面向初学者的通俗解释。")}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
+                  className={`relative h-6 w-11 rounded-full transition-colors duration-200 ease-in-out ${plainExplainEnabled ? "bg-primary" : "bg-muted"}`}
+                  aria-pressed={plainExplainEnabled}
+                  aria-label={tr("Toggle plain explanations", "开启或关闭通俗解释")}
+                >
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${plainExplainEnabled ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("Color Configuration", "颜色配置")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Choose how rising and falling values are colored.", "选择上涨与下跌数值的颜色显示。")}
+                  </div>
+                </div>
+                <div className="inline-flex flex-wrap items-center gap-2">
+                  {([
+                    { value: "redUpGreenDown", en: "Red up, green down", zh: "红涨绿跌" },
+                    { value: "greenUpRedDown", en: "Green up, red down", zh: "绿涨红跌" },
+                  ] as const).map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setChartColorMode(item.value)}
+                      className={`inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors ${
+                        chartColorMode === item.value
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-border bg-accent text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span>{tr(item.en, item.zh)}</span>
+                      <ChartColorPreview mode={item.value} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-card overflow-hidden">
+            <div className="px-6 pt-5 pb-0">
+              <div className="flex items-center gap-2">
                 <Shield className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">{tr("General Settings", "通用设置")}</span>
+                <span className="text-base font-semibold text-foreground">{tr("Appearance", "外观")}</span>
               </div>
             </div>
 
@@ -533,34 +640,6 @@ export default function Account() {
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("Color Configuration", "颜色配置")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Choose how rising and falling values are colored.", "选择上涨与下跌数值的颜色显示。")}
-                  </div>
-                </div>
-                <div className="inline-flex flex-wrap items-center gap-2">
-                  {([
-                    { value: "redUpGreenDown", en: "Red up, green down", zh: "红涨绿跌" },
-                    { value: "greenUpRedDown", en: "Green up, red down", zh: "绿涨红跌" },
-                  ] as const).map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => setChartColorMode(item.value)}
-                      className={`inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors ${
-                        chartColorMode === item.value
-                          ? "border-primary/30 bg-primary/10 text-primary"
-                          : "border-border bg-accent text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <span>{tr(item.en, item.zh)}</span>
-                      <ChartColorPreview mode={item.value} />
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -568,7 +647,7 @@ export default function Account() {
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">{tr("Notification Settings", "通知设置")}</span>
+                <span className="text-base font-semibold text-foreground">{tr("Notifications", "通知")}</span>
               </div>
             </div>
             <div className="px-6 pb-6 pt-5 space-y-3">
@@ -582,18 +661,6 @@ export default function Account() {
                   onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? tr("Signals notifications disabled", "已关闭信号通知") : tr("Signals notifications enabled", "已开启信号通知")); }}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-              <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-medium text-foreground">{tr("Arena Notifications", "竞技场通知")}</div>
-                  <div className="text-xs text-muted-foreground">{tr("Get notified about competition rounds, rankings, and prize pool updates", "接收比赛轮次、排名与奖池更新通知")}</div>
-                </div>
-                <button
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${arenaNotify ? "bg-primary" : "bg-muted"}`}
-                  onClick={() => { setArenaNotify(!arenaNotify); toast.success(arenaNotify ? tr("Arena notifications disabled", "已关闭竞技场通知") : tr("Arena notifications enabled", "已开启竞技场通知")); }}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${arenaNotify ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
               <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">

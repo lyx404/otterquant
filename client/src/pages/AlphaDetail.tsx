@@ -20,7 +20,7 @@ import gsap from "gsap";
 import {
   ArrowLeft, CheckCircle, XCircle, BarChart3, TrendingUp,
   ChevronDown, ChevronUp, RefreshCw, Sparkles,
-  Loader2, FlaskConical, LineChart as LineChartIcon, Settings2, BookOpenText, Copy, Eye, EyeOff, Star,
+  Loader2, FlaskConical, LineChart as LineChartIcon, Settings2, BookOpenText, Copy, Star,
 } from "lucide-react";
 import ShinyTag from "@/components/ui/shiny-tag";
 import ScratchCard from "@/components/ui/scratch-card";
@@ -48,6 +48,14 @@ function readChartColorMode(): ChartColorMode {
   if (typeof window === "undefined") return "greenUpRedDown";
   const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
   return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
+}
+
+function readPlainExplanationEnabled() {
+  if (typeof window === "undefined") return true;
+  const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
+  if (stored === "true") return true;
+  if (stored === "false") return false;
+  return true;
 }
 
 function getChartColorTokens(mode: ChartColorMode) {
@@ -381,13 +389,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
   const { alphaViewMode: viewMode } = useAlphaViewMode();
   const [pnlSamplePeriod, setPnlSamplePeriod] = useState<PnlSamplePeriod>("IS");
   const [summaryPeriod, setSummaryPeriod] = useState<SummaryPeriod>("IS");
-  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
-    if (stored === "true") return true;
-    if (stored === "false") return false;
-    return true;
-  });
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const [showTestPeriod, setShowTestPeriod] = useState(true);
   const [expandedTestSections, setExpandedTestSections] = useState<Record<string, boolean>>({
     pass: false, fail: true, pending: false,
@@ -416,6 +418,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     B: tr("Good", "良好"),
     C: tr("Average", "一般"),
     D: tr("Needs Work", "需优化"),
+    F: tr("Failed", "失败"),
   }[grade];
 
   useEffect(() => {
@@ -440,8 +443,14 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
-  }, [plainExplainEnabled]);
+    const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
+    window.addEventListener("storage", syncPlainExplanation);
+    window.addEventListener("focus", syncPlainExplanation);
+    return () => {
+      window.removeEventListener("storage", syncPlainExplanation);
+      window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
 
   const pnlData = useMemo(() => generatePnLData(), []);
   const proPnlData = useMemo(() => {
@@ -726,12 +735,11 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
     ),
   ];
   const factorDescriptionContent = (
-    <div className="grid gap-1.5 text-sm leading-6 text-muted-foreground">
+    <div className="grid gap-1.5 text-sm leading-6 text-foreground">
       {conclusionItems.map((item) => (
-        <div key={item.label} className="flex items-start gap-2.5">
-          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/55" />
+        <div key={item.label} className="flex items-start">
           <p>
-            <span className="text-foreground">{item.label}：</span>
+            <span>{item.label}：</span>
             {item.text}
           </p>
         </div>
@@ -846,13 +854,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
                 </span>
               </>
             ) : (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono tracking-[0.15em] whitespace-nowrap border ${
-                factor.status === "active" || factor.status === "testing"
-                  ? "bg-success/10 text-success border-success/20"
-                  : "bg-destructive/10 text-destructive border-destructive/20"
-              }`}>
-                {factor.status === "active" || factor.status === "testing" ? tr("PASSED", "通过") : tr("FAILED", "失败")}
-              </span>
+              null
             )}
             <p className="text-xs font-mono text-muted-foreground">
               {factor.id} &middot; {tr("Created", "创建于")} {factor.createdAt}
@@ -871,22 +873,6 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
         >
           <Star className={`h-4 w-4 ${isFavorite ? "fill-current text-amber-400" : ""}`} />
         </Button>
-        {viewMode === "beginner" && (
-          <button
-            type="button"
-            onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
-            className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs transition-all duration-200 ease-in-out border ${
-              plainExplainEnabled
-                ? "border-primary/50 bg-primary/12 text-primary"
-                : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-slate-300 dark:hover:border-slate-600"
-            }`}
-            aria-pressed={plainExplainEnabled}
-            title={tr("Toggle plain-language explanations", "开启/关闭通俗解释")}
-          >
-            {plainExplainEnabled ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-            {tr("Plain explanations", "通俗解释")}
-          </button>
-        )}
 
       </div>
 

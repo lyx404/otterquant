@@ -19,11 +19,7 @@ import {
 import {
   LayoutDashboard,
   FlaskConical,
-  Trophy,
   Settings2,
-  Eye,
-  Sparkles,
-  Zap,
   Menu,
   X,
   LogIn,
@@ -58,7 +54,6 @@ const navItems: NavItem[] = [
     icon: FlaskConical,
     children: [
       { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FileText },
-      { path: "/leaderboard", labelEn: "Factor Arena", labelZh: "因子竞技场", icon: Trophy },
       { path: "/alphas/official", labelEn: "Official Library", labelZh: "官方库", icon: Library },
     ],
   },
@@ -89,7 +84,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
   const { uiLang } = useAppLanguage();
-  const { alphaViewMode, setAlphaViewMode } = useAlphaViewMode();
+  const { alphaViewMode } = useAlphaViewMode();
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarHeaderHovered, setSidebarHeaderHovered] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -142,10 +137,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
-
-  const handleAlphaViewModeChange = (mode: AlphaViewMode) => {
-    setAlphaViewMode(mode);
-  };
 
   const syncAlphaCopy = useCallback((root: ParentNode, mode: AlphaViewMode) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -368,28 +359,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         {collapsed && !isMobile ? (
           /* === Collapsed: vertical stack === */
           <div className="flex flex-col items-center gap-1.5 mb-2">
-            <button
-              onClick={() => handleAlphaViewModeChange("beginner")}
-              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all duration-200 ${
-                alphaViewMode === "beginner"
-                  ? "bg-primary/10 text-primary border-primary/20"
-                  : "border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-              }`}
-              title={tr("Beginner", "初学者")}
-            >
-              <Eye className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={() => handleAlphaViewModeChange("pro")}
-              className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all duration-200 ${
-                alphaViewMode === "pro"
-                  ? "bg-primary/10 text-primary border-primary/20"
-                  : "border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-              }`}
-              title={tr("Pro", "专业")}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-            </button>
             {isAuthenticated && <NotificationPanel />}
             {isAuthenticated && (
               <button
@@ -412,32 +381,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         ) : (
           /* === Expanded: single row — user avatar, notification, theme (left to right) === */
           <div>
-            <div className="mb-2 rounded-lg border border-sidebar-border/70 bg-background/60 p-1.5">
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  onClick={() => handleAlphaViewModeChange("beginner")}
-                  className={`min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap border transition-all duration-200 ${
-                    alphaViewMode === "beginner"
-                      ? "bg-primary/10 text-primary border-primary/20"
-                      : "text-muted-foreground border-transparent hover:text-foreground hover:bg-accent hover:border-sidebar-border/60"
-                  }`}
-                >
-                  <Eye className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{tr("Beginner", "初学者")}</span>
-                </button>
-                <button
-                  onClick={() => handleAlphaViewModeChange("pro")}
-                  className={`min-w-0 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-[11px] font-medium whitespace-nowrap border transition-all duration-200 ${
-                    alphaViewMode === "pro"
-                      ? "bg-primary/10 text-primary border-primary/20"
-                      : "text-muted-foreground border-transparent hover:text-foreground hover:bg-accent hover:border-sidebar-border/60"
-                  }`}
-                >
-                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  <span className="truncate">{tr("Pro", "专业")}</span>
-                </button>
-              </div>
-            </div>
             <div className="flex items-center gap-1.5">
               {isAuthenticated && (
                 <button

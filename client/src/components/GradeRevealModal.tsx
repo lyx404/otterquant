@@ -225,9 +225,9 @@ export function GradeRevealBatch({ grades, onClose }: BatchRevealProps) {
     return () => { tl.kill(); };
   }, []);
 
-  // Sort by grade priority: S > A > B > C > D
+  // Sort by grade priority: S > A > B > C > D > F
   const sortedGrades = [...grades].sort((a, b) => {
-    const order: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4 };
+    const order: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, F: 5 };
     return order[a.grade] - order[b.grade];
   });
 
