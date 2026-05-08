@@ -568,6 +568,7 @@ function ResultCard({
   const canUseReference = Boolean(onUseAsReference) && !isGenerating;
   const generatedGrade = getAlphaGrade(result.fitness);
   const generatedRewardAmount = getGeneratedRewardAmount(generatedGrade);
+  const compactModelName = result.model.replace(/\s+(?=\d)/g, "");
 
   useEffect(() => {
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -668,19 +669,14 @@ function ResultCard({
         </MetricCell>
       </div>
 
-      <div className="mt-2 grid grid-cols-3 gap-x-2 text-[10px] text-muted-foreground/50">
-        <div className="min-w-0">
-          <div className="mb-0.5 whitespace-nowrap text-[9px] uppercase tracking-[0.08em]">{tr("Model", "模型")}</div>
-          <div className="truncate font-normal tabular-nums">{result.model}</div>
-        </div>
-        <div className="min-w-0">
-          <div className="mb-0.5 whitespace-nowrap text-[9px] uppercase tracking-[0.08em]">{tr("Credits", "消耗额度")}</div>
-          <div className="truncate font-normal tabular-nums">{formatCreditUnits(result.creditSpent)}</div>
-        </div>
-        <div className="min-w-0">
-          <div className="mb-0.5 whitespace-nowrap text-[9px] uppercase tracking-[0.08em]">{tr("Time", "耗时")}</div>
-          <div className="truncate font-normal tabular-nums">{result.duration}</div>
-        </div>
+      <div className="mt-2 flex min-w-0 items-center gap-3 text-[10px] leading-none text-muted-foreground/50">
+        <span className="truncate font-normal tabular-nums">{compactModelName}</span>
+        <span className="inline-flex shrink-0 items-center gap-1 tabular-nums">
+          <span>{tr("Cost", "消耗")}</span>
+          <CreditIcon className="h-3 w-3 shrink-0" />
+          <span>{formatCreditUnits(result.creditSpent)}</span>
+        </span>
+        <span className="shrink-0 tabular-nums">{result.duration}</span>
       </div>
     </article>
   );
@@ -1510,7 +1506,19 @@ export default function AlphaEdit() {
               <X className="h-4 w-4" />
             </button>
             <div className="h-full overflow-y-auto p-5 sm:p-6">
-              <AlphaDetail embedded factorIdOverride={selectedFactorId} />
+              <AlphaDetail
+                embedded
+                factorIdOverride={selectedFactorId}
+                factorOverride={selectedPreview ? {
+                  id: selectedPreview.factorId,
+                  name: selectedPreview.factorName,
+                  sharpe: selectedPreview.fitness,
+                  fitness: selectedPreview.fitness,
+                  returns: `${selectedPreview.returns >= 0 ? "+" : ""}${selectedPreview.returns.toFixed(1)}%`,
+                  drawdown: `${selectedPreview.drawdown.toFixed(1)}%`,
+                  osSharpe: selectedPreview.fitness,
+                } : undefined}
+              />
             </div>
           </aside>
         </div>

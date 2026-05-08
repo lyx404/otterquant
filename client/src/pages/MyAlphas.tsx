@@ -444,28 +444,28 @@ const REWARD_TEXT_GRADIENT = {
 };
 const GRADE_DISTRIBUTION_TAG_STYLES: Record<AlphaGrade, { bar: string; text: string }> = {
   S: {
-    bar: "linear-gradient(135deg,#E7C65B 0%,#F3DA84 50%,#E2BC45 100%)",
-    text: "#6A4B00",
+    bar: "linear-gradient(135deg,#F59E0B 0%,#FDE68A 48%,#F97316 100%)",
+    text: "#B45309",
   },
   A: {
-    bar: "linear-gradient(135deg,#7B61FF 0%,#9B86FF 50%,#6B4FEA 100%)",
-    text: "#7B61FF",
+    bar: "linear-gradient(135deg,#EC4899 0%,#F9A8D4 52%,#DB2777 100%)",
+    text: "#DB2777",
   },
   B: {
-    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
-    text: "#334155",
+    bar: "linear-gradient(135deg,#7C3AED 0%,#C084FC 52%,#6D28D9 100%)",
+    text: "#7C3AED",
   },
   C: {
-    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
-    text: "#334155",
+    bar: "linear-gradient(135deg,#10B981 0%,#A7F3D0 52%,#059669 100%)",
+    text: "#059669",
   },
   D: {
-    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
-    text: "#334155",
+    bar: "linear-gradient(135deg,#38BDF8 0%,#BAE6FD 52%,#0284C7 100%)",
+    text: "#0284C7",
   },
   F: {
-    bar: "linear-gradient(135deg,#F1F5F9 0%,#F8FAFC 50%,#E2E8F0 100%)",
-    text: "#334155",
+    bar: "linear-gradient(135deg,#94A3B8 0%,#E2E8F0 52%,#64748B 100%)",
+    text: "#64748B",
   },
 };
 
