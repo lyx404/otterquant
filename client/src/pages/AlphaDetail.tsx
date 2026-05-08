@@ -29,7 +29,7 @@ import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import {
   factors, generatePnLData, aggregateData, osAggregateData,
   yearlySummary, osYearlySummary, testingStatus, correlationData,
-  getAlphaGrade, GRADE_CONFIG,
+  getAlphaGrade, GRADE_CONFIG, type Factor,
 } from "@/lib/mockData";
 
 type SummaryPeriod = "IS" | "OS" | "DIFF";
@@ -38,6 +38,7 @@ type PnlSamplePeriod = "IS" | "OS";
 type AlphaDetailProps = {
   embedded?: boolean;
   factorIdOverride?: string;
+  factorOverride?: Partial<Factor>;
 };
 
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
@@ -338,7 +339,7 @@ function PnlLineChart({
   );
 }
 
-export default function AlphaDetail({ embedded = false, factorIdOverride }: AlphaDetailProps = {}) {
+export default function AlphaDetail({ embedded = false, factorIdOverride, factorOverride }: AlphaDetailProps = {}) {
   const { uiLang } = useAppLanguage();
   const params = useParams<{ id: string }>();
   const searchStr = useSearch();
@@ -349,7 +350,8 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
   const isGeneratingParam = searchParams.get("generating") === "true";
   const customName = searchParams.get("name");
   const resolvedFactorId = factorIdOverride ?? params.id;
-  const factor = factors.find((f) => f.id === resolvedFactorId) || factors[0];
+  const baseFactor = factors.find((f) => f.id === resolvedFactorId) || factors[0];
+  const factor = factorOverride ? { ...baseFactor, ...factorOverride } : baseFactor;
   const usedCount = new Intl.NumberFormat(uiLang === "zh" ? "zh-CN" : "en-US").format(factor.userCount ?? 0);
   const officialTier: "official" | "graduated" =
     tierParam === "graduated"
@@ -581,15 +583,35 @@ export default function AlphaDetail({ embedded = false, factorIdOverride }: Alph
   };
   const formatDiff = (value: number, unit = "") => `${value >= 0 ? "+" : ""}${value.toFixed(2)}${unit}`;
   const summaryData = summaryPeriod === "OS" ? osYearlySummary : yearlySummary;
+  const activeAggregateData = factorOverride
+    ? {
+        ...aggregateData,
+        sharpe: factor.sharpe,
+        turnover: factor.turnover,
+        fitness: factor.fitness,
+        returns: factor.returns,
+        drawdown: factor.drawdown,
+      }
+    : aggregateData;
+  const activeOsAggregateData = factorOverride
+    ? {
+        ...osAggregateData,
+        sharpe: factor.osSharpe,
+        turnover: factor.turnover,
+        fitness: factor.fitness,
+        returns: factor.returns,
+        drawdown: factor.drawdown,
+      }
+    : osAggregateData;
   const diffAggData = {
-    sharpe: osAggregateData.sharpe - aggregateData.sharpe,
-    turnover: formatDiff(parseMetric(osAggregateData.turnover) - parseMetric(aggregateData.turnover), "%"),
-    fitness: osAggregateData.fitness - aggregateData.fitness,
-    returns: formatDiff(parseMetric(osAggregateData.returns) - parseMetric(aggregateData.returns), "%"),
-    drawdown: formatDiff(parseMetric(osAggregateData.drawdown) - parseMetric(aggregateData.drawdown), "%"),
-    margin: formatDiff(parseMetric(osAggregateData.margin) - parseMetric(aggregateData.margin), "‰"),
+    sharpe: activeOsAggregateData.sharpe - activeAggregateData.sharpe,
+    turnover: formatDiff(parseMetric(activeOsAggregateData.turnover) - parseMetric(activeAggregateData.turnover), "%"),
+    fitness: activeOsAggregateData.fitness - activeAggregateData.fitness,
+    returns: formatDiff(parseMetric(activeOsAggregateData.returns) - parseMetric(activeAggregateData.returns), "%"),
+    drawdown: formatDiff(parseMetric(activeOsAggregateData.drawdown) - parseMetric(activeAggregateData.drawdown), "%"),
+    margin: formatDiff(parseMetric(activeOsAggregateData.margin) - parseMetric(activeAggregateData.margin), "‰"),
   };
-  const aggData = summaryPeriod === "DIFF" ? diffAggData : summaryPeriod === "OS" ? osAggregateData : aggregateData;
+  const aggData = summaryPeriod === "DIFF" ? diffAggData : summaryPeriod === "OS" ? activeOsAggregateData : activeAggregateData;
   const currentSharpe = typeof aggData.sharpe === "number" ? aggData.sharpe : parseMetric(aggData.sharpe);
   const currentFitness = typeof aggData.fitness === "number" ? aggData.fitness : parseMetric(aggData.fitness);
   const proMetricExplanations = {

@@ -302,9 +302,9 @@ const STRATEGY_TEMPLATE_PREFILLS: Partial<Record<string, StrategyTemplatePrefill
   },
 };
 
-const CREDIT_BALANCE_STORAGE_KEY = "otterquant:credit-balance";
-const DEFAULT_CREDIT_BALANCE = 3;
 const CREDIT_DISPLAY_RATE = 1000;
+const CREDIT_BALANCE_STORAGE_KEY = "otterquant:strategy-credit-balance:v2";
+const DEFAULT_CREDIT_BALANCE = 12840 / CREDIT_DISPLAY_RATE;
 
 function readCreditBalance() {
   if (typeof window === "undefined") return DEFAULT_CREDIT_BALANCE;
@@ -1388,7 +1388,7 @@ export default function StrategyCreate() {
                 <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                   <span>{tr("Estimated spend", "预计消耗")}</span>
                   <CreditIcon className="h-3.5 w-3.5 shrink-0" />
-                  <span>{formatCreditUnits(estimatedStrategyCredit)}</span>
+                  <span className="font-mono font-semibold text-foreground tabular-nums">{formatCreditUnits(estimatedStrategyCredit)}</span>
                 </span>
                 {availableCredit < estimatedStrategyCredit ? (
                   <span className="text-xs font-medium text-rose-600 dark:text-rose-400">{tr("Insufficient credit", "额度不足")}</span>
@@ -1426,8 +1426,8 @@ export default function StrategyCreate() {
             <DialogTitle>{tr("Insufficient credit", "额度不足")}</DialogTitle>
             <DialogDescription>
               {tr(
-                `Creating this strategy requires ${estimatedStrategyCredit.toFixed(2)} credit, but your balance is ${availableCredit.toFixed(2)}.`,
-                `创建该策略需消耗 ${estimatedStrategyCredit.toFixed(2)} 额度，当前余额为 ${availableCredit.toFixed(2)}。`
+                `Creating this strategy requires ${formatCreditUnits(estimatedStrategyCredit)} credit, but your balance is ${formatCreditUnits(availableCredit)}.`,
+                `创建该策略需消耗 ${formatCreditUnits(estimatedStrategyCredit)} 额度，当前余额为 ${formatCreditUnits(availableCredit)}。`
               )}
             </DialogDescription>
           </DialogHeader>
