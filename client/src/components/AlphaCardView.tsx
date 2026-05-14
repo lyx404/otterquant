@@ -49,18 +49,24 @@ interface AlphaCardViewProps {
   plainExplainEnabled?: boolean;
 }
 
-const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v4_";
+const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 
-function UnrevealedGradeTag({ label = "Unrevealed grade" }: { label?: string }) {
+function UnrevealedGradeTag({
+  label = "Pending reveal",
+  text = "Pending",
+}: {
+  label?: string;
+  text?: string;
+}) {
   return (
     <span
       className="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full border border-slate-300/70 bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200 px-2.5 py-1 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] dark:border-slate-600/60 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 dark:text-slate-300 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
       title={label}
       aria-label={label}
     >
-      <span className="select-none text-[11px] font-black leading-none text-slate-500 dark:text-slate-300">?</span>
+      <span className="select-none whitespace-nowrap text-[10px] font-semibold leading-none text-slate-500 dark:text-slate-300">{text}</span>
     </span>
   );
 }
@@ -374,7 +380,7 @@ export default function AlphaCardView({
 
     const revealedGrade = readRevealedGrade(row.id);
     if (!revealedGrade) {
-      return <UnrevealedGradeTag label={tr("Unrevealed grade", "未揭示等级")} />;
+      return <UnrevealedGradeTag label={tr("Pending reveal", "待揭开")} text={tr("Pending", "待揭开")} />;
     }
 
     return <ShinyTag tier={revealedGrade} />;
