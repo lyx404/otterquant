@@ -419,7 +419,7 @@ export default function Trade() {
             </div>
           ) : (
             filteredVisibleBots.map((bot) => {
-              const explanations = botMetricExplanations(bot);
+              const explanations = botMetricExplanations();
 
               return (
               <div
