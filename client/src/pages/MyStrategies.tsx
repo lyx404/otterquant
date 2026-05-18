@@ -563,11 +563,11 @@ export default function MyStrategies() {
                   <th className="w-10 px-3 py-3" />
                   <th className="px-5 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Name", "名称")}</th>
                   <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Status", "状态")}</th>
-                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Updated", "更新于")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">ROI</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Win Rate", "胜率")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Sharpe", "夏普比率")}</th>
                   <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Max Drawdown", "最大回撤")}</th>
+                  <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Updated", "更新于")}</th>
                   <th className="px-5 py-3 text-right text-[10px] uppercase tracking-[0.14em] text-muted-foreground">{tr("Action", "操作")}</th>
                 </tr>
               </thead>
@@ -611,11 +611,11 @@ export default function MyStrategies() {
                             : tr("Backtest", "回测")}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-xs text-muted-foreground">{row.updatedAt}</td>
                     <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.roi}</td>
                     <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.winRate}</td>
                     <td className="px-4 py-4 text-right font-mono text-sm text-emerald-600 dark:text-[#00d492]">{row.sharpe}</td>
                     <td className="px-4 py-4 text-right font-mono text-sm text-rose-500 dark:text-[#ff637e]">{row.maxDrawdown}</td>
+                    <td className="px-4 py-4 text-xs text-muted-foreground">{row.updatedAt}</td>
                     <td className="px-5 py-4 text-right">
                       <Link href={`/strategies/${row.id}`}>
                         <Button className="h-8 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90">

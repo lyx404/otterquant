@@ -1,0 +1,774 @@
+@import url("https://fonts.googleapis.com/css2?family=Doto:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap");
+
+:root {
+  --oq-black: #000000;
+  --oq-surface: #111111;
+  --oq-surface-raised: #1a1a1a;
+  --oq-border: #222222;
+  --oq-border-visible: #333333;
+  --oq-disabled: #666666;
+  --oq-secondary: #999999;
+  --oq-primary: #e8e8e8;
+  --oq-display: #ffffff;
+  --oq-accent: #d71921;
+  --oq-success: #4a9e5c;
+  --oq-warning: #d4a843;
+  --oq-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.oq-os-shell,
+.oq-os-shell * {
+  box-sizing: border-box;
+}
+
+.oq-os-shell {
+  min-height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle, rgba(51, 51, 51, 0.34) 1px, transparent 1px) 0 0 / 16px 16px,
+    var(--oq-black);
+  color: var(--oq-primary);
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  letter-spacing: 0;
+  position: relative;
+}
+
+.oq-os-shell button,
+.oq-os-shell input {
+  font: inherit;
+}
+
+.oq-system-bar {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.94);
+  border-bottom: 1px solid var(--oq-border-visible);
+  display: flex;
+  gap: 24px;
+  height: 38px;
+  justify-content: space-between;
+  left: 0;
+  padding: 0 18px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 80;
+}
+
+.oq-menu-cluster,
+.oq-status-cluster {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+}
+
+.oq-menu-cluster {
+  gap: 18px;
+}
+
+.oq-menu-cluster strong {
+  color: var(--oq-display);
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+}
+
+.oq-menu-cluster span,
+.oq-status-cluster span,
+.oq-status-pill,
+.oq-risk-button,
+.oq-search-trigger {
+  color: var(--oq-secondary);
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.oq-status-cluster {
+  gap: 14px;
+}
+
+.oq-status-pill,
+.oq-risk-button,
+.oq-search-trigger,
+.oq-avatar {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--oq-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  gap: 6px;
+  height: 28px;
+  padding: 0;
+}
+
+.oq-risk-button {
+  color: var(--oq-accent);
+}
+
+.oq-search-trigger {
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 999px;
+  padding: 0 10px;
+}
+
+.oq-avatar {
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 50%;
+  color: var(--oq-display);
+  font-family: "Space Mono", monospace;
+  height: 24px;
+  justify-content: center;
+  width: 24px;
+}
+
+.oq-desktop {
+  height: 100vh;
+  padding: 38px 104px 94px 0;
+  position: relative;
+}
+
+.oq-desktop::before {
+  border-left: 1px solid rgba(51, 51, 51, 0.55);
+  border-top: 1px solid rgba(51, 51, 51, 0.55);
+  content: "";
+  inset: 76px 420px 130px 72px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.oq-desktop-metric {
+  bottom: 116px;
+  left: 72px;
+  position: absolute;
+  width: 280px;
+  z-index: 4;
+}
+
+.oq-desktop-metric strong {
+  color: var(--oq-display);
+  display: block;
+  font-family: "Doto", "Space Mono", monospace;
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  margin-top: 12px;
+}
+
+.oq-desktop-metric span:last-child {
+  color: var(--oq-secondary);
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+.oq-label {
+  color: var(--oq-secondary);
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.oq-assets-layer,
+.oq-window-layer {
+  inset: 38px 360px 94px 0;
+  position: absolute;
+}
+
+.oq-asset {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--oq-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  min-height: 120px;
+  padding: 12px 10px;
+  position: absolute;
+  text-align: center;
+  transition: border-color 180ms var(--oq-ease), background 180ms var(--oq-ease);
+  width: 128px;
+  z-index: 3;
+}
+
+.oq-asset:hover,
+.oq-asset.is-selected {
+  background: rgba(17, 17, 17, 0.84);
+  border-color: var(--oq-border-visible);
+}
+
+.oq-asset.is-selected {
+  outline: 1px solid var(--oq-display);
+  outline-offset: 2px;
+}
+
+.oq-asset-glyph {
+  align-items: center;
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 12px;
+  color: var(--oq-display);
+  display: grid;
+  height: 58px;
+  justify-items: center;
+  padding: 7px;
+  width: 62px;
+}
+
+.oq-asset-glyph i {
+  color: var(--oq-secondary);
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.04em;
+}
+
+.oq-asset span {
+  color: var(--oq-primary);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.oq-asset small {
+  color: var(--oq-secondary);
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.oq-window {
+  background: var(--oq-surface);
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 12px;
+  max-width: 520px;
+  min-width: 300px;
+  overflow: hidden;
+  position: absolute;
+  transition: opacity 180ms var(--oq-ease), border-color 180ms var(--oq-ease);
+  z-index: 10;
+}
+
+.oq-window.is-active {
+  border-color: var(--oq-display);
+  z-index: 20;
+}
+
+.oq-window-bar {
+  align-items: center;
+  border-bottom: 1px solid var(--oq-border);
+  cursor: grab;
+  display: flex;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 10px 12px 10px 16px;
+}
+
+.oq-window-bar strong {
+  color: var(--oq-display);
+  display: block;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.oq-window-bar span {
+  color: var(--oq-secondary);
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  margin-top: 3px;
+  text-transform: uppercase;
+}
+
+.oq-window-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.oq-window-actions button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 50%;
+  color: var(--oq-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+}
+
+.oq-window-actions button:hover {
+  border-color: var(--oq-display);
+  color: var(--oq-display);
+}
+
+.oq-window-body {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+}
+
+.oq-window-hero strong {
+  color: var(--oq-display);
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 48px;
+  font-weight: 400;
+  line-height: 1.05;
+  margin-top: 10px;
+}
+
+.oq-window-hero span:last-child,
+.oq-ai-note,
+.oq-rail-section p {
+  color: var(--oq-secondary);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.oq-segmented {
+  display: grid;
+  gap: 8px;
+}
+
+.oq-segmented > div:first-child,
+.oq-metric-rows div {
+  align-items: baseline;
+  display: flex;
+  justify-content: space-between;
+}
+
+.oq-segmented span,
+.oq-metric-rows span {
+  color: var(--oq-secondary);
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.oq-segmented strong,
+.oq-metric-rows strong {
+  color: var(--oq-display);
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+}
+
+.oq-segments {
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(12, 1fr);
+}
+
+.oq-segments i {
+  background: var(--oq-border);
+  display: block;
+  height: 10px;
+}
+
+.oq-segments i.is-filled {
+  background: var(--oq-display);
+}
+
+.oq-segments i.is-filled.tone-warning,
+.tone-warning {
+  color: var(--oq-warning) !important;
+}
+
+.oq-segments i.is-filled.tone-warning {
+  background: var(--oq-warning);
+}
+
+.oq-segments i.is-filled.tone-success,
+.tone-success {
+  color: var(--oq-success) !important;
+}
+
+.oq-segments i.is-filled.tone-success {
+  background: var(--oq-success);
+}
+
+.tone-primary {
+  color: var(--oq-display) !important;
+}
+
+.oq-sparkline {
+  align-items: end;
+  border-bottom: 1px solid var(--oq-border-visible);
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(22, 1fr);
+  min-height: 70px;
+}
+
+.oq-sparkline i {
+  background: var(--oq-primary);
+  display: block;
+  opacity: 0.72;
+}
+
+.oq-flow {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.oq-flow span,
+.oq-project-grid button,
+.oq-command button {
+  background: transparent;
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 6px;
+  color: var(--oq-secondary);
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 10px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.oq-flow span.is-live {
+  border-color: var(--oq-display);
+  color: var(--oq-display);
+}
+
+.oq-metric-rows {
+  border-top: 1px solid var(--oq-border);
+  display: grid;
+}
+
+.oq-metric-rows div {
+  border-bottom: 1px solid var(--oq-border);
+  min-height: 38px;
+}
+
+.oq-primary-action {
+  background: var(--oq-display);
+  border: 0;
+  border-radius: 999px;
+  color: var(--oq-black);
+  cursor: pointer;
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  min-height: 44px;
+  padding: 0 22px;
+  width: fit-content;
+}
+
+.oq-project-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.oq-project-grid button {
+  color: var(--oq-primary);
+  cursor: pointer;
+  min-height: 76px;
+  text-align: left;
+}
+
+.oq-project-grid span {
+  color: var(--oq-secondary);
+  display: block;
+  margin-bottom: 18px;
+}
+
+.oq-right-rail {
+  background: var(--oq-black);
+  border-left: 1px solid var(--oq-border-visible);
+  bottom: 0;
+  display: grid;
+  gap: 30px;
+  grid-auto-rows: max-content;
+  overflow: auto;
+  padding: 64px 18px 110px;
+  position: fixed;
+  right: 0;
+  top: 38px;
+  width: 340px;
+  z-index: 30;
+}
+
+.oq-rail-section {
+  display: grid;
+  gap: 12px;
+}
+
+.oq-rail-section button {
+  background: var(--oq-surface);
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 12px;
+  color: var(--oq-primary);
+  cursor: pointer;
+  line-height: 1.55;
+  padding: 16px;
+  text-align: left;
+}
+
+.oq-dock {
+  align-items: center;
+  background: var(--oq-surface);
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 16px;
+  bottom: 18px;
+  display: flex;
+  gap: 4px;
+  left: 50%;
+  max-width: min(860px, calc(100vw - 390px));
+  padding: 8px;
+  position: fixed;
+  transform: translateX(calc(-50% - 170px));
+  z-index: 70;
+}
+
+.oq-dock button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--oq-secondary);
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  height: 68px;
+  justify-items: center;
+  min-width: 72px;
+  padding: 8px 8px 6px;
+  position: relative;
+}
+
+.oq-dock button:hover,
+.oq-dock button.is-running {
+  border-color: var(--oq-border-visible);
+  color: var(--oq-display);
+}
+
+.oq-dock span {
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.oq-dock i {
+  color: var(--oq-secondary);
+  font-family: "Space Mono", monospace;
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.06em;
+}
+
+.oq-dock button.is-running::after {
+  background: var(--oq-accent);
+  border-radius: 50%;
+  content: "";
+  height: 5px;
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  width: 5px;
+}
+
+.oq-command-backdrop {
+  align-items: start;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding-top: 12vh;
+  position: fixed;
+  z-index: 120;
+}
+
+.oq-command {
+  background: var(--oq-surface);
+  border: 1px solid var(--oq-border-visible);
+  border-radius: 16px;
+  max-width: min(780px, calc(100vw - 32px));
+  width: 780px;
+}
+
+.oq-command header {
+  align-items: center;
+  border-bottom: 1px solid var(--oq-border);
+  display: flex;
+  gap: 12px;
+  min-height: 64px;
+  padding: 0 18px;
+}
+
+.oq-command input {
+  background: transparent;
+  border: 0;
+  color: var(--oq-display);
+  flex: 1;
+  font-size: 18px;
+  height: 54px;
+  outline: 0;
+}
+
+.oq-command header button {
+  border: 0;
+  padding: 0;
+}
+
+.oq-command-grid {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: 1.3fr 1fr;
+  padding: 20px;
+}
+
+.oq-command-grid > div {
+  display: grid;
+  gap: 8px;
+}
+
+.oq-command button {
+  align-items: center;
+  color: var(--oq-primary);
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  justify-content: start;
+  min-height: 42px;
+  text-align: left;
+}
+
+@media (max-width: 1180px) {
+  .oq-status-cluster span:nth-of-type(2),
+  .oq-menu-cluster span:nth-last-child(-n + 2) {
+    display: none;
+  }
+
+  .oq-right-rail {
+    width: 300px;
+  }
+
+  .oq-desktop {
+    padding-right: 300px;
+  }
+
+  .oq-assets-layer,
+  .oq-window-layer {
+    right: 300px;
+  }
+
+  .oq-dock {
+    max-width: min(680px, calc(100vw - 330px));
+    overflow-x: auto;
+    transform: translateX(calc(-50% - 150px));
+  }
+}
+
+@media (max-width: 900px) {
+  .oq-os-shell {
+    min-height: 100svh;
+    overflow: auto;
+  }
+
+  .oq-system-bar {
+    align-items: start;
+    display: grid;
+    gap: 8px;
+    height: auto;
+    padding: 10px 12px;
+  }
+
+  .oq-menu-cluster,
+  .oq-status-cluster {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .oq-desktop {
+    display: grid;
+    gap: 18px;
+    height: auto;
+    min-height: 100svh;
+    padding: 108px 12px 128px;
+  }
+
+  .oq-desktop::before {
+    display: none;
+  }
+
+  .oq-desktop-metric,
+  .oq-assets-layer,
+  .oq-window-layer,
+  .oq-right-rail {
+    inset: auto;
+    position: relative;
+    width: auto;
+  }
+
+  .oq-desktop-metric {
+    left: auto;
+    bottom: auto;
+  }
+
+  .oq-assets-layer {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oq-asset {
+    min-height: 118px;
+    position: relative;
+    left: auto !important;
+    top: auto !important;
+    width: 100%;
+  }
+
+  .oq-window-layer {
+    display: grid;
+    gap: 12px;
+  }
+
+  .oq-window {
+    left: auto !important;
+    max-width: none;
+    min-height: 0 !important;
+    min-width: 0;
+    position: relative;
+    top: auto !important;
+    width: 100% !important;
+  }
+
+  .oq-right-rail {
+    border: 1px solid var(--oq-border-visible);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .oq-dock {
+    border-radius: 12px 12px 0 0;
+    bottom: 0;
+    left: 0;
+    max-width: 100vw;
+    overflow-x: auto;
+    right: 0;
+    transform: none;
+  }
+
+  .oq-dock button {
+    min-width: 72px;
+  }
+
+  .oq-command-grid {
+    grid-template-columns: 1fr;
+  }
+}

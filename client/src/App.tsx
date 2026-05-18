@@ -18,6 +18,8 @@ const Account = lazy(() => import("@/pages/Account"));
 const LaunchGuide = lazy(() => import("@/pages/LaunchGuide"));
 const Landing = lazy(() => import("@/pages/Landing"));
 const Auth = lazy(() => import("@/pages/Auth"));
+const GamePreview = lazy(() => import("@/pages/GamePreview"));
+const FactorMining = lazy(() => import("@/pages/FactorMining"));
 const OfficialLibrary = lazy(() => import("@/pages/OfficialLibrary"));
 const AlphaEdit = lazy(() => import("@/pages/AlphaEdit"));
 const MyStrategies = lazy(() => import("@/pages/MyStrategies"));
@@ -28,6 +30,7 @@ const Trade = lazy(() => import("@/pages/Trade"));
 const TradeDetail = lazy(() => import("@/pages/TradeDetail"));
 const LazySubscription = lazy(() => import("@/pages/Subscription"));
 const LinkCheckout = lazy(() => import("@/pages/LinkCheckout"));
+const DesktopOS = lazy(() => import("@/pages/DesktopOS"));
 
 /* ── Onboarding context for reactive state ── */
 interface OnboardingCtx {
@@ -89,7 +92,7 @@ function Router() {
   if (isLoading) return null;
 
   // Public routes that don't need auth
-  const publicPaths = ["/landing", "/auth", "/launch-guide"];
+  const publicPaths = ["/landing", "/auth", "/launch-guide", "/game-preview", "/factor-mining", "/desktop-os"];
   const isPublicPath = publicPaths.some(
     (p) => location === p || location.startsWith(p)
   );
@@ -124,6 +127,9 @@ function Router() {
         <Route path="/landing" component={Landing} />
         <Route path="/auth" component={Auth} />
         <Route path="/launch-guide" component={LaunchGuide} />
+        <Route path="/game-preview" component={GamePreview} />
+        <Route path="/factor-mining" component={FactorMining} />
+        <Route path="/desktop-os" component={DesktopOS} />
 
         {/* Protected routes */}
         <Route path="/">
@@ -185,7 +191,7 @@ function Router() {
 /* ── Layout wrapper: Landing/Auth/LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/launch-guide", "/landing", "/auth", "/link-checkout"];
+  const noLayoutPaths = ["/launch-guide", "/landing", "/auth", "/link-checkout", "/game-preview", "/factor-mining", "/desktop-os"];
   const hideLayout = noLayoutPaths.some(
     (p) => location === p || location.startsWith(p)
   );

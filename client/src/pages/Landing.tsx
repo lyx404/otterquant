@@ -1,1141 +1,1726 @@
-/*
- * Landing Page — Quandora Platform Introduction
- * Design System: "The Synthetic Neural" — Indigo Intelligence & Command Precision
- * Surface Base: #000000 dark / #FFFFFF light
- * Primary: #4F47E6 (Indigo) — the only chromatic accent
- * Typography: Geist + Inter + Geist Mono
- * Borders: 1px rgba(255,255,255,0.06) → hover rgba(79,71,230,0.4)
- * Max border-radius: 12px
- * Easing: cubic-bezier(0.16, 1, 0.3, 1)
- * Landing has its OWN nav (not AppLayout)
- */
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
-import { ScrambleText } from "@/components/ui/scramble-text";
-import { TextLoop } from "@/components/ui/text-loop";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
-import { currentEpoch, factors, strategies } from "@/lib/mockData";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import AsciiVisionExport from "@/components/AsciiVisionExport";
-import {
+  Activity,
   ArrowRight,
-  MessageSquare,
-  BarChart3,
+  ChevronRight,
+  CircleDollarSign,
+  ClipboardList,
+  Cpu,
+  Gauge,
+  Goal,
+  Layers3,
+  LockKeyhole,
+  Medal,
+  PackageOpen,
+  Play,
+  RadioTower,
+  ShieldCheck,
+  Sparkles,
+  Swords,
   Trophy,
-  Zap,
-  Lock,
-  Database,
-  Bot,
-  CheckCircle,
+  Users,
+  WandSparkles,
 } from "lucide-react";
 
-/* ── CDN Assets ── */
-const HERO_BG =
-  "https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/indigo-hero-bg-EsuKbHY6NkKkXtGAhTcqx2.webp";
-const IMG_FACTOR_CREATION = "/landing/factor-creation.png";
 const IMG_OFFICIAL_FACTORS = "/landing/official-factors.png";
 const IMG_OFFICIAL_STRATEGIES = "/landing/official-strategies.png";
 
-/* ── Design Tokens ── */
-const T = {
-  indigo: "#4F47E6",
-  indigoGlow: "rgba(79, 71, 230, 0.15)",
-  indigoGlowSubtle: "rgba(79, 71, 230, 0.08)",
-  indigoBorder: "rgba(79, 71, 230, 0.4)",
-  indigoShadow: "0 0 20px rgba(79, 71, 230, 0.2)",
-  neuralGradient: "linear-gradient(135deg, #4F47E6 0%, #312E81 100%)",
-  surfaceDark: "#000000",
-  containerDark: "#121212",
-  borderDark: "rgba(255, 255, 255, 0.06)",
-  textHighDark: "#FFFFFF",
-  textMutedDark: "#707070",
-  surfaceLight: "#FFFFFF",
-  containerLight: "#F5F5F7",
-  borderLight: "rgba(0, 0, 0, 0.06)",
-  textHighLight: "#1A1A1E",
-  textMutedLight: "#86868B",
-  indigoGlowLight: "rgba(79, 71, 230, 0.08)",
-};
-
-const EASE = "cubic-bezier(0.16, 1, 0.3, 1)";
-
-/* ── Workflow Steps (Section IV) ── */
-const workflowSteps = [
-  {
-    num: "01",
-    titleEn: "Choose how to start",
-    titleZh: "选择启动方式",
-    descEn: "Use Platform Agent for a guided flow, or connect your own AI agent with an API key and Quandora Skill prompt.",
-    descZh: "使用平台 Agent 进入引导流程，或通过 API Key 与 Quandora Skill 提示词连接你的自有 AI Agent。",
-    icon: Bot,
-  },
-  {
-    num: "02",
-    titleEn: "Create or collect factors",
-    titleZh: "创建或收集因子",
-    descEn: "Build new factors, review your own factor list, and browse official or community-contributed factor signals.",
-    descZh: "创建新因子、查看我的因子列表，并浏览官方库或三方因子信号。",
-    icon: MessageSquare,
-  },
-  {
-    num: "03",
-    titleEn: "Turn factors into strategies",
-    titleZh: "将因子转为策略",
-    descEn: "Create single or batch strategies, start from official strategy templates, and compare ROI, win rate, Sharpe, and drawdown.",
-    descZh: "创建单个或批量策略，从官方策略模板开始，并比较 ROI、胜率、夏普比率与回撤。",
-    icon: BarChart3,
-  },
-  {
-    num: "04",
-    titleEn: "Track arena, trade, and credits",
-    titleZh: "跟踪竞技场、交易与额度",
-    descEn: "Follow Factor Arena rounds, monitor strategy deployment, and review wallet, credit, and activity records.",
-    descZh: "关注因子竞技场轮次，监控策略部署，并查看钱包、额度与变更记录。",
-    icon: CheckCircle,
-  },
+const draftPicks = [
+  { pick: "01", nameEn: "Momentum Forward", nameZh: "动量前锋", score: "91", cap: "$18.4K" },
+  { pick: "02", nameEn: "Volatility Keeper", nameZh: "波动守门员", score: "87", cap: "$14.9K" },
+  { pick: "03", nameEn: "On-chain Scout", nameZh: "链上球探", score: "84", cap: "$11.6K" },
+  { pick: "04", nameEn: "Funding Captain", nameZh: "资金费率队长", score: "82", cap: "$9.8K" },
 ];
 
-/* ── Core Feature Modules (Section II) ── */
-const coreFeatures = [
+const lineupSlots = [
+  { slotEn: "Captain", slotZh: "队长", factorEn: "Carry Alpha", factorZh: "Carry 因子", value: "+18.2%" },
+  { slotEn: "Offense", slotZh: "进攻", factorEn: "Breakout", factorZh: "突破因子", value: "1.74 SR" },
+  { slotEn: "Defense", slotZh: "防守", factorEn: "Drawdown Guard", factorZh: "回撤防线", value: "-6.8%" },
+  { slotEn: "Bench", slotZh: "替补", factorEn: "Alt-data Rookie", factorZh: "另类数据新秀", value: "42% owned" },
+];
+
+const journey = [
   {
-    titleEn: "Guided Factor Creation",
-    titleZh: "引导式因子创建",
-    subtitleEn: "Platform Agent or Own Agent",
-    subtitleZh: "平台 Agent 或自有 Agent",
-    descEn: "Start from the launch guide, choose Platform Agent or your own AI agent, then use structured prompts to create and test factor ideas.",
-    descZh: "从启动指引开始，选择平台 Agent 或自有 AI Agent，并使用结构化提示词创建与测试因子思路。",
-    img: IMG_FACTOR_CREATION,
-    icon: MessageSquare,
-    details: [
-      { labelEn: "Launch", labelZh: "启动", textEn: "The launch guide covers experience level, preferred markets, Agent mode, API key, and first-run examples.", textZh: "启动指引覆盖经验水平、偏好市场、Agent 模式、API Key 与首次运行示例。" },
-      { labelEn: "Prompt", labelZh: "提示词", textEn: "Example prompts cover factor creation, backtest analysis, and portfolio optimization.", textZh: "示例提示词覆盖因子创建、回测分析与组合优化。" },
-      { labelEn: "Copy", labelZh: "复制", textEn: "The API and Skill prompt can be copied for use in ChatGPT, Claude, or DeepSeek.", textZh: "API 与 Skill 提示词可复制到 ChatGPT、Claude 或 DeepSeek 中使用。" },
-    ],
+    step: "01",
+    titleEn: "Enter the league",
+    titleZh: "加入联赛",
+    descEn: "Bring your own AI agent or use the platform scout desk.",
+    descZh: "自带 AI Agent，或使用平台球探工作台。",
+    icon: Users,
+    tone: "blue",
   },
   {
-    titleEn: "Factor Library",
-    titleZh: "因子库",
-    subtitleEn: "My Factors, Official Library, Arena",
-    subtitleZh: "我的因子、官方库、竞技场",
-    descEn: "Manage your factor list, switch between table and card views, sort by quant metrics, and browse official or graduated factor signals.",
-    descZh: "管理你的因子列表，在表格与卡片视图间切换，按量化指标排序，并浏览官方或三方因子信号。",
-    img: IMG_OFFICIAL_FACTORS,
-    icon: BarChart3,
-    details: [
-      { labelEn: "Views", labelZh: "视图", textEn: "My Factors supports table/card display, visible item controls, favorites, status, grade, and arena round fields.", textZh: "我的因子支持表格/卡片展示、显示项控制、收藏、状态、等级与竞技场轮次字段。" },
-      { labelEn: "Metrics", labelZh: "指标", textEn: "Official factors can be sorted by IS Sharpe, OS Sharpe, fitness, returns, turnover, and drawdown.", textZh: "官方因子可按 IS 夏普、OS 夏普、适应度、收益率、换手率与回撤排序。" },
-      { labelEn: "Arena", labelZh: "竞技场", textEn: "Factor Arena shows rounds, prize pool, pass counts, rankings, and submission-oriented competition flow.", textZh: "因子竞技场展示轮次、奖池、通过数、排名与提交竞赛流程。" },
-    ],
+    step: "02",
+    titleEn: "Mine the draft pool",
+    titleZh: "挖掘选秀池",
+    descEn: "Submit factor ideas, templates, or natural language briefs.",
+    descZh: "提交因子想法、模板或自然语言战术简报。",
+    icon: WandSparkles,
+    tone: "amber",
   },
   {
-    titleEn: "Strategy & Trading Workspace",
-    titleZh: "策略与交易工作区",
-    subtitleEn: "Strategies, Templates, Deployment",
-    subtitleZh: "策略、模板、部署",
-    descEn: "Create strategies from factors, browse official templates, and monitor paper/live trading deployments from the trade workspace.",
-    descZh: "基于因子创建策略，浏览官方策略模板，并在交易工作区监控模拟/实盘部署。",
-    img: IMG_OFFICIAL_STRATEGIES,
+    step: "03",
+    titleEn: "Run the combine",
+    titleZh: "参加体测",
+    descEn: "AWS backtests score Sharpe, fitness, turnover, and drawdown.",
+    descZh: "AWS 回测自动评估夏普、适应度、换手和回撤。",
+    icon: Gauge,
+    tone: "violet",
+  },
+  {
+    step: "04",
+    titleEn: "Draft a roster",
+    titleZh: "组建阵容",
+    descEn: "Pick factors under a salary cap and assign roles.",
+    descZh: "在工资帽内挑选因子，并分配队长、进攻、防守角色。",
+    icon: ClipboardList,
+    tone: "green",
+  },
+  {
+    step: "05",
+    titleEn: "Play gameweeks",
+    titleZh: "打每轮比赛",
+    descEn: "Strategies compete in simulated markets and live paper trading.",
+    descZh: "策略进入模拟盘与纸面交易，按赛周结算积分。",
+    icon: Play,
+    tone: "red",
+  },
+  {
+    step: "06",
+    titleEn: "Win, upgrade, repeat",
+    titleZh: "领奖升级",
+    descEn: "Winners earn cash, signals, and membership conversion moments.",
+    descZh: "优胜者获得现金、跟单信号与会员转化权益。",
     icon: Trophy,
-    details: [
-      { labelEn: "Create", labelZh: "创建", textEn: "Strategy creation supports platform and own-agent flows, single or batch scale, and credit consumption preview.", textZh: "策略创建支持平台/自有 Agent 流程、单个或批量规模，并展示额度消耗预览。" },
-      { labelEn: "Library", labelZh: "库", textEn: "Official strategy templates can be filtered and sorted by ROI, win rate, Sharpe ratio, and max drawdown.", textZh: "官方策略模板可按 ROI、胜率、夏普比率与最大回撤筛选和排序。" },
-      { labelEn: "Trade", labelZh: "交易", textEn: "The trade page summarizes running strategies, equity, unrealized PnL, win rate, and deployment status.", textZh: "交易页汇总进行中的策略、总权益、未实现盈亏、胜率与部署状态。" },
-    ],
+    tone: "cyan",
   },
 ];
 
-/* ── Stats ── */
-const stats = [
+const mechanics = [
   {
-    value: String(factors.filter((factor) => factor.category === "official").length),
-    labelEn: "Official Factor Library",
-    labelZh: "官方因子库",
+    titleEn: "Factor Draft",
+    titleZh: "因子选秀",
+    textEn: "Every verified factor becomes a player card with form, risk, usage, and salary cap value.",
+    textZh: "每个通过验证的因子都会变成球员卡，展示状态、风险、使用率和工资帽价值。",
+    icon: Layers3,
   },
   {
-    value: String(strategies.filter((strategy) => strategy.author === "Quandora Lab").length),
-    labelEn: "Official Strategy Library",
-    labelZh: "官方策略库",
+    titleEn: "Gameweek Scoring",
+    titleZh: "赛周积分",
+    textEn: "Backtest and paper-trade results turn into points, streaks, badges, and leaderboard movement.",
+    textZh: "回测和模拟交易结果转成积分、连胜、徽章与排行榜变化。",
+    icon: Goal,
   },
   {
-    value: currentEpoch.totalPool,
-    labelEn: "Arena Prize Pool",
-    labelZh: "竞赛奖金金额",
-  },
-];
-
-/* ── Workspace Coverage (Section III) ── */
-const moatItems = [
-  {
-    icon: Database,
-    dimensionEn: "Structured factor records",
-    dimensionZh: "结构化因子记录",
-    implementationEn: "Status, grade, round, PnL curve, and quant metrics",
-    implementationZh: "状态、等级、轮次、PNL 曲线与量化指标",
-    valueEn: "Keep factor review centered on the fields already visible in My Factors and Official Library.",
-    valueZh: "围绕我的因子与官方库中已展示的字段进行因子复盘。",
-  },
-  {
-    icon: Zap,
-    dimensionEn: "Strategy templates",
-    dimensionZh: "策略模板",
-    implementationEn: "Official library plus my strategy workspace",
-    implementationZh: "官方库与我的策略工作区",
-    valueEn: "Move from factor ideas to deployable strategy drafts using existing strategy pages and templates.",
-    valueZh: "通过现有策略页面与模板，把因子思路推进为可部署的策略草稿。",
-  },
-  {
-    icon: BarChart3,
-    dimensionEn: "Trading overview",
-    dimensionZh: "交易概览",
-    implementationEn: "Paper/live deployment summaries",
-    implementationZh: "模拟/实盘部署摘要",
-    valueEn: "Review running strategies, total equity, unrealized PnL, average win rate, and strategy list in one place.",
-    valueZh: "集中查看进行中的策略、总权益、未实现盈亏、平均胜率和策略列表。",
-  },
-  {
-    icon: Lock,
-    dimensionEn: "Wallet & credits",
-    dimensionZh: "钱包与额度",
-    implementationEn: "Credit balance, usage, and activity records",
-    implementationZh: "额度余额、消耗与变更记录",
-    valueEn: "Track credit consumption and account activity before creating or deploying strategies.",
-    valueZh: "在创建或部署策略前跟踪额度消耗与账户活动。",
+    titleEn: "League Pass",
+    titleZh: "联赛通行证",
+    textEn: "Free users can play practice leagues. Members unlock high-confidence signals and advanced contests.",
+    textZh: "免费用户可参与练习联赛，会员解锁高置信信号与高级比赛。",
+    icon: LockKeyhole,
   },
 ];
 
-/* ── Ripple Button Component ── */
-function IndigoButton({
+const flywheel = [
+  { n: "01", labelEn: "Users submit ideas", labelZh: "用户提交想法" },
+  { n: "02", labelEn: "AI scouts factors", labelZh: "AI 球探挖因子" },
+  { n: "03", labelEn: "Combine validates", labelZh: "体测验证" },
+  { n: "04", labelEn: "Cards enter draft", labelZh: "进入选秀卡池" },
+  { n: "05", labelEn: "Rosters create demand", labelZh: "阵容产生需求" },
+  { n: "06", labelEn: "Prizes pull creators", labelZh: "奖金吸引创作者" },
+];
+
+const scoreboardRows = [
+  { rank: "01", teamEn: "Signal City FC", teamZh: "信号城 FC", pnl: "+24.8%", sharpe: "2.18", badge: "Playoff" },
+  { rank: "02", teamEn: "Vol Guards", teamZh: "波动守卫", pnl: "+19.6%", sharpe: "1.91", badge: "Chase" },
+  { rank: "03", teamEn: "Carry United", teamZh: "Carry 联队", pnl: "+16.2%", sharpe: "1.77", badge: "Rising" },
+];
+
+const scoutCards = [
+  {
+    rarity: "Legendary",
+    titleEn: "Funding Rate Reversal",
+    titleZh: "资金费率反转",
+    roleEn: "Contrarian Striker",
+    roleZh: "反转前锋",
+    potential: "96",
+    salary: "$21.2K",
+    traitEn: "Crowding Punisher",
+    traitZh: "拥挤交易惩罚者",
+    risk: "Med",
+    color: "legendary",
+  },
+  {
+    rarity: "Epic",
+    titleEn: "Whale Flow Breakout",
+    titleZh: "巨鲸流突破",
+    roleEn: "On-chain Winger",
+    roleZh: "链上边锋",
+    potential: "89",
+    salary: "$16.7K",
+    traitEn: "High Conviction",
+    traitZh: "高置信",
+    risk: "High",
+    color: "epic",
+  },
+  {
+    rarity: "Rare",
+    titleEn: "Volatility Keeper",
+    titleZh: "波动守门员",
+    roleEn: "Risk Guard",
+    roleZh: "风险后卫",
+    potential: "81",
+    salary: "$9.4K",
+    traitEn: "Crash Resistant",
+    traitZh: "抗暴跌",
+    risk: "Low",
+    color: "rare",
+  },
+];
+
+const combineStats = [
+  { label: "Sharpe", value: "2.41" },
+  { label: "Fitness", value: "1.88" },
+  { label: "Max DD", value: "-7.2%" },
+  { label: "Overfit", value: "18%" },
+];
+
+const lineupCards = [
+  { zone: "Captain", nameEn: "Funding Reversal", nameZh: "资金费率反转", score: "+32" },
+  { zone: "Core", nameEn: "Whale Breakout", nameZh: "巨鲸突破", score: "+24" },
+  { zone: "Core", nameEn: "Basis Carry", nameZh: "基差 Carry", score: "+19" },
+  { zone: "Defense", nameEn: "Vol Keeper", nameZh: "波动守门员", score: "+16" },
+  { zone: "Bench", nameEn: "Macro Rookie", nameZh: "宏观新秀", score: "+8" },
+];
+
+const coachNotes = [
+  { labelEn: "Exposure", labelZh: "暴露", textEn: "Momentum is high. Add one defensive card.", textZh: "动量暴露偏高，建议加入一张防守卡。" },
+  { labelEn: "Synergy", labelZh: "协同", textEn: "Captain has low correlation with Whale Breakout.", textZh: "队长卡与巨鲸突破相关性较低。" },
+  { labelEn: "Matchup", labelZh: "对阵", textEn: "This lineup fits high funding, low liquidity weeks.", textZh: "适合高资金费率、低流动性的赛周。" },
+];
+
+type TFunc = (en: string, zh: string) => string;
+
+function DraftRoom({ tr }: { tr: TFunc }) {
+  return (
+    <div className="draft-room" aria-label={tr("Live fantasy quant draft room", "实时 Fantasy 量化选秀室")}>
+      <div className="draft-strip">
+        {draftPicks.map((pick) => (
+          <div className="draft-pick" key={pick.pick}>
+            <span>{pick.pick}</span>
+            <strong>{tr(pick.nameEn, pick.nameZh)}</strong>
+            <em>{pick.score}</em>
+            <small>{pick.cap}</small>
+          </div>
+        ))}
+      </div>
+      <div className="lineup-panel">
+        <div className="panel-heading">
+          <span>{tr("Roster Lock", "阵容锁定")}</span>
+          <strong>{tr("Gameweek 08", "第 08 赛周")}</strong>
+        </div>
+        <div className="lineup-grid">
+          {lineupSlots.map((item) => (
+            <div className="lineup-slot" key={item.slotEn}>
+              <span>{tr(item.slotEn, item.slotZh)}</span>
+              <strong>{tr(item.factorEn, item.factorZh)}</strong>
+              <em>{item.value}</em>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="score-tape">
+        <span>{tr("Salary cap", "工资帽")} $54.7K / $60K</span>
+        <span>{tr("Projected points", "预计积分")} 182.4</span>
+        <span>{tr("Reward pool", "奖池")} $10K</span>
+      </div>
+    </div>
+  );
+}
+
+function PrimaryButton({
   children,
   onClick,
-  variant = "filled",
-  className = "",
+  tone = "solid",
 }: {
   children: React.ReactNode;
   onClick?: () => void;
-  variant?: "filled" | "ghost";
-  className?: string;
+  tone?: "solid" | "quiet";
 }) {
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  const handleClick = useCallback(
-    (e: React.MouseEvent<HTMLButtonElement>) => {
-      const btn = btnRef.current;
-      if (btn) {
-        const rect = btn.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const ripple = document.createElement("span");
-        ripple.style.cssText = `
-          position:absolute;left:${x}px;top:${y}px;width:0;height:0;
-          border-radius:50%;background:rgba(79,71,230,0.35);
-          transform:translate(-50%,-50%);pointer-events:none;
-          animation:indigo-ripple 300ms ${EASE} forwards;
-        `;
-        btn.appendChild(ripple);
-        setTimeout(() => ripple.remove(), 350);
-      }
-      onClick?.();
-    },
-    [onClick]
-  );
-
-  const isFilled = variant === "filled";
-
   return (
-    <button
-      ref={btnRef}
-      onClick={handleClick}
-      className={`relative overflow-hidden inline-flex items-center gap-2 font-semibold transition-all ${className}`}
-      style={{
-        height: "44px",
-        padding: "0 28px",
-        borderRadius: "8px",
-        fontSize: "14px",
-        background: isFilled ? T.indigo : "transparent",
-        color: isFilled ? "#FFFFFF" : T.indigo,
-        border: isFilled ? "none" : `1px solid ${T.indigo}`,
-        boxShadow: isFilled ? T.indigoShadow : "none",
-        transitionTimingFunction: EASE,
-        transitionDuration: "200ms",
-      }}
-    >
+    <button className={`q-button ${tone}`} onClick={onClick} type="button">
       {children}
     </button>
   );
 }
 
-/* ── Hover Card Wrapper ── */
-function HoverCard({
-  children,
-  className = "",
-  isDark,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  isDark: boolean;
-}) {
-  const [hovered, setHovered] = useState(false);
+function ScoutPackShowcase({ tr }: { tr: TFunc }) {
+  const [active, setActive] = useState(0);
+  const selected = scoutCards[active];
 
   return (
-    <div
-      className={`transition-all ${className}`}
-      style={{
-        borderRadius: "12px",
-        background: isDark ? T.containerDark : T.containerLight,
-        border: `1px solid ${hovered ? T.indigoBorder : isDark ? T.borderDark : T.borderLight}`,
-        boxShadow: hovered ? T.indigoShadow : "none",
-        transitionTimingFunction: EASE,
-        transitionDuration: "200ms",
-      }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {children}
+    <div className="scout-lab">
+      <div className="prompt-console">
+        <div className="console-head">
+          <span>{tr("Scout Prompt", "球探提示词")}</span>
+          <strong>{tr("BTC Weekly Pack", "BTC 周赛卡包")}</strong>
+        </div>
+        <p>
+          {tr(
+            "Find reversal factors after funding rates overheat and open interest stops expanding.",
+            "寻找资金费率过热且持仓量停止扩张后的反转因子。"
+          )}
+        </p>
+        <div className="console-actions">
+          <span>{tr("Market", "市场")} BTC / Perp</span>
+          <span>{tr("Cost", "消耗")} 3 credits</span>
+          <span>{tr("Pack", "卡包")} 3 cards</span>
+        </div>
+      </div>
+
+      <div className="pack-stage">
+        {scoutCards.map((card, index) => (
+          <button
+            className={`factor-card ${card.color} ${active === index ? "active" : ""}`}
+            key={card.titleEn}
+            onClick={() => setActive(index)}
+            type="button"
+          >
+            <span className="rarity">{card.rarity}</span>
+            <strong>{tr(card.titleEn, card.titleZh)}</strong>
+            <em>{tr(card.roleEn, card.roleZh)}</em>
+            <div className="card-stats">
+              <span>{tr("POT", "潜力")} {card.potential}</span>
+              <span>{card.salary}</span>
+            </div>
+            <small>{tr(card.traitEn, card.traitZh)}</small>
+          </button>
+        ))}
+      </div>
+
+      <div className="combine-panel">
+        <div className="combine-title">
+          <span className={`rarity-dot ${selected.color}`} />
+          <div>
+            <strong>{tr("Send to Combine", "送入体测")}</strong>
+            <p>{tr(selected.titleEn, selected.titleZh)} · {tr(selected.traitEn, selected.traitZh)}</p>
+          </div>
+        </div>
+        <div className="combine-grid">
+          {combineStats.map((stat) => (
+            <div key={stat.label}>
+              <span>{stat.label}</span>
+              <strong>{stat.value}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="combine-result">
+          <ShieldCheck size={18} />
+          {tr("Passes validation. Eligible for draft pool and creator rewards.", "通过验证，可进入选秀池并参与创作者收益。")}
+        </div>
+      </div>
     </div>
   );
 }
 
-/* ── Main Component ── */
+function LineupBuilderShowcase({ tr }: { tr: TFunc }) {
+  return (
+    <div className="lineup-builder">
+      <div className="league-panel">
+        <div className="league-header">
+          <span>{tr("League Mode", "联赛模式")}</span>
+          <strong>{tr("High Sharpe Arena", "高夏普竞技场")}</strong>
+        </div>
+        <div className="formation-toggle">
+          <button type="button">Balanced</button>
+          <button type="button" className="selected">Contrarian</button>
+          <button type="button">Defensive</button>
+        </div>
+        <div className="salary-meter">
+          <div>
+            <span>{tr("Salary Cap", "工资帽")}</span>
+            <strong>$53.1K / $60K</strong>
+          </div>
+          <i />
+        </div>
+      </div>
+
+      <div className="pitch-board">
+        {lineupCards.map((card) => (
+          <div className={`pitch-card ${card.zone.toLowerCase()}`} key={card.nameEn}>
+            <span>{card.zone}</span>
+            <strong>{tr(card.nameEn, card.nameZh)}</strong>
+            <em>{card.score}</em>
+          </div>
+        ))}
+      </div>
+
+      <div className="coach-panel">
+        <div className="coach-head">
+          <Cpu size={18} />
+          <strong>{tr("AI Coach Review", "AI 教练复盘")}</strong>
+        </div>
+        {coachNotes.map((note) => (
+          <div className="coach-note" key={note.labelEn}>
+            <span>{tr(note.labelEn, note.labelZh)}</span>
+            <p>{tr(note.textEn, note.textZh)}</p>
+          </div>
+        ))}
+        <div className="match-score">
+          <span>{tr("Projected Gameweek Score", "预计赛周积分")}</span>
+          <strong>184.6</strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
   const { isAuthenticated } = useAuth();
   const { uiLang, setUiLang } = useAppLanguage();
   const [, navigate] = useLocation();
-  const heroRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [scrolled, setScrolled] = useState(false);
+  const heroRef = useRef<HTMLElement>(null);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
-
   const isDark = theme === "dark";
-  const bg = isDark ? T.surfaceDark : T.surfaceLight;
-  const textHigh = isDark ? T.textHighDark : T.textHighLight;
-  const textMuted = isDark ? T.textMutedDark : T.textMutedLight;
-  const border = isDark ? T.borderDark : T.borderLight;
 
-  /* ── Hero headline text loop ── */
-  const heroLoopTexts = uiLang === "zh" ? ["因子工作区", "策略工作流"] : ["Factor Workspace", "Strategy Workflow"];
-
-  /* ── Scroll listener ── */
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    const onScroll = () => setScrolled(window.scrollY > 24);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* ── Particle Background ── */
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    let animationFrameId: number;
-
-    const handleResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    window.addEventListener("resize", handleResize);
-    handleResize();
-
-    const particleCount = 150;
-    const particles: Array<{
-      x: number; y: number; vx: number; vy: number;
-      size: number; alpha: number;
-    }> = [];
-    const color = "#4F47E6";
-
-    for (let i = 0; i < particleCount; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 1.5 + 0.5,
-        alpha: Math.random() * 0.5 + 0.1,
-      });
-    }
-
-    const render = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach((p) => {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = p.alpha;
-        ctx.fill();
-      });
-      ctx.globalAlpha = 1;
-      animationFrameId = requestAnimationFrame(render);
-    };
-    render();
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, []);
-
-  /* ── GSAP-style entrance (CSS-only for perf) ── */
-  useEffect(() => {
-    if (!heroRef.current) return;
-    const els = heroRef.current.querySelectorAll<HTMLElement>("[data-anim]");
-    els.forEach((el, i) => {
-      el.style.opacity = "0";
-      el.style.transform = "translateY(40px)";
-      el.style.transition = `opacity 0.7s ${EASE} ${i * 0.1}s, transform 0.7s ${EASE} ${i * 0.1}s`;
+    const root = heroRef.current;
+    if (!root) return;
+    const items = root.querySelectorAll<HTMLElement>("[data-hero]");
+    items.forEach((item, index) => {
+      item.style.opacity = "0";
+      item.style.transform = "translateY(18px)";
+      item.style.transition = `opacity 560ms ease ${index * 80}ms, transform 560ms ease ${index * 80}ms`;
       requestAnimationFrame(() => {
-        el.style.opacity = "1";
-        el.style.transform = "translateY(0)";
+        item.style.opacity = "1";
+        item.style.transform = "translateY(0)";
       });
     });
   }, []);
 
-  /* ── Scroll reveal ── */
   useEffect(() => {
     const items = document.querySelectorAll<HTMLElement>("[data-reveal]");
-    const obs = new IntersectionObserver(
+    const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const el = entry.target as HTMLElement;
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0)";
-            obs.unobserve(el);
-          }
+          if (!entry.isIntersecting) return;
+          const el = entry.target as HTMLElement;
+          el.style.opacity = "1";
+          el.style.transform = "translateY(0)";
+          observer.unobserve(el);
         });
       },
-      { threshold: 0.08 }
+      { threshold: 0.12 }
     );
+
     items.forEach((el) => {
       el.style.opacity = "0";
-      el.style.transform = "translateY(32px)";
-      el.style.transition = `opacity 0.6s ${EASE}, transform 0.6s ${EASE}`;
-      obs.observe(el);
+      el.style.transform = "translateY(20px)";
+      el.style.transition = "opacity 520ms ease, transform 520ms ease";
+      observer.observe(el);
     });
-    return () => obs.disconnect();
+    return () => observer.disconnect();
   }, []);
 
-  const handleCTA = () => navigate(isAuthenticated ? "/" : "/launch-guide");
-  const handleExplorePlatform = () =>
-    document.getElementById("platform-map")?.scrollIntoView({ behavior: "smooth" });
+  const start = () => navigate(isAuthenticated ? "/" : "/launch-guide");
+  const jumpToDraft = () => document.getElementById("draft")?.scrollIntoView({ behavior: "smooth" });
 
   return (
-    <div
-      style={{
-        background: bg,
-        fontFamily: "'Geist', 'Inter', system-ui, sans-serif",
-        color: textHigh,
-        minHeight: "100vh",
-      }}
-    >
-      {/* Ripple keyframes */}
+    <main className={`fantasy-quant ${isDark ? "is-dark" : "is-light"}`}>
       <style>{`
-        @keyframes indigo-ripple {
-          to { width: 300px; height: 300px; opacity: 0; }
+        .fantasy-quant {
+          --surface: oklch(97.5% 0.01 156);
+          --surface-2: oklch(93% 0.018 156);
+          --ink: oklch(18% 0.027 172);
+          --muted: oklch(46% 0.027 172);
+          --line: oklch(84% 0.026 156);
+          --field: oklch(38% 0.095 154);
+          --field-2: oklch(30% 0.076 160);
+          --gold: oklch(73% 0.14 82);
+          --red: oklch(59% 0.17 25);
+          --blue: oklch(56% 0.13 245);
+          --violet: oklch(57% 0.15 295);
+          --cyan: oklch(65% 0.11 198);
+          --card: oklch(99% 0.006 156);
+          --space-xs: 4px;
+          --space-sm: 8px;
+          --space-md: 12px;
+          --space-lg: 16px;
+          --space-xl: 24px;
+          --space-2xl: 32px;
+          --space-3xl: 48px;
+          --space-4xl: 64px;
+          background: var(--surface);
+          color: var(--ink);
+          min-height: 100vh;
+          font-family: "Aptos", "Söhne", "Segoe UI", sans-serif;
+        }
+
+        .fantasy-quant.is-dark {
+          --surface: oklch(15% 0.025 172);
+          --surface-2: oklch(20% 0.027 172);
+          --ink: oklch(95% 0.009 156);
+          --muted: oklch(70% 0.022 156);
+          --line: oklch(29% 0.028 172);
+          --field: oklch(38% 0.098 154);
+          --field-2: oklch(24% 0.072 160);
+          --card: oklch(20% 0.027 172);
+        }
+
+        .q-nav {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          border-bottom: 1px solid transparent;
+          transition: background 180ms ease, border-color 180ms ease;
+        }
+
+        .q-nav.scrolled {
+          background: color-mix(in oklch, var(--surface) 88%, transparent);
+          border-color: var(--line);
+          backdrop-filter: blur(18px);
+        }
+
+        .q-wrap {
+          width: min(1180px, calc(100% - 32px));
+          margin: 0 auto;
+        }
+
+        .q-nav-inner {
+          height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--space-lg);
+        }
+
+        .q-brand {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--space-md);
+          color: var(--ink);
+          text-decoration: none;
+          font-weight: 800;
+        }
+
+        .q-brand img {
+          width: 34px;
+          height: 34px;
+          border-radius: 8px;
+        }
+
+        .nav-actions {
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+        }
+
+        .lang-toggle,
+        .login-pill {
+          height: 34px;
+          display: inline-flex;
+          align-items: center;
+          gap: var(--space-sm);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 0 12px;
+          color: var(--ink);
+          background: color-mix(in oklch, var(--card) 82%, transparent);
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .login-pill {
+          background: var(--ink);
+          border-color: var(--ink);
+          color: var(--surface);
+          text-decoration: none;
+        }
+
+        .hero {
+          position: relative;
+          min-height: 92vh;
+          padding-top: 60px;
+          overflow: hidden;
+          background: var(--field-2);
+          color: oklch(97% 0.01 156);
+        }
+
+        .hero-bg {
+          position: absolute;
+          inset: 0;
+          display: grid;
+          grid-template-columns: 1fr;
+          opacity: 0.62;
+        }
+
+        .hero-bg img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          filter: saturate(0.85);
+        }
+
+        .hero-cover {
+          position: absolute;
+          inset: 0;
+          background: color-mix(in oklch, var(--field-2) 76%, transparent);
+        }
+
+        .pitch-lines {
+          position: absolute;
+          inset: 72px 24px 24px;
+          border: 1px solid color-mix(in oklch, white 28%, transparent);
+          border-radius: 8px;
+          pointer-events: none;
+        }
+
+        .pitch-lines::before,
+        .pitch-lines::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 1px;
+          background: color-mix(in oklch, white 26%, transparent);
+        }
+
+        .pitch-lines::before { left: 33.33%; }
+        .pitch-lines::after { right: 33.33%; }
+
+        .hero-content {
+          position: relative;
+          z-index: 2;
+          min-height: calc(92vh - 60px);
+          display: grid;
+          align-content: center;
+          padding: var(--space-4xl) 0 var(--space-3xl);
+        }
+
+        .hero-copy {
+          width: min(760px, 100%);
+          display: grid;
+          gap: var(--space-xl);
+        }
+
+        .eyebrow {
+          display: inline-flex;
+          width: fit-content;
+          align-items: center;
+          gap: var(--space-sm);
+          padding: 8px 10px;
+          border: 1px solid color-mix(in oklch, white 32%, transparent);
+          border-radius: 8px;
+          background: color-mix(in oklch, var(--field-2) 72%, transparent);
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .hero h1 {
+          margin: 0;
+          max-width: 820px;
+          font-size: 56px;
+          line-height: 1.02;
+          letter-spacing: 0;
+          font-weight: 900;
+        }
+
+        .hero p {
+          max-width: 650px;
+          margin: 0;
+          color: oklch(89% 0.018 156);
+          font-size: 17px;
+          line-height: 1.75;
+        }
+
+        .hero-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-md);
+        }
+
+        .q-button {
+          min-height: 44px;
+          border-radius: 8px;
+          border: 1px solid color-mix(in oklch, var(--ink) 14%, transparent);
+          padding: 0 18px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: var(--space-sm);
+          font-weight: 800;
+          transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+        }
+
+        .q-button:hover {
+          transform: translateY(-1px);
+        }
+
+        .q-button.solid {
+          background: oklch(90% 0.12 92);
+          border-color: oklch(90% 0.12 92);
+          color: oklch(19% 0.04 160);
+        }
+
+        .q-button.quiet {
+          background: color-mix(in oklch, white 9%, transparent);
+          border-color: color-mix(in oklch, white 34%, transparent);
+          color: oklch(97% 0.01 156);
+        }
+
+        .draft-room {
+          position: absolute;
+          right: max(24px, calc((100vw - 1180px) / 2));
+          bottom: 34px;
+          z-index: 3;
+          width: min(520px, calc(100% - 48px));
+          display: grid;
+          gap: var(--space-md);
+        }
+
+        .draft-strip,
+        .lineup-panel,
+        .score-tape {
+          border: 1px solid color-mix(in oklch, white 28%, transparent);
+          border-radius: 8px;
+          background: color-mix(in oklch, var(--field-2) 70%, transparent);
+          backdrop-filter: blur(14px);
+        }
+
+        .draft-strip {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1px;
+          overflow: hidden;
+        }
+
+        .draft-pick {
+          min-height: 108px;
+          padding: 12px;
+          display: grid;
+          align-content: space-between;
+          gap: var(--space-sm);
+          background: color-mix(in oklch, white 7%, transparent);
+        }
+
+        .draft-pick span,
+        .draft-pick small,
+        .lineup-slot span,
+        .score-tape span {
+          font-size: 11px;
+          color: oklch(83% 0.02 156);
+        }
+
+        .draft-pick strong,
+        .lineup-slot strong {
+          font-size: 13px;
+          line-height: 1.25;
+        }
+
+        .draft-pick em,
+        .lineup-slot em {
+          font-style: normal;
+          font-weight: 900;
+          color: oklch(90% 0.12 92);
+        }
+
+        .lineup-panel {
+          padding: 14px;
+        }
+
+        .panel-heading {
+          display: flex;
+          justify-content: space-between;
+          gap: var(--space-md);
+          margin-bottom: var(--space-md);
+          font-size: 12px;
+        }
+
+        .panel-heading strong {
+          color: oklch(90% 0.12 92);
+        }
+
+        .lineup-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: var(--space-sm);
+        }
+
+        .lineup-slot {
+          min-height: 84px;
+          display: grid;
+          gap: var(--space-xs);
+          padding: 10px;
+          border: 1px solid color-mix(in oklch, white 18%, transparent);
+          border-radius: 8px;
+        }
+
+        .score-tape {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--space-md);
+          padding: 10px 12px;
+        }
+
+        .section {
+          padding: 88px 0;
+          background: var(--surface);
+        }
+
+        .section.alt {
+          background: var(--surface-2);
+        }
+
+        .section-head {
+          display: grid;
+          gap: var(--space-md);
+          max-width: 720px;
+          margin-bottom: var(--space-3xl);
+        }
+
+        .section-kicker {
+          display: inline-flex;
+          width: fit-content;
+          align-items: center;
+          gap: var(--space-sm);
+          color: var(--field);
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .section h2 {
+          margin: 0;
+          font-size: 34px;
+          line-height: 1.18;
+          letter-spacing: 0;
+          font-weight: 900;
+        }
+
+        .section-head p {
+          margin: 0;
+          color: var(--muted);
+          line-height: 1.75;
+          font-size: 16px;
+        }
+
+        .mechanics-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: var(--space-lg);
+        }
+
+        .mechanic-card,
+        .journey-node,
+        .scoreboard,
+        .flywheel-card,
+        .image-callout,
+        .prompt-console,
+        .combine-panel,
+        .league-panel,
+        .pitch-board,
+        .coach-panel,
+        .final-cta {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--card);
+        }
+
+        .mechanic-card {
+          display: grid;
+          gap: var(--space-lg);
+          padding: 22px;
+        }
+
+        .icon-box {
+          width: 38px;
+          height: 38px;
+          display: grid;
+          place-items: center;
+          border-radius: 8px;
+          background: color-mix(in oklch, var(--field) 13%, transparent);
+          color: var(--field);
+        }
+
+        .mechanic-card h3,
+        .journey-node h3,
+        .flywheel-card h3,
+        .image-callout h3 {
+          margin: 0;
+          font-size: 18px;
+          line-height: 1.3;
+          font-weight: 900;
+        }
+
+        .mechanic-card p,
+        .journey-node p,
+        .image-callout p {
+          margin: 0;
+          color: var(--muted);
+          line-height: 1.65;
+        }
+
+        .scout-lab {
+          display: grid;
+          grid-template-columns: minmax(280px, 0.86fr) minmax(420px, 1.14fr);
+          gap: var(--space-lg);
+          align-items: stretch;
+        }
+
+        .prompt-console,
+        .combine-panel,
+        .league-panel,
+        .coach-panel {
+          padding: 18px;
+        }
+
+        .console-head,
+        .league-header,
+        .coach-head,
+        .combine-title {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--space-md);
+        }
+
+        .console-head span,
+        .league-header span,
+        .salary-meter span,
+        .coach-note span,
+        .match-score span,
+        .combine-grid span {
+          color: var(--muted);
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .console-head strong,
+        .league-header strong {
+          font-size: 13px;
+          color: var(--field);
+        }
+
+        .prompt-console p {
+          margin: 28px 0;
+          font-size: 21px;
+          line-height: 1.45;
+          font-weight: 850;
+        }
+
+        .console-actions {
+          display: grid;
+          gap: var(--space-sm);
+        }
+
+        .console-actions span {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 10px 12px;
+          color: var(--muted);
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .pack-stage {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: var(--space-md);
+        }
+
+        .factor-card {
+          min-height: 292px;
+          border: 1px solid color-mix(in oklch, var(--card-tone) 42%, var(--line));
+          border-radius: 8px;
+          padding: 16px;
+          display: grid;
+          align-content: space-between;
+          gap: var(--space-md);
+          background:
+            linear-gradient(180deg, color-mix(in oklch, var(--card-tone) 22%, var(--card)), var(--card) 62%),
+            var(--card);
+          color: var(--ink);
+          text-align: left;
+          transition: transform 160ms ease, border-color 160ms ease;
+        }
+
+        .factor-card.active,
+        .factor-card:hover {
+          transform: translateY(-3px);
+          border-color: var(--card-tone);
+        }
+
+        .factor-card.legendary { --card-tone: var(--gold); }
+        .factor-card.epic { --card-tone: var(--violet); }
+        .factor-card.rare { --card-tone: var(--blue); }
+
+        .rarity {
+          width: fit-content;
+          border-radius: 8px;
+          background: color-mix(in oklch, var(--card-tone) 18%, transparent);
+          color: var(--card-tone);
+          padding: 6px 8px;
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .factor-card strong {
+          font-size: 22px;
+          line-height: 1.06;
+          font-weight: 950;
+        }
+
+        .factor-card em {
+          color: var(--muted);
+          font-style: normal;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .card-stats {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: var(--space-sm);
+        }
+
+        .card-stats span,
+        .factor-card small {
+          border: 1px solid color-mix(in oklch, var(--card-tone) 28%, var(--line));
+          border-radius: 8px;
+          padding: 9px;
+          color: var(--muted);
+          font-size: 12px;
+          font-weight: 850;
+        }
+
+        .combine-panel {
+          grid-column: 1 / -1;
+          display: grid;
+          gap: var(--space-lg);
+        }
+
+        .combine-title {
+          justify-content: flex-start;
+        }
+
+        .combine-title p {
+          margin: 4px 0 0;
+          color: var(--muted);
+          font-size: 13px;
+        }
+
+        .rarity-dot {
+          width: 38px;
+          height: 38px;
+          border-radius: 8px;
+          background: var(--card-tone);
+        }
+
+        .rarity-dot.legendary { --card-tone: var(--gold); }
+        .rarity-dot.epic { --card-tone: var(--violet); }
+        .rarity-dot.rare { --card-tone: var(--blue); }
+
+        .combine-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: var(--space-sm);
+        }
+
+        .combine-grid div {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 12px;
+          display: grid;
+          gap: var(--space-xs);
+        }
+
+        .combine-grid strong {
+          font-size: 22px;
+          line-height: 1;
+        }
+
+        .combine-result {
+          display: flex;
+          align-items: center;
+          gap: var(--space-sm);
+          color: var(--field);
+          font-weight: 850;
+          line-height: 1.5;
+        }
+
+        .lineup-builder {
+          display: grid;
+          grid-template-columns: 280px minmax(360px, 1fr) 280px;
+          gap: var(--space-lg);
+          align-items: stretch;
+        }
+
+        .formation-toggle {
+          display: grid;
+          gap: var(--space-sm);
+          margin-top: var(--space-xl);
+        }
+
+        .formation-toggle button {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: transparent;
+          color: var(--muted);
+          padding: 10px 12px;
+          text-align: left;
+          font-weight: 850;
+        }
+
+        .formation-toggle .selected {
+          border-color: var(--field);
+          background: color-mix(in oklch, var(--field) 12%, transparent);
+          color: var(--ink);
+        }
+
+        .salary-meter {
+          display: grid;
+          gap: var(--space-md);
+          margin-top: var(--space-xl);
+        }
+
+        .salary-meter div {
+          display: flex;
+          justify-content: space-between;
+          gap: var(--space-md);
+        }
+
+        .salary-meter i {
+          height: 10px;
+          border-radius: 999px;
+          background:
+            linear-gradient(90deg, var(--gold) 0 88%, color-mix(in oklch, var(--ink) 10%, transparent) 88% 100%);
+        }
+
+        .pitch-board {
+          min-height: 430px;
+          position: relative;
+          overflow: hidden;
+          background:
+            linear-gradient(90deg, transparent 49.5%, color-mix(in oklch, var(--ink) 12%, transparent) 49.5% 50.5%, transparent 50.5%),
+            color-mix(in oklch, var(--field) 13%, var(--card));
+        }
+
+        .pitch-board::before {
+          content: "";
+          position: absolute;
+          inset: 20px;
+          border: 1px solid color-mix(in oklch, var(--field) 42%, transparent);
+          border-radius: 8px;
+        }
+
+        .pitch-card {
+          position: absolute;
+          width: 146px;
+          border: 1px solid color-mix(in oklch, var(--ink) 14%, transparent);
+          border-radius: 8px;
+          padding: 10px;
+          display: grid;
+          gap: var(--space-xs);
+          background: color-mix(in oklch, var(--card) 88%, transparent);
+          backdrop-filter: blur(12px);
+        }
+
+        .pitch-card span {
+          color: var(--muted);
+          font-size: 11px;
+          font-weight: 900;
+        }
+
+        .pitch-card strong {
+          font-size: 13px;
+          line-height: 1.2;
+        }
+
+        .pitch-card em {
+          color: var(--field);
+          font-style: normal;
+          font-weight: 950;
+        }
+
+        .pitch-card.captain { left: 50%; top: 8%; transform: translateX(-50%); }
+        .pitch-card.core:nth-child(2) { left: 15%; top: 35%; }
+        .pitch-card.core:nth-child(3) { right: 15%; top: 35%; }
+        .pitch-card.defense { left: 50%; bottom: 22%; transform: translateX(-50%); }
+        .pitch-card.bench { right: 24px; bottom: 24px; }
+
+        .coach-panel {
+          display: grid;
+          gap: var(--space-md);
+        }
+
+        .coach-head {
+          justify-content: flex-start;
+          color: var(--field);
+        }
+
+        .coach-note {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 10px;
+        }
+
+        .coach-note p {
+          margin: 6px 0 0;
+          color: var(--muted);
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
+        .match-score {
+          margin-top: auto;
+          border-radius: 8px;
+          padding: 14px;
+          background: var(--field-2);
+          color: oklch(97% 0.01 156);
+          display: grid;
+          gap: var(--space-xs);
+        }
+
+        .match-score span {
+          color: oklch(82% 0.022 156);
+        }
+
+        .match-score strong {
+          font-size: 34px;
+          line-height: 1;
+        }
+
+        .journey-board {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(148px, 1fr));
+          gap: var(--space-md);
+          overflow-x: auto;
+          padding-bottom: var(--space-sm);
+        }
+
+        .journey-node {
+          min-height: 238px;
+          padding: 18px;
+          display: grid;
+          align-content: space-between;
+          gap: var(--space-lg);
+        }
+
+        .node-top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--space-md);
+        }
+
+        .node-index {
+          font-weight: 900;
+          font-size: 22px;
+        }
+
+        .node-icon {
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          border-radius: 8px;
+          background: color-mix(in oklch, var(--node-tone) 14%, transparent);
+          color: var(--node-tone);
+        }
+
+        .journey-node.blue { --node-tone: var(--blue); }
+        .journey-node.amber { --node-tone: var(--gold); }
+        .journey-node.violet { --node-tone: var(--violet); }
+        .journey-node.green { --node-tone: var(--field); }
+        .journey-node.red { --node-tone: var(--red); }
+        .journey-node.cyan { --node-tone: var(--cyan); }
+
+        .draft-section {
+          display: grid;
+          grid-template-columns: minmax(0, 0.9fr) minmax(360px, 1.1fr);
+          gap: var(--space-2xl);
+          align-items: start;
+        }
+
+        .scoreboard {
+          overflow: hidden;
+        }
+
+        .scoreboard-head,
+        .score-row {
+          display: grid;
+          grid-template-columns: 52px 1fr 82px 70px 88px;
+          align-items: center;
+          gap: var(--space-md);
+          padding: 14px 16px;
+        }
+
+        .scoreboard-head {
+          background: color-mix(in oklch, var(--field) 12%, transparent);
+          color: var(--muted);
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .score-row {
+          border-top: 1px solid var(--line);
+          font-size: 14px;
+        }
+
+        .score-row strong {
+          font-size: 15px;
+        }
+
+        .rank {
+          width: 34px;
+          height: 34px;
+          display: grid;
+          place-items: center;
+          border-radius: 8px;
+          background: var(--ink);
+          color: var(--surface);
+          font-weight: 900;
+        }
+
+        .positive {
+          color: var(--field);
+          font-weight: 900;
+        }
+
+        .badge {
+          width: fit-content;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          padding: 6px 8px;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .image-callout {
+          overflow: hidden;
+        }
+
+        .image-copy {
+          display: grid;
+          gap: var(--space-md);
+          padding: 24px;
+        }
+
+        .image-callout img {
+          width: 100%;
+          height: 320px;
+          object-fit: cover;
+          border-top: 1px solid var(--line);
+        }
+
+        .flywheel-grid {
+          display: grid;
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+          gap: var(--space-md);
+        }
+
+        .flywheel-card {
+          min-height: 152px;
+          padding: 16px;
+          display: grid;
+          align-content: space-between;
+        }
+
+        .flywheel-card span {
+          color: var(--field);
+          font-weight: 900;
+          font-size: 24px;
+        }
+
+        .flywheel-card h3 {
+          font-size: 15px;
+        }
+
+        .final-cta {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: var(--space-xl);
+          align-items: center;
+          padding: 28px;
+          background: var(--field-2);
+          color: oklch(97% 0.01 156);
+        }
+
+        .final-cta h2 {
+          color: inherit;
+        }
+
+        .final-cta p {
+          color: oklch(84% 0.022 156);
+          margin: 10px 0 0;
+          line-height: 1.65;
+        }
+
+        .q-footer {
+          padding: 30px 0;
+          border-top: 1px solid var(--line);
+          background: var(--surface);
+        }
+
+        .footer-inner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: var(--space-lg);
+          color: var(--muted);
+          font-size: 13px;
+        }
+
+        @media (max-width: 980px) {
+          .hero h1 { font-size: 42px; }
+          .hero-content { align-content: start; padding-top: 92px; padding-bottom: 360px; }
+          .draft-room { left: 16px; right: 16px; bottom: 24px; width: auto; }
+          .scout-lab,
+          .lineup-builder {
+            grid-template-columns: 1fr;
+          }
+          .mechanics-grid,
+          .draft-section { grid-template-columns: 1fr; }
+          .flywheel-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 700px) {
+          .q-wrap { width: min(100% - 24px, 1180px); }
+          .q-brand span { display: none; }
+          .hero h1 { font-size: 34px; }
+          .hero p { font-size: 15px; }
+          .hero-content { padding-bottom: 500px; }
+          .draft-strip { grid-template-columns: repeat(2, 1fr); }
+          .lineup-grid { grid-template-columns: 1fr; }
+          .pack-stage,
+          .combine-grid {
+            grid-template-columns: 1fr;
+          }
+          .factor-card { min-height: 230px; }
+          .pitch-board { min-height: 520px; }
+          .pitch-card {
+            position: relative;
+            left: auto !important;
+            right: auto !important;
+            top: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            width: auto;
+            margin: 12px;
+          }
+          .pitch-board {
+            display: grid;
+            align-content: start;
+            padding-top: 8px;
+          }
+          .section { padding: 64px 0; }
+          .section h2 { font-size: 27px; }
+          .mechanics-grid { gap: var(--space-md); }
+          .scoreboard-head { display: none; }
+          .score-row { grid-template-columns: 42px 1fr; }
+          .score-row span:nth-child(n+3) { display: none; }
+          .journey-board { grid-template-columns: repeat(6, 210px); }
+          .flywheel-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .final-cta { grid-template-columns: 1fr; }
+          .footer-inner { flex-direction: column; align-items: flex-start; }
         }
       `}</style>
 
-      {/* ═══════════ NAVIGATION ═══════════ */}
-      <header
-        className="fixed top-0 left-0 right-0 z-50"
-        style={{
-          background: scrolled
-            ? isDark
-              ? "rgba(0,0,0,0.8)"
-              : "rgba(255,255,255,0.8)"
-            : "transparent",
-          backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
-          WebkitBackdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
-          borderBottom: scrolled ? `1px solid ${border}` : "1px solid transparent",
-          transition: `all 200ms ${EASE}`,
-        }}
-      >
-        <div className="mx-auto max-w-[1120px] px-6">
-          <div className="flex h-14 items-center justify-between">
-            <Link href="/landing">
-              <div className="flex items-center gap-2.5 cursor-pointer">
-                <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Quandora" className="w-8 h-8 rounded-full object-cover" />
-                <span className="font-semibold text-base tracking-tight" style={{ color: textHigh }}>
-                  Quandora
-                </span>
-              </div>
+      <header className={`q-nav ${scrolled ? "scrolled" : ""}`}>
+        <div className="q-wrap q-nav-inner">
+          <Link href="/landing" className="q-brand">
+            <img
+              src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
+              alt="Quandora"
+            />
+            <span>Quandora League</span>
+          </Link>
+
+          <div className="nav-actions">
+            <AnimatedThemeToggler
+              className="h-[34px] w-[34px] rounded-lg border border-border"
+              title={tr("Switch theme", "切换主题")}
+            />
+            <button className="lang-toggle" type="button" onClick={() => setUiLang(uiLang === "zh" ? "en" : "zh")}>
+              {uiLang === "zh" ? "中文" : "EN"}
+            </button>
+            <Link className="login-pill" href={isAuthenticated ? "/" : "/auth"}>
+              {isAuthenticated ? tr("Dashboard", "仪表盘") : tr("Log in", "登录")}
+              <ArrowRight size={14} />
             </Link>
-
-            <div className="flex items-center gap-2.5">
-              <AnimatedThemeToggler
-                className="w-8 h-8 flex items-center justify-center transition-colors"
-                style={{
-                  borderRadius: "6px",
-                  border: `1px solid ${border}`,
-                  background: "transparent",
-                  transitionTimingFunction: EASE,
-                }}
-                title={isDark ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}
-              />
-
-              <button
-                type="button"
-                onClick={() => setUiLang(uiLang === "zh" ? "en" : "zh")}
-                className="flex h-8 items-center rounded-full border border-border bg-accent px-3 text-xs font-medium text-foreground transition-colors hover:bg-slate-200 dark:hover:bg-slate-800"
-                title={tr("Switch language", "切换语言")}
-              >
-                <span>{uiLang === "zh" ? "中文" : "English"}</span>
-              </button>
-
-              {isAuthenticated ? (
-                <Link href="/">
-                  <span
-                    className="h-8 px-4 text-xs font-medium inline-flex items-center gap-1.5 transition-all"
-                    style={{
-                      borderRadius: "6px",
-                      background: T.indigo,
-                      color: "#FFFFFF",
-                      boxShadow: T.indigoShadow,
-                      transitionTimingFunction: EASE,
-                    }}
-                  >
-                    {tr("Dashboard", "仪表盘")}
-                    <ArrowRight className="w-3 h-3" />
-                  </span>
-                </Link>
-              ) : (
-                <Link href="/auth">
-                  <span
-                    className="h-8 px-4 text-xs font-medium inline-flex items-center gap-1.5 transition-all"
-                    style={{
-                      borderRadius: "6px",
-                      background: T.indigo,
-                      color: "#FFFFFF",
-                      boxShadow: T.indigoShadow,
-                      transitionTimingFunction: EASE,
-                    }}
-                  >
-                    {tr("Log In", "登录")}
-                    <ArrowRight className="w-3 h-3" />
-                  </span>
-                </Link>
-              )}
-            </div>
           </div>
         </div>
       </header>
 
-      {/* ═══════════ PARTICLE BACKGROUND ═══════════ */}
-      <canvas
-        ref={canvasRef}
-        className="fixed top-0 left-0 w-full h-full pointer-events-none z-0"
-        style={{
-          maskImage: "radial-gradient(circle at center, white, transparent 80%)",
-          WebkitMaskImage: "radial-gradient(circle at center, white, transparent 80%)",
-        }}
-      />
+      <section className="hero" ref={heroRef}>
+        <div className="hero-bg" aria-hidden="true">
+          <img src={IMG_OFFICIAL_STRATEGIES} alt="" />
+        </div>
+        <div className="hero-cover" aria-hidden="true" />
+        <div className="pitch-lines" aria-hidden="true" />
 
-      {/* ═══════════ HERO (Section I) ═══════════ */}
-      <section className="relative pt-14 overflow-hidden">
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: "30%",
-            left: "30%",
-            transform: "translate(-50%, -50%)",
-            width: "700px",
-            height: "700px",
-            borderRadius: "50%",
-            background: `radial-gradient(circle, ${isDark ? "rgba(79,71,230,0.08)" : "rgba(79,71,230,0.04)"} 0%, transparent 70%)`,
-            filter: "blur(60px)",
-          }}
-        />
+        <div className="q-wrap hero-content">
+          <div className="hero-copy">
+            <span className="eyebrow" data-hero>
+              <Sparkles size={16} />
+              {tr("Fantasy sports mechanics for AI quant", "用 Fantasy Sports 重做 AI 量化")}
+            </span>
+            <h1 data-hero>
+              {tr(
+                "Draft factors like players. Manage strategies like a league.",
+                "像选球员一样选因子，像打联赛一样经营策略。"
+              )}
+            </h1>
+            <p data-hero>
+              {tr(
+                "Quandora turns factor mining into a fantasy quant league: users scout ideas with AI, pass a backtest combine, draft factor cards under a salary cap, and compete for rewards every market gameweek.",
+                "Quandora 把因子挖掘变成 Fantasy 量化联赛：用户用 AI 挖想法，通过回测体测，在工资帽内选因子卡，并在每个市场赛周争夺奖励。"
+              )}
+            </p>
+            <div className="hero-actions" data-hero>
+              <PrimaryButton onClick={start}>
+                {isAuthenticated ? tr("Open my team", "打开我的球队") : tr("Start scouting", "开始球探挖掘")}
+                <ArrowRight size={18} />
+              </PrimaryButton>
+              <PrimaryButton tone="quiet" onClick={jumpToDraft}>
+                {tr("View draft room", "查看选秀室")}
+                <ChevronRight size={18} />
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
 
-        <div
-          ref={heroRef}
-          className="relative mx-auto max-w-[1120px] px-6 pt-28 sm:pt-36 pb-20 sm:pb-28"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            {/* ── Left Column: Text Content ── */}
-            <div className="flex flex-col items-start">
+        <DraftRoom tr={tr} />
+      </section>
 
+      <section className="section">
+        <div className="q-wrap">
+          <div className="section-head" data-reveal>
+            <span className="section-kicker">
+              <Medal size={16} />
+              {tr("Product thesis", "产品设定")}
+            </span>
+            <h2>{tr("The quant workflow becomes a season, not a form.", "量化流程不再是表单，而是一整个赛季。")}</h2>
+            <p>
+              {tr(
+                "The old flow asked users to submit, wait, and upgrade. The new flow gives every action a game role: scout, draft, manage, compete, and win.",
+                "旧流程让用户提交、等待、升级；新流程把每个动作变成游戏身份：球探、选秀、经理、比赛、领奖。"
+              )}
+            </p>
+          </div>
 
-              {/* Display XL — text loop */}
-              <h1
-                data-anim
-                className="flex flex-wrap items-baseline gap-[0.25em]"
-                style={{
-                  fontSize: "clamp(2rem, 4.5vw, 3.25rem)",
-                  fontWeight: 700,
-                  lineHeight: 1.1,
-                  letterSpacing: "-0.04em",
-                  color: textHigh,
-                }}
-              >
-                <span>{tr("Build your", "构建你的")}</span>
-                <TextLoop
-                  texts={heroLoopTexts}
-                  interval={2500}
-                  className=""
-                  style={{ color: isDark ? "#818CF8" : "#4F47E6" }}
-                />
-              </h1>
-
-              <p
-                data-anim
-                className="max-w-lg mt-6 mb-10"
-                style={{
-                  fontSize: "0.9375rem",
-                  lineHeight: 1.7,
-                  color: textMuted,
-                }}
-              >
-                {tr(
-                  "Quandora connects factor creation, official libraries, strategy templates, trade monitoring, and wallet credits in one focused quant workspace.",
-                  "Quandora 将因子创建、官方库、策略模板、交易监控与钱包额度整合到一个专注的量化工作区。"
-                )}
-              </p>
-
-              {/* CTA */}
-              <div data-anim className="flex flex-wrap gap-3 mb-10">
-                <IndigoButton onClick={handleCTA}>
-                  {isAuthenticated ? tr("Open Dashboard", "打开仪表盘") : tr("Start Launch Guide", "开始启动指引")}
-                  <ArrowRight className="w-4 h-4" />
-                </IndigoButton>
-                <IndigoButton variant="ghost" onClick={handleExplorePlatform}>
-                  {tr("View Platform Map", "查看平台地图")}
-                </IndigoButton>
-              </div>
-
-              {/* Agent options */}
-              <div data-anim className="flex flex-col gap-3">
-                <span
-                  className="text-[11px] font-medium uppercase"
-                  style={{
-                    fontFamily: "'Geist Mono', monospace",
-                    color: textMuted,
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {tr("Agent options", "Agent 选项")}
-                </span>
-                <TooltipProvider delayDuration={200}>
-                  <div className="flex items-center gap-3">
-                    {[
-                      { name: "ChatGPT", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M20.562 10.188c.25-.688.313-1.376.25-2.063c-.062-.687-.312-1.375-.625-2c-.562-.937-1.375-1.687-2.312-2.125c-1-.437-2.063-.562-3.125-.312c-.5-.5-1.063-.938-1.688-1.25S11.687 2 11 2a5.17 5.17 0 0 0-3 .938c-.875.624-1.5 1.5-1.813 2.5c-.75.187-1.375.5-2 .875c-.562.437-1 1-1.375 1.562c-.562.938-.75 2-.625 3.063a5.44 5.44 0 0 0 1.25 2.874a4.7 4.7 0 0 0-.25 2.063c.063.688.313 1.375.625 2c.563.938 1.375 1.688 2.313 2.125c1 .438 2.062.563 3.125.313c.5.5 1.062.937 1.687 1.25S12.312 22 13 22a5.17 5.17 0 0 0 3-.937c.875-.625 1.5-1.5 1.812-2.5a4.54 4.54 0 0 0 1.938-.875c.562-.438 1.062-.938 1.375-1.563c.562-.937.75-2 .625-3.062c-.125-1.063-.5-2.063-1.188-2.876m-7.5 10.5c-1 0-1.75-.313-2.437-.875c0 0 .062-.063.125-.063l4-2.312a.5.5 0 0 0 .25-.25a.57.57 0 0 0 .062-.313V11.25l1.688 1v4.625a3.685 3.685 0 0 1-3.688 3.813M5 17.25c-.438-.75-.625-1.625-.438-2.5c0 0 .063.063.125.063l4 2.312a.56.56 0 0 0 .313.063c.125 0 .25 0 .312-.063l4.875-2.812v1.937l-4.062 2.375A3.7 3.7 0 0 1 7.312 19c-1-.25-1.812-.875-2.312-1.75M3.937 8.563a3.8 3.8 0 0 1 1.938-1.626v4.751c0 .124 0 .25.062.312a.5.5 0 0 0 .25.25l4.875 2.813l-1.687 1l-4-2.313a3.7 3.7 0 0 1-1.75-2.25c-.25-.937-.188-2.062.312-2.937M17.75 11.75l-4.875-2.812l1.687-1l4 2.312c.625.375 1.125.875 1.438 1.5s.5 1.313.437 2.063a3.7 3.7 0 0 1-.75 1.937c-.437.563-1 1-1.687 1.25v-4.75c0-.125 0-.25-.063-.312c0 0-.062-.126-.187-.188m1.687-2.5s-.062-.062-.125-.062l-4-2.313c-.125-.062-.187-.062-.312-.062s-.25 0-.313.062L9.812 9.688V7.75l4.063-2.375c.625-.375 1.312-.5 2.062-.5c.688 0 1.375.25 2 .688c.563.437 1.063 1 1.313 1.625s.312 1.375.187 2.062m-10.5 3.5l-1.687-1V7.063c0-.688.187-1.438.562-2C8.187 4.438 8.75 4 9.375 3.688a3.37 3.37 0 0 1 2.062-.313c.688.063 1.375.375 1.938.813c0 0-.063.062-.125.062l-4 2.313a.5.5 0 0 0-.25.25c-.063.125-.063.187-.063.312zm.875-2L12 9.5l2.187 1.25v2.5L12 14.5l-2.188-1.25z"/></svg>' },
-                      { name: "Claude", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M16.765 5h-3.308l5.923 15h3.23zM7.226 5L1.38 20h3.308l1.307-3.154h6.154l1.23 3.077h3.309L10.688 5zm-.308 9.077l2-5.308l2.077 5.308z"/></svg>' },
-                      { name: "DeepSeek", svg: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M23.75 4.927c-.245-.12-.34.108-.482.224c-.049.038-.09.087-.131.13c-.357.384-.773.634-1.315.604c-.796-.044-1.474.207-2.074.818c-.127-.754-.551-1.203-1.195-1.492c-.338-.15-.68-.3-.915-.626c-.165-.231-.21-.49-.293-.744c-.052-.153-.105-.31-.28-.337c-.192-.03-.266.13-.341.265c-.3.55-.416 1.158-.406 1.772c.027 1.382.608 2.482 1.762 3.266c.132.09.166.18.124.311c-.079.27-.172.531-.255.8c-.052.173-.13.211-.314.135A5.3 5.3 0 0 1 15.97 8.92c-.82-.797-1.563-1.677-2.489-2.366a11 11 0 0 0-.66-.454c-.944-.922.125-1.679.372-1.768c.259-.093.09-.416-.747-.412c-.835.004-1.6.285-2.574.659c-.143.057-.326.153-.446.13a9.2 9.2 0 0 0-2.763-.096c-1.806.203-3.25 1.06-4.31 2.525c-1.275 1.76-1.574 3.759-1.207 5.846c.385 2.197 1.502 4.019 3.22 5.442c1.78 1.474 3.83 2.197 6.169 2.058c1.42-.081 3.003-.273 4.786-1.789c.45.224.922.313 1.707.381c.603.057 1.184-.03 1.634-.123c.704-.15.655-.804.4-.926c-2.065-.966-1.612-.573-2.024-.89c1.05-1.248 2.632-2.544 3.25-6.741c.049-.334.007-.543 0-.814c-.003-.163.034-.228.22-.247a4 4 0 0 0 1.482-.457c1.338-.734 1.867-1.939 1.995-3.385c.019-.22-.004-.45-.236-.565m-11.652 13.01c-2.002-1.58-2.972-2.1-3.373-2.078c-.375.021-.308.452-.225.733c.086.277.198.468.356.711c.109.162.184.402-.108.58c-.645.403-1.766-.134-1.82-.16c-1.303-.77-2.394-1.79-3.163-3.182c-.741-1.342-1.172-2.78-1.243-4.315c-.02-.372.09-.503.456-.57a4.5 4.5 0 0 1 1.466-.037c2.043.3 3.782 1.218 5.24 2.67c.832.829 1.462 1.817 2.11 2.783c.69 1.027 1.432 2.004 2.377 2.804c.333.281.6.495.854.653c-.768.085-2.05.104-2.927-.592m.96-6.199a.294.294 0 1 1 .588 0a.294.294 0 0 1-.296.296a.29.29 0 0 1-.293-.296m2.98 1.537c-.192.078-.383.146-.566.154a1.2 1.2 0 0 1-.765-.245c-.262-.22-.45-.343-.53-.73a1.7 1.7 0 0 1 .016-.566c.068-.315-.008-.516-.228-.7c-.18-.15-.408-.19-.66-.19a.5.5 0 0 1-.244-.076c-.105-.053-.191-.184-.109-.345a1 1 0 0 1 .185-.201c.34-.195.734-.13 1.098.015c.337.139.592.393.959.752c.375.434.442.555.656.88c.168.256.323.518.428.818c.063.186-.02.34-.24.434"/></svg>' },
-                    ].map((ai) => (
-                      <Tooltip key={ai.name}>
-                        <TooltipTrigger asChild>
-                          <div
-                            className="flex items-center justify-center w-9 h-9 rounded-lg transition-all hover:scale-110 cursor-default"
-                            style={{
-                              background: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-                              border: `1px solid ${border}`,
-                              color: isDark ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.45)",
-                            }}
-                            dangerouslySetInnerHTML={{ __html: ai.svg }}
-                          />
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs">
-                          {ai.name}
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
+          <div className="mechanics-grid">
+            {mechanics.map((item) => {
+              const Icon = item.icon;
+              return (
+                <article className="mechanic-card" key={item.titleEn} data-reveal>
+                  <div className="icon-box">
+                    <Icon size={20} />
                   </div>
-                </TooltipProvider>
-              </div>
-            </div>
-
-            {/* ── Right Column: ASCII Art ── */}
-            <div
-              className="relative w-full aspect-[4/3] rounded-xl overflow-hidden hidden lg:block"
-            >
-              <AsciiVisionExport />
-            </div>
-
+                  <h3>{tr(item.titleEn, item.titleZh)}</h3>
+                  <p>{tr(item.textEn, item.textZh)}</p>
+                </article>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ═══════════ WORKFLOW — 4 Steps (Section IV) ═══════════ */}
-      <section
-        id="how-it-works"
-        className="py-24 sm:py-32"
-        style={{ background: bg }}
-      >
-        <div className="mx-auto max-w-[1120px] px-6">
-          <div className="text-center mb-16" data-reveal>
-            <p
-              className="text-[11px] font-medium uppercase mb-3"
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                color: T.indigo,
-                letterSpacing: "0.05em",
-              }}
-            >
-              {tr("Platform Flow", "平台流程")}
+      <section className="section alt" id="scout">
+        <div className="q-wrap">
+          <div className="section-head" data-reveal>
+            <span className="section-kicker">
+              <PackageOpen size={16} />
+              {tr("Create factor = open scout pack", "创建因子 = 打开球探卡包")}
+            </span>
+            <h2>{tr("Factor creation starts with a pack reveal, then earns truth through a combine.", "创建因子先抽出候选卡，再用体测证明真假。")}</h2>
+            <p>
+              {tr(
+                "The user gives AI a market thesis. The system reveals several factor cards with rarity, role, potential, salary, and traits. Only validated cards can enter the draft pool.",
+                "用户给 AI 一个市场假设，系统开出多张因子卡，展示稀有度、位置、潜力、工资和特性。只有通过验证的卡才能进入选秀池。"
+              )}
             </p>
-            <h2
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: 600,
-                lineHeight: 1.3,
-                letterSpacing: "-0.02em",
-                color: textHigh,
-              }}
-            >
-              {tr("From onboarding to monitoring in four steps", "从启动配置到监控复盘的四步流程")}
-            </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {workflowSteps.map((step) => {
-              const Icon = step.icon;
+          <ScoutPackShowcase tr={tr} />
+        </div>
+      </section>
+
+      <section className="section" id="journey">
+        <div className="q-wrap">
+          <div className="section-head" data-reveal>
+            <span className="section-kicker">
+              <RadioTower size={16} />
+              {tr("Journey map", "用户旅程地图")}
+            </span>
+            <h2>{tr("Two entry paths merge into one competitive loop.", "两种入口路径，汇入同一个竞争飞轮。")}</h2>
+            <p>
+              {tr(
+                "Own-agent users keep their workflow. No-agent users use the platform scout desk. Both end at the same combine, roster, and reward loop.",
+                "自带 Agent 的用户保留原工作流；无 Agent 用户进入平台球探台。两条路径都会进入体测、阵容和奖励循环。"
+              )}
+            </p>
+          </div>
+
+          <div className="journey-board" data-reveal>
+            {journey.map((item) => {
+              const Icon = item.icon;
               return (
-                <HoverCard key={step.num} isDark={isDark} className="p-6">
-                  <div data-reveal>
-                    <span
-                      className="text-[11px] font-medium uppercase"
-                      style={{
-                        fontFamily: "'Geist Mono', monospace",
-                        color: textMuted,
-                        letterSpacing: "0.05em",
-                      }}
-                    >
-                      {tr("Step", "步骤")} {step.num}
+                <article className={`journey-node ${item.tone}`} key={item.step}>
+                  <div className="node-top">
+                    <span className="node-index">{item.step}</span>
+                    <span className="node-icon">
+                      <Icon size={18} />
                     </span>
-
-                    <div
-                      className="mt-4 mb-3 w-10 h-10 flex items-center justify-center"
-                      style={{
-                        borderRadius: "8px",
-                        background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                      }}
-                    >
-                      <Icon className="w-5 h-5" style={{ color: T.indigo }} />
-                    </div>
-
-                    <h3
-                      className="text-[15px] font-semibold mb-2"
-                      style={{ color: textHigh, letterSpacing: "-0.01em" }}
-                    >
-                      {tr(step.titleEn, step.titleZh)}
-                    </h3>
-                    <p
-                      style={{
-                        fontSize: "0.875rem",
-                        lineHeight: 1.6,
-                        color: textMuted,
-                      }}
-                    >
-                      {tr(step.descEn, step.descZh)}
-                    </p>
                   </div>
-                </HoverCard>
+                  <div>
+                    <h3>{tr(item.titleEn, item.titleZh)}</h3>
+                    <p>{tr(item.descEn, item.descZh)}</p>
+                  </div>
+                </article>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* ═══════════ CORE FEATURES — 3 Modules (Section II) ═══════════ */}
-      <section id="platform-map" className="py-24 sm:py-32" style={{ background: bg }}>
-        <div className="mx-auto max-w-[1120px] px-6">
-          <div className="text-center mb-16" data-reveal>
-            <p
-              className="text-[11px] font-medium uppercase mb-3"
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                color: T.indigo,
-                letterSpacing: "0.05em",
-              }}
-            >
-              {tr("Current Modules", "当前模块")}
+      <section className="section alt" id="draft">
+        <div className="q-wrap">
+          <div className="section-head" data-reveal>
+            <span className="section-kicker">
+              <Swords size={16} />
+              {tr("Create strategy = build lineup", "创建策略 = 组建阵容")}
+            </span>
+            <h2>{tr("Strategy creation becomes a tactical board with salary cap, roles, and AI coaching.", "创建策略变成战术板：工资帽、角色位、AI 教练一起上。")}</h2>
+            <p>
+              {tr(
+                "Instead of choosing formulas in a long form, users draft a captain, core cards, defense cards, and bench cards. The lineup can be simulated before it enters a league.",
+                "用户不再在长表单里选公式，而是选择队长卡、核心卡、防守卡和替补卡。阵容先模拟对战，再进入联赛。"
+              )}
             </p>
-            <h2
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: 600,
-                lineHeight: 1.3,
-                letterSpacing: "-0.02em",
-                color: textHigh,
-              }}
-            >
-              {tr("The pages available in Quandora today", "当前 Quandora 已提供的页面")}
-            </h2>
           </div>
 
-          {/* Feature 1: guided factor creation */}
-          <div className="mb-5" data-reveal>
-            <HoverCard isDark={isDark} className="overflow-hidden group">
-              <div className="grid grid-cols-1 lg:grid-cols-2">
-                <div className="p-8">
-                  <div
-                    className="w-10 h-10 flex items-center justify-center mb-4"
-                    style={{
-                      borderRadius: "8px",
-                      background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                    }}
-                  >
-                    <MessageSquare className="w-5 h-5" style={{ color: T.indigo }} />
-                  </div>
-                  <p
-                    className="text-[11px] font-medium uppercase mb-2"
-                    style={{
-                      fontFamily: "'Geist Mono', monospace",
-                      color: T.indigo,
-                      letterSpacing: "0.05em",
-                    }}
-                  >
-                    {tr(coreFeatures[0].subtitleEn, coreFeatures[0].subtitleZh)}
-                  </p>
-                  <h3
-                    className="text-lg font-semibold mb-3"
-                    style={{ color: textHigh, letterSpacing: "-0.01em" }}
-                  >
-                    {tr(coreFeatures[0].titleEn, coreFeatures[0].titleZh)}
-                  </h3>
-                  <p
-                    className="mb-6"
-                    style={{ fontSize: "0.875rem", lineHeight: 1.6, color: textMuted }}
-                  >
-                    {tr(coreFeatures[0].descEn, coreFeatures[0].descZh)}
-                  </p>
+          <LineupBuilderShowcase tr={tr} />
+        </div>
+      </section>
 
-                  {/* IPO Model */}
-                  <div className="space-y-3">
-                    {coreFeatures[0].details.map((d) => (
-                      <div key={d.labelEn} className="flex gap-3">
-                        <span
-                          className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-2 py-0.5 rounded"
-                          style={{
-                            background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                            color: T.indigo,
-                            fontFamily: "'Geist Mono', monospace",
-                            letterSpacing: "0.05em",
-                          }}
-                        >
-                          {tr(d.labelEn, d.labelZh)}
-                        </span>
-                        <p style={{ fontSize: "0.8125rem", lineHeight: 1.5, color: textMuted }}>
-                          {tr(d.textEn, d.textZh)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex items-end p-6 pt-0 lg:pt-6">
-                  <div style={{ borderRadius: "10px", overflow: "hidden" }}>
-                    <img
-                      src={coreFeatures[0].img}
-                      alt={tr(coreFeatures[0].titleEn, coreFeatures[0].titleZh)}
-                      className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                      style={{ transitionTimingFunction: EASE }}
-                      loading="lazy"
-                    />
-                  </div>
-                </div>
+      <section className="section">
+        <div className="q-wrap draft-section">
+          <div className="section-head" data-reveal>
+            <span className="section-kicker">
+              <Activity size={16} />
+              {tr("Match result", "对战结算")}
+            </span>
+            <h2>{tr("Wins come from durable performance, not one lucky PNL spike.", "胜负来自稳健表现，而不是一次幸运暴涨。")}</h2>
+            <p>
+              {tr(
+                "Gameweek scoring mixes return, Sharpe, drawdown defense, consistency, uniqueness, and turnover cost so the competition rewards better quant behavior.",
+                "赛周积分混合收益、夏普、回撤防守、稳定性、独特性与换手成本，让比赛奖励真正更好的量化行为。"
+              )}
+            </p>
+          </div>
+
+          <div className="scoreboard" data-reveal>
+            <div className="scoreboard-head">
+              <span>#</span>
+              <span>{tr("Team", "球队")}</span>
+              <span>PNL</span>
+              <span>SR</span>
+              <span>{tr("Status", "状态")}</span>
+            </div>
+            {scoreboardRows.map((row) => (
+              <div className="score-row" key={row.rank}>
+                <span className="rank">{row.rank}</span>
+                <strong>{tr(row.teamEn, row.teamZh)}</strong>
+                <span className="positive">{row.pnl}</span>
+                <span>{row.sharpe}</span>
+                <span className="badge">{row.badge}</span>
               </div>
-            </HoverCard>
-          </div>
-
-          {/* Feature 2 & 3: Side by side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {coreFeatures.slice(1).map((feature) => {
-              const Icon = feature.icon;
-              return (
-                <HoverCard key={feature.titleEn} isDark={isDark} className="overflow-hidden group" >
-                  <div data-reveal>
-                    <div className="p-6 pb-0">
-                      <div
-                        className="w-10 h-10 flex items-center justify-center mb-4"
-                        style={{
-                          borderRadius: "8px",
-                          background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                        }}
-                      >
-                        <Icon className="w-5 h-5" style={{ color: T.indigo }} />
-                      </div>
-                      <p
-                        className="text-[11px] font-medium uppercase mb-2"
-                        style={{
-                          fontFamily: "'Geist Mono', monospace",
-                          color: T.indigo,
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        {tr(feature.subtitleEn, feature.subtitleZh)}
-                      </p>
-                      <h3
-                        className="text-[15px] font-semibold mb-2"
-                        style={{ color: textHigh, letterSpacing: "-0.01em" }}
-                      >
-                        {tr(feature.titleEn, feature.titleZh)}
-                      </h3>
-                      <p
-                        className="mb-4"
-                        style={{ fontSize: "0.8125rem", lineHeight: 1.6, color: textMuted }}
-                      >
-                        {tr(feature.descEn, feature.descZh)}
-                      </p>
-
-                      {/* Detail bullets */}
-                      <div className="space-y-2 mb-4">
-                        {feature.details.map((d) => (
-                          <div key={d.labelEn} className="flex gap-2.5">
-                            <span
-                              className="shrink-0 mt-0.5 text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
-                              style={{
-                                background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                                color: T.indigo,
-                                fontFamily: "'Geist Mono', monospace",
-                                letterSpacing: "0.04em",
-                              }}
-                            >
-                              {tr(d.labelEn, d.labelZh)}
-                            </span>
-                            <p style={{ fontSize: "0.75rem", lineHeight: 1.5, color: textMuted }}>
-                              {tr(d.textEn, d.textZh)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="px-6">
-                      <div style={{ borderRadius: "10px 10px 0 0", overflow: "hidden" }}>
-                        <img
-                          src={feature.img}
-                          alt={tr(feature.titleEn, feature.titleZh)}
-                          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-[1.02]"
-                          style={{ transitionTimingFunction: EASE }}
-                          loading="lazy"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </HoverCard>
-              );
-            })}
+            ))}
+            <div className="image-callout" style={{ borderWidth: 0, borderTop: "1px solid var(--line)", borderRadius: 0 }}>
+              <div className="image-copy">
+                <h3>{tr("League board built from real quant fields", "用真实量化字段生成联赛榜")}</h3>
+                <p>
+                  {tr(
+                    "Sharpe, fitness, drawdown, turnover, pass count, and PnL become a language users can compare at a glance.",
+                    "夏普、适应度、回撤、换手、通过数和 PnL 被转成用户一眼可比较的联赛语言。"
+                  )}
+                </p>
+              </div>
+              <img src={IMG_OFFICIAL_FACTORS} alt={tr("Official factor library", "官方因子库")} />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ═══════════ STATS ═══════════ */}
-      <section
-        className="py-20 sm:py-24"
-        style={{
-          background: bg,
-          borderTop: `1px solid ${border}`,
-          borderBottom: `1px solid ${border}`,
-        }}
-      >
-        <div className="mx-auto max-w-[1120px] px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-12">
-            {stats.map((stat, idx) => (
-              <div key={stat.labelEn} data-reveal className="text-center">
-                <p
-                  className="text-3xl sm:text-4xl font-bold mb-1.5"
-                  style={{
-                    fontFamily: "'Geist Mono', monospace",
-                    color: T.indigo,
-                    letterSpacing: "-0.02em",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  <ScrambleText
-                    text={stat.value}
-                    scrambleDuration={0.5}
-                    stagger={0.02}
-                    cycles={10}
-                    characters="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ, $%+."
-                    repeatInterval={5000}
-                    initialDelay={800 + idx * 200}
-                    style={{ color: "inherit", font: "inherit" }}
-                  />
-                </p>
-                <p
-                  className="text-[11px] font-medium uppercase"
-                  style={{
-                    fontFamily: "'Geist Mono', monospace",
-                    color: textMuted,
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {tr(stat.labelEn, stat.labelZh)}
-                </p>
-              </div>
+      <section className="section alt">
+        <div className="q-wrap">
+          <div className="section-head" data-reveal>
+            <span className="section-kicker">
+              <ShieldCheck size={16} />
+              {tr("Business flywheel", "商业飞轮")}
+            </span>
+            <h2>{tr("Rewards create supply. Supply improves the game.", "奖励带来供给，供给增强比赛。")}</h2>
+            <p>
+              {tr(
+                "The flywheel from the reference becomes a fantasy league economy: low-friction submissions create factor cards, cards power strategies, strategies generate leaderboards, and leaderboards pull users into membership.",
+                "参考图里的飞轮变成 Fantasy 联赛经济：低门槛提交产生因子卡，因子卡驱动策略，策略生成排行榜，排行榜把用户拉向会员。"
+              )}
+            </p>
+          </div>
+
+          <div className="flywheel-grid" data-reveal>
+            {flywheel.map((item) => (
+              <article className="flywheel-card" key={item.n}>
+                <span>{item.n}</span>
+                <h3>{tr(item.labelEn, item.labelZh)}</h3>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══════════ TECHNICAL MOAT (Section III) ═══════════ */}
-      <section className="py-24 sm:py-32" style={{ background: bg }}>
-        <div className="mx-auto max-w-[1120px] px-6">
-          <div className="text-center mb-16" data-reveal>
-            <p
-              className="text-[11px] font-medium uppercase mb-3"
-              style={{
-                fontFamily: "'Geist Mono', monospace",
-                color: T.indigo,
-                letterSpacing: "0.05em",
-              }}
-            >
-              {tr("Workspace Coverage", "工作区覆盖范围")}
-            </p>
-            <h2
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: 600,
-                lineHeight: 1.3,
-                letterSpacing: "-0.02em",
-                color: textHigh,
-              }}
-            >
-              {tr("Built around the fields and pages already in the product", "围绕产品中已存在的字段与页面构建")}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {moatItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <HoverCard key={item.dimensionEn} isDark={isDark} className="p-5">
-                  <div data-reveal>
-                    <div
-                      className="w-9 h-9 flex items-center justify-center mb-3"
-                      style={{
-                        borderRadius: "8px",
-                        background: isDark ? T.indigoGlow : T.indigoGlowLight,
-                      }}
-                    >
-                      <Icon className="w-4 h-4" style={{ color: T.indigo }} />
-                    </div>
-                    <h4
-                      className="text-sm font-semibold mb-1"
-                      style={{ color: textHigh }}
-                    >
-                      {tr(item.dimensionEn, item.dimensionZh)}
-                    </h4>
-                    <p
-                      className="mb-2"
-                      style={{
-                        fontSize: "0.8125rem",
-                        lineHeight: 1.5,
-                        color: T.indigo,
-                        fontFamily: "'Geist Mono', monospace",
-                      }}
-                    >
-                      {tr(item.implementationEn, item.implementationZh)}
-                    </p>
-                    <p
-                      style={{
-                        fontSize: "0.8125rem",
-                        lineHeight: 1.6,
-                        color: textMuted,
-                      }}
-                    >
-                      {tr(item.valueEn, item.valueZh)}
-                    </p>
-                  </div>
-                </HoverCard>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════ CTA ═══════════ */}
-      <section
-        id="start"
-        className="py-24 sm:py-32 relative overflow-hidden"
-        style={{ background: bg }}
-      >
-        <div
-          className="absolute pointer-events-none"
-          style={{
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "500px",
-            height: "500px",
-            borderRadius: "50%",
-            background: `radial-gradient(circle, ${isDark ? "rgba(79,71,230,0.06)" : "rgba(79,71,230,0.03)"} 0%, transparent 70%)`,
-            filter: "blur(60px)",
-          }}
-        />
-
-        <div className="relative mx-auto max-w-[1120px] px-6 text-center">
-          <h2
-            data-reveal
-            style={{
-              fontSize: "1.5rem",
-              fontWeight: 600,
-              lineHeight: 1.3,
-              letterSpacing: "-0.02em",
-              color: textHigh,
-              marginBottom: "12px",
-            }}
-          >
-            {tr("Ready to explore Quandora?", "准备开始使用 Quandora？")}
-          </h2>
-          <p
-            data-reveal
-            className="mx-auto max-w-lg mb-10"
-            style={{
-              fontSize: "0.9375rem",
-              lineHeight: 1.6,
-              color: textMuted,
-            }}
-          >
-            {tr(
-              "Open the launch guide to configure your workflow, or go straight to the dashboard if your workspace is already set up.",
-              "打开启动指引配置你的工作流；如果工作区已设置完成，也可以直接进入仪表盘。"
-            )}
-          </p>
-          <div data-reveal>
-            <IndigoButton onClick={handleCTA}>
-              {isAuthenticated ? tr("Go to Dashboard", "前往仪表盘") : tr("Start Launch Guide", "开始启动指引")}
-              <ArrowRight className="w-4 h-4" />
-            </IndigoButton>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════ FOOTER ═══════════ */}
-      <footer
-        className="py-8"
-        style={{
-          background: bg,
-          borderTop: `1px solid ${border}`,
-        }}
-      >
-        <div className="mx-auto max-w-[1120px] px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <img src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png" alt="Quandora" className="w-7 h-7 rounded-full object-cover" />
-            <span className="text-sm font-semibold tracking-tight" style={{ color: textHigh }}>
-              Quandora
+      <section className="section">
+        <div className="q-wrap final-cta" data-reveal>
+          <div>
+            <span className="section-kicker" style={{ color: "oklch(90% 0.12 92)" }}>
+              <CircleDollarSign size={16} />
+              {tr("Monetization moments", "转化节点")}
             </span>
+            <h2>{tr("Free users play. Members manage serious lineups.", "免费用户先玩起来，会员经营高阶阵容。")}</h2>
+            <p>
+              {tr(
+                "Practice leagues stay open. Paid members unlock high-confidence signals, private contests, bigger submission limits, and follow-trade strategy rooms.",
+                "练习联赛保持开放；付费会员解锁高置信信号、私密比赛、更高提交额度和跟单策略室。"
+              )}
+            </p>
           </div>
-          <p
-            className="text-xs"
-            style={{ color: textMuted }}
-          >
-            &copy; {new Date().getFullYear()} Quandora. {tr("All rights reserved.", "保留所有权利。")}
-          </p>
+          <PrimaryButton onClick={start}>
+            {tr("Enter the league", "进入联赛")}
+            <ArrowRight size={18} />
+          </PrimaryButton>
+        </div>
+      </section>
+
+      <footer className="q-footer">
+        <div className="q-wrap footer-inner">
+          <span>Quandora League</span>
+          <span>{tr("AI quant factor mining, redesigned as a fantasy sports season.", "把 AI 量化因子挖掘重新设计成 Fantasy Sports 赛季。")}</span>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }
