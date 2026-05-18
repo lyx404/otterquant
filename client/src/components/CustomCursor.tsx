@@ -9,8 +9,10 @@
  */
 import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
+import { useLocation } from "wouter";
 
 export default function CustomCursor() {
+  const [location] = useLocation();
   const cursorRef = useRef<HTMLDivElement>(null);
   const dotRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
@@ -160,6 +162,10 @@ export default function CustomCursor() {
 
     return () => themeObserver.disconnect();
   }, [isHovering, getPrimaryColor, getPrimaryAlpha]);
+
+  if (location === "/game-preview") {
+    return null;
+  }
 
   return (
     <>
