@@ -21,14 +21,12 @@ import "./GamePreview.css";
 
 const stats: Array<{ title: string; detail: string; type: string }> = [];
 
-const todoItems = ["查看1份简历", "招聘1个员工"];
-
 const navItems = [
-  { label: "员工", subtitle: "1/100", type: "factor", icon: "/nav-employee.svg" },
+  { label: "员工", type: "factor", icon: "/nav-employee.svg" },
   { label: "招聘", type: "market", icon: "/nav-recruit.svg" },
-  { label: "项目", type: "strategy", icon: "/nav-project.svg" },
+  { label: "团队", type: "strategy", icon: "/nav-project.svg" },
   { label: "模拟交易", type: "trade", icon: "/nav-trade.svg" },
-  { label: "排行榜", subtitle: "当前：150名", type: "rank", icon: "/nav-rank.svg" },
+  { label: "排行榜", type: "rank", icon: "/nav-rank.svg" },
   { label: "设置", type: "settings", icon: "/nav-settings.svg" },
 ];
 
@@ -262,10 +260,6 @@ function readRevealedGrade(factorId: string): FactorGrade | null {
   } catch {
     return null;
   }
-}
-
-function formatBonus(value: number) {
-  return value === 0 ? "0" : value.toFixed(1);
 }
 
 function formatBonusDetail(value: number) {
@@ -785,7 +779,7 @@ function RecruitModal({
           <div>
             <span className="alpha-modal-kicker">RECRUIT TERMINAL</span>
             <h2 id="recruit-modal-title">招聘</h2>
-            <p>AI搜索人才 → 查看简历 → 决定雇佣 → 入库生效</p>
+            <p>人才卡池 → 抽取简历 → 决定雇佣 → 入库生效</p>
           </div>
           <button className="alpha-modal-close" type="button" onClick={onClose} aria-label="关闭招聘弹窗">
             ×
@@ -799,36 +793,45 @@ function RecruitModal({
               <strong>{formatCurrency(balance)}</strong>
             </div>
 
+            <div className="recruit-gacha-machine" aria-label="人才抽取机">
+              <span className="recruit-gacha-screen">TALENT POOL</span>
+              <div className="recruit-gacha-window" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </div>
+              <button className="recruit-search-button" type="button" onClick={searchCandidate}>
+                抽取简历
+              </button>
+            </div>
+
             <div className="recruit-agent-switch" aria-label="Agent 类型">
               <button className={agentMode === "own" ? "is-active" : ""} type="button" onClick={() => setAgentMode("own")}>
-                自有Agent
+                自有Agent卡池
               </button>
               <button className={agentMode === "platform" ? "is-active" : ""} type="button" onClick={() => setAgentMode("platform")}>
-                平台Agent
+                平台Agent卡池
               </button>
             </div>
 
             <div className="recruit-rule-grid">
               <span>
-                <small>本次搜索费用</small>
+                <small>单次抽取</small>
                 <b>{nextSearchCost === 0 ? "免费" : formatCurrency(nextSearchCost)}</b>
               </span>
               <span>
-                <small>今日免费次数</small>
+                <small>今日免费</small>
                 <b>{agentMode === "own" ? `${freeLeft}/10` : "0/0"}</b>
               </span>
               <span>
-                <small>充值规则</small>
+                <small>补给礼包</small>
                 <b>9.9 USD = 1,000,000</b>
               </span>
             </div>
 
             <div className="recruit-actions">
-              <button className="recruit-search-button" type="button" onClick={searchCandidate}>
-                搜索
-              </button>
               <button className="recruit-recharge-button" type="button" onClick={() => onBalanceChange(balance + 1000000)}>
-                充值
+                充值补给
               </button>
             </div>
 
@@ -838,8 +841,10 @@ function RecruitModal({
           <section className={currentCandidate ? "recruit-resume-card is-ready" : "recruit-resume-card"} aria-label="简历卡片">
             {currentCandidate ? (
               <>
-                <span className="recruit-card-kicker">AI 匹配简历</span>
-                <h3>{currentCandidate.name}，{currentCandidate.title}</h3>
+                <div className="recruit-card-head">
+                  <span className="recruit-card-kicker">TALENT CARD</span>
+                  <h3>{currentCandidate.name}，{currentCandidate.title}</h3>
+                </div>
                 <div className="recruit-metrics">
                   <span><em>夏普比率</em><b>{currentCandidate.sharpe}</b></span>
                   <span><em>专长</em><b>{currentCandidate.specialty}</b></span>
@@ -858,8 +863,8 @@ function RecruitModal({
             ) : (
               <div className="recruit-empty-card">
                 <span />
-                <strong>等待简历</strong>
-                <p>点击搜索后，AI 会生成一份候选人简历。</p>
+                <strong>等待抽取</strong>
+                <p>点击抽取简历，AI 会翻开一张候选人卡牌。</p>
               </div>
             )}
           </section>
@@ -1744,13 +1749,11 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
   const [sortKey, setSortKey] = useState<AlphaColumnKey | "">("bonus");
   const [sortDir, setSortDir] = useState<AlphaSortDir>("asc");
   const [pageSize, setPageSize] = useState(10);
-  const [visibleColumns, setVisibleColumns] = useState<Set<AlphaColumnKey>>(() => new Set(defaultAlphaColumns));
   const [page, setPage] = useState(1);
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
   const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
   const [gradeRevealTick, setGradeRevealTick] = useState(0);
   const [selectedFactorId, setSelectedFactorId] = useState<string | null>(null);
-  const [showBonusDetails, setShowBonusDetails] = useState(false);
 
   const tablePnlValues = useMemo(() => {
     const pnlData = generatePnLData();
@@ -1809,22 +1812,11 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
     });
   }, [filtered, sortDir, sortKey]);
 
-  const visibleCols = alphaColumns.filter((column) => visibleColumns.has(column.key));
+  const visibleCols = alphaColumns.filter((column) => defaultAlphaColumns.includes(column.key));
   const sortColumns = alphaColumns.filter((column) => column.sortable);
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
   const hasActiveFilters = Boolean(filterName);
-  const gradeStats = useMemo(() => {
-    return alphaRows.reduce<Record<FactorGrade, number>>(
-      (acc, row) => {
-        acc[row.grade] += 1;
-        return acc;
-      },
-      { SSS: 0, SS: 0, S: 0, A: 0, B: 0, C: 0, D: 0 }
-    );
-  }, [alphaRows]);
-  const totalBonus = useMemo(() => alphaRows.reduce((sum, row) => sum + row.bonus, 0), [alphaRows]);
-
   const unrevealedPassedCount = useMemo(() => {
     void gradeRevealTick;
     return alphaRows.reduce((count, row) => {
@@ -1843,15 +1835,6 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
-    });
-  };
-
-  const toggleColumn = (key: AlphaColumnKey) => {
-    setVisibleColumns((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next.size === 0 ? prev : next;
     });
   };
 
@@ -1978,47 +1961,14 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
         <header className="alpha-modal-header">
           <div>
             <span className="alpha-modal-kicker">FACTOR TERMINAL</span>
-            <h2 id="alpha-modal-title">我的因子</h2>
+            <h2 id="alpha-modal-title">我的员工</h2>
           </div>
-          <button className="alpha-modal-close" type="button" onClick={onClose} aria-label="关闭我的因子弹窗">
+          <button className="alpha-modal-close" type="button" onClick={onClose} aria-label="关闭我的员工弹窗">
             ×
           </button>
         </header>
 
         <div className="alpha-modal-content">
-          <div className="alpha-modal-stats is-latest" aria-label="因子统计">
-            <button type="button" className={cardFilter === "all" ? "is-active alpha-summary-card is-total" : "alpha-summary-card is-total"} onClick={() => resetPage(() => setCardFilter("all"))}>
-              <span className="alpha-summary-label">因子总数</span>
-              <strong>{alphaRows.length}</strong>
-              <em>个因子</em>
-            </button>
-            <button type="button" className="alpha-summary-card is-bonus" onClick={() => setShowBonusDetails(true)}>
-              <span className="alpha-summary-label">累计奖金</span>
-              <strong>{formatBonus(totalBonus)}</strong>
-              <em>USD</em>
-              <span className="alpha-summary-link">明细</span>
-            </button>
-            <div className="alpha-summary-card is-distribution" aria-label="因子等级分布">
-              <span className="alpha-summary-label">因子等级分布</span>
-              <div className="alpha-grade-bar" aria-hidden="true">
-                <i className="is-sss" style={{ flexGrow: gradeStats.SSS }} />
-                <i className="is-ss" style={{ flexGrow: gradeStats.SS }} />
-                <i className="is-s" style={{ flexGrow: gradeStats.S }} />
-                <i className="is-a" style={{ flexGrow: gradeStats.A }} />
-                <i className="is-b" style={{ flexGrow: gradeStats.B }} />
-                <i className="is-c" style={{ flexGrow: gradeStats.C }} />
-                <i className="is-d" style={{ flexGrow: gradeStats.D }} />
-              </div>
-              <div className="alpha-grade-legend">
-                {factorGradeList.map((grade) => (
-                  <span className={`is-${grade.toLowerCase()}`} key={grade}>
-                    <b>{grade}:</b> {gradeStats[grade]}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
           <div className="alpha-modal-toolbar">
             <label className="alpha-search">
               <span>搜索</span>
@@ -2041,25 +1991,6 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
                   <option key={column.key} value={column.key}>{column.label}</option>
                 ))}
               </select>
-              <button type="button" onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}>
-                {sortDir === "asc" ? "升序" : "降序"}
-              </button>
-              <details className="alpha-column-menu">
-                <summary>显示项</summary>
-                <div>
-                  {alphaColumns.map((column) => (
-                    <label key={column.key}>
-                      <input
-                        type="checkbox"
-                        checked={visibleColumns.has(column.key)}
-                        onChange={() => toggleColumn(column.key)}
-                      />
-                      {column.label}
-                    </label>
-                  ))}
-                  <button type="button" onClick={() => setVisibleColumns(new Set(defaultAlphaColumns))}>恢复默认</button>
-                </div>
-              </details>
               <span className="alpha-view-switch" aria-label="视图切换">
                 <button className={viewMode === "table" ? "is-active" : ""} type="button" onClick={() => setViewMode("table")}>表</button>
                 <button className={viewMode === "card" ? "is-active" : ""} type="button" onClick={() => setViewMode("card")}>卡</button>
@@ -2117,19 +2048,25 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
             </div>
           ) : (
             <div className="alpha-card-grid">
-              {pageRows.map((row) => {
+              {pageRows.map((row, index) => {
+                const avatarSrc = index % 2 === 0 ? "/employee-avatar-1.png" : "/employee-avatar-2.png";
                 return (
-                  <article className="alpha-factor-card" key={row.rowId}>
+                  <article className={`alpha-factor-card ${gradeClass(row.grade)}`} key={row.rowId}>
                     <div className="alpha-factor-card-head">
-                      <h3>{row.name}</h3>
+                      <div className="alpha-factor-title">
+                        <h3>{row.name}</h3>
+                        <small>{traderTitleByGrade[row.grade]}</small>
+                      </div>
+                      <span className={row.displayedGrade === "hidden" ? "alpha-card-grade-badge is-hidden" : `alpha-card-grade-badge ${gradeClass(row.displayedGrade)}`}>
+                        {row.displayedGrade === "hidden" ? "?" : row.displayedGrade}
+                      </span>
                     </div>
                     <p className="alpha-factor-card-date">
                       <span>创建日期</span>
                       <b>{row.createdAt}</b>
                     </p>
-                    <div className="alpha-factor-card-pnl" aria-label="PNL">
-                      <span>PNL</span>
-                      <MiniPnl values={tablePnlValues} />
+                    <div className="alpha-factor-card-avatar" aria-label="员工头像">
+                      <img src={avatarSrc} alt={`${row.name} 员工头像`} />
                     </div>
                     <div className="alpha-factor-metrics">
                       <span><em>夏普比率</em><b>{row.sharpe.toFixed(2)}</b></span>
@@ -2157,10 +2094,6 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
         </div>
-
-        {showBonusDetails ? (
-          <BonusDetailsModal gradeStats={gradeStats} onClose={() => setShowBonusDetails(false)} />
-        ) : null}
 
         <footer className="alpha-modal-footer">
           <span>
@@ -3045,12 +2978,17 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 export default function GamePreview() {
   const [activeModal, setActiveModal] = useState<"factors" | "strategies" | "settings" | "recruit" | null>(null);
   const [balance, setBalance] = useState(500000);
-  const [employeeCount, setEmployeeCount] = useState(1);
+  const [, setEmployeeCount] = useState(1);
   const [ownSearchesToday, setOwnSearchesToday] = useState(0);
   const [platformSearchesToday, setPlatformSearchesToday] = useState(0);
   const [hiredCandidateIds, setHiredCandidateIds] = useState<Set<string>>(new Set());
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const companyAge = formatCompanyAge(currentTime);
+  const todoItems: Array<{ label: string; target: typeof activeModal }> = [
+    { label: "连接AI API", target: "settings" },
+    { label: "查看1份简历", target: "recruit" },
+    { label: "招聘1个员工", target: "recruit" },
+  ];
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentTime(new Date()), 30000);
@@ -3078,9 +3016,11 @@ export default function GamePreview() {
           <h2>待办事项</h2>
           <ul>
             {todoItems.map((item) => (
-              <li key={item}>
-                <span className="quant-todo-box">[ ]</span>
-                <span>{item}</span>
+              <li key={item.label}>
+                <button className="quant-todo-button" type="button" onClick={() => setActiveModal(item.target)}>
+                  <span className="quant-todo-icon" aria-hidden="true" />
+                  <span>{item.label}</span>
+                </button>
               </li>
             ))}
           </ul>
@@ -3117,7 +3057,6 @@ export default function GamePreview() {
               </span>
               <span className="quant-nav-copy">
                 <span>{item.label}</span>
-                {item.type === "factor" ? <small>{employeeCount}/100</small> : "subtitle" in item ? <small>{item.subtitle}</small> : null}
               </span>
             </button>
           ))}
