@@ -1,15 +1,13 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
   aggregateData,
   correlationData,
   factors,
   generatePnLData,
-  getAlphaGrade,
   osAggregateData,
   osYearlySummary,
   strategies,
   testingStatus,
-  type AlphaGrade,
   type Factor,
   yearlySummary,
 } from "@/lib/mockData";
@@ -21,30 +19,28 @@ import {
 } from "@/lib/exchangeApiConnections";
 import "./GamePreview.css";
 
-const stats = [
-  {
-    title: "员工数量",
-    detail: "1/100",
-    type: "ai",
-  },
-  {
-    title: "公司总资产",
-    detail: "$500,000",
-    type: "cash",
-  },
-  {
-    title: "排行榜",
-    detail: "当前：150名",
-    type: "rank",
-  },
-];
+const stats: Array<{ title: string; detail: string; type: string }> = [];
+
+const todoItems = ["查看1份简历", "招聘1个员工"];
 
 const navItems = [
-  { label: "我的员工", type: "factor" },
-  { label: "招聘", type: "market" },
-  { label: "我的策略", type: "strategy" },
-  { label: "模拟交易", type: "trade" },
+  { label: "员工", subtitle: "1/100", type: "factor", icon: "/nav-employee.svg" },
+  { label: "招聘", type: "market", icon: "/nav-recruit.svg" },
+  { label: "项目", type: "strategy", icon: "/nav-project.svg" },
+  { label: "模拟交易", type: "trade", icon: "/nav-trade.svg" },
+  { label: "排行榜", subtitle: "当前：150名", type: "rank", icon: "/nav-rank.svg" },
+  { label: "设置", type: "settings", icon: "/nav-settings.svg" },
 ];
+
+const companyFoundedAt = new Date(2026, 4, 18);
+
+const formatCompanyAge = (date: Date) => {
+  const elapsedHours = Math.max(0, Math.floor((date.getTime() - companyFoundedAt.getTime()) / 3600000));
+  const years = Math.floor(elapsedHours / (365 * 24));
+  const days = Math.floor((elapsedHours % (365 * 24)) / 24);
+  const hours = elapsedHours % 24;
+  return `${years}年 ${days}天 ${hours}小时`;
+};
 
 const settingsTabs = [
   { id: "general", label: "通用", type: "shield" },
@@ -53,10 +49,10 @@ const settingsTabs = [
   { id: "agent", label: "Agent API", type: "key" },
 ] as const;
 
-type AlphaFilter = "all" | "starred" | "revealed" | "hidden";
+type AlphaFilter = "all" | "starred";
 type AlphaView = "table" | "card";
 type AlphaSortDir = "asc" | "desc" | null;
-type FactorGrade = AlphaGrade | "F";
+type FactorGrade = "SSS" | "SS" | "S" | "A" | "B" | "C" | "D";
 type AlphaColumnKey = "name" | "grade" | "bonus" | "sharpe" | "osSharpe" | "pnl" | "fitness";
 type DetailSummaryPeriod = "IS" | "OS" | "DIFF";
 type StrategyFilter = "all" | "favorites" | "paper" | "live";
@@ -68,6 +64,7 @@ type StrategyCreateMode = "platform" | "own";
 type StrategyCreateInput = "form" | "ai-chat";
 type StrategyCreateType = "time-series" | "cross-sectional";
 type StrategyWeightMode = "equal" | "custom";
+type RecruitAgentMode = "own" | "platform";
 type SettingsTab = (typeof settingsTabs)[number]["id"];
 type ViewModeSetting = "beginner" | "pro";
 type ColorModeSetting = "redUp" | "greenUp";
@@ -108,6 +105,16 @@ interface SettingsApiKeyItem {
   skillVersion: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface RecruitCandidate {
+  id: string;
+  name: string;
+  title: string;
+  sharpe: string;
+  specialty: string;
+  winRate: string;
+  dailyIncome: string;
 }
 
 const SETTINGS_SKILL_LATEST = "v2.4.1";
@@ -152,9 +159,9 @@ ${skillVersion}
 const alphaColumns: AlphaColumnDef[] = [
   { key: "name", label: "名称", defaultVisible: true, sortable: true, width: "250px" },
   { key: "grade", label: "等级", defaultVisible: true, sortable: true, width: "70px", align: "center" },
-  { key: "bonus", label: "奖金(USD)", defaultVisible: true, sortable: true, width: "76px", align: "right" },
-  { key: "sharpe", label: "IS 夏普", defaultVisible: true, sortable: true, width: "76px", align: "right" },
-  { key: "osSharpe", label: "OS 夏普", defaultVisible: true, sortable: true, width: "76px", align: "right" },
+  { key: "bonus", label: "日收益", defaultVisible: true, sortable: true, width: "92px", align: "right" },
+  { key: "sharpe", label: "夏普比率", defaultVisible: true, sortable: true, width: "96px", align: "right" },
+  { key: "osSharpe", label: "OS 夏普", defaultVisible: false, sortable: true, width: "76px", align: "right" },
   { key: "pnl", label: "PNL", defaultVisible: true, sortable: false, width: "116px", align: "center" },
   { key: "fitness", label: "适应度", defaultVisible: true, sortable: true, width: "72px", align: "right" },
 ];
@@ -181,33 +188,69 @@ const defaultStrategyMetrics: Record<StrategyMetricKey, boolean> = {
 };
 const strategySymbolPool = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "AVAXUSDT", "LINKUSDT", "DOGEUSDT"];
 const MAX_STRATEGY_FACTOR_COUNT = 5;
-const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v5_";
+const factorGradeList: FactorGrade[] = ["SSS", "SS", "S", "A", "B", "C", "D"];
+const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v6_";
 const hiddenGradeIds = new Set(["AF-018", "AF-006", "AF-015", "AF-017", "AF-002", "AF-003"]);
 const gradeBonus: Record<FactorGrade, number> = {
+  SSS: 1.2,
+  SS: 1,
   S: 0.9,
   A: 0.6,
   B: 0.3,
   C: 0.2,
   D: 0.1,
-  F: 0,
 };
 const gradeBonusDetails: Record<FactorGrade, number> = {
+  SSS: 1.5,
+  SS: 1.2,
   S: 1,
   A: 0.5,
   B: 0.3,
   C: 0.2,
   D: 0.1,
-  F: 0,
 };
-const gradeOrder: Record<FactorGrade, number> = { F: 0, D: 1, C: 2, B: 3, A: 4, S: 5 };
+const gradeOrder: Record<FactorGrade, number> = { D: 0, C: 1, B: 2, A: 3, S: 4, SS: 5, SSS: 6 };
+const traderTitleByGrade: Record<FactorGrade, string> = {
+  SSS: "传奇交易员",
+  SS: "顶级交易员",
+  S: "精英交易员",
+  A: "高级交易员",
+  B: "中级交易员",
+  C: "初级交易员",
+  D: "实习交易员",
+};
+const gradeSharpeRange: Record<FactorGrade, string> = {
+  SSS: "1.8 - ...",
+  SS: "1.6 - 1.8",
+  S: "1.4 - 1.6",
+  A: "1.2 - 1.4",
+  B: "1 - 1.2",
+  C: "0.8 - 1",
+  D: "0.5 - 0.8",
+};
+const gradeDailyIncome: Record<FactorGrade, number> = {
+  SSS: 20000,
+  SS: 10000,
+  S: 5000,
+  A: 2200,
+  B: 900,
+  C: 500,
+  D: 200,
+};
 
 function gradeClass(grade: FactorGrade) {
   return `grade-${grade.toLowerCase()}`;
 }
 
 function getFactorGrade(factor: Factor): FactorGrade {
-  if (factor.status === "archived") return "F";
-  return getAlphaGrade(factor.osSharpe);
+  if (factor.status === "archived") return "D";
+  if (factor.osSharpe >= 0.9) return "SSS";
+  if (factor.osSharpe >= 0.7) return "SS";
+  if (factor.osSharpe >= 0.5) return "S";
+  if (factor.osSharpe >= 0.35) return "A";
+  if (factor.osSharpe >= 0.25) return "B";
+  if (factor.osSharpe >= 0.15) return "C";
+  return "D";
 }
 
 function readRevealedGrade(factorId: string): FactorGrade | null {
@@ -215,7 +258,7 @@ function readRevealedGrade(factorId: string): FactorGrade | null {
 
   try {
     const value = window.localStorage.getItem(`${REVEALED_GRADE_STORAGE_PREFIX}${factorId}`);
-    return value === "S" || value === "A" || value === "B" || value === "C" || value === "D" || value === "F" ? value : null;
+    return factorGradeList.includes(value as FactorGrade) ? (value as FactorGrade) : null;
   } catch {
     return null;
   }
@@ -228,6 +271,14 @@ function formatBonus(value: number) {
 function formatBonusDetail(value: number) {
   if (Number.isInteger(value)) return String(value);
   return value.toFixed(1);
+}
+
+function formatDailyIncome(value: number) {
+  return `+${value.toLocaleString("en-US")}`;
+}
+
+function formatCurrency(value: number) {
+  return `$${value.toLocaleString("en-US")}`;
 }
 
 function parseMetric(value: string | number) {
@@ -562,7 +613,7 @@ function BonusDetailsModal({
   gradeStats: Record<FactorGrade, number>;
   onClose: () => void;
 }) {
-  const rows = (["S", "A", "B", "C", "D", "F"] as FactorGrade[]).map((grade) => {
+  const rows = factorGradeList.map((grade) => {
     const count = gradeStats[grade];
     const unitBonus = gradeBonusDetails[grade];
     return {
@@ -642,6 +693,181 @@ function toStrategyViewRow(index: number): StrategyViewRow {
 }
 
 const strategyRows: StrategyViewRow[] = Array.from({ length: 20 }, (_, index) => toStrategyViewRow(index));
+
+const recruitCandidates: RecruitCandidate[] = [
+  {
+    id: "TRD-001",
+    name: "林亦辰",
+    title: "精英交易员",
+    sharpe: "1.52",
+    specialty: "动量因子",
+    winRate: "67%",
+    dailyIncome: "+5,000",
+  },
+  {
+    id: "TRD-002",
+    name: "赵念",
+    title: "高级交易员",
+    sharpe: "1.31",
+    specialty: "价值因子",
+    winRate: "63%",
+    dailyIncome: "+2,200",
+  },
+  {
+    id: "TRD-003",
+    name: "Mika Chen",
+    title: "顶级交易员",
+    sharpe: "1.68",
+    specialty: "套利因子",
+    winRate: "71%",
+    dailyIncome: "+10,000",
+  },
+];
+
+function RecruitModal({
+  balance,
+  ownSearchesToday,
+  platformSearchesToday,
+  hiredCandidateIds,
+  onBalanceChange,
+  onRecordSearch,
+  onHire,
+  onClose,
+}: {
+  balance: number;
+  ownSearchesToday: number;
+  platformSearchesToday: number;
+  hiredCandidateIds: Set<string>;
+  onBalanceChange: (nextBalance: number) => void;
+  onRecordSearch: (mode: RecruitAgentMode) => void;
+  onHire: (candidateId: string) => void;
+  onClose: () => void;
+}) {
+  const [agentMode, setAgentMode] = useState<RecruitAgentMode>("own");
+  const [candidateIndex, setCandidateIndex] = useState<number | null>(null);
+  const [statusText, setStatusText] = useState("点击搜索，AI 将为你匹配一份候选人简历。");
+
+  const nextSearchCost = agentMode === "own" && ownSearchesToday < 10 ? 0 : 5000;
+  const freeLeft = Math.max(0, 10 - ownSearchesToday);
+  const currentCandidate = candidateIndex === null ? null : recruitCandidates[candidateIndex % recruitCandidates.length];
+  const currentHired = currentCandidate ? hiredCandidateIds.has(currentCandidate.id) : false;
+
+  const searchCandidate = () => {
+    if (balance < nextSearchCost) {
+      setStatusText("余额不足，请充值后继续搜索。9.9 USD = 1,000,000。");
+      return;
+    }
+
+    const searchCount = ownSearchesToday + platformSearchesToday;
+    if (nextSearchCost > 0) onBalanceChange(balance - nextSearchCost);
+    onRecordSearch(agentMode);
+    setCandidateIndex(searchCount % recruitCandidates.length);
+    setStatusText(nextSearchCost > 0 ? "已扣除 5,000，候选人简历已生成。" : "本次使用自有 Agent 免费搜索机会。");
+  };
+
+  const hireCandidate = () => {
+    if (!currentCandidate || currentHired) return;
+    onHire(currentCandidate.id);
+    setStatusText(`${currentCandidate.name} 已雇佣，员工已入库生效。`);
+  };
+
+  const skipCandidate = () => {
+    if (!currentCandidate) return;
+    setCandidateIndex(null);
+    setStatusText("已放弃该候选人。放弃不扣费，可继续搜索下一份简历。");
+  };
+
+  return (
+    <div className="alpha-modal-shell" role="dialog" aria-modal="true" aria-labelledby="recruit-modal-title">
+      <div className="alpha-modal-backdrop" onClick={onClose} />
+      <section className="alpha-modal recruit-modal">
+        <header className="alpha-modal-header recruit-modal-header">
+          <div>
+            <span className="alpha-modal-kicker">RECRUIT TERMINAL</span>
+            <h2 id="recruit-modal-title">招聘</h2>
+            <p>AI搜索人才 → 查看简历 → 决定雇佣 → 入库生效</p>
+          </div>
+          <button className="alpha-modal-close" type="button" onClick={onClose} aria-label="关闭招聘弹窗">
+            ×
+          </button>
+        </header>
+
+        <div className="recruit-modal-content">
+          <section className="recruit-control-panel">
+            <div className="recruit-balance-row">
+              <span>账户余额</span>
+              <strong>{formatCurrency(balance)}</strong>
+            </div>
+
+            <div className="recruit-agent-switch" aria-label="Agent 类型">
+              <button className={agentMode === "own" ? "is-active" : ""} type="button" onClick={() => setAgentMode("own")}>
+                自有Agent
+              </button>
+              <button className={agentMode === "platform" ? "is-active" : ""} type="button" onClick={() => setAgentMode("platform")}>
+                平台Agent
+              </button>
+            </div>
+
+            <div className="recruit-rule-grid">
+              <span>
+                <small>本次搜索费用</small>
+                <b>{nextSearchCost === 0 ? "免费" : formatCurrency(nextSearchCost)}</b>
+              </span>
+              <span>
+                <small>今日免费次数</small>
+                <b>{agentMode === "own" ? `${freeLeft}/10` : "0/0"}</b>
+              </span>
+              <span>
+                <small>充值规则</small>
+                <b>9.9 USD = 1,000,000</b>
+              </span>
+            </div>
+
+            <div className="recruit-actions">
+              <button className="recruit-search-button" type="button" onClick={searchCandidate}>
+                搜索
+              </button>
+              <button className="recruit-recharge-button" type="button" onClick={() => onBalanceChange(balance + 1000000)}>
+                充值
+              </button>
+            </div>
+
+            <p className={balance < nextSearchCost ? "recruit-status is-warn" : "recruit-status"}>{statusText}</p>
+          </section>
+
+          <section className={currentCandidate ? "recruit-resume-card is-ready" : "recruit-resume-card"} aria-label="简历卡片">
+            {currentCandidate ? (
+              <>
+                <span className="recruit-card-kicker">AI 匹配简历</span>
+                <h3>{currentCandidate.name}，{currentCandidate.title}</h3>
+                <div className="recruit-metrics">
+                  <span><em>夏普比率</em><b>{currentCandidate.sharpe}</b></span>
+                  <span><em>专长</em><b>{currentCandidate.specialty}</b></span>
+                  <span><em>胜率</em><b>{currentCandidate.winRate}</b></span>
+                  <span><em>日收益</em><b>{currentCandidate.dailyIncome}</b></span>
+                </div>
+                <div className="recruit-card-actions">
+                  <button type="button" onClick={hireCandidate} disabled={currentHired}>
+                    {currentHired ? "已雇佣" : "雇佣"}
+                  </button>
+                  <button type="button" onClick={skipCandidate} disabled={currentHired}>
+                    放弃
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="recruit-empty-card">
+                <span />
+                <strong>等待简历</strong>
+                <p>点击搜索后，AI 会生成一份候选人简历。</p>
+              </div>
+            )}
+          </section>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 function StrategyCreateModal({
   onBack,
@@ -1212,7 +1438,7 @@ function MyStrategiesModal({ onClose }: { onClose: () => void }) {
   const [strategyFilter, setStrategyFilter] = useState<StrategyFilter>("all");
   const [sortKey, setSortKey] = useState<StrategySortKey>("updated");
   const [sortDesc, setSortDesc] = useState(true);
-  const [viewMode, setViewMode] = useState<StrategyView>("table");
+  const [viewMode, setViewMode] = useState<StrategyView>("card");
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(1);
   const [visibleMetrics, setVisibleMetrics] = useState<Record<StrategyMetricKey, boolean>>(defaultStrategyMetrics);
@@ -1514,7 +1740,7 @@ function MyStrategiesModal({ onClose }: { onClose: () => void }) {
 function MyFactorsModal({ onClose }: { onClose: () => void }) {
   const [filterName, setFilterName] = useState("");
   const [cardFilter, setCardFilter] = useState<AlphaFilter>("all");
-  const [viewMode, setViewMode] = useState<AlphaView>("table");
+  const [viewMode, setViewMode] = useState<AlphaView>("card");
   const [sortKey, setSortKey] = useState<AlphaColumnKey | "">("bonus");
   const [sortDir, setSortDir] = useState<AlphaSortDir>("asc");
   const [pageSize, setPageSize] = useState(10);
@@ -1553,8 +1779,6 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
     return alphaRows.filter((row) => {
       if (normalized && !`${row.name} ${row.id}`.toLowerCase().includes(normalized)) return false;
       if (cardFilter === "starred" && !starred.has(row.id)) return false;
-      if (cardFilter === "revealed" && row.displayedGrade === "hidden") return false;
-      if (cardFilter === "hidden" && row.displayedGrade !== "hidden") return false;
       return true;
     });
   }, [alphaRows, cardFilter, filterName, starred]);
@@ -1566,9 +1790,12 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
       let av: number | string = 0;
       let bv: number | string = 0;
 
-      if (sortKey === "grade") {
+      if (sortKey === "grade" || sortKey === "sharpe") {
         av = gradeOrder[a.grade];
         bv = gradeOrder[b.grade];
+      } else if (sortKey === "bonus") {
+        av = gradeDailyIncome[a.grade];
+        bv = gradeDailyIncome[b.grade];
       } else {
         av = a[sortKey] ?? 0;
         bv = b[sortKey] ?? 0;
@@ -1593,7 +1820,7 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
         acc[row.grade] += 1;
         return acc;
       },
-      { S: 0, A: 0, B: 0, C: 0, D: 0, F: 0 }
+      { SSS: 0, SS: 0, S: 0, A: 0, B: 0, C: 0, D: 0 }
     );
   }, [alphaRows]);
   const totalBonus = useMemo(() => alphaRows.reduce((sum, row) => sum + row.bonus, 0), [alphaRows]);
@@ -1712,14 +1939,14 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
             </button>
             <span>
               <strong>{row.name}</strong>
-              <small>{row.id} · {row.tag ?? row.market}</small>
+              <small>{traderTitleByGrade[row.grade]}</small>
             </span>
           </span>
         );
       case "grade":
         return renderGrade(row);
       case "bonus":
-        return <span className={`alpha-mono alpha-bonus ${row.bonus > 0 ? "is-on" : ""}`}>{formatBonus(row.bonus)}</span>;
+        return <span className="alpha-mono alpha-bonus is-on">{formatDailyIncome(gradeDailyIncome[row.grade])}</span>;
       case "pnl":
         return <MiniPnl values={tablePnlValues} />;
       case "sharpe":
@@ -1774,15 +2001,16 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
             <div className="alpha-summary-card is-distribution" aria-label="因子等级分布">
               <span className="alpha-summary-label">因子等级分布</span>
               <div className="alpha-grade-bar" aria-hidden="true">
+                <i className="is-sss" style={{ flexGrow: gradeStats.SSS }} />
+                <i className="is-ss" style={{ flexGrow: gradeStats.SS }} />
                 <i className="is-s" style={{ flexGrow: gradeStats.S }} />
                 <i className="is-a" style={{ flexGrow: gradeStats.A }} />
                 <i className="is-b" style={{ flexGrow: gradeStats.B }} />
                 <i className="is-c" style={{ flexGrow: gradeStats.C }} />
                 <i className="is-d" style={{ flexGrow: gradeStats.D }} />
-                <i className="is-f" style={{ flexGrow: gradeStats.F }} />
               </div>
               <div className="alpha-grade-legend">
-                {(["S", "A", "B", "C", "D", "F"] as FactorGrade[]).map((grade) => (
+                {factorGradeList.map((grade) => (
                   <span className={`is-${grade.toLowerCase()}`} key={grade}>
                     <b>{grade}:</b> {gradeStats[grade]}
                   </span>
@@ -1806,9 +2034,7 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
               {unrevealedPassedCount > 0 ? <button type="button" onClick={revealAll}>揭示全部等级</button> : null}
               <select value={cardFilter} onChange={(event) => resetPage(() => setCardFilter(event.target.value as AlphaFilter))}>
                 <option value="all">全部</option>
-                <option value="starred">收藏</option>
-                <option value="revealed">已揭示</option>
-                <option value="hidden">待揭开</option>
+                <option value="starred">我的收藏</option>
               </select>
               <select value={sortKey} onChange={(event) => resetPage(() => setSortKey(event.target.value as AlphaColumnKey))}>
                 {sortColumns.map((column) => (
@@ -1894,25 +2120,36 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
               {pageRows.map((row) => {
                 return (
                   <article className="alpha-factor-card" key={row.rowId}>
-                    <header>
-                      <span>{row.tag ?? row.market}</span>
+                    <div className="alpha-factor-card-head">
+                      <h3>{row.name}</h3>
+                    </div>
+                    <p className="alpha-factor-card-date">
+                      <span>创建日期</span>
+                      <b>{row.createdAt}</b>
+                    </p>
+                    <div className="alpha-factor-card-pnl" aria-label="PNL">
+                      <span>PNL</span>
+                      <MiniPnl values={tablePnlValues} />
+                    </div>
+                    <div className="alpha-factor-metrics">
+                      <span><em>夏普比率</em><b>{row.sharpe.toFixed(2)}</b></span>
+                      <span><em>专长</em><b>价值因子</b></span>
+                      <span><em>胜率</em><b>61%</b></span>
+                      <span><em>日收益</em><b>{formatDailyIncome(gradeDailyIncome[row.grade])}</b></span>
+                    </div>
+                    <div className="alpha-factor-card-actions">
+                      <button className="alpha-action is-more" type="button" aria-label={`${row.name} 更多操作`}>...</button>
                       <button
                         className={starred.has(row.id) ? "alpha-star is-on" : "alpha-star"}
                         type="button"
                         onClick={() => toggleStar(row.id)}
+                        aria-label={`收藏 ${row.name}`}
                       >
-                        ★
+                        ☆
                       </button>
-                    </header>
-                    <h3>{row.name}</h3>
-                    <p>{row.description}</p>
-                    <div className="alpha-factor-metrics">
-                      <span>等级 <b>{row.displayedGrade === "hidden" ? "待揭开" : row.displayedGrade}</b></span>
-                      <span>奖金 <b>{formatBonus(row.bonus)} USD</b></span>
-                      <span>OS <b>{row.osSharpe.toFixed(2)}</b></span>
-                      <span>Fitness <b>{row.fitness.toFixed(2)}</b></span>
-                      <span>IS <b>{row.sharpe.toFixed(2)}</b></span>
-                      {renderGrade(row)}
+                      <button className="alpha-action is-view" type="button" onClick={() => setSelectedFactorId(row.id)}>
+                        查看 ↗
+                      </button>
                     </div>
                   </article>
                 );
@@ -2806,7 +3043,19 @@ function SettingsModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function GamePreview() {
-  const [activeModal, setActiveModal] = useState<"factors" | "strategies" | "settings" | null>(null);
+  const [activeModal, setActiveModal] = useState<"factors" | "strategies" | "settings" | "recruit" | null>(null);
+  const [balance, setBalance] = useState(500000);
+  const [employeeCount, setEmployeeCount] = useState(1);
+  const [ownSearchesToday, setOwnSearchesToday] = useState(0);
+  const [platformSearchesToday, setPlatformSearchesToday] = useState(0);
+  const [hiredCandidateIds, setHiredCandidateIds] = useState<Set<string>>(new Set());
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const companyAge = formatCompanyAge(currentTime);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <main className="quant-game-page" aria-label="Quant 游戏化预览">
@@ -2825,22 +3074,30 @@ export default function GamePreview() {
           ))}
         </div>
 
+        <aside className="quant-game-todos" aria-label="待办事项">
+          <h2>待办事项</h2>
+          <ul>
+            {todoItems.map((item) => (
+              <li key={item}>
+                <span className="quant-todo-box">[ ]</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </aside>
+
         <aside className="quant-game-actions" aria-label="系统状态">
-          <div className="quant-game-time" aria-label="当前时间">
-            <span className="quant-game-action-icon is-weather" aria-hidden="true">
-              <span />
+          <div className="quant-game-time" aria-label="电子屏状态">
+            <span className="quant-electro-assets" aria-label="公司总资产">
+              <i className="quant-coin-icon" aria-hidden="true" />
+              <strong>{formatCurrency(balance)}</strong>
             </span>
-            <span className="quant-game-action-copy">
-              <strong>09:42</strong>
-              <span>周一，2026/05/18</span>
+            <span className="quant-electro-divider" aria-hidden="true" />
+            <span className="quant-electro-age" aria-label="公司成立时间">
+              <i className="quant-clock-icon" aria-hidden="true" />
+              <strong>{companyAge}</strong>
             </span>
           </div>
-          <button className="quant-game-settings" type="button" onClick={() => setActiveModal("settings")}>
-            <span className="quant-game-action-icon is-gear" aria-hidden="true">
-              <span />
-            </span>
-            <span>设置</span>
-          </button>
         </aside>
 
         <nav className="quant-game-nav" aria-label="主要导航">
@@ -2850,17 +3107,41 @@ export default function GamePreview() {
               key={item.label}
               onClick={() => {
                 if (item.type === "factor") setActiveModal("factors");
+                if (item.type === "market") setActiveModal("recruit");
                 if (item.type === "strategy") setActiveModal("strategies");
+                if (item.type === "settings") setActiveModal("settings");
               }}
             >
               <span className={`quant-nav-icon is-${item.type}`} aria-hidden="true">
-                <span />
+                <img src={item.icon} alt="" />
               </span>
-              <span>{item.label}</span>
+              <span className="quant-nav-copy">
+                <span>{item.label}</span>
+                {item.type === "factor" ? <small>{employeeCount}/100</small> : "subtitle" in item ? <small>{item.subtitle}</small> : null}
+              </span>
             </button>
           ))}
         </nav>
 
+        {activeModal === "recruit" ? (
+          <RecruitModal
+            balance={balance}
+            ownSearchesToday={ownSearchesToday}
+            platformSearchesToday={platformSearchesToday}
+            hiredCandidateIds={hiredCandidateIds}
+            onBalanceChange={setBalance}
+            onRecordSearch={(mode) => {
+              if (mode === "own") setOwnSearchesToday((value) => value + 1);
+              if (mode === "platform") setPlatformSearchesToday((value) => value + 1);
+            }}
+            onHire={(candidateId) => {
+              if (hiredCandidateIds.has(candidateId)) return;
+              setHiredCandidateIds((current) => new Set(current).add(candidateId));
+              setEmployeeCount((value) => Math.min(100, value + 1));
+            }}
+            onClose={() => setActiveModal(null)}
+          />
+        ) : null}
         {activeModal === "factors" ? <MyFactorsModal onClose={() => setActiveModal(null)} /> : null}
         {activeModal === "strategies" ? <MyStrategiesModal onClose={() => setActiveModal(null)} /> : null}
         {activeModal === "settings" ? <SettingsModal onClose={() => setActiveModal(null)} /> : null}
