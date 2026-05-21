@@ -20,6 +20,7 @@ import {
 import "./GamePreview.css";
 
 const stats: Array<{ title: string; detail: string; type: string }> = [];
+const recruitDefaultStatus = "点击查看简历，AI 将为你匹配一位候选人。";
 
 const navItems = [
   { label: "员工", type: "factor", icon: "/nav-employee.svg" },
@@ -30,7 +31,7 @@ const navItems = [
   { label: "设置", type: "settings", icon: "/nav-settings.svg" },
 ];
 
-const companyFoundedAt = new Date(2026, 4, 18);
+const companyFoundedAt = new Date(2025, 4, 18);
 
 const formatCompanyAge = (date: Date) => {
   const elapsedHours = Math.max(0, Math.floor((date.getTime() - companyFoundedAt.getTime()) / 3600000));
@@ -71,7 +72,7 @@ type LanguageSetting = "en" | "zh";
 type AlphaRow = Factor & {
   rowId: string;
   grade: FactorGrade;
-  displayedGrade: FactorGrade | "hidden";
+  displayedGrade: FactorGrade;
   bonus: number;
 };
 
@@ -187,8 +188,6 @@ const defaultStrategyMetrics: Record<StrategyMetricKey, boolean> = {
 const strategySymbolPool = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT", "AVAXUSDT", "LINKUSDT", "DOGEUSDT"];
 const MAX_STRATEGY_FACTOR_COUNT = 5;
 const factorGradeList: FactorGrade[] = ["SSS", "SS", "S", "A", "B", "C", "D"];
-const REVEALED_GRADE_STORAGE_PREFIX = "alphaforge_grade_reset_v6_";
-const hiddenGradeIds = new Set(["AF-018", "AF-006", "AF-015", "AF-017", "AF-002", "AF-003"]);
 const gradeBonus: Record<FactorGrade, number> = {
   SSS: 1.2,
   SS: 1,
@@ -240,6 +239,19 @@ function gradeClass(grade: FactorGrade) {
   return `grade-${grade.toLowerCase()}`;
 }
 
+function getRecruitCandidateGrade(candidate: RecruitCandidate): FactorGrade {
+  if (candidate.title.includes("传奇")) return "SSS";
+  if (candidate.title.includes("顶级")) return "SS";
+  if (candidate.title.includes("精英")) return "S";
+  if (candidate.title.includes("高级")) return "A";
+  return "B";
+}
+
+function getRecruitCandidateAvatarSrc(candidate: RecruitCandidate) {
+  const numericId = Number(candidate.id.replace(/\D/g, ""));
+  return numericId % 2 === 0 ? "/employee-avatar-2.png" : "/employee-avatar-1.png";
+}
+
 function getFactorGrade(factor: Factor): FactorGrade {
   if (factor.status === "archived") return "D";
   if (factor.osSharpe >= 0.9) return "SSS";
@@ -249,17 +261,6 @@ function getFactorGrade(factor: Factor): FactorGrade {
   if (factor.osSharpe >= 0.25) return "B";
   if (factor.osSharpe >= 0.15) return "C";
   return "D";
-}
-
-function readRevealedGrade(factorId: string): FactorGrade | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const value = window.localStorage.getItem(`${REVEALED_GRADE_STORAGE_PREFIX}${factorId}`);
-    return factorGradeList.includes(value as FactorGrade) ? (value as FactorGrade) : null;
-  } catch {
-    return null;
-  }
 }
 
 function formatBonusDetail(value: number) {
@@ -273,6 +274,10 @@ function formatDailyIncome(value: number) {
 
 function formatCurrency(value: number) {
   return `$${value.toLocaleString("en-US")}`;
+}
+
+function formatElectroCurrency(value: number) {
+  return `$${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }).format(value)}`;
 }
 
 function parseMetric(value: string | number) {
@@ -739,37 +744,92 @@ function RecruitModal({
 }) {
   const [agentMode, setAgentMode] = useState<RecruitAgentMode>("own");
   const [candidateIndex, setCandidateIndex] = useState<number | null>(null);
-  const [statusText, setStatusText] = useState("点击搜索，AI 将为你匹配一份候选人简历。");
+  const [statusText, setStatusText] = useState(recruitDefaultStatus);
+  const [isSearchingCandidate, setIsSearchingCandidate] = useState(false);
+  const [isSkippingCandidate, setIsSkippingCandidate] = useState(false);
+  const [hireSuccessName, setHireSuccessName] = useState<string | null>(null);
 
   const nextSearchCost = agentMode === "own" && ownSearchesToday < 10 ? 0 : 5000;
   const freeLeft = Math.max(0, 10 - ownSearchesToday);
+  const hasFreeSearch = agentMode === "own" && freeLeft > 0;
+  const needsRecharge = balance < nextSearchCost;
+  const searchButtonLabel = needsRecharge
+    ? "余额不足，去充值"
+    : hasFreeSearch
+      ? `查看简历（免费剩余 ${freeLeft} 次）`
+      : "查看简历 $5000/次";
   const currentCandidate = candidateIndex === null ? null : recruitCandidates[candidateIndex % recruitCandidates.length];
   const currentHired = currentCandidate ? hiredCandidateIds.has(currentCandidate.id) : false;
+  const currentCandidateGrade = currentCandidate ? getRecruitCandidateGrade(currentCandidate) : null;
+  const currentCandidateAvatar = currentCandidate ? getRecruitCandidateAvatarSrc(currentCandidate) : "";
+
+  useEffect(() => {
+    if (!hireSuccessName) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setHireSuccessName(null);
+      setCandidateIndex(null);
+      setStatusText(recruitDefaultStatus);
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [hireSuccessName]);
 
   const searchCandidate = () => {
+    if (isSearchingCandidate || isSkippingCandidate) return;
+
     if (balance < nextSearchCost) {
-      setStatusText("余额不足，请充值后继续搜索。9.9 USD = 1,000,000。");
+      setStatusText("余额不足，请先充值后查看简历。");
       return;
     }
 
     const searchCount = ownSearchesToday + platformSearchesToday;
     if (nextSearchCost > 0) onBalanceChange(balance - nextSearchCost);
     onRecordSearch(agentMode);
-    setCandidateIndex(searchCount % recruitCandidates.length);
-    setStatusText(nextSearchCost > 0 ? "已扣除 5,000，候选人简历已生成。" : "本次使用自有 Agent 免费搜索机会。");
+    setHireSuccessName(null);
+    setIsSkippingCandidate(false);
+    setCandidateIndex(null);
+    setIsSearchingCandidate(true);
+    setStatusText("正在匹配候选人简历...");
+    window.setTimeout(() => {
+      setCandidateIndex(searchCount % recruitCandidates.length);
+      setIsSearchingCandidate(false);
+      setStatusText(nextSearchCost > 0 ? "已扣除 $5000，候选人简历已生成。" : "已为你生成一份免费候选人简历。");
+    }, 900);
   };
 
   const hireCandidate = () => {
-    if (!currentCandidate || currentHired) return;
+    if (!currentCandidate || currentHired || isSkippingCandidate) return;
     onHire(currentCandidate.id);
-    setStatusText(`${currentCandidate.name} 已雇佣，员工已入库生效。`);
+    setCandidateIndex(null);
+    setIsSearchingCandidate(false);
+    setIsSkippingCandidate(false);
+    setHireSuccessName(currentCandidate.name);
+    setStatusText("雇佣成功，员工已入库生效。");
   };
 
   const skipCandidate = () => {
-    if (!currentCandidate) return;
-    setCandidateIndex(null);
-    setStatusText("已放弃该候选人。放弃不扣费，可继续搜索下一份简历。");
+    if (!currentCandidate || isSkippingCandidate) return;
+    setIsSkippingCandidate(true);
+    setStatusText("正在归档候选人简历...");
+    window.setTimeout(() => {
+      setCandidateIndex(null);
+      setIsSkippingCandidate(false);
+      setStatusText(recruitDefaultStatus);
+    }, 560);
   };
+
+  const resetRecruitCard = () => {
+    setCandidateIndex(null);
+    setStatusText(recruitDefaultStatus);
+  };
+
+  const resumeCardClassName = [
+    "recruit-resume-card",
+    currentCandidate ? "is-ready" : "",
+    isSkippingCandidate ? "is-skipping" : "",
+    hireSuccessName ? "is-success" : "",
+  ].filter(Boolean).join(" ");
 
   return (
     <div className="alpha-modal-shell" role="dialog" aria-modal="true" aria-labelledby="recruit-modal-title">
@@ -779,7 +839,7 @@ function RecruitModal({
           <div>
             <span className="alpha-modal-kicker">RECRUIT TERMINAL</span>
             <h2 id="recruit-modal-title">招聘</h2>
-            <p>人才卡池 → 抽取简历 → 决定雇佣 → 入库生效</p>
+            <p>查看候选人简历，挑选合适的交易员加入团队。</p>
           </div>
           <button className="alpha-modal-close" type="button" onClick={onClose} aria-label="关闭招聘弹窗">
             ×
@@ -787,84 +847,64 @@ function RecruitModal({
         </header>
 
         <div className="recruit-modal-content">
-          <section className="recruit-control-panel">
-            <div className="recruit-balance-row">
-              <span>账户余额</span>
-              <strong>{formatCurrency(balance)}</strong>
-            </div>
-
-            <div className="recruit-gacha-machine" aria-label="人才抽取机">
-              <span className="recruit-gacha-screen">TALENT POOL</span>
-              <div className="recruit-gacha-window" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </div>
-              <button className="recruit-search-button" type="button" onClick={searchCandidate}>
-                抽取简历
-              </button>
-            </div>
-
-            <div className="recruit-agent-switch" aria-label="Agent 类型">
-              <button className={agentMode === "own" ? "is-active" : ""} type="button" onClick={() => setAgentMode("own")}>
-                自有Agent卡池
-              </button>
-              <button className={agentMode === "platform" ? "is-active" : ""} type="button" onClick={() => setAgentMode("platform")}>
-                平台Agent卡池
-              </button>
-            </div>
-
-            <div className="recruit-rule-grid">
-              <span>
-                <small>单次抽取</small>
-                <b>{nextSearchCost === 0 ? "免费" : formatCurrency(nextSearchCost)}</b>
-              </span>
-              <span>
-                <small>今日免费</small>
-                <b>{agentMode === "own" ? `${freeLeft}/10` : "0/0"}</b>
-              </span>
-              <span>
-                <small>补给礼包</small>
-                <b>9.9 USD = 1,000,000</b>
-              </span>
-            </div>
-
-            <div className="recruit-actions">
-              <button className="recruit-recharge-button" type="button" onClick={() => onBalanceChange(balance + 1000000)}>
-                充值补给
-              </button>
-            </div>
-
-            <p className={balance < nextSearchCost ? "recruit-status is-warn" : "recruit-status"}>{statusText}</p>
-          </section>
-
-          <section className={currentCandidate ? "recruit-resume-card is-ready" : "recruit-resume-card"} aria-label="简历卡片">
+          <section className={resumeCardClassName} aria-label="简历卡片" aria-busy={isSearchingCandidate || isSkippingCandidate}>
             {currentCandidate ? (
-              <>
-                <div className="recruit-card-head">
-                  <span className="recruit-card-kicker">TALENT CARD</span>
-                  <h3>{currentCandidate.name}，{currentCandidate.title}</h3>
+              <article className={`alpha-factor-card recruit-candidate-card ${currentCandidateGrade ? gradeClass(currentCandidateGrade) : ""}`}>
+                <div className="alpha-factor-card-head recruit-card-head">
+                  <div className="alpha-factor-title">
+                    <h3>{currentCandidate.name}</h3>
+                    <small>{currentCandidate.title}</small>
+                  </div>
+                  {currentCandidateGrade ? (
+                    <span className={`alpha-card-grade-badge ${gradeClass(currentCandidateGrade)}`}>
+                      {currentCandidateGrade}
+                    </span>
+                  ) : null}
                 </div>
-                <div className="recruit-metrics">
+                <div className="alpha-factor-card-avatar recruit-candidate-avatar" aria-label="候选人头像">
+                  <img src={currentCandidateAvatar} alt={`${currentCandidate.name} 候选人头像`} />
+                </div>
+                <div className="alpha-factor-metrics recruit-metrics">
                   <span><em>夏普比率</em><b>{currentCandidate.sharpe}</b></span>
                   <span><em>专长</em><b>{currentCandidate.specialty}</b></span>
                   <span><em>胜率</em><b>{currentCandidate.winRate}</b></span>
                   <span><em>日收益</em><b>{currentCandidate.dailyIncome}</b></span>
                 </div>
-                <div className="recruit-card-actions">
-                  <button type="button" onClick={hireCandidate} disabled={currentHired}>
+                <div className="alpha-factor-card-actions recruit-card-actions">
+                  <button className="alpha-action is-hire" type="button" onClick={hireCandidate} disabled={currentHired || isSkippingCandidate}>
                     {currentHired ? "已雇佣" : "雇佣"}
                   </button>
-                  <button type="button" onClick={skipCandidate} disabled={currentHired}>
-                    放弃
-                  </button>
+                  {currentHired ? (
+                    <button className="alpha-action is-view" type="button" onClick={resetRecruitCard}>
+                      再次查看简历
+                    </button>
+                  ) : (
+                    <button className="alpha-action" type="button" onClick={skipCandidate} disabled={isSkippingCandidate}>
+                      放弃
+                    </button>
+                  )}
                 </div>
-              </>
+              </article>
+            ) : isSearchingCandidate ? (
+              <div className="recruit-empty-card is-loading">
+                <span className="recruit-loading-token" />
+                <strong>正在匹配</strong>
+                <p>AI 正在筛选候选人简历...</p>
+              </div>
+            ) : hireSuccessName ? (
+              <div className="recruit-empty-card is-hired" role="status" aria-live="polite">
+                <span className="recruit-success-token" />
+                <strong>雇佣成功</strong>
+                <p>{hireSuccessName} 已加入团队</p>
+              </div>
             ) : (
               <div className="recruit-empty-card">
                 <span />
-                <strong>等待抽取</strong>
-                <p>点击抽取简历，AI 会翻开一张候选人卡牌。</p>
+                <p>点击查看简历，AI 会为你推荐一位候选人。</p>
+                <button className="recruit-search-button" type="button" onClick={searchCandidate} disabled={isSearchingCandidate}>
+                  {searchButtonLabel}
+                </button>
+                {needsRecharge ? <p className="recruit-status is-warn">{statusText}</p> : null}
               </div>
             )}
           </section>
@@ -1747,12 +1787,12 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
   const [cardFilter, setCardFilter] = useState<AlphaFilter>("all");
   const [viewMode, setViewMode] = useState<AlphaView>("card");
   const [sortKey, setSortKey] = useState<AlphaColumnKey | "">("bonus");
-  const [sortDir, setSortDir] = useState<AlphaSortDir>("asc");
-  const [pageSize, setPageSize] = useState(10);
+  const [sortDir, setSortDir] = useState<AlphaSortDir>("desc");
+  const pageSize = 50;
   const [page, setPage] = useState(1);
   const [starred, setStarred] = useState<Set<string>>(new Set(["AF-004", "AF-009"]));
-  const [revealedIds, setRevealedIds] = useState<Set<string>>(new Set());
-  const [gradeRevealTick, setGradeRevealTick] = useState(0);
+  const [removedFactorIds, setRemovedFactorIds] = useState<Set<string>>(new Set());
+  const [openMoreMenuId, setOpenMoreMenuId] = useState<string | null>(null);
   const [selectedFactorId, setSelectedFactorId] = useState<string | null>(null);
 
   const tablePnlValues = useMemo(() => {
@@ -1763,19 +1803,18 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
   }, []);
 
   const alphaRows: AlphaRow[] = useMemo(() => {
-    return factors.map((factor) => {
+    return factors.filter((factor) => !removedFactorIds.has(factor.id)).map((factor) => {
       const grade = getFactorGrade(factor);
-      const displayedGrade = hiddenGradeIds.has(factor.id) && !revealedIds.has(factor.id) ? "hidden" : grade;
 
       return {
         ...factor,
         rowId: factor.id,
         grade,
-        displayedGrade,
+        displayedGrade: grade,
         bonus: gradeBonus[grade],
       };
     });
-  }, [gradeRevealTick, revealedIds]);
+  }, [removedFactorIds]);
 
   const filtered = useMemo(() => {
     const normalized = filterName.trim().toLowerCase();
@@ -1793,7 +1832,7 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
       let av: number | string = 0;
       let bv: number | string = 0;
 
-      if (sortKey === "grade" || sortKey === "sharpe") {
+      if (sortKey === "grade") {
         av = gradeOrder[a.grade];
         bv = gradeOrder[b.grade];
       } else if (sortKey === "bonus") {
@@ -1814,15 +1853,19 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
 
   const visibleCols = alphaColumns.filter((column) => defaultAlphaColumns.includes(column.key));
   const sortColumns = alphaColumns.filter((column) => column.sortable);
+  const activeSortColumn = sortColumns.find((column) => column.key === sortKey);
+  const activeSortLabel = activeSortColumn && sortDir ? `${activeSortColumn.label} ${sortDir === "asc" ? "升序 ↑" : "降序 ↓"}` : "选择排序";
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const pageRows = sorted.slice((page - 1) * pageSize, page * pageSize);
   const hasActiveFilters = Boolean(filterName);
-  const unrevealedPassedCount = useMemo(() => {
-    void gradeRevealTick;
-    return alphaRows.reduce((count, row) => {
-      return row.displayedGrade === "hidden" ? count + 1 : count;
-    }, 0);
-  }, [alphaRows, gradeRevealTick]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  useEffect(() => {
+    setOpenMoreMenuId(null);
+  }, [viewMode]);
 
   const resetPage = (next: () => void) => {
     next();
@@ -1838,6 +1881,18 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
     });
   };
 
+  const deleteFactor = (id: string) => {
+    setRemovedFactorIds((prev) => new Set(prev).add(id));
+    setStarred((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+    setOpenMoreMenuId(null);
+    if (selectedFactorId === id) setSelectedFactorId(null);
+  };
+
   const handleSort = (key: AlphaColumnKey) => {
     if (sortKey === key) {
       if (sortDir === "desc") setSortDir("asc");
@@ -1849,23 +1904,6 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
       setSortKey(key);
       setSortDir("desc");
     }
-  };
-
-  const revealAll = () => {
-    setRevealedIds((prev) => {
-      const next = new Set(prev);
-      alphaRows.forEach((row) => {
-        if (row.displayedGrade === "hidden") next.add(row.id);
-      });
-      return next;
-    });
-    alphaRows.forEach((row) => {
-      if (row.displayedGrade !== "hidden") return;
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(`${REVEALED_GRADE_STORAGE_PREFIX}${row.id}`, row.grade);
-      }
-    });
-    setGradeRevealTick((value) => value + 1);
   };
 
   const getPageRange = () => {
@@ -1881,24 +1919,6 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
   };
 
   const renderGrade = (row: AlphaRow) => {
-    if (row.displayedGrade === "hidden") {
-      return (
-        <button
-          className="alpha-grade is-hidden"
-          type="button"
-          onClick={() => {
-            setRevealedIds((prev) => new Set(prev).add(row.id));
-            if (typeof window !== "undefined") {
-              window.localStorage.setItem(`${REVEALED_GRADE_STORAGE_PREFIX}${row.id}`, row.grade);
-            }
-            setGradeRevealTick((value) => value + 1);
-          }}
-          aria-label={`揭示 ${row.name} 等级`}
-        >
-          待揭开
-        </button>
-      );
-    }
     return <span className={`alpha-grade ${gradeClass(row.displayedGrade)}`}>{row.displayedGrade}</span>;
   };
 
@@ -1907,19 +1927,19 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
     return sortDir === "desc" ? "↓" : "↑";
   };
 
+  const getEmployeeAvatarSrc = (row: AlphaRow) => {
+    const numericId = Number(row.id.replace(/\D/g, ""));
+    return numericId % 2 === 0 ? "/employee-avatar-2.png" : "/employee-avatar-1.png";
+  };
+
   const renderCell = (row: AlphaRow, colKey: AlphaColumnKey) => {
     switch (colKey) {
       case "name":
         return (
           <span className="alpha-name-cell">
-            <button
-              className={starred.has(row.id) ? "alpha-star is-on" : "alpha-star"}
-              type="button"
-              onClick={() => toggleStar(row.id)}
-              aria-label={`收藏 ${row.name}`}
-            >
-              ★
-            </button>
+            <span className="alpha-name-avatar" aria-hidden="true">
+              <img src={getEmployeeAvatarSrc(row)} alt="" />
+            </span>
             <span>
               <strong>{row.name}</strong>
               <small>{traderTitleByGrade[row.grade]}</small>
@@ -1943,6 +1963,27 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
     }
   };
 
+  const renderMoreMenu = (row: AlphaRow) => (
+    <span className="alpha-more-menu-wrap">
+      <button
+        className="alpha-action is-more"
+        type="button"
+        aria-label={`${row.name} 更多操作`}
+        aria-expanded={openMoreMenuId === row.id}
+        onClick={() => setOpenMoreMenuId((value) => (value === row.id ? null : row.id))}
+      >
+        ...
+      </button>
+      {openMoreMenuId === row.id ? (
+        <span className="alpha-more-menu" role="menu">
+          <button type="button" role="menuitem" onClick={() => deleteFactor(row.id)}>
+            删除
+          </button>
+        </span>
+      ) : null}
+    </span>
+  );
+
   const selectedFactor = selectedFactorId ? factors.find((factor) => factor.id === selectedFactorId) : null;
   if (selectedFactor) {
     return (
@@ -1957,7 +1998,7 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="alpha-modal-shell" role="dialog" aria-modal="true" aria-labelledby="alpha-modal-title">
       <div className="alpha-modal-backdrop" onClick={onClose} />
-      <section className="alpha-modal">
+      <section className="alpha-modal alpha-employee-modal">
         <header className="alpha-modal-header">
           <div>
             <span className="alpha-modal-kicker">FACTOR TERMINAL</span>
@@ -1981,16 +2022,36 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
 
             <div className="alpha-modal-tools">
               {hasActiveFilters ? <button type="button" onClick={() => resetPage(() => setFilterName(""))}>清除筛选</button> : null}
-              {unrevealedPassedCount > 0 ? <button type="button" onClick={revealAll}>揭示全部等级</button> : null}
               <select value={cardFilter} onChange={(event) => resetPage(() => setCardFilter(event.target.value as AlphaFilter))}>
                 <option value="all">全部</option>
                 <option value="starred">我的收藏</option>
               </select>
-              <select value={sortKey} onChange={(event) => resetPage(() => setSortKey(event.target.value as AlphaColumnKey))}>
-                {sortColumns.map((column) => (
-                  <option key={column.key} value={column.key}>{column.label}</option>
-                ))}
-              </select>
+              <details className="alpha-sort-menu">
+                <summary aria-label={`排序：${activeSortLabel}`}>{activeSortLabel}</summary>
+                <div>
+                  {sortColumns.map((column) => {
+                    const isActiveSort = sortKey === column.key;
+                    const displayDir = isActiveSort && sortDir === "asc" ? "asc" : "desc";
+                    return (
+                      <button
+                        className={isActiveSort ? "is-active" : ""}
+                        key={column.key}
+                        type="button"
+                        onClick={(event) => {
+                          resetPage(() => {
+                            setSortKey(column.key);
+                            setSortDir(isActiveSort && sortDir === "desc" ? "asc" : "desc");
+                          });
+                          event.currentTarget.closest("details")?.removeAttribute("open");
+                        }}
+                      >
+                        <span>{column.label}</span>
+                        <em>{displayDir === "asc" ? "升序 ↑" : "降序 ↓"}</em>
+                      </button>
+                    );
+                  })}
+                </div>
+              </details>
               <span className="alpha-view-switch" aria-label="视图切换">
                 <button className={viewMode === "table" ? "is-active" : ""} type="button" onClick={() => setViewMode("table")}>表</button>
                 <button className={viewMode === "card" ? "is-active" : ""} type="button" onClick={() => setViewMode("card")}>卡</button>
@@ -2005,7 +2066,7 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
                   {visibleCols.map((column) => (
                     <col key={column.key} style={{ width: column.width }} />
                   ))}
-                  <col style={{ width: "96px" }} />
+                  <col style={{ width: "126px" }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -2032,7 +2093,15 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
                       ))}
                       <td className="is-right">
                         <span className="alpha-action-group">
-                          <button className="alpha-action is-more" type="button" aria-label={`${row.name} 更多操作`}>...</button>
+                          {renderMoreMenu(row)}
+                          <button
+                            className={starred.has(row.id) ? "alpha-star is-on" : "alpha-star"}
+                            type="button"
+                            onClick={() => toggleStar(row.id)}
+                            aria-label={`收藏 ${row.name}`}
+                          >
+                            ★
+                          </button>
                           <button className="alpha-action" type="button" onClick={() => setSelectedFactorId(row.id)}>查看</button>
                         </span>
                       </td>
@@ -2048,8 +2117,8 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
             </div>
           ) : (
             <div className="alpha-card-grid">
-              {pageRows.map((row, index) => {
-                const avatarSrc = index % 2 === 0 ? "/employee-avatar-1.png" : "/employee-avatar-2.png";
+              {pageRows.map((row) => {
+                const avatarSrc = getEmployeeAvatarSrc(row);
                 return (
                   <article className={`alpha-factor-card ${gradeClass(row.grade)}`} key={row.rowId}>
                     <div className="alpha-factor-card-head">
@@ -2057,12 +2126,12 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
                         <h3>{row.name}</h3>
                         <small>{traderTitleByGrade[row.grade]}</small>
                       </div>
-                      <span className={row.displayedGrade === "hidden" ? "alpha-card-grade-badge is-hidden" : `alpha-card-grade-badge ${gradeClass(row.displayedGrade)}`}>
-                        {row.displayedGrade === "hidden" ? "?" : row.displayedGrade}
+                      <span className={`alpha-card-grade-badge ${gradeClass(row.displayedGrade)}`}>
+                        {row.displayedGrade}
                       </span>
                     </div>
                     <p className="alpha-factor-card-date">
-                      <span>创建日期</span>
+                      <span>入职日期</span>
                       <b>{row.createdAt}</b>
                     </p>
                     <div className="alpha-factor-card-avatar" aria-label="员工头像">
@@ -2075,17 +2144,17 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
                       <span><em>日收益</em><b>{formatDailyIncome(gradeDailyIncome[row.grade])}</b></span>
                     </div>
                     <div className="alpha-factor-card-actions">
-                      <button className="alpha-action is-more" type="button" aria-label={`${row.name} 更多操作`}>...</button>
+                      {renderMoreMenu(row)}
                       <button
                         className={starred.has(row.id) ? "alpha-star is-on" : "alpha-star"}
                         type="button"
                         onClick={() => toggleStar(row.id)}
                         aria-label={`收藏 ${row.name}`}
                       >
-                        ☆
+                        ★
                       </button>
                       <button className="alpha-action is-view" type="button" onClick={() => setSelectedFactorId(row.id)}>
-                        查看 ↗
+                        查看
                       </button>
                     </div>
                   </article>
@@ -2099,14 +2168,6 @@ function MyFactorsModal({ onClose }: { onClose: () => void }) {
           <span>
             {sorted.length === 0 ? 0 : (page - 1) * pageSize + 1}-{Math.min(page * pageSize, sorted.length)} 共 {sorted.length}
           </span>
-          <label className="alpha-page-size">
-            行数
-            <select value={pageSize} onChange={(event) => resetPage(() => setPageSize(Number(event.target.value)))}>
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-          </label>
           <div>
             <button type="button" disabled={page <= 1} onClick={() => setPage(1)}>«</button>
             <button type="button" disabled={page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button>
@@ -3028,14 +3089,20 @@ export default function GamePreview() {
 
         <aside className="quant-game-actions" aria-label="系统状态">
           <div className="quant-game-time" aria-label="电子屏状态">
-            <span className="quant-electro-assets" aria-label="公司总资产">
+            <span className="quant-electro-assets" aria-label="总资产">
               <i className="quant-coin-icon" aria-hidden="true" />
-              <strong>{formatCurrency(balance)}</strong>
+              <span className="quant-electro-copy">
+                <span className="quant-electro-label">总资产</span>
+                <strong>{formatElectroCurrency(balance)}</strong>
+              </span>
             </span>
             <span className="quant-electro-divider" aria-hidden="true" />
-            <span className="quant-electro-age" aria-label="公司成立时间">
+            <span className="quant-electro-age" aria-label="已经营">
               <i className="quant-clock-icon" aria-hidden="true" />
-              <strong>{companyAge}</strong>
+              <span className="quant-electro-copy">
+                <span className="quant-electro-label">已经营</span>
+                <strong>{companyAge}</strong>
+              </span>
             </span>
           </div>
         </aside>
