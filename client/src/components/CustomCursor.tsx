@@ -1,60 +1,20 @@
-/*
- * CustomCursor — Indigo/Sky + Slate Design System
- * Circle cursor that follows the mouse pointer
- * Uses CSS variable --primary to stay on-theme in both light & dark modes
- * Light primary: #4F46E5 (Indigo-600) / Dark primary: #818CF8 (Indigo-400)
- *
- * NOTE: mix-blend-mode: difference is intentionally NOT used because it causes
- * Indigo to appear green/yellow on light backgrounds due to color inversion.
- */
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
 
 export default function CustomCursor() {
   const cursorRef = useRef<HTMLDivElement>(null);
-  const dotRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
-
-  /* Read the current --primary CSS variable value */
-  const getPrimaryColor = useCallback(() => {
-    const raw = getComputedStyle(document.documentElement)
-      .getPropertyValue("--primary")
-      .trim();
-    return raw || "#4F46E5";
-  }, []);
-
-  /* Derive a semi-transparent version of primary for hover bg */
-  const getPrimaryAlpha = useCallback(
-    (alpha: number) => {
-      const hex = getPrimaryColor();
-      if (!hex.startsWith("#") || hex.length < 7) {
-        return `rgba(79, 70, 229, ${alpha})`;
-      }
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    },
-    [getPrimaryColor]
-  );
 
   useEffect(() => {
     const cursor = cursorRef.current;
-    const dot = dotRef.current;
-    if (!cursor || !dot) return;
-
-    let mouseX = 0;
-    let mouseY = 0;
+    if (!cursor) return;
 
     const onMouseMove = (e: MouseEvent) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-      gsap.set(dot, { x: mouseX, y: mouseY });
       gsap.to(cursor, {
-        x: mouseX,
-        y: mouseY,
-        duration: 0.15,
-        ease: "power2.out",
+        x: e.clientX,
+        y: e.clientY,
+        duration: 0.12,
+        ease: "power3.out",
       });
     };
 
@@ -65,10 +25,12 @@ export default function CustomCursor() {
       const hoverables = document.querySelectorAll(
         'a, button, [role="button"], select, input, textarea, [data-cursor-hover]'
       );
+
       hoverables.forEach((el) => {
         el.addEventListener("mouseenter", onMouseEnterHoverable);
         el.addEventListener("mouseleave", onMouseLeaveHoverable);
       });
+
       return hoverables;
     };
 
@@ -95,95 +57,111 @@ export default function CustomCursor() {
     };
   }, []);
 
-  /* Update cursor appearance on hover state change & theme changes */
   useEffect(() => {
     const cursor = cursorRef.current;
     if (!cursor) return;
 
-    if (isHovering) {
-      const primary = getPrimaryColor();
-      gsap.to(cursor, {
-        width: 56,
-        height: 56,
-        borderColor: primary,
-        backgroundColor: getPrimaryAlpha(0.1),
-        duration: 0.3,
-        ease: "power3.out",
-      });
-    } else {
-      gsap.to(cursor, {
-        width: 32,
-        height: 32,
-        borderColor: getPrimaryAlpha(0.5),
-        backgroundColor: "transparent",
-        duration: 0.3,
-        ease: "power3.out",
-      });
-    }
-  }, [isHovering, getPrimaryColor, getPrimaryAlpha]);
-
-  /* Listen for theme changes (class toggle on <html>) to refresh colors */
-  useEffect(() => {
-    const cursor = cursorRef.current;
-    const dot = dotRef.current;
-    if (!cursor || !dot) return;
-
-    const refreshColors = () => {
-      const primary = getPrimaryColor();
-      // Update dot background
-      dot.style.backgroundColor = primary;
-      // Update ring border
-      if (!isHovering) {
-        cursor.style.borderColor = getPrimaryAlpha(0.5);
-      } else {
-        cursor.style.borderColor = primary;
-        cursor.style.backgroundColor = getPrimaryAlpha(0.1);
-      }
-    };
-
-    const themeObserver = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (
-          mutation.type === "attributes" &&
-          mutation.attributeName === "class"
-        ) {
-          // Small delay to let CSS variables update
-          requestAnimationFrame(refreshColors);
-        }
-      }
+    gsap.to(cursor, {
+      scale: isHovering ? 1.14 : 1,
+      rotate: isHovering ? -8 : -14,
+      duration: 0.22,
+      ease: "power3.out",
     });
-
-    themeObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => themeObserver.disconnect();
-  }, [isHovering, getPrimaryColor, getPrimaryAlpha]);
+  }, [isHovering]);
 
   return (
     <>
-      {/* Outer ring — NO mix-blend-mode to preserve true Indigo color */}
+      <style>{`
+        .island-cursor {
+          --cursor-ink: #794f27;
+          --cursor-cream: #fff9e8;
+          --cursor-cream-deep: #f2dfae;
+          --cursor-mint: #19c8b9;
+          pointer-events: none;
+          position: fixed;
+          left: 0;
+          top: 0;
+          z-index: 9999;
+          width: 34px;
+          height: 43px;
+          transform: translate(-8px, -7px) rotate(-14deg);
+          transform-origin: 8px 7px;
+          will-change: transform;
+          filter:
+            drop-shadow(0 3px 0 #bdaea0)
+            drop-shadow(0 7px 10px rgba(61, 52, 40, .18));
+        }
+
+        .island-cursor::before {
+          content: "";
+          position: absolute;
+          left: 4px;
+          top: 1px;
+          width: 19px;
+          height: 31px;
+          background:
+            radial-gradient(circle at 39% 20%, rgba(255,255,255,.75) 0 13%, transparent 14%),
+            linear-gradient(155deg, var(--cursor-cream) 0 18%, var(--cursor-cream-deep) 100%);
+          border: 3px solid var(--cursor-ink);
+          border-radius: 16px 15px 12px 14px / 18px 15px 12px 12px;
+          clip-path: polygon(0 0, 100% 44%, 63% 50%, 85% 98%, 62% 100%, 39% 54%, 0 76%);
+        }
+
+        .island-cursor::after {
+          content: "";
+          position: absolute;
+          left: 18px;
+          top: 22px;
+          width: 10px;
+          height: 10px;
+          background: var(--cursor-mint);
+          border: 2px solid var(--cursor-ink);
+          border-radius: 50%;
+          opacity: 0;
+          transform: scale(.4);
+          transition:
+            opacity .18s ease,
+            transform .18s ease;
+        }
+
+        .island-cursor.is-hovering::after {
+          opacity: 1;
+          transform: scale(1);
+        }
+
+        .island-cursor__spark {
+          position: absolute;
+          left: 22px;
+          top: 6px;
+          width: 7px;
+          height: 7px;
+          background: #ffcc00;
+          border: 1.5px solid var(--cursor-ink);
+          transform: rotate(45deg) scale(.85);
+          opacity: 0;
+          transition:
+            opacity .18s ease,
+            transform .18s ease;
+        }
+
+        .island-cursor.is-hovering .island-cursor__spark {
+          opacity: 1;
+          transform: rotate(45deg) scale(1);
+        }
+
+        @media (pointer: coarse), (prefers-reduced-motion: reduce) {
+          .island-cursor {
+            display: none;
+          }
+        }
+      `}</style>
       <div
         ref={cursorRef}
-        className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border will-change-transform"
-        style={{
-          width: 32,
-          height: 32,
-          transform: "translate(-50%, -50%)",
-          borderColor: "var(--primary)",
-          opacity: 0.5,
-        }}
-      />
-      {/* Inner dot */}
-      <div
-        ref={dotRef}
-        className="pointer-events-none fixed top-0 left-0 z-[9999] w-[5px] h-[5px] rounded-full will-change-transform"
-        style={{
-          transform: "translate(-50%, -50%)",
-          backgroundColor: "var(--primary)",
-        }}
-      />
+        className={`island-cursor${isHovering ? " is-hovering" : ""}`}
+        aria-hidden="true"
+      >
+        <span className="island-cursor__spark" />
+      </div>
     </>
   );
 }
