@@ -438,6 +438,10 @@ export default function Landing() {
           --ac-shadow: #bdaea0;
           --ac-shadow-input: #d4c9b4;
           --ac-focus-yellow: #ffcc00;
+          --radius-xs: 4px;
+          --radius-sm: 6px;
+          --radius-md: 8px;
+          --radius-lg: 10px;
           position: relative;
           min-height: 100svh;
           overflow: hidden;
@@ -490,7 +494,7 @@ export default function Landing() {
             radial-gradient(circle at 28% 23%, rgba(255,255,255,.72) 0 10%, transparent 11%),
             linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
           border: 2.5px solid var(--ac-border);
-          border-radius: 28px 24px 30px 23px / 24px 30px 23px 28px;
+          border-radius: var(--radius-md);
           padding: 0;
           box-shadow:
             0 5px 0 0 var(--ac-shadow),
@@ -526,12 +530,21 @@ export default function Landing() {
           position: absolute;
           inset: 9px;
           border: 2px solid rgba(196, 184, 158, .55);
-          border-radius: 20px 17px 22px 18px / 18px 22px 17px 20px;
+          border-radius: var(--radius-sm);
           background: rgba(255, 255, 255, .13);
         }
 
         .pixel-button--image::after {
           content: none;
+        }
+
+        .ui-left .pixel-button--image {
+          box-shadow: none;
+        }
+
+        .ui-left .pixel-button--image:hover,
+        .ui-left .pixel-button--image:active {
+          box-shadow: none;
         }
 
         .icon-bag,
@@ -565,7 +578,7 @@ export default function Landing() {
             linear-gradient(90deg, transparent 0 13%, #6e3f28 14% 23%, transparent 24% 76%, #6e3f28 77% 86%, transparent 87%),
             linear-gradient(180deg, #d99046 0 24%, #af6534 25% 100%);
           border: 5px solid var(--ink-dark);
-          border-radius: 24% 24% 20% 20%;
+          border-radius: var(--radius-md);
           box-shadow:
             inset 8px 0 0 rgba(255, 201, 105, .34),
             inset -8px 0 0 rgba(86, 41, 24, .22),
@@ -581,7 +594,7 @@ export default function Landing() {
           height: 38%;
           border: 5px solid var(--ink-dark);
           border-bottom: 0;
-          border-radius: 14px 14px 0 0;
+          border-radius: var(--radius-sm) var(--radius-sm) 0 0;
           background: #bf763c;
           box-shadow:
             inset 0 6px 0 rgba(255, 211, 125, .32),
@@ -599,7 +612,7 @@ export default function Landing() {
             radial-gradient(circle at 50% 36%, #f0bb5e 0 6%, transparent 7%),
             linear-gradient(180deg, #c9793d 0 38%, #9d552f 39% 100%);
           border: 5px solid var(--ink-dark);
-          border-radius: 8px 8px 14px 14px;
+          border-radius: var(--radius-md) var(--radius-md) var(--radius-sm) var(--radius-sm);
           box-shadow:
             inset 6px 0 0 rgba(255, 198, 99, .24),
             inset -5px 0 0 rgba(82, 38, 23, .22);
@@ -622,7 +635,7 @@ export default function Landing() {
             linear-gradient(90deg, rgba(255, 244, 160, .6) 0 18%, transparent 19% 100%),
             linear-gradient(90deg, #d8891d 0%, #ffd962 44%, #f4a329 65%, #a95a18 100%);
           border: 5px solid var(--ink-dark);
-          border-radius: 5px 5px 19px 19px;
+          border-radius: var(--radius-xs) var(--radius-xs) var(--radius-sm) var(--radius-sm);
           box-shadow:
             inset 0 7px 0 rgba(255, 242, 139, .7),
             inset -7px 0 0 rgba(126, 60, 18, .25);
@@ -667,7 +680,7 @@ export default function Landing() {
           height: 32%;
           border-left: 5px solid var(--ink-dark);
           border-right: 5px solid var(--ink-dark);
-          border-radius: 16px;
+          border-radius: var(--radius-sm);
         }
 
         .icon-case {
@@ -677,7 +690,7 @@ export default function Landing() {
           background:
             linear-gradient(180deg, #c77737 0 33%, #8e4628 34% 100%);
           border: 5px solid var(--ink-dark);
-          border-radius: 12px 12px 10px 10px;
+          border-radius: var(--radius-sm);
           box-shadow:
             inset 8px 0 0 rgba(255, 198, 99, .22),
             inset -8px 0 0 rgba(73, 33, 21, .24),
@@ -693,7 +706,7 @@ export default function Landing() {
           height: 34%;
           border: 5px solid var(--ink-dark);
           border-bottom: 0;
-          border-radius: 9px 9px 0 0;
+          border-radius: var(--radius-sm) var(--radius-sm) 0 0;
           background: #d89443;
           box-shadow:
             0 21px 0 -7px #f0be5a,
@@ -726,7 +739,7 @@ export default function Landing() {
           background: #9b532d;
           border: 4px solid var(--ink-dark);
           border-top: 0;
-          border-radius: 0 0 10px 10px;
+          border-radius: 0 0 var(--radius-sm) var(--radius-sm);
         }
 
         .icon-case .case-lock {
@@ -772,7 +785,7 @@ export default function Landing() {
             linear-gradient(180deg, rgba(255,255,255,.35), transparent 42%),
             repeating-linear-gradient(90deg, #2e7ec2 0 17%, #ecf7ff 17% 32%, #438fd0 32% 49%);
           border: 3px solid var(--ac-text);
-          border-radius: 22px 22px 9px 9px;
+          border-radius: var(--radius-md) var(--radius-md) var(--radius-xs) var(--radius-xs);
           box-shadow:
             inset 0 -7px 0 rgba(65, 39, 27, .2),
             0 4px 0 rgba(70, 38, 25, .22);
@@ -790,7 +803,7 @@ export default function Landing() {
             radial-gradient(circle at 78% 56%, rgba(151, 98, 54, .18) 0 4%, transparent 5%),
             linear-gradient(90deg, #e8cf9b 0 23%, #f7dfae 24% 73%, #d5b986 74% 100%);
           border: 3px solid var(--ac-text);
-          border-radius: 4px 4px 12px 12px;
+          border-radius: var(--radius-xs) var(--radius-xs) var(--radius-sm) var(--radius-sm);
           box-shadow: inset 0 32px 0 #a84e20;
         }
 
@@ -876,7 +889,7 @@ export default function Landing() {
             radial-gradient(circle at 10% 4%, rgba(255,255,255,.75) 0 8%, transparent 9%),
             linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
           border: 3px solid var(--ac-border);
-          border-radius: 34px 28px 38px 30px / 30px 38px 28px 34px;
+          border-radius: var(--radius-lg);
           box-shadow:
             0 7px 0 var(--ac-shadow),
             0 22px 60px rgba(66, 48, 31, .22);
@@ -916,7 +929,7 @@ export default function Landing() {
           color: var(--ac-text);
           background: var(--ac-cream-light);
           border: 2px solid var(--ac-border);
-          border-radius: 16px 14px 17px 15px;
+          border-radius: var(--radius-md);
           box-shadow: 0 4px 0 var(--ac-shadow-input);
           transition: all .2s ease;
         }
@@ -956,7 +969,7 @@ export default function Landing() {
           color: var(--ac-text);
           background: rgba(248, 248, 240, .72);
           border: 2px solid transparent;
-          border-radius: 16px 14px 17px 15px;
+          border-radius: var(--radius-md);
           box-shadow: none;
           font: inherit;
           font-size: 13px;
@@ -1011,7 +1024,7 @@ export default function Landing() {
           color: var(--ac-text);
           background: rgba(248, 248, 240, .72);
           border: 2px solid transparent;
-          border-radius: 16px 14px 17px 15px;
+          border-radius: var(--radius-md);
           box-shadow: none;
         }
 
@@ -1031,6 +1044,7 @@ export default function Landing() {
         .shop-select-aisland [class*="animal-dropdown-"] {
           background: #fff3d3;
           border: 2px solid var(--ac-border);
+          border-radius: var(--radius-md);
           box-shadow: 0 6px 0 var(--ac-shadow-input), 0 12px 26px rgba(61, 52, 40, .14);
         }
 
@@ -1058,7 +1072,7 @@ export default function Landing() {
           color: var(--ac-text);
           background: rgba(255, 249, 232, .72);
           border: 2px solid transparent;
-          border-radius: 999px;
+          border-radius: var(--radius-md);
           box-shadow: none;
           font: inherit;
           font-size: 12px;
@@ -1084,7 +1098,7 @@ export default function Landing() {
           flex-direction: column;
           background: rgba(255, 255, 248, .86);
           border: 2px solid transparent;
-          border-radius: 22px 18px 24px 19px / 19px 24px 18px 22px;
+          border-radius: var(--radius-md);
           box-shadow: none;
           cursor: pointer;
           overflow: hidden;
@@ -1137,7 +1151,7 @@ export default function Landing() {
           color: var(--ac-text-body);
           background: #fff3d3;
           border: 1.5px solid rgba(196, 184, 158, .72);
-          border-radius: 999px;
+          border-radius: var(--radius-sm);
           font-size: 11px;
           font-weight: 900;
         }
@@ -1237,7 +1251,7 @@ export default function Landing() {
           color: var(--ac-text);
           background: var(--ac-cream-light);
           border: 2px solid var(--ac-border);
-          border-radius: 999px;
+          border-radius: var(--radius-md);
           box-shadow: 0 3px 0 var(--ac-shadow-input);
           font: inherit;
           font-size: 12px;
@@ -1281,13 +1295,56 @@ export default function Landing() {
           color: var(--ac-text-body);
           background: rgba(255, 255, 248, .82);
           border: 2px dashed var(--ac-border);
-          border-radius: 24px;
+          border-radius: var(--radius-md);
           text-align: center;
           font-weight: 900;
         }
 
         .inventory-modal {
+          --inventory-pixel-edge: color-mix(in srgb, var(--ac-border) 82%, var(--ac-text));
+          --inventory-pixel-shadow: color-mix(in srgb, var(--ac-shadow) 76%, var(--ac-text));
           width: min(1180px, 95vw);
+          background: linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
+          border: 2px solid var(--inventory-pixel-edge);
+          border-radius: var(--radius-xs);
+          box-shadow:
+            0 0 0 2px rgba(255, 253, 244, .88),
+            5px 5px 0 rgba(189, 174, 160, .72),
+            0 20px 48px rgba(66, 48, 31, .18);
+          image-rendering: pixelated;
+        }
+
+        .inventory-modal .shop-modal__header {
+          align-items: center;
+          background: rgba(255, 249, 232, .88);
+          border-bottom: 2px solid rgba(196, 184, 158, .62);
+        }
+
+        .inventory-modal .shop-modal__title {
+          color: var(--ac-text);
+          text-shadow: 2px 2px 0 rgba(196, 184, 158, .46);
+        }
+
+        .inventory-modal .shop-modal__toolbar {
+          background: rgba(255, 249, 232, .58);
+          border-bottom: 0;
+        }
+
+        .inventory-modal .shop-modal__close,
+        .inventory-modal .shop-input,
+        .inventory-modal .shop-chip,
+        .inventory-modal .shop-select-aisland [class*="animal-trigger-"] {
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+        }
+
+        .inventory-modal .shop-modal__close:hover,
+        .inventory-modal .shop-chip:hover,
+        .inventory-modal .shop-select-aisland [class*="animal-trigger-"]:hover {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
         }
 
         .inventory-summary {
@@ -1302,7 +1359,7 @@ export default function Landing() {
           padding: 13px 14px;
           background: rgba(255,255,248,.72);
           border: 2px solid transparent;
-          border-radius: 21px 17px 23px 18px / 18px 23px 17px 21px;
+          border-radius: var(--radius-md);
         }
 
         .inventory-stat__label {
@@ -1326,9 +1383,10 @@ export default function Landing() {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
           align-items: start;
-          gap: 16px;
+          gap: 14px;
           overflow: auto;
           padding: 16px clamp(18px, 2.6vw, 34px) clamp(18px, 2.6vw, 34px);
+          background: transparent;
         }
 
         .inventory-card {
@@ -1336,26 +1394,22 @@ export default function Landing() {
           align-self: start;
           display: flex;
           flex-direction: column;
-          gap: 14px;
-          padding: 18px;
+          gap: 12px;
+          padding: 16px;
           color: var(--ac-text);
-          background:
-            radial-gradient(circle at 22% 14%, rgba(255,255,255,.78) 0 7%, transparent 8%),
-            linear-gradient(180deg, rgba(255,255,248,.98) 0%, rgba(253,250,238,.96) 100%);
-          border: 3px solid rgba(220, 215, 195, .92);
-          border-radius: 34px 29px 38px 31px / 30px 38px 29px 35px;
-          box-shadow:
-            inset 0 0 0 2px rgba(255, 255, 255, .68),
-            0 5px 0 rgba(188, 178, 157, .78);
+          background: rgba(255, 255, 248, .92);
+          border: 2px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: inset 0 0 0 1px rgba(255, 253, 244, .78);
           transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
         }
 
         .inventory-card:hover {
-          transform: translateY(-1px);
-          border-color: rgba(196, 184, 158, .98);
+          transform: translate(-2px, -2px);
+          border-color: var(--ac-border-hover);
           box-shadow:
-            inset 0 0 0 2px rgba(255, 255, 255, .74),
-            0 7px 0 rgba(188, 178, 157, .8);
+            inset 0 0 0 1px rgba(255, 253, 244, .82),
+            6px 6px 0 rgba(189, 174, 160, .68);
         }
 
         .inventory-card__main {
@@ -1373,17 +1427,17 @@ export default function Landing() {
         .inventory-card__title {
           margin: 0;
           display: inline-flex;
-          min-width: 104px;
-          min-height: 45px;
+          min-width: auto;
+          min-height: auto;
           align-items: center;
           justify-content: center;
-          padding: 0 18px;
+          padding: 4px 0;
           color: #63483e;
-          background: rgba(247, 243, 223, .74);
-          border: 2px solid rgba(220, 215, 195, .95);
-          border-radius: 18px 15px 19px 16px / 16px 19px 15px 18px;
-          box-shadow: inset 0 -3px 0 rgba(144, 126, 104, .08);
-          font-size: 21px;
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+          font-size: 16px;
           line-height: 1.25;
           font-weight: 950;
         }
@@ -1420,20 +1474,19 @@ export default function Landing() {
         }
 
         .inventory-grade {
-          min-width: 68px;
-          height: 45px;
+          min-width: 48px;
+          height: 32px;
           display: inline-grid;
           place-items: center;
           flex: 0 0 auto;
           color: #fffdf4;
-          background: linear-gradient(180deg, #78dbcf 0%, #55c2b6 100%);
-          border: 3px solid #469b94;
-          border-radius: 18px 15px 19px 16px / 16px 19px 15px 18px;
+          background: var(--ac-primary);
+          border: 0;
+          border-radius: var(--radius-xs);
           box-shadow:
-            inset 0 4px 0 rgba(255,255,255,.32),
-            inset 0 -5px 0 rgba(24, 105, 99, .2),
-            0 3px 0 rgba(45, 102, 94, .28);
-          font-size: 26px;
+            inset 0 3px 0 rgba(255,255,255,.32),
+            3px 3px 0 rgba(45, 102, 94, .35);
+          font-size: 16px;
           font-weight: 950;
         }
 
@@ -1474,20 +1527,20 @@ export default function Landing() {
 
         .inventory-metric-card {
           min-width: 0;
-          min-height: 86px;
-          display: grid;
-          place-items: center;
-          padding: 10px 8px;
+          min-height: 54px;
+          display: block;
+          padding: 8px 0 0;
           text-align: center;
-          background: rgba(255,255,255,.58);
-          border: 3px solid rgba(220, 215, 195, .92);
-          border-radius: 24px 18px 25px 20px / 20px 25px 18px 24px;
-          box-shadow: inset 0 -4px 0 rgba(144, 126, 104, .08);
+          background: transparent;
+          border: 0;
+          border-top: 2px solid rgba(196, 184, 158, .62);
+          border-radius: 0;
+          box-shadow: none;
         }
 
         .inventory-metric-card__label {
           color: rgba(99, 72, 62, .78);
-          font-size: 18px;
+          font-size: 13px;
           font-weight: 900;
           letter-spacing: .08em;
         }
@@ -1495,36 +1548,36 @@ export default function Landing() {
         .inventory-metric-card__value {
           margin-top: 5px;
           color: #55aaa3;
-          font-size: clamp(26px, 2.4vw, 38px);
+          font-size: 16px;
           line-height: 1;
           font-weight: 950;
           font-variant-numeric: tabular-nums;
         }
 
         .inventory-action {
-          height: 55px;
+          height: 44px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           color: #6f5a50;
-          background: rgba(255,255,255,.64);
-          border: 3px solid rgba(220, 215, 195, .92);
-          border-radius: 18px 15px 19px 16px / 16px 19px 15px 18px;
-          box-shadow: 0 4px 0 rgba(188, 178, 157, .58), inset 0 3px 0 rgba(255,255,255,.7);
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs);
+          box-shadow: none;
           font: inherit;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 950;
           text-decoration: none;
           transition: transform .16s ease, border-color .16s ease;
         }
 
         .inventory-action:hover {
-          transform: translateY(-1px);
-          border-color: rgba(196, 184, 158, .98);
+          transform: translate(-1px, -1px);
+          color: var(--ac-text);
         }
 
         .inventory-action--square {
-          width: 55px;
+          width: 32px;
           padding: 0;
         }
 
@@ -1537,10 +1590,11 @@ export default function Landing() {
           flex: 1 1 auto;
           gap: 8px;
           color: #fffdf4;
-          background: linear-gradient(180deg, #82ded4 0%, #62c8bd 100%);
+          background: var(--ac-primary);
+          border: 2px solid #4faaa2;
           border-color: #4faaa2;
-          box-shadow: 0 5px 0 rgba(49, 132, 125, .72), inset 0 4px 0 rgba(255,255,255,.3);
-          font-size: 20px;
+          box-shadow: 3px 3px 0 rgba(49, 132, 125, .5), inset 0 3px 0 rgba(255,255,255,.28);
+          font-size: 16px;
         }
 
         .inventory-status {
@@ -1552,7 +1606,7 @@ export default function Landing() {
           color: #0b725c;
           background: #e6f9f0;
           border: 1.5px solid rgba(31, 163, 116, .28);
-          border-radius: 999px;
+          border-radius: var(--radius-sm);
           font-size: 11px;
           font-weight: 950;
         }
@@ -1625,7 +1679,7 @@ export default function Landing() {
             radial-gradient(circle at 8% 5%, rgba(255,255,255,.72) 0 8%, transparent 9%),
             linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
           border: 3px solid var(--ac-border);
-          border-radius: 34px 28px 38px 30px / 30px 38px 28px 34px;
+          border-radius: var(--radius-lg);
           box-shadow: 0 7px 0 var(--ac-shadow), 0 24px 70px rgba(66, 48, 31, .25);
         }
 
@@ -1658,7 +1712,7 @@ export default function Landing() {
           display: inline-grid;
           place-items: center;
           flex: 0 0 auto;
-          border-radius: 16px;
+          border-radius: var(--radius-md);
         }
 
         .strategy-detail__back:hover,
@@ -1697,7 +1751,7 @@ export default function Landing() {
           align-items: center;
           gap: 7px;
           padding: 0 14px;
-          border-radius: 999px;
+          border-radius: var(--radius-md);
           text-decoration: none;
           font-size: 12px;
         }
@@ -1723,7 +1777,7 @@ export default function Landing() {
         .detail-panel {
           background: rgba(255,255,248,.86);
           border: 2px solid rgba(196, 184, 158, .78);
-          border-radius: 22px 18px 24px 19px / 19px 24px 18px 22px;
+          border-radius: var(--radius-md);
           box-shadow: 0 4px 0 rgba(189, 174, 160, .68);
         }
 
@@ -1824,7 +1878,7 @@ export default function Landing() {
         .strategy-detail__range {
           min-width: 46px;
           height: 30px;
-          border-radius: 999px;
+          border-radius: var(--radius-sm);
           font-size: 10px;
         }
 
@@ -1860,7 +1914,7 @@ export default function Landing() {
           overflow: hidden;
           background: #efe4c8;
           border: 1px solid rgba(196, 184, 158, .78);
-          border-radius: 999px;
+          border-radius: var(--radius-xs);
         }
 
         .detail-pref-bar span {
@@ -1983,9 +2037,6 @@ export default function Landing() {
             <header className="shop-modal__header">
               <div>
                 <h2 className="shop-modal__title" id="inventory-modal-title">背包</h2>
-                <p className="shop-modal__subtitle">
-                  {tr("Your factor inventory, aligned with My Factors fields and actions.", "与“我的因子”字段和交互保持一致的因子背包。")}
-                </p>
               </div>
               <button className="shop-modal__close" type="button" aria-label={tr("Close inventory", "关闭背包")} onClick={() => setInventoryOpen(false)}>
                 <X size={22} strokeWidth={3} />
@@ -2020,24 +2071,6 @@ export default function Landing() {
                     placeholder={tr("Choose sort", "选择排序")}
                   />
                 </div>
-                <button
-                  className="shop-chip"
-                  type="button"
-                  disabled={!factorSortKey}
-                  onClick={() => setFactorSortDir(factorSortDir === "asc" ? "desc" : "asc")}
-                >
-                  {factorSortDir === "asc" ? tr("Ascending", "升序") : factorSortDir === "desc" ? tr("Descending", "降序") : tr("Default", "默认")}
-                </button>
-                {(factorSortKey || factorQuery || factorFilter !== "all") && (
-                  <button className="shop-chip" type="button" onClick={() => {
-                    setFactorQuery("");
-                    setFactorFilter("all");
-                    setFactorSortKey("createdAt");
-                    setFactorSortDir("desc");
-                  }}>
-                    {tr("Clear", "清除")}
-                  </button>
-                )}
               </div>
             </div>
 
@@ -2119,9 +2152,6 @@ export default function Landing() {
             <header className="shop-modal__header">
               <div>
                 <h2 className="shop-modal__title" id="shop-modal-title">商店</h2>
-                <p className="shop-modal__subtitle">
-                  {tr("Official strategy templates, synced with the strategy library data.", "与官方策略库数据保持一致的策略模板。")}
-                </p>
               </div>
               <button className="shop-modal__close" type="button" aria-label={tr("Close shop", "关闭商店")} onClick={() => setShopOpen(false)}>
                 <X size={22} strokeWidth={3} />
@@ -2256,7 +2286,7 @@ export default function Landing() {
                         href={`/strategies/new?template=${strategy.id}&creationMode=platform&scale=single&inputMethod=form`}
                         onClick={(event) => event.stopPropagation()}
                       >
-                        {tr("Use Template", "使用模板")}
+                        {tr("Copy", "复制")}
                       </Link>
                       <Link
                         className="shop-card__action shop-card__action--primary"
@@ -2312,7 +2342,7 @@ export default function Landing() {
                 </button>
                 <Link className="strategy-detail__button strategy-detail__button--primary" href={`/strategies/new?template=${selectedStrategy.id}&creationMode=platform&scale=single&inputMethod=form`}>
                   <ClipboardList size={15} />
-                  {tr("Use Template", "使用模板")}
+                  {tr("Copy", "复制")}
                 </Link>
                 <button className="strategy-detail__close" type="button" aria-label={tr("Close detail", "关闭详情")} onClick={() => setSelectedStrategy(null)}>
                   <X size={21} strokeWidth={3} />
