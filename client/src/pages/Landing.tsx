@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
 import type { SelectOption } from "animal-island-ui";
+import AlphaDetail from "@/pages/AlphaDetail";
 import {
   ArrowLeft,
   ArrowUpRight,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { factors, getAlphaGrade, strategies, type AlphaGrade, type Factor } from "@/lib/mockData";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { AlphaViewModeProvider } from "@/contexts/AlphaViewModeContext";
 
 const filterOptions = ["all", "official", "graduated"] as const;
 type FilterKey = (typeof filterOptions)[number];
@@ -27,7 +29,7 @@ type StrategySortKey = "roi" | "winRate" | "sharpe" | "maxDrawdown";
 type SortDir = "asc" | "desc" | null;
 const curveRanges = ["7D", "30D", "90D", "365D"] as const;
 type CurveRange = (typeof curveRanges)[number];
-const factorFilterOptions = ["all", "passed", "starred", "failed"] as const;
+const factorFilterOptions = ["all", "starred"] as const;
 type FactorFilterKey = (typeof factorFilterOptions)[number];
 type FactorSortKey =
   | "createdAt"
@@ -74,7 +76,7 @@ function getFactorSubmissionStatus(factor: Factor): FactorRow["submissionStatus"
 }
 
 function getFactorDefaultSortDir(key: FactorSortKey): Exclude<SortDir, null> {
-  return key === "drawdown" || key === "grade" ? "asc" : "desc";
+  return "desc";
 }
 
 function buildFactorCurve(factor: Factor) {
@@ -126,7 +128,9 @@ export default function Landing() {
   const [factorFilter, setFactorFilter] = useState<FactorFilterKey>("all");
   const [factorSortKey, setFactorSortKey] = useState<FactorSortKey | null>("createdAt");
   const [factorSortDir, setFactorSortDir] = useState<SortDir>("desc");
+  const [factorSortOpen, setFactorSortOpen] = useState(false);
   const [starredFactors, setStarredFactors] = useState<Set<string>>(() => new Set(["AF-004", "AF-009"]));
+  const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -164,9 +168,7 @@ export default function Landing() {
 
   const factorFilterLabels: Record<FactorFilterKey, string> = {
     all: tr("All", "全部"),
-    passed: tr("Passed", "通过"),
     starred: tr("My Favorites", "我的收藏"),
-    failed: tr("Failed", "失败"),
   };
 
   const factorFilterSelectOptions: SelectOption[] = factorFilterOptions.map((option) => ({
@@ -186,13 +188,7 @@ export default function Landing() {
     fitness: tr("Fitness", "适应度"),
   };
 
-  const factorSortSelectOptions: SelectOption[] = [
-    { key: "default", label: tr("Default", "默认") },
-    ...(Object.keys(factorSortLabels) as FactorSortKey[]).map((key) => ({
-      key,
-      label: factorSortLabels[key],
-    })),
-  ];
+  const factorSortKeys = Object.keys(factorSortLabels) as FactorSortKey[];
 
   const factorRows = useMemo<FactorRow[]>(() => {
     return factors.map((factor) => {
@@ -243,9 +239,7 @@ export default function Landing() {
         factor.market.toLowerCase().includes(q) ||
         factor.tag?.toLowerCase().includes(q) ||
         factor.description?.toLowerCase().includes(q);
-      const matchFilter =
-        factorFilter === "all" ||
-        (factorFilter === "starred" ? starredFactors.has(factor.id) : factor.submissionStatus === factorFilter);
+      const matchFilter = factorFilter === "all" ? true : starredFactors.has(factor.id);
       return matchQuery && matchFilter;
     });
 
@@ -264,15 +258,35 @@ export default function Landing() {
     });
   };
 
+  const handleInventoryCardMove = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    const rotateY = (x / rect.width - 0.5) * 18;
+    const rotateX = (0.5 - y / rect.height) * 18;
+    event.currentTarget.style.setProperty("--card-tilt-x", `${rotateY.toFixed(2)}deg`);
+    event.currentTarget.style.setProperty("--card-tilt-y", `${rotateX.toFixed(2)}deg`);
+    event.currentTarget.style.setProperty("--card-shine-x", `${x.toFixed(1)}px`);
+    event.currentTarget.style.setProperty("--card-shine-y", `${y.toFixed(1)}px`);
+    event.currentTarget.style.setProperty("--card-shine-angle", `${(rotateY + 135).toFixed(1)}deg`);
+  }, []);
+
+  const handleInventoryCardLeave = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    event.currentTarget.style.setProperty("--card-tilt-x", "0deg");
+    event.currentTarget.style.setProperty("--card-tilt-y", "0deg");
+    event.currentTarget.style.setProperty("--card-shine-angle", "135deg");
+  }, []);
+
   const handleFactorSortChange = (key: string) => {
-    if (key === "default") {
-      setFactorSortKey(null);
-      setFactorSortDir(null);
+    const nextKey = key as FactorSortKey;
+    if (factorSortKey === nextKey) {
+      setFactorSortDir((current) => (current === "asc" ? "desc" : "asc"));
+      setFactorSortOpen(false);
       return;
     }
-    const nextKey = key as FactorSortKey;
     setFactorSortKey(nextKey);
     setFactorSortDir(getFactorDefaultSortDir(nextKey));
+    setFactorSortOpen(false);
   };
 
   const translateDescription = (strategy: (typeof strategies)[number]) => {
@@ -422,7 +436,15 @@ export default function Landing() {
   return (
     <main className="game-landing" aria-label="Pixel lakeside game landing">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Noto+Sans+SC:wght@500;700&family=Zen+Maru+Gothic:wght@500;700&display=swap');
+        @font-face {
+          font-family: "阿里妈妈方圆体 VF Regular";
+          src:
+            url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff2") format("woff2"),
+            url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff") format("woff");
+          font-display: swap;
+          font-weight: 100 900;
+          font-style: normal;
+        }
 
         .game-landing {
           --ink: #5a321d;
@@ -442,11 +464,13 @@ export default function Landing() {
           --radius-sm: 6px;
           --radius-md: 8px;
           --radius-lg: 10px;
+          --BEVL: 1;
           position: relative;
           min-height: 100svh;
           overflow: hidden;
           background: #55baf3;
-          font-family: Nunito, "Noto Sans SC", "Zen Maru Gothic", -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-variation-settings: "BEVL" var(--BEVL);
           image-rendering: pixelated;
           isolation: isolate;
         }
@@ -498,6 +522,7 @@ export default function Landing() {
           align-items: center;
           gap: 8px;
           width: clamp(82px, 5.75vw, 120px);
+          aspect-ratio: 1;
           transition: transform .22s cubic-bezier(.23,1,.32,1);
           position: relative; /* establish stacking context for label */
         }
@@ -535,35 +560,19 @@ export default function Landing() {
 
         .menu-tile:hover .menu-tile__icon {
           filter: drop-shadow(0 6px 0 rgba(62, 48, 37, .32))
-                  drop-shadow(0 10px 18px rgba(62, 48, 37, .22))
-                  drop-shadow(0 0 8px rgba(255, 220, 130, .55));
+                  drop-shadow(0 10px 18px rgba(62, 48, 37, .22));
         }
 
         .menu-tile__name {
-          /* Match Figma: pixel Chinese label overlaps icon's lower body, sits on TOP layer */
-          font-family: 'Zpix', 'Press Start 2P', 'Courier New', monospace;
-          font-size: clamp(20px, 1.6vw, 28px);
-          line-height: 1;
-          letter-spacing: .06em;
-          color: #ffffff;
-          background: transparent;
-          border: 0;
+          position: absolute;
+          width: 1px;
+          height: 1px;
           padding: 0;
-          box-shadow: none;
-          text-shadow:
-            -2px 0 0 #1a0d05, 2px 0 0 #1a0d05,
-            0 -2px 0 #1a0d05, 0 2px 0 #1a0d05,
-            -2px -2px 0 #1a0d05, 2px -2px 0 #1a0d05,
-            -2px 2px 0 #1a0d05, 2px 2px 0 #1a0d05,
-            0 4px 0 rgba(0, 0, 0, .35);
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
           white-space: nowrap;
-          margin-top: -26px; /* overlap with icon's lower band, per Figma */
-          z-index: 2;        /* keep label above the icon image */
-          position: relative;
-          pointer-events: none;
-          -webkit-font-smoothing: none;
-          font-smooth: never;
-          image-rendering: pixelated;
+          border: 0;
         }
 
         .pixel-button {
@@ -1150,6 +1159,101 @@ export default function Landing() {
           font-weight: 900;
         }
 
+        .sort-direction-select {
+          position: relative;
+          width: 100%;
+          height: 40px;
+        }
+
+        .sort-direction-select__trigger {
+          appearance: none;
+          width: 100%;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 0 14px 0 18px;
+          color: var(--ac-text);
+          background: rgba(248, 248, 240, .72);
+          border: 2px solid transparent;
+          border-radius: var(--radius-md);
+          box-shadow: none;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .sort-direction-select__trigger:hover {
+          background: #fffdf4;
+        }
+
+        .sort-direction-select__trigger:focus-visible,
+        .sort-direction-select__option:focus-visible {
+          border-color: var(--ac-primary);
+          outline: 2px solid rgba(25, 200, 185, .28);
+          outline-offset: 2px;
+        }
+
+        .sort-direction-select__chevron {
+          color: #62bfb2;
+          font-size: 12px;
+          line-height: 1;
+          transform: rotate(0deg);
+          transition: transform .18s ease;
+        }
+
+        .sort-direction-select.is-open .sort-direction-select__chevron {
+          transform: rotate(180deg);
+        }
+
+        .sort-direction-select__menu {
+          position: absolute;
+          top: calc(100% + 6px);
+          left: 0;
+          z-index: 20;
+          min-width: 100%;
+          width: max-content;
+          display: grid;
+          gap: 4px;
+          padding: 10px;
+          background: #fff3d3;
+          border: 2px solid var(--ac-border);
+          border-radius: var(--radius-md);
+          box-shadow: 0 6px 0 var(--ac-shadow-input), 0 12px 26px rgba(61, 52, 40, .14);
+        }
+
+        .sort-direction-select__option {
+          appearance: none;
+          min-width: 150px;
+          height: 34px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 0 12px;
+          color: var(--ac-text);
+          background: transparent;
+          border: 2px solid transparent;
+          border-radius: var(--radius-sm);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 900;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+
+        .sort-direction-select__option:hover,
+        .sort-direction-select__option.is-active {
+          background: #ffe8a9;
+        }
+
+        .sort-direction-select__direction {
+          color: rgba(114, 93, 66, .78);
+          font-size: 12px;
+        }
+
         .game-landing .shop-modal .shop-select-aisland [class*="animal-option-"]::before,
         .game-landing .shop-modal .shop-select-aisland [class*="animal-hovered-"]::before {
           content: none !important;
@@ -1428,6 +1532,7 @@ export default function Landing() {
         .inventory-modal .shop-modal__close,
         .inventory-modal .shop-input,
         .inventory-modal .shop-chip,
+        .inventory-modal .sort-direction-select__trigger,
         .inventory-modal .shop-select-aisland [class*="animal-trigger-"] {
           background: var(--ac-cream-light);
           border: 1.5px solid rgba(196, 184, 158, .86);
@@ -1437,9 +1542,15 @@ export default function Landing() {
 
         .inventory-modal .shop-modal__close:hover,
         .inventory-modal .shop-chip:hover,
+        .inventory-modal .sort-direction-select__trigger:hover,
         .inventory-modal .shop-select-aisland [class*="animal-trigger-"]:hover {
           transform: translate(-1px, -1px);
           box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
+        }
+
+        .inventory-modal .shop-modal__title,
+        .inventory-detail-modal .shop-modal__title {
+          font-family: inherit;
         }
 
         .inventory-summary {
@@ -1478,115 +1589,245 @@ export default function Landing() {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
           align-items: start;
-          gap: 14px;
+          gap: 16px;
           overflow: auto;
           padding: 16px clamp(18px, 2.6vw, 34px) clamp(18px, 2.6vw, 34px);
           background: transparent;
+          perspective: 1500px;
         }
 
-        /* ========================================================== */
-        /* INVENTORY CARD — Figma nodes 299-1168 / 304-2406 / 304-2573 */
-        /*  /304-2761 / 304-2944.  Each tier defines its own palette.   */
-        /* ========================================================== */
-        /* =========== Inventory card (Figma 299-1168/304-2406/2573/2761/2944) =========== */
+        /* Inventory cards: rebuilt to match the Figma card screenshot proportions. */
         .inventory-card {
-          --tier-bg: #fdf8ec;
-          --tier-bg-inner: #ffffff;
-          --tier-edge: #f4d36c;
-          --tier-edge-soft: #fbe7a8;
-          --tier-accent: #f5c84a;
-          --tier-accent-deep: #c98a14;
-          --tier-ray: rgba(244, 196, 75, .28);
-          --tier-star: #fbcf3a;
+          --tier-bg: #fff7d9;
+          --tier-edge: #f3c93d;
+          --tier-accent: #a8e86b;
+          --tier-accent-deep: #5b9a2d;
+          --tier-ray: rgba(139, 204, 92, .2);
+          --tier-star: #74b54f;
           --tier-cta-text: #1a1a1a;
+          --card-tilt-x: 0deg;
+          --card-tilt-y: 0deg;
+          --card-shine-x: 50%;
+          --card-shine-y: 50%;
+          --card-shine-angle: 135deg;
 
           position: relative;
           min-width: 0;
           align-self: start;
           display: flex;
           flex-direction: column;
-          gap: 14px;
-          padding: 16px 18px 18px;
+          width: 100%;
+          min-height: 400px;
+          padding: 17px 22px 18px;
           background: var(--tier-bg);
-          border: 1.5px solid var(--tier-edge);
-          border-radius: 20px;
-          box-shadow: 0 6px 18px rgba(20, 20, 20, .08);
+          border: 2px solid var(--tier-edge);
+          border-radius: 0 0 24px 24px;
+          box-shadow: none;
           color: #1a1a1a;
           overflow: visible;
-          transition: transform .25s cubic-bezier(.23,1,.32,1), box-shadow .25s ease;
+          isolation: isolate;
+          transform:
+            perspective(1200px)
+            rotateX(var(--card-tilt-y))
+            rotateY(var(--card-tilt-x))
+            translateY(0)
+            scale(1);
+          transform-style: preserve-3d;
+          will-change: transform;
+          transition:
+            transform .36s cubic-bezier(.22,1,.36,1),
+            box-shadow .24s ease,
+            filter .24s ease;
         }
-        .inventory-card::before,
-        .inventory-card::after { content: none; }
+        .inventory-card::before {
+          content: "";
+          position: absolute;
+          inset: -10px;
+          z-index: -1;
+          border-radius: inherit;
+          background: radial-gradient(circle at var(--card-shine-x) var(--card-shine-y), color-mix(in srgb, var(--tier-accent) 36%, white) 0%, rgba(255,255,255,0) 58%);
+          filter: blur(16px);
+          opacity: 0;
+          transform: translateZ(-12px);
+          transition: opacity .24s ease;
+          pointer-events: none;
+        }
+        .inventory-card::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 4;
+          border-radius: inherit;
+          background:
+            linear-gradient(
+              var(--card-shine-angle),
+              transparent 34%,
+              rgba(255, 255, 255, .26) 48%,
+              rgba(255, 255, 255, .1) 53%,
+              transparent 66%
+            ),
+            radial-gradient(circle at var(--card-shine-x) var(--card-shine-y), rgba(255,255,255,.16), transparent 34%);
+          opacity: 0;
+          mix-blend-mode: overlay;
+          pointer-events: none;
+          transition: opacity .2s ease;
+        }
         .inventory-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 14px 28px rgba(20, 20, 20, .14);
+          transform:
+            perspective(1200px)
+            rotateX(var(--card-tilt-y))
+            rotateY(var(--card-tilt-x))
+            translateY(-5px)
+            scale(1.008);
+          box-shadow: 0 14px 24px rgba(20, 20, 20, .14);
+          filter: saturate(1.02);
+        }
+        .inventory-card:hover::before { opacity: .42; }
+        .inventory-card:hover::after { opacity: .9; }
+        .inventory-card:hover .inv-head,
+        .inventory-card:hover .inv-art,
+        .inventory-card:hover .inv-stats,
+        .inventory-card:hover .inv-actions {
+          transform: translateZ(14px);
         }
 
-        /* ---- Header: NO. on the left, medal floats top-right ---- */
+        @property --s-glow-angle {
+          syntax: "<angle>";
+          inherits: false;
+          initial-value: 0deg;
+        }
+
+        .inventory-card--S {
+          --s-glow-angle: 0deg;
+          background:
+            linear-gradient(var(--tier-bg), var(--tier-bg)) padding-box,
+            conic-gradient(
+              from var(--s-glow-angle),
+              rgba(244, 204, 255, .86) 0deg,
+              rgba(255, 255, 255, .98) 38deg,
+              rgba(178, 125, 255, .92) 74deg,
+              rgba(130, 248, 255, .86) 118deg,
+              rgba(255, 197, 253, .96) 164deg,
+              rgba(255, 255, 255, .98) 212deg,
+              rgba(150, 96, 255, .9) 270deg,
+              rgba(244, 204, 255, .86) 360deg
+            ) border-box;
+          border-color: transparent;
+          box-shadow:
+            0 0 0 1px rgba(255, 246, 255, .72),
+            0 0 16px rgba(255, 137, 251, .42),
+            0 0 34px rgba(151, 93, 255, .22);
+          animation:
+            sCardBorderSpin 5.8s linear infinite,
+            sCardNeonPulse 2.9s ease-in-out infinite;
+        }
+
+        .inventory-card--S::before {
+          inset: -15px;
+          background:
+            radial-gradient(circle at var(--card-shine-x) var(--card-shine-y), rgba(255, 255, 255, .68), transparent 20%),
+            radial-gradient(circle at 50% 18%, rgba(255, 214, 255, .76), transparent 44%),
+            linear-gradient(135deg, rgba(255, 114, 246, .62), rgba(130, 97, 255, .46) 46%, rgba(132, 245, 255, .42));
+          filter: blur(18px);
+          opacity: .58;
+          transform: translateZ(-12px);
+          animation: sCardHaloPulse 2.9s ease-in-out infinite;
+        }
+
+        .inventory-card--S::after {
+          inset: -3px;
+          border-radius: inherit;
+          box-shadow:
+            inset 0 0 0 2px rgba(255, 255, 255, .62),
+            inset 0 0 12px rgba(255, 186, 255, .34);
+        }
+
+        .inventory-card--S:hover {
+          box-shadow:
+            0 0 0 1px rgba(255, 252, 255, .94),
+            0 0 20px rgba(255, 142, 250, .62),
+            0 0 42px rgba(164, 92, 255, .36),
+            0 20px 34px rgba(95, 49, 160, .2);
+        }
+
+        .inventory-card--S:hover::before {
+          opacity: .86;
+        }
+
         .inv-head {
           position: relative;
+          z-index: 3;
           display: flex;
           align-items: center;
           justify-content: flex-start;
-          min-height: 44px;
-          padding: 4px 4px 0 4px;
+          min-height: 42px;
+          padding: 0 0 12px;
+          transform: translateZ(0);
+          transition: transform .28s cubic-bezier(.22,1,.36,1);
         }
         .inv-no {
-          font-family: "Inter", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
-          font-weight: 800;
-          font-size: clamp(26px, 2.2vw, 36px);
+          font-family: inherit;
+          font-weight: 950;
+          font-size: clamp(27px, 2.15vw, 32px);
           color: #1a1a1a;
-          letter-spacing: .01em;
+          letter-spacing: .015em;
           line-height: 1;
         }
 
-        /* ---- Medal: 12-petal flower with red ribbon, floats top-right ---- */
         .inv-medal {
           position: absolute;
-          top: -10px;
-          right: -6px;
-          width: 96px;
-          height: 120px;
-          z-index: 3;
+          top: -5px;
+          right: -13px;
+          width: 78px;
+          height: 96px;
+          z-index: 6;
           pointer-events: none;
+          transform: translateZ(24px);
+          transition: transform .28s cubic-bezier(.22,1,.36,1);
+        }
+        .inventory-card:hover .inv-medal {
+          transform: translateZ(34px) rotateZ(2deg) scale(1.035);
         }
         .inv-medal__ribbon {
-          fill: #e23b3b;
-          stroke: #a01818;
+          fill: #e13131;
+          stroke: #9c1717;
           stroke-width: 1.3;
           stroke-linejoin: round;
         }
         .inv-medal__gear {
           fill: var(--tier-accent);
-          stroke: var(--tier-accent-deep);
-          stroke-width: 1.6;
+          stroke: #1a1a1a;
+          stroke-width: 2.2;
           stroke-linejoin: round;
           filter: drop-shadow(0 2px 0 rgba(0,0,0,.10));
         }
         .inv-medal__disc {
           fill: #ffffff;
-          stroke: var(--tier-accent-deep);
-          stroke-width: 1.6;
+          stroke: #1a1a1a;
+          stroke-width: 2.2;
         }
         .inv-medal__letter {
-          font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+          font-family: inherit;
           font-weight: 900;
           font-size: 22px;
-          fill: var(--tier-accent-deep);
+          fill: #1a1a1a;
           letter-spacing: 0;
         }
 
-        /* ---- Art panel: white rounded box, subtle radial rays + stars + name tag ---- */
         .inv-art {
           position: relative;
+          z-index: 1;
           display: grid;
           place-items: center;
-          height: clamp(190px, 18vw, 230px);
+          height: 175px;
           margin: 0;
           background: #ffffff;
-          border: 1px solid var(--tier-edge-soft);
-          border-radius: 14px;
+          border: 3px solid #101010;
+          border-bottom: 0;
+          border-radius: 22px 22px 0 0;
           overflow: hidden;
+          transform: translateZ(0);
+          transition: transform .28s cubic-bezier(.22,1,.36,1);
         }
         .inv-art::before,
         .inv-art::after { content: none; }
@@ -1601,6 +1842,11 @@ export default function Landing() {
             );
           opacity: .85;
           pointer-events: none;
+          transition: transform .62s ease, opacity .24s ease;
+        }
+        .inventory-card:hover .inv-art__rays {
+          transform: scale(1.06) rotate(5deg);
+          opacity: 1;
         }
         .inv-art__star {
           position: absolute;
@@ -1612,6 +1858,11 @@ export default function Landing() {
           );
           opacity: .9;
           pointer-events: none;
+          transition: transform .24s ease, opacity .24s ease;
+        }
+        .inventory-card:hover .inv-art__star {
+          opacity: 1;
+          transform: translateZ(12px) scale(1.14);
         }
         .inv-art__star--1 { top: 14%; left: 12%; width: 13px; height: 13px; }
         .inv-art__star--2 { top: 8%;  left: 50%; width: 10px; height: 10px; }
@@ -1622,63 +1873,68 @@ export default function Landing() {
         .inv-art__img {
           position: relative;
           z-index: 1;
-          width: min(74%, 220px);
-          height: 72%;
+          width: min(88%, 174px);
+          height: 92%;
           object-fit: contain;
           image-rendering: pixelated;
-          transition: transform .25s cubic-bezier(.23,1,.32,1);
+          transition: transform .22s cubic-bezier(.22,1,.36,1);
         }
         .inventory-card:hover .inv-art__img {
-          transform: translateY(-3px) scale(1.04);
+          transform: translateY(-5px) translateZ(24px) scale(1.055);
         }
         .inv-art__tag {
           position: absolute;
-          right: 10px;
-          bottom: 10px;
+          right: -3px;
+          bottom: -3px;
           z-index: 2;
-          padding: 4px 10px;
-          background: #fff5d4;
-          border: 1px solid #d8a649;
-          border-radius: 7px;
-          color: #6b4413;
-          font-family: "Inter", "PingFang SC", system-ui, sans-serif;
-          font-weight: 800;
-          font-size: 13px;
-          letter-spacing: .04em;
-          box-shadow: 0 1px 0 rgba(0,0,0,.06);
+          min-width: 64px;
+          padding: 7px 9px 6px;
+          background: var(--tier-accent);
+          border: 3px solid #101010;
+          border-radius: 11px 0 0 0;
+          color: #101010;
+          font-family: inherit;
+          font-weight: 900;
+          font-size: 14px;
+          letter-spacing: .03em;
+          text-align: center;
+          box-shadow: none;
         }
 
-        /* ---- Stats row: plain text on card body (no capsule) ---- */
         .inv-stats {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 4px 24px;
-          padding: 8px 8px 6px;
-          background: transparent;
-          border-radius: 0;
+          gap: 4px 26px;
+          min-height: 76px;
+          margin: 0 0 17px;
+          padding: 14px 25px 13px;
+          background: #ffffff;
+          border: 3px solid #101010;
+          border-radius: 0 0 22px 22px;
           box-shadow: none;
-          min-height: 70px;
+          transform: translateZ(0);
+          transition: transform .28s cubic-bezier(.22,1,.36,1);
         }
         .inv-stat {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          gap: 6px;
+          gap: 5px;
           min-width: 0;
           line-height: 1;
         }
         .inv-stat__label {
-          font-family: "Inter", "PingFang SC", system-ui, sans-serif;
-          font-weight: 500;
+          font-family: inherit;
+          font-weight: 700;
           font-size: 14px;
           color: #8a8a8a;
           letter-spacing: .02em;
           line-height: 1.2;
         }
         .inv-stat__value {
-          font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
-          font-weight: 800;
-          font-size: clamp(22px, 2vw, 30px);
+          font-family: inherit;
+          font-weight: 950;
+          font-size: clamp(24px, 1.9vw, 29px);
           color: #1a1a1a;
           line-height: 1;
           font-variant-numeric: tabular-nums;
@@ -1686,122 +1942,174 @@ export default function Landing() {
         .inv-stat__value--pos { color: #e23b3b; }  /* Chinese convention: positive = red */
         .inv-stat__value--neg { color: #1f8a5a; }
 
-        /* ---- Action row: 2 ghost squares + 1 colored CTA ---- */
         .inv-actions {
           display: grid;
-          grid-template-columns: 56px 56px 1fr;
-          gap: 10px;
-          padding: 0 6px;
-          margin-top: 4px;
+          grid-template-columns: 50px 50px 1fr;
+          gap: 11px;
+          padding: 0;
+          margin-top: auto;
+          transform: translateZ(0);
+          transition: transform .28s cubic-bezier(.22,1,.36,1);
         }
         .inv-btn {
           appearance: none;
-          height: 48px;
+          height: 49px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          padding: 0 14px;
+          padding: 0 10px;
           font: inherit;
-          font-weight: 800;
+          font-weight: 950;
+          line-height: 1;
+          white-space: nowrap;
           text-decoration: none;
           cursor: pointer;
-          border-radius: 12px;
+          border-radius: 9px;
           transition: transform .14s cubic-bezier(.23,1,.32,1), box-shadow .14s ease, background-color .14s ease;
         }
         .inv-btn:active { transform: translateY(1px) scale(.98); }
         .inv-btn--ghost {
           background: #ffffff;
           color: #1a1a1a;
-          border: 1.5px solid var(--tier-edge);
-          box-shadow: 0 1px 0 rgba(0, 0, 0, .04);
+          border: 3px solid #101010;
+          box-shadow: none;
         }
         .inv-btn--ghost:hover { transform: translateY(-1px); }
         .inv-btn--star.is-on { background: #fff7df; color: #b8862e; }
         .inv-btn--cta {
           background: var(--tier-accent);
           color: var(--tier-cta-text);
-          border: 1.5px solid var(--tier-accent-deep);
-          font-family: "Inter", "PingFang SC", system-ui, sans-serif;
-          font-size: clamp(17px, 1.3vw, 21px);
+          border: 3px solid #101010;
+          font-family: inherit;
+          font-size: clamp(16px, 1.15vw, 19px);
           font-weight: 900;
           letter-spacing: .06em;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, .35),
-            0 2px 0 var(--tier-accent-deep);
+          box-shadow: none;
         }
         .inv-btn--cta:hover { transform: translateY(-2px); }
         .inv-btn--cta:active {
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 0 var(--tier-accent-deep);
         }
 
-        /* =========== Tier palettes (precise Figma colors) =========== */
-        /* S — soft lavender */
         .inventory-card--S {
-          --tier-bg: #f4ecff;
-          --tier-edge: #b59be8;
-          --tier-edge-soft: #d8c7f3;
-          --tier-accent: #b59be8;
+          --tier-bg: #f7e2ff;
+          --tier-edge: #f4d36c;
+          --tier-accent: #c17df2;
           --tier-accent-deep: #6b4eb3;
           --tier-ray: rgba(149, 116, 220, .28);
           --tier-star: #8d6dd6;
-          --tier-cta-text: #ffffff;
+          --tier-cta-text: #101010;
         }
-        /* A — cream yellow (default-like) */
         .inventory-card--A {
-          --tier-bg: #fdf8ec;
+          --tier-bg: #fff7d9;
           --tier-edge: #f4d36c;
-          --tier-edge-soft: #fbe7a8;
-          --tier-accent: #f5c84a;
+          --tier-accent: #ffd66f;
           --tier-accent-deep: #b07a10;
           --tier-ray: rgba(244, 196, 75, .28);
           --tier-star: #fbcf3a;
           --tier-cta-text: #1a1a1a;
         }
-        /* B — soft blue */
         .inventory-card--B {
-          --tier-bg: #e9f2ff;
-          --tier-edge: #6f9fe2;
-          --tier-edge-soft: #c4daf5;
-          --tier-accent: #4f86d6;
+          --tier-bg: #cfefff;
+          --tier-edge: #f4d36c;
+          --tier-accent: #4aa7e4;
           --tier-accent-deep: #2b558f;
           --tier-ray: rgba(91, 142, 216, .25);
           --tier-star: #4d8acc;
-          --tier-cta-text: #ffffff;
+          --tier-cta-text: #101010;
         }
-        /* C — fresh green */
         .inventory-card--C {
-          --tier-bg: #ebf6dd;
-          --tier-edge: #91c860;
-          --tier-edge-soft: #cce9a8;
-          --tier-accent: #7bc24e;
+          --tier-bg: #defec0;
+          --tier-edge: #f4d36c;
+          --tier-accent: #9bdc5c;
           --tier-accent-deep: #487a26;
           --tier-ray: rgba(130, 194, 90, .25);
           --tier-star: #6db142;
-          --tier-cta-text: #ffffff;
+          --tier-cta-text: #101010;
         }
-        /* D — muted gray */
         .inventory-card--D {
-          --tier-bg: #efeeec;
-          --tier-edge: #b8b4ad;
-          --tier-edge-soft: #d8d5d0;
-          --tier-accent: #a8a39c;
+          --tier-bg: #ececec;
+          --tier-edge: #f4d36c;
+          --tier-accent: #c9c9c9;
           --tier-accent-deep: #5c5852;
           --tier-ray: rgba(168, 163, 156, .22);
           --tier-star: #9a948c;
-          --tier-cta-text: #ffffff;
+          --tier-cta-text: #101010;
         }
-        /* F — deeper grayscale (failed) */
         .inventory-card--F {
-          --tier-bg: #e8e7e4;
-          --tier-edge: #9a958d;
-          --tier-edge-soft: #c4c0b8;
-          --tier-accent: #8a857d;
+          --tier-bg: #ececec;
+          --tier-edge: #f4d36c;
+          --tier-accent: #c9c9c9;
           --tier-accent-deep: #4a463f;
           --tier-ray: rgba(138, 133, 125, .22);
           --tier-star: #7d7770;
-          --tier-cta-text: #ffffff;
+          --tier-cta-text: #101010;
         }
         .inventory-card--F .inv-art__img { filter: grayscale(.5); }
+
+        @media (prefers-reduced-motion: reduce) {
+          .inventory-grid { perspective: none; }
+          .inventory-card,
+          .inventory-card:hover,
+          .inventory-card:hover .inv-head,
+          .inventory-card:hover .inv-art,
+          .inventory-card:hover .inv-stats,
+          .inventory-card:hover .inv-actions,
+          .inventory-card:hover .inv-medal,
+          .inventory-card:hover .inv-art__img,
+          .inventory-card:hover .inv-art__rays,
+          .inventory-card:hover .inv-art__star,
+          .inventory-card--S,
+          .inventory-card--S::before,
+          .inventory-card--S .inv-btn--cta {
+            animation: none;
+          }
+          .inventory-card,
+          .inventory-card:hover,
+          .inventory-card:hover .inv-head,
+          .inventory-card:hover .inv-art,
+          .inventory-card:hover .inv-stats,
+          .inventory-card:hover .inv-actions,
+          .inventory-card:hover .inv-medal,
+          .inventory-card:hover .inv-art__img,
+          .inventory-card:hover .inv-art__rays,
+          .inventory-card:hover .inv-art__star {
+            transform: none;
+            transition: none;
+          }
+          .inventory-card::before,
+          .inventory-card::after { display: none; }
+        }
+
+        @keyframes sCardBorderSpin {
+          to { --s-glow-angle: 360deg; }
+        }
+
+        @keyframes sCardNeonPulse {
+          0%, 100% {
+            box-shadow:
+              0 0 0 1px rgba(255, 246, 255, .72),
+              0 0 14px rgba(255, 137, 251, .38),
+              0 0 30px rgba(151, 93, 255, .2);
+          }
+          50% {
+            box-shadow:
+              0 0 0 1px rgba(255, 252, 255, .9),
+              0 0 22px rgba(255, 151, 253, .6),
+              0 0 48px rgba(151, 93, 255, .34);
+          }
+        }
+
+        @keyframes sCardHaloPulse {
+          0%, 100% {
+            opacity: .48;
+            transform: translateZ(-12px) scale(.985);
+          }
+          50% {
+            opacity: .76;
+            transform: translateZ(-12px) scale(1.015);
+          }
+        }
 
         @keyframes cardLegendaryGlow {
           0%, 100% {
@@ -2185,6 +2493,120 @@ export default function Landing() {
           grid-column: 1 / -1;
         }
 
+        .inventory-detail-modal {
+          width: min(1180px, 95vw);
+        }
+
+        .inventory-detail-modal .shop-modal__header {
+          align-items: center;
+          background: rgba(255, 249, 232, .88);
+          border-bottom: 2px solid rgba(196, 184, 158, .62);
+        }
+
+        .inventory-detail-heading {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .inventory-detail-back {
+          appearance: none;
+          width: 42px;
+          height: 42px;
+          display: inline-grid;
+          place-items: center;
+          flex: 0 0 auto;
+          color: var(--ac-text);
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+          cursor: pointer;
+          transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .inventory-detail-back:hover {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
+        }
+
+        .inventory-detail-title-wrap {
+          min-width: 0;
+        }
+
+        .inventory-detail-title-wrap .shop-modal__title {
+          margin: 0;
+        }
+
+        .inventory-detail-subtitle {
+          margin-top: 6px;
+          color: var(--ac-text-body);
+          font-size: 12px;
+          font-weight: 900;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .inventory-detail-content {
+          overflow: auto;
+          padding: 18px clamp(18px, 2.6vw, 34px) clamp(18px, 2.6vw, 34px);
+          background:
+            linear-gradient(180deg, rgba(255,249,232,.52), rgba(255,249,232,0) 180px),
+            transparent;
+        }
+
+        .inventory-factor-detail {
+          color: #2c2117;
+          font-family: inherit;
+        }
+
+        .inventory-factor-detail * {
+          font-family: inherit !important;
+        }
+
+        .inventory-factor-detail h1 {
+          color: #2c2117;
+          font-size: clamp(24px, 2.1vw, 34px);
+          line-height: 1.1;
+          font-weight: 950;
+          letter-spacing: .01em;
+        }
+
+        .inventory-factor-detail .surface-card {
+          background: rgba(255, 255, 248, .82);
+          border: 2px solid rgba(196, 184, 158, .78);
+          border-radius: var(--radius-md);
+          box-shadow: 0 4px 0 rgba(189, 174, 160, .52);
+        }
+
+        .inventory-factor-detail .bg-accent {
+          background-color: rgba(255, 243, 211, .78);
+        }
+
+        .inventory-factor-detail .text-foreground {
+          color: #2c2117;
+        }
+
+        .inventory-factor-detail .text-muted-foreground {
+          color: rgba(114, 93, 66, .82);
+        }
+
+        .inventory-factor-detail .text-primary {
+          color: #08766e;
+        }
+
+        .inventory-factor-detail .border-border,
+        .inventory-factor-detail .border-border\\/60,
+        .inventory-factor-detail .border-border\\/80 {
+          border-color: rgba(196, 184, 158, .68);
+        }
+
+        .inventory-factor-detail button {
+          font-family: inherit;
+        }
+
         .strategy-detail-backdrop {
           position: fixed;
           inset: 0;
@@ -2539,15 +2961,15 @@ export default function Landing() {
 
       <nav className="ui-left" aria-label="Game menu">
         <button className="menu-tile" type="button" aria-label="Inventory" onClick={() => setInventoryOpen(true)}>
-          <img className="menu-tile__icon" src="/assets/inventory-menu-icon.svg" alt="" />
+          <img className="menu-tile__icon" src="/assets/inventory-menu-icon-v2.svg" alt="" />
           <span className="menu-tile__name">背包</span>
         </button>
         <a className="menu-tile" href="/landing" aria-label="Achievements">
-          <img className="menu-tile__icon" src="/assets/leaderboard-menu-icon.svg" alt="" />
+          <img className="menu-tile__icon" src="/assets/achievement-menu-icon-v2.svg" alt="" />
           <span className="menu-tile__name">成就</span>
         </a>
         <a className="menu-tile" href="/landing" aria-label="Quests">
-          <img className="menu-tile__icon" src="/assets/wallet-menu-icon.svg" alt="" />
+          <img className="menu-tile__icon" src="/assets/wallet-menu-icon-v2.svg" alt="" />
           <span className="menu-tile__name">钱包</span>
         </a>
       </nav>
@@ -2562,14 +2984,71 @@ export default function Landing() {
 
       {inventoryOpen && (
         <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setInventoryOpen(false);
+          if (event.target === event.currentTarget) {
+            setInventoryOpen(false);
+            setSelectedInventoryFactor(null);
+          }
         }}>
+          {selectedInventoryFactor ? (
+            <section className="shop-modal inventory-modal inventory-detail-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-detail-title">
+              <header className="shop-modal__header">
+                <div className="inventory-detail-heading">
+                  <button
+                    className="inventory-detail-back"
+                    type="button"
+                    aria-label={tr("Back to inventory", "返回背包")}
+                    onClick={() => setSelectedInventoryFactor(null)}
+                  >
+                    <ArrowLeft size={20} strokeWidth={3} />
+                  </button>
+                  <div className="inventory-detail-title-wrap">
+                    <h2 className="shop-modal__title" id="inventory-detail-title">{selectedInventoryFactor.name}</h2>
+                    <div className="inventory-detail-subtitle">
+                      {selectedInventoryFactor.id} · {tr("Created", "创建于")} {selectedInventoryFactor.createdAt}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  className="shop-modal__close"
+                  type="button"
+                  aria-label={tr("Close factor detail", "关闭因子详情")}
+                  onClick={() => {
+                    setInventoryOpen(false);
+                    setSelectedInventoryFactor(null);
+                  }}
+                >
+                  <X size={22} strokeWidth={3} />
+                </button>
+              </header>
+
+              <div className="inventory-detail-content">
+                <div className="inventory-factor-detail">
+                  <AlphaViewModeProvider>
+                    <AlphaDetail
+                      embedded
+                      hideHeader
+                      factorIdOverride={selectedInventoryFactor.id}
+                      factorOverride={selectedInventoryFactor}
+                    />
+                  </AlphaViewModeProvider>
+                </div>
+              </div>
+            </section>
+          ) : (
           <section className="shop-modal inventory-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-modal-title">
             <header className="shop-modal__header">
               <div>
                 <h2 className="shop-modal__title" id="inventory-modal-title">背包</h2>
               </div>
-              <button className="shop-modal__close" type="button" aria-label={tr("Close inventory", "关闭背包")} onClick={() => setInventoryOpen(false)}>
+              <button
+                className="shop-modal__close"
+                type="button"
+                aria-label={tr("Close inventory", "关闭背包")}
+                onClick={() => {
+                  setInventoryOpen(false);
+                  setSelectedInventoryFactor(null);
+                }}
+              >
                 <X size={22} strokeWidth={3} />
               </button>
             </header>
@@ -2595,12 +3074,46 @@ export default function Landing() {
                   />
                 </div>
                 <div className="shop-select-aisland shop-select-aisland--sort" aria-label={tr("Factor sort", "因子排序")}>
-                  <Select
-                    value={factorSortKey ?? "default"}
-                    onChange={handleFactorSortChange}
-                    options={factorSortSelectOptions}
-                    placeholder={tr("Choose sort", "选择排序")}
-                  />
+                  <div
+                    className={`sort-direction-select${factorSortOpen ? " is-open" : ""}`}
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFactorSortOpen(false);
+                    }}
+                  >
+                    <button
+                      className="sort-direction-select__trigger"
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={factorSortOpen}
+                      onClick={() => setFactorSortOpen((open) => !open)}
+                    >
+                      <span>{tr("Sort", "排序")}</span>
+                      <span className="sort-direction-select__chevron" aria-hidden="true">⌃</span>
+                    </button>
+                    {factorSortOpen && (
+                      <div className="sort-direction-select__menu" role="listbox" aria-label={tr("Factor sort", "因子排序")}>
+                        {factorSortKeys.map((key) => {
+                          const optionDir = factorSortKey === key && factorSortDir === "asc" ? "asc" : "desc";
+                          return (
+                            <button
+                              className={`sort-direction-select__option${factorSortKey === key ? " is-active" : ""}`}
+                              type="button"
+                              role="option"
+                              aria-selected={factorSortKey === key}
+                              key={key}
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => handleFactorSortChange(key)}
+                            >
+                              <span>{factorSortLabels[key]}</span>
+                              <span className="sort-direction-select__direction">
+                                {optionDir === "asc" ? tr("Ascending", "升序") : tr("Descending", "降序")}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -2611,7 +3124,12 @@ export default function Landing() {
                 const returns = parseMetricValue(factor.returns);
 
                 return (
-                  <article className={`inventory-card inventory-card--${factor.grade}`} key={factor.id}>
+                  <article
+                    className={`inventory-card inventory-card--${factor.grade}`}
+                    key={factor.id}
+                    onMouseMove={handleInventoryCardMove}
+                    onMouseLeave={handleInventoryCardLeave}
+                  >
                     <header className="inv-head">
                       <span className="inv-no">NO.{String(index + 1).padStart(2, "0")}</span>
                       {/* Figma: gear-shaped medal floats on top-right with red ribbons */}
@@ -2694,9 +3212,13 @@ export default function Landing() {
                                 fill={isStarred ? "#f6c63a" : "none"} stroke="#1d0f06" strokeWidth="1.6" strokeLinejoin="round" />
                         </svg>
                       </button>
-                      <Link className="inv-btn inv-btn--cta" href={`/alphas/${factor.id}`}>
+                      <button
+                        className="inv-btn inv-btn--cta"
+                        type="button"
+                        onClick={() => setSelectedInventoryFactor(factor)}
+                      >
                         {tr("View", "查看")}
-                      </Link>
+                      </button>
                     </div>
                   </article>
                 );
@@ -2707,6 +3229,7 @@ export default function Landing() {
               )}
             </div>
           </section>
+          )}
         </div>
       )}
 

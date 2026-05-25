@@ -6,9 +6,6 @@
  */
 import { Button } from "@/components/ui/button";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -18,8 +15,8 @@ import { useState, useMemo, useEffect, useId, useRef, type ReactNode } from "rea
 import { toast } from "sonner";
 import gsap from "gsap";
 import {
-  ArrowLeft, CheckCircle, XCircle, BarChart3, TrendingUp,
-  ChevronDown, ChevronUp, RefreshCw, Sparkles,
+  ArrowLeft, CheckCircle, XCircle, BarChart3,
+  ChevronDown, ChevronUp, Sparkles,
   Loader2, FlaskConical, LineChart as LineChartIcon, Settings2, BookOpenText, Copy, Star,
 } from "lucide-react";
 import ScratchCard from "@/components/ui/scratch-card";
@@ -27,18 +24,23 @@ import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import {
   factors, generatePnLData, aggregateData, osAggregateData,
-  yearlySummary, osYearlySummary, testingStatus, correlationData,
+  yearlySummary, osYearlySummary, testingStatus,
   getAlphaGrade, GRADE_CONFIG, type Factor,
 } from "@/lib/mockData";
 
 type SummaryPeriod = "IS" | "OS" | "DIFF";
-type PnlSamplePeriod = "IS" | "OS";
-
 type AlphaDetailProps = {
   embedded?: boolean;
+  hideHeader?: boolean;
   factorIdOverride?: string;
   factorOverride?: Partial<Factor>;
 };
+
+const expressionProcessSteps = [
+  "return = pct_change(close, return_period);",
+  "return_z = zscore(return, lookback);",
+  "volume_z = zscore(volume, lookback);",
+];
 
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
@@ -338,7 +340,7 @@ function PnlLineChart({
   );
 }
 
-export default function AlphaDetail({ embedded = false, factorIdOverride, factorOverride }: AlphaDetailProps = {}) {
+export default function AlphaDetail({ embedded = false, hideHeader = false, factorIdOverride, factorOverride }: AlphaDetailProps = {}) {
   const { uiLang } = useAppLanguage();
   const params = useParams<{ id: string }>();
   const searchStr = useSearch();
@@ -388,10 +390,8 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const { alphaViewMode: viewMode } = useAlphaViewMode();
-  const [pnlSamplePeriod, setPnlSamplePeriod] = useState<PnlSamplePeriod>("IS");
-  const [summaryPeriod, setSummaryPeriod] = useState<SummaryPeriod>("IS");
+  const summaryPeriod: SummaryPeriod = "IS";
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
-  const [showTestPeriod, setShowTestPeriod] = useState(true);
   const [expandedTestSections, setExpandedTestSections] = useState<Record<string, boolean>>({
     pass: false, fail: true, pending: false,
   });
@@ -455,9 +455,8 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
 
   const pnlData = useMemo(() => generatePnLData(), []);
   const proPnlData = useMemo(() => {
-    const sourceData = pnlSamplePeriod === "IS" ? pnlData.train : pnlData.test;
-    return sourceData.map((item) => ({ date: item.date, value: item.value }));
-  }, [pnlSamplePeriod, pnlData]);
+    return pnlData.train.map((item) => ({ date: item.date, value: item.value }));
+  }, [pnlData]);
   const beginnerPnlData = useMemo(() => {
     return [...pnlData.train, ...pnlData.test].map((item) => ({ date: item.date, value: item.value }));
   }, [pnlData]);
@@ -581,7 +580,6 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
     return Number.isNaN(parsed) || parsed === 0 ? "text-foreground" : chartColors.downClass;
   };
   const formatDiff = (value: number, unit = "") => `${value >= 0 ? "+" : ""}${value.toFixed(2)}${unit}`;
-  const summaryData = summaryPeriod === "OS" ? osYearlySummary : yearlySummary;
   const activeAggregateData = factorOverride
     ? {
         ...aggregateData,
@@ -634,9 +632,9 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
       `Higher fitness means better overall quality. ${currentFitness.toFixed(2)} is ${fitnessLevel(currentFitness)}.`,
       `适应度越高代表综合质量越好，${currentFitness.toFixed(2)} 为${fitnessLevel(currentFitness)}。`
     ),
-    testsPassed: tr(
-      `More passed checks means safer validation. ${factor.testsPassed}/${factor.testsFailed}/${factor.testsPending} for passed/failed/pending.`,
-      `通过项越多代表验证越充分，${factor.testsPassed}/${factor.testsFailed}/${factor.testsPending} 为通过/失败/待处理。`
+    correlation: tr(
+      "Lower correlation means the factor is less duplicated with existing signals. 0.55 is for reference.",
+      "相关性越低代表与现有信号重复度越低，0.55 仅供参考。"
     ),
     margin: tr(
       `Lower margin use leaves more room for risk control. ${aggData.margin} is for reference.`,
@@ -647,45 +645,6 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
       `等级代表综合表现，${grade} 表示${gradePlainLabel}。`
     ),
   };
-  const summaryTitle = summaryPeriod === "DIFF" ? tr("Difference Summary", "差异摘要") : `${summaryPeriod} ${tr("Summary", "摘要")}`;
-  const comparisonRows = [
-    {
-      metric: tr("Sharpe", "夏普比率"),
-      isValue: aggregateData.sharpe.toFixed(2),
-      osValue: osAggregateData.sharpe.toFixed(2),
-      diff: formatDiff(diffAggData.sharpe),
-    },
-    {
-      metric: tr("Returns", "收益"),
-      isValue: aggregateData.returns,
-      osValue: osAggregateData.returns,
-      diff: diffAggData.returns,
-    },
-    {
-      metric: tr("Max Drawdown", "最大回撤"),
-      isValue: aggregateData.drawdown,
-      osValue: osAggregateData.drawdown,
-      diff: diffAggData.drawdown,
-    },
-    {
-      metric: tr("Turnover", "换手率"),
-      isValue: aggregateData.turnover,
-      osValue: osAggregateData.turnover,
-      diff: diffAggData.turnover,
-    },
-    {
-      metric: tr("Fitness", "适应度"),
-      isValue: aggregateData.fitness.toFixed(2),
-      osValue: osAggregateData.fitness.toFixed(2),
-      diff: formatDiff(diffAggData.fitness),
-    },
-    {
-      metric: tr("Margin", "保证金"),
-      isValue: aggregateData.margin,
-      osValue: osAggregateData.margin,
-      diff: diffAggData.margin,
-    },
-  ];
   const conclusionItems = useMemo(() => {
     return [
       {
@@ -726,13 +685,13 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
       explanation: tr(`Lower drawdown means smoother risk. ${factor.drawdown} is controlled.`, `回撤越低代表风险越平滑，${factor.drawdown} 为控制较好。`),
     },
     {
-      label: tr("Test Pass Rate", "测试通过率"),
-      value: `${factor.testsPassed}/${factor.testsPassed + factor.testsFailed}`,
+      label: tr("Correlation", "相关性"),
+      value: "0.55",
       color: undefined,
-      desc: tr("Passed/Total", "通过/总数"),
+      desc: tr("Correlation", "相关性"),
       explanation: tr(
-        `More passed checks means safer validation. ${factor.testsPassed}/${factor.testsPassed + factor.testsFailed} passed.`,
-        `通过项越多代表验证越充分，${factor.testsPassed}/${factor.testsPassed + factor.testsFailed} 已通过。`
+        "Lower correlation means the factor is less duplicated with existing signals. 0.55 is for reference.",
+        "相关性越低代表与现有信号重复度越低，0.55 仅供参考。"
       ),
     },
   ];
@@ -851,51 +810,52 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
   return (
     <div className="space-y-6">
       {/* ═══ SECTION 1: Factor Name + Header ═══ */}
-      <div className="flex items-center gap-4">
-        {!embedded ? (
-          <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
-            <ArrowLeft className="w-4 h-4" />
-            {tr("Back", "返回")}
+      {!hideHeader && (
+        <div className="flex items-center gap-4">
+          {!embedded ? (
+            <Button variant="ghost" size="sm" className="gap-1 rounded-full text-muted-foreground hover:text-foreground" onClick={() => window.location.assign(detailBackPath)}>
+              <ArrowLeft className="w-4 h-4" />
+              {tr("Back", "返回")}
+            </Button>
+          ) : null}
+          <div className="flex-1" ref={headerRef}>
+            <div className="reveal-line flex items-center gap-3 flex-wrap">
+              <h1 className="text-foreground">{factor.name}</h1>
+            </div>
+            <div className="reveal-line flex items-center gap-2 mt-1">
+              {isOfficialLibraryView ? (
+                <>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
+                    {uiLang === "zh" ? `已使用${usedCount}次` : `Used ${usedCount} times`}
+                  </span>
+                  <span
+                    className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary"
+                  >
+                    {officialTier === "official" ? tr("Official", "官方") : tr("Graduated", "三方") }
+                  </span>
+                </>
+              ) : (
+                null
+              )}
+              <p className="text-xs font-mono text-muted-foreground">
+                {factor.id} &middot; {tr("Created", "创建于")} {factor.createdAt}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10 w-10 shrink-0 rounded-full border-border/80 bg-card p-0 text-foreground hover:bg-accent"
+            onClick={() => {
+              setIsFavorite((value) => !value);
+              toast.success(isFavorite ? tr("Removed from favorites", "已取消收藏") : tr("Added to favorites", "已加入收藏"));
+            }}
+            aria-label={isFavorite ? tr("Unfavorite factor", "取消收藏因子") : tr("Favorite factor", "收藏因子")}
+          >
+            <Star className={`h-4 w-4 ${isFavorite ? "fill-current text-amber-400" : ""}`} />
           </Button>
-        ) : null}
-        <div className="flex-1" ref={headerRef}>
-          <div className="reveal-line flex items-center gap-3 flex-wrap">
-            <h1 className="text-foreground">{factor.name}</h1>
-          </div>
-          <div className="reveal-line flex items-center gap-2 mt-1">
-            {isOfficialLibraryView ? (
-              <>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/40 px-2.5 py-1 text-[10px] font-semibold text-muted-foreground">
-                  {uiLang === "zh" ? `已使用${usedCount}次` : `Used ${usedCount} times`}
-                </span>
-                <span
-                  className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary"
-                >
-                  {officialTier === "official" ? tr("Official", "官方") : tr("Graduated", "三方") }
-                </span>
-              </>
-            ) : (
-              null
-            )}
-            <p className="text-xs font-mono text-muted-foreground">
-              {factor.id} &middot; {tr("Created", "创建于")} {factor.createdAt}
-            </p>
-          </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="h-10 w-10 shrink-0 rounded-full border-border/80 bg-card p-0 text-foreground hover:bg-accent"
-          onClick={() => {
-            setIsFavorite((value) => !value);
-            toast.success(isFavorite ? tr("Removed from favorites", "已取消收藏") : tr("Added to favorites", "已加入收藏"));
-          }}
-          aria-label={isFavorite ? tr("Unfavorite factor", "取消收藏因子") : tr("Favorite factor", "收藏因子")}
-        >
-          <Star className={`h-4 w-4 ${isFavorite ? "fill-current text-amber-400" : ""}`} />
-        </Button>
-
-      </div>
+      )}
 
       {/* ═══ BEGINNER MODE ═══ */}
       {viewMode === "beginner" && (
@@ -991,33 +951,50 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
             </div>
             <div className="px-6 pb-6">
               {factorDescriptionContent}
-              <div className="mt-5 border-t border-border/60 pt-4">
-                <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">{summaryTitle}</span>
+              <div className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-accent/35">
+                <div className="border-b border-border/60 px-6 py-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="label-upper text-primary">{tr("Process", "过程")}</span>
+                    <span className="h-px flex-1 bg-border/60" />
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-3">
+                    {expressionProcessSteps.map((step, index) => (
+                      <div
+                        key={step}
+                        className="flex min-w-0 items-start gap-3 rounded-xl border border-border/60 bg-background/35 px-3 py-2.5"
+                      >
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                          {index + 1}
+                        </span>
+                        <code className="min-w-0 whitespace-normal break-words font-mono text-xs leading-5 text-muted-foreground">
+                          {step}
+                        </code>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs mr-2 text-muted-foreground">{tr("View", "视角")}</span>
-                  {([
-                    ["IS", tr("In-Sample", "样本内")],
-                    ["OS", tr("Out-of-Sample", "样本外")],
-                    ["DIFF", tr("Difference", "差异")],
-                  ] as const).map(([p, label]) => (
-                    <button
-                      key={p}
-                      className={`h-7 text-xs px-3 rounded-full font-medium transition-all duration-200 ease-in-out border ${
-                        summaryPeriod === p
-                          ? "bg-primary/10 text-primary border-primary/20"
-                          : "bg-transparent text-muted-foreground border-border hover:text-foreground"
-                      }`}
-                      onClick={() => setSummaryPeriod(p)}
+                <div className="px-6 py-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="label-upper text-primary">{tr("Final Result", "最终结果")}</span>
+                    <span className="h-px flex-1 bg-border/60" />
+                  </div>
+                  <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-background/45 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.35)]">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="label-upper shrink-0">{tr("Expression:", "表达式：")}</span>
+                      <code className="truncate text-sm font-mono text-primary">{factor.expression}</code>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyExpression}
+                      className="h-8 shrink-0 rounded-full border-border bg-background/40 px-3 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      {label}
-                    </button>
-                  ))}
+                      <Copy className="mr-1.5 h-3.5 w-3.5" />
+                      {copiedExpression ? tr("Copied", "已复制") : tr("Copy", "复制")}
+                    </Button>
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
             <div className="px-6 pb-6 space-y-4">
@@ -1068,15 +1045,14 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
                   </div>
                 </div>
                 )}
-                {/* Test pass rate */}
+                {/* Correlation */}
                 {withPlainExplanation(
-                  proMetricExplanations.testsPassed,
+                  proMetricExplanations.correlation,
                 <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("TEST PASS RATE", "测试通过率")}</div>
+                  <div className="label-upper mb-1 text-[9px]">{tr("CORRELATION", "相关性")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">
-                    {factor.testsPassed}/{factor.testsPassed + factor.testsFailed}
+                    0.55
                   </div>
-                  <div className="text-[9px] text-muted-foreground mt-0.5">{tr("Passed/Total", "通过/总数")}</div>
                 </div>
                 )}
                 {/* Margin */}
@@ -1101,133 +1077,17 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
               </div>
               )}
 
-              {/* Yearly breakdown table / comparison table */}
-              {summaryPeriod === "DIFF" ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-border">
-                      <TableHead className="label-upper text-primary">{tr("Metric", "指标")}</TableHead>
-                      <TableHead className="label-upper text-primary">{tr("In-Sample", "样本内")}</TableHead>
-                      <TableHead className="label-upper text-primary">{tr("Out-of-Sample", "样本外")}</TableHead>
-                      <TableHead className="label-upper text-primary">{tr("Difference", "差异")}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {comparisonRows.map((row) => (
-                      <TableRow key={row.metric} className="border-border hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                        <TableCell className="text-sm font-medium text-foreground">{row.metric}</TableCell>
-                        <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.isValue}</TableCell>
-                        <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.osValue}</TableCell>
-                        <TableCell className={`font-mono text-sm tabular-nums ${trendTextClass(row.diff)}`}>{row.diff}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border">
-                    <TableHead className="label-upper text-primary">{tr("Year", "年份")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Sharpe", "夏普比率")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Turnover", "换手率")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Fitness", "适应度")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Returns", "收益")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Drawdown", "回撤")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Margin", "保证金")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Long Count", "多头数量")}</TableHead>
-                    <TableHead className="label-upper text-primary">{tr("Short Count", "空头数量")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {summaryData.map((row) => (
-                    <TableRow key={row.year} className="border-border hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                      <TableCell className="font-mono text-sm font-medium text-foreground">{row.year}</TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums text-foreground">
-                        {row.sharpe.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.turnover}</TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums text-foreground">
-                        {row.fitness.toFixed(2)}
-                      </TableCell>
-                      <TableCell className={`font-mono text-sm tabular-nums ${trendTextClass(row.returns)}`}>{row.returns}</TableCell>
-                      <TableCell className={`font-mono text-sm tabular-nums ${drawdownTextClass(row.drawdown)}`}>{row.drawdown}</TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.margin}</TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.longCount.toLocaleString()}</TableCell>
-                      <TableCell className="font-mono text-sm tabular-nums text-foreground">{row.shortCount.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              )}
-            </div>
-          </div>
-
-          {/* ── SECTION 3: Alpha Expression ── */}
-          <div className="surface-card py-4 px-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="label-upper shrink-0">{tr("Expression:", "表达式：")}</span>
-                <code className="truncate text-sm font-mono text-primary">{factor.expression}</code>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCopyExpression}
-                className="h-8 shrink-0 rounded-full border-border bg-background/40 px-3 text-xs text-muted-foreground hover:text-foreground"
-              >
-                <Copy className="mr-1.5 h-3.5 w-3.5" />
-                {copiedExpression ? tr("Copied", "已复制") : tr("Copy", "复制")}
-              </Button>
             </div>
           </div>
 
           {/* ── SECTION 4: Charts ── */}
-          {/* Show/Hide Test Period Toggle */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              className={`h-8 text-xs px-4 rounded-full font-medium transition-all duration-200 ease-in-out border ${
-                showTestPeriod
-                  ? "bg-primary/10 text-primary border-primary/20"
-                  : "bg-card text-muted-foreground border-border hover:text-foreground"
-              }`}
-              onClick={() => setShowTestPeriod(!showTestPeriod)}
-            >
-              {showTestPeriod ? tr("Hide test period", "隐藏测试区间") : tr("Show test period", "显示测试区间")}
-            </button>
-            {showTestPeriod && (
-              <span className="text-xs px-3 py-1 rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
-                {tr("Test period and overall stats are hidden by default when test period is specified.", "指定测试区间后，测试期与总体统计默认隐藏。")}
-              </span>
-            )}
-          </div>
-
           {/* Chart Section */}
           <div className="surface-card">
             <div className="px-6 py-4 pb-2">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="w-4 h-4 text-primary" />
                   <span className="text-base font-semibold text-foreground">PNL</span>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent/35 p-1">
-                  {([
-                    ["IS", tr("In-Sample", "样本内")],
-                    ["OS", tr("Out-of-Sample", "样本外")],
-                  ] as const).map(([period, label]) => (
-                    <button
-                      key={period}
-                      type="button"
-                      onClick={() => setPnlSamplePeriod(period)}
-                      className={`h-7 rounded-full px-3 text-xs font-medium transition-colors ${
-                        pnlSamplePeriod === period
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
                 </div>
               </div>
             </div>
@@ -1243,40 +1103,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
           </div>
 
           {/* ── SECTION 5: Test Status ── */}
-          <div className="grid lg:grid-cols-2 gap-8">
-            {/* Correlation */}
-            <div className="surface-card">
-              <div className="px-6 py-4 pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">{tr("Correlation", "相关性")}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {tr("Last Run:", "最近运行：")} {correlationData.lastRun}
-                    <button className="p-1 rounded-lg transition-colors text-muted-foreground hover:text-foreground">
-                      <RefreshCw className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              <div className="px-6 pb-6">
-                <div className="flex items-center gap-8">
-                  <div>
-                    <span className="label-upper">{tr("Self Correlation", "自相关")}</span>
-                  </div>
-                  <div>
-                    <span className="text-xs mr-2 text-muted-foreground">{tr("Maximum", "最大值")}</span>
-                    <span className="font-mono text-sm text-foreground">{correlationData.selfCorrelation.maximum}</span>
-                  </div>
-                  <div>
-                    <span className="text-xs mr-2 text-muted-foreground">{tr("Minimum", "最小值")}</span>
-                    <span className="font-mono text-sm text-foreground">{correlationData.selfCorrelation.minimum}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          <div className="grid gap-8">
             {/* Testing Status */}
             <div className="surface-card">
               <div className="px-6 py-4 pb-3">
