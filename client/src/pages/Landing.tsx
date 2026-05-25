@@ -483,6 +483,89 @@ export default function Landing() {
           z-index: 5;
         }
 
+        .menu-tile {
+          appearance: none;
+          padding: 0;
+          margin: 0;
+          background: transparent;
+          border: 0;
+          color: inherit;
+          font: inherit;
+          text-decoration: none;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          width: clamp(82px, 5.75vw, 120px);
+          transition: transform .22s cubic-bezier(.23,1,.32,1);
+          position: relative; /* establish stacking context for label */
+        }
+
+        .menu-tile__icon {
+          position: relative;
+          z-index: 1;
+        }
+
+        .menu-tile:hover {
+          transform: translateY(-3px);
+        }
+
+        .menu-tile:active {
+          transform: translateY(1px);
+        }
+
+        .menu-tile:focus-visible {
+          outline: 2px solid var(--ac-focus-yellow);
+          outline-offset: 4px;
+          border-radius: 8px;
+        }
+
+        .menu-tile__icon {
+          width: 100%;
+          aspect-ratio: 1;
+          object-fit: contain;
+          image-rendering: auto;
+          filter: drop-shadow(0 4px 0 rgba(62, 48, 37, .28))
+                  drop-shadow(0 8px 14px rgba(62, 48, 37, .18));
+          pointer-events: none;
+          user-select: none;
+          transition: filter .22s ease;
+        }
+
+        .menu-tile:hover .menu-tile__icon {
+          filter: drop-shadow(0 6px 0 rgba(62, 48, 37, .32))
+                  drop-shadow(0 10px 18px rgba(62, 48, 37, .22))
+                  drop-shadow(0 0 8px rgba(255, 220, 130, .55));
+        }
+
+        .menu-tile__name {
+          /* Match Figma: pixel Chinese label overlaps icon's lower body, sits on TOP layer */
+          font-family: 'Zpix', 'Press Start 2P', 'Courier New', monospace;
+          font-size: clamp(20px, 1.6vw, 28px);
+          line-height: 1;
+          letter-spacing: .06em;
+          color: #ffffff;
+          background: transparent;
+          border: 0;
+          padding: 0;
+          box-shadow: none;
+          text-shadow:
+            -2px 0 0 #1a0d05, 2px 0 0 #1a0d05,
+            0 -2px 0 #1a0d05, 0 2px 0 #1a0d05,
+            -2px -2px 0 #1a0d05, 2px -2px 0 #1a0d05,
+            -2px 2px 0 #1a0d05, 2px 2px 0 #1a0d05,
+            0 4px 0 rgba(0, 0, 0, .35);
+          white-space: nowrap;
+          margin-top: -26px; /* overlap with icon's lower band, per Figma */
+          z-index: 2;        /* keep label above the icon image */
+          position: relative;
+          pointer-events: none;
+          -webkit-font-smoothing: none;
+          font-smooth: never;
+          image-rendering: pixelated;
+        }
+
         .pixel-button {
           appearance: none;
           width: clamp(82px, 5.75vw, 120px);
@@ -1042,6 +1125,18 @@ export default function Landing() {
         }
 
         .shop-select-aisland [class*="animal-dropdown-"] {
+          /* animal-island-ui defaults its dropdown to a right-side popout (inline inset 50%/auto/auto/100%
+             with transform translateY(-50%) and margin-left 6px), which positions the panel to the right
+             of the trigger and vertically-centered. Override every dimension so the panel drops straight
+             down beneath the trigger. */
+          inset: 100% auto auto 0 !important;
+          left: 0 !important;
+          right: auto !important;
+          top: calc(100% + 6px) !important;
+          bottom: auto !important;
+          margin: 0 !important;
+          transform: none !important;
+          min-width: 100% !important;
           background: #fff3d3;
           border: 2px solid var(--ac-border);
           border-radius: var(--radius-md);
@@ -1389,27 +1484,350 @@ export default function Landing() {
           background: transparent;
         }
 
+        /* ========================================================== */
+        /* INVENTORY CARD — Figma nodes 299-1168 / 304-2406 / 304-2573 */
+        /*  /304-2761 / 304-2944.  Each tier defines its own palette.   */
+        /* ========================================================== */
+        /* =========== Inventory card (Figma 299-1168/304-2406/2573/2761/2944) =========== */
         .inventory-card {
+          --tier-bg: #fdf8ec;
+          --tier-bg-inner: #ffffff;
+          --tier-edge: #f4d36c;
+          --tier-edge-soft: #fbe7a8;
+          --tier-accent: #f5c84a;
+          --tier-accent-deep: #c98a14;
+          --tier-ray: rgba(244, 196, 75, .28);
+          --tier-star: #fbcf3a;
+          --tier-cta-text: #1a1a1a;
+
+          position: relative;
           min-width: 0;
           align-self: start;
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 16px;
-          color: var(--ac-text);
-          background: rgba(255, 255, 248, .92);
-          border: 2px solid rgba(196, 184, 158, .86);
-          border-radius: var(--radius-xs);
-          box-shadow: inset 0 0 0 1px rgba(255, 253, 244, .78);
-          transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+          gap: 14px;
+          padding: 16px 18px 18px;
+          background: var(--tier-bg);
+          border: 1.5px solid var(--tier-edge);
+          border-radius: 20px;
+          box-shadow: 0 6px 18px rgba(20, 20, 20, .08);
+          color: #1a1a1a;
+          overflow: visible;
+          transition: transform .25s cubic-bezier(.23,1,.32,1), box-shadow .25s ease;
+        }
+        .inventory-card::before,
+        .inventory-card::after { content: none; }
+        .inventory-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 14px 28px rgba(20, 20, 20, .14);
         }
 
-        .inventory-card:hover {
-          transform: translate(-2px, -2px);
-          border-color: var(--ac-border-hover);
+        /* ---- Header: NO. on the left, medal floats top-right ---- */
+        .inv-head {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          min-height: 44px;
+          padding: 4px 4px 0 4px;
+        }
+        .inv-no {
+          font-family: "Inter", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+          font-weight: 800;
+          font-size: clamp(26px, 2.2vw, 36px);
+          color: #1a1a1a;
+          letter-spacing: .01em;
+          line-height: 1;
+        }
+
+        /* ---- Medal: 12-petal flower with red ribbon, floats top-right ---- */
+        .inv-medal {
+          position: absolute;
+          top: -10px;
+          right: -6px;
+          width: 96px;
+          height: 120px;
+          z-index: 3;
+          pointer-events: none;
+        }
+        .inv-medal__ribbon {
+          fill: #e23b3b;
+          stroke: #a01818;
+          stroke-width: 1.3;
+          stroke-linejoin: round;
+        }
+        .inv-medal__gear {
+          fill: var(--tier-accent);
+          stroke: var(--tier-accent-deep);
+          stroke-width: 1.6;
+          stroke-linejoin: round;
+          filter: drop-shadow(0 2px 0 rgba(0,0,0,.10));
+        }
+        .inv-medal__disc {
+          fill: #ffffff;
+          stroke: var(--tier-accent-deep);
+          stroke-width: 1.6;
+        }
+        .inv-medal__letter {
+          font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+          font-weight: 900;
+          font-size: 22px;
+          fill: var(--tier-accent-deep);
+          letter-spacing: 0;
+        }
+
+        /* ---- Art panel: white rounded box, subtle radial rays + stars + name tag ---- */
+        .inv-art {
+          position: relative;
+          display: grid;
+          place-items: center;
+          height: clamp(190px, 18vw, 230px);
+          margin: 0;
+          background: #ffffff;
+          border: 1px solid var(--tier-edge-soft);
+          border-radius: 14px;
+          overflow: hidden;
+        }
+        .inv-art::before,
+        .inv-art::after { content: none; }
+        .inv-art__rays {
+          position: absolute;
+          inset: 0;
+          background:
+            repeating-conic-gradient(
+              from 0deg at 50% 62%,
+              var(--tier-ray) 0deg 5deg,
+              transparent 5deg 20deg
+            );
+          opacity: .85;
+          pointer-events: none;
+        }
+        .inv-art__star {
+          position: absolute;
+          background: var(--tier-star);
+          clip-path: polygon(
+            50% 0%, 60% 35%, 98% 35%, 68% 57%,
+            80% 95%, 50% 73%, 20% 95%, 32% 57%,
+            2% 35%, 40% 35%
+          );
+          opacity: .9;
+          pointer-events: none;
+        }
+        .inv-art__star--1 { top: 14%; left: 12%; width: 13px; height: 13px; }
+        .inv-art__star--2 { top: 8%;  left: 50%; width: 10px; height: 10px; }
+        .inv-art__star--3 { top: 36%; right: 8%; width: 12px; height: 12px; }
+        .inv-art__star--4 { bottom: 30%; left: 6%; width: 10px; height: 10px; }
+        .inv-art__star--5 { bottom: 14%; left: 36%; width: 8px;  height: 8px; }
+        .inv-art__star--6 { bottom: 22%; right: 16%; width: 14px; height: 14px; }
+        .inv-art__img {
+          position: relative;
+          z-index: 1;
+          width: min(74%, 220px);
+          height: 72%;
+          object-fit: contain;
+          image-rendering: pixelated;
+          transition: transform .25s cubic-bezier(.23,1,.32,1);
+        }
+        .inventory-card:hover .inv-art__img {
+          transform: translateY(-3px) scale(1.04);
+        }
+        .inv-art__tag {
+          position: absolute;
+          right: 10px;
+          bottom: 10px;
+          z-index: 2;
+          padding: 4px 10px;
+          background: #fff5d4;
+          border: 1px solid #d8a649;
+          border-radius: 7px;
+          color: #6b4413;
+          font-family: "Inter", "PingFang SC", system-ui, sans-serif;
+          font-weight: 800;
+          font-size: 13px;
+          letter-spacing: .04em;
+          box-shadow: 0 1px 0 rgba(0,0,0,.06);
+        }
+
+        /* ---- Stats row: plain text on card body (no capsule) ---- */
+        .inv-stats {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4px 24px;
+          padding: 8px 8px 6px;
+          background: transparent;
+          border-radius: 0;
+          box-shadow: none;
+          min-height: 70px;
+        }
+        .inv-stat {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+          min-width: 0;
+          line-height: 1;
+        }
+        .inv-stat__label {
+          font-family: "Inter", "PingFang SC", system-ui, sans-serif;
+          font-weight: 500;
+          font-size: 14px;
+          color: #8a8a8a;
+          letter-spacing: .02em;
+          line-height: 1.2;
+        }
+        .inv-stat__value {
+          font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+          font-weight: 800;
+          font-size: clamp(22px, 2vw, 30px);
+          color: #1a1a1a;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+        .inv-stat__value--pos { color: #e23b3b; }  /* Chinese convention: positive = red */
+        .inv-stat__value--neg { color: #1f8a5a; }
+
+        /* ---- Action row: 2 ghost squares + 1 colored CTA ---- */
+        .inv-actions {
+          display: grid;
+          grid-template-columns: 56px 56px 1fr;
+          gap: 10px;
+          padding: 0 6px;
+          margin-top: 4px;
+        }
+        .inv-btn {
+          appearance: none;
+          height: 48px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 14px;
+          font: inherit;
+          font-weight: 800;
+          text-decoration: none;
+          cursor: pointer;
+          border-radius: 12px;
+          transition: transform .14s cubic-bezier(.23,1,.32,1), box-shadow .14s ease, background-color .14s ease;
+        }
+        .inv-btn:active { transform: translateY(1px) scale(.98); }
+        .inv-btn--ghost {
+          background: #ffffff;
+          color: #1a1a1a;
+          border: 1.5px solid var(--tier-edge);
+          box-shadow: 0 1px 0 rgba(0, 0, 0, .04);
+        }
+        .inv-btn--ghost:hover { transform: translateY(-1px); }
+        .inv-btn--star.is-on { background: #fff7df; color: #b8862e; }
+        .inv-btn--cta {
+          background: var(--tier-accent);
+          color: var(--tier-cta-text);
+          border: 1.5px solid var(--tier-accent-deep);
+          font-family: "Inter", "PingFang SC", system-ui, sans-serif;
+          font-size: clamp(17px, 1.3vw, 21px);
+          font-weight: 900;
+          letter-spacing: .06em;
           box-shadow:
-            inset 0 0 0 1px rgba(255, 253, 244, .82),
-            6px 6px 0 rgba(189, 174, 160, .68);
+            inset 0 1px 0 rgba(255, 255, 255, .35),
+            0 2px 0 var(--tier-accent-deep);
+        }
+        .inv-btn--cta:hover { transform: translateY(-2px); }
+        .inv-btn--cta:active {
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 0 var(--tier-accent-deep);
+        }
+
+        /* =========== Tier palettes (precise Figma colors) =========== */
+        /* S — soft lavender */
+        .inventory-card--S {
+          --tier-bg: #f4ecff;
+          --tier-edge: #b59be8;
+          --tier-edge-soft: #d8c7f3;
+          --tier-accent: #b59be8;
+          --tier-accent-deep: #6b4eb3;
+          --tier-ray: rgba(149, 116, 220, .28);
+          --tier-star: #8d6dd6;
+          --tier-cta-text: #ffffff;
+        }
+        /* A — cream yellow (default-like) */
+        .inventory-card--A {
+          --tier-bg: #fdf8ec;
+          --tier-edge: #f4d36c;
+          --tier-edge-soft: #fbe7a8;
+          --tier-accent: #f5c84a;
+          --tier-accent-deep: #b07a10;
+          --tier-ray: rgba(244, 196, 75, .28);
+          --tier-star: #fbcf3a;
+          --tier-cta-text: #1a1a1a;
+        }
+        /* B — soft blue */
+        .inventory-card--B {
+          --tier-bg: #e9f2ff;
+          --tier-edge: #6f9fe2;
+          --tier-edge-soft: #c4daf5;
+          --tier-accent: #4f86d6;
+          --tier-accent-deep: #2b558f;
+          --tier-ray: rgba(91, 142, 216, .25);
+          --tier-star: #4d8acc;
+          --tier-cta-text: #ffffff;
+        }
+        /* C — fresh green */
+        .inventory-card--C {
+          --tier-bg: #ebf6dd;
+          --tier-edge: #91c860;
+          --tier-edge-soft: #cce9a8;
+          --tier-accent: #7bc24e;
+          --tier-accent-deep: #487a26;
+          --tier-ray: rgba(130, 194, 90, .25);
+          --tier-star: #6db142;
+          --tier-cta-text: #ffffff;
+        }
+        /* D — muted gray */
+        .inventory-card--D {
+          --tier-bg: #efeeec;
+          --tier-edge: #b8b4ad;
+          --tier-edge-soft: #d8d5d0;
+          --tier-accent: #a8a39c;
+          --tier-accent-deep: #5c5852;
+          --tier-ray: rgba(168, 163, 156, .22);
+          --tier-star: #9a948c;
+          --tier-cta-text: #ffffff;
+        }
+        /* F — deeper grayscale (failed) */
+        .inventory-card--F {
+          --tier-bg: #e8e7e4;
+          --tier-edge: #9a958d;
+          --tier-edge-soft: #c4c0b8;
+          --tier-accent: #8a857d;
+          --tier-accent-deep: #4a463f;
+          --tier-ray: rgba(138, 133, 125, .22);
+          --tier-star: #7d7770;
+          --tier-cta-text: #ffffff;
+        }
+        .inventory-card--F .inv-art__img { filter: grayscale(.5); }
+
+        @keyframes cardLegendaryGlow {
+          0%, 100% {
+            box-shadow:
+              inset 0 0 0 2px #fff5cf,
+              inset 0 0 0 4px #b56a0a,
+              inset 0 26px 0 -18px rgba(255, 255, 255, .7),
+              0 8px 0 rgba(150, 86, 14, .55),
+              0 14px 28px rgba(241, 165, 28, .45),
+              0 0 0 1px rgba(255, 220, 120, .55),
+              0 0 22px rgba(255, 195, 80, .45);
+          }
+          50% {
+            box-shadow:
+              inset 0 0 0 2px #fff5cf,
+              inset 0 0 0 4px #b56a0a,
+              inset 0 26px 0 -18px rgba(255, 255, 255, .85),
+              0 8px 0 rgba(150, 86, 14, .55),
+              0 16px 32px rgba(241, 165, 28, .55),
+              0 0 0 1px rgba(255, 235, 160, .8),
+              0 0 36px rgba(255, 195, 80, .8);
+          }
+        }
+
+        @keyframes cardSunburst {
+          to { transform: rotate(360deg); }
         }
 
         .inventory-card__main {
@@ -1418,28 +1836,33 @@ export default function Landing() {
         }
 
         .inventory-card__top {
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 10px;
+          padding: 6px 8px 8px;
+          margin: -2px -2px 0;
+          border-bottom: 2px solid rgba(199, 154, 61, .35);
         }
 
         .inventory-card__title {
           margin: 0;
           display: inline-flex;
-          min-width: auto;
-          min-height: auto;
           align-items: center;
           justify-content: center;
-          padding: 4px 0;
-          color: #63483e;
-          background: transparent;
-          border: 0;
-          border-radius: 0;
-          box-shadow: none;
-          font-size: 16px;
-          line-height: 1.25;
+          padding: 4px 10px;
+          color: #fffdf4;
+          background: linear-gradient(180deg, #6a4a30 0%, #4a311e 100%);
+          border: 2px solid #2f1d0f;
+          border-radius: 6px;
+          box-shadow: inset 0 2px 0 rgba(255,255,255,.22), 0 2px 0 rgba(0,0,0,.18);
+          font-size: 13px;
+          letter-spacing: .08em;
+          line-height: 1.1;
           font-weight: 950;
+          text-shadow: 0 1px 0 rgba(0,0,0,.35);
         }
 
         .inventory-card__expression {
@@ -1474,84 +1897,172 @@ export default function Landing() {
         }
 
         .inventory-grade {
-          min-width: 48px;
-          height: 32px;
+          position: relative;
+          min-width: 40px;
+          height: 40px;
           display: inline-grid;
           place-items: center;
           flex: 0 0 auto;
           color: #fffdf4;
-          background: var(--ac-primary);
-          border: 0;
-          border-radius: var(--radius-xs);
+          background: radial-gradient(circle at 30% 30%, #6dd4c8 0%, #2f8c83 75%);
+          border: 2.5px solid #1d5b55;
+          border-radius: 50%;
           box-shadow:
-            inset 0 3px 0 rgba(255,255,255,.32),
-            3px 3px 0 rgba(45, 102, 94, .35);
-          font-size: 16px;
+            inset 0 3px 0 rgba(255,255,255,.45),
+            inset 0 -3px 0 rgba(0,0,0,.18),
+            0 3px 0 rgba(0, 0, 0, .25),
+            0 0 0 3px rgba(255, 247, 223, .85),
+            0 0 0 5px #1d5b55;
+          font-size: 17px;
           font-weight: 950;
+          text-shadow: 0 1px 0 rgba(0,0,0,.35);
+          transform: translateY(-2px);
         }
 
         .inventory-grade--S {
-          color: #fffdf4;
-          background: linear-gradient(180deg, #ffe27a 0%, #e9ad2e 100%);
-          border-color: #bd8427;
+          background: radial-gradient(circle at 30% 30%, #fff2a3 0%, #e1932a 80%);
+          border-color: #8a5912;
+          box-shadow:
+            inset 0 3px 0 rgba(255,255,255,.55),
+            inset 0 -3px 0 rgba(0,0,0,.22),
+            0 3px 0 rgba(0, 0, 0, .3),
+            0 0 0 3px rgba(255, 247, 223, .85),
+            0 0 0 5px #8a5912,
+            0 0 14px rgba(241, 191, 76, .9);
         }
 
         .inventory-grade--A {
-          color: #fffdf4;
-          background: linear-gradient(180deg, #78dbcf 0%, #55c2b6 100%);
-          border-color: #469b94;
+          background: radial-gradient(circle at 30% 30%, #8ee6d9 0%, #2f8c83 80%);
+          border-color: #1d5b55;
+        }
+
+        .inventory-grade--B {
+          background: radial-gradient(circle at 30% 30%, #9ec3ff 0%, #3a6dc6 80%);
+          border-color: #20407c;
+          box-shadow:
+            inset 0 3px 0 rgba(255,255,255,.45),
+            inset 0 -3px 0 rgba(0,0,0,.18),
+            0 3px 0 rgba(0, 0, 0, .25),
+            0 0 0 3px rgba(255, 247, 223, .85),
+            0 0 0 5px #20407c;
+        }
+
+        .inventory-grade--C {
+          background: radial-gradient(circle at 30% 30%, #c3a7e4 0%, #6f4aa1 80%);
+          border-color: #41296b;
+          box-shadow:
+            inset 0 3px 0 rgba(255,255,255,.4),
+            inset 0 -3px 0 rgba(0,0,0,.18),
+            0 3px 0 rgba(0, 0, 0, .25),
+            0 0 0 3px rgba(255, 247, 223, .85),
+            0 0 0 5px #41296b;
+        }
+
+        .inventory-grade--D {
+          background: radial-gradient(circle at 30% 30%, #f0a98c 0%, #b85b3a 80%);
+          border-color: #6f3522;
+          box-shadow:
+            inset 0 3px 0 rgba(255,255,255,.4),
+            inset 0 -3px 0 rgba(0,0,0,.18),
+            0 3px 0 rgba(0, 0, 0, .25),
+            0 0 0 3px rgba(255, 247, 223, .85),
+            0 0 0 5px #6f3522;
         }
 
         .inventory-grade--F {
-          color: #fffdf4;
-          background: linear-gradient(180deg, #c9c0b0 0%, #8e8070 100%);
-          border-color: #6f6258;
+          background: radial-gradient(circle at 30% 30%, #d8d2c4 0%, #7a6e60 85%);
+          border-color: #4a3f33;
+          box-shadow:
+            inset 0 3px 0 rgba(255,255,255,.4),
+            inset 0 -3px 0 rgba(0,0,0,.18),
+            0 3px 0 rgba(0, 0, 0, .25),
+            0 0 0 3px rgba(255, 247, 223, .85),
+            0 0 0 5px #4a3f33;
         }
 
         .inventory-art {
           position: relative;
-          min-height: 145px;
+          min-height: 150px;
           display: grid;
           place-items: center;
-          margin: 2px 0 0;
+          margin: 6px 0 2px;
+          padding: 10px 0;
+          background:
+            radial-gradient(70% 90% at 50% 55%, rgba(255, 244, 200, .9) 0%, rgba(245, 215, 140, .35) 60%, rgba(245, 215, 140, 0) 100%),
+            linear-gradient(180deg, #fff2cb 0%, #f3d997 100%);
+          border: 2px solid #b8862e;
+          border-radius: 10px;
+          box-shadow:
+            inset 0 0 0 2px #fff8e2,
+            inset 0 -6px 12px rgba(184, 134, 46, .25);
+          overflow: hidden;
+        }
+
+        .inventory-art::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            repeating-linear-gradient(45deg, rgba(255, 255, 255, .12) 0 6px, transparent 6px 14px);
+          pointer-events: none;
+          mix-blend-mode: overlay;
+          opacity: .55;
         }
 
         .inventory-avatar {
-          width: min(82%, 214px);
-          height: 158px;
+          position: relative;
+          z-index: 1;
+          width: min(78%, 200px);
+          height: 150px;
           object-fit: contain;
           image-rendering: pixelated;
-          filter: drop-shadow(0 5px 0 rgba(20, 76, 112, .25));
-          transform: translateY(1px);
+          filter: drop-shadow(0 6px 0 rgba(120, 86, 28, .35));
+          transition: transform .25s cubic-bezier(.23,1,.32,1);
+        }
+
+        .inventory-card:hover .inventory-avatar {
+          transform: translateY(-3px) scale(1.04);
+        }
+
+        .inventory-card__metrics {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          margin-top: auto;
         }
 
         .inventory-metric-card {
           min-width: 0;
           min-height: 54px;
           display: block;
-          padding: 8px 0 0;
+          padding: 8px 6px;
           text-align: center;
-          background: transparent;
-          border: 0;
-          border-top: 2px solid rgba(196, 184, 158, .62);
-          border-radius: 0;
-          box-shadow: none;
+          color: #4a311e;
+          background: linear-gradient(180deg, #fffaec 0%, #f3d997 100%);
+          border: 2px solid #b8862e;
+          border-radius: 8px;
+          box-shadow:
+            inset 0 2px 0 rgba(255, 255, 255, .65),
+            inset 0 -2px 0 rgba(184, 134, 46, .25),
+            0 2px 0 rgba(120, 86, 28, .25);
         }
 
         .inventory-metric-card__label {
-          color: rgba(99, 72, 62, .78);
-          font-size: 13px;
-          font-weight: 900;
-          letter-spacing: .08em;
+          color: rgba(74, 49, 30, .8);
+          font-size: 11px;
+          font-weight: 950;
+          letter-spacing: .14em;
+          text-transform: uppercase;
         }
 
         .inventory-metric-card__value {
-          margin-top: 5px;
-          color: #55aaa3;
-          font-size: 16px;
+          margin-top: 4px;
+          color: #1d5b55;
+          font-size: 17px;
           line-height: 1;
           font-weight: 950;
           font-variant-numeric: tabular-nums;
+          text-shadow: 0 1px 0 rgba(255, 255, 255, .55);
         }
 
         .inventory-action {
@@ -1588,13 +2099,30 @@ export default function Landing() {
         .inventory-action--primary {
           min-width: 132px;
           flex: 1 1 auto;
-          gap: 8px;
+          gap: 6px;
+          padding: 0 10px;
           color: #fffdf4;
-          background: var(--ac-primary);
-          border: 2px solid #4faaa2;
-          border-color: #4faaa2;
-          box-shadow: 3px 3px 0 rgba(49, 132, 125, .5), inset 0 3px 0 rgba(255,255,255,.28);
-          font-size: 16px;
+          background: linear-gradient(180deg, #58c2b8 0%, #2f8c83 100%);
+          border: 2.5px solid #1d5b55;
+          border-radius: 8px;
+          box-shadow:
+            inset 0 2px 0 rgba(255, 255, 255, .45),
+            inset 0 -2px 0 rgba(0, 0, 0, .18),
+            0 3px 0 rgba(29, 91, 85, .8),
+            0 0 0 1.5px rgba(255, 247, 223, .55);
+          font-size: 14px;
+          letter-spacing: .06em;
+          text-shadow: 0 1px 0 rgba(0, 0, 0, .35);
+        }
+
+        .inventory-action--primary:hover {
+          color: #fffdf4;
+          transform: translateY(-2px);
+          box-shadow:
+            inset 0 2px 0 rgba(255, 255, 255, .55),
+            inset 0 -2px 0 rgba(0, 0, 0, .18),
+            0 5px 0 rgba(29, 91, 85, .8),
+            0 0 0 1.5px rgba(255, 247, 223, .65);
         }
 
         .inventory-status {
@@ -2004,20 +2532,23 @@ export default function Landing() {
 
       <img
         className="game-bg"
-        src="/assets/group.png"
+        src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663325188422/nBmPCFQrIvRMyCWh.png"
         alt=""
         aria-hidden="true"
       />
 
       <nav className="ui-left" aria-label="Game menu">
-        <button className="pixel-button pixel-button--image" type="button" aria-label="Inventory" onClick={() => setInventoryOpen(true)}>
-          <img className="menu-icon-img" src="/assets/inventory-menu-icon.svg" alt="" />
+        <button className="menu-tile" type="button" aria-label="Inventory" onClick={() => setInventoryOpen(true)}>
+          <img className="menu-tile__icon" src="/assets/inventory-menu-icon.svg" alt="" />
+          <span className="menu-tile__name">背包</span>
         </button>
-        <a className="pixel-button pixel-button--image" href="/landing" aria-label="Achievements">
-          <img className="menu-icon-img" src="/assets/leaderboard-menu-icon.svg" alt="" />
+        <a className="menu-tile" href="/landing" aria-label="Achievements">
+          <img className="menu-tile__icon" src="/assets/leaderboard-menu-icon.svg" alt="" />
+          <span className="menu-tile__name">成就</span>
         </a>
-        <a className="pixel-button pixel-button--image" href="/landing" aria-label="Quests">
-          <img className="menu-icon-img" src="/assets/wallet-menu-icon.svg" alt="" />
+        <a className="menu-tile" href="/landing" aria-label="Quests">
+          <img className="menu-tile__icon" src="/assets/wallet-menu-icon.svg" alt="" />
+          <span className="menu-tile__name">钱包</span>
         </a>
       </nav>
 
@@ -2080,58 +2611,93 @@ export default function Landing() {
                 const returns = parseMetricValue(factor.returns);
 
                 return (
-                  <article className="inventory-card" key={factor.id}>
-                    <div className="inventory-card__main">
-                      <div className="inventory-card__top">
-                        <div style={{ minWidth: 0 }}>
-                          <h3 className="inventory-card__title">NO.{String(index + 1).padStart(2, "0")}</h3>
-                        </div>
-                        <span className={`inventory-grade inventory-grade--${factor.grade}`}>{factor.grade}</span>
+                  <article className={`inventory-card inventory-card--${factor.grade}`} key={factor.id}>
+                    <header className="inv-head">
+                      <span className="inv-no">NO.{String(index + 1).padStart(2, "0")}</span>
+                      {/* Figma: gear-shaped medal floats on top-right with red ribbons */}
+                      <div className={`inv-medal inv-medal--${factor.grade}`} aria-hidden="true">
+                        <svg viewBox="0 0 100 124" width="100%" height="100%" shapeRendering="geometricPrecision" aria-hidden="true">
+                          {/* Red ribbon tails (two angular pennants below medal) */}
+                          <g>
+                            <polygon className="inv-medal__ribbon" points="30,72 18,118 32,108 38,118 40,82" />
+                            <polygon className="inv-medal__ribbon" points="70,72 82,118 68,108 62,118 60,82" />
+                          </g>
+                          {/* Soft shadow under medal */}
+                          <ellipse cx="50" cy="86" rx="34" ry="4" fill="rgba(0,0,0,.10)" />
+                          {/* 12-petal flower medal (uses CSS color) */}
+                          <path className="inv-medal__gear"
+                            d="M50 6
+                               C 56 6, 60 12, 60 18
+                               C 64 14, 72 14, 76 18
+                               C 80 22, 80 30, 76 34
+                               C 82 36, 86 42, 86 48
+                               C 86 54, 82 60, 76 62
+                               C 80 66, 80 74, 76 78
+                               C 72 82, 64 82, 60 78
+                               C 60 84, 56 90, 50 90
+                               C 44 90, 40 84, 40 78
+                               C 36 82, 28 82, 24 78
+                               C 20 74, 20 66, 24 62
+                               C 18 60, 14 54, 14 48
+                               C 14 42, 18 36, 24 34
+                               C 20 30, 20 22, 24 18
+                               C 28 14, 36 14, 40 18
+                               C 40 12, 44 6, 50 6 Z" />
+                          {/* Inner disc */}
+                          <circle cx="50" cy="48" r="22" className="inv-medal__disc" />
+                          {/* Letter */}
+                          <text x="50" y="58" textAnchor="middle" className="inv-medal__letter">{factor.grade}</text>
+                        </svg>
                       </div>
+                    </header>
 
-                      <div className="inventory-art" aria-hidden="true">
-                        <img className="inventory-avatar" src="/assets/pixel-whale-avatar.png" alt="" />
+                    <div className="inv-art" aria-hidden="true">
+                      <div className="inv-art__rays" />
+                      <span className="inv-art__star inv-art__star--1" />
+                      <span className="inv-art__star inv-art__star--2" />
+                      <span className="inv-art__star inv-art__star--3" />
+                      <span className="inv-art__star inv-art__star--4" />
+                      <span className="inv-art__star inv-art__star--5" />
+                      <span className="inv-art__star inv-art__star--6" />
+                      <img className="inv-art__img" src="/assets/pixel-whale-avatar.png" alt="" />
+                      <span className="inv-art__tag">{tr("Sunfish", "翻车鱼")}</span>
+                    </div>
+
+                    <div className="inv-stats">
+                      <div className="inv-stat">
+                        <span className="inv-stat__label">{tr("Sharpe", "Sharpe")}</span>
+                        <span className="inv-stat__value">{factor.sharpe.toFixed(2)}</span>
                       </div>
-
-                      <div className="inventory-card__metrics">
-                        <div className="inventory-metric-card">
-                          <div>
-                            <div className="inventory-metric-card__label">Sharpe</div>
-                            <div className="inventory-metric-card__value">{factor.sharpe.toFixed(2)}</div>
-                          </div>
-                        </div>
-                        <div className="inventory-metric-card">
-                          <div>
-                            <div className="inventory-metric-card__label">ROI</div>
-                            <div className="inventory-metric-card__value">{returns >= 0 ? "+" : ""}{factor.returns}</div>
-                          </div>
-                        </div>
+                      <div className="inv-stat">
+                        <span className="inv-stat__label">{tr("ROI", "ROI")}</span>
+                        <span className={`inv-stat__value inv-stat__value--${returns >= 0 ? "pos" : "neg"}`}>{returns >= 0 ? "+" : ""}{factor.returns}</span>
                       </div>
                     </div>
 
-                    <aside className="inventory-card__side" aria-label={tr("Factor details", "因子详情")}>
-                      <div className="inventory-actions">
-                        <button
-                          className="inventory-action inventory-action--square"
-                          type="button"
-                          aria-label={tr("More actions", "更多操作")}
-                        >
-                          <MoreHorizontal size={24} strokeWidth={3} />
-                        </button>
-                        <button
-                          className="inventory-action inventory-action--square inventory-action--favorite"
-                          type="button"
-                          aria-pressed={isStarred}
-                          aria-label={isStarred ? tr("Unfavorite factor", "取消收藏因子") : tr("Favorite factor", "收藏因子")}
-                          onClick={() => toggleFactorStar(factor.id)}
-                        >
-                          <Heart size={25} strokeWidth={2.8} fill={isStarred ? "currentColor" : "none"} />
-                        </button>
-                        <Link className="inventory-action inventory-action--primary" href={`/alphas/${factor.id}`}>
-                          {tr("View", "查看")} <ArrowUpRight size={19} strokeWidth={3} />
-                        </Link>
-                      </div>
-                    </aside>
+                    <div className="inv-actions">
+                      <button
+                        className="inv-btn inv-btn--ghost"
+                        type="button"
+                        aria-label={tr("More actions", "更多操作")}
+                      >
+                        <MoreHorizontal size={20} strokeWidth={3} />
+                      </button>
+                      <button
+                        className={`inv-btn inv-btn--ghost inv-btn--star${isStarred ? " is-on" : ""}`}
+                        type="button"
+                        aria-pressed={isStarred}
+                        aria-label={isStarred ? tr("Unfavorite factor", "取消收藏因子") : tr("Favorite factor", "收藏因子")}
+                        onClick={() => toggleFactorStar(factor.id)}
+                      >
+                        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+                          <path d="M12 3 14.5 9 21 9.5 16 14 17.5 20.5 12 17 6.5 20.5 8 14 3 9.5 9.5 9z"
+                                fill={isStarred ? "#f6c63a" : "none"} stroke="#1d0f06" strokeWidth="1.6" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                      <Link className="inv-btn inv-btn--cta" href={`/alphas/${factor.id}`}>
+                        {tr("View", "查看")}
+                      </Link>
+                    </div>
                   </article>
                 );
               })}
