@@ -4,17 +4,20 @@ import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
 import type { SelectOption } from "animal-island-ui";
 import AlphaDetail from "@/pages/AlphaDetail";
+import BorderGlow from "@/components/ui/border-glow-card";
 import {
   ArrowLeft,
   ArrowUpRight,
   BarChart3,
   ClipboardList,
+  CreditCard,
   Heart,
   MoreHorizontal,
   PieChart,
   Search,
   Star,
   TrendingUp,
+  Trophy,
   Users,
   Wallet,
   X,
@@ -23,7 +26,7 @@ import { factors, getAlphaGrade, strategies, type AlphaGrade, type Factor } from
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { AlphaViewModeProvider } from "@/contexts/AlphaViewModeContext";
 
-const filterOptions = ["all", "official", "graduated"] as const;
+const filterOptions = ["all", "starred"] as const;
 type FilterKey = (typeof filterOptions)[number];
 type StrategySortKey = "roi" | "winRate" | "sharpe" | "maxDrawdown";
 type SortDir = "asc" | "desc" | null;
@@ -31,6 +34,8 @@ const curveRanges = ["7D", "30D", "90D", "365D"] as const;
 type CurveRange = (typeof curveRanges)[number];
 const factorFilterOptions = ["all", "starred"] as const;
 type FactorFilterKey = (typeof factorFilterOptions)[number];
+const inventoryGradeFilterOptions = ["all", "SS", "S", "A", "B", "C", "D", "F", "prop", "misc"] as const;
+type InventoryGradeFilter = (typeof inventoryGradeFilterOptions)[number];
 type FactorSortKey =
   | "createdAt"
   | "grade"
@@ -46,6 +51,96 @@ type FactorRow = Factor & {
   grade: AlphaGrade;
   rewardAmount: number;
 };
+type InventoryVisualGrade = AlphaGrade | "SS";
+type InventorySpecialType = "prop" | "misc";
+type InventorySpecialCard = {
+  id: string;
+  type: InventorySpecialType;
+  nameEn: string;
+  nameZh: string;
+  tagEn: string;
+  tagZh: string;
+  metricOneLabel: string;
+  metricOneValue: string;
+  metricTwoLabel: string;
+  metricTwoValue: string;
+  imageSrc?: string;
+  statsLayout?: "inline";
+};
+type WalletActivityItem = {
+  id: string;
+  orderNo: string;
+  reasonEn: string;
+  reasonZh: string;
+  occurredAt: string;
+  amount: number;
+  direction: "increase" | "decrease";
+};
+type FundsStatus = "idle" | "processing" | "success" | "error";
+
+const WALLET_BALANCE_USD = 74.19;
+const ARENA_PRIZE_TOTAL = 32;
+const MIN_AMOUNT = 1;
+const MAX_AMOUNT = 5000;
+const WITHDRAWAL_NETWORKS = [
+  "Ethereum (ERC20)",
+  "BNB Smart Chain (BEP20)",
+  "Arbitrum One (ARB)",
+  "Solana (SOL)",
+];
+const DEFAULT_WITHDRAWAL_NETWORK = WITHDRAWAL_NETWORKS[0];
+
+const walletActivities: WalletActivityItem[] = [
+  {
+    id: "wallet-1",
+    orderNo: "WLT-20260428-001",
+    reasonEn: "Factor Arena prize",
+    reasonZh: "因子竞技场奖金入账",
+    occurredAt: "2026-04-28T10:24:00+08:00",
+    amount: 32,
+    direction: "increase",
+  },
+  {
+    id: "wallet-3",
+    orderNo: "WLT-20260420-002",
+    reasonEn: "Credit recharge",
+    reasonZh: "额度充值",
+    occurredAt: "2026-04-20T09:00:00+08:00",
+    amount: 20,
+    direction: "decrease",
+  },
+];
+
+const inventorySpecialCards: InventorySpecialCard[] = [
+  {
+    id: "ITEM-PROP-001",
+    type: "prop",
+    nameEn: "Lucky Bait",
+    nameZh: "幸运鱼饵",
+    tagEn: "Bitcoin",
+    tagZh: "比特币",
+    metricOneLabel: "全海域限量，鱼群路过都要先看一眼",
+    metricOneValue: "一般",
+    metricTwoLabel: "",
+    metricTwoValue: "",
+    imageSrc: "/assets/bitcoin.svg",
+    statsLayout: "inline",
+  },
+  {
+    id: "ITEM-MISC-001",
+    type: "misc",
+    nameEn: "Lake Shell",
+    nameZh: "湖畔贝壳",
+    tagEn: "Misc",
+    tagZh: "特朗普的假发",
+    metricOneLabel: "防风性能一般",
+    metricOneValue: "",
+    metricTwoLabel: "",
+    metricTwoValue: "",
+    imageSrc: "/assets/trump-wig.svg",
+    statsLayout: "inline",
+  },
+];
 
 function parseMetricValue(value: string | number) {
   if (typeof value === "number") return value;
@@ -57,11 +152,19 @@ function getDefaultStrategySortDir(key: StrategySortKey): Exclude<SortDir, null>
   return key === "maxDrawdown" ? "asc" : "desc";
 }
 
-function getStrategyTier(strategy: (typeof strategies)[number]): Exclude<FilterKey, "all"> {
+function getStrategyTier(strategy: (typeof strategies)[number]): "official" | "graduated" {
   return strategy.author.toLowerCase().includes("quandora") ? "official" : "graduated";
 }
 
-const factorGradeOrder: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, F: 5 };
+const factorGradeOrder: Record<InventoryVisualGrade, number> = {
+  SS: 7,
+  S: 6,
+  A: 5,
+  B: 4,
+  C: 3,
+  D: 2,
+  F: 1,
+};
 const factorRewardByGrade: Record<AlphaGrade, number> = {
   S: 1,
   A: 0.5,
@@ -71,8 +174,40 @@ const factorRewardByGrade: Record<AlphaGrade, number> = {
   F: 0,
 };
 
+function getInventoryVisualGrade(factor: FactorRow): InventoryVisualGrade {
+  if (factor.grade !== "S") return factor.grade;
+  if (factor.osSharpe >= 1.8) return "SS";
+  return "S";
+}
+
 function getFactorSubmissionStatus(factor: Factor): FactorRow["submissionStatus"] {
   return factor.status === "archived" ? "failed" : "passed";
+}
+
+function formatUsd(amount: number) {
+  return `${(Number(amount) || 0).toFixed(2)} USD`;
+}
+
+function isValidAmount(amount: number) {
+  const value = Number(amount);
+  return Number.isFinite(value) && value >= MIN_AMOUNT && value <= MAX_AMOUNT;
+}
+
+function walletBalanceAfterWithdraw(amountUsd: number, balanceUsd = WALLET_BALANCE_USD) {
+  return Math.max(0, Number(balanceUsd || 0) - Number(amountUsd || 0));
+}
+
+function isValidWithdrawalAddress(network: string, address: string) {
+  const value = String(address || "").trim();
+  if (!value) return false;
+  if (network === "Solana (SOL)") return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);
+  return /^0x[a-fA-F0-9]{40}$/.test(value);
+}
+
+function getWithdrawalAddressHint(network: string) {
+  return network === "Solana (SOL)"
+    ? "请输入 32-44 位 Solana 钱包地址。"
+    : "请输入以 0x 开头的 42 位 EVM 钱包地址。";
 }
 
 function getFactorDefaultSortDir(key: FactorSortKey): Exclude<SortDir, null> {
@@ -124,11 +259,22 @@ export default function Landing() {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [walletOpen, setWalletOpen] = useState(false);
+  const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState(50);
+  const [withdrawNetwork, setWithdrawNetwork] = useState(DEFAULT_WITHDRAWAL_NETWORK);
+  const [withdrawAddress, setWithdrawAddress] = useState("");
+  const [withdrawAddressError, setWithdrawAddressError] = useState("");
+  const [withdrawAccountBound, setWithdrawAccountBound] = useState(false);
+  const [withdrawStatus, setWithdrawStatus] = useState<FundsStatus>("idle");
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [factorQuery, setFactorQuery] = useState("");
   const [factorFilter, setFactorFilter] = useState<FactorFilterKey>("all");
-  const [factorSortKey, setFactorSortKey] = useState<FactorSortKey | null>("createdAt");
+  const [inventoryGradeFilter, setInventoryGradeFilter] = useState<InventoryGradeFilter>("all");
+  const [factorSortKey, setFactorSortKey] = useState<FactorSortKey | null>("grade");
   const [factorSortDir, setFactorSortDir] = useState<SortDir>("desc");
   const [factorSortOpen, setFactorSortOpen] = useState(false);
+  const [openInventoryMenuId, setOpenInventoryMenuId] = useState<string | null>(null);
   const [starredFactors, setStarredFactors] = useState<Set<string>>(() => new Set(["AF-004", "AF-009"]));
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
@@ -136,14 +282,14 @@ export default function Landing() {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [sortKey, setSortKey] = useState<StrategySortKey | null>("roi");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [strategySortOpen, setStrategySortOpen] = useState(false);
   const [starredStrategies, setStarredStrategies] = useState<Set<string>>(() => new Set());
   const [selectedStrategy, setSelectedStrategy] = useState<(typeof strategies)[number] | null>(null);
   const [curveRange, setCurveRange] = useState<CurveRange>("365D");
 
   const filterLabels: Record<FilterKey, string> = {
     all: tr("All", "全部"),
-    official: tr("Official", "官方"),
-    graduated: tr("Graduated", "三方"),
+    starred: tr("My Favorites", "我的收藏"),
   };
 
   const filterSelectOptions: SelectOption[] = filterOptions.map((option) => ({
@@ -158,13 +304,7 @@ export default function Landing() {
     maxDrawdown: tr("Max Drawdown", "最大回撤"),
   };
 
-  const sortSelectOptions: SelectOption[] = [
-    { key: "default", label: tr("Default", "默认") },
-    ...(Object.keys(sortLabels) as StrategySortKey[]).map((key) => ({
-      key,
-      label: sortLabels[key],
-    })),
-  ];
+  const strategySortKeys = Object.keys(sortLabels) as StrategySortKey[];
 
   const factorFilterLabels: Record<FactorFilterKey, string> = {
     all: tr("All", "全部"),
@@ -177,18 +317,18 @@ export default function Landing() {
   }));
 
   const factorSortLabels: Record<FactorSortKey, string> = {
-    createdAt: tr("Date Created", "创建日期"),
+    createdAt: tr("Created At", "创建时间"),
     grade: tr("Grade", "等级"),
     rewardAmount: tr("Bonus (USD)", "奖金(USD)"),
-    sharpe: tr("IS Sharpe", "IS 夏普"),
+    sharpe: "Sharpe",
     osSharpe: tr("OS Sharpe", "OS 夏普"),
-    returns: tr("Returns", "收益率"),
+    returns: "ROI",
     drawdown: tr("Drawdown", "回撤"),
     turnover: tr("Turnover", "换手率"),
     fitness: tr("Fitness", "适应度"),
   };
 
-  const factorSortKeys = Object.keys(factorSortLabels) as FactorSortKey[];
+  const factorSortKeys: FactorSortKey[] = ["createdAt", "grade", "sharpe", "returns"];
 
   const factorRows = useMemo<FactorRow[]>(() => {
     return factors.map((factor) => {
@@ -203,6 +343,21 @@ export default function Landing() {
     });
   }, []);
 
+  const inventoryFactorNoById = useMemo(() => {
+    return new Map(
+      [...factorRows]
+        .sort((a, b) => {
+          const createdDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return createdDiff || a.id.localeCompare(b.id);
+        })
+        .map((factor, index) => [factor.id, index + 1])
+    );
+  }, [factorRows]);
+
+  const inventorySpecialNoById = useMemo(() => {
+    return new Map(inventorySpecialCards.map((item, index) => [item.id, factorRows.length + index + 1]));
+  }, [factorRows.length]);
+
   const filteredFactors = useMemo(() => {
     const q = factorQuery.trim().toLowerCase();
     const sortValue = (factor: FactorRow) => {
@@ -210,7 +365,7 @@ export default function Landing() {
         case "createdAt":
           return new Date(factor.createdAt).getTime();
         case "grade":
-          return factorGradeOrder[factor.grade];
+          return factorGradeOrder[getInventoryVisualGrade(factor)];
         case "rewardAmount":
           return factor.rewardAmount;
         case "sharpe":
@@ -240,14 +395,31 @@ export default function Landing() {
         factor.tag?.toLowerCase().includes(q) ||
         factor.description?.toLowerCase().includes(q);
       const matchFilter = factorFilter === "all" ? true : starredFactors.has(factor.id);
-      return matchQuery && matchFilter;
+      const matchGrade =
+        inventoryGradeFilter === "all" ? true : getInventoryVisualGrade(factor) === inventoryGradeFilter;
+      return matchQuery && matchFilter && matchGrade;
     });
 
     if (!factorSortKey || !factorSortDir) return filtered;
 
     const direction = factorSortDir === "asc" ? 1 : -1;
     return [...filtered].sort((a, b) => (sortValue(a) - sortValue(b)) * direction);
-  }, [factorFilter, factorQuery, factorRows, factorSortDir, factorSortKey, starredFactors]);
+  }, [factorFilter, factorQuery, factorRows, factorSortDir, factorSortKey, inventoryGradeFilter, starredFactors]);
+
+  const filteredSpecialCards = useMemo(() => {
+    const q = factorQuery.trim().toLowerCase();
+    return inventorySpecialCards.filter((item) => {
+      const matchQuery =
+        !q ||
+        item.id.toLowerCase().includes(q) ||
+        item.nameEn.toLowerCase().includes(q) ||
+        item.nameZh.toLowerCase().includes(q) ||
+        item.tagEn.toLowerCase().includes(q) ||
+        item.tagZh.toLowerCase().includes(q);
+      const matchType = inventoryGradeFilter === "all" || inventoryGradeFilter === item.type;
+      return matchQuery && matchType;
+    });
+  }, [factorQuery, inventoryGradeFilter]);
 
   const toggleFactorStar = (id: string) => {
     setStarredFactors((current) => {
@@ -334,8 +506,7 @@ export default function Landing() {
         strategy.description.toLowerCase().includes(q) ||
         strategy.tags.some((tag) => tag.toLowerCase().includes(q)) ||
         strategy.author.toLowerCase().includes(q);
-      const tier = getStrategyTier(strategy);
-      const matchFilter = filter === "all" ? true : tier === filter;
+      const matchFilter = filter === "all" ? true : starredStrategies.has(strategy.id);
       return matchQuery && matchFilter;
     });
 
@@ -343,7 +514,7 @@ export default function Landing() {
 
     const direction = sortDir === "asc" ? 1 : -1;
     return [...filtered].sort((a, b) => (sortValue(a) - sortValue(b)) * direction);
-  }, [filter, query, sortDir, sortKey]);
+  }, [filter, query, sortDir, sortKey, starredStrategies]);
 
   const toggleStar = (id: string) => {
     setStarredStrategies((current) => {
@@ -354,15 +525,66 @@ export default function Landing() {
     });
   };
 
-  const handleSortChange = (key: string) => {
-    if (key === "default") {
-      setSortKey(null);
-      setSortDir(null);
+  const handleStrategySortChange = (key: StrategySortKey) => {
+    if (sortKey === key) {
+      setSortDir((current) => (current === "asc" ? "desc" : "asc"));
+      setStrategySortOpen(false);
       return;
     }
-    const nextKey = key as StrategySortKey;
-    setSortKey(nextKey);
-    setSortDir(getDefaultStrategySortDir(nextKey));
+    setSortKey(key);
+    setSortDir(getDefaultStrategySortDir(key));
+    setStrategySortOpen(false);
+  };
+
+  const resetWithdrawFeedback = () => {
+    setWithdrawStatus("idle");
+  };
+
+  const formatWalletDateTime = (value: string) => {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return uiLang === "zh"
+      ? new Intl.DateTimeFormat("zh-CN", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(date)
+      : new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }).format(date);
+  };
+
+  const handleBindWithdrawWallet = () => {
+    if (!isValidWithdrawalAddress(withdrawNetwork, withdrawAddress)) {
+      setWithdrawAddressError(getWithdrawalAddressHint(withdrawNetwork));
+      return;
+    }
+    setWithdrawAccountBound(true);
+    setWithdrawAddressError("");
+    resetWithdrawFeedback();
+  };
+
+  const handleUnbindWithdrawWallet = () => {
+    setWithdrawAccountBound(false);
+    setWithdrawNetwork(DEFAULT_WITHDRAWAL_NETWORK);
+    setWithdrawAddress("");
+    setWithdrawAddressError("");
+    resetWithdrawFeedback();
+  };
+
+  const handleSubmitWithdraw = async () => {
+    const validAmount = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_USD;
+    const validAddress = withdrawAccountBound && isValidWithdrawalAddress(withdrawNetwork, withdrawAddress);
+    if (!validAmount || !validAddress || withdrawSubmitting || withdrawStatus === "success") return;
+    setWithdrawSubmitting(true);
+    setWithdrawStatus("processing");
+    await new Promise((resolve) => window.setTimeout(resolve, 850));
+    setWithdrawStatus(withdrawAmount === 30 ? "error" : "success");
+    setWithdrawSubmitting(false);
   };
 
   const openStrategyDetail = (strategy: (typeof strategies)[number]) => {
@@ -465,6 +687,7 @@ export default function Landing() {
           --radius-md: 8px;
           --radius-lg: 10px;
           --BEVL: 1;
+          --modal-title-font: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
           position: relative;
           min-height: 100svh;
           overflow: hidden;
@@ -501,9 +724,12 @@ export default function Landing() {
         .ui-left {
           position: absolute;
           left: clamp(18px, 2.55vw, 52px);
-          top: clamp(34px, 4vh, 58px);
-          display: grid;
-          gap: clamp(18px, 1.55vw, 28px);
+          bottom: clamp(24px, 3.2vh, 46px);
+          display: flex;
+          flex-direction: row;
+          align-items: flex-end;
+          gap: clamp(12px, 1.1vw, 18px);
+          width: fit-content;
           z-index: 5;
         }
 
@@ -521,7 +747,7 @@ export default function Landing() {
           flex-direction: column;
           align-items: center;
           gap: 8px;
-          width: clamp(82px, 5.75vw, 120px);
+          width: clamp(74px, 5vw, 104px);
           aspect-ratio: 1;
           transition: transform .22s cubic-bezier(.23,1,.32,1);
           position: relative; /* establish stacking context for label */
@@ -998,6 +1224,7 @@ export default function Landing() {
 
         .shop-modal__title {
           margin: 0;
+          font-family: var(--modal-title-font);
           font-size: clamp(28px, 3vw, 42px);
           line-height: 1;
           font-weight: 900;
@@ -1059,10 +1286,10 @@ export default function Landing() {
         .shop-select {
           height: 40px;
           color: var(--ac-text);
-          background: rgba(248, 248, 240, .72);
-          border: 2px solid transparent;
-          border-radius: var(--radius-md);
-          box-shadow: none;
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
           font: inherit;
           font-size: 13px;
           font-weight: 800;
@@ -1114,15 +1341,17 @@ export default function Landing() {
           height: 40px;
           padding: 0 14px 0 18px;
           color: var(--ac-text);
-          background: rgba(248, 248, 240, .72);
-          border: 2px solid transparent;
-          border-radius: var(--radius-md);
-          box-shadow: none;
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
         }
 
         .shop-select-aisland [class*="animal-trigger-"]:hover {
-          border-color: transparent;
-          background: #fffdf4;
+          transform: translate(-1px, -1px);
+          border-color: rgba(196, 184, 158, .86);
+          background: var(--ac-cream-light);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
         }
 
         .shop-select-aisland [class*="animal-value-"],
@@ -1175,10 +1404,10 @@ export default function Landing() {
           gap: 10px;
           padding: 0 14px 0 18px;
           color: var(--ac-text);
-          background: rgba(248, 248, 240, .72);
-          border: 2px solid transparent;
-          border-radius: var(--radius-md);
-          box-shadow: none;
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
           font: inherit;
           font-size: 13px;
           font-weight: 900;
@@ -1186,7 +1415,9 @@ export default function Landing() {
         }
 
         .sort-direction-select__trigger:hover {
-          background: #fffdf4;
+          transform: translate(-1px, -1px);
+          background: var(--ac-cream-light);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
         }
 
         .sort-direction-select__trigger:focus-visible,
@@ -1515,16 +1746,24 @@ export default function Landing() {
 
         .inventory-modal .shop-modal__header {
           align-items: center;
+          padding-top: 16px;
           background: rgba(255, 249, 232, .88);
           border-bottom: 2px solid rgba(196, 184, 158, .62);
         }
 
         .inventory-modal .shop-modal__title {
+          font-size: 30px;
           color: var(--ac-text);
-          text-shadow: 2px 2px 0 rgba(196, 184, 158, .46);
+        }
+
+        .inventory-modal .shop-modal__close {
+          width: 38px;
+          height: 38px;
         }
 
         .inventory-modal .shop-modal__toolbar {
+          padding-top: 10px;
+          padding-bottom: 10px;
           background: rgba(255, 249, 232, .58);
           border-bottom: 0;
         }
@@ -1550,7 +1789,388 @@ export default function Landing() {
 
         .inventory-modal .shop-modal__title,
         .inventory-detail-modal .shop-modal__title {
-          font-family: inherit;
+          font-family: var(--modal-title-font);
+        }
+
+        .inventory-grade-filter {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px;
+          padding: 0 clamp(18px, 2.6vw, 34px) 10px;
+          background: rgba(255, 249, 232, .46);
+        }
+
+        .inventory-grade-filter__chip {
+          --grade-chip-bg: var(--ac-cream-light);
+          --grade-chip-edge: rgba(196, 184, 158, .86);
+          --grade-chip-shadow: rgba(189, 174, 160, .42);
+          appearance: none;
+          min-width: 48px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 12px;
+          color: #101010;
+          background: var(--grade-chip-bg);
+          border: 1.5px solid var(--grade-chip-edge);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 var(--grade-chip-shadow);
+          font: inherit;
+          font-size: 12px;
+          font-weight: 950;
+          line-height: 1;
+          letter-spacing: .03em;
+          transition: transform .14s ease, box-shadow .14s ease, filter .14s ease;
+        }
+
+        .inventory-grade-filter__chip:hover,
+        .inventory-grade-filter__chip.is-active {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0 var(--grade-chip-shadow);
+          filter: saturate(1.06);
+        }
+
+        .inventory-grade-filter__chip.is-active {
+          border-width: 2px;
+          outline: 2px solid rgba(16, 16, 16, .08);
+          outline-offset: 1px;
+        }
+
+        .inventory-grade-filter__chip--prop {
+          --grade-chip-bg: #ececec;
+          --grade-chip-edge: #c9c9c9;
+          --grade-chip-shadow: rgba(74, 70, 63, .14);
+        }
+
+        .inventory-grade-filter__chip--misc {
+          --grade-chip-bg: #ececec;
+          --grade-chip-edge: #c9c9c9;
+          --grade-chip-shadow: rgba(74, 70, 63, .14);
+        }
+
+        .inventory-grade-filter__chip--SS {
+          --grade-chip-bg: #ff9c7a;
+          --grade-chip-edge: #ffa742;
+          --grade-chip-shadow: rgba(171, 118, 25, .22);
+        }
+
+        .inventory-grade-filter__chip--S {
+          --grade-chip-bg: #fff7d9;
+          --grade-chip-edge: #f4d36c;
+          --grade-chip-shadow: rgba(176, 122, 16, .16);
+        }
+
+        .inventory-grade-filter__chip--A {
+          --grade-chip-bg: #f7e2ff;
+          --grade-chip-edge: #c17df2;
+          --grade-chip-shadow: rgba(107, 78, 179, .16);
+        }
+
+        .inventory-grade-filter__chip--B {
+          --grade-chip-bg: #cfefff;
+          --grade-chip-edge: #4aa7e4;
+          --grade-chip-shadow: rgba(43, 85, 143, .16);
+        }
+
+        .inventory-grade-filter__chip--C {
+          --grade-chip-bg: #defec0;
+          --grade-chip-edge: #9bdc5c;
+          --grade-chip-shadow: rgba(72, 122, 38, .16);
+        }
+
+        .inventory-grade-filter__chip--D {
+          --grade-chip-bg: #f3eee8;
+          --grade-chip-edge: #c1ab8b;
+          --grade-chip-shadow: rgba(111, 88, 67, .14);
+        }
+
+        .inventory-grade-filter__chip--F {
+          --grade-chip-bg: #ececec;
+          --grade-chip-edge: #c9c9c9;
+          --grade-chip-shadow: rgba(74, 70, 63, .14);
+        }
+
+        .wallet-modal {
+          width: min(1080px, 94vw);
+          background: linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
+          border: 2px solid color-mix(in srgb, var(--ac-border) 82%, var(--ac-text));
+          border-radius: var(--radius-xs);
+          box-shadow:
+            0 0 0 2px rgba(255, 253, 244, .88),
+            5px 5px 0 rgba(189, 174, 160, .72),
+            0 20px 48px rgba(66, 48, 31, .18);
+          image-rendering: pixelated;
+        }
+
+        .wallet-modal .shop-modal__header {
+          align-items: center;
+          background: rgba(255, 249, 232, .88);
+          border-bottom: 2px solid rgba(196, 184, 158, .62);
+        }
+
+        .wallet-modal .shop-modal__title {
+          color: var(--ac-text);
+          text-shadow: 2px 2px 0 rgba(196, 184, 158, .46);
+        }
+
+        .wallet-modal .shop-modal__close {
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+        }
+
+        .wallet-modal .shop-modal__close:hover {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
+        }
+
+        .wallet-content {
+          min-height: 0;
+          overflow: hidden;
+        }
+
+        .wallet-panel {
+          min-height: 0;
+          overflow: auto;
+          padding: 18px clamp(18px, 2.6vw, 34px) 24px;
+        }
+
+        .wallet-summary-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 14px;
+        }
+
+        .wallet-card {
+          min-width: 0;
+          padding: 18px;
+          background: rgba(255, 253, 244, .86);
+          border: 2px solid rgba(196, 184, 158, .7);
+          border-radius: var(--radius-sm);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
+        }
+
+        .wallet-card__label {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: var(--ac-text-body);
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .wallet-card__value {
+          margin-top: 10px;
+          color: var(--ac-text);
+          font-size: 32px;
+          font-weight: 950;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .wallet-card__hint {
+          margin: 10px 0 0;
+          color: var(--ac-text-body);
+          font-size: 12px;
+          font-weight: 700;
+          line-height: 1.5;
+        }
+
+        .wallet-action-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 16px;
+        }
+
+        .wallet-action,
+        .wallet-submit {
+          appearance: none;
+          min-height: 40px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 0 14px;
+          color: var(--ac-text);
+          background: #9bdc5c;
+          border: 2px solid #101010;
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(80, 63, 40, .42);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .wallet-action:hover,
+        .wallet-submit:hover:not(:disabled) {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0 rgba(80, 63, 40, .48);
+        }
+
+        .wallet-action--secondary {
+          background: var(--ac-cream-light);
+          border-color: rgba(196, 184, 158, .86);
+        }
+
+        .wallet-submit {
+          width: 100%;
+          margin-top: 14px;
+        }
+
+        .wallet-submit:disabled {
+          opacity: .56;
+          cursor: not-allowed;
+          filter: grayscale(.3);
+        }
+
+        .wallet-section {
+          margin-top: 16px;
+          overflow: hidden;
+          background: rgba(255, 253, 244, .86);
+          border: 2px solid rgba(196, 184, 158, .7);
+          border-radius: var(--radius-sm);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
+        }
+
+        .wallet-section--compact {
+          margin-top: 14px;
+        }
+
+        .wallet-section__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 16px;
+          border-bottom: 2px solid rgba(196, 184, 158, .48);
+        }
+
+        .wallet-section__title {
+          margin: 0;
+          color: var(--ac-text);
+          font-size: 17px;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .wallet-table {
+          min-width: 720px;
+        }
+
+        .wallet-table__row {
+          display: grid;
+          grid-template-columns: 1.2fr 1fr 1fr .75fr;
+          gap: 12px;
+          align-items: center;
+          padding: 12px 16px;
+          color: var(--ac-text);
+          font-size: 13px;
+          font-weight: 800;
+          border-bottom: 1px solid rgba(196, 184, 158, .45);
+        }
+
+        .wallet-table__row:last-child {
+          border-bottom: 0;
+        }
+
+        .wallet-table__row--head {
+          color: var(--ac-text-body);
+          background: rgba(255, 249, 232, .65);
+          font-size: 12px;
+          font-weight: 950;
+        }
+
+        .wallet-table__mono {
+          font-variant-numeric: tabular-nums;
+          font-size: 12px;
+        }
+
+        .wallet-table__amount {
+          text-align: right;
+          font-variant-numeric: tabular-nums;
+          font-weight: 950;
+        }
+
+        .wallet-table__amount--plus { color: #18855c; }
+        .wallet-table__amount--minus { color: #d43b3b; }
+
+        .wallet-withdraw {
+          margin-top: 16px;
+          display: grid;
+          grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr);
+          gap: 14px;
+        }
+
+        .wallet-form {
+          display: grid;
+          gap: 10px;
+        }
+
+        .wallet-field {
+          display: grid;
+          gap: 6px;
+        }
+
+        .wallet-field span {
+          color: var(--ac-text-body);
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .wallet-input,
+        .wallet-select {
+          width: 100%;
+          height: 40px;
+          color: var(--ac-text);
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .35);
+          padding: 0 12px;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 850;
+          outline: none;
+        }
+
+        .wallet-input:focus,
+        .wallet-select:focus {
+          border-color: var(--ac-primary);
+          outline: 2px solid rgba(25, 200, 185, .22);
+          outline-offset: 2px;
+        }
+
+        .wallet-field__hint {
+          color: var(--ac-text-body);
+          font-size: 11px;
+          font-weight: 700;
+          line-height: 1.45;
+        }
+
+        .wallet-field__hint.is-error {
+          color: #c53434;
+          font-weight: 900;
+        }
+
+        .wallet-status {
+          margin-top: 12px;
+          padding: 10px 12px;
+          color: var(--ac-text);
+          background: rgba(155, 220, 92, .24);
+          border: 1.5px solid rgba(79, 136, 50, .34);
+          border-radius: var(--radius-xs);
+          font-size: 12px;
+          font-weight: 850;
+          line-height: 1.5;
+        }
+
+        .wallet-status.is-error {
+          background: rgba(226, 59, 59, .12);
+          border-color: rgba(226, 59, 59, .28);
         }
 
         .inventory-summary {
@@ -1588,10 +2208,11 @@ export default function Landing() {
         .inventory-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+          grid-auto-rows: minmax(357px, auto);
           align-items: start;
           gap: 16px;
           overflow: auto;
-          padding: 16px clamp(18px, 2.6vw, 34px) clamp(18px, 2.6vw, 34px);
+          padding: 10px clamp(18px, 2.6vw, 34px) clamp(18px, 2.6vw, 34px);
           background: transparent;
           perspective: 1500px;
         }
@@ -1618,10 +2239,10 @@ export default function Landing() {
           flex-direction: column;
           width: 100%;
           min-height: 400px;
-          padding: 17px 22px 18px;
+          padding: 18px 18px 18px;
           background: var(--tier-bg);
-          border: 2px solid var(--tier-edge);
-          border-radius: 0 0 24px 24px;
+          border: 0 solid var(--tier-edge);
+          border-radius: 24px;
           box-shadow: none;
           color: #1a1a1a;
           overflow: visible;
@@ -1681,6 +2302,10 @@ export default function Landing() {
             scale(1.008);
           box-shadow: 0 14px 24px rgba(20, 20, 20, .14);
           filter: saturate(1.02);
+          z-index: 10;
+        }
+        .inventory-card:has(.inv-more-menu) {
+          z-index: 200;
         }
         .inventory-card:hover::before { opacity: .42; }
         .inventory-card:hover::after { opacity: .9; }
@@ -1697,66 +2322,90 @@ export default function Landing() {
           initial-value: 0deg;
         }
 
+        .inventory-card--SS,
         .inventory-card--S {
-          --s-glow-angle: 0deg;
-          background:
-            linear-gradient(var(--tier-bg), var(--tier-bg)) padding-box,
-            conic-gradient(
-              from var(--s-glow-angle),
-              rgba(244, 204, 255, .86) 0deg,
-              rgba(255, 255, 255, .98) 38deg,
-              rgba(178, 125, 255, .92) 74deg,
-              rgba(130, 248, 255, .86) 118deg,
-              rgba(255, 197, 253, .96) 164deg,
-              rgba(255, 255, 255, .98) 212deg,
-              rgba(150, 96, 255, .9) 270deg,
-              rgba(244, 204, 255, .86) 360deg
-            ) border-box;
-          border-color: transparent;
-          box-shadow:
-            0 0 0 1px rgba(255, 246, 255, .72),
-            0 0 16px rgba(255, 137, 251, .42),
-            0 0 34px rgba(151, 93, 255, .22);
-          animation:
-            sCardBorderSpin 5.8s linear infinite,
-            sCardNeonPulse 2.9s ease-in-out infinite;
+          background: var(--tier-bg);
+          border-color: var(--tier-edge);
+          border-radius: 8px;
+          box-shadow: none;
+          animation: none;
+          min-height: 0;
         }
 
+        .inventory-card--SS::before,
         .inventory-card--S::before {
-          inset: -15px;
-          background:
-            radial-gradient(circle at var(--card-shine-x) var(--card-shine-y), rgba(255, 255, 255, .68), transparent 20%),
-            radial-gradient(circle at 50% 18%, rgba(255, 214, 255, .76), transparent 44%),
-            linear-gradient(135deg, rgba(255, 114, 246, .62), rgba(130, 97, 255, .46) 46%, rgba(132, 245, 255, .42));
-          filter: blur(18px);
-          opacity: .58;
-          transform: translateZ(-12px);
-          animation: sCardHaloPulse 2.9s ease-in-out infinite;
+          display: none;
         }
 
+        .inventory-card--SS::after,
         .inventory-card--S::after {
           inset: -3px;
           border-radius: inherit;
-          box-shadow:
-            inset 0 0 0 2px rgba(255, 255, 255, .62),
-            inset 0 0 12px rgba(255, 186, 255, .34);
+          box-shadow: none;
         }
 
+        .border-glow-card--holographic.inventory-card::before,
+        .border-glow-card--holographic.inventory-card::after {
+          display: none;
+        }
+
+        .inventory-card--SS .inv-art,
+        .inventory-card--S .inv-art {
+          border-width: 2px 2px 0;
+          border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--SS .inv-art__tag,
+        .inventory-card--S .inv-art__tag {
+          padding: 4px 10px;
+          border-width: 2px;
+          border-radius: 4px 0 0 0;
+        }
+
+        .inventory-card--SS .inv-stats,
+        .inventory-card--S .inv-stats {
+          border-width: 2px;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .inventory-card--SS .inv-btn,
+        .inventory-card--S .inv-btn {
+          border-radius: 4px;
+        }
+
+        .inventory-card--SS .inv-btn--ghost,
+        .inventory-card--S .inv-btn--ghost {
+          border-width: 2px;
+        }
+
+        .inventory-card--SS .inv-head,
+        .inventory-card--S .inv-head {
+          margin-bottom: -8px;
+        }
+
+        .inventory-card--SS:hover,
         .inventory-card--S:hover {
-          box-shadow:
-            0 0 0 1px rgba(255, 252, 255, .94),
-            0 0 20px rgba(255, 142, 250, .62),
-            0 0 42px rgba(164, 92, 255, .36),
-            0 20px 34px rgba(95, 49, 160, .2);
+          box-shadow: 0 14px 24px rgba(20, 20, 20, .14);
         }
 
+        .inventory-card--SS:hover::before,
         .inventory-card--S:hover::before {
-          opacity: .86;
+          opacity: 0;
+        }
+
+        .inventory-card--SS {
+          --tier-bg: #ff9c7a;
+          --tier-edge: #d39a2b;
+          --tier-accent: #ffa742;
+          --tier-accent-deep: #9c5d0f;
+          --tier-ray: rgba(255, 208, 110, .32);
+          --tier-star: #ffa742;
+          --tier-cta-text: #101010;
         }
 
         .inv-head {
           position: relative;
-          z-index: 3;
+          z-index: 12;
           display: flex;
           align-items: center;
           justify-content: flex-start;
@@ -1768,7 +2417,7 @@ export default function Landing() {
         .inv-no {
           font-family: inherit;
           font-weight: 950;
-          font-size: clamp(27px, 2.15vw, 32px);
+          font-size: 20px;
           color: #1a1a1a;
           letter-spacing: .015em;
           line-height: 1;
@@ -1776,42 +2425,42 @@ export default function Landing() {
 
         .inv-medal {
           position: absolute;
-          top: -5px;
-          right: -13px;
-          width: 78px;
-          height: 96px;
-          z-index: 6;
+          top: 0;
+          right: 0;
+          min-width: 34px;
+          height: 26px;
+          z-index: 20;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 10px;
+          color: #101010;
+          background: var(--tier-accent);
+          border: 2px solid #101010;
+          border-radius: 999px;
+          box-shadow: none;
+          font-family: inherit;
+          font-size: 13px;
+          font-weight: 950;
+          line-height: 1;
+          letter-spacing: .04em;
           pointer-events: none;
           transform: translateZ(24px);
           transition: transform .28s cubic-bezier(.22,1,.36,1);
         }
+        .inv-medal--SS {
+          min-width: 48px;
+          height: 28px;
+          padding: 0 9px;
+          font-size: 12px;
+          letter-spacing: .03em;
+        }
+        .inv-medal--SS {
+          background: #ffa742;
+          box-shadow: 0 0 0 2px rgba(255, 247, 220, .56), 0 10px 16px rgba(171, 118, 25, .14);
+        }
         .inventory-card:hover .inv-medal {
-          transform: translateZ(34px) rotateZ(2deg) scale(1.035);
-        }
-        .inv-medal__ribbon {
-          fill: #e13131;
-          stroke: #9c1717;
-          stroke-width: 1.3;
-          stroke-linejoin: round;
-        }
-        .inv-medal__gear {
-          fill: var(--tier-accent);
-          stroke: #1a1a1a;
-          stroke-width: 2.2;
-          stroke-linejoin: round;
-          filter: drop-shadow(0 2px 0 rgba(0,0,0,.10));
-        }
-        .inv-medal__disc {
-          fill: #ffffff;
-          stroke: #1a1a1a;
-          stroke-width: 2.2;
-        }
-        .inv-medal__letter {
-          font-family: inherit;
-          font-weight: 900;
-          font-size: 22px;
-          fill: #1a1a1a;
-          letter-spacing: 0;
+          transform: translateZ(34px) translateY(-1px);
         }
 
         .inv-art {
@@ -1895,7 +2544,7 @@ export default function Landing() {
           color: #101010;
           font-family: inherit;
           font-weight: 900;
-          font-size: 14px;
+          font-size: 12px;
           letter-spacing: .03em;
           text-align: center;
           box-shadow: none;
@@ -1905,9 +2554,9 @@ export default function Landing() {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 4px 26px;
-          min-height: 76px;
-          margin: 0 0 17px;
-          padding: 14px 25px 13px;
+          min-height: auto;
+          margin: 0;
+          padding: 10px 16px;
           background: #ffffff;
           border: 3px solid #101010;
           border-radius: 0 0 22px 22px;
@@ -1921,12 +2570,14 @@ export default function Landing() {
           align-items: flex-start;
           gap: 5px;
           min-width: 0;
+          width: 80px;
+          height: 38px;
           line-height: 1;
         }
         .inv-stat__label {
           font-family: inherit;
           font-weight: 700;
-          font-size: 14px;
+          font-size: 12px;
           color: #8a8a8a;
           letter-spacing: .02em;
           line-height: 1.2;
@@ -1934,7 +2585,7 @@ export default function Landing() {
         .inv-stat__value {
           font-family: inherit;
           font-weight: 950;
-          font-size: clamp(24px, 1.9vw, 29px);
+          font-size: 16px;
           color: #1a1a1a;
           line-height: 1;
           font-variant-numeric: tabular-nums;
@@ -1942,18 +2593,73 @@ export default function Landing() {
         .inv-stat__value--pos { color: #e23b3b; }  /* Chinese convention: positive = red */
         .inv-stat__value--neg { color: #1f8a5a; }
 
+        .inv-stats--inline {
+          grid-template-columns: 1fr;
+          align-items: center;
+          min-height: 62px;
+        }
+
+        .inv-stat--inline {
+          width: auto;
+          height: 38px;
+          flex-direction: row;
+          align-items: baseline;
+          gap: 0;
+        }
+
         .inv-actions {
           display: grid;
           grid-template-columns: 50px 50px 1fr;
           gap: 11px;
           padding: 0;
-          margin-top: auto;
+          margin-top: 10px;
           transform: translateZ(0);
           transition: transform .28s cubic-bezier(.22,1,.36,1);
         }
+        .inv-more-wrap {
+          position: relative;
+          min-width: 0;
+          z-index: 220;
+        }
+        .inv-more-wrap > .inv-btn {
+          width: 100%;
+        }
+        .inv-more-menu {
+          position: absolute;
+          left: 0;
+          top: calc(100% + 6px);
+          z-index: 240;
+          min-width: 96px;
+          padding: 5px;
+          background: #fffdf4;
+          border: 2px solid #101010;
+          border-radius: 4px;
+          box-shadow: 3px 3px 0 rgba(16, 16, 16, .18);
+        }
+        .inv-more-menu__item {
+          appearance: none;
+          width: 100%;
+          min-height: 34px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 12px;
+          color: #c92e2e;
+          background: #fff7f2;
+          border: 0;
+          border-radius: 3px;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 950;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .inv-more-menu__item:hover {
+          background: #ffe6df;
+        }
         .inv-btn {
           appearance: none;
-          height: 49px;
+          height: 40px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -1979,9 +2685,9 @@ export default function Landing() {
         .inv-btn--cta {
           background: var(--tier-accent);
           color: var(--tier-cta-text);
-          border: 3px solid #101010;
+          border: 2px solid #101010;
           font-family: inherit;
-          font-size: clamp(16px, 1.15vw, 19px);
+          font-size: 14px;
           font-weight: 900;
           letter-spacing: .06em;
           box-shadow: none;
@@ -1992,15 +2698,6 @@ export default function Landing() {
         }
 
         .inventory-card--S {
-          --tier-bg: #f7e2ff;
-          --tier-edge: #f4d36c;
-          --tier-accent: #c17df2;
-          --tier-accent-deep: #6b4eb3;
-          --tier-ray: rgba(149, 116, 220, .28);
-          --tier-star: #8d6dd6;
-          --tier-cta-text: #101010;
-        }
-        .inventory-card--A {
           --tier-bg: #fff7d9;
           --tier-edge: #f4d36c;
           --tier-accent: #ffd66f;
@@ -2008,6 +2705,45 @@ export default function Landing() {
           --tier-ray: rgba(244, 196, 75, .28);
           --tier-star: #fbcf3a;
           --tier-cta-text: #1a1a1a;
+        }
+        .inventory-card--A {
+          --tier-bg: #f7e2ff;
+          --tier-edge: #f4d36c;
+          --tier-accent: #c17df2;
+          --tier-accent-deep: #6b4eb3;
+          --tier-ray: rgba(149, 116, 220, .28);
+          --tier-star: #8d6dd6;
+          --tier-cta-text: #101010;
+          border-radius: 8px;
+          min-height: 0;
+        }
+
+        .inventory-card--A .inv-art {
+          border-width: 2px 2px 0;
+          border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--A .inv-art__tag {
+          padding: 4px 10px;
+          border-width: 2px;
+          border-radius: 4px 0 0 0;
+        }
+
+        .inventory-card--A .inv-stats {
+          border-width: 2px;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .inventory-card--A .inv-btn {
+          border-radius: 4px;
+        }
+
+        .inventory-card--A .inv-btn--ghost {
+          border-width: 2px;
+        }
+
+        .inventory-card--A .inv-head {
+          margin-bottom: -8px;
         }
         .inventory-card--B {
           --tier-bg: #cfefff;
@@ -2017,6 +2753,36 @@ export default function Landing() {
           --tier-ray: rgba(91, 142, 216, .25);
           --tier-star: #4d8acc;
           --tier-cta-text: #101010;
+          border-radius: 8px;
+          min-height: 0;
+        }
+
+        .inventory-card--B .inv-art {
+          border-width: 2px 2px 0;
+          border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--B .inv-art__tag {
+          padding: 4px 10px;
+          border-width: 2px;
+          border-radius: 4px 0 0 0;
+        }
+
+        .inventory-card--B .inv-stats {
+          border-width: 2px;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .inventory-card--B .inv-btn {
+          border-radius: 4px;
+        }
+
+        .inventory-card--B .inv-btn--ghost {
+          border-width: 2px;
+        }
+
+        .inventory-card--B .inv-head {
+          margin-bottom: -8px;
         }
         .inventory-card--C {
           --tier-bg: #defec0;
@@ -2026,15 +2792,75 @@ export default function Landing() {
           --tier-ray: rgba(130, 194, 90, .25);
           --tier-star: #6db142;
           --tier-cta-text: #101010;
+          border-radius: 8px;
+          min-height: 0;
+        }
+
+        .inventory-card--C .inv-art {
+          border-width: 2px 2px 0;
+          border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--C .inv-art__tag {
+          padding: 4px 10px;
+          border-width: 2px;
+          border-radius: 4px 0 0 0;
+        }
+
+        .inventory-card--C .inv-stats {
+          border-width: 2px;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .inventory-card--C .inv-btn {
+          border-radius: 4px;
+        }
+
+        .inventory-card--C .inv-btn--ghost {
+          border-width: 2px;
+        }
+
+        .inventory-card--C .inv-head {
+          margin-bottom: -8px;
         }
         .inventory-card--D {
-          --tier-bg: #ececec;
-          --tier-edge: #f4d36c;
-          --tier-accent: #c9c9c9;
-          --tier-accent-deep: #5c5852;
-          --tier-ray: rgba(168, 163, 156, .22);
-          --tier-star: #9a948c;
+          --tier-bg: #f3eee8;
+          --tier-edge: #c1ab8b;
+          --tier-accent: #d1b89c;
+          --tier-accent-deep: #6f5843;
+          --tier-ray: rgba(173, 156, 140, .2);
+          --tier-star: #a18d77;
           --tier-cta-text: #101010;
+          border-radius: 8px;
+          min-height: 0;
+        }
+
+        .inventory-card--D .inv-art {
+          border-width: 2px 2px 0;
+          border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--D .inv-art__tag {
+          padding: 4px 10px;
+          border-width: 2px;
+          border-radius: 4px 0 0 0;
+        }
+
+        .inventory-card--D .inv-stats {
+          border-width: 2px;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .inventory-card--D .inv-btn {
+          border-radius: 4px;
+        }
+
+        .inventory-card--D .inv-btn--ghost {
+          border-width: 2px;
+        }
+
+        .inventory-card--D .inv-head {
+          margin-bottom: -8px;
         }
         .inventory-card--F {
           --tier-bg: #ececec;
@@ -2044,8 +2870,194 @@ export default function Landing() {
           --tier-ray: rgba(138, 133, 125, .22);
           --tier-star: #7d7770;
           --tier-cta-text: #101010;
+          border-radius: 8px;
+          min-height: 0;
+        }
+
+        .inventory-card--F .inv-art {
+          border-width: 2px 2px 0;
+          border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--F .inv-art__tag {
+          padding: 4px 10px;
+          border-width: 2px;
+          border-radius: 4px 0 0 0;
+        }
+
+        .inventory-card--F .inv-stats {
+          border-width: 2px;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .inventory-card--F .inv-btn {
+          border-radius: 4px;
+        }
+
+        .inventory-card--F .inv-btn--ghost {
+          border-width: 2px;
+        }
+
+        .inventory-card--F .inv-head {
+          margin-bottom: -8px;
         }
         .inventory-card--F .inv-art__img { filter: grayscale(.5); }
+
+        .inventory-card--prop,
+        .inventory-card--misc {
+          border-radius: 8px;
+          min-height: 0;
+        }
+
+        .inventory-card--prop {
+          --tier-bg: #ececec;
+          --tier-edge: #f4d36c;
+          --tier-accent: #c9c9c9;
+          --tier-accent-deep: #4a463f;
+          --tier-ray: rgba(138, 133, 125, .22);
+          --tier-star: #7d7770;
+          --tier-cta-text: #101010;
+        }
+
+        .inventory-card--misc {
+          --tier-bg: #ececec;
+          --tier-edge: #f4d36c;
+          --tier-accent: #c9c9c9;
+          --tier-accent-deep: #4a463f;
+          --tier-ray: rgba(138, 133, 125, .22);
+          --tier-star: #7d7770;
+          --tier-cta-text: #101010;
+        }
+
+        .inventory-card--prop .inv-art,
+        .inventory-card--misc .inv-art {
+          border-width: 2px 2px 0;
+          border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--prop .inv-art__tag,
+        .inventory-card--misc .inv-art__tag {
+          padding: 4px 10px;
+          border-width: 2px;
+          border-radius: 4px 0 0 0;
+        }
+
+        .inventory-card--prop .inv-stats,
+        .inventory-card--misc .inv-stats {
+          border-width: 2px;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .inventory-card--prop .inv-btn,
+        .inventory-card--misc .inv-btn {
+          border-radius: 4px;
+        }
+
+        .inventory-card--prop .inv-actions,
+        .inventory-card--misc .inv-actions {
+          display: flex;
+          width: 100%;
+        }
+
+        .inventory-card--prop .inv-actions .inv-more-wrap,
+        .inventory-card--misc .inv-actions .inv-more-wrap,
+        .inventory-card--prop .inv-actions .inv-btn,
+        .inventory-card--misc .inv-actions .inv-btn {
+          flex: 1 1 0;
+          min-width: 0;
+        }
+
+        .inventory-card--prop .inv-btn--ghost,
+        .inventory-card--misc .inv-btn--ghost {
+          border-width: 2px;
+        }
+
+        .inventory-card--prop .inv-head,
+        .inventory-card--misc .inv-head {
+          margin-bottom: -8px;
+        }
+
+        .inventory-card--prop .inv-item-art,
+        .inventory-card--misc .inv-item-art {
+          width: auto;
+          height: 175px;
+          transform: translateZ(0);
+        }
+
+        .inventory-card--prop .inv-item-art::before,
+        .inventory-card--misc .inv-item-art::before {
+          display: none;
+        }
+
+        .inv-item-art {
+          position: relative;
+          z-index: 1;
+          width: 112px;
+          height: 112px;
+          display: grid;
+          place-items: center;
+          transform: translateZ(18px);
+        }
+
+        .inv-item-art::before {
+          content: "";
+          position: absolute;
+          inset: 14px;
+          background: rgba(255, 255, 255, .58);
+          border: 2px solid rgba(16, 16, 16, .18);
+          border-radius: 50%;
+          box-shadow: inset 0 -8px 0 rgba(16, 16, 16, .06);
+        }
+
+        .inv-item-art__glyph {
+          position: relative;
+          width: 58px;
+          height: 58px;
+          background: var(--tier-accent);
+          border: 3px solid #101010;
+          box-shadow: 4px 4px 0 rgba(16, 16, 16, .14);
+        }
+        .inv-item-art__image {
+          position: relative;
+          z-index: 1;
+          width: min(78%, 142px);
+          height: 82%;
+          object-fit: contain;
+          image-rendering: auto;
+        }
+
+        .inv-item-art--prop .inv-item-art__glyph {
+          border-radius: 50% 50% 46% 46%;
+          transform: rotate(-10deg);
+        }
+
+        .inv-item-art--prop .inv-item-art__glyph::before {
+          content: "";
+          position: absolute;
+          left: 16px;
+          right: 16px;
+          top: -18px;
+          height: 20px;
+          background: #f6d36a;
+          border: 3px solid #101010;
+          border-bottom: 0;
+          border-radius: 14px 14px 0 0;
+        }
+
+        .inv-item-art--misc .inv-item-art__glyph {
+          border-radius: 10px 10px 18px 18px;
+          transform: rotate(8deg);
+        }
+
+        .inv-item-art--misc .inv-item-art__glyph::before {
+          content: "";
+          position: absolute;
+          inset: 10px 12px auto;
+          height: 13px;
+          background: rgba(255, 255, 255, .72);
+          border: 2px solid #101010;
+          border-radius: 999px;
+        }
 
         @media (prefers-reduced-motion: reduce) {
           .inventory-grid { perspective: none; }
@@ -2060,7 +3072,9 @@ export default function Landing() {
           .inventory-card:hover .inv-art__rays,
           .inventory-card:hover .inv-art__star,
           .inventory-card--S,
+          .inventory-card--SS,
           .inventory-card--S::before,
+          .inventory-card--SS::before,
           .inventory-card--S .inv-btn--cta {
             animation: none;
           }
@@ -2499,8 +3513,14 @@ export default function Landing() {
 
         .inventory-detail-modal .shop-modal__header {
           align-items: center;
+          padding: 16px 32px;
           background: rgba(255, 249, 232, .88);
           border-bottom: 2px solid rgba(196, 184, 158, .62);
+        }
+
+        .inventory-detail-modal .shop-modal__close {
+          width: 38px;
+          height: 38px;
         }
 
         .inventory-detail-heading {
@@ -2512,8 +3532,8 @@ export default function Landing() {
 
         .inventory-detail-back {
           appearance: none;
-          width: 42px;
-          height: 42px;
+          width: 38px;
+          height: 38px;
           display: inline-grid;
           place-items: center;
           flex: 0 0 auto;
@@ -2537,13 +3557,14 @@ export default function Landing() {
 
         .inventory-detail-title-wrap .shop-modal__title {
           margin: 0;
+          font-size: 26px;
         }
 
         .inventory-detail-subtitle {
           margin-top: 6px;
           color: var(--ac-text-body);
           font-size: 12px;
-          font-weight: 900;
+          font-weight: 500;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -2551,7 +3572,7 @@ export default function Landing() {
 
         .inventory-detail-content {
           overflow: auto;
-          padding: 18px clamp(18px, 2.6vw, 34px) clamp(18px, 2.6vw, 34px);
+          padding: 18px 32px 32px;
           background:
             linear-gradient(180deg, rgba(255,249,232,.52), rgba(255,249,232,0) 180px),
             transparent;
@@ -2924,6 +3945,10 @@ export default function Landing() {
           .inventory-grid {
             grid-template-columns: 1fr;
           }
+
+          .wallet-withdraw {
+            grid-template-columns: 1fr;
+          }
         }
 
         @media (max-width: 680px) {
@@ -2936,6 +3961,10 @@ export default function Landing() {
           }
 
           .inventory-summary {
+            grid-template-columns: 1fr;
+          }
+
+          .wallet-summary-grid {
             grid-template-columns: 1fr;
           }
 
@@ -2954,7 +3983,7 @@ export default function Landing() {
 
       <img
         className="game-bg"
-        src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663325188422/nBmPCFQrIvRMyCWh.png"
+        src="/assets/bg.png"
         alt=""
         aria-hidden="true"
       />
@@ -2968,19 +3997,211 @@ export default function Landing() {
           <img className="menu-tile__icon" src="/assets/achievement-menu-icon-v2.svg" alt="" />
           <span className="menu-tile__name">成就</span>
         </a>
-        <a className="menu-tile" href="/landing" aria-label="Quests">
+        <button className="menu-tile" type="button" aria-label="Wallet" onClick={() => setWalletOpen(true)}>
           <img className="menu-tile__icon" src="/assets/wallet-menu-icon-v2.svg" alt="" />
           <span className="menu-tile__name">钱包</span>
-        </a>
+        </button>
       </nav>
 
-      <button className="shop" type="button" aria-label="Shop" onClick={() => setShopOpen(true)}>
-        <span className="base" />
-        <span className="awning" />
-        <span className="label">SHOP</span>
-        <span className="stone" />
-        <span className="door" />
-      </button>
+      {walletOpen && (
+        <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setWalletOpen(false);
+        }}>
+          <section className="shop-modal wallet-modal" role="dialog" aria-modal="true" aria-labelledby="wallet-modal-title">
+            <header className="shop-modal__header">
+              <div>
+                <h2 className="shop-modal__title" id="wallet-modal-title">钱包</h2>
+              </div>
+              <button
+                className="shop-modal__close"
+                type="button"
+                aria-label={tr("Close wallet", "关闭钱包")}
+                onClick={() => setWalletOpen(false)}
+              >
+                <X size={22} strokeWidth={3} />
+              </button>
+            </header>
+
+            <div className="wallet-content">
+              <div className="wallet-panel">
+                <div className="wallet-summary-grid">
+                  <section className="wallet-card">
+                    <div className="wallet-card__label"><Wallet size={16} strokeWidth={3} />钱包余额</div>
+                    <div className="wallet-card__value">${WALLET_BALANCE_USD.toFixed(2)}</div>
+                    <p className="wallet-card__hint">当前可提现余额。</p>
+                    <div className="wallet-action-row">
+                      <button
+                        className="wallet-action"
+                        type="button"
+                        onClick={() => {
+                          setWalletWithdrawOpen((open) => !open);
+                          resetWithdrawFeedback();
+                        }}
+                      >
+                        <CreditCard size={16} strokeWidth={3} />
+                        提现
+                      </button>
+                    </div>
+                  </section>
+                  <section className="wallet-card">
+                    <div className="wallet-card__label"><Trophy size={16} strokeWidth={3} />累计奖金</div>
+                    <div className="wallet-card__value">${ARENA_PRIZE_TOTAL.toFixed(2)}</div>
+                    <p className="wallet-card__hint">因子竞技场奖金入账统计。</p>
+                  </section>
+                </div>
+
+                {walletWithdrawOpen && (
+                  <section className="wallet-withdraw">
+                    <div className="wallet-card">
+                      <div className="wallet-card__label"><CreditCard size={16} strokeWidth={3} />钱包提现</div>
+                      <div className="wallet-form">
+                        <label className="wallet-field">
+                          <span>提现金额</span>
+                          <input
+                            className="wallet-input"
+                            inputMode="decimal"
+                            value={withdrawAmount || ""}
+                            onChange={(event) => {
+                              const clean = event.target.value.replace(/[^0-9.]/g, "");
+                              setWithdrawAmount(clean === "" ? 0 : Number(clean));
+                              resetWithdrawFeedback();
+                            }}
+                            placeholder="输入金额"
+                          />
+                          <span className={`wallet-field__hint${isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_USD ? "" : " is-error"}`}>
+                            可提现 {formatUsd(WALLET_BALANCE_USD)}，金额范围 {MIN_AMOUNT}-{MAX_AMOUNT} USD。
+                          </span>
+                        </label>
+                        <label className="wallet-field">
+                          <span>选择网络</span>
+                          <select
+                            className="wallet-select"
+                            value={withdrawNetwork}
+                            onChange={(event) => {
+                              setWithdrawNetwork(event.target.value);
+                              setWithdrawAddressError("");
+                              resetWithdrawFeedback();
+                            }}
+                          >
+                            {WITHDRAWAL_NETWORKS.map((network) => (
+                              <option key={network} value={network}>{network}</option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="wallet-field">
+                          <span>钱包地址</span>
+                          <input
+                            className="wallet-input"
+                            value={withdrawAddress}
+                            onChange={(event) => {
+                              setWithdrawAddress(event.target.value);
+                              setWithdrawAddressError("");
+                              resetWithdrawFeedback();
+                            }}
+                            placeholder="输入钱包地址"
+                          />
+                          <span className={`wallet-field__hint${withdrawAddressError ? " is-error" : ""}`}>
+                            {withdrawAddressError || getWithdrawalAddressHint(withdrawNetwork)}
+                          </span>
+                        </label>
+                        <div className="wallet-action-row">
+                          <button className="wallet-action wallet-action--secondary" type="button" onClick={handleBindWithdrawWallet}>
+                            绑定钱包
+                          </button>
+                          {withdrawAccountBound && (
+                            <button className="wallet-action wallet-action--secondary" type="button" onClick={handleUnbindWithdrawWallet}>
+                              解绑钱包
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="wallet-card">
+                      <div className="wallet-card__label"><Wallet size={16} strokeWidth={3} />提现确认</div>
+                      <p className="wallet-card__hint">
+                        {withdrawAccountBound ? `已绑定：${withdrawNetwork}` : "绑定提现钱包后才能提交提现申请。"}
+                      </p>
+                      {withdrawAccountBound && (
+                        <p className="wallet-card__hint">{withdrawAddress}</p>
+                      )}
+                      <div className="wallet-section wallet-section--compact">
+                        <div className="wallet-table__row">
+                          <span>钱包余额</span>
+                          <span />
+                          <span />
+                          <span className="wallet-table__amount">{formatUsd(WALLET_BALANCE_USD)}</span>
+                        </div>
+                        <div className="wallet-table__row">
+                          <span>提现金额</span>
+                          <span />
+                          <span />
+                          <span className="wallet-table__amount">{formatUsd(withdrawAmount)}</span>
+                        </div>
+                        <div className="wallet-table__row">
+                          <span>提现后余额</span>
+                          <span />
+                          <span />
+                          <span className="wallet-table__amount">{formatUsd(walletBalanceAfterWithdraw(withdrawAmount))}</span>
+                        </div>
+                      </div>
+                      {withdrawStatus === "error" && (
+                        <div className="wallet-status is-error">提现预览失败。请尝试 50、100 或 200 USD 查看成功状态。</div>
+                      )}
+                      {withdrawStatus === "success" && (
+                        <div className="wallet-status">
+                          {formatUsd(withdrawAmount)} 提现申请已提交，提现后钱包余额约为 {formatUsd(walletBalanceAfterWithdraw(withdrawAmount))}。
+                        </div>
+                      )}
+                      <button
+                        className="wallet-submit"
+                        type="button"
+                        disabled={
+                          !withdrawAccountBound ||
+                          !isValidWithdrawalAddress(withdrawNetwork, withdrawAddress) ||
+                          !isValidAmount(withdrawAmount) ||
+                          withdrawAmount > WALLET_BALANCE_USD ||
+                          withdrawSubmitting ||
+                          withdrawStatus === "success"
+                        }
+                        onClick={handleSubmitWithdraw}
+                      >
+                        {withdrawSubmitting ? "提交中..." : withdrawStatus === "success" ? "已提交" : `提现 ${formatUsd(withdrawAmount)}`}
+                      </button>
+                    </div>
+                  </section>
+                )}
+
+                <section className="wallet-section">
+                  <div className="wallet-section__header">
+                    <h3 className="wallet-section__title">变更记录</h3>
+                  </div>
+                  <div className="wallet-table">
+                    <div className="wallet-table__row wallet-table__row--head">
+                      <span>变更记录</span>
+                      <span>单号</span>
+                      <span>操作时间</span>
+                      <span className="wallet-table__amount">金额</span>
+                    </div>
+                    {walletActivities.map((item) => {
+                      const isIncrease = item.direction === "increase";
+                      return (
+                        <div className="wallet-table__row" key={item.id}>
+                          <span>{tr(item.reasonEn, item.reasonZh)}</span>
+                          <span className="wallet-table__mono">{item.orderNo}</span>
+                          <span>{formatWalletDateTime(item.occurredAt)}</span>
+                          <span className={`wallet-table__amount ${isIncrease ? "wallet-table__amount--plus" : "wallet-table__amount--minus"}`}>
+                            {isIncrease ? "+" : "-"}${item.amount.toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              </div>
+            </div>
+          </section>
+        </div>
+      )}
 
       {inventoryOpen && (
         <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
@@ -3004,7 +4225,7 @@ export default function Landing() {
                   <div className="inventory-detail-title-wrap">
                     <h2 className="shop-modal__title" id="inventory-detail-title">{selectedInventoryFactor.name}</h2>
                     <div className="inventory-detail-subtitle">
-                      {selectedInventoryFactor.id} · {tr("Created", "创建于")} {selectedInventoryFactor.createdAt}
+                      NO.{inventoryFactorNoById.get(selectedInventoryFactor.id) ?? 1} ｜ {tr("Created", "创建于")}{selectedInventoryFactor.createdAt}
                     </div>
                   </div>
                 </div>
@@ -3118,54 +4339,40 @@ export default function Landing() {
               </div>
             </div>
 
+            <div className="inventory-grade-filter" aria-label={tr("Grade filter", "等级筛选")}>
+              {inventoryGradeFilterOptions.map((grade) => (
+                <button
+                  className={`inventory-grade-filter__chip inventory-grade-filter__chip--${grade}${inventoryGradeFilter === grade ? " is-active" : ""}`}
+                  type="button"
+                  key={grade}
+                  aria-pressed={inventoryGradeFilter === grade}
+                  onClick={() => setInventoryGradeFilter(grade)}
+                >
+                  {grade === "all"
+                    ? tr("All", "全部")
+                    : grade === "prop"
+                      ? tr("Props", "道具")
+                      : grade === "misc"
+                        ? tr("Misc", "杂物")
+                        : grade}
+                </button>
+              ))}
+            </div>
+
             <div className="inventory-grid">
-              {filteredFactors.map((factor, index) => {
+              {filteredFactors.map((factor) => {
                 const isStarred = starredFactors.has(factor.id);
                 const returns = parseMetricValue(factor.returns);
-
-                return (
-                  <article
-                    className={`inventory-card inventory-card--${factor.grade}`}
-                    key={factor.id}
-                    onMouseMove={handleInventoryCardMove}
-                    onMouseLeave={handleInventoryCardLeave}
-                  >
+                const visualGrade = getInventoryVisualGrade(factor);
+                const cardClassName = `inventory-card inventory-card--${visualGrade}`;
+                const menuId = `factor-${factor.id}`;
+                const inventoryNo = inventoryFactorNoById.get(factor.id) ?? 1;
+                const cardBody = (
+                  <>
                     <header className="inv-head">
-                      <span className="inv-no">NO.{String(index + 1).padStart(2, "0")}</span>
-                      {/* Figma: gear-shaped medal floats on top-right with red ribbons */}
-                      <div className={`inv-medal inv-medal--${factor.grade}`} aria-hidden="true">
-                        <svg viewBox="0 0 100 124" width="100%" height="100%" shapeRendering="geometricPrecision" aria-hidden="true">
-                          {/* Red ribbon tails (two angular pennants below medal) */}
-                          <g>
-                            <polygon className="inv-medal__ribbon" points="30,72 18,118 32,108 38,118 40,82" />
-                            <polygon className="inv-medal__ribbon" points="70,72 82,118 68,108 62,118 60,82" />
-                          </g>
-                          {/* Soft shadow under medal */}
-                          <ellipse cx="50" cy="86" rx="34" ry="4" fill="rgba(0,0,0,.10)" />
-                          {/* 12-petal flower medal (uses CSS color) */}
-                          <path className="inv-medal__gear"
-                            d="M50 6
-                               C 56 6, 60 12, 60 18
-                               C 64 14, 72 14, 76 18
-                               C 80 22, 80 30, 76 34
-                               C 82 36, 86 42, 86 48
-                               C 86 54, 82 60, 76 62
-                               C 80 66, 80 74, 76 78
-                               C 72 82, 64 82, 60 78
-                               C 60 84, 56 90, 50 90
-                               C 44 90, 40 84, 40 78
-                               C 36 82, 28 82, 24 78
-                               C 20 74, 20 66, 24 62
-                               C 18 60, 14 54, 14 48
-                               C 14 42, 18 36, 24 34
-                               C 20 30, 20 22, 24 18
-                               C 28 14, 36 14, 40 18
-                               C 40 12, 44 6, 50 6 Z" />
-                          {/* Inner disc */}
-                          <circle cx="50" cy="48" r="22" className="inv-medal__disc" />
-                          {/* Letter */}
-                          <text x="50" y="58" textAnchor="middle" className="inv-medal__letter">{factor.grade}</text>
-                        </svg>
+                      <span className="inv-no">NO.{inventoryNo}</span>
+                      <div className={`inv-medal inv-medal--${visualGrade}`} aria-hidden="true">
+                        {visualGrade}
                       </div>
                     </header>
 
@@ -3193,13 +4400,33 @@ export default function Landing() {
                     </div>
 
                     <div className="inv-actions">
-                      <button
-                        className="inv-btn inv-btn--ghost"
-                        type="button"
-                        aria-label={tr("More actions", "更多操作")}
-                      >
-                        <MoreHorizontal size={20} strokeWidth={3} />
-                      </button>
+                      <div className="inv-more-wrap">
+                        <button
+                          className="inv-btn inv-btn--ghost"
+                          type="button"
+                          aria-label={tr("More actions", "更多操作")}
+                          aria-haspopup="menu"
+                          aria-expanded={openInventoryMenuId === menuId}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setOpenInventoryMenuId((current) => (current === menuId ? null : menuId));
+                          }}
+                        >
+                          <MoreHorizontal size={20} strokeWidth={3} />
+                        </button>
+                        {openInventoryMenuId === menuId && (
+                          <div className="inv-more-menu" role="menu">
+                            <button
+                              className="inv-more-menu__item"
+                              type="button"
+                              role="menuitem"
+                              onClick={() => setOpenInventoryMenuId(null)}
+                            >
+                              {tr("Delete", "删除")}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <button
                         className={`inv-btn inv-btn--ghost inv-btn--star${isStarred ? " is-on" : ""}`}
                         type="button"
@@ -3220,11 +4447,133 @@ export default function Landing() {
                         {tr("View", "查看")}
                       </button>
                     </div>
+                  </>
+                );
+
+                return visualGrade === "S" || visualGrade === "SS" ? (
+                  <BorderGlow
+                    as="article"
+                    className={`${cardClassName} inventory-card--laser`}
+                    key={factor.id}
+                    edgeSensitivity={visualGrade === "SS" ? 14 : 18}
+                    glowColor={visualGrade === "SS" ? "44 100 72" : "269 91 76"}
+                    backgroundColor="var(--tier-bg)"
+                    borderRadius={8}
+                    glowRadius={visualGrade === "SS" ? 32 : 26}
+                    glowIntensity={visualGrade === "SS" ? 0.88 : 0.72}
+                    coneSpread={visualGrade === "SS" ? 11 : 14}
+                    animated
+                    animationDurationMs={3500}
+                    colors={visualGrade === "SS" ? ["#ffd66f", "#ffffff", "#ffd66f"] : ["#c084fc", "#ffffff", "#c084fc"]}
+                    fillOpacity={visualGrade === "SS" ? 0.4 : 0.34}
+                    holographic
+                    onMouseMove={handleInventoryCardMove}
+                    onMouseLeave={handleInventoryCardLeave}
+                  >
+                    {cardBody}
+                  </BorderGlow>
+                ) : (
+                  <article
+                    className={cardClassName}
+                    key={factor.id}
+                    onMouseMove={handleInventoryCardMove}
+                    onMouseLeave={handleInventoryCardLeave}
+                  >
+                    {cardBody}
                   </article>
                 );
               })}
 
-              {filteredFactors.length === 0 && (
+              {filteredSpecialCards.map((item) => {
+                const cardClassName = `inventory-card inventory-card--${item.type}`;
+                const menuId = `item-${item.id}`;
+                const inventoryNo = inventorySpecialNoById.get(item.id) ?? factorRows.length + 1;
+                return (
+                  <article
+                    className={cardClassName}
+                    key={item.id}
+                    onMouseMove={handleInventoryCardMove}
+                    onMouseLeave={handleInventoryCardLeave}
+                  >
+                    <header className="inv-head">
+                      <span className="inv-no">NO.{inventoryNo}</span>
+                      <div className="inv-medal" aria-hidden="true">
+                        {item.type === "prop" ? tr("Prop", "道具") : tr("Misc", "杂物")}
+                      </div>
+                    </header>
+
+                    <div className={`inv-art inv-item-art inv-item-art--${item.type}`} aria-hidden="true">
+                      <div className="inv-art__rays" />
+                      <span className="inv-art__star inv-art__star--1" />
+                      <span className="inv-art__star inv-art__star--2" />
+                      <span className="inv-art__star inv-art__star--3" />
+                      <span className="inv-art__star inv-art__star--4" />
+                      <span className="inv-art__star inv-art__star--5" />
+                      <span className="inv-art__star inv-art__star--6" />
+                      {item.imageSrc ? (
+                        <img className="inv-item-art__image" src={item.imageSrc} alt="" />
+                      ) : (
+                        <div className="inv-item-art__glyph" />
+                      )}
+                      <span className="inv-art__tag">{tr(item.tagEn, item.tagZh)}</span>
+                    </div>
+
+                    <div className={`inv-stats${item.statsLayout === "inline" ? " inv-stats--inline" : ""}`}>
+                      {item.statsLayout === "inline" ? (
+                        <div className="inv-stat inv-stat--inline">
+                          <span className="inv-stat__label">{item.metricOneLabel}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="inv-stat">
+                            <span className="inv-stat__label">{item.metricOneLabel}</span>
+                            <span className="inv-stat__value">{item.metricOneValue}</span>
+                          </div>
+                          <div className="inv-stat">
+                            <span className="inv-stat__label">{item.metricTwoLabel}</span>
+                            <span className="inv-stat__value">{item.metricTwoValue}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="inv-actions">
+                      <div className="inv-more-wrap">
+                        <button
+                          className="inv-btn inv-btn--ghost"
+                          type="button"
+                          aria-label={tr("More actions", "更多操作")}
+                          aria-haspopup="menu"
+                          aria-expanded={openInventoryMenuId === menuId}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setOpenInventoryMenuId((current) => (current === menuId ? null : menuId));
+                          }}
+                        >
+                          <MoreHorizontal size={20} strokeWidth={3} />
+                        </button>
+                        {openInventoryMenuId === menuId && (
+                          <div className="inv-more-menu" role="menu">
+                            <button
+                              className="inv-more-menu__item"
+                              type="button"
+                              role="menuitem"
+                              onClick={() => setOpenInventoryMenuId(null)}
+                            >
+                              {tr("Delete", "删除")}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <button className="inv-btn inv-btn--ghost inv-btn--star" type="button" aria-label={tr("Favorite item", "收藏道具")}>
+                        <Star size={18} strokeWidth={2.5} />
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+
+              {filteredFactors.length === 0 && filteredSpecialCards.length === 0 && (
                 <div className="shop-empty inventory-empty">{tr("No factors match your filters.", "没有符合当前筛选条件的因子。")}</div>
               )}
             </div>
@@ -3268,36 +4617,53 @@ export default function Landing() {
                   />
                 </div>
                 <div className="shop-select-aisland shop-select-aisland--sort" aria-label={tr("Sort", "排序")}>
-                  <Select
-                    value={sortKey ?? "default"}
-                    onChange={handleSortChange}
-                    options={sortSelectOptions}
-                    placeholder={tr("Choose sort", "选择排序")}
-                  />
+                  <div
+                    className={`sort-direction-select${strategySortOpen ? " is-open" : ""}`}
+                    onBlur={(event) => {
+                      if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setStrategySortOpen(false);
+                    }}
+                  >
+                    <button
+                      className="sort-direction-select__trigger"
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={strategySortOpen}
+                      onClick={() => setStrategySortOpen((open) => !open)}
+                    >
+                      <span>{tr("Sort", "排序")}</span>
+                      <span className="sort-direction-select__chevron" aria-hidden="true">⌃</span>
+                    </button>
+                    {strategySortOpen && (
+                      <div className="sort-direction-select__menu" role="listbox" aria-label={tr("Sort", "排序")}>
+                        {strategySortKeys.map((key) => {
+                          const optionDir = sortKey === key && sortDir === "asc" ? "asc" : "desc";
+                          return (
+                            <button
+                              className={`sort-direction-select__option${sortKey === key ? " is-active" : ""}`}
+                              type="button"
+                              role="option"
+                              aria-selected={sortKey === key}
+                              key={key}
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => handleStrategySortChange(key)}
+                            >
+                              <span>{sortLabels[key]}</span>
+                              <span className="sort-direction-select__direction">
+                                {optionDir === "asc" ? tr("Ascending", "升序") : tr("Descending", "降序")}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <button
-                  className="shop-chip"
-                  type="button"
-                  disabled={!sortKey}
-                  onClick={() => setSortDir(sortDir === "asc" ? "desc" : "asc")}
-                >
-                  {sortDir === "asc" ? tr("Ascending", "升序") : sortDir === "desc" ? tr("Descending", "降序") : tr("Default", "默认")}
-                </button>
-                {sortKey && (
-                  <button className="shop-chip" type="button" onClick={() => {
-                    setSortKey(null);
-                    setSortDir(null);
-                  }}>
-                    {tr("Clear", "清除")}
-                  </button>
-                )}
               </div>
             </div>
 
             <div className="shop-grid">
               {filteredStrategies.map((strategy) => {
                 const tier = getStrategyTier(strategy);
-                const statusLabel = tier === "official" ? tr("Official", "官方") : tr("Graduated", "三方");
                 const isStarred = starredStrategies.has(strategy.id);
                 const roi = parseMetricValue(strategy.annualReturn);
                 const drawdown = parseMetricValue(strategy.maxDrawdown);
@@ -3325,7 +4691,6 @@ export default function Landing() {
                         <span className="shop-badge">{strategy.updatedAt}</span>
                         <span className="shop-badge">ID {strategy.id}</span>
                         <span className="shop-badge"><Users size={14} />{uiLang === "zh" ? `已使用${strategy.subscribers ?? 0}次` : `Used ${strategy.subscribers ?? 0} times`}</span>
-                        <span className="shop-badge shop-badge--primary">{statusLabel}</span>
                       </div>
                       <p className="shop-card__desc">{translateDescription(strategy)}</p>
 

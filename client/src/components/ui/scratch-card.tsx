@@ -219,10 +219,30 @@ function RevealedGradeCard({
             ? tr("Average", "一般")
             : tr("Below Average", "低于平均");
 
+  if (!isModal) {
+    return (
+      <div
+        className={`text-center p-4 rounded-[8px] bg-accent border border-border/60 ${interactive ? "transition-all duration-300" : ""} ${className}`}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        style={{
+          transform: interactive
+            ? isHovered
+              ? "translateY(-1px) scale(1.01)"
+              : "translateY(0) scale(1)"
+            : undefined,
+        }}
+      >
+        <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("GRADE", "等级")}</div>
+        <div className="text-lg font-bold font-mono tabular-nums text-foreground">{grade}</div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`text-center relative overflow-hidden ${
-        isModal ? "rounded-[28px]" : "rounded-2xl"
+        "rounded-[28px]"
       } ${interactiveClass} ${className}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
@@ -561,7 +581,7 @@ export default function ScratchCard({
 
   if (isFailed) {
     return (
-      <div className="text-center p-4 rounded-2xl relative overflow-hidden border border-border/60 bg-accent">
+      <div className="text-center p-4 rounded-[8px] relative overflow-hidden border border-border/60 bg-accent">
         <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("GRADE", "等级")}</div>
         <div className="text-lg font-bold font-mono text-muted-foreground">-</div>
         <div className="text-[9px] mt-0.5 text-muted-foreground/80">{tr("No grade", "暂无等级")}</div>
@@ -586,7 +606,7 @@ export default function ScratchCard({
   return (
     <>
       <div
-        className="text-center p-4 rounded-2xl cursor-pointer group transition-all duration-300 relative overflow-hidden"
+        className="text-center p-4 rounded-[8px] cursor-pointer group transition-all duration-300 relative overflow-hidden"
         style={{
           backgroundImage: UNREVEALED_CARD_STYLE.bg,
           border: `1px solid ${UNREVEALED_CARD_STYLE.border}66`,
@@ -601,7 +621,7 @@ export default function ScratchCard({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden rounded-[8px] pointer-events-none">
           <div className="absolute w-1 h-1 rounded-full bg-white/30 top-[20%] left-[15%]" style={{ animation: "scratchPulse 3s ease-in-out infinite" }} />
           <div className="absolute w-0.5 h-0.5 rounded-full bg-white/20 top-[60%] left-[75%]" style={{ animation: "scratchPulse 4s ease-in-out 1s infinite" }} />
           <div className="absolute w-0.5 h-0.5 rounded-full bg-white/16 top-[35%] left-[85%]" style={{ animation: "scratchPulse 3.5s ease-in-out 0.5s infinite" }} />

@@ -29,6 +29,7 @@ import {
 } from "@/lib/mockData";
 
 type SummaryPeriod = "IS" | "OS" | "DIFF";
+type DetailChartKey = "pnl" | "crossNav" | "cumIc" | "icDecay" | "factorAutoCorr" | "groupCumReturn";
 type AlphaDetailProps = {
   embedded?: boolean;
   hideHeader?: boolean;
@@ -149,10 +150,14 @@ function PnlLineChart({
   data,
   upColor,
   downColor,
+  valueLabel = "PNL",
+  valueFormatter = formatPnlValue,
 }: {
   data: PnlChartPoint[];
   upColor: string;
   downColor: string;
+  valueLabel?: string;
+  valueFormatter?: (value: number) => string;
 }) {
   const svgId = useId().replace(/:/g, "");
   const width = 1120;
@@ -290,7 +295,7 @@ function PnlLineChart({
               color: chartTickColor,
             }}
           >
-            {formatPnlValue(tick)}
+            {valueFormatter(tick)}
           </div>
         );
       })}
@@ -332,12 +337,41 @@ function PnlLineChart({
             {hoveredPoint.date}
           </div>
           <div className="mt-1 font-semibold" style={{ color: hoveredPoint.value >= 0 ? upColor : downColor }}>
-            PNL {formatPnlValue(hoveredPoint.value)}
+            {valueLabel} {valueFormatter(hoveredPoint.value)}
           </div>
         </div>
       ) : null}
     </div>
   );
+}
+
+function buildDetailChartData(data: PnlChartPoint[], chartKey: DetailChartKey): PnlChartPoint[] {
+  const maxAbs = Math.max(...data.map((item) => Math.abs(item.value)), 1);
+  const lastIndex = Math.max(data.length - 1, 1);
+
+  return data.map((item, index) => {
+    const progress = index / lastIndex;
+    const wave = Math.sin(index / 8);
+    const value =
+      chartKey === "pnl"
+        ? item.value
+        : chartKey === "crossNav"
+          ? 1 + item.value / maxAbs + progress * 0.18
+          : chartKey === "cumIc"
+            ? progress * 0.18 + wave * 0.018
+            : chartKey === "icDecay"
+              ? Math.exp(-progress * 4) * 0.12 + Math.sin(index / 3) * 0.004
+              : chartKey === "factorAutoCorr"
+                ? Math.exp(-progress * 2.2) * 0.82 + Math.cos(index / 7) * 0.045
+                : item.value * 0.72 + Math.sin(index / 12) * 120000;
+
+    return { date: item.date, value };
+  });
+}
+
+function formatCompactChartValue(value: number) {
+  if (Math.abs(value) >= 1000) return formatPnlValue(value);
+  return value.toFixed(Math.abs(value) >= 1 ? 2 : 3);
 }
 
 export default function AlphaDetail({ embedded = false, hideHeader = false, factorIdOverride, factorOverride }: AlphaDetailProps = {}) {
@@ -363,7 +397,20 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
   const detailBackPath = isOfficialLibraryView ? "/alphas/official" : "/alphas";
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
+  const [activeChartKey, setActiveChartKey] = useState<DetailChartKey>("pnl");
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
+  const detailChartOptions = useMemo<Array<{ key: DetailChartKey; label: string; valueLabel: string }>>(
+    () => [
+      { key: "pnl", label: "PNL", valueLabel: "PNL" },
+      { key: "crossNav", label: tr("Cross-sectional NAV", "截面净值曲线"), valueLabel: tr("NAV", "净值") },
+      { key: "cumIc", label: tr("Cumulative IC", "累计IC"), valueLabel: "IC" },
+      { key: "icDecay", label: tr("IC Decay", "IC衰减"), valueLabel: tr("Decay", "衰减") },
+      { key: "factorAutoCorr", label: tr("Factor Autocorrelation", "因子自相关性"), valueLabel: tr("Corr", "相关性") },
+      { key: "groupCumReturn", label: tr("Group Cumulative Return", "分组累计收益率"), valueLabel: tr("Return", "收益") },
+    ],
+    [uiLang]
+  );
+  const activeChartOption = detailChartOptions.find((option) => option.key === activeChartKey) ?? detailChartOptions[0];
 
   /* ── Generating state ── */
   const [isGenerating, setIsGenerating] = useState(isGeneratingParam);
@@ -729,7 +776,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
   const factorIntroHeader = (
     <div className="flex items-center gap-2">
       <BookOpenText className="w-4 h-4 text-primary" />
-      <span className="text-base font-semibold text-foreground">{tr("Factor Introduction", "因子介绍")}</span>
+      <span className="text-base font-semibold text-foreground">{tr("Introduction", "简介")}</span>
     </div>
   );
   const beginnerMetricCards = (
@@ -775,10 +822,60 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
     return (
       <Tooltip>
         <TooltipTrigger asChild>{child}</TooltipTrigger>
-        <TooltipContent side="top" className="max-w-[220px] text-xs leading-5">
+        <TooltipContent side="top" className="alpha-detail-tooltip max-w-[220px] text-xs leading-5">
           {content}
         </TooltipContent>
       </Tooltip>
+    );
+  }
+  function renderChartCard(data: PnlChartPoint[], heightClass: string) {
+    const chartData = buildDetailChartData(data, activeChartKey);
+    const valueFormatter = activeChartKey === "pnl" || activeChartKey === "groupCumReturn"
+      ? formatPnlValue
+      : formatCompactChartValue;
+
+    return (
+      <div className="surface-card">
+        <div className="px-6 py-4 pb-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-primary" />
+              <span className="text-base font-semibold text-foreground">{activeChartOption.label}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5" aria-label={tr("Chart selector", "图表选择器")}>
+              {detailChartOptions.map((option) => {
+                const isActive = activeChartKey === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                      isActive
+                        ? "border-[#b88d4a] bg-[#fff3d3] text-[#2c2117]"
+                        : "border-border/70 bg-background/70 text-muted-foreground hover:border-[#cdbb9f] hover:bg-[#fff8e8] hover:text-[#2c2117]"
+                    }`}
+                    aria-pressed={isActive}
+                    onClick={() => setActiveChartKey(option.key)}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="px-6 pb-6">
+          <div className={heightClass}>
+            <PnlLineChart
+              data={chartData}
+              upColor={chartColors.upHex}
+              downColor={chartColors.downHex}
+              valueLabel={activeChartOption.valueLabel}
+              valueFormatter={valueFormatter}
+            />
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -862,24 +959,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
         <div className="space-y-6 animate-in fade-in duration-300">
           {beginnerIntroSection}
 
-          {/* Simplified Chart — PnL only */}
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-2">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">PNL</span>
-              </div>
-            </div>
-            <div className="px-6 pb-6">
-              <div className="h-[300px]">
-                <PnlLineChart
-                  data={beginnerPnlData}
-                  upColor={chartColors.upHex}
-                  downColor={chartColors.downHex}
-                />
-              </div>
-            </div>
-          </div>
+          {renderChartCard(beginnerPnlData, "h-[300px]")}
 
 
           {/* Simple Test Status */}
@@ -951,44 +1031,29 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
             </div>
             <div className="px-6 pb-6">
               {factorDescriptionContent}
-              <div className="mt-4 overflow-hidden rounded-2xl border border-border/60 bg-accent/35">
-                <div className="border-b border-border/60 px-6 py-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className="label-upper text-primary">{tr("Process", "过程")}</span>
-                    <span className="h-px flex-1 bg-border/60" />
-                  </div>
-                  <div className="grid gap-2 md:grid-cols-3">
-                    {expressionProcessSteps.map((step, index) => (
-                      <div
-                        key={step}
-                        className="flex min-w-0 items-start gap-3 rounded-xl border border-border/60 bg-background/35 px-3 py-2.5"
-                      >
-                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                          {index + 1}
-                        </span>
-                        <code className="min-w-0 whitespace-normal break-words font-mono text-xs leading-5 text-muted-foreground">
-                          {step}
-                        </code>
-                      </div>
-                    ))}
-                  </div>
+              <div className="mt-4 rounded-[8px] border border-[#d8c7a7] bg-[#fff7e3] px-5 py-4">
+                <div className="mb-3 flex items-center gap-3">
+                  <h3 className="text-sm font-bold text-[#2c2117]">{tr("Expression", "表达式")}</h3>
                 </div>
-                <div className="px-6 py-4">
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="label-upper text-primary">{tr("Final Result", "最终结果")}</span>
-                    <span className="h-px flex-1 bg-border/60" />
-                  </div>
-                  <div className="flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-background/45 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.35)]">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="label-upper shrink-0">{tr("Expression:", "表达式：")}</span>
-                      <code className="truncate text-sm font-mono text-primary">{factor.expression}</code>
-                    </div>
+                <div className="grid gap-2 border-t border-[#eadabb] pt-3">
+                  {expressionProcessSteps.map((step) => (
+                    <code
+                      key={step}
+                      className="block min-w-0 whitespace-normal break-words font-mono text-xs leading-5 text-[#725d42]"
+                    >
+                      {step}
+                    </code>
+                  ))}
+                  <div className="mt-1 flex min-w-0 items-start gap-3 rounded-md bg-[#fff3d3] px-3 py-2">
+                    <code className="min-w-0 flex-1 whitespace-normal break-words font-mono text-sm font-bold leading-6 text-[#0f8b7b]">
+                      {factor.expression}
+                    </code>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={handleCopyExpression}
-                      className="h-8 shrink-0 rounded-full border-border bg-background/40 px-3 text-xs text-muted-foreground hover:text-foreground"
+                      className="h-8 shrink-0 rounded-md border-[#d8c7a7] bg-[#fffdf4] px-3 text-xs text-[#725d42] hover:bg-[#fff3d3] hover:text-[#2c2117]"
                     >
                       <Copy className="mr-1.5 h-3.5 w-3.5" />
                       {copiedExpression ? tr("Copied", "已复制") : tr("Copy", "复制")}
@@ -1004,8 +1069,8 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                 {/* Sharpe card — color follows list view osSharpe rule */}
                 {withPlainExplanation(
                   proMetricExplanations.sharpe,
-                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("SHARPE", "夏普比率")}</div>
+                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("SHARPE", "夏普比率")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">
                     {typeof aggData.sharpe === "number" ? aggData.sharpe.toFixed(2) : aggData.sharpe}
                   </div>
@@ -1014,32 +1079,32 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                 {/* Returns */}
                 {withPlainExplanation(
                   proMetricExplanations.returns,
-                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("RETURNS", "收益")}</div>
+                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("RETURNS", "收益")}</div>
                   <div className={`text-lg font-bold font-mono tabular-nums ${trendTextClass(aggData.returns)}`}>{aggData.returns}</div>
                 </div>
                 )}
                 {/* Drawdown */}
                 {withPlainExplanation(
                   proMetricExplanations.drawdown,
-                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("MAX DRAWDOWN", "最大回撤")}</div>
+                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("MAX DRAWDOWN", "最大回撤")}</div>
                   <div className={`text-lg font-bold font-mono tabular-nums ${drawdownTextClass(aggData.drawdown)}`}>{aggData.drawdown}</div>
                 </div>
                 )}
                 {/* Turnover */}
                 {withPlainExplanation(
                   proMetricExplanations.turnover,
-                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("TURNOVER", "换手率")}</div>
+                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("TURNOVER", "换手率")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.turnover}</div>
                 </div>
                 )}
                 {/* Fitness — color follows list view fitness rule */}
                 {withPlainExplanation(
                   proMetricExplanations.fitness,
-                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("FITNESS", "适应度")}</div>
+                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("FITNESS", "适应度")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">
                     {typeof aggData.fitness === "number" ? aggData.fitness.toFixed(2) : aggData.fitness}
                   </div>
@@ -1048,8 +1113,8 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                 {/* Correlation */}
                 {withPlainExplanation(
                   proMetricExplanations.correlation,
-                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("CORRELATION", "相关性")}</div>
+                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("CORRELATION", "相关性")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">
                     0.55
                   </div>
@@ -1058,8 +1123,8 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                 {/* Margin */}
                 {withPlainExplanation(
                   proMetricExplanations.margin,
-                <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px]">{tr("MARGIN", "保证金")}</div>
+                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
+                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("MARGIN", "保证金")}</div>
                   <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.margin}</div>
                 </div>
                 )}
@@ -1081,26 +1146,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
           </div>
 
           {/* ── SECTION 4: Charts ── */}
-          {/* Chart Section */}
-          <div className="surface-card">
-            <div className="px-6 py-4 pb-2">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">PNL</span>
-                </div>
-              </div>
-            </div>
-            <div className="px-6 pb-6">
-              <div className="h-[400px]">
-                <PnlLineChart
-                  data={proPnlData}
-                  upColor={chartColors.upHex}
-                  downColor={chartColors.downHex}
-                />
-              </div>
-            </div>
-          </div>
+          {renderChartCard(proPnlData, "h-[400px]")}
 
           {/* ── SECTION 5: Test Status ── */}
           <div className="grid gap-8">
@@ -1135,11 +1181,11 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                             <div className="min-w-0 space-y-1">
                               <div className="font-medium text-foreground">{structured.issue}</div>
                               <div className="text-muted-foreground">
-                                <span className="font-medium text-foreground/80">{tr("Impact:", "影响：")}</span>
+                                <span className="font-medium text-[#725d42]">{tr("Impact:", "影响：")}</span>
                                 {structured.impact}
                               </div>
                               <div className="text-muted-foreground">
-                                <span className="font-medium text-foreground/80">{tr("Suggestion:", "建议：")}</span>
+                                <span className="font-medium text-[#725d42]">{tr("Suggestion:", "建议：")}</span>
                                 {structured.suggestion}
                               </div>
                             </div>
@@ -1173,11 +1219,11 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                             <div className="min-w-0 space-y-1">
                               <div className="font-medium text-foreground">{structured.issue}</div>
                               <div className="text-muted-foreground">
-                                <span className="font-medium text-foreground/80">{tr("Impact:", "影响：")}</span>
+                                <span className="font-medium text-[#725d42]">{tr("Impact:", "影响：")}</span>
                                 {structured.impact}
                               </div>
                               <div className="text-muted-foreground">
-                                <span className="font-medium text-foreground/80">{tr("Suggestion:", "建议：")}</span>
+                                <span className="font-medium text-[#725d42]">{tr("Suggestion:", "建议：")}</span>
                                 {structured.suggestion}
                               </div>
                             </div>
