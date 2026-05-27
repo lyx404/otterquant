@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useParams, useSearch } from "wouter";
-import { useState, useMemo, useEffect, useId, useRef, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useId, useRef, type ReactNode, type CSSProperties } from "react";
 import { toast } from "sonner";
 import gsap from "gsap";
 import {
@@ -80,6 +80,12 @@ function getChartColorTokens(mode: ChartColorMode) {
 type PnlChartPoint = { date: string; value: number };
 type PnlScreenPoint = PnlChartPoint & { x: number; y: number };
 type PnlAreaRun = { color: string; points: PnlScreenPoint[] };
+type MultiLineChartSeries = {
+  key: string;
+  label: string;
+  color: string;
+  points: PnlChartPoint[];
+};
 
 function formatPnlValue(value: number) {
   return Math.round(value).toLocaleString();
@@ -146,6 +152,35 @@ function buildPnlAreaRuns(points: PnlScreenPoint[], upColor: string, downColor: 
   return runs.filter((run) => run.points.length > 1);
 }
 
+function useMeasuredChartSize(initialHeight = 300) {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [chartSize, setChartSize] = useState({ width: 1120, height: initialHeight });
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || typeof ResizeObserver === "undefined") return;
+
+    const updateSize = () => {
+      const bounds = chart.getBoundingClientRect();
+      setChartSize((current) => {
+        const next = {
+          width: Math.round(bounds.width),
+          height: Math.round(bounds.height),
+        };
+        if (next.width <= 0 || next.height <= 0) return current;
+        return current.width === next.width && current.height === next.height ? current : next;
+      });
+    };
+
+    updateSize();
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(chart);
+    return () => resizeObserver.disconnect();
+  }, []);
+
+  return { chartRef, chartSize };
+}
+
 function PnlLineChart({
   data,
   upColor,
@@ -160,8 +195,9 @@ function PnlLineChart({
   valueFormatter?: (value: number) => string;
 }) {
   const svgId = useId().replace(/:/g, "");
-  const width = 1120;
-  const height = 300;
+  const { chartRef, chartSize } = useMeasuredChartSize(300);
+  const width = Math.max(320, chartSize.width);
+  const height = Math.max(220, chartSize.height);
   const padding = { top: 14, right: 58, bottom: 30, left: 118 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
@@ -201,6 +237,7 @@ function PnlLineChart({
 
   return (
     <div
+      ref={chartRef}
       className="relative h-full w-full overflow-hidden rounded-lg"
       onMouseLeave={() => setHoverIndex(null)}
       onMouseMove={(event) => {
@@ -213,7 +250,7 @@ function PnlLineChart({
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="h-full w-full"
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label="PNL line chart"
       >
@@ -321,7 +358,7 @@ function PnlLineChart({
       })}
       {hoveredPoint ? (
         <div
-          className="pointer-events-none absolute rounded-lg border border-border/80 bg-background/95 px-3 py-2 text-xs shadow-xl"
+          className="pointer-events-none absolute rounded-lg border border-border/80 bg-[#fff3d3] px-3 py-2 text-xs shadow-xl"
           style={{
             left: `${(hoveredPoint.x / width) * 100}%`,
             top: `${(hoveredPoint.y / height) * 100}%`,
@@ -338,6 +375,198 @@ function PnlLineChart({
           </div>
           <div className="mt-1 font-semibold" style={{ color: hoveredPoint.value >= 0 ? upColor : downColor }}>
             {valueLabel} {valueFormatter(hoveredPoint.value)}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
+  const { chartRef, chartSize } = useMeasuredChartSize(300);
+  const width = Math.max(320, chartSize.width);
+  const height = Math.max(220, chartSize.height);
+  const padding = { top: 34, right: 58, bottom: 46, left: 118 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const domainMin = -1.2;
+  const domainMax = 1.8;
+  const domainRange = domainMax - domainMin;
+  const yTicks = [-1, -0.5, 0, 0.5, 1, 1.5];
+  const pointCount = Math.max(...series.map((item) => item.points.length), 1);
+  const xTicks = Array.from(
+    new Set(
+      Array.from({ length: 6 }, (_, index) =>
+        Math.round((index * (pointCount - 1)) / 5)
+      )
+    )
+  );
+  const chartGridColor = "rgba(100,116,139,0.22)";
+  const chartZeroColor = "rgba(100,116,139,0.36)";
+  const chartTickColor = "rgba(100,116,139,0.84)";
+
+  const screenSeries = series.map((item) => ({
+    ...item,
+    points: item.points.map((point, index) => ({
+      ...point,
+      x: padding.left + (index / Math.max(1, item.points.length - 1)) * plotWidth,
+      y: padding.top + ((domainMax - point.value) / domainRange) * plotHeight,
+    })),
+  }));
+  const hoveredSeries = hoverIndex === null
+    ? []
+    : screenSeries
+        .map((item) => ({ ...item, point: item.points[Math.min(hoverIndex, item.points.length - 1)] }))
+        .filter((item) => item.point);
+  const hoveredPoint = hoveredSeries[0]?.point ?? null;
+
+  return (
+    <div
+      ref={chartRef}
+      className="relative h-full w-full overflow-hidden rounded-lg"
+      onMouseLeave={() => setHoverIndex(null)}
+      onMouseMove={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        const nextIndex = Math.round(ratio * (pointCount - 1));
+        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
+      }}
+    >
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="h-full w-full"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="PNL line chart"
+      >
+        {yTicks.map((tick) => {
+          const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+          return (
+            <line
+              key={tick}
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={y}
+              y2={y}
+              stroke={tick === 0 ? chartZeroColor : chartGridColor}
+              strokeDasharray={tick === 0 ? "4 4" : "5 4"}
+              strokeWidth={tick === 0 ? "1.2" : "1"}
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+        {xTicks.map((index) => {
+          const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
+          return (
+            <line
+              key={index}
+              x1={x}
+              x2={x}
+              y1={padding.top}
+              y2={height - padding.bottom}
+              stroke={chartGridColor}
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+        {screenSeries.map((item) => (
+          <path
+            key={item.key}
+            d={buildPnlPath(item.points)}
+            fill="none"
+            stroke={item.color}
+            strokeWidth={item.key === "longShort" ? "2.4" : "2"}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        {hoveredPoint ? (
+          <>
+            <line x1={hoveredPoint.x} x2={hoveredPoint.x} y1={padding.top} y2={height - padding.bottom} stroke={chartZeroColor} strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+            {hoveredSeries.map((item) => (
+              <circle key={item.key} cx={item.point.x} cy={item.point.y} r="3.2" fill="#fffdf4" stroke={item.color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
+            ))}
+          </>
+        ) : null}
+      </svg>
+      <div className="pointer-events-none absolute right-4 top-3 flex flex-wrap items-center justify-end gap-x-4 gap-y-1 bg-transparent px-0 py-0 text-xs">
+        {series.map((item) => (
+          <div key={item.key} className="flex items-center gap-2 whitespace-nowrap font-semibold text-[#2c2117]">
+            <span className="h-[3px] w-7 rounded-full" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </div>
+        ))}
+      </div>
+      <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 -rotate-90 text-[11px] font-bold text-[#725d42]">
+        Log Cumulative Return
+      </div>
+      <div className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-[#725d42]">
+        Time
+      </div>
+      {yTicks.map((tick) => {
+        const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+        return (
+          <div
+            key={tick}
+            className="pointer-events-none absolute -translate-y-1/2 pr-2 text-right text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: 0,
+              top: `${(y / height) * 100}%`,
+              width: `${(padding.left / width) * 100}%`,
+              color: chartTickColor,
+            }}
+          >
+            {tick.toFixed(tick === 0 ? 3 : 1)}
+          </div>
+        );
+      })}
+      {xTicks.map((index) => {
+        const point = series[0]?.points[index];
+        if (!point) return null;
+        const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
+        const isFirstTick = index === 0;
+        const isLastTick = index === pointCount - 1;
+        return (
+          <div
+            key={point.date}
+            className="pointer-events-none absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: `${(x / width) * 100}%`,
+              top: `${((height - 20) / height) * 100}%`,
+              transform: isFirstTick ? "translate(0, -50%)" : isLastTick ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
+              color: chartTickColor,
+            }}
+          >
+            {point.date.substring(0, 7)}
+          </div>
+        );
+      })}
+      {hoveredPoint ? (
+        <div
+          className="pointer-events-none absolute rounded-lg border border-border/80 bg-[#fff3d3] px-3 py-2 text-xs shadow-xl"
+          style={{
+            left: `${(hoveredPoint.x / width) * 100}%`,
+            top: `${(hoveredPoint.y / height) * 100}%`,
+            transform:
+              hoverIndex === 0
+                ? "translate(0, calc(-100% - 8px))"
+                : hoverIndex === pointCount - 1
+                  ? "translate(-100%, calc(-100% - 8px))"
+                  : "translate(-50%, calc(-100% - 8px))",
+          }}
+        >
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {hoveredPoint.date}
+          </div>
+          <div className="mt-1 grid gap-1">
+            {hoveredSeries.map((item) => (
+              <div key={item.key} className="font-semibold" style={{ color: item.color }}>
+                {item.label} {item.point.value.toFixed(3)}
+              </div>
+            ))}
           </div>
         </div>
       ) : null}
@@ -367,6 +596,101 @@ function buildDetailChartData(data: PnlChartPoint[], chartKey: DetailChartKey): 
 
     return { date: item.date, value };
   });
+}
+
+function buildCrossNavSeries(): MultiLineChartSeries[] {
+  const dates = Array.from({ length: 28 }, (_, index) => {
+    const date = new Date(2024, index, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const lastIndex = Math.max(dates.length - 1, 1);
+
+  const anchors = {
+    longOnly: [
+      [0, 0.02],
+      [0.1, -0.18],
+      [0.18, 0.5],
+      [0.3, 0.08],
+      [0.42, -0.32],
+      [0.52, -0.18],
+      [0.62, 0.38],
+      [0.72, -0.15],
+      [0.82, -0.05],
+      [0.92, -0.58],
+      [1, -0.86],
+    ] as Array<[number, number]>,
+    shortOnly: [
+      [0, 0.02],
+      [0.08, 0.16],
+      [0.16, -0.48],
+      [0.28, -0.06],
+      [0.38, 0.6],
+      [0.5, 0.26],
+      [0.62, 0.72],
+      [0.72, 0.3],
+      [0.84, 0.7],
+      [0.94, 1.55],
+      [1, 1.38],
+    ] as Array<[number, number]>,
+    longShort: [
+      [0, 0],
+      [0.12, -0.06],
+      [0.24, 0.06],
+      [0.34, 0.16],
+      [0.46, 0.08],
+      [0.58, -0.22],
+      [0.68, -0.1],
+      [0.76, 0.22],
+      [0.86, 0.38],
+      [0.94, 0.48],
+      [1, 0.2],
+    ] as Array<[number, number]>,
+  };
+
+  const interpolate = (anchorList: Array<[number, number]>, progress: number) => {
+    for (let index = 1; index < anchorList.length; index += 1) {
+      const [prevProgress, prevValue] = anchorList[index - 1];
+      const [nextProgress, nextValue] = anchorList[index];
+      if (progress <= nextProgress) {
+        const span = Math.max(nextProgress - prevProgress, 0.0001);
+        const ratio = Math.max(0, Math.min(1, (progress - prevProgress) / span));
+        const base = prevValue + (nextValue - prevValue) * ratio;
+        const wobble = Math.sin(progress * Math.PI * 10 + index) * 0.04;
+        return Number((base + wobble).toFixed(3));
+      }
+    }
+    return anchorList[anchorList.length - 1][1];
+  };
+
+  return [
+    {
+      key: "longOnly",
+      label: "Long-Only (G1)",
+      color: "#1ca486",
+      points: dates.map((date, index) => ({
+        date,
+        value: interpolate(anchors.longOnly, index / lastIndex),
+      })),
+    },
+    {
+      key: "shortOnly",
+      label: "Short-Only (-G5)",
+      color: "#d08a33",
+      points: dates.map((date, index) => ({
+        date,
+        value: interpolate(anchors.shortOnly, index / lastIndex),
+      })),
+    },
+    {
+      key: "longShort",
+      label: "Long-Short",
+      color: "#7561b8",
+      points: dates.map((date, index) => ({
+        date,
+        value: interpolate(anchors.longShort, index / lastIndex),
+      })),
+    },
+  ];
 }
 
 function formatCompactChartValue(value: number) {
@@ -399,6 +723,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
   const [activeChartKey, setActiveChartKey] = useState<DetailChartKey>("pnl");
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
+  const crossNavSeries = useMemo(() => buildCrossNavSeries(), []);
   const detailChartOptions = useMemo<Array<{ key: DetailChartKey; label: string; valueLabel: string }>>(
     () => [
       { key: "pnl", label: "PNL", valueLabel: "PNL" },
@@ -461,6 +786,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
   const grade = getAlphaGrade(factor.osSharpe);
   const gradeConfig = GRADE_CONFIG[grade];
   const gradePlainLabel = {
+    SS: tr("Legendary", "顶级"),
     S: tr("Legendary", "顶级"),
     A: tr("Excellent", "优秀"),
     B: tr("Good", "良好"),
@@ -828,6 +1154,29 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
       </Tooltip>
     );
   }
+  function renderMetricCard({
+    label,
+    value,
+    valueClassName = "text-foreground",
+    valueStyle,
+  }: {
+    label: ReactNode;
+    value: ReactNode;
+    valueClassName?: string;
+    valueStyle?: CSSProperties;
+  }) {
+    return (
+      <div className="relative isolate flex min-h-[60px] items-center justify-center overflow-hidden rounded-lg bg-accent text-center">
+        <div className="pointer-events-none absolute inset-0 rounded-lg border border-border/60" aria-hidden="true" />
+        <div className="relative z-10 flex w-full flex-col items-center justify-center px-4 py-0">
+          <div className="relative z-10 mb-1 text-[9px] text-muted-foreground">{label}</div>
+          <div className={`relative z-20 text-lg font-bold font-mono tabular-nums ${valueClassName}`} style={valueStyle}>
+            {value}
+          </div>
+        </div>
+      </div>
+    );
+  }
   function renderChartCard(data: PnlChartPoint[], heightClass: string) {
     const chartData = buildDetailChartData(data, activeChartKey);
     const valueFormatter = activeChartKey === "pnl" || activeChartKey === "groupCumReturn"
@@ -852,7 +1201,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                     className={`rounded-md border px-2.5 py-1 text-xs font-semibold transition-colors ${
                       isActive
                         ? "border-[#b88d4a] bg-[#fff3d3] text-[#2c2117]"
-                        : "border-border/70 bg-background/70 text-muted-foreground hover:border-[#cdbb9f] hover:bg-[#fff8e8] hover:text-[#2c2117]"
+                        : "border-[#d7c39b] bg-[#f6efe0] text-[#6f5a43] hover:border-[#cdbb9f] hover:bg-[#fff8e8] hover:text-[#2c2117]"
                     }`}
                     aria-pressed={isActive}
                     onClick={() => setActiveChartKey(option.key)}
@@ -866,13 +1215,17 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
         </div>
         <div className="px-6 pb-6">
           <div className={heightClass}>
-            <PnlLineChart
-              data={chartData}
-              upColor={chartColors.upHex}
-              downColor={chartColors.downHex}
-              valueLabel={activeChartOption.valueLabel}
-              valueFormatter={valueFormatter}
-            />
+            {activeChartKey === "crossNav" ? (
+              <MultiLineReturnChart series={crossNavSeries} />
+            ) : (
+              <PnlLineChart
+                data={chartData}
+                upColor={chartColors.upHex}
+                downColor={chartColors.downHex}
+                valueLabel={activeChartOption.valueLabel}
+                valueFormatter={valueFormatter}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1031,11 +1384,11 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
             </div>
             <div className="px-6 pb-6">
               {factorDescriptionContent}
-              <div className="mt-4 rounded-[8px] border border-[#d8c7a7] bg-[#fff7e3] px-5 py-4">
+              <div className="mt-4 rounded-[8px] bg-[#fff7e3] px-5 py-4">
                 <div className="mb-3 flex items-center gap-3">
                   <h3 className="text-sm font-bold text-[#2c2117]">{tr("Expression", "表达式")}</h3>
                 </div>
-                <div className="grid gap-2 pt-3">
+                <div className="grid gap-2 pt-0">
                   {expressionProcessSteps.map((step) => (
                     <code
                       key={step}
@@ -1044,7 +1397,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                       {step}
                     </code>
                   ))}
-                  <div className="mt-1 flex min-w-0 items-center gap-3 rounded-md bg-[#fff3d3] px-3 py-2">
+                  <div className="mt-0 flex min-w-0 items-center gap-3 rounded-md bg-[#fff7e3] px-0 py-0">
                     <code className="min-w-0 flex-1 whitespace-normal break-words font-mono text-sm font-bold leading-6 text-[#725d42]">
                       {factor.expression}
                     </code>
@@ -1053,7 +1406,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                       variant="outline"
                       size="sm"
                       onClick={handleCopyExpression}
-                      className="h-8 shrink-0 !rounded-[4px] !border-0 bg-[#fffdf4] px-3 text-xs text-[#725d42] hover:bg-[#fff3d3] hover:text-[#2c2117]"
+                      className="h-8 shrink-0 !rounded-[8px] !border-0 !bg-[#fff6da] px-3 text-xs text-[#725d42] hover:!bg-[#fff3d3] hover:text-[#2c2117]"
                     >
                       <Copy className="mr-1.5 h-3.5 w-3.5" />
                       {copiedExpression ? tr("Copied", "已复制") : tr("Copy", "复制")}
@@ -1069,64 +1422,60 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                 {/* Sharpe card — color follows list view osSharpe rule */}
                 {withPlainExplanation(
                   proMetricExplanations.sharpe,
-                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("SHARPE", "夏普比率")}</div>
-                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">
-                    {typeof aggData.sharpe === "number" ? aggData.sharpe.toFixed(2) : aggData.sharpe}
-                  </div>
-                </div>
+                renderMetricCard({
+                  label: tr("SHARPE", "夏普比率"),
+                  value: typeof aggData.sharpe === "number" ? aggData.sharpe.toFixed(2) : aggData.sharpe,
+                })
                 )}
                 {/* Returns */}
                 {withPlainExplanation(
                   proMetricExplanations.returns,
-                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("RETURNS", "收益")}</div>
-                  <div className={`text-lg font-bold font-mono tabular-nums ${trendTextClass(aggData.returns)}`}>{aggData.returns}</div>
-                </div>
+                renderMetricCard({
+                  label: tr("RETURNS", "收益"),
+                  value: aggData.returns,
+                  valueClassName: trendTextClass(aggData.returns),
+                })
                 )}
                 {/* Drawdown */}
                 {withPlainExplanation(
                   proMetricExplanations.drawdown,
-                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("MAX DRAWDOWN", "最大回撤")}</div>
-                  <div className={`text-lg font-bold font-mono tabular-nums ${drawdownTextClass(aggData.drawdown)}`}>{aggData.drawdown}</div>
-                </div>
+                renderMetricCard({
+                  label: tr("MAX DRAWDOWN", "最大回撤"),
+                  value: aggData.drawdown,
+                  valueClassName: drawdownTextClass(aggData.drawdown),
+                })
                 )}
                 {/* Turnover */}
                 {withPlainExplanation(
                   proMetricExplanations.turnover,
-                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("TURNOVER", "换手率")}</div>
-                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.turnover}</div>
-                </div>
+                renderMetricCard({
+                  label: tr("TURNOVER", "换手率"),
+                  value: aggData.turnover,
+                })
                 )}
                 {/* Fitness — color follows list view fitness rule */}
                 {withPlainExplanation(
                   proMetricExplanations.fitness,
-                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("FITNESS", "适应度")}</div>
-                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">
-                    {typeof aggData.fitness === "number" ? aggData.fitness.toFixed(2) : aggData.fitness}
-                  </div>
-                </div>
+                renderMetricCard({
+                  label: tr("FITNESS", "适应度"),
+                  value: typeof aggData.fitness === "number" ? aggData.fitness.toFixed(2) : aggData.fitness,
+                })
                 )}
                 {/* Correlation */}
                 {withPlainExplanation(
                   proMetricExplanations.correlation,
-                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("CORRELATION", "相关性")}</div>
-                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">
-                    0.55
-                  </div>
-                </div>
+                renderMetricCard({
+                  label: tr("CORRELATION", "相关性"),
+                  value: "0.55",
+                })
                 )}
                 {/* Margin */}
                 {withPlainExplanation(
                   proMetricExplanations.margin,
-                <div className="text-center p-4 rounded-lg bg-accent border border-border/60">
-                  <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("MARGIN", "保证金")}</div>
-                  <div className="text-lg font-bold font-mono tabular-nums text-foreground">{aggData.margin}</div>
-                </div>
+                renderMetricCard({
+                  label: tr("MARGIN", "保证金"),
+                  value: aggData.margin,
+                })
                 )}
                 {/* Grade card — Scratch to reveal */}
                 {!isOfficialLibraryView && withPlainExplanation(

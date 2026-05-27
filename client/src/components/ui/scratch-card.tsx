@@ -11,7 +11,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 
-type Grade = "S" | "A" | "B" | "C" | "D" | "F";
+type Grade = "SS" | "S" | "A" | "B" | "C" | "D" | "F";
 type ScratchCardStatus = "passed" | "failed";
 
 type GradeTheme = {
@@ -24,6 +24,14 @@ type GradeTheme = {
 };
 
 const GRADE_CARD_THEME: Record<Grade, GradeTheme> = {
+  SS: {
+    bg: "linear-gradient(135deg, #F8B22B 0%, #FBE38C 48%, #F97316 100%)",
+    text: "#7A4B00",
+    border: "#E5B63A",
+    shadow: "0 0 24px rgba(245,158,11,0.16), inset 0 1px 0 rgba(255,255,255,0.30)",
+    shadowHover: "0 0 36px rgba(245,158,11,0.28), inset 0 1px 0 rgba(255,255,255,0.36)",
+    glow: "rgba(245,158,11,0.30)",
+  },
   S: {
     bg: "linear-gradient(135deg, #F8B22B 0%, #FBE38C 48%, #F97316 100%)",
     text: "#7A4B00",
@@ -101,14 +109,14 @@ interface ScratchCardProps {
 }
 
 function normalizeGrade(value: string): Grade {
-  if (value === "S" || value === "A" || value === "B" || value === "C" || value === "D" || value === "F") {
+  if (value === "SS" || value === "S" || value === "A" || value === "B" || value === "C" || value === "D" || value === "F") {
     return value;
   }
   return "F";
 }
 
 function shouldCelebrate(grade: Grade): boolean {
-  return grade === "S" || grade === "A";
+  return grade === "SS" || grade === "S" || grade === "A";
 }
 
 function ConfettiLayer() {
@@ -209,7 +217,7 @@ function RevealedGradeCard({
   const interactiveClass = interactive ? "transition-all duration-300 group" : "";
   const isModal = size === "modal";
   const gradeSubtitle =
-    grade === "S"
+    grade === "SS" || grade === "S"
         ? tr("Exceptional", "杰出")
       : grade === "A"
         ? tr("Excellent", "优秀")
@@ -222,7 +230,7 @@ function RevealedGradeCard({
   if (!isModal) {
     return (
       <div
-        className={`text-center p-4 rounded-[8px] bg-accent border border-border/60 ${interactive ? "transition-all duration-300" : ""} ${className}`}
+        className={`relative isolate overflow-hidden rounded-[8px] bg-accent text-center ${interactive ? "transition-all duration-300" : ""} ${className}`}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         style={{
@@ -233,8 +241,11 @@ function RevealedGradeCard({
             : undefined,
         }}
       >
-        <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("GRADE", "等级")}</div>
-        <div className="text-lg font-bold font-mono tabular-nums text-foreground">{grade}</div>
+        <div className="pointer-events-none absolute inset-0 rounded-[8px] border border-border/60" aria-hidden="true" />
+        <div className="relative z-10 flex flex-col items-center justify-center px-4 py-3">
+          <div className="relative z-10 mb-1 text-[9px] text-muted-foreground">{tr("GRADE", "等级")}</div>
+          <div className="relative z-20 text-lg font-bold font-mono tabular-nums text-foreground">{grade}</div>
+        </div>
       </div>
     );
   }
@@ -581,22 +592,24 @@ export default function ScratchCard({
 
   if (isFailed) {
     return (
-      <div className="text-center p-4 rounded-[8px] relative overflow-hidden border border-border/60 bg-accent">
-        <div className="label-upper mb-1 text-[9px] text-muted-foreground">{tr("GRADE", "等级")}</div>
-        <div className="text-lg font-bold font-mono text-muted-foreground">-</div>
-        <div className="text-[9px] mt-0.5 text-muted-foreground/80">{tr("No grade", "暂无等级")}</div>
+      <div className="relative isolate overflow-hidden rounded-[8px] bg-accent text-center">
+        <div className="pointer-events-none absolute inset-0 rounded-[8px] border border-border/60" aria-hidden="true" />
+        <div className="relative z-10 flex flex-col items-center justify-center px-4 py-3">
+          <div className="relative z-10 mb-1 text-[9px] text-muted-foreground">{tr("GRADE", "等级")}</div>
+          <div className="relative z-20 text-lg font-bold font-mono text-[#2c2117]">F</div>
+        </div>
       </div>
     );
   }
 
   if (revealedGrade && !showModal) {
-    const displayGrade = normalizeGrade(revealedGrade);
+    const displayGrade = normalizeGrade(revealedGrade === normalizedGrade ? revealedGrade : normalizedGrade);
     return (
       <RevealedGradeCard
         grade={displayGrade}
         isHovered={isHovered}
         interactive
-        className="p-4"
+        className="px-4 py-0"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       />

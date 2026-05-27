@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
@@ -67,6 +67,10 @@ type InventorySpecialCard = {
   imageSrc?: string;
   statsLayout?: "inline";
 };
+type PendingInventoryDelete =
+  | { kind: "factor"; id: string; label: string }
+  | { kind: "item"; id: string; label: string }
+  | null;
 type WalletActivityItem = {
   id: string;
   orderNo: string;
@@ -166,6 +170,7 @@ const factorGradeOrder: Record<InventoryVisualGrade, number> = {
   F: 1,
 };
 const factorRewardByGrade: Record<AlphaGrade, number> = {
+  SS: 1,
   S: 1,
   A: 0.5,
   B: 0.3,
@@ -274,8 +279,14 @@ export default function Landing() {
   const [factorSortKey, setFactorSortKey] = useState<FactorSortKey | null>("grade");
   const [factorSortDir, setFactorSortDir] = useState<SortDir>("desc");
   const [factorSortOpen, setFactorSortOpen] = useState(false);
+  const [inventoryControlsHidden, setInventoryControlsHidden] = useState(false);
+  const inventoryScrollTopRef = useRef(0);
   const [openInventoryMenuId, setOpenInventoryMenuId] = useState<string | null>(null);
   const [starredFactors, setStarredFactors] = useState<Set<string>>(() => new Set(["AF-004", "AF-009"]));
+  const [starredInventoryItems, setStarredInventoryItems] = useState<Set<string>>(() => new Set());
+  const [deletedFactorIds, setDeletedFactorIds] = useState<Set<string>>(() => new Set());
+  const [deletedInventoryItemIds, setDeletedInventoryItemIds] = useState<Set<string>>(() => new Set());
+  const [pendingInventoryDelete, setPendingInventoryDelete] = useState<PendingInventoryDelete>(null);
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -386,6 +397,7 @@ export default function Landing() {
     };
 
     const filtered = factorRows.filter((factor) => {
+      if (deletedFactorIds.has(factor.id)) return false;
       const matchQuery =
         !q ||
         factor.name.toLowerCase().includes(q) ||
@@ -404,11 +416,12 @@ export default function Landing() {
 
     const direction = factorSortDir === "asc" ? 1 : -1;
     return [...filtered].sort((a, b) => (sortValue(a) - sortValue(b)) * direction);
-  }, [factorFilter, factorQuery, factorRows, factorSortDir, factorSortKey, inventoryGradeFilter, starredFactors]);
+  }, [deletedFactorIds, factorFilter, factorQuery, factorRows, factorSortDir, factorSortKey, inventoryGradeFilter, starredFactors]);
 
   const filteredSpecialCards = useMemo(() => {
     const q = factorQuery.trim().toLowerCase();
     return inventorySpecialCards.filter((item) => {
+      if (deletedInventoryItemIds.has(item.id)) return false;
       const matchQuery =
         !q ||
         item.id.toLowerCase().includes(q) ||
@@ -416,10 +429,11 @@ export default function Landing() {
         item.nameZh.toLowerCase().includes(q) ||
         item.tagEn.toLowerCase().includes(q) ||
         item.tagZh.toLowerCase().includes(q);
+      const matchFilter = factorFilter === "all" ? true : starredInventoryItems.has(item.id);
       const matchType = inventoryGradeFilter === "all" || inventoryGradeFilter === item.type;
-      return matchQuery && matchType;
+      return matchQuery && matchFilter && matchType;
     });
-  }, [factorQuery, inventoryGradeFilter]);
+  }, [deletedInventoryItemIds, factorFilter, factorQuery, inventoryGradeFilter, starredInventoryItems]);
 
   const toggleFactorStar = (id: string) => {
     setStarredFactors((current) => {
@@ -430,7 +444,54 @@ export default function Landing() {
     });
   };
 
+  const toggleInventoryItemStar = (id: string) => {
+    setStarredInventoryItems((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleRequestInventoryDelete = (pendingDelete: NonNullable<PendingInventoryDelete>) => {
+    setOpenInventoryMenuId(null);
+    setPendingInventoryDelete(pendingDelete);
+  };
+
+  const handleConfirmInventoryDelete = () => {
+    if (!pendingInventoryDelete) return;
+
+    if (pendingInventoryDelete.kind === "factor") {
+      setDeletedFactorIds((current) => new Set(current).add(pendingInventoryDelete.id));
+      setStarredFactors((current) => {
+        const next = new Set(current);
+        next.delete(pendingInventoryDelete.id);
+        return next;
+      });
+      if (selectedInventoryFactor?.id === pendingInventoryDelete.id) {
+        setSelectedInventoryFactor(null);
+      }
+    } else {
+      setDeletedInventoryItemIds((current) => new Set(current).add(pendingInventoryDelete.id));
+      setStarredInventoryItems((current) => {
+        const next = new Set(current);
+        next.delete(pendingInventoryDelete.id);
+        return next;
+      });
+    }
+
+    setPendingInventoryDelete(null);
+  };
+
   const handleInventoryCardMove = useCallback((event: React.MouseEvent<HTMLElement>) => {
+    const eventTarget = event.target instanceof Element ? event.target : null;
+    if (eventTarget?.closest(".inv-actions")) {
+      event.currentTarget.style.setProperty("--card-tilt-x", "0deg");
+      event.currentTarget.style.setProperty("--card-tilt-y", "0deg");
+      event.currentTarget.style.setProperty("--card-shine-angle", "135deg");
+      return;
+    }
+
     const rect = event.currentTarget.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -448,6 +509,26 @@ export default function Landing() {
     event.currentTarget.style.setProperty("--card-tilt-y", "0deg");
     event.currentTarget.style.setProperty("--card-shine-angle", "135deg");
   }, []);
+
+  const handleInventoryGridScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+    const nextTop = event.currentTarget.scrollTop;
+    const previousTop = inventoryScrollTopRef.current;
+    const delta = nextTop - previousTop;
+
+    inventoryScrollTopRef.current = nextTop;
+
+    if (Math.abs(delta) > 4) {
+      setInventoryControlsHidden(delta > 0);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!inventoryOpen) {
+      setInventoryControlsHidden(false);
+      inventoryScrollTopRef.current = 0;
+      setPendingInventoryDelete(null);
+    }
+  }, [inventoryOpen]);
 
   const handleFactorSortChange = (key: string) => {
     const nextKey = key as FactorSortKey;
@@ -1239,6 +1320,84 @@ export default function Landing() {
           font-weight: 700;
         }
 
+        .delete-confirm-modal {
+          width: min(520px, 92vw);
+          max-height: none;
+        }
+
+        .delete-confirm-modal .shop-modal__header {
+          align-items: center;
+          padding-top: 18px;
+          padding-bottom: 14px;
+          background: rgba(255, 249, 232, .88);
+          border-bottom: 2px solid rgba(196, 184, 158, .62);
+        }
+
+        .delete-confirm-modal__body {
+          padding: 18px clamp(18px, 2.2vw, 28px) 20px;
+          display: grid;
+          gap: 14px;
+        }
+
+        .delete-confirm-modal__text {
+          margin: 0;
+          color: var(--ac-text);
+          font-size: 14px;
+          font-weight: 800;
+          line-height: 1.6;
+        }
+
+        .delete-confirm-modal__target {
+          padding: 12px 14px;
+          color: #5d4a36;
+          background: #fff7e3;
+          border: 2px solid rgba(196, 184, 158, .72);
+          border-radius: var(--radius-sm);
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1.5;
+        }
+
+        .delete-confirm-modal__actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        .delete-confirm-modal__btn {
+          min-width: 100px;
+          height: 38px;
+          padding: 0 14px;
+          color: var(--ac-text);
+          background: var(--ac-cream-light);
+          border: 2px solid var(--ac-border);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .delete-confirm-modal__btn:hover {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
+        }
+
+        .delete-confirm-modal__btn--danger {
+          color: #fffdf4;
+          background: linear-gradient(180deg, #e36d5c 0%, #b94a38 100%);
+          border-color: #7f2f24;
+          box-shadow:
+            inset 0 2px 0 rgba(255,255,255,.18),
+            2px 2px 0 rgba(127, 47, 36, .45);
+        }
+
+        .delete-confirm-modal__btn--danger:hover {
+          box-shadow:
+            inset 0 2px 0 rgba(255,255,255,.18),
+            3px 3px 0 rgba(127, 47, 36, .45);
+        }
+
         .shop-modal__close {
           width: 44px;
           height: 44px;
@@ -1736,6 +1895,8 @@ export default function Landing() {
         .inventory-modal {
           --inventory-pixel-edge: color-mix(in srgb, var(--ac-border) 82%, var(--ac-text));
           --inventory-pixel-shadow: color-mix(in srgb, var(--ac-shadow) 76%, var(--ac-text));
+          --inventory-toolbar-height: 140px;
+          --inventory-filter-height: 110px;
           width: min(1180px, 95vw);
           background: linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
           border: 2px solid var(--inventory-pixel-edge);
@@ -1765,10 +1926,53 @@ export default function Landing() {
         }
 
         .inventory-modal .shop-modal__toolbar {
-          padding-top: 10px;
+          align-content: flex-start;
+          flex: 0 0 auto;
+          min-height: 0;
+          height: auto;
+          padding-top: 16px;
           padding-bottom: 10px;
           background: rgba(255, 249, 232, .58);
           border-bottom: 0;
+        }
+
+        .inventory-modal .shop-modal__toolbar {
+          max-height: var(--inventory-toolbar-height);
+          position: relative;
+          z-index: 20;
+          overflow: visible;
+          opacity: 1;
+          transform: translateY(0);
+          transition:
+            opacity .18s ease,
+            transform .22s ease;
+        }
+
+        .inventory-modal .inventory-grade-filter {
+          align-content: flex-start;
+          flex: 0 0 auto;
+          min-height: 0;
+          height: auto;
+          max-height: var(--inventory-filter-height);
+          overflow: hidden;
+          opacity: 1;
+          transform: translateY(0);
+          transition:
+            opacity .18s ease,
+            transform .22s ease;
+        }
+
+        .inventory-modal.inventory-modal--controls-hidden .shop-modal__toolbar,
+        .inventory-modal.inventory-modal--controls-hidden .inventory-grade-filter {
+          min-height: 0;
+          height: 0;
+          max-height: 0;
+          overflow: hidden;
+          opacity: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+          transform: translateY(-8px);
+          pointer-events: none;
         }
 
         .inventory-modal .shop-modal__close,
@@ -1800,7 +2004,7 @@ export default function Landing() {
           flex-wrap: wrap;
           align-items: center;
           gap: 8px;
-          padding: 0 clamp(18px, 2.6vw, 34px) 10px;
+          padding: 8px clamp(18px, 2.6vw, 34px) 10px;
           background: rgba(255, 249, 232, .46);
         }
 
@@ -2000,7 +2204,9 @@ export default function Landing() {
           padding: 0 14px;
           color: var(--ac-text);
           background: #9bdc5c;
-          border: 2px solid #101010;
+          border-width: 2px;
+          border-style: solid;
+          border-color: #101010;
           border-radius: var(--radius-xs);
           box-shadow: 2px 2px 0 rgba(80, 63, 40, .42);
           font: inherit;
@@ -2209,6 +2415,8 @@ export default function Landing() {
         }
 
         .inventory-grid {
+          flex: 1 1 auto;
+          min-height: 0;
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
           grid-auto-rows: minmax(357px, auto);
@@ -2365,6 +2573,10 @@ export default function Landing() {
           border-radius: 4px 0 0 0;
         }
 
+        .inventory-card--SS .inv-art__tag {
+          background: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
+        }
+
         .inventory-card--SS .inv-stats,
         .inventory-card--S .inv-stats {
           border-width: 2px;
@@ -2381,9 +2593,13 @@ export default function Landing() {
           border-width: 2px;
         }
 
+        .inventory-card--SS .inv-btn--cta {
+          background: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
+        }
+
         .inventory-card--SS .inv-head,
         .inventory-card--S .inv-head {
-          margin-bottom: -8px;
+          margin-bottom: 0;
         }
 
         .inventory-card--SS:hover,
@@ -2411,9 +2627,11 @@ export default function Landing() {
           z-index: 12;
           display: flex;
           align-items: center;
-          justify-content: flex-start;
-          min-height: 42px;
-          padding: 0 0 12px;
+          justify-content: space-between;
+          gap: 10px;
+          height: auto;
+          min-height: 0;
+          padding: 0 0 8px;
           transform: translateZ(0);
           transition: transform .28s cubic-bezier(.22,1,.36,1);
         }
@@ -2427,9 +2645,10 @@ export default function Landing() {
         }
 
         .inv-medal {
-          position: absolute;
-          top: 0;
-          right: 0;
+          position: relative;
+          top: auto;
+          right: auto;
+          flex: 0 0 auto;
           min-width: 34px;
           height: 26px;
           z-index: 20;
@@ -2439,7 +2658,9 @@ export default function Landing() {
           padding: 0 10px;
           color: #101010;
           background: var(--tier-accent);
-          border: 2px solid #101010;
+          border-width: 2px;
+          border-style: solid;
+          border-color: #101010;
           border-radius: 999px;
           box-shadow: none;
           font-family: inherit;
@@ -2459,7 +2680,7 @@ export default function Landing() {
           letter-spacing: .03em;
         }
         .inv-medal--SS {
-          background: #ffa742;
+          background: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
           box-shadow: 0 0 0 2px rgba(255, 247, 220, .56), 0 10px 16px rgba(171, 118, 25, .14);
         }
         .inventory-card:hover .inv-medal {
@@ -2746,7 +2967,7 @@ export default function Landing() {
         }
 
         .inventory-card--A .inv-head {
-          margin-bottom: -8px;
+          margin-bottom: 0;
         }
         .inventory-card--B {
           --tier-bg: #cfefff;
@@ -2785,7 +3006,7 @@ export default function Landing() {
         }
 
         .inventory-card--B .inv-head {
-          margin-bottom: -8px;
+          margin-bottom: 0;
         }
         .inventory-card--C {
           --tier-bg: #defec0;
@@ -2824,7 +3045,7 @@ export default function Landing() {
         }
 
         .inventory-card--C .inv-head {
-          margin-bottom: -8px;
+          margin-bottom: 0;
         }
         .inventory-card--D {
           --tier-bg: #f3eee8;
@@ -2863,7 +3084,7 @@ export default function Landing() {
         }
 
         .inventory-card--D .inv-head {
-          margin-bottom: -8px;
+          margin-bottom: 0;
         }
         .inventory-card--F {
           --tier-bg: #ececec;
@@ -2902,7 +3123,7 @@ export default function Landing() {
         }
 
         .inventory-card--F .inv-head {
-          margin-bottom: -8px;
+          margin-bottom: 0;
         }
         .inventory-card--F .inv-art__img { filter: grayscale(.5); }
 
@@ -2977,7 +3198,7 @@ export default function Landing() {
 
         .inventory-card--prop .inv-head,
         .inventory-card--misc .inv-head {
-          margin-bottom: -8px;
+          margin-bottom: 0;
         }
 
         .inventory-card--prop .inv-item-art,
@@ -3756,11 +3977,37 @@ export default function Landing() {
         }
 
         .detail-metric-card {
+          position: relative;
+          isolation: isolate;
+          overflow: hidden;
           min-width: 0;
+          background: rgba(255,255,248,.86);
+          border: 2px solid rgba(196, 184, 158, .78);
+          border-radius: var(--radius-md);
+          box-shadow: 0 4px 0 rgba(189, 174, 160, .68);
+        }
+
+        .detail-metric-card__border {
+          pointer-events: none;
+          position: absolute;
+          inset: 0;
+          border: inherit;
+          border-radius: inherit;
+          background: transparent;
+        }
+
+        .detail-metric-card__content {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
           padding: 12px;
         }
 
         .detail-label {
+          position: relative;
+          z-index: 10;
           color: rgba(114, 93, 66, .72);
           font-size: 10px;
           font-weight: 900;
@@ -3769,6 +4016,8 @@ export default function Landing() {
         }
 
         .detail-value {
+          position: relative;
+          z-index: 20;
           margin-top: 7px;
           color: var(--ac-text);
           font-size: 18px;
@@ -3992,7 +4241,16 @@ export default function Landing() {
       />
 
       <nav className="ui-left" aria-label="Game menu">
-        <button className="menu-tile" type="button" aria-label="Inventory" onClick={() => setInventoryOpen(true)}>
+        <button
+          className="menu-tile"
+          type="button"
+          aria-label="Inventory"
+          onClick={() => {
+            setInventoryControlsHidden(false);
+            inventoryScrollTopRef.current = 0;
+            setInventoryOpen(true);
+          }}
+        >
           <img className="menu-tile__icon" src="/assets/inventory-menu-icon-v2.svg" alt="" />
           <span className="menu-tile__name">背包</span>
         </button>
@@ -4221,7 +4479,10 @@ export default function Landing() {
                     className="inventory-detail-back"
                     type="button"
                     aria-label={tr("Back to inventory", "返回背包")}
-                    onClick={() => setSelectedInventoryFactor(null)}
+                    onClick={() => {
+                      setInventoryControlsHidden(false);
+                      setSelectedInventoryFactor(null);
+                    }}
                   >
                     <ArrowLeft size={20} strokeWidth={3} />
                   </button>
@@ -4237,6 +4498,7 @@ export default function Landing() {
                   type="button"
                   aria-label={tr("Close factor detail", "关闭因子详情")}
                   onClick={() => {
+                    setInventoryControlsHidden(false);
                     setInventoryOpen(false);
                     setSelectedInventoryFactor(null);
                   }}
@@ -4259,16 +4521,22 @@ export default function Landing() {
               </div>
             </section>
           ) : (
-          <section className="shop-modal inventory-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-modal-title">
+          <section
+            className={`shop-modal inventory-modal${inventoryControlsHidden ? " inventory-modal--controls-hidden" : ""}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inventory-modal-title"
+          >
             <header className="shop-modal__header">
               <div>
-                <h2 className="shop-modal__title" id="inventory-modal-title">背包</h2>
+                <h2 className="shop-modal__title" id="inventory-modal-title">图鉴</h2>
               </div>
               <button
                 className="shop-modal__close"
                 type="button"
                 aria-label={tr("Close inventory", "关闭背包")}
                 onClick={() => {
+                  setInventoryControlsHidden(false);
                   setInventoryOpen(false);
                   setSelectedInventoryFactor(null);
                 }}
@@ -4366,7 +4634,7 @@ export default function Landing() {
               ))}
             </div>
 
-            <div className="inventory-grid">
+            <div className="inventory-grid" onScroll={handleInventoryGridScroll}>
               {filteredFactors.map((factor) => {
                 const isStarred = starredFactors.has(factor.id);
                 const returns = parseMetricValue(factor.returns);
@@ -4427,7 +4695,11 @@ export default function Landing() {
                               className="inv-more-menu__item"
                               type="button"
                               role="menuitem"
-                              onClick={() => setOpenInventoryMenuId(null)}
+                              onClick={() => handleRequestInventoryDelete({
+                                kind: "factor",
+                                id: factor.id,
+                                label: `${tr("Factor", "因子")} NO.${inventoryNo} ${factor.name}`,
+                              })}
                             >
                               {tr("Delete", "删除")}
                             </button>
@@ -4495,6 +4767,16 @@ export default function Landing() {
                 const cardClassName = `inventory-card inventory-card--${item.type}`;
                 const menuId = `item-${item.id}`;
                 const inventoryNo = inventorySpecialNoById.get(item.id) ?? factorRows.length + 1;
+                const isStarred = starredInventoryItems.has(item.id);
+                const favoriteItemLabel = item.type === "prop"
+                  ? {
+                      favorite: tr("Favorite item", "收藏道具"),
+                      unfavorite: tr("Unfavorite item", "取消收藏道具"),
+                    }
+                  : {
+                      favorite: tr("Favorite misc item", "收藏杂物"),
+                      unfavorite: tr("Unfavorite misc item", "取消收藏杂物"),
+                    };
                 return (
                   <article
                     className={cardClassName}
@@ -4565,15 +4847,28 @@ export default function Landing() {
                               className="inv-more-menu__item"
                               type="button"
                               role="menuitem"
-                              onClick={() => setOpenInventoryMenuId(null)}
+                              onClick={() => handleRequestInventoryDelete({
+                                kind: "item",
+                                id: item.id,
+                                label: `${tr(item.type === "prop" ? "Item" : "Misc item", item.type === "prop" ? "道具" : "杂物")} NO.${inventoryNo} ${tr(item.tagEn, item.tagZh)}`,
+                              })}
                             >
                               {tr("Delete", "删除")}
                             </button>
                           </div>
                         )}
                       </div>
-                      <button className="inv-btn inv-btn--ghost inv-btn--star" type="button" aria-label={tr("Favorite item", "收藏道具")}>
-                        <Star size={18} strokeWidth={2.5} />
+                      <button
+                        className={`inv-btn inv-btn--ghost inv-btn--star${isStarred ? " is-on" : ""}`}
+                        type="button"
+                        aria-pressed={isStarred}
+                        aria-label={isStarred ? favoriteItemLabel.unfavorite : favoriteItemLabel.favorite}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleInventoryItemStar(item.id);
+                        }}
+                      >
+                        <Star size={18} strokeWidth={2.5} fill={isStarred ? "#f6c63a" : "none"} />
                       </button>
                     </div>
                   </article>
@@ -4586,6 +4881,60 @@ export default function Landing() {
             </div>
           </section>
           )}
+        </div>
+      )}
+
+      {pendingInventoryDelete && (
+        <div
+          className="shop-modal-backdrop"
+          role="presentation"
+          style={{ zIndex: 70 }}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPendingInventoryDelete(null);
+          }}
+        >
+          <section className="shop-modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+            <header className="shop-modal__header">
+              <div>
+                <h2 className="shop-modal__title" id="delete-confirm-title">确认删除</h2>
+              </div>
+              <button
+                className="shop-modal__close"
+                type="button"
+                aria-label={tr("Close confirmation", "关闭确认弹窗")}
+                onClick={() => setPendingInventoryDelete(null)}
+              >
+                <X size={22} strokeWidth={3} />
+              </button>
+            </header>
+            <div className="delete-confirm-modal__body">
+              <p className="delete-confirm-modal__text">
+                {tr(
+                  "This item will be deleted permanently. Please confirm if you want to continue.",
+                  "删除后不可恢复，请确认是否继续。"
+                )}
+              </p>
+              <div className="delete-confirm-modal__target">
+                {pendingInventoryDelete.label}
+              </div>
+              <div className="delete-confirm-modal__actions">
+                <button
+                  className="delete-confirm-modal__btn"
+                  type="button"
+                  onClick={() => setPendingInventoryDelete(null)}
+                >
+                  {tr("Cancel", "取消")}
+                </button>
+                <button
+                  className="delete-confirm-modal__btn delete-confirm-modal__btn--danger"
+                  type="button"
+                  onClick={handleConfirmInventoryDelete}
+                >
+                  {tr("Delete", "删除")}
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
       )}
 
@@ -4822,14 +5171,17 @@ export default function Landing() {
                   [tr("PnL", "盈亏"), `${fmtSigned(detailModel.totalReturn)} USDT`, detailModel.totalReturn >= 0 ? "detail-value--up" : "detail-value--down"],
                   ["ROI", selectedStrategy.annualReturn, detailModel.roi >= 0 ? "detail-value--up" : "detail-value--down"],
                   [tr("Win Rate", "胜率"), selectedStrategy.winRate, ""],
-                  [tr("Sharpe", "夏普"), selectedStrategy.sharpe.toFixed(2), ""],
-                  [tr("Max Drawdown", "最大回撤"), selectedStrategy.maxDrawdown, "detail-value--down"],
-                ].map(([label, value, tone]) => (
-                  <div className="detail-metric-card" key={label}>
+                [tr("Sharpe", "夏普"), selectedStrategy.sharpe.toFixed(2), ""],
+                [tr("Max Drawdown", "最大回撤"), selectedStrategy.maxDrawdown, "detail-value--down"],
+              ].map(([label, value, tone]) => (
+                <div className="detail-metric-card" key={label}>
+                  <div className="detail-metric-card__border" aria-hidden="true" />
+                  <div className="detail-metric-card__content">
                     <div className="detail-label">{label}</div>
                     <div className={`detail-value ${tone}`}>{value}</div>
                   </div>
-                ))}
+                </div>
+              ))}
               </div>
 
               <div className="detail-panel-grid">
