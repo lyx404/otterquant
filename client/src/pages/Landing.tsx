@@ -1428,9 +1428,12 @@ export default function Landing() {
         }
 
         .sort-direction-select__chevron {
-          color: #62bfb2;
-          font-size: 12px;
-          line-height: 1;
+          width: 12px;
+          height: 12px;
+          display: flex;
+          align-items: center;
+          color: #a09080;
+          line-height: 0;
           transform: rotate(0deg);
           transition: transform .18s ease;
         }
@@ -2394,7 +2397,7 @@ export default function Landing() {
         }
 
         .inventory-card--SS {
-          --tier-bg: #ff9c7a;
+          --tier-bg: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
           --tier-edge: #d39a2b;
           --tier-accent: #ffa742;
           --tier-accent-deep: #9c5d0f;
@@ -4309,7 +4312,11 @@ export default function Landing() {
                       onClick={() => setFactorSortOpen((open) => !open)}
                     >
                       <span>{tr("Sort", "排序")}</span>
-                      <span className="sort-direction-select__chevron" aria-hidden="true">⌃</span>
+                      <span className="sort-direction-select__chevron" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
                     </button>
                     {factorSortOpen && (
                       <div className="sort-direction-select__menu" role="listbox" aria-label={tr("Factor sort", "因子排序")}>
@@ -4631,7 +4638,11 @@ export default function Landing() {
                       onClick={() => setStrategySortOpen((open) => !open)}
                     >
                       <span>{tr("Sort", "排序")}</span>
-                      <span className="sort-direction-select__chevron" aria-hidden="true">⌃</span>
+                      <span className="sort-direction-select__chevron" aria-hidden="true">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
                     </button>
                     {strategySortOpen && (
                       <div className="sort-direction-select__menu" role="listbox" aria-label={tr("Sort", "排序")}>

@@ -1035,17 +1035,17 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                 <div className="mb-3 flex items-center gap-3">
                   <h3 className="text-sm font-bold text-[#2c2117]">{tr("Expression", "表达式")}</h3>
                 </div>
-                <div className="grid gap-2 border-t border-[#eadabb] pt-3">
+                <div className="grid gap-2 pt-3">
                   {expressionProcessSteps.map((step) => (
                     <code
                       key={step}
-                      className="block min-w-0 whitespace-normal break-words font-mono text-xs leading-5 text-[#725d42]"
+                      className="block min-w-0 whitespace-normal break-words font-mono text-xs leading-5 text-[#dcc78f]"
                     >
                       {step}
                     </code>
                   ))}
-                  <div className="mt-1 flex min-w-0 items-start gap-3 rounded-md bg-[#fff3d3] px-3 py-2">
-                    <code className="min-w-0 flex-1 whitespace-normal break-words font-mono text-sm font-bold leading-6 text-[#0f8b7b]">
+                  <div className="mt-1 flex min-w-0 items-center gap-3 rounded-md bg-[#fff3d3] px-3 py-2">
+                    <code className="min-w-0 flex-1 whitespace-normal break-words font-mono text-sm font-bold leading-6 text-[#725d42]">
                       {factor.expression}
                     </code>
                     <Button
@@ -1053,7 +1053,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                       variant="outline"
                       size="sm"
                       onClick={handleCopyExpression}
-                      className="h-8 shrink-0 rounded-md border-[#d8c7a7] bg-[#fffdf4] px-3 text-xs text-[#725d42] hover:bg-[#fff3d3] hover:text-[#2c2117]"
+                      className="h-8 shrink-0 !rounded-[4px] !border-0 bg-[#fffdf4] px-3 text-xs text-[#725d42] hover:bg-[#fff3d3] hover:text-[#2c2117]"
                     >
                       <Copy className="mr-1.5 h-3.5 w-3.5" />
                       {copiedExpression ? tr("Copied", "已复制") : tr("Copy", "复制")}
