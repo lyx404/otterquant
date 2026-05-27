@@ -85,6 +85,17 @@ type MultiLineChartSeries = {
   label: string;
   color: string;
   points: PnlChartPoint[];
+  strokeWidth?: number;
+  strokeDasharray?: string;
+};
+type CumIcComparisonPoint = {
+  date: string;
+  x: number;
+  ic: number;
+  wpcc: number;
+  cumIc: number;
+  cumWpcc: number;
+  bandY: number;
 };
 
 function formatPnlValue(value: number) {
@@ -152,6 +163,96 @@ function buildPnlAreaRuns(points: PnlScreenPoint[], upColor: string, downColor: 
   return runs.filter((run) => run.points.length > 1);
 }
 
+function buildCumIcComparisonSeries(data: PnlChartPoint[]) {
+  const lastIndex = Math.max(data.length - 1, 1);
+  const points: CumIcComparisonPoint[] = [];
+  let cumIc = 0;
+  let cumWpcc = 0;
+  let sumIc = 0;
+  let sumWpcc = 0;
+  let sumIcSq = 0;
+
+  for (let index = 0; index < data.length; index += 1) {
+    const progress = index / lastIndex;
+    const seasonal = Math.sin(index * 0.022) * 0.006 + Math.cos(index * 0.009 + 0.8) * 0.004;
+    const pulse = Math.max(0, Math.sin(index * 0.11 + 0.5)) * 0.084;
+    const earlyDrag = index < 45 ? -0.006 * (1 - index / 45) : 0;
+
+    const ic = Number((0.0118 + progress * 0.0019 + seasonal + pulse + earlyDrag).toFixed(5));
+    const wpcc = Number((0.0122 + progress * 0.0014 + seasonal * 0.9 + pulse * 0.76 + earlyDrag * 0.8).toFixed(5));
+
+    cumIc += ic;
+    cumWpcc += wpcc;
+    sumIc += ic;
+    sumWpcc += wpcc;
+    sumIcSq += ic * ic;
+
+    points.push({
+      date: data[index].date,
+      x: 0,
+      ic,
+      wpcc,
+      cumIc: Number(cumIc.toFixed(3)),
+      cumWpcc: Number(cumWpcc.toFixed(3)),
+      bandY: ic,
+    });
+  }
+
+  const meanIc = points.length ? sumIc / points.length : 0;
+  const meanWpcc = points.length ? sumWpcc / points.length : 0;
+  const varianceIc = points.length ? Math.max(sumIcSq / points.length - meanIc * meanIc, 0) : 0;
+  const stdIc = Math.sqrt(varianceIc) || 1;
+
+  return {
+    points,
+    meanIc,
+    meanWpcc,
+    icir: meanIc / stdIc,
+  };
+}
+
+function buildIcDecaySeries(data: PnlChartPoint[]): Array<{ lag: number; value: number }> {
+  const lags = [1, 3, 5, 10, 20, 50];
+  const baseValues: Record<number, number> = {
+    1: 0.0038,
+    3: -0.0092,
+    5: -0.0284,
+    10: -0.0078,
+    20: 0.0007,
+    50: -0.0093,
+  };
+  const signature = Math.tanh((data[0]?.value ?? 0) / 1_000_000) * 0.0002;
+
+  return lags.map((lag, index) => {
+    const wobble = Math.sin(lag * 0.87 + index * 0.51) * 0.00035 + Math.cos(lag * 0.21) * 0.00014;
+    return {
+      lag,
+      value: Number((baseValues[lag] + wobble + signature).toFixed(5)),
+    };
+  });
+}
+
+function buildFactorAutocorrSeries(data: PnlChartPoint[]): Array<{ lag: number; value: number }> {
+  const lags = [1, 3, 5, 10, 20, 50];
+  const anchors: Record<number, number> = {
+    1: -0.0178,
+    3: 0.0126,
+    5: 0.0171,
+    10: 0.0056,
+    20: -0.0104,
+    50: -0.0028,
+  };
+  const signature = Math.tanh((data[0]?.value ?? 0) / 1_000_000) * 0.00018;
+
+  return lags.map((lag, index) => {
+    const wobble = Math.sin(lag * 0.31 + index * 0.43) * 0.00012;
+    return {
+      lag,
+      value: Number((anchors[lag] + signature + wobble).toFixed(5)),
+    };
+  });
+}
+
 function useMeasuredChartSize(initialHeight = 300) {
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartSize, setChartSize] = useState({ width: 1120, height: initialHeight });
@@ -198,7 +299,7 @@ function PnlLineChart({
   const { chartRef, chartSize } = useMeasuredChartSize(300);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(220, chartSize.height);
-  const padding = { top: 14, right: 58, bottom: 30, left: 118 };
+  const padding = { top: 14, right: 16, bottom: 28, left: 84 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -324,11 +425,11 @@ function PnlLineChart({
         return (
           <div
             key={tick}
-            className="pointer-events-none absolute -translate-y-1/2 pr-2 text-right text-[10px] font-bold leading-none tabular-nums"
-            style={{
-              left: 0,
+              className="pointer-events-none absolute -translate-y-1/2 pr-2 text-right text-[10px] font-bold leading-none tabular-nums"
+              style={{
+              left: 4,
               top: `${(y / height) * 100}%`,
-              width: `${(padding.left / width) * 100}%`,
+              width: `${((padding.left - 8) / width) * 100}%`,
               color: chartTickColor,
             }}
           >
@@ -386,7 +487,7 @@ function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
   const { chartRef, chartSize } = useMeasuredChartSize(300);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(220, chartSize.height);
-  const padding = { top: 34, right: 58, bottom: 46, left: 118 };
+  const padding = { top: 34, right: 20, bottom: 46, left: 68 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -424,7 +525,8 @@ function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
   return (
     <div
       ref={chartRef}
-      className="relative h-full w-full overflow-hidden rounded-lg"
+      className="relative isolate h-full w-full overflow-hidden rounded-lg"
+      data-chart-layer="container"
       onMouseLeave={() => setHoverIndex(null)}
       onMouseMove={(event) => {
         const bounds = event.currentTarget.getBoundingClientRect();
@@ -433,51 +535,130 @@ function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
         setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
       }}
     >
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-full w-full"
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label="PNL line chart"
+      <div className="pointer-events-none absolute inset-0 z-0 rounded-lg" aria-hidden="true" />
+
+      <div
+        className="pointer-events-none absolute inset-x-4 top-3 z-40 flex flex-wrap items-center justify-end gap-x-4 gap-y-1 bg-transparent px-0 py-0 text-xs"
+        data-chart-layer="legend"
+        aria-label="Chart legend layer"
       >
+        {series.map((item) => (
+          <div key={item.key} className="flex items-center gap-2 whitespace-nowrap font-semibold text-[#2c2117]">
+            <span className="h-[3px] w-7 rounded-full" style={{ backgroundColor: item.color }} />
+            {item.label}
+          </div>
+        ))}
+      </div>
+
+      <div
+        className="pointer-events-none absolute inset-0 z-20"
+        data-chart-layer="axes"
+        aria-label="Chart axis layer"
+      >
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="h-full w-full"
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden="true"
+        >
+          {yTicks.map((tick) => {
+            const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+            return (
+              <line
+                key={tick}
+                x1={padding.left}
+                x2={width - padding.right}
+                y1={y}
+                y2={y}
+                stroke={tick === 0 ? chartZeroColor : chartGridColor}
+                strokeDasharray={tick === 0 ? "4 4" : "5 4"}
+                strokeWidth={tick === 0 ? "1.2" : "1"}
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+          {xTicks.map((index) => {
+            const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
+            return (
+              <line
+                key={index}
+                x1={x}
+                x2={x}
+                y1={padding.top}
+                y2={height - padding.bottom}
+                stroke={chartGridColor}
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute left-[2px] top-1/2 -translate-y-1/2 -rotate-90 text-[11px] font-bold text-[#725d42]">
+          Log Cumulative Return
+        </div>
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-[#725d42]">
+          Time
+        </div>
         {yTicks.map((tick) => {
           const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
           return (
-            <line
+            <div
               key={tick}
-              x1={padding.left}
-              x2={width - padding.right}
-              y1={y}
-              y2={y}
-              stroke={tick === 0 ? chartZeroColor : chartGridColor}
-              strokeDasharray={tick === 0 ? "4 4" : "5 4"}
-              strokeWidth={tick === 0 ? "1.2" : "1"}
-              vectorEffect="non-scaling-stroke"
-            />
+              className="absolute -translate-y-1/2 pr-1 text-right text-[10px] font-bold leading-none tabular-nums"
+              style={{
+                left: 18,
+                top: `${(y / height) * 100}%`,
+                width: `${((padding.left - 18) / width) * 100}%`,
+                color: chartTickColor,
+              }}
+            >
+              {tick.toFixed(tick === 0 ? 3 : 1)}
+            </div>
           );
         })}
         {xTicks.map((index) => {
+          const point = series[0]?.points[index];
+          if (!point) return null;
           const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
+          const isFirstTick = index === 0;
+          const isLastTick = index === pointCount - 1;
           return (
-            <line
-              key={index}
-              x1={x}
-              x2={x}
-              y1={padding.top}
-              y2={height - padding.bottom}
-              stroke={chartGridColor}
-              strokeWidth="1"
-              vectorEffect="non-scaling-stroke"
-            />
+            <div
+              key={point.date}
+              className="absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
+              style={{
+                left: `${(x / width) * 100}%`,
+                top: `${((height - 20) / height) * 100}%`,
+                transform: isFirstTick ? "translate(0, -50%)" : isLastTick ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
+                color: chartTickColor,
+              }}
+            >
+              {point.date.substring(0, 7)}
+            </div>
           );
         })}
+      </div>
+
+      <svg
+        viewBox={`0 ${padding.top} ${width} ${plotHeight}`}
+        className="absolute left-0 z-30 w-full overflow-visible"
+        preserveAspectRatio="xMidYMid meet"
+        data-chart-layer="plot"
+        role="img"
+        aria-label="PNL line chart"
+        style={{
+          top: `${(padding.top / height) * 100}%`,
+          height: `${(plotHeight / height) * 100}%`,
+        }}
+      >
         {screenSeries.map((item) => (
           <path
             key={item.key}
             d={buildPnlPath(item.points)}
             fill="none"
             stroke={item.color}
-            strokeWidth={item.key === "longShort" ? "2.4" : "2"}
+            strokeWidth={item.strokeWidth ? String(item.strokeWidth) : item.key === "longShort" ? "2.4" : "2"}
+            strokeDasharray={item.strokeDasharray}
             strokeLinecap="round"
             strokeLinejoin="round"
             vectorEffect="non-scaling-stroke"
@@ -492,61 +673,9 @@ function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
           </>
         ) : null}
       </svg>
-      <div className="pointer-events-none absolute right-4 top-3 flex flex-wrap items-center justify-end gap-x-4 gap-y-1 bg-transparent px-0 py-0 text-xs">
-        {series.map((item) => (
-          <div key={item.key} className="flex items-center gap-2 whitespace-nowrap font-semibold text-[#2c2117]">
-            <span className="h-[3px] w-7 rounded-full" style={{ backgroundColor: item.color }} />
-            {item.label}
-          </div>
-        ))}
-      </div>
-      <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 -rotate-90 text-[11px] font-bold text-[#725d42]">
-        Log Cumulative Return
-      </div>
-      <div className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-[#725d42]">
-        Time
-      </div>
-      {yTicks.map((tick) => {
-        const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
-        return (
-          <div
-            key={tick}
-            className="pointer-events-none absolute -translate-y-1/2 pr-2 text-right text-[10px] font-bold leading-none tabular-nums"
-            style={{
-              left: 0,
-              top: `${(y / height) * 100}%`,
-              width: `${(padding.left / width) * 100}%`,
-              color: chartTickColor,
-            }}
-          >
-            {tick.toFixed(tick === 0 ? 3 : 1)}
-          </div>
-        );
-      })}
-      {xTicks.map((index) => {
-        const point = series[0]?.points[index];
-        if (!point) return null;
-        const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
-        const isFirstTick = index === 0;
-        const isLastTick = index === pointCount - 1;
-        return (
-          <div
-            key={point.date}
-            className="pointer-events-none absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
-            style={{
-              left: `${(x / width) * 100}%`,
-              top: `${((height - 20) / height) * 100}%`,
-              transform: isFirstTick ? "translate(0, -50%)" : isLastTick ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
-              color: chartTickColor,
-            }}
-          >
-            {point.date.substring(0, 7)}
-          </div>
-        );
-      })}
       {hoveredPoint ? (
         <div
-          className="pointer-events-none absolute rounded-lg border border-border/80 bg-[#fff3d3] px-3 py-2 text-xs shadow-xl"
+          className="pointer-events-none absolute z-40 rounded-lg border border-border/80 bg-[#fff3d3] px-3 py-2 text-xs shadow-xl"
           style={{
             left: `${(hoveredPoint.x / width) * 100}%`,
             top: `${(hoveredPoint.y / height) * 100}%`,
@@ -567,6 +696,902 @@ function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
                 {item.label} {item.point.value.toFixed(3)}
               </div>
             ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function GroupCumReturnChart({ data }: { data: PnlChartPoint[] }) {
+  const { chartRef, chartSize } = useMeasuredChartSize(320);
+  const width = Math.max(320, chartSize.width);
+  const height = Math.max(220, chartSize.height);
+  const padding = { top: 32, right: 20, bottom: 46, left: 70 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const series = useMemo(() => buildGroupCumReturnSeries(data), [data]);
+  const pointCount = Math.max(...series.map((item) => item.points.length), 1);
+  const domainMin = -2.25;
+  const domainMax = 0.75;
+  const domainRange = domainMax - domainMin;
+  const yTicks = [0.5, 0, -0.5, -1, -1.5, -2];
+  const xTicks = [0, 3, 6, 9, 12, 15, 18, 21, 24].filter((index) => index < pointCount);
+  const chartGridColor = "rgba(100,116,139,0.18)";
+  const chartZeroColor = "rgba(17,24,39,0.8)";
+  const chartTickColor = "rgba(82, 64, 37, 0.82)";
+
+  const screenSeries = series.map((item) => ({
+    ...item,
+    points: item.points.map((point, index) => ({
+      ...point,
+      x: padding.left + (index / Math.max(1, item.points.length - 1)) * plotWidth,
+      y: padding.top + ((domainMax - point.value) / domainRange) * plotHeight,
+    })),
+  }));
+  const hoveredSeries = hoverIndex === null
+    ? []
+    : screenSeries
+        .map((item) => ({ ...item, point: item.points[Math.min(hoverIndex, item.points.length - 1)] }))
+        .filter((item) => item.point);
+  const hoveredPoint = hoveredSeries[0]?.point ?? null;
+
+  return (
+    <div
+      ref={chartRef}
+      className="relative isolate h-full w-full overflow-hidden rounded-lg"
+      data-chart-layer="container"
+      onMouseLeave={() => setHoverIndex(null)}
+      onMouseMove={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        const nextIndex = Math.round(ratio * (pointCount - 1));
+        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 z-0 rounded-lg" aria-hidden="true" />
+
+      <div
+        className="pointer-events-none absolute left-4 top-3 z-40 flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-x-4 gap-y-1 bg-transparent px-0 py-0 text-xs"
+        data-chart-layer="legend"
+        aria-label="Chart legend layer"
+      >
+        {series.map((item) => (
+          <div key={item.key} className="flex items-center gap-2 whitespace-nowrap font-semibold text-[#2c2117]">
+            <span
+              className="h-[3px] w-7 rounded-full"
+              style={
+                item.strokeDasharray
+                  ? {
+                      backgroundImage: `repeating-linear-gradient(90deg, ${item.color} 0 4px, transparent 4px 7px)`,
+                    }
+                  : { backgroundColor: item.color }
+              }
+            />
+            {item.label}
+          </div>
+        ))}
+      </div>
+
+      <div className="pointer-events-none absolute inset-0 z-20" data-chart-layer="axes" aria-label="Chart axis layer">
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          {yTicks.map((tick) => {
+            const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+            return (
+              <line
+                key={`group-cum-return-y-grid-${tick}`}
+                x1={padding.left}
+                x2={width - padding.right}
+                y1={y}
+                y2={y}
+                stroke={tick === 0 ? chartZeroColor : chartGridColor}
+                strokeDasharray={tick === 0 ? "4 4" : "5 4"}
+                strokeWidth={tick === 0 ? "1.2" : "1"}
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+          {xTicks.map((index) => {
+            const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
+            return (
+              <line
+                key={`group-cum-return-x-grid-${index}`}
+                x1={x}
+                x2={x}
+                y1={padding.top}
+                y2={height - padding.bottom}
+                stroke={chartGridColor}
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute left-[2px] top-1/2 -translate-y-1/2 -rotate-90 text-[11px] font-bold text-[#725d42]">
+          Log Cumulative Return
+        </div>
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-[#725d42]">
+          Time
+        </div>
+        {yTicks.map((tick) => {
+          const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+          return (
+            <div
+              key={`group-cum-return-y-${tick}`}
+              className="absolute -translate-y-1/2 pr-1 text-right text-[10px] font-bold leading-none tabular-nums"
+              style={{
+                left: 18,
+                top: `${(y / height) * 100}%`,
+                width: `${((padding.left - 18) / width) * 100}%`,
+                color: chartTickColor,
+              }}
+            >
+              {tick.toFixed(1)}
+            </div>
+          );
+        })}
+        {xTicks.map((index) => {
+          const point = series[0]?.points[index];
+          if (!point) return null;
+          const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
+          const isFirstTick = index === 0;
+          const isLastTick = index === pointCount - 1;
+          return (
+            <div
+              key={point.date}
+              className="absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
+              style={{
+                left: `${(x / width) * 100}%`,
+                top: `${((height - 18) / height) * 100}%`,
+                transform: isFirstTick ? "translate(0, -50%)" : isLastTick ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
+                color: chartTickColor,
+              }}
+            >
+              {point.date}
+            </div>
+          );
+        })}
+      </div>
+
+      <svg
+        viewBox={`0 ${padding.top} ${width} ${plotHeight}`}
+        className="absolute left-0 z-30 w-full overflow-visible"
+        preserveAspectRatio="xMidYMid meet"
+        data-chart-layer="plot"
+        role="img"
+        aria-label="Group cumulative return chart"
+        style={{
+          top: `${(padding.top / height) * 100}%`,
+          height: `${(plotHeight / height) * 100}%`,
+        }}
+      >
+        {screenSeries.map((item) => (
+          <path
+            key={item.key}
+            d={buildPnlPath(item.points)}
+            fill="none"
+            stroke={item.color}
+            strokeWidth={item.strokeWidth ? String(item.strokeWidth) : "2.2"}
+            strokeDasharray={item.strokeDasharray}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        {hoveredPoint ? (
+          <>
+            <line
+              x1={hoveredPoint.x}
+              x2={hoveredPoint.x}
+              y1={padding.top}
+              y2={height - padding.bottom}
+              stroke={chartZeroColor}
+              strokeDasharray="4 4"
+              vectorEffect="non-scaling-stroke"
+            />
+            {hoveredSeries.map((item) => (
+              <circle
+                key={item.key}
+                cx={item.point.x}
+                cy={item.point.y}
+                r={item.key === "ls" ? 5 : 3.8}
+                fill="#fffdf4"
+                stroke={item.color}
+                strokeWidth={item.key === "ls" ? "2.4" : "2"}
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+          </>
+        ) : null}
+      </svg>
+      {hoveredPoint ? (
+        <div
+          className="pointer-events-none absolute z-40 rounded-lg border border-border/80 bg-[#fff3d3] px-3 py-2 text-xs shadow-xl"
+          style={{
+            left: `${(hoveredPoint.x / width) * 100}%`,
+            top: `${(hoveredPoint.y / height) * 100}%`,
+            transform:
+              hoverIndex === 0
+                ? "translate(0, calc(-100% - 8px))"
+                : hoverIndex === pointCount - 1
+                  ? "translate(-100%, calc(-100% - 8px))"
+                  : "translate(-50%, calc(-100% - 8px))",
+          }}
+        >
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {hoveredPoint.date}
+          </div>
+          <div className="mt-1 grid gap-1">
+            {hoveredSeries.map((item) => (
+              <div key={item.key} className="font-semibold" style={{ color: item.color }}>
+                {item.label} {item.point.value.toFixed(3)}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function CumIcComparisonChart({ data }: { data: PnlChartPoint[] }) {
+  const { chartRef, chartSize } = useMeasuredChartSize(320);
+  const width = Math.max(320, chartSize.width);
+  const height = Math.max(240, chartSize.height);
+  const padding = { top: 28, right: 56, bottom: 42, left: 84 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  const { points, meanIc, meanWpcc, icir } = useMemo(() => buildCumIcComparisonSeries(data), [data]);
+  const lastIndex = Math.max(points.length - 1, 1);
+  const leftMax = Math.max(18, ...points.map((point) => Math.max(point.cumIc, point.cumWpcc)));
+  const leftRange = leftMax || 1;
+  const rightMin = Math.min(-0.02, ...points.map((point) => point.bandY));
+  const rightMax = Math.max(0.12, ...points.map((point) => point.bandY));
+  const rightRange = rightMax - rightMin || 1;
+  const leftTicks = Array.from(
+    new Set(
+      Array.from({ length: 5 }, (_, index) =>
+        Number(((leftMax / 4) * index).toFixed(3))
+      )
+    )
+  );
+  const rightTicks = [0, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12];
+
+  const screenPoints = points.map((point, index) => {
+    const x = padding.left + (index / lastIndex) * plotWidth;
+    const cumIcY = padding.top + ((leftMax - point.cumIc) / leftRange) * plotHeight;
+    const cumWpccY = padding.top + ((leftMax - point.cumWpcc) / leftRange) * plotHeight;
+    const bandY = padding.top + ((rightMax - point.bandY) / rightRange) * plotHeight;
+    return { ...point, x, cumIcY, cumWpccY, bandY };
+  });
+  const areaScreenPoints = screenPoints.map((point) => ({
+    date: point.date,
+    value: point.bandY,
+    x: point.x,
+    y: point.bandY,
+  }));
+  const areaZeroY = padding.top + ((rightMax - 0) / rightRange) * plotHeight;
+  const hoveredPoint = hoverIndex === null ? null : screenPoints[hoverIndex];
+  const chartGridColor = "rgba(100,116,139,0.18)";
+  const chartZeroColor = "rgba(100,116,139,0.32)";
+  const leftTickColor = "rgba(82, 64, 37, 0.82)";
+  const rightTickColor = "rgba(82, 64, 37, 0.66)";
+  const plotFill = "rgba(214, 232, 248, 0.88)";
+
+  const buildAreaPath = (items: { x: number; y: number }[]) => {
+    if (items.length < 2) return "";
+    const linePath = items.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
+    const first = items[0];
+    const last = items[items.length - 1];
+    return `${linePath} L ${last.x.toFixed(2)} ${areaZeroY.toFixed(2)} L ${first.x.toFixed(2)} ${areaZeroY.toFixed(2)} Z`;
+  };
+
+  const buildLinePath = (items: { x: number; y: number }[]) =>
+    items.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
+
+  return (
+    <div
+      ref={chartRef}
+      className="relative h-full w-full overflow-hidden rounded-lg border border-border/60 bg-[#f6f0de]"
+      onMouseLeave={() => setHoverIndex(null)}
+      onMouseMove={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        const nextIndex = Math.round(ratio * (points.length - 1));
+        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 rounded-lg bg-[#f6f0de]" aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute left-4 top-3 z-20 flex flex-wrap items-center gap-4 rounded-lg border border-border/60 bg-[#fff8e8]/90 px-3 py-2 text-xs shadow-sm"
+        aria-label="Chart legend"
+      >
+        <div className="flex items-center gap-2 whitespace-nowrap font-semibold text-[#2c2117]">
+          <span className="h-[3px] w-8 rounded-full bg-[#2d79d7]" />
+          <span>Cum IC</span>
+        </div>
+        <div className="flex items-center gap-2 whitespace-nowrap font-semibold text-[#2c2117]">
+          <span className="h-[3px] w-8 rounded-full bg-[#f28a1a]" />
+          <span>Cum WPCC</span>
+        </div>
+        <div className="flex items-center gap-2 whitespace-nowrap font-semibold text-[#2c2117]">
+          <span className="h-3 w-3 rounded-sm bg-[#f3b0a8]/80" />
+          <span>{`IC: ${meanIc.toFixed(5)} | ICIR: ${icir.toFixed(5)} | WPCC: ${(meanWpcc * 5.5).toFixed(5)}`}</span>
+        </div>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="absolute inset-0 h-full w-full"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Cumulative IC chart"
+      >
+        <rect x="0" y="0" width={width} height={height} fill={plotFill} />
+        {leftTicks.map((tick) => {
+          const y = padding.top + ((leftMax - tick) / leftRange) * plotHeight;
+          return (
+            <line
+              key={`left-grid-${tick}`}
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={y}
+              y2={y}
+              stroke={tick === 0 ? chartZeroColor : chartGridColor}
+              strokeDasharray={tick === 0 ? "4 4" : "5 4"}
+              strokeWidth={tick === 0 ? "1.15" : "1"}
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+        {rightTicks.map((tick) => {
+          const y = padding.top + ((rightMax - tick) / rightRange) * plotHeight;
+          return (
+            <line
+              key={`right-grid-${tick}`}
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={y}
+              y2={y}
+              stroke={chartGridColor}
+              strokeDasharray="5 4"
+              strokeWidth="1"
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+        <path d={buildAreaPath(areaScreenPoints)} fill="rgba(248, 166, 161, 0.42)" />
+        <path
+          d={buildLinePath(screenPoints.map((point) => ({ x: point.x, y: point.cumIcY })))}
+          fill="none"
+          stroke="#2d79d7"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          d={buildLinePath(screenPoints.map((point) => ({ x: point.x, y: point.cumWpccY })))}
+          fill="none"
+          stroke="#f28a1a"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line x1={padding.left} x2={width - padding.right} y1={areaZeroY} y2={areaZeroY} stroke="rgba(248, 149, 146, 0.78)" strokeWidth="1.1" vectorEffect="non-scaling-stroke" />
+        {hoveredPoint ? (
+          <>
+            <line
+              x1={hoveredPoint.x}
+              x2={hoveredPoint.x}
+              y1={padding.top}
+              y2={height - padding.bottom}
+              stroke={chartZeroColor}
+              strokeDasharray="4 4"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle cx={hoveredPoint.x} cy={hoveredPoint.cumIcY} r="3.5" fill="#fffdf6" stroke="#2d79d7" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+            <circle cx={hoveredPoint.x} cy={hoveredPoint.cumWpccY} r="3.5" fill="#fffdf6" stroke="#f28a1a" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+          </>
+        ) : null}
+      </svg>
+
+      <div className="pointer-events-none absolute left-[2px] top-1/2 -translate-y-1/2 -rotate-90 text-[11px] font-bold text-[#725d42]">
+        Cumulative
+      </div>
+      <div className="pointer-events-none absolute right-[4px] top-1/2 -translate-y-1/2 rotate-90 text-[11px] font-bold text-[#725d42]">
+        IC
+      </div>
+      <div className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-[#725d42]">
+        Time
+      </div>
+
+      {leftTicks.map((tick) => {
+        const y = padding.top + ((leftMax - tick) / leftRange) * plotHeight;
+        return (
+          <div
+            key={`left-label-${tick}`}
+            className="pointer-events-none absolute -translate-y-1/2 pr-2 text-right text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: 4,
+              top: `${(y / height) * 100}%`,
+              width: `${((padding.left - 10) / width) * 100}%`,
+              color: leftTickColor,
+            }}
+          >
+            {formatPnlValue(tick)}
+          </div>
+        );
+      })}
+
+      {rightTicks.map((tick) => {
+        const y = padding.top + ((rightMax - tick) / rightRange) * plotHeight;
+        return (
+          <div
+            key={`right-label-${tick}`}
+            className="pointer-events-none absolute -translate-y-1/2 pl-2 text-left text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              right: 4,
+              top: `${(y / height) * 100}%`,
+              width: `${((padding.right - 10) / width) * 100}%`,
+              color: rightTickColor,
+            }}
+          >
+            {tick.toFixed(2)}
+          </div>
+        );
+      })}
+
+      {points.length > 0 ? (
+        <div
+          className="pointer-events-none absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
+          style={{
+            left: `${(screenPoints[0]?.x ?? padding.left) / width * 100}%`,
+            top: `${((height - 8) / height) * 100}%`,
+            transform: "translate(0, -50%)",
+            color: leftTickColor,
+          }}
+        >
+          {points[0].date.substring(0, 7)}
+        </div>
+      ) : null}
+
+      {points.length > 0 ? (
+        <div
+          className="pointer-events-none absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
+          style={{
+            left: `${(screenPoints[screenPoints.length - 1]?.x ?? width - padding.right) / width * 100}%`,
+            top: `${((height - 8) / height) * 100}%`,
+            transform: "translate(-100%, -50%)",
+            color: leftTickColor,
+          }}
+        >
+          {points[points.length - 1].date.substring(0, 7)}
+        </div>
+      ) : null}
+
+      {hoveredPoint ? (
+        <div
+          className="pointer-events-none absolute z-30 rounded-lg border border-border/80 bg-[#fff8e8] px-3 py-2 text-xs shadow-xl"
+          style={{
+            left: `${(hoveredPoint.x / width) * 100}%`,
+            top: `${(hoveredPoint.cumIcY / height) * 100}%`,
+            transform:
+              hoverIndex === 0
+                ? "translate(0, calc(-100% - 8px))"
+                : hoverIndex === points.length - 1
+                  ? "translate(-100%, calc(-100% - 8px))"
+                  : "translate(-50%, calc(-100% - 8px))",
+          }}
+        >
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            {hoveredPoint.date}
+          </div>
+          <div className="mt-1 grid gap-1 font-semibold text-[#2c2117]">
+            <div style={{ color: "#2d79d7" }}>{`Cum IC ${hoveredPoint.cumIc.toFixed(3)}`}</div>
+            <div style={{ color: "#f28a1a" }}>{`Cum WPCC ${hoveredPoint.cumWpcc.toFixed(3)}`}</div>
+            <div style={{ color: "#f08f86" }}>{`IC ${hoveredPoint.ic.toFixed(5)}`}</div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function IcDecayChart({ data }: { data: PnlChartPoint[] }) {
+  const { chartRef, chartSize } = useMeasuredChartSize(320);
+  const width = Math.max(320, chartSize.width);
+  const height = Math.max(240, chartSize.height);
+  const padding = { top: 18, right: 26, bottom: 40, left: 82 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const series = useMemo(() => buildIcDecaySeries(data), [data]);
+
+  const domainMax = 0.005;
+  const domainRange = 0.035;
+  const yTicks = [0.005, 0, -0.005, -0.01, -0.015, -0.02, -0.025];
+  const minLog = Math.log(series[0]?.lag ?? 1);
+  const maxLog = Math.log(series[series.length - 1]?.lag ?? 50);
+  const logRange = maxLog - minLog || 1;
+  const xTicks = series.map((item) => item.lag);
+
+  const points = series.map((item) => {
+    const progress = (Math.log(item.lag) - minLog) / logRange;
+    const x = padding.left + progress * plotWidth;
+    const y = padding.top + ((domainMax - item.value) / domainRange) * plotHeight;
+    return { ...item, x, y };
+  });
+  const zeroY = padding.top + ((domainMax - 0) / domainRange) * plotHeight;
+  const hoveredPoint = hoverIndex === null ? null : points[hoverIndex];
+  const chartGridColor = "rgba(100,116,139,0.20)";
+  const chartZeroColor = "rgba(103,232,249,0.86)";
+  const chartTickColor = "rgba(82, 64, 37, 0.84)";
+
+  const buildLinePath = (items: { x: number; y: number }[]) =>
+    items.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
+
+  return (
+    <div
+      ref={chartRef}
+      className="relative h-full w-full overflow-hidden rounded-lg border border-border/60 bg-[#f6f0de]"
+      onMouseLeave={() => setHoverIndex(null)}
+      onMouseMove={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        const nextIndex = Math.round(ratio * (points.length - 1));
+        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 rounded-lg bg-[#f6f0de]" aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute right-4 top-3 z-20 flex items-center gap-2 rounded-lg border border-border/60 bg-[#fff8e8]/90 px-3 py-2 text-xs shadow-sm"
+        aria-label="Chart legend"
+      >
+        <span className="h-[3px] w-8 rounded-full bg-[#2d79d7]" />
+        <span className="font-semibold text-[#2c2117]">IC mean</span>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="absolute inset-0 h-full w-full"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="IC decay chart"
+      >
+        {yTicks.map((tick) => {
+          const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+          return (
+            <line
+              key={`ic-decay-grid-${tick}`}
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={y}
+              y2={y}
+              stroke={tick === 0 ? chartZeroColor : chartGridColor}
+              strokeDasharray={tick === 0 ? "4 4" : "5 4"}
+              strokeWidth={tick === 0 ? "1.15" : "1"}
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+        <path
+          d={buildLinePath(points)}
+          fill="none"
+          stroke="#2d79d7"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line x1={padding.left} x2={width - padding.right} y1={zeroY} y2={zeroY} stroke={chartZeroColor} strokeDasharray="4 4" strokeWidth="1.15" vectorEffect="non-scaling-stroke" />
+        {points.map((point) => (
+          <circle
+            key={point.lag}
+            cx={point.x}
+            cy={point.y}
+            r="5.5"
+            fill="#2d79d7"
+            stroke="#f6f0de"
+            strokeWidth="2.2"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        {hoveredPoint ? (
+          <>
+            <line
+              x1={hoveredPoint.x}
+              x2={hoveredPoint.x}
+              y1={padding.top}
+              y2={height - padding.bottom}
+              stroke={chartZeroColor}
+              strokeDasharray="4 4"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle
+              cx={hoveredPoint.x}
+              cy={hoveredPoint.y}
+              r="7"
+              fill="#fffdf6"
+              stroke="#2d79d7"
+              strokeWidth="2.2"
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
+        ) : null}
+      </svg>
+
+      <div className="pointer-events-none absolute left-[2px] top-1/2 -translate-y-1/2 -rotate-90 text-[11px] font-bold text-[#725d42]">
+        Rolling IC Mean
+      </div>
+      <div className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-[#725d42]">
+        Lag (bars)
+      </div>
+
+      {yTicks.map((tick) => {
+        const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+        return (
+          <div
+            key={`ic-decay-y-${tick}`}
+            className="pointer-events-none absolute -translate-y-1/2 pr-2 text-right text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: 4,
+              top: `${(y / height) * 100}%`,
+              width: `${((padding.left - 10) / width) * 100}%`,
+              color: chartTickColor,
+            }}
+          >
+            {tick.toFixed(3)}
+          </div>
+        );
+      })}
+
+      {xTicks.map((lag, index) => {
+        const point = points[index];
+        if (!point) return null;
+        const isFirstTick = index === 0;
+        const isLastTick = index === points.length - 1;
+        return (
+          <div
+            key={`ic-decay-x-${lag}`}
+            className="pointer-events-none absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: `${(point.x / width) * 100}%`,
+              top: `${((height - 8) / height) * 100}%`,
+              transform: isFirstTick ? "translate(0, -50%)" : isLastTick ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
+              color: chartTickColor,
+            }}
+          >
+            {lag}
+          </div>
+        );
+      })}
+
+      {hoveredPoint ? (
+        <div
+          className="pointer-events-none absolute z-30 rounded-lg border border-border/80 bg-[#fff8e8] px-3 py-2 text-xs shadow-xl"
+          style={{
+            left: `${(hoveredPoint.x / width) * 100}%`,
+            top: `${(hoveredPoint.y / height) * 100}%`,
+            transform:
+              hoverIndex === 0
+                ? "translate(0, calc(-100% - 8px))"
+                : hoverIndex === points.length - 1
+                  ? "translate(-100%, calc(-100% - 8px))"
+                  : "translate(-50%, calc(-100% - 8px))",
+          }}
+        >
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            Lag {hoveredPoint.lag}
+          </div>
+          <div className="mt-1 font-semibold text-[#2d79d7]">
+            {`IC mean ${hoveredPoint.value.toFixed(5)}`}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function FactorAutocorrChart({ data }: { data: PnlChartPoint[] }) {
+  const { chartRef, chartSize } = useMeasuredChartSize(320);
+  const width = Math.max(320, chartSize.width);
+  const height = Math.max(240, chartSize.height);
+  const padding = { top: 18, right: 24, bottom: 40, left: 76 };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const series = useMemo(() => buildFactorAutocorrSeries(data), [data]);
+
+  const domainMax = 0.018;
+  const domainRange = 0.038;
+  const yTicks = [0.015, 0.01, 0.005, 0, -0.005, -0.01, -0.015];
+  const minLog = Math.log(1);
+  const maxLog = Math.log(50);
+  const logRange = maxLog - minLog || 1;
+  const xTicks = series.map((item) => item.lag);
+
+  const points = series.map((item) => {
+    const progress = (Math.log(item.lag) - minLog) / logRange;
+    const x = padding.left + progress * plotWidth;
+    const y = padding.top + ((domainMax - item.value) / domainRange) * plotHeight;
+    return { ...item, x, y };
+  });
+  const zeroY = padding.top + ((domainMax - 0) / domainRange) * plotHeight;
+  const hoveredPoint = hoverIndex === null ? null : points[hoverIndex];
+  const chartGridColor = "rgba(100,116,139,0.20)";
+  const chartZeroColor = "rgba(100,116,139,0.42)";
+  const chartTickColor = "rgba(82, 64, 37, 0.84)";
+
+  const buildLinePath = (items: { x: number; y: number }[]) =>
+    items.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`).join(" ");
+
+  return (
+    <div
+      ref={chartRef}
+      className="relative h-full w-full overflow-hidden rounded-lg border border-border/60 bg-[#f6f0de]"
+      onMouseLeave={() => setHoverIndex(null)}
+      onMouseMove={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        const targetLog = minLog + ratio * logRange;
+        const nextIndex = points.reduce((bestIndex, point, index) => {
+          if (bestIndex < 0) return index;
+          const bestPoint = points[bestIndex];
+          const bestDistance = Math.abs(Math.log(bestPoint.lag) - targetLog);
+          const currentDistance = Math.abs(Math.log(point.lag) - targetLog);
+          return currentDistance < bestDistance ? index : bestIndex;
+        }, -1);
+        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 rounded-lg bg-[#f6f0de]" aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute right-4 top-3 z-20 flex items-center gap-2 rounded-lg border border-border/60 bg-[#fff8e8]/90 px-3 py-2 text-xs shadow-sm"
+        aria-label="Chart legend"
+      >
+        <span className="h-[3px] w-8 rounded-full bg-[#2d79d7]" />
+        <span className="font-semibold text-[#2c2117]">AR</span>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="absolute inset-0 h-full w-full"
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Factor autocorrelation chart"
+      >
+        {yTicks.map((tick) => {
+          const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+          return (
+            <line
+              key={`autocorr-grid-${tick}`}
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={y}
+              y2={y}
+              stroke={tick === 0 ? chartZeroColor : chartGridColor}
+              strokeDasharray={tick === 0 ? "4 4" : "5 4"}
+              strokeWidth={tick === 0 ? "1.15" : "1"}
+              vectorEffect="non-scaling-stroke"
+            />
+          );
+        })}
+        <path
+          d={buildLinePath(points)}
+          fill="none"
+          stroke="#2d79d7"
+          strokeWidth="2.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <line x1={padding.left} x2={width - padding.right} y1={zeroY} y2={zeroY} stroke={chartZeroColor} strokeDasharray="4 4" strokeWidth="1.15" vectorEffect="non-scaling-stroke" />
+        {points.map((point) => (
+          <circle
+            key={point.lag}
+            cx={point.x}
+            cy={point.y}
+            r="5.8"
+            fill="#2d79d7"
+            stroke="#f6f0de"
+            strokeWidth="2.2"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        {hoveredPoint ? (
+          <>
+            <line
+              x1={hoveredPoint.x}
+              x2={hoveredPoint.x}
+              y1={padding.top}
+              y2={height - padding.bottom}
+              stroke={chartZeroColor}
+              strokeDasharray="4 4"
+              vectorEffect="non-scaling-stroke"
+            />
+            <circle
+              cx={hoveredPoint.x}
+              cy={hoveredPoint.y}
+              r="7"
+              fill="#fffdf6"
+              stroke="#2d79d7"
+              strokeWidth="2.2"
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
+        ) : null}
+      </svg>
+
+      <div className="pointer-events-none absolute left-[2px] top-1/2 -translate-y-1/2 -rotate-90 text-[11px] font-bold text-[#725d42]">
+        AR
+      </div>
+      <div className="pointer-events-none absolute bottom-1 left-1/2 -translate-x-1/2 text-[11px] font-bold text-[#725d42]">
+        Lag
+      </div>
+
+      {yTicks.map((tick) => {
+        const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
+        return (
+          <div
+            key={`autocorr-y-${tick}`}
+            className="pointer-events-none absolute -translate-y-1/2 pr-2 text-right text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: 4,
+              top: `${(y / height) * 100}%`,
+              width: `${((padding.left - 10) / width) * 100}%`,
+              color: chartTickColor,
+            }}
+          >
+            {tick.toFixed(3)}
+          </div>
+        );
+      })}
+
+      {xTicks.map((lag, index) => {
+        const point = points[index];
+        if (!point) return null;
+        const isFirstTick = index === 0;
+        const isLastTick = index === points.length - 1;
+        return (
+          <div
+            key={`autocorr-x-${lag}`}
+            className="pointer-events-none absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
+            style={{
+              left: `${(point.x / width) * 100}%`,
+              top: `${((height - 8) / height) * 100}%`,
+              transform: isFirstTick ? "translate(0, -50%)" : isLastTick ? "translate(-100%, -50%)" : "translate(-50%, -50%)",
+              color: chartTickColor,
+            }}
+          >
+            {lag}
+          </div>
+        );
+      })}
+
+      {hoveredPoint ? (
+        <div
+          className="pointer-events-none absolute z-30 rounded-lg border border-border/80 bg-[#fff8e8] px-3 py-2 text-xs shadow-xl"
+          style={{
+            left: `${(hoveredPoint.x / width) * 100}%`,
+            top: `${(hoveredPoint.y / height) * 100}%`,
+            transform:
+              hoverIndex === 0
+                ? "translate(0, calc(-100% - 8px))"
+                : hoverIndex === points.length - 1
+                  ? "translate(-100%, calc(-100% - 8px))"
+                  : "translate(-50%, calc(-100% - 8px))",
+          }}
+        >
+          <div className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            Lag {hoveredPoint.lag}
+          </div>
+          <div className="mt-1 font-semibold text-[#2d79d7]">
+            {`AR ${hoveredPoint.value.toFixed(5)}`}
           </div>
         </div>
       ) : null}
@@ -691,6 +1716,207 @@ function buildCrossNavSeries(): MultiLineChartSeries[] {
       })),
     },
   ];
+}
+
+function buildGroupCumReturnSeries(data: PnlChartPoint[]): MultiLineChartSeries[] {
+  const dates = Array.from({ length: 26 }, (_, index) => {
+    const date = new Date(2024, index, 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const lastIndex = Math.max(dates.length - 1, 1);
+  const seed = Math.tanh((data[0]?.value ?? 0) / 1_000_000) * 0.03;
+
+  const interpolate = (anchors: Array<[number, number]>, progress: number, wobble = 0, phase = 0) => {
+    for (let index = 1; index < anchors.length; index += 1) {
+      const [prevProgress, prevValue] = anchors[index - 1];
+      const [nextProgress, nextValue] = anchors[index];
+      if (progress <= nextProgress) {
+        const span = Math.max(nextProgress - prevProgress, 0.0001);
+        const ratio = Math.max(0, Math.min(1, (progress - prevProgress) / span));
+        const base = prevValue + (nextValue - prevValue) * ratio;
+        const ripple = Math.sin(progress * Math.PI * 16 + phase) * wobble;
+        return Number((base + ripple + seed).toFixed(3));
+      }
+    }
+    return Number((anchors[anchors.length - 1][1] + seed).toFixed(3));
+  };
+
+  const configs = [
+    {
+      key: "g1",
+      label: "G1",
+      color: "#b3123a",
+      strokeWidth: 2.2,
+      anchors: [
+        [0, -0.02],
+        [0.08, 0.18],
+        [0.14, 0.55],
+        [0.22, 0.34],
+        [0.31, 0.05],
+        [0.39, 0.28],
+        [0.48, -0.18],
+        [0.56, -0.06],
+        [0.64, 0.32],
+        [0.72, -0.08],
+        [0.82, -0.28],
+        [0.9, -0.66],
+        [1, -0.9],
+      ] as Array<[number, number]>,
+      wobble: 0.055,
+      phase: 0.3,
+    },
+    {
+      key: "g2",
+      label: "G2",
+      color: "#ff8a49",
+      strokeWidth: 2.2,
+      anchors: [
+        [0, -0.04],
+        [0.08, 0.12],
+        [0.14, 0.5],
+        [0.22, 0.18],
+        [0.3, 0.24],
+        [0.38, -0.1],
+        [0.46, 0.12],
+        [0.54, -0.26],
+        [0.64, -0.38],
+        [0.73, -0.12],
+        [0.82, -0.42],
+        [0.9, -0.88],
+        [1, -1.78],
+      ] as Array<[number, number]>,
+      wobble: 0.05,
+      phase: 1.15,
+    },
+    {
+      key: "g3",
+      label: "G3",
+      color: "#f9f39d",
+      strokeWidth: 2.2,
+      anchors: [
+        [0, -0.02],
+        [0.08, 0.06],
+        [0.15, 0.2],
+        [0.23, -0.3],
+        [0.31, -0.52],
+        [0.39, -0.42],
+        [0.48, -0.18],
+        [0.56, -0.64],
+        [0.65, -1.1],
+        [0.74, -1.38],
+        [0.83, -1.12],
+        [0.91, -1.72],
+        [1, -2.12],
+      ] as Array<[number, number]>,
+      wobble: 0.045,
+      phase: 2.1,
+    },
+    {
+      key: "g4",
+      label: "G4",
+      color: "#9ed96f",
+      strokeWidth: 2.2,
+      anchors: [
+        [0, -0.06],
+        [0.08, 0.1],
+        [0.15, 0.04],
+        [0.23, -0.2],
+        [0.31, -0.46],
+        [0.4, -0.64],
+        [0.49, -0.34],
+        [0.58, -0.76],
+        [0.67, -1.08],
+        [0.75, -0.92],
+        [0.83, -1.3],
+        [0.91, -1.78],
+        [1, -1.36],
+      ] as Array<[number, number]>,
+      wobble: 0.042,
+      phase: 2.65,
+    },
+    {
+      key: "g5",
+      label: "G5",
+      color: "#0f8a49",
+      strokeWidth: 2.2,
+      anchors: [
+        [0, -0.02],
+        [0.08, 0.16],
+        [0.14, 0.46],
+        [0.22, 0.1],
+        [0.31, -0.22],
+        [0.39, -0.48],
+        [0.48, -0.12],
+        [0.56, -0.58],
+        [0.64, -0.46],
+        [0.73, -0.62],
+        [0.81, -0.9],
+        [0.9, -1.2],
+        [1, -1.38],
+      ] as Array<[number, number]>,
+      wobble: 0.04,
+      phase: 3.05,
+    },
+    {
+      key: "ls",
+      label: "LS",
+      color: "#111111",
+      strokeWidth: 3.6,
+      anchors: [
+        [0, 0],
+        [0.08, 0.02],
+        [0.14, -0.08],
+        [0.22, -0.04],
+        [0.3, 0.15],
+        [0.38, 0.22],
+        [0.47, 0.08],
+        [0.56, -0.12],
+        [0.66, -0.28],
+        [0.74, 0.12],
+        [0.82, 0.28],
+        [0.91, 0.22],
+        [1, 0.48],
+      ] as Array<[number, number]>,
+      wobble: 0.03,
+      phase: 0.6,
+    },
+    {
+      key: "longAvg",
+      label: "Long-Avg",
+      color: "#a02db3",
+      strokeWidth: 2.2,
+      strokeDasharray: "3 5",
+      anchors: [
+        [0, 0],
+        [0.08, 0.04],
+        [0.14, 0.12],
+        [0.22, 0.08],
+        [0.3, 0.14],
+        [0.39, 0.06],
+        [0.48, 0.02],
+        [0.56, 0.04],
+        [0.64, 0],
+        [0.72, 0.42],
+        [0.8, 0.48],
+        [0.9, 0.45],
+        [1, 0.66],
+      ] as Array<[number, number]>,
+      wobble: 0.025,
+      phase: 1.8,
+    },
+  ];
+
+  return configs.map((config) => ({
+    key: config.key,
+    label: config.label,
+    color: config.color,
+    strokeWidth: config.strokeWidth,
+    strokeDasharray: config.strokeDasharray,
+    points: dates.map((date, index) => ({
+      date,
+      value: interpolate(config.anchors, index / lastIndex, config.wobble, config.phase),
+    })),
+  }));
 }
 
 function formatCompactChartValue(value: number) {
@@ -1178,7 +2404,9 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
     );
   }
   function renderChartCard(data: PnlChartPoint[], heightClass: string) {
-    const chartData = buildDetailChartData(data, activeChartKey);
+    const chartData = activeChartKey === "icDecay" || activeChartKey === "factorAutoCorr" || activeChartKey === "groupCumReturn"
+      ? data
+      : buildDetailChartData(data, activeChartKey);
     const valueFormatter = activeChartKey === "pnl" || activeChartKey === "groupCumReturn"
       ? formatPnlValue
       : formatCompactChartValue;
@@ -1213,10 +2441,28 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
             </div>
           </div>
         </div>
-        <div className="px-6 pb-6">
+        <div
+          className={
+            activeChartKey === "pnl"
+              ? "px-6 pb-6 pr-[18px]"
+              : activeChartKey === "crossNav"
+              ? "px-6 pb-6 pr-[18px]"
+              : activeChartKey === "cumIc" || activeChartKey === "icDecay" || activeChartKey === "factorAutoCorr" || activeChartKey === "groupCumReturn"
+                ? "px-6 pb-6"
+                : "px-6 pb-6 pr-[30px]"
+          }
+        >
           <div className={heightClass}>
             {activeChartKey === "crossNav" ? (
               <MultiLineReturnChart series={crossNavSeries} />
+            ) : activeChartKey === "cumIc" ? (
+              <CumIcComparisonChart data={data} />
+            ) : activeChartKey === "icDecay" ? (
+              <IcDecayChart data={data} />
+            ) : activeChartKey === "factorAutoCorr" ? (
+              <FactorAutocorrChart data={data} />
+            ) : activeChartKey === "groupCumReturn" ? (
+              <GroupCumReturnChart data={data} />
             ) : (
               <PnlLineChart
                 data={chartData}

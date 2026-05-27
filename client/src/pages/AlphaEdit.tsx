@@ -287,6 +287,7 @@ function formatModelSummary(models: ModelKey[]) {
 }
 
 const REWARD_AMOUNT_BY_GRADE: Record<AlphaGrade, number> = {
+  SS: 1,
   S: 1,
   A: 0.5,
   B: 0.3,

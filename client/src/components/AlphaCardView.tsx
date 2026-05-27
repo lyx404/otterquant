@@ -98,7 +98,7 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
 
   try {
     const value = window.localStorage.getItem(`${REVEALED_GRADE_STORAGE_PREFIX}${factorId}`);
-    return value === "S" || value === "A" || value === "B" || value === "C" || value === "D"
+    return value === "SS" || value === "S" || value === "A" || value === "B" || value === "C" || value === "D"
       ? value
       : null;
   } catch {
@@ -107,6 +107,7 @@ function readRevealedGrade(factorId: string): AlphaGrade | null {
 }
 
 const REWARD_AMOUNT_BY_GRADE: Record<AlphaGrade, number> = {
+  SS: 1,
   S: 1,
   A: 0.5,
   B: 0.3,

@@ -86,6 +86,20 @@ const WALLET_BALANCE_USD = 74.19;
 const ARENA_PRIZE_TOTAL = 32;
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 5000;
+const GAME_STAGE_WIDTH = 1920;
+const GAME_STAGE_HEIGHT = 1040;
+const HUD_ASSETS = {
+  coin: "https://www.figma.com/api/mcp/asset/2cc100c6-3815-4ba9-af15-9b0e6beb0879",
+  fish: "https://www.figma.com/api/mcp/asset/ba2b6894-e259-4c4d-8a43-f056b7d7afaf",
+  pond: "/assets/hud-pond-full.svg",
+  market: "/assets/hud-market-full.svg",
+  guide: "/assets/hud-guide-full.svg",
+  wallet: "/assets/hud-wallet-full.svg",
+  leaderboard: "/assets/hud-leaderboard-full.svg",
+  settings: "/assets/hud-settings-full.svg",
+  rod: "https://www.figma.com/api/mcp/asset/57dba671-8ba5-43f5-8f1a-78b700d1a191",
+  basket: "https://www.figma.com/api/mcp/asset/515ecdbb-d48f-4335-afd3-77bbf881d5b8",
+} as const;
 const WITHDRAWAL_NETWORKS = [
   "Ethereum (ERC20)",
   "BNB Smart Chain (BEP20)",
@@ -263,6 +277,7 @@ function buildLinePath(values: number[], width: number, height: number, padding 
 export default function Landing() {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const [stageScale, setStageScale] = useState(1);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
@@ -297,6 +312,21 @@ export default function Landing() {
   const [starredStrategies, setStarredStrategies] = useState<Set<string>>(() => new Set());
   const [selectedStrategy, setSelectedStrategy] = useState<(typeof strategies)[number] | null>(null);
   const [curveRange, setCurveRange] = useState<CurveRange>("365D");
+
+  useEffect(() => {
+    const fitGameStage = () => {
+      const nextScale = Math.min(
+        1,
+        window.innerWidth / GAME_STAGE_WIDTH,
+        window.innerHeight / GAME_STAGE_HEIGHT
+      );
+      setStageScale(nextScale);
+    };
+
+    fitGameStage();
+    window.addEventListener("resize", fitGameStage, { passive: true });
+    return () => window.removeEventListener("resize", fitGameStage);
+  }, []);
 
   const filterLabels: Record<FilterKey, string> = {
     all: tr("All", "全部"),
@@ -749,6 +779,26 @@ export default function Landing() {
           font-style: normal;
         }
 
+        @font-face {
+          font-family: "Alimama FangYuanTi VF";
+          src:
+            url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff2") format("woff2"),
+            url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff") format("woff");
+          font-display: swap;
+          font-weight: 100 900;
+          font-style: normal;
+        }
+
+        @font-face {
+          font-family: "Alimama Fang YuanTi VF";
+          src:
+            url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff2") format("woff2"),
+            url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff") format("woff");
+          font-display: swap;
+          font-weight: 100 900;
+          font-style: normal;
+        }
+
         .game-landing {
           --ink: #5a321d;
           --ink-dark: #2f1a12;
@@ -786,20 +836,271 @@ export default function Landing() {
           height: 100%;
           object-fit: cover;
           object-position: center center;
-          image-rendering: auto;
+          image-rendering: pixelated;
           user-select: none;
           pointer-events: none;
         }
 
         .game-landing::after {
-          content: "";
+          content: none;
+        }
+
+        .game-stage {
           position: absolute;
-          inset: 0;
-          background:
-            linear-gradient(90deg, rgba(43, 144, 222, .08), transparent 18%, transparent 76%, rgba(43, 144, 222, .08)),
-            radial-gradient(circle at 50% 12%, rgba(255, 255, 255, .12), transparent 28%);
+          left: 50%;
+          top: 50%;
+          width: 1920px;
+          height: 1040px;
+          transform: translate(-50%, -50%) scale(var(--stage-scale));
+          transform-origin: center center;
+        }
+
+        .hud-top-stats {
+          position: absolute;
+          left: 40px;
+          top: 40px;
+          display: flex;
+          align-items: center;
+          gap: 30px;
+          z-index: 2;
+        }
+
+        .hud-stat-card {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          height: 65px;
+          padding: 12px;
+          overflow: hidden;
+          background: #fff3d3;
+          border: 3px solid #c4b89e;
+          border-radius: 16px;
+        }
+
+        .hud-stat-icon {
+          flex: 0 0 auto;
+          object-fit: contain;
+          image-rendering: pixelated;
+        }
+
+        .hud-stat-value {
+          width: 150px;
+          color: #4e433c;
+          font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-size: 30px;
+          font-style: normal;
+          font-weight: 700;
+          font-stretch: 100%;
+          font-synthesis: none;
+          font-optical-sizing: auto;
+          font-variation-settings: "wght" 700, "BEVL" 1;
+          line-height: 100%;
+          text-align: right;
+          letter-spacing: 0;
+          white-space: nowrap;
+        }
+
+        .hud-stat-card--fish .hud-stat-value {
+          width: 120px;
+          font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-size: 30px;
+          font-style: normal;
+          font-weight: 700;
+          font-stretch: 100%;
+          font-synthesis: none;
+          font-optical-sizing: auto;
+          font-variation-settings: "wght" 700, "BEVL" 1;
+          line-height: 100%;
+          text-align: right;
+          letter-spacing: 0;
+        }
+
+        .hud-top-actions {
+          position: absolute;
+          right: 40px;
+          top: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 10px;
+          z-index: 2;
+        }
+
+        .hud-menu-item {
+          position: relative;
+          display: block;
+          width: 90px;
+          height: 90px;
+          padding: 0;
+          color: inherit;
+          background: transparent;
+          border: 0;
+          border-radius: 16px;
+          cursor: pointer;
+          font: inherit;
+        }
+
+        .hud-menu-item--full-image {
+          overflow: hidden;
+        }
+
+        .hud-menu-icon {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+          object-fit: contain;
+          image-rendering: pixelated;
           pointer-events: none;
-          z-index: 1;
+          user-select: none;
+        }
+
+        .hud-menu-image {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          image-rendering: pixelated;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .hud-menu-label {
+          position: absolute;
+          left: 50%;
+          bottom: 8px;
+          transform: translateX(-50%);
+          color: #fff;
+          font-size: 20px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: .08em;
+          white-space: nowrap;
+          text-shadow: 0 2px 0 rgba(0, 0, 0, .15);
+        }
+
+        .hud-bottom-bar {
+          position: absolute;
+          left: 50%;
+          bottom: 40px;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 30px;
+          z-index: 2;
+        }
+
+        .hud-main-action {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 36px;
+          height: 120px;
+          padding: 20px 40px;
+          color: inherit;
+          background: #ffedb7;
+          border: 0;
+          border-radius: 16px;
+          box-shadow: 0 8px 0 #4e433c;
+          cursor: pointer;
+          font: inherit;
+        }
+
+        .hud-main-action__tool {
+          flex: 0 0 auto;
+          width: 80px;
+          height: 79px;
+          object-fit: contain;
+          image-rendering: pixelated;
+        }
+
+        .hud-main-action__label {
+          color: #FFF;
+          text-align: center;
+          -webkit-text-fill-color: #FFF;
+          -webkit-text-stroke: 5px #4E433C;
+          paint-order: stroke fill;
+          font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-size: 50px;
+          font-style: normal;
+          font-weight: 700;
+          font-synthesis: none;
+          font-variation-settings: "wght" 700, "BEVL" 1;
+          line-height: 100%;
+          letter-spacing: 5px;
+          white-space: nowrap;
+        }
+
+        .hud-basket {
+          position: relative;
+          width: 120px;
+          height: 120px;
+          padding: 0;
+          background: #ffedb7;
+          border: 0;
+          border-radius: 16px;
+          box-shadow: 0 8px 0 #4e433c;
+          cursor: pointer;
+          font: inherit;
+        }
+
+        .hud-basket__icon {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 80px;
+          height: 76px;
+          transform: translate(-50%, -50%);
+          object-fit: contain;
+          image-rendering: pixelated;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .hud-badge {
+          position: absolute;
+          right: -10px;
+          top: -17px;
+          width: 40px;
+          height: 40px;
+          border-radius: 999px;
+          background: #fd5f5a;
+        }
+
+        .hud-badge span {
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -55%);
+          color: #fff;
+          font-size: 22px;
+          font-weight: 900;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .hud-stat-card:hover,
+        .hud-menu-item:hover,
+        .hud-main-action:hover,
+        .hud-basket:hover {
+          filter: brightness(1.02);
+        }
+
+        .hud-menu-item:active,
+        .hud-main-action:active,
+        .hud-basket:active {
+          transform: translateY(1px);
+        }
+
+        .hud-main-action:active {
+          transform: translateY(1px);
+        }
+
+        .hud-menu-item:focus-visible,
+        .hud-main-action:focus-visible,
+        .hud-basket:focus-visible {
+          outline: 3px solid #ffcc00;
+          outline-offset: 4px;
         }
 
         .ui-left {
@@ -827,9 +1128,9 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
-          width: clamp(74px, 5vw, 104px);
-          aspect-ratio: 1;
+          gap: 4px;
+          width: clamp(82px, 5.6vw, 104px);
+          min-height: 92px;
           transition: transform .22s cubic-bezier(.23,1,.32,1);
           position: relative; /* establish stacking context for label */
         }
@@ -854,7 +1155,8 @@ export default function Landing() {
         }
 
         .menu-tile__icon {
-          width: 100%;
+          width: 72%;
+          max-width: 72px;
           aspect-ratio: 1;
           object-fit: contain;
           image-rendering: auto;
@@ -871,15 +1173,15 @@ export default function Landing() {
         }
 
         .menu-tile__name {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0, 0, 0, 0);
+          position: relative;
+          z-index: 1;
+          color: #fff;
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: .06em;
           white-space: nowrap;
-          border: 0;
+          text-shadow: 0 2px 0 rgba(0, 0, 0, .15);
         }
 
         .pixel-button {
@@ -1325,14 +1627,6 @@ export default function Landing() {
           max-height: none;
         }
 
-        .delete-confirm-modal .shop-modal__header {
-          align-items: center;
-          padding-top: 18px;
-          padding-bottom: 14px;
-          background: rgba(255, 249, 232, .88);
-          border-bottom: 2px solid rgba(196, 184, 158, .62);
-        }
-
         .delete-confirm-modal__body {
           padding: 18px clamp(18px, 2.2vw, 28px) 20px;
           display: grid;
@@ -1362,6 +1656,12 @@ export default function Landing() {
           display: flex;
           justify-content: flex-end;
           gap: 10px;
+        }
+
+        .delete-confirm-modal__footer {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 2px;
         }
 
         .delete-confirm-modal__btn {
@@ -1396,6 +1696,15 @@ export default function Landing() {
           box-shadow:
             inset 0 2px 0 rgba(255,255,255,.18),
             3px 3px 0 rgba(127, 47, 36, .45);
+        }
+
+        .delete-confirm-modal__close {
+          width: 44px;
+          min-width: 44px;
+          height: 44px;
+          padding: 0;
+          display: inline-grid;
+          place-items: center;
         }
 
         .shop-modal__close {
@@ -4187,7 +4496,7 @@ export default function Landing() {
 
         @media (max-width: 900px) {
           .game-landing {
-            min-width: 760px;
+            min-width: 0;
           }
 
           .shop-grid {
@@ -4233,36 +4542,117 @@ export default function Landing() {
         }
       `}</style>
 
-      <img
-        className="game-bg"
-        src="/assets/bg.png"
-        alt=""
-        aria-hidden="true"
-      />
+      <div
+        className="game-stage"
+        style={{ transform: `translate(-50%, -50%) scale(${stageScale})` }}
+      >
+        <img
+          className="game-bg"
+          src="/assets/bg.png"
+          alt=""
+          aria-hidden="true"
+        />
 
-      <nav className="ui-left" aria-label="Game menu">
-        <button
-          className="menu-tile"
-          type="button"
-          aria-label="Inventory"
-          onClick={() => {
-            setInventoryControlsHidden(false);
-            inventoryScrollTopRef.current = 0;
-            setInventoryOpen(true);
-          }}
-        >
-          <img className="menu-tile__icon" src="/assets/inventory-menu-icon-v2.svg" alt="" />
-          <span className="menu-tile__name">背包</span>
-        </button>
-        <a className="menu-tile" href="/landing" aria-label="Achievements">
-          <img className="menu-tile__icon" src="/assets/achievement-menu-icon-v2.svg" alt="" />
-          <span className="menu-tile__name">成就</span>
-        </a>
-        <button className="menu-tile" type="button" aria-label="Wallet" onClick={() => setWalletOpen(true)}>
-          <img className="menu-tile__icon" src="/assets/wallet-menu-icon-v2.svg" alt="" />
-          <span className="menu-tile__name">钱包</span>
-        </button>
-      </nav>
+        <div className="hud-top-stats" aria-label="数值统计">
+          <div className="hud-stat-card" aria-label="余额">
+            <img
+              className="hud-stat-icon"
+              src={HUD_ASSETS.coin}
+              alt=""
+              width="40"
+              height="41"
+            />
+            <div className="hud-stat-value">1,000,000</div>
+          </div>
+
+          <div className="hud-stat-card hud-stat-card--fish" aria-label="鱼额">
+            <img
+              className="hud-stat-icon"
+              src={HUD_ASSETS.fish}
+              alt=""
+              width="46"
+              height="26"
+            />
+            <div className="hud-stat-value">10,000</div>
+          </div>
+        </div>
+
+        <div className="hud-top-actions" aria-label="功能入口">
+          <button
+            className="hud-menu-item hud-menu-item--full-image"
+            type="button"
+            aria-label="鱼塘"
+          >
+            <img className="hud-menu-image" src={HUD_ASSETS.pond} alt="" />
+          </button>
+
+          <button
+            className="hud-menu-item hud-menu-item--full-image"
+            type="button"
+            aria-label="鱼市场"
+          >
+            <img className="hud-menu-image" src={HUD_ASSETS.market} alt="" />
+          </button>
+
+          <button
+            className="hud-menu-item hud-menu-item--full-image"
+            type="button"
+            aria-label="图鉴"
+            onClick={() => {
+              setInventoryControlsHidden(false);
+              inventoryScrollTopRef.current = 0;
+              setInventoryOpen(true);
+            }}
+          >
+            <img className="hud-menu-image" src={HUD_ASSETS.guide} alt="" />
+          </button>
+
+          <button
+            className="hud-menu-item hud-menu-item--full-image"
+            type="button"
+            aria-label="钱包"
+            onClick={() => setWalletOpen(true)}
+          >
+            <img className="hud-menu-image" src={HUD_ASSETS.wallet} alt="" />
+          </button>
+
+          <button
+            className="hud-menu-item hud-menu-item--full-image"
+            type="button"
+            aria-label="排行榜"
+          >
+            <img className="hud-menu-image" src={HUD_ASSETS.leaderboard} alt="" />
+          </button>
+
+          <button
+            className="hud-menu-item hud-menu-item--full-image"
+            type="button"
+            aria-label="设置"
+          >
+            <img className="hud-menu-image" src={HUD_ASSETS.settings} alt="" />
+          </button>
+        </div>
+
+        <div className="hud-bottom-bar" aria-label="主按钮">
+          <button className="hud-main-action" type="button" aria-label="抛竿">
+            <img
+              className="hud-main-action__tool"
+              src={HUD_ASSETS.rod}
+              alt=""
+            />
+            <span className="hud-main-action__label">抛竿</span>
+          </button>
+
+          <button className="hud-basket" type="button" aria-label="鱼篓">
+            <img
+              className="hud-basket__icon"
+              src={HUD_ASSETS.basket}
+              alt=""
+            />
+            <span className="hud-badge"><span>10</span></span>
+          </button>
+        </div>
+      </div>
 
       {walletOpen && (
         <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
@@ -4478,7 +4868,7 @@ export default function Landing() {
                   <button
                     className="inventory-detail-back"
                     type="button"
-                    aria-label={tr("Back to inventory", "返回背包")}
+                    aria-label={tr("Back to inventory", "返回图鉴")}
                     onClick={() => {
                       setInventoryControlsHidden(false);
                       setSelectedInventoryFactor(null);
@@ -4496,7 +4886,7 @@ export default function Landing() {
                 <button
                   className="shop-modal__close"
                   type="button"
-                  aria-label={tr("Close factor detail", "关闭因子详情")}
+                  aria-label={tr("Close factor detail", "关闭图鉴详情")}
                   onClick={() => {
                     setInventoryControlsHidden(false);
                     setInventoryOpen(false);
@@ -4534,7 +4924,7 @@ export default function Landing() {
               <button
                 className="shop-modal__close"
                 type="button"
-                aria-label={tr("Close inventory", "关闭背包")}
+                aria-label={tr("Close inventory", "关闭图鉴")}
                 onClick={() => {
                   setInventoryControlsHidden(false);
                   setInventoryOpen(false);
@@ -4893,20 +5283,7 @@ export default function Landing() {
             if (event.target === event.currentTarget) setPendingInventoryDelete(null);
           }}
         >
-          <section className="shop-modal delete-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
-            <header className="shop-modal__header">
-              <div>
-                <h2 className="shop-modal__title" id="delete-confirm-title">确认删除</h2>
-              </div>
-              <button
-                className="shop-modal__close"
-                type="button"
-                aria-label={tr("Close confirmation", "关闭确认弹窗")}
-                onClick={() => setPendingInventoryDelete(null)}
-              >
-                <X size={22} strokeWidth={3} />
-              </button>
-            </header>
+          <section className="shop-modal delete-confirm-modal" role="dialog" aria-modal="true" aria-label={tr("Delete confirmation", "删除确认")}>
             <div className="delete-confirm-modal__body">
               <p className="delete-confirm-modal__text">
                 {tr(
@@ -4931,6 +5308,16 @@ export default function Landing() {
                   onClick={handleConfirmInventoryDelete}
                 >
                   {tr("Delete", "删除")}
+                </button>
+              </div>
+              <div className="delete-confirm-modal__footer">
+                <button
+                  className="delete-confirm-modal__btn delete-confirm-modal__close"
+                  type="button"
+                  aria-label={tr("Close confirmation", "关闭确认弹窗")}
+                  onClick={() => setPendingInventoryDelete(null)}
+                >
+                  <X size={20} strokeWidth={3} />
                 </button>
               </div>
             </div>
