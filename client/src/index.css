@@ -294,6 +294,68 @@
     opacity: 1 !important;
   }
 
+  .alpha-detail-tooltip .tooltip-arrow,
+  .alpha-detail-tooltip .tooltip-arrow svg,
+  .alpha-detail-tooltip .tooltip-arrow path,
+  .alpha-detail-tooltip .tooltip-arrow polygon {
+    color: var(--tooltip-bg) !important;
+    fill: var(--tooltip-bg) !important;
+    stroke: var(--tooltip-bg) !important;
+  }
+
+  .alpha-copy-toast {
+    display: flex;
+    min-width: 240px;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: #2c2117;
+    background: #fff3d3;
+    border: 2px solid #cdbb9f;
+    border-radius: 12px;
+    box-shadow: 3px 3px 0 rgba(16, 16, 16, .14);
+    font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    image-rendering: pixelated;
+  }
+
+  .alpha-copy-toast__icon {
+    display: inline-grid;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    place-items: center;
+    color: #075b55;
+    background: #dff7c4;
+    border: 1.5px solid rgba(25, 132, 117, .46);
+    border-radius: 8px;
+    box-shadow: 2px 2px 0 rgba(71, 102, 61, .22);
+  }
+
+  .alpha-copy-toast--error .alpha-copy-toast__icon {
+    color: #b42318;
+    background: #ffe3da;
+    border-color: rgba(196, 61, 45, .42);
+    box-shadow: 2px 2px 0 rgba(135, 58, 45, .18);
+  }
+
+  .alpha-copy-toast__body {
+    min-width: 0;
+  }
+
+  .alpha-copy-toast__title {
+    font-size: 13px;
+    font-weight: 950;
+    line-height: 1.25;
+  }
+
+  .alpha-copy-toast__message {
+    margin-top: 2px;
+    color: #725d42;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
   /* ── Hero Typography — 36px, bold, tight ── */
   .hero-title {
     font-size: 2.25rem;

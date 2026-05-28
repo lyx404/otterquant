@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useInView, useMotionValue, useReducedMotion, useSpring } from "motion/react";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
@@ -17,7 +18,6 @@ import {
   Search,
   Star,
   TrendingUp,
-  Trophy,
   Users,
   Wallet,
   X,
@@ -34,7 +34,7 @@ const curveRanges = ["7D", "30D", "90D", "365D"] as const;
 type CurveRange = (typeof curveRanges)[number];
 const factorFilterOptions = ["all", "starred"] as const;
 type FactorFilterKey = (typeof factorFilterOptions)[number];
-const inventoryGradeFilterOptions = ["all", "SS", "S", "A", "B", "C", "D", "F", "prop", "misc"] as const;
+const inventoryGradeFilterOptions = ["all", "SSS", "SS", "S", "A", "B", "C", "D", "prop", "misc"] as const;
 type InventoryGradeFilter = (typeof inventoryGradeFilterOptions)[number];
 type FactorSortKey =
   | "createdAt"
@@ -51,7 +51,7 @@ type FactorRow = Factor & {
   grade: AlphaGrade;
   rewardAmount: number;
 };
-type InventoryVisualGrade = AlphaGrade | "SS";
+type InventoryVisualGrade = "SSS" | "SS" | "S" | "A" | "B" | "C" | "D";
 type InventorySpecialType = "prop" | "misc";
 type InventorySpecialCard = {
   id: string;
@@ -71,6 +71,11 @@ type PendingInventoryDelete =
   | { kind: "factor"; id: string; label: string }
   | { kind: "item"; id: string; label: string }
   | null;
+type InventoryToast = {
+  id: number;
+  title: string;
+  message: string;
+} | null;
 type WalletActivityItem = {
   id: string;
   orderNo: string;
@@ -80,25 +85,52 @@ type WalletActivityItem = {
   amount: number;
   direction: "increase" | "decrease";
 };
+type LeaderboardPeriod = "week" | "month";
+type LeaderboardEntry = {
+  id: string;
+  nickname: string;
+  weekBalance: number;
+  monthBalance: number;
+  weekCasts: number;
+  monthCasts: number;
+};
 type FundsStatus = "idle" | "processing" | "success" | "error";
+type CountUpProps = {
+  to?: number | string;
+  children?: React.ReactNode;
+  from?: number;
+  direction?: "up" | "down";
+  delay?: number;
+  duration?: number;
+  className?: string;
+  startWhen?: boolean;
+  separator?: string;
+  onStart?: () => void;
+  onEnd?: () => void;
+};
 
+const BALANCE_PER_USD = 100;
+const SYSTEM_BALANCE_AMOUNT = 1000000;
+const FISH_BALANCE_AMOUNT = 10000;
+const MIN_AUTO_CAST_COUNT = 1;
+const MAX_AUTO_CAST_COUNT = 100;
 const WALLET_BALANCE_USD = 74.19;
-const ARENA_PRIZE_TOTAL = 32;
-const MIN_AMOUNT = 1;
-const MAX_AMOUNT = 5000;
+const WALLET_BALANCE_AMOUNT = Math.round(WALLET_BALANCE_USD * BALANCE_PER_USD);
+const MIN_AMOUNT = 1000;
+const MAX_AMOUNT = 500000;
 const GAME_STAGE_WIDTH = 1920;
 const GAME_STAGE_HEIGHT = 1040;
 const HUD_ASSETS = {
-  coin: "https://www.figma.com/api/mcp/asset/2cc100c6-3815-4ba9-af15-9b0e6beb0879",
-  fish: "https://www.figma.com/api/mcp/asset/ba2b6894-e259-4c4d-8a43-f056b7d7afaf",
-  pond: "/assets/hud-pond-full.svg",
-  market: "/assets/hud-market-full.svg",
-  guide: "/assets/hud-guide-full.svg",
-  wallet: "/assets/hud-wallet-full.svg",
-  leaderboard: "/assets/hud-leaderboard-full.svg",
-  settings: "/assets/hud-settings-full.svg",
-  rod: "https://www.figma.com/api/mcp/asset/57dba671-8ba5-43f5-8f1a-78b700d1a191",
-  basket: "https://www.figma.com/api/mcp/asset/515ecdbb-d48f-4335-afd3-77bbf881d5b8",
+  coin: "https://www.figma.com/api/mcp/asset/e94ba79e-6c54-4639-8672-15511c5b8323",
+  fish: "https://www.figma.com/api/mcp/asset/72b9da2b-c58c-4724-aa9d-4bea71dda8e3",
+  pond: "https://www.figma.com/api/mcp/asset/fc997177-f3e3-4998-ac99-abd924847fd6",
+  market: "https://www.figma.com/api/mcp/asset/4d1376b9-fb4a-44cb-8921-e61eef5830b8",
+  guide: "https://www.figma.com/api/mcp/asset/77c72db4-8ee0-4d88-9d05-33ac851372bf",
+  wallet: "/assets/wallet-menu-icon-new.svg",
+  leaderboard: "https://www.figma.com/api/mcp/asset/46127bf5-288b-48c3-8493-9d040e507def",
+  settings: "https://www.figma.com/api/mcp/asset/31ad3c82-277b-4c5d-9f3b-05e1ee168647",
+  rod: "https://www.figma.com/api/mcp/asset/ebf58884-bbb5-4138-b2da-5ca09b4c18c6",
+  basket: "/assets/hud-basket-button.svg",
 } as const;
 const WITHDRAWAL_NETWORKS = [
   "Ethereum (ERC20)",
@@ -127,6 +159,39 @@ const walletActivities: WalletActivityItem[] = [
     amount: 20,
     direction: "decrease",
   },
+];
+
+const CURRENT_LEADERBOARD_USER_ID = "current-user";
+const leaderboardSeedEntries: LeaderboardEntry[] = [
+  { id: "angler-01", nickname: "LakeQuant", weekBalance: 182.45, monthBalance: 738.2, weekCasts: 42, monthCasts: 168 },
+  { id: "angler-02", nickname: "鲸鱼信号", weekBalance: 245.8, monthBalance: 612.75, weekCasts: 37, monthCasts: 146 },
+  { id: "angler-03", nickname: "AlphaCat", weekBalance: 156.3, monthBalance: 881.9, weekCasts: 31, monthCasts: 174 },
+  { id: "angler-04", nickname: "Moon Fisher", weekBalance: 118.6, monthBalance: 502.4, weekCasts: 29, monthCasts: 132 },
+  { id: "angler-05", nickname: "因子猎手", weekBalance: 96.25, monthBalance: 455.1, weekCasts: 24, monthCasts: 109 },
+  { id: "angler-06", nickname: "CEX Otter", weekBalance: 82.5, monthBalance: 390.3, weekCasts: 21, monthCasts: 96 },
+  { id: "angler-07", nickname: "River Bot", weekBalance: 75.15, monthBalance: 318.65, weekCasts: 19, monthCasts: 82 },
+  { id: "angler-08", nickname: "小满仓", weekBalance: 61.9, monthBalance: 286.45, weekCasts: 17, monthCasts: 77 },
+  { id: CURRENT_LEADERBOARD_USER_ID, nickname: "You", weekBalance: 38.5, monthBalance: 218.4, weekCasts: 12, monthCasts: 58 },
+];
+const leaderboardGeneratedNames = [
+  "QuantNami", "River Alpha", "蓝鲸策略", "Beta Fisher", "Coral Signal", "星潮猎手", "Delta Hook", "WaveBot",
+  "Pixel Trader", "海盐因子", "North Lake", "K线水手", "Signal Bay", "Otter Desk", "潮汐量化", "Sunny Cast",
+];
+const leaderboardEntries: LeaderboardEntry[] = [
+  ...leaderboardSeedEntries,
+  ...Array.from({ length: 56 }, (_, index) => {
+    const name = leaderboardGeneratedNames[index % leaderboardGeneratedNames.length];
+    const weekBalance = Math.max(42, 224 - index * 3.18 + (index % 5) * 0.42);
+    const monthBalance = Math.max(245, 910 - index * 11.6 + (index % 7) * 2.15);
+    return {
+      id: `angler-auto-${index + 1}`,
+      nickname: `${name}${index + 1}`,
+      weekBalance: Number(weekBalance.toFixed(2)),
+      monthBalance: Number(monthBalance.toFixed(2)),
+      weekCasts: Math.max(14, 54 - Math.floor(index * 0.7)),
+      monthCasts: Math.max(62, 210 - Math.floor(index * 2.4)),
+    };
+  }),
 ];
 
 const inventorySpecialCards: InventorySpecialCard[] = [
@@ -175,13 +240,13 @@ function getStrategyTier(strategy: (typeof strategies)[number]): "official" | "g
 }
 
 const factorGradeOrder: Record<InventoryVisualGrade, number> = {
-  SS: 7,
-  S: 6,
-  A: 5,
-  B: 4,
-  C: 3,
-  D: 2,
-  F: 1,
+  SSS: 7,
+  SS: 6,
+  S: 5,
+  A: 4,
+  B: 3,
+  C: 2,
+  D: 1,
 };
 const factorRewardByGrade: Record<AlphaGrade, number> = {
   SS: 1,
@@ -194,9 +259,17 @@ const factorRewardByGrade: Record<AlphaGrade, number> = {
 };
 
 function getInventoryVisualGrade(factor: FactorRow): InventoryVisualGrade {
-  if (factor.grade !== "S") return factor.grade;
-  if (factor.osSharpe >= 1.8) return "SS";
-  return "S";
+  const legacyVisualGrade: AlphaGrade = factor.grade;
+  const visualGradeMap: Record<AlphaGrade, InventoryVisualGrade> = {
+    SS: "SSS",
+    S: "SS",
+    A: "S",
+    B: "A",
+    C: "B",
+    D: "C",
+    F: "D",
+  };
+  return visualGradeMap[legacyVisualGrade];
 }
 
 function getFactorSubmissionStatus(factor: Factor): FactorRow["submissionStatus"] {
@@ -207,26 +280,159 @@ function formatUsd(amount: number) {
   return `${(Number(amount) || 0).toFixed(2)} USD`;
 }
 
+function formatUsdEquivalent(amount: number) {
+  return `${balanceToUsd(amount).toLocaleString(undefined, {
+    maximumFractionDigits: 2,
+  })} USD`;
+}
+
+function formatBalance(amount: number) {
+  return `${Math.round(Number(amount) || 0).toLocaleString()}`;
+}
+
+function clampAutoCastCount(value: number) {
+  if (!Number.isFinite(value)) return MIN_AUTO_CAST_COUNT;
+  return Math.min(MAX_AUTO_CAST_COUNT, Math.max(MIN_AUTO_CAST_COUNT, Math.round(value)));
+}
+
+function balanceToUsd(amount: number) {
+  return (Number(amount) || 0) / BALANCE_PER_USD;
+}
+
+function formatLeaderboardBalance(amount: number) {
+  return `+${Math.round(Number(amount) || 0).toLocaleString()}`;
+}
+
 function isValidAmount(amount: number) {
   const value = Number(amount);
   return Number.isFinite(value) && value >= MIN_AMOUNT && value <= MAX_AMOUNT;
 }
 
-function walletBalanceAfterWithdraw(amountUsd: number, balanceUsd = WALLET_BALANCE_USD) {
-  return Math.max(0, Number(balanceUsd || 0) - Number(amountUsd || 0));
+function walletBalanceAfterWithdraw(amount: number, balance = WALLET_BALANCE_AMOUNT) {
+  return Math.max(0, Number(balance || 0) - Number(amount || 0));
 }
 
 function isValidWithdrawalAddress(network: string, address: string) {
   const value = String(address || "").trim();
   if (!value) return false;
-  if (network === "Solana (SOL)") return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);
-  return /^0x[a-fA-F0-9]{40}$/.test(value);
+  if (value.length < 8 || value.length > 128) return false;
+  if (network === "Solana (SOL)") return /^[1-9A-HJ-NP-Za-km-z]{8,128}$/.test(value);
+  return /^0x[a-fA-F0-9]{6,126}$/.test(value);
 }
 
 function getWithdrawalAddressHint(network: string) {
   return network === "Solana (SOL)"
-    ? "请输入 32-44 位 Solana 钱包地址。"
-    : "请输入以 0x 开头的 42 位 EVM 钱包地址。";
+    ? "请输入 8-128 字符 Solana 钱包地址。"
+    : "请输入以 0x 开头的 8-128 字符 EVM 兼容钱包地址。";
+}
+
+function formatWalletAddressPreview(address: string) {
+  const value = address.trim();
+  if (value.length <= 18) return value;
+  return `${value.slice(0, 8)}...${value.slice(-6)}`;
+}
+
+function CountUp({
+  to,
+  children,
+  from = 0,
+  direction = "up",
+  delay = 0,
+  duration = 0.5,
+  className = "",
+  startWhen = true,
+  separator = ",",
+  onStart,
+  onEnd,
+}: CountUpProps) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const shouldReduceMotion = useReducedMotion();
+
+  const parseNumber = useCallback((value: unknown) => {
+    if (typeof value === "number") return value;
+    const matched = String(value ?? "")
+      .replace(/,/g, "")
+      .match(/-?\d+(\.\d+)?/);
+    return matched ? Number(matched[0]) : 0;
+  }, []);
+
+  const targetValue = useMemo(
+    () => (typeof to === "number" ? to : parseNumber(to ?? children)),
+    [children, parseNumber, to]
+  );
+  const startValue = direction === "down" ? targetValue : from;
+  const endValue = direction === "down" ? from : targetValue;
+  const motionValue = useMotionValue(startValue);
+  const safeDuration = Math.max(duration, 0.1);
+  const springValue = useSpring(motionValue, {
+    damping: 20 + 40 * (1 / safeDuration),
+    stiffness: 100 * (1 / safeDuration),
+  });
+  const isInView = useInView(ref, { once: true, margin: "0px" });
+
+  const getDecimalPlaces = useCallback((num: number) => {
+    const str = num.toString();
+    if (!str.includes(".")) return 0;
+    const decimals = str.split(".")[1] ?? "";
+    return parseInt(decimals, 10) !== 0 ? decimals.length : 0;
+  }, []);
+
+  const maxDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(targetValue));
+
+  const formatValue = useCallback(
+    (latest: number) => {
+      const hasDecimals = maxDecimals > 0;
+      const formattedNumber = Intl.NumberFormat("en-US", {
+        useGrouping: Boolean(separator),
+        minimumFractionDigits: hasDecimals ? maxDecimals : 0,
+        maximumFractionDigits: hasDecimals ? maxDecimals : 0,
+      }).format(latest);
+      return separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
+    },
+    [maxDecimals, separator]
+  );
+
+  useEffect(() => {
+    if (ref.current) ref.current.textContent = formatValue(startValue);
+    motionValue.set(startValue);
+  }, [formatValue, motionValue, startValue]);
+
+  useEffect(() => {
+    if (!isInView || !startWhen) return undefined;
+    onStart?.();
+
+    if (shouldReduceMotion) {
+      if (ref.current) ref.current.textContent = formatValue(endValue);
+      motionValue.set(endValue);
+      onEnd?.();
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      motionValue.set(endValue);
+    }, delay * 1000);
+    const durationTimeoutId = window.setTimeout(() => {
+      onEnd?.();
+    }, delay * 1000 + safeDuration * 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearTimeout(durationTimeoutId);
+    };
+  }, [delay, endValue, formatValue, isInView, motionValue, onEnd, onStart, safeDuration, shouldReduceMotion, startWhen]);
+
+  useEffect(() => {
+    const unsubscribe = springValue.on("change", (latest) => {
+      if (ref.current) ref.current.textContent = formatValue(latest);
+    });
+    return () => unsubscribe();
+  }, [formatValue, springValue]);
+
+  return (
+    <span className={className} ref={ref}>
+      {children}
+    </span>
+  );
 }
 
 function getFactorDefaultSortDir(key: FactorSortKey): Exclude<SortDir, null> {
@@ -278,14 +484,21 @@ export default function Landing() {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [stageScale, setStageScale] = useState(1);
+  const [autoCastEnabled, setAutoCastEnabled] = useState(false);
+  const [autoCastCount, setAutoCastCount] = useState(10);
+  const [autoCastRunning, setAutoCastRunning] = useState(false);
+  const [autoCastProgress, setAutoCastProgress] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState(50);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>("week");
+  const [withdrawAmount, setWithdrawAmount] = useState(MIN_AMOUNT);
   const [withdrawNetwork, setWithdrawNetwork] = useState(DEFAULT_WITHDRAWAL_NETWORK);
   const [withdrawAddress, setWithdrawAddress] = useState("");
   const [withdrawAddressError, setWithdrawAddressError] = useState("");
   const [withdrawAccountBound, setWithdrawAccountBound] = useState(false);
+  const [withdrawWalletEditing, setWithdrawWalletEditing] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<FundsStatus>("idle");
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [factorQuery, setFactorQuery] = useState("");
@@ -296,12 +509,14 @@ export default function Landing() {
   const [factorSortOpen, setFactorSortOpen] = useState(false);
   const [inventoryControlsHidden, setInventoryControlsHidden] = useState(false);
   const inventoryScrollTopRef = useRef(0);
+  const inventoryGridRef = useRef<HTMLDivElement | null>(null);
   const [openInventoryMenuId, setOpenInventoryMenuId] = useState<string | null>(null);
   const [starredFactors, setStarredFactors] = useState<Set<string>>(() => new Set(["AF-004", "AF-009"]));
   const [starredInventoryItems, setStarredInventoryItems] = useState<Set<string>>(() => new Set());
   const [deletedFactorIds, setDeletedFactorIds] = useState<Set<string>>(() => new Set());
   const [deletedInventoryItemIds, setDeletedInventoryItemIds] = useState<Set<string>>(() => new Set());
   const [pendingInventoryDelete, setPendingInventoryDelete] = useState<PendingInventoryDelete>(null);
+  const [inventoryToast, setInventoryToast] = useState<InventoryToast>(null);
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -327,6 +542,12 @@ export default function Landing() {
     window.addEventListener("resize", fitGameStage, { passive: true });
     return () => window.removeEventListener("resize", fitGameStage);
   }, []);
+
+  useEffect(() => {
+    if (!inventoryToast) return undefined;
+    const toastTimer = window.setTimeout(() => setInventoryToast(null), 2600);
+    return () => window.clearTimeout(toastTimer);
+  }, [inventoryToast]);
 
   const filterLabels: Record<FilterKey, string> = {
     all: tr("All", "全部"),
@@ -465,6 +686,64 @@ export default function Landing() {
     });
   }, [deletedInventoryItemIds, factorFilter, factorQuery, inventoryGradeFilter, starredInventoryItems]);
 
+  const leaderboardRows = useMemo(() => {
+    const balanceKey = leaderboardPeriod === "week" ? "weekBalance" : "monthBalance";
+    const castsKey = leaderboardPeriod === "week" ? "weekCasts" : "monthCasts";
+    return leaderboardEntries
+      .map((entry) => ({
+        ...entry,
+        balance: entry[balanceKey],
+        casts: entry[castsKey],
+      }))
+      .sort((a, b) => b.balance - a.balance)
+      .map((entry, index) => ({
+        ...entry,
+        rank: index + 1,
+      }));
+  }, [leaderboardPeriod]);
+
+  const leaderboardPodiumRows = [
+    leaderboardRows[1],
+    leaderboardRows[0],
+    leaderboardRows[2],
+  ].filter((entry): entry is (typeof leaderboardRows)[number] => Boolean(entry));
+  const leaderboardTopRows = leaderboardRows.slice(0, 50);
+  const leaderboardListRows = leaderboardTopRows.slice(3);
+  const currentLeaderboardRow = leaderboardRows.find((row) => row.id === CURRENT_LEADERBOARD_USER_ID);
+  const currentLeaderboardInTop50 = Boolean(currentLeaderboardRow && currentLeaderboardRow.rank <= 50);
+  const leaderboardBalanceLabel = leaderboardPeriod === "week" ? tr("New balance this week", "本周新增余额") : tr("New balance this month", "本月新增余额");
+  const leaderboardCastsLabel = leaderboardPeriod === "week" ? tr("Casts this week", "本周抛竿数") : tr("Casts this month", "本月抛竿数");
+  const autoCastStatusVisible = autoCastEnabled && (autoCastRunning || autoCastProgress > 0);
+  const castButtonLabel = autoCastStatusVisible ? `${autoCastProgress}/${autoCastCount}` : tr("Cast", "抛竿");
+  const castActionLabel = autoCastStatusVisible
+    ? tr(`Auto casting ${autoCastProgress} of ${autoCastCount}`, `自动抛竿 ${autoCastProgress}/${autoCastCount}`)
+    : autoCastEnabled
+      ? tr(`Start auto cast ${autoCastCount} times`, `启动自动抛竿，共 ${autoCastCount} 次`)
+      : tr("Cast", "抛竿");
+
+  const updateAutoCastCount = (value: number) => {
+    setAutoCastCount(clampAutoCastCount(value));
+    setAutoCastRunning(false);
+    setAutoCastProgress(0);
+  };
+
+  const handleAutoCastToggle = () => {
+    setAutoCastEnabled((enabled) => {
+      if (enabled) {
+        setAutoCastRunning(false);
+        setAutoCastProgress(0);
+      }
+      return !enabled;
+    });
+  };
+
+  const handleMainCastClick = () => {
+    if (!autoCastEnabled) return;
+    if (autoCastRunning) return;
+    setAutoCastProgress(0);
+    setAutoCastRunning(true);
+  };
+
   const toggleFactorStar = (id: string) => {
     setStarredFactors((current) => {
       const next = new Set(current);
@@ -490,27 +769,36 @@ export default function Landing() {
 
   const handleConfirmInventoryDelete = () => {
     if (!pendingInventoryDelete) return;
+    const deletedItem = pendingInventoryDelete;
 
-    if (pendingInventoryDelete.kind === "factor") {
-      setDeletedFactorIds((current) => new Set(current).add(pendingInventoryDelete.id));
+    if (deletedItem.kind === "factor") {
+      setDeletedFactorIds((current) => new Set(current).add(deletedItem.id));
       setStarredFactors((current) => {
         const next = new Set(current);
-        next.delete(pendingInventoryDelete.id);
+        next.delete(deletedItem.id);
         return next;
       });
-      if (selectedInventoryFactor?.id === pendingInventoryDelete.id) {
+      if (selectedInventoryFactor?.id === deletedItem.id) {
         setSelectedInventoryFactor(null);
       }
     } else {
-      setDeletedInventoryItemIds((current) => new Set(current).add(pendingInventoryDelete.id));
+      setDeletedInventoryItemIds((current) => new Set(current).add(deletedItem.id));
       setStarredInventoryItems((current) => {
         const next = new Set(current);
-        next.delete(pendingInventoryDelete.id);
+        next.delete(deletedItem.id);
         return next;
       });
     }
 
     setPendingInventoryDelete(null);
+    setInventoryToast({
+      id: Date.now(),
+      title: tr("Deleted", "删除成功"),
+      message: tr(
+        `${deletedItem.label} has been removed from your inventory.`,
+        `已从图鉴中移除：${deletedItem.label}`
+      ),
+    });
   };
 
   const handleInventoryCardMove = useCallback((event: React.MouseEvent<HTMLElement>) => {
@@ -559,6 +847,36 @@ export default function Landing() {
       setPendingInventoryDelete(null);
     }
   }, [inventoryOpen]);
+
+  useEffect(() => {
+    if (!inventoryOpen || selectedInventoryFactor) return undefined;
+    const scrollTop = inventoryScrollTopRef.current;
+    if (scrollTop <= 0) return undefined;
+
+    const frameId = window.requestAnimationFrame(() => {
+      if (inventoryGridRef.current) {
+        inventoryGridRef.current.scrollTop = scrollTop;
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [inventoryOpen, selectedInventoryFactor]);
+
+  useEffect(() => {
+    if (!autoCastRunning || autoCastProgress >= autoCastCount) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setAutoCastProgress((progress) => Math.min(autoCastCount, progress + 1));
+    }, 220);
+
+    return () => window.clearTimeout(timer);
+  }, [autoCastCount, autoCastProgress, autoCastRunning]);
+
+  useEffect(() => {
+    if (autoCastRunning && autoCastProgress >= autoCastCount) {
+      setAutoCastRunning(false);
+    }
+  }, [autoCastCount, autoCastProgress, autoCastRunning]);
 
   const handleFactorSortChange = (key: string) => {
     const nextKey = key as FactorSortKey;
@@ -651,6 +969,26 @@ export default function Landing() {
     setWithdrawStatus("idle");
   };
 
+  const openWalletModal = () => {
+    setWalletWithdrawOpen(false);
+    setWalletOpen(true);
+    setWithdrawWalletEditing(false);
+    resetWithdrawFeedback();
+  };
+
+  const openWithdrawModal = () => {
+    setWalletWithdrawOpen(true);
+    setWithdrawWalletEditing(false);
+    resetWithdrawFeedback();
+  };
+
+  const closeWalletModal = () => {
+    setWalletOpen(false);
+    setWalletWithdrawOpen(false);
+    setWithdrawWalletEditing(false);
+    resetWithdrawFeedback();
+  };
+
   const formatWalletDateTime = (value: string) => {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
@@ -670,33 +1008,48 @@ export default function Landing() {
   };
 
   const handleBindWithdrawWallet = () => {
+    const validAmount = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_AMOUNT;
+    if (!validAmount) return;
     if (!isValidWithdrawalAddress(withdrawNetwork, withdrawAddress)) {
       setWithdrawAddressError(getWithdrawalAddressHint(withdrawNetwork));
+      setWithdrawAccountBound(false);
+      setWithdrawWalletEditing(true);
       return;
     }
     setWithdrawAccountBound(true);
-    setWithdrawAddressError("");
-    resetWithdrawFeedback();
-  };
-
-  const handleUnbindWithdrawWallet = () => {
-    setWithdrawAccountBound(false);
-    setWithdrawNetwork(DEFAULT_WITHDRAWAL_NETWORK);
-    setWithdrawAddress("");
+    setWithdrawWalletEditing(false);
     setWithdrawAddressError("");
     resetWithdrawFeedback();
   };
 
   const handleSubmitWithdraw = async () => {
-    const validAmount = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_USD;
+    const validAmount = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_AMOUNT;
     const validAddress = withdrawAccountBound && isValidWithdrawalAddress(withdrawNetwork, withdrawAddress);
     if (!validAmount || !validAddress || withdrawSubmitting || withdrawStatus === "success") return;
     setWithdrawSubmitting(true);
     setWithdrawStatus("processing");
     await new Promise((resolve) => window.setTimeout(resolve, 850));
-    setWithdrawStatus(withdrawAmount === 30 ? "error" : "success");
+    setWithdrawStatus(withdrawAmount === 3000 ? "error" : "success");
     setWithdrawSubmitting(false);
   };
+
+  const withdrawAmountValid = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_AMOUNT;
+  const withdrawAddressValue = withdrawAddress.trim();
+  const withdrawWalletFormOpen = !withdrawAccountBound || withdrawWalletEditing;
+  const withdrawPrimaryDisabled =
+    withdrawSubmitting ||
+    withdrawStatus === "success" ||
+    !withdrawAmountValid ||
+    !withdrawAddressValue;
+  const withdrawPrimaryLabel = withdrawSubmitting
+    ? "提交中..."
+    : withdrawStatus === "success"
+      ? "已提交"
+      : withdrawWalletFormOpen
+        ? "绑定并提现"
+        : withdrawAccountBound
+        ? "确认提现"
+        : "绑定并提现";
 
   const openStrategyDetail = (strategy: (typeof strategies)[number]) => {
     setSelectedStrategy(strategy);
@@ -916,83 +1269,233 @@ export default function Landing() {
           letter-spacing: 0;
         }
 
-        .hud-top-actions {
+        .top-actions {
           position: absolute;
           right: 40px;
           top: 36px;
           display: flex;
+          gap: 10px;
           align-items: center;
           justify-content: flex-end;
-          gap: 10px;
           z-index: 2;
         }
 
-        .hud-menu-item {
+        .menu-item {
           position: relative;
-          display: block;
           width: 90px;
           height: 90px;
-          padding: 0;
-          color: inherit;
-          background: transparent;
           border: 0;
           border-radius: 16px;
+          background: transparent;
+          padding: 0;
+          display: block;
           cursor: pointer;
           font: inherit;
         }
 
-        .hud-menu-item--full-image {
-          overflow: hidden;
-        }
-
-        .hud-menu-icon {
+        .menu-icon {
           position: absolute;
           left: 50%;
           transform: translateX(-50%);
           object-fit: contain;
           image-rendering: pixelated;
-          pointer-events: none;
-          user-select: none;
         }
 
-        .hud-menu-image {
-          display: block;
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
-          image-rendering: pixelated;
-          pointer-events: none;
-          user-select: none;
-        }
-
-        .hud-menu-label {
+        .menu-label {
           position: absolute;
           left: 50%;
-          bottom: 8px;
+          bottom: 4px;
           transform: translateX(-50%);
-          color: #fff;
+          color: #FFF;
+          text-align: center;
+          -webkit-text-stroke-width: 0;
+          -webkit-text-stroke-color: transparent;
           font-size: 20px;
           font-weight: 900;
-          line-height: 1;
           letter-spacing: .08em;
           white-space: nowrap;
           text-shadow: 0 2px 0 rgba(0, 0, 0, .15);
         }
 
-        .hud-bottom-bar {
+        .menu-label::before {
+          content: attr(data-label);
           position: absolute;
-          left: 50%;
-          bottom: 40px;
-          transform: translateX(-50%);
+          inset: 0;
+          z-index: -1;
+          color: #FFF;
+          text-align: center;
+          -webkit-text-stroke-width: 4px;
+          -webkit-text-stroke-color: #4E433C;
+          text-shadow: none;
+        }
+
+	        .hud-bottom-bar {
+	          position: absolute;
+	          left: 50%;
+	          bottom: 40px;
+	          transform: translateX(-50%);
           display: flex;
           align-items: center;
           gap: 30px;
-          z-index: 2;
-        }
+	          z-index: 2;
+	        }
 
-        .hud-main-action {
-          position: relative;
-          display: flex;
+	        .hud-cast-panel {
+	          position: absolute;
+	          left: 50%;
+	          bottom: 178px;
+	          z-index: 3;
+	          display: flex;
+	          flex-direction: column;
+	          align-items: center;
+	          gap: 10px;
+	          min-height: 52px;
+	          padding: 10px 12px;
+	          color: #4e433c;
+	          background: rgba(255, 248, 226, .96);
+	          border: 3px solid #4e433c;
+	          border-radius: 14px;
+	          box-shadow:
+	            0 5px 0 #4e433c,
+	            0 14px 24px rgba(78, 67, 60, .18);
+	          transform: translateX(-50%);
+	        }
+
+	        .cast-auto-row {
+	          display: flex;
+	          align-items: center;
+	          justify-content: space-between;
+	          gap: 14px;
+	          width: 100%;
+	          min-width: 246px;
+	        }
+
+	        .cast-auto-title {
+	          color: #4e433c;
+	          font-size: 18px;
+	          font-weight: 1000;
+	          line-height: 1;
+	          white-space: nowrap;
+	        }
+
+	        .cast-auto-switch,
+	        .cast-count-stepper {
+	          appearance: none;
+	          border: 0;
+	          color: #4e433c;
+	          background: transparent;
+	          cursor: pointer;
+	          font: inherit;
+	          font-size: 18px;
+	          font-weight: 900;
+	          line-height: 1;
+	        }
+
+	        .cast-auto-switch {
+	          display: inline-flex;
+	          align-items: center;
+	          gap: 8px;
+	          min-width: 104px;
+	          height: 36px;
+	          padding: 0 10px;
+	          background: #fff0bf;
+	          border: 2px solid rgba(78, 67, 60, .52);
+	          border-radius: 999px;
+	          box-shadow: 0 3px 0 rgba(78, 67, 60, .36);
+	          transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
+	        }
+
+	        .cast-auto-switch:active {
+	          transform: translateY(2px);
+	          box-shadow: 0 1px 0 rgba(78, 67, 60, .44);
+	        }
+
+	        .cast-auto-switch.is-on {
+	          background: #9bdc5c;
+	          border-color: rgba(78, 67, 60, .72);
+	        }
+
+	        .cast-auto-switch__track {
+	          position: relative;
+	          width: 34px;
+	          height: 18px;
+	          border-radius: 999px;
+	          background: rgba(78, 67, 60, .26);
+	          box-shadow: inset 0 2px 0 rgba(78, 67, 60, .16);
+	        }
+
+	        .cast-auto-switch__thumb {
+	          position: absolute;
+	          left: 3px;
+	          top: 3px;
+	          width: 12px;
+	          height: 12px;
+	          border-radius: 50%;
+	          background: #fffdf4;
+	          box-shadow: 0 1px 0 rgba(78, 67, 60, .42);
+	          transition: transform 140ms ease;
+	        }
+
+	        .cast-auto-switch.is-on .cast-auto-switch__thumb {
+	          transform: translateX(16px);
+	        }
+
+	        .cast-auto-switch__text {
+	          min-width: 36px;
+	          text-align: left;
+	        }
+
+	        .cast-count-control {
+	          display: inline-flex;
+	          align-items: center;
+	          gap: 8px;
+	          color: #4e433c;
+	          font-size: 17px;
+	          font-weight: 900;
+	          white-space: nowrap;
+	        }
+
+	        .cast-count-stepper {
+	          width: 34px;
+	          height: 34px;
+	          display: grid;
+	          place-items: center;
+	          background: #fffdf4;
+	          border: 2px solid rgba(78, 67, 60, .56);
+	          border-radius: 8px;
+	          box-shadow: 0 3px 0 rgba(78, 67, 60, .38);
+	        }
+
+	        .cast-count-stepper:disabled {
+	          opacity: .45;
+	          cursor: not-allowed;
+	          box-shadow: none;
+	        }
+
+	        .cast-count-input {
+	          width: 72px;
+	          height: 36px;
+	          color: #1f180f;
+	          background: #fffdf4;
+	          border: 2px solid rgba(78, 67, 60, .62);
+	          border-radius: 8px;
+	          font: inherit;
+	          font-size: 18px;
+	          font-weight: 1000;
+	          line-height: 1;
+	          text-align: center;
+	          box-shadow: inset 0 2px 0 rgba(78, 67, 60, .12);
+	        }
+
+	        .cast-count-input::-webkit-outer-spin-button,
+	        .cast-count-input::-webkit-inner-spin-button {
+	          margin: 0;
+	          appearance: none;
+	        }
+
+	        .hud-main-action {
+	          position: relative;
+	          display: flex;
           align-items: center;
           gap: 36px;
           height: 120px;
@@ -1004,6 +1507,7 @@ export default function Landing() {
           box-shadow: 0 8px 0 #4e433c;
           cursor: pointer;
           font: inherit;
+          transition: transform 80ms ease, box-shadow 80ms ease, filter 80ms ease;
         }
 
         .hud-main-action__tool {
@@ -1015,11 +1519,12 @@ export default function Landing() {
         }
 
         .hud-main-action__label {
+          position: relative;
+          z-index: 0;
+          display: inline-block;
           color: #FFF;
           text-align: center;
           -webkit-text-fill-color: #FFF;
-          -webkit-text-stroke: 5px #4E433C;
-          paint-order: stroke fill;
           font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
           font-size: 50px;
           font-style: normal;
@@ -1031,28 +1536,53 @@ export default function Landing() {
           white-space: nowrap;
         }
 
+        .hud-main-action__label::before {
+          content: attr(data-label);
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          color: #FFF;
+          text-align: center;
+          -webkit-text-fill-color: #FFF;
+          -webkit-text-stroke-width: 10px;
+          -webkit-text-stroke-color: #4E433C;
+          text-shadow: none;
+        }
+
+        .hud-main-action__label--progress {
+          min-width: 152px;
+          letter-spacing: 2px;
+        }
+
         .hud-basket {
           position: relative;
           width: 120px;
           height: 120px;
           padding: 0;
-          background: #ffedb7;
+          background: transparent;
           border: 0;
           border-radius: 16px;
-          box-shadow: 0 8px 0 #4e433c;
+          box-shadow: none;
           cursor: pointer;
           font: inherit;
+          overflow: visible;
+          transition: transform 80ms ease, filter 80ms ease;
+        }
+
+        .hud-basket__shell {
+          position: absolute;
+          inset: 0;
+          border-radius: 16px;
+          overflow: visible;
         }
 
         .hud-basket__icon {
           position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 80px;
-          height: 76px;
-          transform: translate(-50%, -50%);
-          object-fit: contain;
-          image-rendering: pixelated;
+          inset: 0 0 -8px;
+          width: 120px;
+          height: 128px;
+          object-fit: fill;
+          transition: clip-path 80ms ease;
           pointer-events: none;
           user-select: none;
         }
@@ -1080,26 +1610,40 @@ export default function Landing() {
         }
 
         .hud-stat-card:hover,
-        .hud-menu-item:hover,
+        .menu-item:hover,
         .hud-main-action:hover,
         .hud-basket:hover {
           filter: brightness(1.02);
         }
 
-        .hud-menu-item:active,
+        .menu-item:active {
+          transform: translateY(1px);
+        }
+
         .hud-main-action:active,
         .hud-basket:active {
-          transform: translateY(1px);
+          transform: translateY(8px);
         }
 
         .hud-main-action:active {
-          transform: translateY(1px);
+          box-shadow: 0 0 0 #4e433c;
         }
 
-        .hud-menu-item:focus-visible,
-        .hud-main-action:focus-visible,
-        .hud-basket:focus-visible {
-          outline: 3px solid #ffcc00;
+        .hud-basket:active .hud-basket__shell {
+          overflow: hidden;
+        }
+
+        .hud-basket:active .hud-basket__icon {
+          clip-path: inset(0 0 8px 0);
+        }
+
+	        .menu-item:focus-visible,
+	        .cast-auto-switch:focus-visible,
+	        .cast-count-stepper:focus-visible,
+	        .cast-count-input:focus-visible,
+	        .hud-main-action:focus-visible,
+	        .hud-basket:focus-visible {
+	          outline: 3px solid #ffcc00;
           outline-offset: 4px;
         }
 
@@ -1698,13 +2242,70 @@ export default function Landing() {
             3px 3px 0 rgba(127, 47, 36, .45);
         }
 
-        .delete-confirm-modal__close {
-          width: 44px;
-          min-width: 44px;
-          height: 44px;
-          padding: 0;
+        .inventory-toast {
+          position: fixed;
+          left: 50%;
+          top: clamp(28px, 5vh, 56px);
+          z-index: 95;
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          align-items: center;
+          gap: 12px;
+          width: min(460px, calc(100vw - 32px));
+          padding: 12px 16px;
+          color: var(--ac-text);
+          background: linear-gradient(180deg, #fff8e6 0%, #f7e8bf 100%);
+          border: 2px solid var(--ac-border);
+          border-radius: var(--radius-sm);
+          box-shadow:
+            inset 0 2px 0 rgba(255,255,255,.62),
+            0 6px 0 rgba(78, 67, 60, .34),
+            0 16px 34px rgba(77, 51, 28, .18);
+          transform: translateX(-50%);
+          animation: inventory-toast-pop 220ms ease-out;
+          pointer-events: none;
+        }
+
+        .inventory-toast__icon {
+          width: 34px;
+          height: 34px;
           display: inline-grid;
           place-items: center;
+          color: #fffdf4;
+          background: linear-gradient(180deg, #34d399 0%, #0f9f6e 100%);
+          border: 2px solid #08724f;
+          border-radius: 999px;
+          box-shadow: 0 3px 0 rgba(8, 114, 79, .34);
+          font-size: 21px;
+          font-weight: 1000;
+          line-height: 1;
+        }
+
+        .inventory-toast__title {
+          margin: 0;
+          color: var(--ac-text);
+          font-size: 14px;
+          font-weight: 1000;
+          line-height: 1.25;
+        }
+
+        .inventory-toast__message {
+          margin: 3px 0 0;
+          color: #725d42;
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1.45;
+        }
+
+        @keyframes inventory-toast-pop {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -10px) scale(.96);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, 0) scale(1);
+          }
         }
 
         .shop-modal__close {
@@ -2253,8 +2854,10 @@ export default function Landing() {
           opacity: 1;
           transform: translateY(0);
           transition:
-            opacity .18s ease,
-            transform .22s ease;
+            max-height .48s cubic-bezier(.22, 1, .36, 1),
+            opacity .34s cubic-bezier(.22, 1, .36, 1),
+            transform .42s cubic-bezier(.22, 1, .36, 1);
+          will-change: max-height, opacity, transform;
         }
 
         .inventory-modal .inventory-grade-filter {
@@ -2267,8 +2870,12 @@ export default function Landing() {
           opacity: 1;
           transform: translateY(0);
           transition:
-            opacity .18s ease,
-            transform .22s ease;
+            max-height .48s cubic-bezier(.22, 1, .36, 1),
+            opacity .34s cubic-bezier(.22, 1, .36, 1),
+            transform .42s cubic-bezier(.22, 1, .36, 1),
+            padding-top .42s cubic-bezier(.22, 1, .36, 1),
+            padding-bottom .42s cubic-bezier(.22, 1, .36, 1);
+          will-change: max-height, opacity, transform, padding-top, padding-bottom;
         }
 
         .inventory-modal.inventory-modal--controls-hidden .shop-modal__toolbar,
@@ -2280,7 +2887,7 @@ export default function Landing() {
           opacity: 0;
           padding-top: 0;
           padding-bottom: 0;
-          transform: translateY(-8px);
+          transform: translateY(-6px);
           pointer-events: none;
         }
 
@@ -2366,43 +2973,43 @@ export default function Landing() {
           --grade-chip-shadow: rgba(74, 70, 63, .14);
         }
 
-        .inventory-grade-filter__chip--SS {
-          --grade-chip-bg: #ff9c7a;
-          --grade-chip-edge: #ffa742;
-          --grade-chip-shadow: rgba(171, 118, 25, .22);
+        .inventory-grade-filter__chip--SSS {
+          --grade-chip-bg: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
+          --grade-chip-edge: #d39a2b;
+          --grade-chip-shadow: rgba(156, 93, 15, .22);
         }
 
-        .inventory-grade-filter__chip--S {
+        .inventory-grade-filter__chip--SS {
           --grade-chip-bg: #fff7d9;
           --grade-chip-edge: #f4d36c;
           --grade-chip-shadow: rgba(176, 122, 16, .16);
         }
 
-        .inventory-grade-filter__chip--A {
+        .inventory-grade-filter__chip--S {
           --grade-chip-bg: #f7e2ff;
           --grade-chip-edge: #c17df2;
           --grade-chip-shadow: rgba(107, 78, 179, .16);
         }
 
-        .inventory-grade-filter__chip--B {
+        .inventory-grade-filter__chip--A {
           --grade-chip-bg: #cfefff;
           --grade-chip-edge: #4aa7e4;
           --grade-chip-shadow: rgba(43, 85, 143, .16);
         }
 
-        .inventory-grade-filter__chip--C {
+        .inventory-grade-filter__chip--B {
           --grade-chip-bg: #defec0;
           --grade-chip-edge: #9bdc5c;
           --grade-chip-shadow: rgba(72, 122, 38, .16);
         }
 
-        .inventory-grade-filter__chip--D {
+        .inventory-grade-filter__chip--C {
           --grade-chip-bg: #f3eee8;
           --grade-chip-edge: #c1ab8b;
           --grade-chip-shadow: rgba(111, 88, 67, .14);
         }
 
-        .inventory-grade-filter__chip--F {
+        .inventory-grade-filter__chip--D {
           --grade-chip-bg: #ececec;
           --grade-chip-edge: #c9c9c9;
           --grade-chip-shadow: rgba(74, 70, 63, .14);
@@ -2422,16 +3029,52 @@ export default function Landing() {
 
         .wallet-modal .shop-modal__header {
           align-items: center;
+          padding-top: 16px;
           background: rgba(255, 249, 232, .88);
           border-bottom: 2px solid rgba(196, 184, 158, .62);
         }
 
+        .wallet-modal__heading {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
         .wallet-modal .shop-modal__title {
+          font-family: var(--modal-title-font);
+          font-size: 30px;
+          line-height: 1;
+          font-weight: 900;
+          letter-spacing: .02em;
           color: var(--ac-text);
-          text-shadow: 2px 2px 0 rgba(196, 184, 158, .46);
+          text-shadow: none;
+        }
+
+        .wallet-modal__back {
+          appearance: none;
+          width: 38px;
+          height: 38px;
+          display: inline-grid;
+          place-items: center;
+          flex: 0 0 auto;
+          color: var(--ac-text);
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+          cursor: pointer;
+          transition: transform .18s ease, box-shadow .18s ease;
+        }
+
+        .wallet-modal__back:hover {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
         }
 
         .wallet-modal .shop-modal__close {
+          width: 38px;
+          height: 38px;
           background: var(--ac-cream-light);
           border: 1.5px solid rgba(196, 184, 158, .86);
           border-radius: var(--radius-xs);
@@ -2456,7 +3099,7 @@ export default function Landing() {
 
         .wallet-summary-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: 1fr;
           gap: 14px;
         }
 
@@ -2467,6 +3110,13 @@ export default function Landing() {
           border: 2px solid rgba(196, 184, 158, .7);
           border-radius: var(--radius-sm);
           box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
+        }
+
+        .wallet-card--balance {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 18px;
+          align-items: center;
         }
 
         .wallet-card__label {
@@ -2487,6 +3137,20 @@ export default function Landing() {
           font-variant-numeric: tabular-nums;
         }
 
+        .wallet-balance-value {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .wallet-balance-value__icon {
+          width: 40px;
+          height: 41px;
+          flex: 0 0 auto;
+          object-fit: contain;
+          image-rendering: pixelated;
+        }
+
         .wallet-card__hint {
           margin: 10px 0 0;
           color: var(--ac-text-body);
@@ -2500,6 +3164,11 @@ export default function Landing() {
           flex-wrap: wrap;
           gap: 10px;
           margin-top: 16px;
+        }
+
+        .wallet-card--balance .wallet-action-row {
+          justify-content: flex-end;
+          margin-top: 0;
         }
 
         .wallet-action,
@@ -2554,27 +3223,6 @@ export default function Landing() {
           box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
         }
 
-        .wallet-section--compact {
-          margin-top: 14px;
-        }
-
-        .wallet-section__header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 14px 16px;
-          border-bottom: 2px solid rgba(196, 184, 158, .48);
-        }
-
-        .wallet-section__title {
-          margin: 0;
-          color: var(--ac-text);
-          font-size: 17px;
-          font-weight: 950;
-          line-height: 1;
-        }
-
         .wallet-table {
           min-width: 720px;
         }
@@ -2616,11 +3264,119 @@ export default function Landing() {
         .wallet-table__amount--plus { color: #18855c; }
         .wallet-table__amount--minus { color: #d43b3b; }
 
+        .wallet-table__balance {
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 5px;
+        }
+
+        .wallet-table__balance-icon {
+          width: 18px;
+          height: 18px;
+          object-fit: contain;
+          image-rendering: pixelated;
+        }
+
         .wallet-withdraw {
-          margin-top: 16px;
+          margin-top: 0;
+          display: block;
+        }
+
+        .wallet-withdraw--modal {
+          margin-top: 0;
+        }
+
+        .wallet-withdraw__steps {
+          width: min(720px, 100%);
+          margin: 0 auto;
           display: grid;
-          grid-template-columns: minmax(0, .86fr) minmax(0, 1.14fr);
+          gap: 0;
+        }
+
+        .wallet-step {
+          display: grid;
+          grid-template-columns: 38px minmax(0, 1fr);
           gap: 14px;
+          padding: 18px 0;
+          border-bottom: 2px solid rgba(196, 184, 158, .42);
+        }
+
+        .wallet-step:first-child {
+          padding-top: 0;
+        }
+
+        .wallet-step__marker {
+          width: 30px;
+          height: 30px;
+          display: inline-grid;
+          place-items: center;
+          color: var(--ac-text);
+          background: #ffcf3f;
+          border: 2px solid rgba(121, 79, 39, .72);
+          border-radius: 999px;
+          box-shadow: 2px 2px 0 rgba(121, 79, 39, .24);
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .wallet-step__body {
+          min-width: 0;
+          display: grid;
+          gap: 12px;
+        }
+
+        .wallet-step__head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          min-width: 0;
+        }
+
+        .wallet-step__title {
+          margin: 1px 0 0;
+          color: var(--ac-text);
+          font-size: 17px;
+          font-weight: 950;
+          line-height: 1.15;
+        }
+
+        .wallet-current-balance {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          color: var(--ac-text-body);
+          font-size: 12px;
+          font-weight: 900;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .wallet-current-balance__value {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          color: var(--ac-text);
+          font-size: 16px;
+          font-weight: 950;
+          letter-spacing: .02em;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .wallet-current-balance__icon {
+          width: 22px;
+          height: 22px;
+          object-fit: contain;
+          image-rendering: pixelated;
+        }
+
+        .wallet-current-balance__usd {
+          color: var(--ac-text-body);
+          font-size: 11px;
+          font-weight: 800;
         }
 
         .wallet-form {
@@ -2628,14 +3384,19 @@ export default function Landing() {
           gap: 10px;
         }
 
-        .wallet-field {
-          display: grid;
-          gap: 6px;
-        }
+	        .wallet-field {
+	          display: grid;
+	          gap: 6px;
+	        }
 
-        .wallet-field span {
-          color: var(--ac-text-body);
-          font-size: 12px;
+	        .wallet-input-unit-wrap {
+	          position: relative;
+	          display: block;
+	        }
+
+	        .wallet-field span {
+	          color: var(--ac-text-body);
+	          font-size: 12px;
           font-weight: 900;
         }
 
@@ -2652,11 +3413,27 @@ export default function Landing() {
           font: inherit;
           font-size: 13px;
           font-weight: 850;
-          outline: none;
-        }
+	          outline: none;
+	        }
 
-        .wallet-input:focus,
-        .wallet-select:focus {
+	        .wallet-input--with-unit {
+	          padding-right: 56px;
+	        }
+
+	        .wallet-input-unit {
+	          position: absolute;
+	          right: 12px;
+	          top: 50%;
+	          transform: translateY(-50%);
+	          color: var(--ac-text-body);
+	          font-size: 12px;
+	          font-weight: 950;
+	          line-height: 1;
+	          pointer-events: none;
+	        }
+
+	        .wallet-input:focus,
+	        .wallet-select:focus {
           border-color: var(--ac-primary);
           outline: 2px solid rgba(25, 200, 185, .22);
           outline-offset: 2px;
@@ -2674,6 +3451,113 @@ export default function Landing() {
           font-weight: 900;
         }
 
+        .wallet-conversion {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: baseline;
+          gap: 8px 12px;
+          color: var(--ac-text-body);
+          font-size: 12px;
+          font-weight: 800;
+          line-height: 1.45;
+        }
+
+        .wallet-conversion__value {
+          color: var(--ac-text);
+          font-size: 16px;
+          font-weight: 950;
+        }
+
+        .wallet-conversion.is-error,
+        .wallet-conversion.is-error .wallet-conversion__value {
+          color: #c53434;
+        }
+
+        .wallet-bind-state {
+          color: #18855c;
+          font-size: 12px;
+          font-weight: 900;
+          line-height: 1.45;
+        }
+
+        .wallet-bound-summary {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          min-height: 62px;
+          padding: 12px 14px;
+          color: var(--ac-text);
+          background: rgba(255, 249, 232, .82);
+          border: 1.5px solid rgba(196, 184, 158, .78);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .32);
+        }
+
+        .wallet-bound-summary__main {
+          min-width: 0;
+          display: grid;
+          gap: 4px;
+        }
+
+        .wallet-bound-summary__label {
+          color: #18855c;
+          font-size: 12px;
+          font-weight: 950;
+          line-height: 1;
+        }
+
+        .wallet-bound-summary__network {
+          overflow: hidden;
+          color: var(--ac-text);
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 1.15;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .wallet-bound-summary__address {
+          overflow: hidden;
+          color: var(--ac-text-body);
+          font-size: 12px;
+          font-weight: 850;
+          line-height: 1.15;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .wallet-bound-summary__edit {
+          appearance: none;
+          flex: 0 0 auto;
+          height: 36px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 14px;
+          color: var(--ac-text);
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+          font: inherit;
+          font-size: 12px;
+          font-weight: 950;
+          cursor: pointer;
+        }
+
+        .wallet-bound-summary__edit:hover {
+          transform: translate(-1px, -1px);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .55);
+        }
+
+        .wallet-withdraw__actions {
+          display: grid;
+          gap: 10px;
+          padding-top: 16px;
+        }
+
         .wallet-status {
           margin-top: 12px;
           padding: 10px 12px;
@@ -2689,6 +3573,331 @@ export default function Landing() {
         .wallet-status.is-error {
           background: rgba(226, 59, 59, .12);
           border-color: rgba(226, 59, 59, .28);
+        }
+
+	        .leaderboard-modal {
+	          width: min(960px, 94vw);
+	          height: min(760px, calc(100svh - clamp(56px, 8svh, 104px)));
+	          max-height: calc(100svh - clamp(56px, 8svh, 104px));
+	          background: linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
+	          border: 2px solid color-mix(in srgb, var(--ac-border) 82%, var(--ac-text));
+	          border-radius: var(--radius-xs);
+          box-shadow:
+            0 0 0 2px rgba(255, 253, 244, .88),
+            5px 5px 0 rgba(189, 174, 160, .72),
+            0 20px 48px rgba(66, 48, 31, .18);
+          image-rendering: pixelated;
+        }
+
+	        .leaderboard-modal .shop-modal__header {
+	          flex: 0 0 auto;
+	          align-items: center;
+	          gap: 14px;
+	          padding-top: 16px;
+          background: rgba(255, 249, 232, .88);
+          border-bottom: 2px solid rgba(196, 184, 158, .62);
+        }
+
+        .leaderboard-modal__heading {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex: 1 1 auto;
+        }
+
+        .leaderboard-modal .shop-modal__title {
+          font-family: var(--modal-title-font);
+          font-size: 30px;
+          line-height: 1;
+          font-weight: 900;
+          letter-spacing: .02em;
+          color: var(--ac-text);
+          text-shadow: none;
+        }
+
+        .leaderboard-modal .shop-modal__close {
+          width: 38px;
+          height: 38px;
+          background: var(--ac-cream-light);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+        }
+
+        .leaderboard-panel {
+          flex: 1 1 auto;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          padding: 18px clamp(18px, 2.6vw, 34px) 24px;
+        }
+
+        .leaderboard-tabs {
+          display: inline-flex;
+          gap: 8px;
+          padding: 5px;
+          background: #fff7e3;
+          border: 2px solid rgba(196, 184, 158, .7);
+          border-radius: var(--radius-sm);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .35);
+        }
+
+        .leaderboard-tab {
+          appearance: none;
+          min-width: 86px;
+          height: 34px;
+          padding: 0 14px;
+          color: #725d42;
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .leaderboard-tab.is-active {
+          color: #101010;
+          background: #9bdc5c;
+          box-shadow: 2px 2px 0 rgba(80, 63, 40, .38);
+        }
+
+        .leaderboard-podium {
+          flex: 0 0 auto;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          align-items: end;
+          gap: 14px;
+          margin-top: 0;
+        }
+
+        .leaderboard-podium-card {
+          --podium-bg: #fff7e3;
+          --podium-edge: rgba(196, 184, 158, .74);
+          min-width: 0;
+          min-height: var(--podium-height, 150px);
+          display: grid;
+          align-content: space-between;
+          gap: 12px;
+          padding: 16px;
+          color: var(--ac-text);
+          background: linear-gradient(180deg, #fffdf4 0%, var(--podium-bg) 100%);
+          border: 2px solid var(--podium-edge);
+          border-radius: var(--radius-sm);
+          box-shadow:
+            inset 0 2px 0 rgba(255,255,255,.56),
+            4px 4px 0 rgba(189, 174, 160, .42);
+        }
+
+        .leaderboard-podium-card__head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .leaderboard-podium-card--rank-1 {
+          --podium-height: 192px;
+          --podium-bg: #ffeeb8;
+          --podium-edge: #e0b84e;
+        }
+
+        .leaderboard-podium-card--rank-2 {
+          --podium-height: 164px;
+          --podium-bg: #eef3f2;
+          --podium-edge: #b7c3c0;
+        }
+
+        .leaderboard-podium-card--rank-3 {
+          --podium-height: 146px;
+          --podium-bg: #f5dcc4;
+          --podium-edge: #c48d5d;
+        }
+
+        .leaderboard-rank-badge {
+          width: 42px;
+          height: 42px;
+          display: inline-grid;
+          place-items: center;
+          color: #fffdf4;
+          background: #4e433c;
+          border: 2px solid #2c2117;
+          border-radius: 999px;
+          box-shadow: 0 3px 0 rgba(44, 33, 23, .28);
+          font-size: 16px;
+          font-weight: 1000;
+          line-height: 1;
+        }
+
+        .leaderboard-rank-tag {
+          padding: 3px 9px;
+          color: #725d42;
+          background: rgba(255, 253, 244, .72);
+          border: 1.5px solid rgba(196, 184, 158, .76);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 950;
+        }
+
+        .leaderboard-podium-card--rank-1 .leaderboard-rank-badge {
+          background: #f2b934;
+          border-color: #8f6420;
+        }
+
+        .leaderboard-podium-card--rank-2 .leaderboard-rank-badge {
+          background: #9ca9a8;
+          border-color: #5d6967;
+        }
+
+        .leaderboard-podium-card--rank-3 .leaderboard-rank-badge {
+          background: #b9794c;
+          border-color: #74452d;
+        }
+
+        .leaderboard-name {
+          overflow: hidden;
+          color: var(--ac-text);
+          font-size: 17px;
+          font-weight: 1000;
+          line-height: 1.2;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .leaderboard-balance {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color: #18855c;
+          font-size: 22px;
+          font-weight: 1000;
+          line-height: 1;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .leaderboard-balance__icon {
+          width: 24px;
+          height: 24px;
+          flex: 0 0 auto;
+          object-fit: contain;
+          image-rendering: pixelated;
+        }
+
+        .leaderboard-casts {
+          color: #725d42;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .leaderboard-list {
+          flex: 1 1 auto;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+          margin-top: 16px;
+          overflow: hidden;
+          background: #fffdf4;
+          border: 2px solid rgba(196, 184, 158, .7);
+          border-radius: var(--radius-sm);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
+        }
+
+        .leaderboard-list__scroll {
+          flex: 1 1 auto;
+          min-height: 0;
+          overflow-y: auto;
+          background: #fffdf4;
+          overscroll-behavior: contain;
+        }
+
+        .leaderboard-list-row {
+          display: grid;
+          grid-template-columns: 58px minmax(0, 1.3fr) minmax(120px, .8fr) minmax(86px, .55fr);
+          gap: 12px;
+          align-items: center;
+          padding: 12px 16px;
+          color: var(--ac-text);
+          font-size: 13px;
+          font-weight: 850;
+          border-bottom: 1px solid rgba(196, 184, 158, .45);
+        }
+
+        .leaderboard-list-row:last-child {
+          border-bottom: 0;
+        }
+
+        .leaderboard-list-row--head {
+          flex: 0 0 auto;
+          position: relative;
+          z-index: 2;
+          color: var(--ac-text-body);
+          background: #fff7e3;
+          font-size: 12px;
+          font-weight: 950;
+          box-shadow: 0 2px 0 rgba(196, 184, 158, .32);
+        }
+
+        .leaderboard-list__rank {
+          color: #725d42;
+          font-weight: 1000;
+        }
+
+        .leaderboard-list__name {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .leaderboard-list__balance {
+          color: #18855c;
+          text-align: left;
+          font-variant-numeric: tabular-nums;
+          font-weight: 1000;
+        }
+
+        .leaderboard-list__casts {
+          text-align: left;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .leaderboard-list__metric {
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 5px;
+          color: #18855c;
+          text-align: left;
+          font-variant-numeric: tabular-nums;
+          font-weight: 1000;
+        }
+
+        .leaderboard-list__metric .leaderboard-balance__icon {
+          width: 18px;
+          height: 18px;
+        }
+
+        .leaderboard-list-row--head .leaderboard-list__balance,
+        .leaderboard-list-row--head .leaderboard-list__casts {
+          color: var(--ac-text-body);
+          font-weight: 950;
+        }
+
+        .leaderboard-list-row.is-current {
+          background: linear-gradient(90deg, rgba(255, 207, 63, .24), rgba(155, 220, 92, .14));
+          box-shadow: inset 0 0 0 2px rgba(224, 184, 78, .54);
+        }
+
+        .leaderboard-list-row.leaderboard-current-row--sticky {
+          flex: 0 0 auto;
+          position: relative;
+          z-index: 3;
+          margin: 0;
+          background: linear-gradient(90deg, #fff2b8 0%, #efffd9 100%);
+          border-top: 2px solid rgba(224, 184, 78, .72);
+          border-bottom: 0;
+          box-shadow: 0 -2px 0 rgba(196, 184, 158, .3), 0 -10px 18px rgba(66, 48, 31, .08);
         }
 
         .inventory-summary {
@@ -2842,8 +4051,8 @@ export default function Landing() {
           initial-value: 0deg;
         }
 
-        .inventory-card--SS,
-        .inventory-card--S {
+        .inventory-card--SSS,
+        .inventory-card--SS {
           background: var(--tier-bg);
           border-color: var(--tier-edge);
           border-radius: 8px;
@@ -2852,13 +4061,13 @@ export default function Landing() {
           min-height: 0;
         }
 
-        .inventory-card--SS::before,
-        .inventory-card--S::before {
+        .inventory-card--SSS::before,
+        .inventory-card--SS::before {
           display: none;
         }
 
-        .inventory-card--SS::after,
-        .inventory-card--S::after {
+        .inventory-card--SSS::after,
+        .inventory-card--SS::after {
           inset: -3px;
           border-radius: inherit;
           box-shadow: none;
@@ -2869,59 +4078,59 @@ export default function Landing() {
           display: none;
         }
 
-        .inventory-card--SS .inv-art,
-        .inventory-card--S .inv-art {
+        .inventory-card--SSS .inv-art,
+        .inventory-card--SS .inv-art {
           border-width: 2px 2px 0;
           border-radius: 4px 4px 0 0;
         }
 
-        .inventory-card--SS .inv-art__tag,
-        .inventory-card--S .inv-art__tag {
+        .inventory-card--SSS .inv-art__tag,
+        .inventory-card--SS .inv-art__tag {
           padding: 4px 10px;
           border-width: 2px;
           border-radius: 4px 0 0 0;
         }
 
-        .inventory-card--SS .inv-art__tag {
+        .inventory-card--SSS .inv-art__tag {
           background: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
         }
 
-        .inventory-card--SS .inv-stats,
-        .inventory-card--S .inv-stats {
+        .inventory-card--SSS .inv-stats,
+        .inventory-card--SS .inv-stats {
           border-width: 2px;
           border-radius: 0 0 4px 4px;
         }
 
-        .inventory-card--SS .inv-btn,
-        .inventory-card--S .inv-btn {
+        .inventory-card--SSS .inv-btn,
+        .inventory-card--SS .inv-btn {
           border-radius: 4px;
         }
 
-        .inventory-card--SS .inv-btn--ghost,
-        .inventory-card--S .inv-btn--ghost {
+        .inventory-card--SSS .inv-btn--ghost,
+        .inventory-card--SS .inv-btn--ghost {
           border-width: 2px;
         }
 
-        .inventory-card--SS .inv-btn--cta {
+        .inventory-card--SSS .inv-btn--cta {
           background: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
         }
 
-        .inventory-card--SS .inv-head,
-        .inventory-card--S .inv-head {
+        .inventory-card--SSS .inv-head,
+        .inventory-card--SS .inv-head {
           margin-bottom: 0;
         }
 
-        .inventory-card--SS:hover,
-        .inventory-card--S:hover {
+        .inventory-card--SSS:hover,
+        .inventory-card--SS:hover {
           box-shadow: 0 14px 24px rgba(20, 20, 20, .14);
         }
 
-        .inventory-card--SS:hover::before,
-        .inventory-card--S:hover::before {
+        .inventory-card--SSS:hover::before,
+        .inventory-card--SS:hover::before {
           opacity: 0;
         }
 
-        .inventory-card--SS {
+        .inventory-card--SSS {
           --tier-bg: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
           --tier-edge: #d39a2b;
           --tier-accent: #ffa742;
@@ -2981,14 +4190,14 @@ export default function Landing() {
           transform: translateZ(24px);
           transition: transform .28s cubic-bezier(.22,1,.36,1);
         }
-        .inv-medal--SS {
-          min-width: 48px;
+        .inv-medal--SSS {
+          min-width: 54px;
           height: 28px;
           padding: 0 9px;
           font-size: 12px;
           letter-spacing: .03em;
         }
-        .inv-medal--SS {
+        .inv-medal--SSS {
           background: linear-gradient(180deg, oklch(0.98 0.37 36), oklch(0.95 0.24 77));
           box-shadow: 0 0 0 2px rgba(255, 247, 220, .56), 0 10px 16px rgba(171, 118, 25, .14);
         }
@@ -3123,8 +4332,8 @@ export default function Landing() {
           line-height: 1;
           font-variant-numeric: tabular-nums;
         }
-        .inv-stat__value--pos { color: #e23b3b; }  /* Chinese convention: positive = red */
-        .inv-stat__value--neg { color: #1f8a5a; }
+        .inv-stat__value--pos { color: #10B981; }
+        .inv-stat__value--neg { color: #F43F5E; }
 
         .inv-stats--inline {
           grid-template-columns: 1fr;
@@ -3230,7 +4439,7 @@ export default function Landing() {
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 1px 0 var(--tier-accent-deep);
         }
 
-        .inventory-card--S {
+        .inventory-card--SS {
           --tier-bg: #fff7d9;
           --tier-edge: #f4d36c;
           --tier-accent: #ffd66f;
@@ -3239,13 +4448,52 @@ export default function Landing() {
           --tier-star: #fbcf3a;
           --tier-cta-text: #1a1a1a;
         }
-        .inventory-card--A {
+        .inventory-card--S {
           --tier-bg: #f7e2ff;
-          --tier-edge: #f4d36c;
+          --tier-edge: #c17df2;
           --tier-accent: #c17df2;
           --tier-accent-deep: #6b4eb3;
           --tier-ray: rgba(149, 116, 220, .28);
           --tier-star: #8d6dd6;
+          --tier-cta-text: #101010;
+          border-radius: 8px;
+          min-height: 0;
+        }
+
+        .inventory-card--S .inv-art {
+          border-width: 2px 2px 0;
+          border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--S .inv-art__tag {
+          padding: 4px 10px;
+          border-width: 2px;
+          border-radius: 4px 0 0 0;
+        }
+
+        .inventory-card--S .inv-stats {
+          border-width: 2px;
+          border-radius: 0 0 4px 4px;
+        }
+
+        .inventory-card--S .inv-btn {
+          border-radius: 4px;
+        }
+
+        .inventory-card--S .inv-btn--ghost {
+          border-width: 2px;
+        }
+
+        .inventory-card--S .inv-head {
+          margin-bottom: 0;
+        }
+        .inventory-card--A {
+          --tier-bg: #cfefff;
+          --tier-edge: #4aa7e4;
+          --tier-accent: #4aa7e4;
+          --tier-accent-deep: #2b558f;
+          --tier-ray: rgba(91, 142, 216, .25);
+          --tier-star: #4d8acc;
           --tier-cta-text: #101010;
           border-radius: 8px;
           min-height: 0;
@@ -3279,12 +4527,12 @@ export default function Landing() {
           margin-bottom: 0;
         }
         .inventory-card--B {
-          --tier-bg: #cfefff;
-          --tier-edge: #f4d36c;
-          --tier-accent: #4aa7e4;
-          --tier-accent-deep: #2b558f;
-          --tier-ray: rgba(91, 142, 216, .25);
-          --tier-star: #4d8acc;
+          --tier-bg: #defec0;
+          --tier-edge: #9bdc5c;
+          --tier-accent: #9bdc5c;
+          --tier-accent-deep: #487a26;
+          --tier-ray: rgba(130, 194, 90, .25);
+          --tier-star: #6db142;
           --tier-cta-text: #101010;
           border-radius: 8px;
           min-height: 0;
@@ -3318,12 +4566,12 @@ export default function Landing() {
           margin-bottom: 0;
         }
         .inventory-card--C {
-          --tier-bg: #defec0;
-          --tier-edge: #f4d36c;
-          --tier-accent: #9bdc5c;
-          --tier-accent-deep: #487a26;
-          --tier-ray: rgba(130, 194, 90, .25);
-          --tier-star: #6db142;
+          --tier-bg: #f3eee8;
+          --tier-edge: #c1ab8b;
+          --tier-accent: #d1b89c;
+          --tier-accent-deep: #6f5843;
+          --tier-ray: rgba(173, 156, 140, .2);
+          --tier-star: #a18d77;
           --tier-cta-text: #101010;
           border-radius: 8px;
           min-height: 0;
@@ -3357,12 +4605,12 @@ export default function Landing() {
           margin-bottom: 0;
         }
         .inventory-card--D {
-          --tier-bg: #f3eee8;
-          --tier-edge: #c1ab8b;
-          --tier-accent: #d1b89c;
-          --tier-accent-deep: #6f5843;
-          --tier-ray: rgba(173, 156, 140, .2);
-          --tier-star: #a18d77;
+          --tier-bg: #ececec;
+          --tier-edge: #c9c9c9;
+          --tier-accent: #c9c9c9;
+          --tier-accent-deep: #4a463f;
+          --tier-ray: rgba(138, 133, 125, .22);
+          --tier-star: #7d7770;
           --tier-cta-text: #101010;
           border-radius: 8px;
           min-height: 0;
@@ -3395,46 +4643,7 @@ export default function Landing() {
         .inventory-card--D .inv-head {
           margin-bottom: 0;
         }
-        .inventory-card--F {
-          --tier-bg: #ececec;
-          --tier-edge: #f4d36c;
-          --tier-accent: #c9c9c9;
-          --tier-accent-deep: #4a463f;
-          --tier-ray: rgba(138, 133, 125, .22);
-          --tier-star: #7d7770;
-          --tier-cta-text: #101010;
-          border-radius: 8px;
-          min-height: 0;
-        }
-
-        .inventory-card--F .inv-art {
-          border-width: 2px 2px 0;
-          border-radius: 4px 4px 0 0;
-        }
-
-        .inventory-card--F .inv-art__tag {
-          padding: 4px 10px;
-          border-width: 2px;
-          border-radius: 4px 0 0 0;
-        }
-
-        .inventory-card--F .inv-stats {
-          border-width: 2px;
-          border-radius: 0 0 4px 4px;
-        }
-
-        .inventory-card--F .inv-btn {
-          border-radius: 4px;
-        }
-
-        .inventory-card--F .inv-btn--ghost {
-          border-width: 2px;
-        }
-
-        .inventory-card--F .inv-head {
-          margin-bottom: 0;
-        }
-        .inventory-card--F .inv-art__img { filter: grayscale(.5); }
+        .inventory-card--D .inv-art__img { filter: grayscale(.5); }
 
         .inventory-card--prop,
         .inventory-card--misc {
@@ -3604,11 +4813,11 @@ export default function Landing() {
           .inventory-card:hover .inv-art__img,
           .inventory-card:hover .inv-art__rays,
           .inventory-card:hover .inv-art__star,
-          .inventory-card--S,
+          .inventory-card--SSS,
           .inventory-card--SS,
-          .inventory-card--S::before,
+          .inventory-card--SSS::before,
           .inventory-card--SS::before,
-          .inventory-card--S .inv-btn--cta {
+          .inventory-card--SSS .inv-btn--cta {
             animation: none;
           }
           .inventory-card,
@@ -3774,7 +4983,7 @@ export default function Landing() {
           transform: translateY(-2px);
         }
 
-        .inventory-grade--S {
+        .inventory-grade--SSS {
           background: radial-gradient(circle at 30% 30%, #fff2a3 0%, #e1932a 80%);
           border-color: #8a5912;
           box-shadow:
@@ -3786,12 +4995,17 @@ export default function Landing() {
             0 0 14px rgba(241, 191, 76, .9);
         }
 
-        .inventory-grade--A {
-          background: radial-gradient(circle at 30% 30%, #8ee6d9 0%, #2f8c83 80%);
-          border-color: #1d5b55;
+        .inventory-grade--SS {
+          background: radial-gradient(circle at 30% 30%, #fff7d9 0%, #f4d36c 80%);
+          border-color: #b07a10;
         }
 
-        .inventory-grade--B {
+        .inventory-grade--S {
+          background: radial-gradient(circle at 30% 30%, #e0c7ff 0%, #8d5edb 80%);
+          border-color: #6b4eb3;
+        }
+
+        .inventory-grade--A {
           background: radial-gradient(circle at 30% 30%, #9ec3ff 0%, #3a6dc6 80%);
           border-color: #20407c;
           box-shadow:
@@ -3802,18 +5016,18 @@ export default function Landing() {
             0 0 0 5px #20407c;
         }
 
-        .inventory-grade--C {
-          background: radial-gradient(circle at 30% 30%, #c3a7e4 0%, #6f4aa1 80%);
-          border-color: #41296b;
+        .inventory-grade--B {
+          background: radial-gradient(circle at 30% 30%, #c9f59b 0%, #6db142 80%);
+          border-color: #487a26;
           box-shadow:
             inset 0 3px 0 rgba(255,255,255,.4),
             inset 0 -3px 0 rgba(0,0,0,.18),
             0 3px 0 rgba(0, 0, 0, .25),
             0 0 0 3px rgba(255, 247, 223, .85),
-            0 0 0 5px #41296b;
+            0 0 0 5px #487a26;
         }
 
-        .inventory-grade--D {
+        .inventory-grade--C {
           background: radial-gradient(circle at 30% 30%, #f0a98c 0%, #b85b3a 80%);
           border-color: #6f3522;
           box-shadow:
@@ -3824,7 +5038,7 @@ export default function Landing() {
             0 0 0 5px #6f3522;
         }
 
-        .inventory-grade--F {
+        .inventory-grade--D {
           background: radial-gradient(circle at 30% 30%, #d8d2c4 0%, #7a6e60 85%);
           border-color: #4a3f33;
           box-shadow:
@@ -4094,7 +5308,7 @@ export default function Landing() {
         }
 
         .inventory-detail-subtitle {
-          margin-top: 6px;
+          margin-top: 0;
           color: var(--ac-text-body);
           font-size: 12px;
           font-weight: 500;
@@ -4529,6 +5743,14 @@ export default function Landing() {
             grid-template-columns: 1fr;
           }
 
+          .wallet-card--balance {
+            grid-template-columns: 1fr;
+          }
+
+          .wallet-card--balance .wallet-action-row {
+            justify-content: flex-start;
+          }
+
           .inventory-card {
             grid-template-columns: 1fr;
           }
@@ -4562,7 +5784,11 @@ export default function Landing() {
               width="40"
               height="41"
             />
-            <div className="hud-stat-value">1,000,000</div>
+            <div className="hud-stat-value">
+              <CountUp to={SYSTEM_BALANCE_AMOUNT} duration={0.5}>
+                {formatBalance(SYSTEM_BALANCE_AMOUNT)}
+              </CountUp>
+            </div>
           </div>
 
           <div className="hud-stat-card hud-stat-card--fish" aria-label="鱼额">
@@ -4573,29 +5799,45 @@ export default function Landing() {
               width="46"
               height="26"
             />
-            <div className="hud-stat-value">10,000</div>
+            <div className="hud-stat-value">
+              <CountUp to={FISH_BALANCE_AMOUNT} duration={0.5}>
+                {formatBalance(FISH_BALANCE_AMOUNT)}
+              </CountUp>
+            </div>
           </div>
         </div>
 
-        <div className="hud-top-actions" aria-label="功能入口">
-          <button
-            className="hud-menu-item hud-menu-item--full-image"
-            type="button"
-            aria-label="鱼塘"
-          >
-            <img className="hud-menu-image" src={HUD_ASSETS.pond} alt="" />
+        <div className="top-actions" aria-label="功能入口">
+          <button className="menu-item" type="button" aria-label="鱼塘">
+            <img
+              className="menu-icon"
+              src={HUD_ASSETS.pond}
+              alt=""
+              width="62"
+              height="52"
+              style={{ top: 12, width: 62, height: 52 }}
+            />
+            <span className="menu-label" data-label="鱼塘">鱼塘</span>
           </button>
 
           <button
-            className="hud-menu-item hud-menu-item--full-image"
+            className="menu-item"
             type="button"
             aria-label="鱼市场"
           >
-            <img className="hud-menu-image" src={HUD_ASSETS.market} alt="" />
+            <img
+              className="menu-icon"
+              src={HUD_ASSETS.market}
+              alt=""
+              width="56"
+              height="52"
+              style={{ top: 16, width: 56, height: 52 }}
+            />
+            <span className="menu-label" data-label="鱼市场">鱼市场</span>
           </button>
 
           <button
-            className="hud-menu-item hud-menu-item--full-image"
+            className="menu-item"
             type="button"
             aria-label="图鉴"
             onClick={() => {
@@ -4604,51 +5846,144 @@ export default function Landing() {
               setInventoryOpen(true);
             }}
           >
-            <img className="hud-menu-image" src={HUD_ASSETS.guide} alt="" />
+            <img
+              className="menu-icon"
+              src={HUD_ASSETS.guide}
+              alt=""
+              width="48"
+              height="57"
+              style={{ top: 16, width: 48, height: 57 }}
+            />
+            <span className="menu-label" data-label="图鉴">图鉴</span>
           </button>
 
           <button
-            className="hud-menu-item hud-menu-item--full-image"
+            className="menu-item"
             type="button"
             aria-label="钱包"
-            onClick={() => setWalletOpen(true)}
+            onClick={openWalletModal}
           >
-            <img className="hud-menu-image" src={HUD_ASSETS.wallet} alt="" />
+            <img
+              className="menu-icon"
+              src={HUD_ASSETS.wallet}
+              alt=""
+              width="60"
+              height="55"
+              style={{ top: 12, width: 60, height: 55 }}
+            />
+            <span className="menu-label" data-label="钱包">钱包</span>
           </button>
 
           <button
-            className="hud-menu-item hud-menu-item--full-image"
+            className="menu-item"
             type="button"
             aria-label="排行榜"
+            onClick={() => setLeaderboardOpen(true)}
           >
-            <img className="hud-menu-image" src={HUD_ASSETS.leaderboard} alt="" />
+            <img
+              className="menu-icon"
+              src={HUD_ASSETS.leaderboard}
+              alt=""
+              width="66"
+              height="62"
+              style={{ top: 6, width: 66, height: 62 }}
+            />
+            <span className="menu-label" data-label="排行榜">排行榜</span>
           </button>
 
           <button
-            className="hud-menu-item hud-menu-item--full-image"
+            className="menu-item"
             type="button"
             aria-label="设置"
           >
-            <img className="hud-menu-image" src={HUD_ASSETS.settings} alt="" />
+            <img
+              className="menu-icon"
+              src={HUD_ASSETS.settings}
+              alt=""
+              width="52"
+              height="52"
+              style={{ top: 18, width: 52, height: 52 }}
+            />
+            <span className="menu-label" data-label="设置">设置</span>
           </button>
         </div>
 
-        <div className="hud-bottom-bar" aria-label="主按钮">
-          <button className="hud-main-action" type="button" aria-label="抛竿">
-            <img
-              className="hud-main-action__tool"
-              src={HUD_ASSETS.rod}
+	        <div className="hud-cast-panel" aria-label="自动抛竿设置">
+	          <div className="cast-auto-row">
+	            <span className="cast-auto-title">自动抛竿</span>
+	            <button
+	              className={`cast-auto-switch${autoCastEnabled ? " is-on" : ""}`}
+	              type="button"
+	              aria-label={autoCastEnabled ? "关闭自动抛竿" : "开启自动抛竿"}
+	              aria-pressed={autoCastEnabled}
+	              onClick={handleAutoCastToggle}
+	            >
+	              <span className="cast-auto-switch__track" aria-hidden="true">
+	                <span className="cast-auto-switch__thumb" />
+	              </span>
+	              <span className="cast-auto-switch__text">{autoCastEnabled ? "开启" : "关闭"}</span>
+	            </button>
+	          </div>
+
+	          {autoCastEnabled && (
+	            <div className="cast-count-control" role="group" aria-label="自动抛竿总次数">
+	              <span>本次</span>
+	              <button
+	                className="cast-count-stepper"
+	                type="button"
+	                aria-label="减少自动抛竿次数"
+	                disabled={autoCastCount <= MIN_AUTO_CAST_COUNT}
+	                onClick={() => updateAutoCastCount(autoCastCount - 1)}
+	              >
+	                -
+	              </button>
+	              <input
+	                className="cast-count-input"
+	                type="number"
+	                min={MIN_AUTO_CAST_COUNT}
+	                max={MAX_AUTO_CAST_COUNT}
+	                inputMode="numeric"
+	                value={autoCastCount}
+	                aria-label="本次自动抛竿总次数"
+	                onChange={(event) => updateAutoCastCount(Number(event.target.value))}
+	              />
+	              <button
+	                className="cast-count-stepper"
+	                type="button"
+	                aria-label="增加自动抛竿次数"
+	                disabled={autoCastCount >= MAX_AUTO_CAST_COUNT}
+	                onClick={() => updateAutoCastCount(autoCastCount + 1)}
+	              >
+	                +
+	              </button>
+	              <span>次</span>
+	            </div>
+	          )}
+	        </div>
+
+	        <div className="hud-bottom-bar" aria-label="主按钮">
+	          <button className="hud-main-action" type="button" aria-label={castActionLabel} onClick={handleMainCastClick}>
+	            <img
+	              className="hud-main-action__tool"
+	              src={HUD_ASSETS.rod}
               alt=""
             />
-            <span className="hud-main-action__label">抛竿</span>
+            <span
+              className={`hud-main-action__label${autoCastStatusVisible ? " hud-main-action__label--progress" : ""}`}
+              data-label={castButtonLabel}
+            >
+              {castButtonLabel}
+            </span>
           </button>
 
           <button className="hud-basket" type="button" aria-label="鱼篓">
-            <img
-              className="hud-basket__icon"
-              src={HUD_ASSETS.basket}
-              alt=""
-            />
+            <span className="hud-basket__shell" aria-hidden="true">
+              <img
+                className="hud-basket__icon"
+                src={HUD_ASSETS.basket}
+                alt=""
+              />
+            </span>
             <span className="hud-badge"><span>10</span></span>
           </button>
         </div>
@@ -4656,18 +5991,28 @@ export default function Landing() {
 
       {walletOpen && (
         <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) setWalletOpen(false);
+          if (event.target === event.currentTarget) closeWalletModal();
         }}>
           <section className="shop-modal wallet-modal" role="dialog" aria-modal="true" aria-labelledby="wallet-modal-title">
             <header className="shop-modal__header">
-              <div>
-                <h2 className="shop-modal__title" id="wallet-modal-title">钱包</h2>
+              <div className="wallet-modal__heading">
+                {walletWithdrawOpen && (
+                  <button
+                    className="wallet-modal__back"
+                    type="button"
+                    aria-label={tr("Back to wallet", "返回钱包")}
+                    onClick={openWalletModal}
+                  >
+                    <ArrowLeft size={20} strokeWidth={3} />
+                  </button>
+                )}
+                <h2 className="shop-modal__title" id="wallet-modal-title">{walletWithdrawOpen ? "提现" : "钱包"}</h2>
               </div>
               <button
                 className="shop-modal__close"
                 type="button"
-                aria-label={tr("Close wallet", "关闭钱包")}
-                onClick={() => setWalletOpen(false)}
+                aria-label={walletWithdrawOpen ? tr("Close withdraw", "关闭提现") : tr("Close wallet", "关闭钱包")}
+                onClick={closeWalletModal}
               >
                 <X size={22} strokeWidth={3} />
               </button>
@@ -4675,180 +6020,282 @@ export default function Landing() {
 
             <div className="wallet-content">
               <div className="wallet-panel">
-                <div className="wallet-summary-grid">
-                  <section className="wallet-card">
-                    <div className="wallet-card__label"><Wallet size={16} strokeWidth={3} />钱包余额</div>
-                    <div className="wallet-card__value">${WALLET_BALANCE_USD.toFixed(2)}</div>
-                    <p className="wallet-card__hint">当前可提现余额。</p>
-                    <div className="wallet-action-row">
-                      <button
-                        className="wallet-action"
-                        type="button"
-                        onClick={() => {
-                          setWalletWithdrawOpen((open) => !open);
-                          resetWithdrawFeedback();
-                        }}
-                      >
-                        <CreditCard size={16} strokeWidth={3} />
-                        提现
-                      </button>
-                    </div>
-                  </section>
-                  <section className="wallet-card">
-                    <div className="wallet-card__label"><Trophy size={16} strokeWidth={3} />累计奖金</div>
-                    <div className="wallet-card__value">${ARENA_PRIZE_TOTAL.toFixed(2)}</div>
-                    <p className="wallet-card__hint">因子竞技场奖金入账统计。</p>
-                  </section>
-                </div>
+                {walletWithdrawOpen ? (
+                  <section className="wallet-withdraw wallet-withdraw--modal">
+                    <div className="wallet-withdraw__steps">
+                      <section className="wallet-step">
+                        <span className="wallet-step__marker" aria-hidden="true">1</span>
+                        <div className="wallet-step__body">
+	                          <div className="wallet-step__head">
+	                            <h3 className="wallet-step__title">输入提现金额</h3>
+	                            <div className="wallet-current-balance" aria-label={`当前余额 ${formatBalance(SYSTEM_BALANCE_AMOUNT)} 余额，约 ${formatUsdEquivalent(SYSTEM_BALANCE_AMOUNT)}`}>
+	                              <span>当前余额</span>
+	                              <span className="wallet-current-balance__value">
+	                                <img className="wallet-current-balance__icon" src={HUD_ASSETS.coin} alt="" />
+	                                {formatBalance(SYSTEM_BALANCE_AMOUNT)}
+	                              </span>
+	                              <span className="wallet-current-balance__usd">（={formatUsdEquivalent(SYSTEM_BALANCE_AMOUNT)}）</span>
+	                            </div>
+	                          </div>
+	                          <label className="wallet-field">
+	                            <span className="wallet-input-unit-wrap">
+	                              <input
+	                                className="wallet-input wallet-input--with-unit"
+	                                inputMode="numeric"
+	                                aria-label="提现金额"
+	                                value={withdrawAmount || ""}
+	                                onChange={(event) => {
+	                                  const clean = event.target.value.replace(/\D/g, "");
+	                                  setWithdrawAmount(clean === "" ? 0 : Number(clean));
+	                                  resetWithdrawFeedback();
+	                                }}
+	                                placeholder="输入余额"
+	                              />
+	                              <span className="wallet-input-unit" aria-hidden="true">USD</span>
+	                            </span>
+	                          </label>
+	                          <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
+	                            <span>
+	                              最低 {formatBalance(MIN_AMOUNT)} 余额 · 可提现 {formatBalance(WALLET_BALANCE_AMOUNT)} 余额
+	                            </span>
+	                          </div>
+                        </div>
+                      </section>
 
-                {walletWithdrawOpen && (
-                  <section className="wallet-withdraw">
-                    <div className="wallet-card">
-                      <div className="wallet-card__label"><CreditCard size={16} strokeWidth={3} />钱包提现</div>
-                      <div className="wallet-form">
-                        <label className="wallet-field">
-                          <span>提现金额</span>
-                          <input
-                            className="wallet-input"
-                            inputMode="decimal"
-                            value={withdrawAmount || ""}
-                            onChange={(event) => {
-                              const clean = event.target.value.replace(/[^0-9.]/g, "");
-                              setWithdrawAmount(clean === "" ? 0 : Number(clean));
-                              resetWithdrawFeedback();
-                            }}
-                            placeholder="输入金额"
-                          />
-                          <span className={`wallet-field__hint${isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_USD ? "" : " is-error"}`}>
-                            可提现 {formatUsd(WALLET_BALANCE_USD)}，金额范围 {MIN_AMOUNT}-{MAX_AMOUNT} USD。
-                          </span>
-                        </label>
-                        <label className="wallet-field">
-                          <span>选择网络</span>
-                          <select
-                            className="wallet-select"
-                            value={withdrawNetwork}
-                            onChange={(event) => {
-                              setWithdrawNetwork(event.target.value);
-                              setWithdrawAddressError("");
-                              resetWithdrawFeedback();
-                            }}
-                          >
-                            {WITHDRAWAL_NETWORKS.map((network) => (
-                              <option key={network} value={network}>{network}</option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="wallet-field">
-                          <span>钱包地址</span>
-                          <input
-                            className="wallet-input"
-                            value={withdrawAddress}
-                            onChange={(event) => {
-                              setWithdrawAddress(event.target.value);
-                              setWithdrawAddressError("");
-                              resetWithdrawFeedback();
-                            }}
-                            placeholder="输入钱包地址"
-                          />
-                          <span className={`wallet-field__hint${withdrawAddressError ? " is-error" : ""}`}>
-                            {withdrawAddressError || getWithdrawalAddressHint(withdrawNetwork)}
-                          </span>
-                        </label>
-                        <div className="wallet-action-row">
-                          <button className="wallet-action wallet-action--secondary" type="button" onClick={handleBindWithdrawWallet}>
-                            绑定钱包
-                          </button>
-                          {withdrawAccountBound && (
-                            <button className="wallet-action wallet-action--secondary" type="button" onClick={handleUnbindWithdrawWallet}>
-                              解绑钱包
-                            </button>
+                      <section className="wallet-step">
+                        <span className="wallet-step__marker" aria-hidden="true">2</span>
+                        <div className="wallet-step__body">
+                          <h3 className="wallet-step__title">绑定钱包</h3>
+                          {withdrawWalletFormOpen ? (
+                            <>
+                              <label className="wallet-field">
+                                <span>选择网络</span>
+                                <select
+                                  className="wallet-select"
+                                  value={withdrawNetwork}
+                                  onChange={(event) => {
+                                    setWithdrawNetwork(event.target.value);
+                                    setWithdrawAccountBound(false);
+                                    setWithdrawAddressError("");
+                                    resetWithdrawFeedback();
+                                  }}
+                                >
+                                  {WITHDRAWAL_NETWORKS.map((network) => (
+                                    <option key={network} value={network}>{network}</option>
+                                  ))}
+                                </select>
+                              </label>
+                              <label className="wallet-field">
+                                <span>钱包地址</span>
+                                <input
+                                  className="wallet-input"
+                                  value={withdrawAddress}
+                                  onChange={(event) => {
+                                    setWithdrawAddress(event.target.value);
+                                    setWithdrawAccountBound(false);
+                                    setWithdrawAddressError("");
+                                    resetWithdrawFeedback();
+                                  }}
+                                  placeholder="输入钱包地址"
+                                />
+                                <span className={`wallet-field__hint${withdrawAddressError ? " is-error" : ""}`}>
+                                  {withdrawAddressError || getWithdrawalAddressHint(withdrawNetwork)}
+                                </span>
+                              </label>
+                            </>
+                          ) : (
+                            <div className="wallet-bound-summary">
+                              <div className="wallet-bound-summary__main">
+                                <span className="wallet-bound-summary__label">已绑定钱包</span>
+                                <span className="wallet-bound-summary__network">{withdrawNetwork}</span>
+                                <span className="wallet-bound-summary__address" title={withdrawAddressValue}>
+                                  {formatWalletAddressPreview(withdrawAddressValue)}
+                                </span>
+                              </div>
+                              <button
+                                className="wallet-bound-summary__edit"
+                                type="button"
+                                onClick={() => {
+                                  setWithdrawWalletEditing(true);
+                                  resetWithdrawFeedback();
+                                }}
+                              >
+                                修改
+                              </button>
+                            </div>
                           )}
                         </div>
+                      </section>
+
+                      <div className="wallet-withdraw__actions">
+                        {withdrawStatus === "error" && (
+                          <div className="wallet-status is-error">提现预览失败。请尝试 1,000、2,000 或 5,000 余额查看成功状态。</div>
+                        )}
+                        {withdrawStatus === "success" && (
+                          <div className="wallet-status">
+                            {formatBalance(withdrawAmount)} 余额（{formatUsd(balanceToUsd(withdrawAmount))}）提现申请已提交。
+                          </div>
+                        )}
+                        <button
+                          className="wallet-submit"
+                          type="button"
+                          disabled={withdrawPrimaryDisabled}
+                          onClick={withdrawWalletFormOpen ? handleBindWithdrawWallet : handleSubmitWithdraw}
+                        >
+                          {withdrawPrimaryLabel}
+                        </button>
                       </div>
-                    </div>
-                    <div className="wallet-card">
-                      <div className="wallet-card__label"><Wallet size={16} strokeWidth={3} />提现确认</div>
-                      <p className="wallet-card__hint">
-                        {withdrawAccountBound ? `已绑定：${withdrawNetwork}` : "绑定提现钱包后才能提交提现申请。"}
-                      </p>
-                      {withdrawAccountBound && (
-                        <p className="wallet-card__hint">{withdrawAddress}</p>
-                      )}
-                      <div className="wallet-section wallet-section--compact">
-                        <div className="wallet-table__row">
-                          <span>钱包余额</span>
-                          <span />
-                          <span />
-                          <span className="wallet-table__amount">{formatUsd(WALLET_BALANCE_USD)}</span>
-                        </div>
-                        <div className="wallet-table__row">
-                          <span>提现金额</span>
-                          <span />
-                          <span />
-                          <span className="wallet-table__amount">{formatUsd(withdrawAmount)}</span>
-                        </div>
-                        <div className="wallet-table__row">
-                          <span>提现后余额</span>
-                          <span />
-                          <span />
-                          <span className="wallet-table__amount">{formatUsd(walletBalanceAfterWithdraw(withdrawAmount))}</span>
-                        </div>
-                      </div>
-                      {withdrawStatus === "error" && (
-                        <div className="wallet-status is-error">提现预览失败。请尝试 50、100 或 200 USD 查看成功状态。</div>
-                      )}
-                      {withdrawStatus === "success" && (
-                        <div className="wallet-status">
-                          {formatUsd(withdrawAmount)} 提现申请已提交，提现后钱包余额约为 {formatUsd(walletBalanceAfterWithdraw(withdrawAmount))}。
-                        </div>
-                      )}
-                      <button
-                        className="wallet-submit"
-                        type="button"
-                        disabled={
-                          !withdrawAccountBound ||
-                          !isValidWithdrawalAddress(withdrawNetwork, withdrawAddress) ||
-                          !isValidAmount(withdrawAmount) ||
-                          withdrawAmount > WALLET_BALANCE_USD ||
-                          withdrawSubmitting ||
-                          withdrawStatus === "success"
-                        }
-                        onClick={handleSubmitWithdraw}
-                      >
-                        {withdrawSubmitting ? "提交中..." : withdrawStatus === "success" ? "已提交" : `提现 ${formatUsd(withdrawAmount)}`}
-                      </button>
                     </div>
                   </section>
-                )}
-
-                <section className="wallet-section">
-                  <div className="wallet-section__header">
-                    <h3 className="wallet-section__title">变更记录</h3>
-                  </div>
-                  <div className="wallet-table">
-                    <div className="wallet-table__row wallet-table__row--head">
-                      <span>变更记录</span>
-                      <span>单号</span>
-                      <span>操作时间</span>
-                      <span className="wallet-table__amount">金额</span>
-                    </div>
-                    {walletActivities.map((item) => {
-                      const isIncrease = item.direction === "increase";
-                      return (
-                        <div className="wallet-table__row" key={item.id}>
-                          <span>{tr(item.reasonEn, item.reasonZh)}</span>
-                          <span className="wallet-table__mono">{item.orderNo}</span>
-                          <span>{formatWalletDateTime(item.occurredAt)}</span>
-                          <span className={`wallet-table__amount ${isIncrease ? "wallet-table__amount--plus" : "wallet-table__amount--minus"}`}>
-                            {isIncrease ? "+" : "-"}${item.amount.toFixed(2)}
-                          </span>
+                ) : (
+                  <>
+                    <div className="wallet-summary-grid">
+                      <section className="wallet-card wallet-card--balance">
+                        <div>
+                          <div className="wallet-card__value wallet-balance-value">
+                            <img className="wallet-balance-value__icon" src={HUD_ASSETS.coin} alt="" />
+                            <span>{formatBalance(SYSTEM_BALANCE_AMOUNT)}</span>
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </section>
+                        <div className="wallet-action-row">
+                          <button
+                            className="wallet-action"
+                            type="button"
+                            onClick={openWithdrawModal}
+                          >
+                            <CreditCard size={16} strokeWidth={3} />
+                            提现
+                          </button>
+                        </div>
+                      </section>
+                    </div>
+
+                    <section className="wallet-section">
+                      <div className="wallet-table">
+                        <div className="wallet-table__row wallet-table__row--head">
+                          <span>变更记录</span>
+                          <span>单号</span>
+                          <span>变更时间</span>
+                          <span className="wallet-table__amount">金额</span>
+                        </div>
+                        {walletActivities.map((item) => {
+                          const isIncrease = item.direction === "increase";
+                          const activityBalanceAmount = Math.round(item.amount * BALANCE_PER_USD);
+                          return (
+                            <div className="wallet-table__row" key={item.id}>
+                              <span>{tr(item.reasonEn, item.reasonZh)}</span>
+                              <span className="wallet-table__mono">{item.orderNo}</span>
+                              <span>{formatWalletDateTime(item.occurredAt)}</span>
+                              <span className={`wallet-table__amount ${isIncrease ? "wallet-table__amount--plus" : "wallet-table__amount--minus"}`}>
+                                <span className="wallet-table__balance">
+                                  <img className="wallet-table__balance-icon" src={HUD_ASSETS.coin} alt="" />
+                                  <span>{isIncrease ? "+" : "-"}{formatBalance(activityBalanceAmount)}</span>
+                                </span>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  </>
+                )}
               </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {leaderboardOpen && (
+        <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setLeaderboardOpen(false);
+        }}>
+          <section className="shop-modal leaderboard-modal" role="dialog" aria-modal="true" aria-labelledby="leaderboard-modal-title">
+            <header className="shop-modal__header">
+              <div className="leaderboard-modal__heading">
+                <h2 className="shop-modal__title" id="leaderboard-modal-title">排行榜</h2>
+                <div className="leaderboard-tabs" role="tablist" aria-label={tr("Leaderboard period", "排行榜周期")}>
+                  {(["week", "month"] as const).map((period) => (
+                    <button
+                      key={period}
+                      className={`leaderboard-tab${leaderboardPeriod === period ? " is-active" : ""}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={leaderboardPeriod === period}
+                      onClick={() => setLeaderboardPeriod(period)}
+                    >
+                      {period === "week" ? tr("Weekly", "周榜") : tr("Monthly", "月榜")}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button
+                className="shop-modal__close"
+                type="button"
+                aria-label={tr("Close leaderboard", "关闭排行榜")}
+                onClick={() => setLeaderboardOpen(false)}
+              >
+                <X size={22} strokeWidth={3} />
+              </button>
+            </header>
+
+            <div className="leaderboard-panel">
+              <div className="leaderboard-podium" aria-label={tr("Top three leaderboard", "排行榜前三名")}>
+                {leaderboardPodiumRows.map((row) => (
+                  <article
+                    key={row.id}
+                    className={`leaderboard-podium-card leaderboard-podium-card--rank-${row.rank}${row.id === CURRENT_LEADERBOARD_USER_ID ? " is-current" : ""}`}
+                  >
+                    <div className="leaderboard-podium-card__head">
+                      <span className="leaderboard-rank-badge">{row.rank}</span>
+                      <span className="leaderboard-rank-tag">TOP {row.rank}</span>
+                    </div>
+                    <div>
+                      <div className="leaderboard-name" title={row.nickname}>{row.nickname}</div>
+                      <div className="leaderboard-balance">
+                        <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
+                        <span>{formatLeaderboardBalance(row.balance)}</span>
+                      </div>
+                      <div className="leaderboard-casts">{leaderboardCastsLabel} · {row.casts}</div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <section className="leaderboard-list" aria-label={tr("Leaderboard list", "排行榜列表")}>
+                <div className="leaderboard-list-row leaderboard-list-row--head">
+                  <span>{tr("Rank", "排名")}</span>
+                  <span>{tr("Nickname", "用户昵称")}</span>
+                  <span className="leaderboard-list__balance">{leaderboardBalanceLabel}</span>
+                  <span className="leaderboard-list__casts">{leaderboardCastsLabel}</span>
+                </div>
+                <div className="leaderboard-list__scroll">
+                  {leaderboardListRows.map((row) => (
+                    <div
+                      className={`leaderboard-list-row${row.id === CURRENT_LEADERBOARD_USER_ID ? " is-current" : ""}`}
+                      key={row.id}
+                    >
+                      <span className="leaderboard-list__rank">NO.{row.rank}</span>
+                      <span className="leaderboard-list__name">{row.nickname}</span>
+                      <span className="leaderboard-list__metric">
+                        <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
+                        <span>{formatLeaderboardBalance(row.balance)}</span>
+                      </span>
+                      <span className="leaderboard-list__casts">{row.casts}</span>
+                    </div>
+                  ))}
+                </div>
+                {currentLeaderboardRow && !currentLeaderboardInTop50 && (
+                  <div className="leaderboard-list-row leaderboard-current-row--sticky is-current">
+                    <span className="leaderboard-list__rank">NO.{currentLeaderboardRow.rank}</span>
+                    <span className="leaderboard-list__name">You — #{currentLeaderboardRow.rank}</span>
+                    <span className="leaderboard-list__metric">
+                      <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
+                      <span>{formatLeaderboardBalance(currentLeaderboardRow.balance)}</span>
+                    </span>
+                    <span className="leaderboard-list__casts">{currentLeaderboardRow.casts}</span>
+                  </div>
+                )}
+              </section>
             </div>
           </section>
         </div>
@@ -5024,7 +6471,7 @@ export default function Landing() {
               ))}
             </div>
 
-            <div className="inventory-grid" onScroll={handleInventoryGridScroll}>
+            <div className="inventory-grid" ref={inventoryGridRef} onScroll={handleInventoryGridScroll}>
               {filteredFactors.map((factor) => {
                 const isStarred = starredFactors.has(factor.id);
                 const returns = parseMetricValue(factor.returns);
@@ -5108,33 +6555,36 @@ export default function Landing() {
                                 fill={isStarred ? "#f6c63a" : "none"} stroke="#1d0f06" strokeWidth="1.6" strokeLinejoin="round" />
                         </svg>
                       </button>
-                      <button
-                        className="inv-btn inv-btn--cta"
-                        type="button"
-                        onClick={() => setSelectedInventoryFactor(factor)}
-                      >
+	                      <button
+	                        className="inv-btn inv-btn--cta"
+	                        type="button"
+	                        onClick={() => {
+	                          inventoryScrollTopRef.current = inventoryGridRef.current?.scrollTop ?? inventoryScrollTopRef.current;
+	                          setSelectedInventoryFactor(factor);
+	                        }}
+	                      >
                         {tr("View", "查看")}
                       </button>
                     </div>
                   </>
                 );
 
-                return visualGrade === "S" || visualGrade === "SS" ? (
+                return visualGrade === "SSS" || visualGrade === "SS" ? (
                   <BorderGlow
                     as="article"
                     className={`${cardClassName} inventory-card--laser`}
                     key={factor.id}
-                    edgeSensitivity={visualGrade === "SS" ? 14 : 18}
-                    glowColor={visualGrade === "SS" ? "44 100 72" : "269 91 76"}
+                    edgeSensitivity={visualGrade === "SSS" ? 14 : 18}
+                    glowColor={visualGrade === "SSS" ? "44 100 72" : "49 95 78"}
                     backgroundColor="var(--tier-bg)"
                     borderRadius={8}
-                    glowRadius={visualGrade === "SS" ? 32 : 26}
-                    glowIntensity={visualGrade === "SS" ? 0.88 : 0.72}
-                    coneSpread={visualGrade === "SS" ? 11 : 14}
+                    glowRadius={visualGrade === "SSS" ? 32 : 24}
+                    glowIntensity={visualGrade === "SSS" ? 0.88 : 0.58}
+                    coneSpread={visualGrade === "SSS" ? 11 : 15}
                     animated
                     animationDurationMs={3500}
-                    colors={visualGrade === "SS" ? ["#ffd66f", "#ffffff", "#ffd66f"] : ["#c084fc", "#ffffff", "#c084fc"]}
-                    fillOpacity={visualGrade === "SS" ? 0.4 : 0.34}
+                    colors={visualGrade === "SSS" ? ["#ffd66f", "#ffffff", "#ffd66f"] : ["#ffe794", "#ffffff", "#f4d36c"]}
+                    fillOpacity={visualGrade === "SSS" ? 0.4 : 0.28}
                     holographic
                     onMouseMove={handleInventoryCardMove}
                     onMouseLeave={handleInventoryCardLeave}
@@ -5308,16 +6758,6 @@ export default function Landing() {
                   onClick={handleConfirmInventoryDelete}
                 >
                   {tr("Delete", "删除")}
-                </button>
-              </div>
-              <div className="delete-confirm-modal__footer">
-                <button
-                  className="delete-confirm-modal__btn delete-confirm-modal__close"
-                  type="button"
-                  aria-label={tr("Close confirmation", "关闭确认弹窗")}
-                  onClick={() => setPendingInventoryDelete(null)}
-                >
-                  <X size={20} strokeWidth={3} />
                 </button>
               </div>
             </div>
@@ -5690,6 +7130,21 @@ export default function Landing() {
               </div>
             </div>
           </section>
+        </div>
+      )}
+
+      {inventoryToast && (
+        <div
+          key={inventoryToast.id}
+          className="inventory-toast"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="inventory-toast__icon" aria-hidden="true">✓</span>
+          <div>
+            <p className="inventory-toast__title">{inventoryToast.title}</p>
+            <p className="inventory-toast__message">{inventoryToast.message}</p>
+          </div>
         </div>
       )}
     </main>
