@@ -581,21 +581,6 @@ function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
               />
             );
           })}
-          {xTicks.map((index) => {
-            const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
-            return (
-              <line
-                key={index}
-                x1={x}
-                x2={x}
-                y1={padding.top}
-                y2={height - padding.bottom}
-                stroke={chartGridColor}
-                strokeWidth="1"
-                vectorEffect="non-scaling-stroke"
-              />
-            );
-          })}
         </svg>
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
           Log Cumulative Return
@@ -789,21 +774,6 @@ function GroupCumReturnChart({ data }: { data: PnlChartPoint[] }) {
                 stroke={tick === 0 ? chartZeroColor : chartGridColor}
                 strokeDasharray={tick === 0 ? "4 4" : "5 4"}
                 strokeWidth={tick === 0 ? "1.2" : "1"}
-                vectorEffect="non-scaling-stroke"
-              />
-            );
-          })}
-          {xTicks.map((index) => {
-            const x = padding.left + (index / Math.max(1, pointCount - 1)) * plotWidth;
-            return (
-              <line
-                key={`group-cum-return-x-grid-${index}`}
-                x1={x}
-                x2={x}
-                y1={padding.top}
-                y2={height - padding.bottom}
-                stroke={chartGridColor}
-                strokeWidth="1"
                 vectorEffect="non-scaling-stroke"
               />
             );
@@ -2367,7 +2337,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
   const factorIntroHeader = (
     <div className="flex items-center gap-2">
       <BookOpenText className="w-4 h-4 text-primary" />
-      <span className="text-base font-semibold text-foreground">{tr("Introduction", "简介")}</span>
+      <span className="text-base font-semibold text-foreground">{tr("Factor Details", "因子详情")}</span>
     </div>
   );
   const beginnerMetricCards = (
@@ -2430,8 +2400,8 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
     valueStyle?: CSSProperties;
   }) {
     return (
-      <div className="relative isolate flex min-h-[60px] items-center justify-center overflow-hidden rounded-lg bg-accent text-center">
-        <div className="pointer-events-none absolute inset-0 rounded-lg" aria-hidden="true" />
+      <div className="relative isolate flex min-h-[60px] items-center justify-center overflow-hidden rounded-md bg-[rgb(255,247,227)] text-center">
+        <div className="pointer-events-none absolute inset-0 rounded-md" aria-hidden="true" />
         <div className="relative z-10 flex w-full flex-col items-center justify-center px-4 py-0">
           <div className="relative z-10 mb-1 text-[9px] text-muted-foreground">{label}</div>
           <div className={`relative z-20 text-lg font-bold font-mono tabular-nums ${valueClassName}`} style={valueStyle}>

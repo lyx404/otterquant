@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useInView, useMotionValue, useReducedMotion, useSpring } from "motion/react";
+import { useInView, useReducedMotion } from "motion/react";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
@@ -280,10 +280,10 @@ function formatUsd(amount: number) {
   return `${(Number(amount) || 0).toFixed(2)} USD`;
 }
 
-function formatUsdEquivalent(amount: number) {
-  return `${balanceToUsd(amount).toLocaleString(undefined, {
+function formatUsdInputValue(amount: number) {
+  return balanceToUsd(amount).toLocaleString(undefined, {
     maximumFractionDigits: 2,
-  })} USD`;
+  });
 }
 
 function formatBalance(amount: number) {
@@ -297,6 +297,10 @@ function clampAutoCastCount(value: number) {
 
 function balanceToUsd(amount: number) {
   return (Number(amount) || 0) / BALANCE_PER_USD;
+}
+
+function usdToBalance(amount: number) {
+  return Math.round((Number(amount) || 0) * BALANCE_PER_USD);
 }
 
 function formatLeaderboardBalance(amount: number) {
@@ -346,6 +350,8 @@ function CountUp({
   onEnd,
 }: CountUpProps) {
   const ref = useRef<HTMLSpanElement | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
   const shouldReduceMotion = useReducedMotion();
 
   const parseNumber = useCallback((value: unknown) => {
@@ -362,12 +368,6 @@ function CountUp({
   );
   const startValue = direction === "down" ? targetValue : from;
   const endValue = direction === "down" ? from : targetValue;
-  const motionValue = useMotionValue(startValue);
-  const safeDuration = Math.max(duration, 0.1);
-  const springValue = useSpring(motionValue, {
-    damping: 20 + 40 * (1 / safeDuration),
-    stiffness: 100 * (1 / safeDuration),
-  });
   const isInView = useInView(ref, { once: true, margin: "0px" });
 
   const getDecimalPlaces = useCallback((num: number) => {
@@ -394,39 +394,62 @@ function CountUp({
 
   useEffect(() => {
     if (ref.current) ref.current.textContent = formatValue(startValue);
-    motionValue.set(startValue);
-  }, [formatValue, motionValue, startValue]);
+  }, [formatValue, startValue]);
 
   useEffect(() => {
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+    if (timeoutRef.current !== null) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
     if (!isInView || !startWhen) return undefined;
     onStart?.();
 
     if (shouldReduceMotion) {
       if (ref.current) ref.current.textContent = formatValue(endValue);
-      motionValue.set(endValue);
       onEnd?.();
       return undefined;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      motionValue.set(endValue);
-    }, delay * 1000);
-    const durationTimeoutId = window.setTimeout(() => {
-      onEnd?.();
-    }, delay * 1000 + safeDuration * 1000);
+    const durationMs = Math.max(duration, 0.1) * 1000;
+    const startAnimation = () => {
+      const animationStart = performance.now();
+
+      const tick = (now: number) => {
+        const progress = Math.min((now - animationStart) / durationMs, 1);
+        const latest = startValue + (endValue - startValue) * progress;
+
+        if (ref.current) ref.current.textContent = formatValue(latest);
+
+        if (progress < 1) {
+          frameRef.current = window.requestAnimationFrame(tick);
+          return;
+        }
+
+        frameRef.current = null;
+        onEnd?.();
+      };
+
+      frameRef.current = window.requestAnimationFrame(tick);
+    };
+
+    timeoutRef.current = window.setTimeout(startAnimation, delay * 1000);
 
     return () => {
-      window.clearTimeout(timeoutId);
-      window.clearTimeout(durationTimeoutId);
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      }
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
     };
-  }, [delay, endValue, formatValue, isInView, motionValue, onEnd, onStart, safeDuration, shouldReduceMotion, startWhen]);
-
-  useEffect(() => {
-    const unsubscribe = springValue.on("change", (latest) => {
-      if (ref.current) ref.current.textContent = formatValue(latest);
-    });
-    return () => unsubscribe();
-  }, [formatValue, springValue]);
+  }, [delay, duration, endValue, formatValue, isInView, onEnd, onStart, shouldReduceMotion, startWhen, startValue]);
 
   return (
     <span className={className} ref={ref}>
@@ -484,8 +507,9 @@ export default function Landing() {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [stageScale, setStageScale] = useState(1);
-  const [autoCastEnabled, setAutoCastEnabled] = useState(false);
   const [autoCastCount, setAutoCastCount] = useState(10);
+  const [autoCastDraftCount, setAutoCastDraftCount] = useState(10);
+  const [autoCastSettingsOpen, setAutoCastSettingsOpen] = useState(false);
   const [autoCastRunning, setAutoCastRunning] = useState(false);
   const [autoCastProgress, setAutoCastProgress] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
@@ -713,35 +737,55 @@ export default function Landing() {
   const currentLeaderboardInTop50 = Boolean(currentLeaderboardRow && currentLeaderboardRow.rank <= 50);
   const leaderboardBalanceLabel = leaderboardPeriod === "week" ? tr("New balance this week", "本周新增余额") : tr("New balance this month", "本月新增余额");
   const leaderboardCastsLabel = leaderboardPeriod === "week" ? tr("Casts this week", "本周抛竿数") : tr("Casts this month", "本月抛竿数");
-  const autoCastStatusVisible = autoCastEnabled && (autoCastRunning || autoCastProgress > 0);
+  const autoCastStatusVisible = autoCastRunning;
   const castButtonLabel = autoCastStatusVisible ? `${autoCastProgress}/${autoCastCount}` : tr("Cast", "抛竿");
   const castActionLabel = autoCastStatusVisible
     ? tr(`Auto casting ${autoCastProgress} of ${autoCastCount}`, `自动抛竿 ${autoCastProgress}/${autoCastCount}`)
-    : autoCastEnabled
-      ? tr(`Start auto cast ${autoCastCount} times`, `启动自动抛竿，共 ${autoCastCount} 次`)
-      : tr("Cast", "抛竿");
+    : tr("Cast", "抛竿");
+  const autoCastStatusLabel = autoCastRunning ? tr("Running", "进行中") : tr("Not started", "未开启");
 
   const updateAutoCastCount = (value: number) => {
-    setAutoCastCount(clampAutoCastCount(value));
-    setAutoCastRunning(false);
-    setAutoCastProgress(0);
+    setAutoCastDraftCount(clampAutoCastCount(value));
   };
 
-  const handleAutoCastToggle = () => {
-    setAutoCastEnabled((enabled) => {
-      if (enabled) {
-        setAutoCastRunning(false);
-        setAutoCastProgress(0);
-      }
-      return !enabled;
+  const openAutoCastSettings = () => {
+    if (autoCastRunning) return;
+    setAutoCastDraftCount(autoCastCount);
+    setAutoCastSettingsOpen(true);
+  };
+
+  const closeAutoCastSettings = () => {
+    setAutoCastSettingsOpen(false);
+  };
+
+  const handleStartAutoCast = () => {
+    const nextCount = clampAutoCastCount(autoCastDraftCount);
+    setAutoCastCount(nextCount);
+    setAutoCastProgress(0);
+    setAutoCastRunning(true);
+    setAutoCastSettingsOpen(false);
+    setInventoryToast({
+      id: Date.now(),
+      title: tr("Auto cast started", "自动抛竿已开始"),
+      message: tr(`This run will cast ${nextCount} times.`, `本次将自动抛竿 ${nextCount} 次。`),
+    });
+  };
+
+  const handleStopAutoCast = () => {
+    if (!autoCastRunning) return;
+    setAutoCastRunning(false);
+    setInventoryToast({
+      id: Date.now(),
+      title: tr("Auto cast stopped", "自动抛竿已停止"),
+      message: tr(
+        `Stopped at ${autoCastProgress} of ${autoCastCount}.`,
+        `已在 ${autoCastProgress}/${autoCastCount} 次时终止。`
+      ),
     });
   };
 
   const handleMainCastClick = () => {
-    if (!autoCastEnabled) return;
     if (autoCastRunning) return;
-    setAutoCastProgress(0);
-    setAutoCastRunning(true);
   };
 
   const toggleFactorStar = (id: string) => {
@@ -1335,39 +1379,67 @@ export default function Landing() {
 	          bottom: 40px;
 	          transform: translateX(-50%);
           display: flex;
-          align-items: center;
+          align-items: flex-end;
           gap: 30px;
 	          z-index: 2;
 	        }
 
-	        .hud-cast-panel {
-	          position: absolute;
-	          left: 50%;
-	          bottom: 178px;
-	          z-index: 3;
+	        .hud-cast-stack {
 	          display: flex;
 	          flex-direction: column;
 	          align-items: center;
-	          gap: 10px;
-	          min-height: 52px;
-	          padding: 10px 12px;
-	          color: #4e433c;
-	          background: rgba(255, 248, 226, .96);
-	          border: 3px solid #4e433c;
-	          border-radius: 14px;
-	          box-shadow:
-	            0 5px 0 #4e433c,
-	            0 14px 24px rgba(78, 67, 60, .18);
-	          transform: translateX(-50%);
+	          gap: 8px;
 	        }
 
-	        .cast-auto-row {
+	        .cast-auto-inline {
 	          display: flex;
 	          align-items: center;
+	          gap: 8px;
+	          transition: transform 80ms ease;
+	        }
+
+	        .hud-cast-stack:has(.hud-main-action:active) .cast-auto-inline {
+	          transform: translateY(8px);
+	        }
+
+	        .cast-auto-button,
+	        .cast-auto-stop {
+	          appearance: none;
+	          border: 0;
+	          color: #4e433c;
+	          cursor: pointer;
+	          font: inherit;
+	          line-height: 1;
+	        }
+
+	        .cast-auto-button {
+	          display: inline-flex;
+	          align-items: center;
 	          justify-content: space-between;
-	          gap: 14px;
-	          width: 100%;
-	          min-width: 246px;
+	          gap: 12px;
+	          min-width: 156px;
+	          height: 36px;
+	          padding: 0 12px;
+	          background: #fff8e6;
+	          border: 2px solid rgba(78, 67, 60, .42);
+	          border-radius: 999px;
+	          box-shadow: 0 2px 0 rgba(78, 67, 60, .32);
+	          transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
+	        }
+
+	        .cast-auto-button:disabled {
+	          cursor: default;
+	        }
+
+	        .cast-auto-button.is-running {
+	          background: #e8f7ec;
+	          border-color: rgba(47, 132, 90, .44);
+	        }
+
+	        .cast-auto-button:not(:disabled):active,
+	        .cast-auto-stop:active {
+	          transform: translateY(2px);
+	          box-shadow: 0 1px 0 rgba(78, 67, 60, .44);
 	        }
 
 	        .cast-auto-title {
@@ -1378,7 +1450,30 @@ export default function Landing() {
 	          white-space: nowrap;
 	        }
 
-	        .cast-auto-switch,
+	        .cast-auto-status {
+	          color: rgba(78, 67, 60, .72);
+	          font-size: 13px;
+	          font-weight: 950;
+	          white-space: nowrap;
+	        }
+
+	        .cast-auto-status.is-running {
+	          color: #0f8a65;
+	        }
+
+	        .cast-auto-stop {
+	          height: 36px;
+	          padding: 0 12px;
+	          background: #ffdcd4;
+	          border: 2px solid rgba(127, 47, 36, .56);
+	          border-radius: 999px;
+	          box-shadow: 0 2px 0 rgba(127, 47, 36, .30);
+	          color: #7f2f24;
+	          font-size: 14px;
+	          font-weight: 1000;
+	          transition: transform 80ms ease, box-shadow 80ms ease, filter 80ms ease;
+	        }
+
 	        .cast-count-stepper {
 	          appearance: none;
 	          border: 0;
@@ -1391,60 +1486,6 @@ export default function Landing() {
 	          line-height: 1;
 	        }
 
-	        .cast-auto-switch {
-	          display: inline-flex;
-	          align-items: center;
-	          gap: 8px;
-	          min-width: 104px;
-	          height: 36px;
-	          padding: 0 10px;
-	          background: #fff0bf;
-	          border: 2px solid rgba(78, 67, 60, .52);
-	          border-radius: 999px;
-	          box-shadow: 0 3px 0 rgba(78, 67, 60, .36);
-	          transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease;
-	        }
-
-	        .cast-auto-switch:active {
-	          transform: translateY(2px);
-	          box-shadow: 0 1px 0 rgba(78, 67, 60, .44);
-	        }
-
-	        .cast-auto-switch.is-on {
-	          background: #9bdc5c;
-	          border-color: rgba(78, 67, 60, .72);
-	        }
-
-	        .cast-auto-switch__track {
-	          position: relative;
-	          width: 34px;
-	          height: 18px;
-	          border-radius: 999px;
-	          background: rgba(78, 67, 60, .26);
-	          box-shadow: inset 0 2px 0 rgba(78, 67, 60, .16);
-	        }
-
-	        .cast-auto-switch__thumb {
-	          position: absolute;
-	          left: 3px;
-	          top: 3px;
-	          width: 12px;
-	          height: 12px;
-	          border-radius: 50%;
-	          background: #fffdf4;
-	          box-shadow: 0 1px 0 rgba(78, 67, 60, .42);
-	          transition: transform 140ms ease;
-	        }
-
-	        .cast-auto-switch.is-on .cast-auto-switch__thumb {
-	          transform: translateX(16px);
-	        }
-
-	        .cast-auto-switch__text {
-	          min-width: 36px;
-	          text-align: left;
-	        }
-
 	        .cast-count-control {
 	          display: inline-flex;
 	          align-items: center;
@@ -1453,6 +1494,10 @@ export default function Landing() {
 	          font-size: 17px;
 	          font-weight: 900;
 	          white-space: nowrap;
+	        }
+
+	        .cast-count-control--modal {
+	          justify-content: center;
 	        }
 
 	        .cast-count-stepper {
@@ -1493,8 +1538,102 @@ export default function Landing() {
 	          appearance: none;
 	        }
 
+	        .auto-cast-modal {
+	          width: min(420px, calc(100vw - 36px));
+	          color: var(--ac-text);
+	          background: linear-gradient(180deg, #fff9ea 0%, #f8edcf 100%);
+	          border: 3px solid var(--ac-border);
+	          border-radius: 12px;
+	          box-shadow:
+	            inset 0 2px 0 rgba(255,255,255,.62),
+	            0 7px 0 rgba(78, 67, 60, .34),
+	            0 24px 50px rgba(61, 52, 40, .26);
+	          overflow: hidden;
+	        }
+
+	        .auto-cast-modal__header {
+	          display: flex;
+	          align-items: center;
+	          justify-content: space-between;
+	          gap: 16px;
+	          padding: 18px 20px 14px;
+	          border-bottom: 1px solid rgba(196, 184, 158, .72);
+	        }
+
+	        .auto-cast-modal__title {
+	          margin: 0;
+	          color: var(--ac-text);
+	          font-size: 22px;
+	          font-weight: 1000;
+	          line-height: 1;
+	        }
+
+	        .auto-cast-modal__close {
+	          width: 36px;
+	          height: 36px;
+	          display: grid;
+	          place-items: center;
+	          color: var(--ac-text);
+	          background: #fffdf4;
+	          border: 2px solid rgba(196, 184, 158, .9);
+	          border-radius: 8px;
+	          box-shadow: 2px 2px 0 rgba(189, 174, 160, .42);
+	          cursor: pointer;
+	        }
+
+	        .auto-cast-modal__body {
+	          display: grid;
+	          gap: 8px;
+	          padding: 22px 24px 16px;
+	        }
+
+	        .auto-cast-field {
+	          display: grid;
+	          gap: 12px;
+	          color: var(--ac-text);
+	          font-size: 14px;
+	          font-weight: 950;
+	        }
+
+	        .auto-cast-modal__hint {
+	          margin: 0;
+	          color: #725d42;
+	          font-size: 12px;
+	          font-weight: 850;
+	          text-align: center;
+	        }
+
+	        .auto-cast-modal__actions {
+	          display: flex;
+	          justify-content: flex-end;
+	          gap: 12px;
+	          padding: 16px 24px 22px;
+        }
+
+	        .auto-cast-modal__button {
+	          min-width: 92px;
+	          height: 40px;
+	          color: var(--ac-text);
+	          border: 2px solid rgba(78, 67, 60, .64);
+	          border-radius: 8px;
+	          box-shadow: 0 3px 0 rgba(78, 67, 60, .36);
+	          cursor: pointer;
+	          font: inherit;
+	          font-size: 14px;
+	          font-weight: 1000;
+        }
+
+	        .auto-cast-modal__button--ghost {
+	          background: #fffdf4;
+        }
+
+	        .auto-cast-modal__button--primary {
+	          background: #9bdc5c;
+        }
+
 	        .hud-main-action {
 	          position: relative;
+	          z-index: 2;
 	          display: flex;
           align-items: center;
           gap: 36px;
@@ -1638,9 +1777,12 @@ export default function Landing() {
         }
 
 	        .menu-item:focus-visible,
-	        .cast-auto-switch:focus-visible,
+	        .cast-auto-button:focus-visible,
+	        .cast-auto-stop:focus-visible,
 	        .cast-count-stepper:focus-visible,
 	        .cast-count-input:focus-visible,
+	        .auto-cast-modal__close:focus-visible,
+	        .auto-cast-modal__button:focus-visible,
 	        .hud-main-action:focus-visible,
 	        .hud-basket:focus-visible {
 	          outline: 3px solid #ffcc00;
@@ -3341,42 +3483,6 @@ export default function Landing() {
           font-size: 17px;
           font-weight: 950;
           line-height: 1.15;
-        }
-
-        .wallet-current-balance {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          min-width: 0;
-          color: var(--ac-text-body);
-          font-size: 12px;
-          font-weight: 900;
-          line-height: 1;
-          white-space: nowrap;
-        }
-
-        .wallet-current-balance__value {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          color: var(--ac-text);
-          font-size: 16px;
-          font-weight: 950;
-          letter-spacing: .02em;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .wallet-current-balance__icon {
-          width: 22px;
-          height: 22px;
-          object-fit: contain;
-          image-rendering: pixelated;
-        }
-
-        .wallet-current-balance__usd {
-          color: var(--ac-text-body);
-          font-size: 11px;
-          font-weight: 800;
         }
 
         .wallet-form {
@@ -5908,73 +6014,47 @@ export default function Landing() {
           </button>
         </div>
 
-	        <div className="hud-cast-panel" aria-label="自动抛竿设置">
-	          <div className="cast-auto-row">
-	            <span className="cast-auto-title">自动抛竿</span>
-	            <button
-	              className={`cast-auto-switch${autoCastEnabled ? " is-on" : ""}`}
-	              type="button"
-	              aria-label={autoCastEnabled ? "关闭自动抛竿" : "开启自动抛竿"}
-	              aria-pressed={autoCastEnabled}
-	              onClick={handleAutoCastToggle}
-	            >
-	              <span className="cast-auto-switch__track" aria-hidden="true">
-	                <span className="cast-auto-switch__thumb" />
+	        <div className="hud-bottom-bar" aria-label="主按钮">
+	          <div className="hud-cast-stack">
+	            <div className="cast-auto-inline" aria-label="自动抛竿设置">
+	              <button
+	                className={`cast-auto-button${autoCastRunning ? " is-running" : ""}`}
+	                type="button"
+	                aria-label={autoCastRunning ? "自动抛竿进行中" : "设置自动抛竿"}
+	                disabled={autoCastRunning}
+	                onClick={openAutoCastSettings}
+	              >
+	                <span className="cast-auto-title">自动抛竿</span>
+	                <span className={`cast-auto-status${autoCastRunning ? " is-running" : ""}`}>
+	                  {autoCastStatusLabel}
+	                </span>
+	              </button>
+	              {autoCastRunning && (
+	                <button
+	                  className="cast-auto-stop"
+	                  type="button"
+	                  aria-label="停止自动抛竿"
+	                  onClick={handleStopAutoCast}
+	                >
+	                  停止
+	                </button>
+	              )}
+	            </div>
+
+	            <button className="hud-main-action" type="button" aria-label={castActionLabel} onClick={handleMainCastClick}>
+	              <img
+	                className="hud-main-action__tool"
+	                src={HUD_ASSETS.rod}
+	                alt=""
+	              />
+	              <span
+	                className={`hud-main-action__label${autoCastStatusVisible ? " hud-main-action__label--progress" : ""}`}
+	                data-label={castButtonLabel}
+	              >
+	                {castButtonLabel}
 	              </span>
-	              <span className="cast-auto-switch__text">{autoCastEnabled ? "开启" : "关闭"}</span>
 	            </button>
 	          </div>
-
-	          {autoCastEnabled && (
-	            <div className="cast-count-control" role="group" aria-label="自动抛竿总次数">
-	              <span>本次</span>
-	              <button
-	                className="cast-count-stepper"
-	                type="button"
-	                aria-label="减少自动抛竿次数"
-	                disabled={autoCastCount <= MIN_AUTO_CAST_COUNT}
-	                onClick={() => updateAutoCastCount(autoCastCount - 1)}
-	              >
-	                -
-	              </button>
-	              <input
-	                className="cast-count-input"
-	                type="number"
-	                min={MIN_AUTO_CAST_COUNT}
-	                max={MAX_AUTO_CAST_COUNT}
-	                inputMode="numeric"
-	                value={autoCastCount}
-	                aria-label="本次自动抛竿总次数"
-	                onChange={(event) => updateAutoCastCount(Number(event.target.value))}
-	              />
-	              <button
-	                className="cast-count-stepper"
-	                type="button"
-	                aria-label="增加自动抛竿次数"
-	                disabled={autoCastCount >= MAX_AUTO_CAST_COUNT}
-	                onClick={() => updateAutoCastCount(autoCastCount + 1)}
-	              >
-	                +
-	              </button>
-	              <span>次</span>
-	            </div>
-	          )}
-	        </div>
-
-	        <div className="hud-bottom-bar" aria-label="主按钮">
-	          <button className="hud-main-action" type="button" aria-label={castActionLabel} onClick={handleMainCastClick}>
-	            <img
-	              className="hud-main-action__tool"
-	              src={HUD_ASSETS.rod}
-              alt=""
-            />
-            <span
-              className={`hud-main-action__label${autoCastStatusVisible ? " hud-main-action__label--progress" : ""}`}
-              data-label={castButtonLabel}
-            >
-              {castButtonLabel}
-            </span>
-          </button>
 
           <button className="hud-basket" type="button" aria-label="鱼篓">
             <span className="hud-basket__shell" aria-hidden="true">
@@ -5988,6 +6068,72 @@ export default function Landing() {
           </button>
         </div>
       </div>
+
+      {autoCastSettingsOpen && (
+        <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeAutoCastSettings();
+        }}>
+          <section className="auto-cast-modal" role="dialog" aria-modal="true" aria-labelledby="auto-cast-modal-title">
+            <header className="auto-cast-modal__header">
+              <h2 className="auto-cast-modal__title" id="auto-cast-modal-title">自动抛竿设置</h2>
+              <button
+                className="auto-cast-modal__close"
+                type="button"
+                aria-label="取消自动抛竿设置"
+                onClick={closeAutoCastSettings}
+              >
+                <X size={18} strokeWidth={3} />
+              </button>
+            </header>
+
+            <div className="auto-cast-modal__body">
+              <label className="auto-cast-field">
+                <span>本次抛竿总次数</span>
+                <div className="cast-count-control cast-count-control--modal" role="group" aria-label="设置本次自动抛竿总次数">
+                  <button
+                    className="cast-count-stepper"
+                    type="button"
+                    aria-label="减少自动抛竿次数"
+                    disabled={autoCastDraftCount <= MIN_AUTO_CAST_COUNT}
+                    onClick={() => updateAutoCastCount(autoCastDraftCount - 1)}
+                  >
+                    -
+                  </button>
+                  <input
+                    className="cast-count-input"
+                    type="number"
+                    min={MIN_AUTO_CAST_COUNT}
+                    max={MAX_AUTO_CAST_COUNT}
+                    inputMode="numeric"
+                    value={autoCastDraftCount}
+                    aria-label="本次自动抛竿总次数"
+                    onChange={(event) => updateAutoCastCount(Number(event.target.value))}
+                  />
+                  <button
+                    className="cast-count-stepper"
+                    type="button"
+                    aria-label="增加自动抛竿次数"
+                    disabled={autoCastDraftCount >= MAX_AUTO_CAST_COUNT}
+                    onClick={() => updateAutoCastCount(autoCastDraftCount + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </label>
+              <p className="auto-cast-modal__hint">最多 100 次</p>
+            </div>
+
+            <footer className="auto-cast-modal__actions">
+              <button className="auto-cast-modal__button auto-cast-modal__button--ghost" type="button" onClick={closeAutoCastSettings}>
+                取消
+              </button>
+              <button className="auto-cast-modal__button auto-cast-modal__button--primary" type="button" onClick={handleStartAutoCast}>
+                开始
+              </button>
+            </footer>
+          </section>
+        </div>
+      )}
 
       {walletOpen && (
         <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
@@ -6028,37 +6174,29 @@ export default function Landing() {
                         <div className="wallet-step__body">
 	                          <div className="wallet-step__head">
 	                            <h3 className="wallet-step__title">输入提现金额</h3>
-	                            <div className="wallet-current-balance" aria-label={`当前余额 ${formatBalance(SYSTEM_BALANCE_AMOUNT)} 余额，约 ${formatUsdEquivalent(SYSTEM_BALANCE_AMOUNT)}`}>
-	                              <span>当前余额</span>
-	                              <span className="wallet-current-balance__value">
-	                                <img className="wallet-current-balance__icon" src={HUD_ASSETS.coin} alt="" />
-	                                {formatBalance(SYSTEM_BALANCE_AMOUNT)}
-	                              </span>
-	                              <span className="wallet-current-balance__usd">（={formatUsdEquivalent(SYSTEM_BALANCE_AMOUNT)}）</span>
-	                            </div>
 	                          </div>
 	                          <label className="wallet-field">
 	                            <span className="wallet-input-unit-wrap">
-	                              <input
-	                                className="wallet-input wallet-input--with-unit"
-	                                inputMode="numeric"
-	                                aria-label="提现金额"
-	                                value={withdrawAmount || ""}
-	                                onChange={(event) => {
-	                                  const clean = event.target.value.replace(/\D/g, "");
-	                                  setWithdrawAmount(clean === "" ? 0 : Number(clean));
-	                                  resetWithdrawFeedback();
-	                                }}
-	                                placeholder="输入余额"
-	                              />
-	                              <span className="wallet-input-unit" aria-hidden="true">USD</span>
-	                            </span>
-	                          </label>
-	                          <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
-	                            <span>
-	                              最低 {formatBalance(MIN_AMOUNT)} 余额 · 可提现 {formatBalance(WALLET_BALANCE_AMOUNT)} 余额
-	                            </span>
-	                          </div>
+                              <input
+                                className="wallet-input wallet-input--with-unit"
+                                inputMode="decimal"
+                                aria-label="提现金额"
+                                value={withdrawAmount ? formatUsdInputValue(withdrawAmount) : ""}
+                                onChange={(event) => {
+                                  const clean = event.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+                                  setWithdrawAmount(clean === "" ? 0 : usdToBalance(Number(clean)));
+                                  resetWithdrawFeedback();
+                                }}
+                                placeholder="输入 USD 金额"
+                              />
+                              <span className="wallet-input-unit" aria-hidden="true">USD</span>
+                            </span>
+                          </label>
+                          <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
+                            <span>
+                              最低 {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · 可提现 {formatUsd(WALLET_BALANCE_USD)}
+                            </span>
+                          </div>
                         </div>
                       </section>
 
@@ -6129,11 +6267,11 @@ export default function Landing() {
 
                       <div className="wallet-withdraw__actions">
                         {withdrawStatus === "error" && (
-                          <div className="wallet-status is-error">提现预览失败。请尝试 1,000、2,000 或 5,000 余额查看成功状态。</div>
+                          <div className="wallet-status is-error">提现预览失败。请尝试 10.00 USD、20.00 USD 或 50.00 USD 查看成功状态。</div>
                         )}
                         {withdrawStatus === "success" && (
                           <div className="wallet-status">
-                            {formatBalance(withdrawAmount)} 余额（{formatUsd(balanceToUsd(withdrawAmount))}）提现申请已提交。
+                            {formatUsd(balanceToUsd(withdrawAmount))} 提现申请已提交。
                           </div>
                         )}
                         <button
