@@ -1974,7 +1974,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
   const summaryPeriod: SummaryPeriod = "IS";
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const [expandedTestSections, setExpandedTestSections] = useState<Record<string, boolean>>({
-    pass: false, fail: true, pending: false,
+    pass: true, fail: false, pending: false,
   });
   const [copiedExpression, setCopiedExpression] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { Claude, Codex, OpenClaw } from "@lobehub/icons";
 import { useInView, useReducedMotion } from "motion/react";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
@@ -7,6 +8,7 @@ import type { SelectOption } from "animal-island-ui";
 import AlphaDetail from "@/pages/AlphaDetail";
 import BorderGlow from "@/components/ui/border-glow-card";
 import {
+  Activity,
   ArrowLeft,
   ArrowUpRight,
   BarChart3,
@@ -15,6 +17,7 @@ import {
   Heart,
   Key,
   Languages,
+  LoaderCircle,
   Mail,
   MoreHorizontal,
   Pencil,
@@ -22,6 +25,7 @@ import {
   Search,
   Star,
   TrendingUp,
+  Unplug,
   User,
   Users,
   Wallet,
@@ -277,14 +281,34 @@ const leaderboardEntries: LeaderboardEntry[] = [
     };
   }),
 ];
-const agentConnectableProviders = [
-  { id: "openai", name: "OpenAI", mark: "O" },
-  { id: "anthropic", name: "Anthropic", mark: "A" },
-  { id: "google", name: "Google AI Studio", mark: "G" },
-  { id: "minimax", name: "MiniMax", mark: "M" },
-  { id: "alibaba", name: "Alibaba Cloud", mark: "A" },
-  { id: "deepseek", name: "DeepSeek", mark: "D" },
-] as const;
+type AgentProviderIcon = "codex" | "claude" | "openclaw";
+type AgentConnectableProvider = {
+  id: "codex" | "claude-code" | "openclaw";
+  name: string;
+  mark: string;
+  icon?: AgentProviderIcon;
+};
+type AgentProviderId = AgentConnectableProvider["id"];
+const agentConnectableProviders: readonly AgentConnectableProvider[] = [
+  { id: "codex", name: "Codex", mark: "C", icon: "codex" },
+  { id: "claude-code", name: "ClaudeCode", mark: "C", icon: "claude" },
+  { id: "openclaw", name: "OpenClaw", mark: "O", icon: "openclaw" },
+];
+const agentWebAuthorizationLoginUrl = "https://chatgpt.com/activate";
+
+const createAgentAuthorizationCode = () => {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const segment = (length: number) => Array.from({ length }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+  return `${segment(4)}-${segment(5)}`;
+};
+
+const createAgentAuthorizationQrCells = (code: string) => {
+  let seed = Array.from(code).reduce((value, character) => value + character.charCodeAt(0), 0);
+  return Array.from({ length: 49 }, (_, index) => {
+    seed = (seed * 1664525 + 1013904223 + index) >>> 0;
+    return seed % 5 < 2;
+  });
+};
 
 const inventorySpecialCards: InventorySpecialCard[] = [
   {
@@ -658,11 +682,20 @@ export default function Landing() {
   const [settingsPasswordCodeSent, setSettingsPasswordCodeSent] = useState(false);
   const [settingsNewPassword, setSettingsNewPassword] = useState("");
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
-  const [agentWebAuthStatus, setAgentWebAuthStatus] = useState<"idle" | "pending" | "connected">("pending");
   const [agentConnectModalOpen, setAgentConnectModalOpen] = useState(false);
-  const [agentAuthMethod, setAgentAuthMethod] = useState<"subscription" | "byok">("subscription");
-  const [agentByokLabel, setAgentByokLabel] = useState("OpenAI BYOK");
+  const [agentSelectedProviderId, setAgentSelectedProviderId] = useState<AgentProviderId>("codex");
+  const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set());
+  const [agentDisconnectConfirmProviderId, setAgentDisconnectConfirmProviderId] = useState<AgentProviderId | null>(null);
+  const [agentStatusTestingProviderId, setAgentStatusTestingProviderId] = useState<AgentProviderId | null>(null);
+  const [agentAuthMethod, setAgentAuthMethod] = useState<"code" | "byok">("code");
+  const [agentWebAuthorizationCode, setAgentWebAuthorizationCode] = useState("SSH8-M4Y83");
+  const agentAuthorizationQrCells = useMemo(
+    () => createAgentAuthorizationQrCells(agentWebAuthorizationCode),
+    [agentWebAuthorizationCode]
+  );
   const [agentByokKey, setAgentByokKey] = useState("");
+  const [agentByokTestStatus, setAgentByokTestStatus] = useState<"idle" | "testing" | "invalid" | "valid">("idle");
+  const [agentByokTestMessage, setAgentByokTestMessage] = useState("");
   const [agentApiKeyIssued, setAgentApiKeyIssued] = useState(true);
   const [agentApiKeyCopyable, setAgentApiKeyCopyable] = useState(false);
   const [agentApiKeyId, setAgentApiKeyId] = useState("471967e8-b...1a3c53");
@@ -1258,42 +1291,122 @@ export default function Landing() {
     setInventoryToast({ id: Date.now(), title, message });
   };
 
-  const requestAgentWebAuth = () => {
-    setAgentWebAuthStatus("pending");
+  const getAgentProviderName = (providerId: AgentProviderId) => {
+    return agentConnectableProviders.find((provider) => provider.id === providerId)?.name || "Agent";
+  };
+
+  const openAgentConnectModal = (providerId: AgentProviderId) => {
+    setAgentSelectedProviderId(providerId);
+    setAgentDisconnectConfirmProviderId(null);
+    setAgentAuthMethod("code");
+    setAgentConnectModalOpen(true);
+  };
+
+  const requestDisconnectAgentProvider = (providerId: AgentProviderId) => {
+    setAgentConnectModalOpen(false);
+    setAgentDisconnectConfirmProviderId(providerId);
+  };
+
+  const disconnectAgentProvider = (providerId: AgentProviderId) => {
+    setAgentConnectedProviderIds((current) => {
+      const next = new Set(current);
+      next.delete(providerId);
+      return next;
+    });
+    setAgentDisconnectConfirmProviderId(null);
     showSettingsFeedback(
-      tr("Login started", "登录已发起"),
-      tr("Scan the QR code or open the login page to complete Codex authorization.", "请扫码或打开登录页完成 Codex 授权。")
+      tr("Disconnected", "已断连"),
+      tr(`${getAgentProviderName(providerId)} disconnected.`, `${getAgentProviderName(providerId)} 已断开连接。`)
     );
   };
 
-  const refreshAgentWebAuth = () => {
-    if (agentWebAuthStatus !== "pending") {
+  const testAgentProviderStatus = (providerId: AgentProviderId) => {
+    if (agentStatusTestingProviderId) return;
+
+    setAgentStatusTestingProviderId(providerId);
+
+    window.setTimeout(() => {
+      setAgentStatusTestingProviderId(null);
       showSettingsFeedback(
-        tr("Status refreshed", "状态已刷新"),
-        tr("There is no pending login authorization.", "当前没有等待中的登录授权。")
+        tr("Status available", "状态正常"),
+        tr(`${getAgentProviderName(providerId)} is connected.`, `${getAgentProviderName(providerId)} 已连接。`)
+      );
+    }, 900);
+  };
+
+  const confirmAgentProviderConnection = () => {
+    setAgentConnectedProviderIds((current) => new Set(current).add(agentSelectedProviderId));
+    setAgentConnectModalOpen(false);
+    showSettingsFeedback(
+      tr("Connected", "已连接"),
+      tr(`${getAgentProviderName(agentSelectedProviderId)} connected.`, `${getAgentProviderName(agentSelectedProviderId)} 已连接。`)
+    );
+  };
+
+  const testAgentByok = () => {
+    const trimmedKey = agentByokKey.trim();
+
+    if (agentByokTestStatus === "valid") {
+      confirmAgentProviderConnection();
+      return;
+    }
+
+    if (!trimmedKey) {
+      setAgentByokTestStatus("invalid");
+      setAgentByokTestMessage(tr("Enter API Key", "请输入API Key"));
+      return;
+    }
+
+    setAgentByokTestStatus("testing");
+    setAgentByokTestMessage("");
+
+    window.setTimeout(() => {
+      const looksUsable = /^sk-[A-Za-z0-9_-]{8,}$/.test(trimmedKey);
+
+      if (!looksUsable) {
+        setAgentByokTestStatus("invalid");
+        setAgentByokTestMessage(tr(
+          "This API Key is unavailable. Check that it starts with sk- and is complete.",
+          "API 不可用：请确认 Key 以 sk- 开头且内容完整。"
+        ));
+        return;
+      }
+
+      setAgentByokTestStatus("valid");
+      setAgentByokTestMessage(tr("API Key is available.", "API Key 可用。"));
+    }, 900);
+  };
+
+  const copyAgentAuthorizationCodeAndOpenLogin = () => {
+    window.open(agentWebAuthorizationLoginUrl, "_blank", "noopener,noreferrer");
+    setAgentConnectedProviderIds((current) => new Set(current).add(agentSelectedProviderId));
+
+    if (!navigator.clipboard?.writeText) {
+      showSettingsFeedback(
+        tr("Copy manually", "请手动复制"),
+        tr("The login page has opened. Copy the authorization code manually if needed.", "登录页已打开，如有需要请手动复制授权码。")
       );
       return;
     }
 
-    setAgentWebAuthStatus("connected");
-    showSettingsFeedback(tr("Authorization approved", "授权已通过"), tr("Codex Subscription connected.", "Codex Subscription 已连接。"));
+    navigator.clipboard.writeText(agentWebAuthorizationCode).then(() => {
+      showSettingsFeedback(
+        tr("Authorization code copied", "授权码已复制"),
+        tr("The login page has opened in a new tab.", "登录页已在新标签页打开。")
+      );
+    }).catch(() => {
+      showSettingsFeedback(
+        tr("Copy failed", "复制失败"),
+        tr("Copy the authorization code manually, then continue on the login page.", "请手动复制授权码，然后在登录页继续操作。")
+      );
+    });
   };
 
-  const resetAgentWebAuth = () => {
-    setAgentWebAuthStatus("idle");
-    showSettingsFeedback(tr("Disconnected", "连接已断开"), tr("Codex Subscription disconnected.", "Codex Subscription 已断开。"));
-  };
-
-  const saveAgentByok = () => {
-    if (!agentByokKey.trim()) {
-      showSettingsFeedback(tr("API key required", "需要 API Key"), tr("Enter an OpenAI API key before saving.", "请输入 OpenAI API Key 后再保存。"));
-      return;
-    }
-
-    setAgentAuthMethod("byok");
+  const refreshAgentAuthorizationCode = () => {
+    setAgentWebAuthorizationCode(createAgentAuthorizationCode());
     showSettingsFeedback(
-      tr("BYOK saved", "BYOK 已保存"),
-      tr(`${agentByokLabel || "OpenAI BYOK"} is ready for Agent use.`, `${agentByokLabel || "OpenAI BYOK"} 已可用于 Agent。`)
+      tr("Authorization code refreshed", "授权码已刷新"),
+      tr("Use the new authorization code or scan the refreshed QR code.", "请使用新的授权码，或扫描刷新后的二维码。")
     );
   };
 
@@ -1894,7 +2007,7 @@ export default function Landing() {
 	          padding: 0 14px;
 	          background: rgb(255, 247, 227);
 	          border: 0;
-	          border-radius: 12px 12px 6px 6px;
+	          border-radius: 12px 12px 0 0;
 	          box-shadow: inset 0 2px 0 rgba(255, 255, 255, .54);
 	          transition: transform 80ms ease, box-shadow 80ms ease, background 120ms ease, color 120ms ease;
 	        }
@@ -3793,10 +3906,13 @@ export default function Landing() {
         }
 
         .settings-agent-side-nav {
+          position: relative;
+          z-index: 1;
           display: grid;
           align-content: start;
           gap: 4px;
           min-height: 100%;
+          overflow: visible;
           padding: 18px 0;
           background: rgba(255, 253, 244, .86);
           border-right: 1.5px solid rgba(121, 79, 39, .2);
@@ -3806,13 +3922,16 @@ export default function Landing() {
           appearance: none;
           width: 170px;
           min-height: 48px;
+          box-sizing: border-box;
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
           padding: 0 18px 0 22px;
           color: rgba(121, 79, 39, .72);
           text-align: left;
           background: transparent;
-          border: 0;
+          border: 1.5px solid transparent;
           border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
           box-shadow: none;
           cursor: pointer;
@@ -3831,9 +3950,8 @@ export default function Landing() {
         .settings-agent-side-tab.is-active {
           color: var(--ac-text);
           background: #ffd557;
-          box-shadow:
-            inset 0 1.5px 0 rgba(121, 79, 39, .22),
-            inset 0 -1.5px 0 rgba(121, 79, 39, .18);
+          border-color: rgba(121, 79, 39, .22);
+          box-shadow: none;
         }
 
         .settings-agent-main {
@@ -3861,7 +3979,7 @@ export default function Landing() {
         .settings-agent-provider-list {
           display: grid;
           gap: 0;
-          overflow: hidden;
+          overflow: visible;
           background: rgba(255, 253, 244, .82);
           border: 1.5px solid rgba(196, 184, 158, .46);
           border-radius: var(--radius-xs);
@@ -3879,16 +3997,23 @@ export default function Landing() {
           border-bottom: 1px solid rgba(196, 184, 158, .34);
         }
 
+        .settings-agent-provider-row:first-child {
+          border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+        }
+
         .settings-agent-provider-row:last-child {
           border-bottom: 0;
+          border-radius: 0 0 var(--radius-xs) var(--radius-xs);
         }
 
         .settings-agent-provider-mark {
           width: 42px;
           height: 42px;
+          box-sizing: border-box;
           display: grid;
           place-items: center;
           flex: 0 0 auto;
+          overflow: hidden;
           color: #fffdf4;
           background: #1c1b18;
           border-radius: 50%;
@@ -3897,34 +4022,46 @@ export default function Landing() {
           line-height: 1;
         }
 
-        .settings-agent-provider-mark--google {
-          color: #4285f4;
-          background: #fffdf4;
-          border: 1.5px solid rgba(196, 184, 158, .52);
+        .settings-agent-provider-mark--codex,
+        .settings-agent-provider-mark--claude-code,
+        .settings-agent-provider-mark--openclaw {
+          background: transparent;
+          border: 0;
         }
 
-        .settings-agent-provider-mark--minimax {
-          color: #ef4b78;
-          background: #fffdf4;
-          border: 1.5px solid rgba(239, 75, 120, .3);
-        }
-
-        .settings-agent-provider-mark--alibaba {
-          color: #ff6a1a;
-          background: #fffdf4;
-          border: 1.5px solid rgba(255, 106, 26, .3);
-        }
-
-        .settings-agent-provider-mark--deepseek {
-          background: #4f6df5;
+        .settings-agent-provider-icon {
+          width: 38px;
+          height: 38px;
+          display: block;
         }
 
         .settings-agent-provider-name {
           min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 10px;
           color: var(--ac-text);
           font-size: 17px;
           font-weight: 1000;
           line-height: 1.2;
+        }
+
+        .settings-agent-provider-status {
+          color: rgba(121, 79, 39, .66);
+          font-size: 12px;
+          font-weight: 1000;
+          white-space: nowrap;
+        }
+
+        .settings-agent-provider-status.is-connected {
+          color: #16794c;
+        }
+
+        .settings-agent-provider-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 8px;
         }
 
         .settings-agent-provider-add {
@@ -3947,6 +4084,68 @@ export default function Landing() {
           outline: none;
         }
 
+        .settings-agent-provider-icon-action {
+          appearance: none;
+          width: 38px;
+          height: 38px;
+          position: relative;
+          display: inline-grid;
+          place-items: center;
+          color: var(--ac-text);
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+          font: inherit;
+        }
+
+        .settings-agent-provider-icon-action:hover,
+        .settings-agent-provider-icon-action:focus-visible {
+          background: rgba(255, 213, 87, .72);
+          outline: none;
+        }
+
+        .settings-agent-provider-icon-action:disabled {
+          cursor: wait;
+        }
+
+        .settings-agent-provider-icon-action.is-loading svg {
+          animation: settings-agent-spin .8s linear infinite;
+        }
+
+        @keyframes settings-agent-spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        .settings-agent-provider-icon-action::after {
+          content: attr(data-label);
+          position: absolute;
+          left: 50%;
+          bottom: calc(100% + 8px);
+          z-index: 4;
+          padding: 5px 8px;
+          color: #fffdf4;
+          background: rgba(62, 45, 31, .94);
+          border-radius: 6px;
+          box-shadow: 0 6px 14px rgba(61, 52, 40, .18);
+          font-size: 12px;
+          font-weight: 900;
+          line-height: 1;
+          white-space: nowrap;
+          opacity: 0;
+          pointer-events: none;
+          transform: translate(-50%, 4px);
+          transition: opacity .16s ease, transform .16s ease;
+        }
+
+        .settings-agent-provider-icon-action:hover::after,
+        .settings-agent-provider-icon-action:focus-visible::after {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+
         .settings-agent-connect-overlay {
           position: absolute;
           inset: 0;
@@ -3959,11 +4158,12 @@ export default function Landing() {
 
         .settings-agent-connect-modal {
           width: min(560px, 100%);
+          height: min(400px, calc(100vh - 56px));
           max-height: 100%;
           display: grid;
-          grid-template-rows: auto minmax(0, 1fr);
+          grid-template-rows: auto auto minmax(0, 1fr);
           gap: 14px;
-          overflow: auto;
+          overflow: hidden;
           padding: 18px;
           color: var(--ac-text);
           background: rgba(255, 253, 244, .96);
@@ -3975,9 +4175,24 @@ export default function Landing() {
             0 18px 36px rgba(66, 48, 31, .18);
         }
 
+        .settings-agent-confirm-modal {
+          width: min(360px, 100%);
+          display: grid;
+          gap: 18px;
+          padding: 18px;
+          color: var(--ac-text);
+          background: rgba(255, 253, 244, .98);
+          border: 2px solid rgba(196, 184, 158, .7);
+          border-radius: var(--radius-xs);
+          box-shadow:
+            0 0 0 2px rgba(255, 253, 244, .78),
+            4px 4px 0 rgba(189, 174, 160, .5),
+            0 18px 36px rgba(66, 48, 31, .18);
+        }
+
         .settings-agent-connect-modal__header {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: space-between;
           gap: 16px;
         }
@@ -4031,12 +4246,18 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           gap: 16px;
+          overflow: auto;
           padding: 0;
           color: var(--ac-text);
           background: transparent;
           border: 0;
           border-radius: 0;
           box-shadow: none;
+        }
+
+        .settings-agent-connect-modal .settings-agent-card {
+          gap: 14px;
+          padding-bottom: 8px;
         }
 
         .settings-agent-card__head {
@@ -4084,7 +4305,12 @@ export default function Landing() {
           color: rgba(121, 79, 39, .54);
         }
 
-        .settings-agent-code {
+        .settings-agent-auth-options {
+          display: grid;
+          gap: 12px;
+        }
+
+        .settings-agent-auth-option {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 12px;
@@ -4095,34 +4321,62 @@ export default function Landing() {
           border-radius: var(--radius-xs);
         }
 
-        .settings-agent-code span {
+        .settings-agent-auth-option > div:first-child,
+        .settings-agent-code-copy {
+          display: grid;
+          gap: 5px;
+        }
+
+        .settings-agent-auth-option__head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .settings-agent-auth-option span {
           color: rgba(121, 79, 39, .72);
           font-size: 12px;
           font-weight: 850;
         }
 
-        .settings-agent-code strong {
+        .settings-agent-auth-option strong {
           color: var(--ac-text);
-          font-size: 22px;
           font-weight: 1000;
+        }
+
+        .settings-agent-code-copy strong {
+          font-size: 22px;
           letter-spacing: .08em;
           line-height: 1;
+        }
+
+        .settings-agent-auth-actions {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 8px;
         }
 
         .settings-agent-qr {
           width: 88px;
           height: 88px;
           display: grid;
-          place-items: center;
-          color: rgba(121, 79, 39, .62);
-          background:
-            linear-gradient(90deg, rgba(121, 79, 39, .78) 2px, transparent 2px) 0 0 / 12px 12px,
-            linear-gradient(rgba(121, 79, 39, .78) 2px, transparent 2px) 0 0 / 12px 12px,
-            #fffdf4;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 3px;
+          padding: 8px;
+          background: #fffdf4;
           border: 2px solid rgba(121, 79, 39, .28);
           border-radius: var(--radius-xs);
-          font-size: 11px;
-          font-weight: 1000;
+        }
+
+        .settings-agent-qr span {
+          background: rgba(121, 79, 39, .16);
+          border-radius: 2px;
+        }
+
+        .settings-agent-qr span.is-active {
+          background: rgba(121, 79, 39, .82);
         }
 
         .settings-agent-meta {
@@ -4167,9 +4421,67 @@ export default function Landing() {
           gap: 8px;
         }
 
+        .settings-field__head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .settings-api-key-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          color: #2563eb;
+          font-size: 12px;
+          font-weight: 900;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+
+        .settings-api-key-link:hover {
+          text-decoration: underline;
+        }
+
+        .settings-api-key-link__muted {
+          color: rgba(92, 99, 119, .86);
+          font-weight: 800;
+        }
+
+        .settings-agent-test-message {
+          margin: -2px 0 0;
+          font-size: 11px;
+          font-weight: 900;
+          line-height: 1.45;
+        }
+
+        .settings-agent-test-message.is-error {
+          color: #b42318;
+        }
+
+        .settings-agent-test-message.is-success {
+          color: #16794c;
+        }
+
+        .settings-agent-confirm-copy {
+          margin: 0;
+          color: rgba(121, 79, 39, .72);
+          font-size: 13px;
+          font-weight: 850;
+          line-height: 1.45;
+        }
+
+        .settings-agent-confirm-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
         .settings-agent-actions {
           display: flex;
           flex-wrap: wrap;
+          flex: 0 0 auto;
           gap: 10px;
           margin-top: auto;
         }
@@ -4212,6 +4524,17 @@ export default function Landing() {
 
           .settings-agent-grid {
             grid-template-columns: 1fr;
+          }
+
+          .settings-agent-provider-row {
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 10px 14px;
+            padding-block: 12px;
+          }
+
+          .settings-agent-provider-actions {
+            grid-column: 2;
+            justify-content: flex-start;
           }
         }
 
@@ -4619,7 +4942,7 @@ export default function Landing() {
           padding: 0 14px;
           color: var(--ac-text);
           background: #9bdc5c;
-          border-width: 2px;
+          border-width: 0;
           border-style: solid;
           border-color: #101010;
           border-radius: var(--radius-xs);
@@ -4647,6 +4970,7 @@ export default function Landing() {
 
         .wallet-submit {
           width: 100%;
+          border-width: 0;
           margin-top: 14px;
         }
 
@@ -7877,6 +8201,7 @@ export default function Landing() {
                       onClick={() => {
                         setSettingsAgentSection("web");
                         setAgentConnectModalOpen(false);
+                        setAgentDisconnectConfirmProviderId(null);
                       }}
                     >
                       {tr("Web authorization", "网页端授权")}
@@ -7888,6 +8213,7 @@ export default function Landing() {
                       onClick={() => {
                         setSettingsAgentSection("client");
                         setAgentConnectModalOpen(false);
+                        setAgentDisconnectConfirmProviderId(null);
                       }}
                     >
                       {tr("Client plugin", "客户端插件")}
@@ -7902,21 +8228,71 @@ export default function Landing() {
                     {settingsAgentSection === "web" ? (
                       <>
                         <div className="settings-agent-provider-list" aria-label={tr("Connectable providers", "可连接服务")}>
-                          {agentConnectableProviders.map((provider) => (
-                            <div className="settings-agent-provider-row" key={provider.id}>
-                              <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
-                                {provider.mark}
-                              </span>
-                              <span className="settings-agent-provider-name">{provider.name}</span>
-                              <button
-                                className="settings-agent-provider-add"
-                                type="button"
-                                onClick={() => setAgentConnectModalOpen(true)}
-                              >
-                                Add
-                              </button>
-                            </div>
-                          ))}
+                          {agentConnectableProviders.map((provider) => {
+                            const isConnected = agentConnectedProviderIds.has(provider.id);
+                            const isTestingStatus = agentStatusTestingProviderId === provider.id;
+
+                            return (
+                              <div className="settings-agent-provider-row" key={provider.id}>
+                                <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
+                                  {"icon" in provider && provider.icon === "codex" ? (
+                                    <Codex.Avatar className="settings-agent-provider-icon" size={42} />
+                                  ) : "icon" in provider && provider.icon === "claude" ? (
+                                    <Claude.Avatar className="settings-agent-provider-icon" size={42} />
+                                  ) : "icon" in provider && provider.icon === "openclaw" ? (
+                                    <OpenClaw.Avatar className="settings-agent-provider-icon" size={42} />
+                                  ) : (
+                                    provider.mark
+                                  )}
+                                </span>
+                                <span className="settings-agent-provider-name">
+                                  <span>{provider.name}</span>
+                                  {isConnected && (
+                                    <span className="settings-agent-provider-status is-connected">
+                                      {tr("Status normal", "状态正常")}
+                                    </span>
+                                  )}
+                                </span>
+                                <div className="settings-agent-provider-actions">
+                                  {isConnected ? (
+                                    <>
+                                      <button
+                                        className="settings-agent-provider-icon-action"
+                                        type="button"
+                                        aria-label={tr("Disconnect", "断连")}
+                                        data-label={tr("Disconnect", "断连")}
+                                        onClick={() => requestDisconnectAgentProvider(provider.id)}
+                                      >
+                                        <Unplug size={18} strokeWidth={2.4} aria-hidden="true" />
+                                      </button>
+                                      <button
+                                        className={`settings-agent-provider-icon-action${isTestingStatus ? " is-loading" : ""}`}
+                                        type="button"
+                                        aria-label={isTestingStatus ? tr("Testing status", "状态测试中") : tr("Status test", "状态测试")}
+                                        data-label={isTestingStatus ? tr("Testing", "测试中") : tr("Status test", "状态测试")}
+                                        disabled={isTestingStatus}
+                                        onClick={() => testAgentProviderStatus(provider.id)}
+                                      >
+                                        {isTestingStatus ? (
+                                          <LoaderCircle size={18} strokeWidth={2.4} aria-hidden="true" />
+                                        ) : (
+                                          <Activity size={18} strokeWidth={2.4} aria-hidden="true" />
+                                        )}
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <button
+                                      className="settings-agent-provider-add"
+                                      type="button"
+                                      onClick={() => openAgentConnectModal(provider.id)}
+                                    >
+                                      {tr("Connect", "连接")}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
 
                         {agentConnectModalOpen && (
@@ -7930,7 +8306,7 @@ export default function Landing() {
                             <section className="settings-agent-connect-modal" role="dialog" aria-modal="true" aria-label={tr("Connect web authorization", "连接网页端授权")}>
                               <header className="settings-agent-connect-modal__header">
                                 <div className="settings-agent-card__title">
-                                  <strong>{tr("Connect OpenAI", "连接 OpenAI")}</strong>
+                                  <strong>{tr(`Connect ${getAgentProviderName(agentSelectedProviderId)}`, `连接 ${getAgentProviderName(agentSelectedProviderId)}`)}</strong>
                                 </div>
                                 <button
                                   className="settings-agent-connect-modal__close"
@@ -7944,11 +8320,11 @@ export default function Landing() {
 
                               <div className="settings-agent-method-tabs" role="tablist" aria-label={tr("Authorization method", "授权方式")}>
                                 <button
-                                  className={`settings-agent-method-tab${agentAuthMethod === "subscription" ? " is-active" : ""}`}
+                                  className={`settings-agent-method-tab${agentAuthMethod === "code" ? " is-active" : ""}`}
                                   type="button"
                                   role="tab"
-                                  aria-selected={agentAuthMethod === "subscription"}
-                                  onClick={() => setAgentAuthMethod("subscription")}
+                                  aria-selected={agentAuthMethod === "code"}
+                                  onClick={() => setAgentAuthMethod("code")}
                                 >
                                   {tr("Authorization code", "授权码")}
                                 </button>
@@ -7963,140 +8339,154 @@ export default function Landing() {
                                 </button>
                               </div>
 
-                              {agentAuthMethod === "subscription" ? (
+                              {agentAuthMethod === "code" ? (
                                 <article className="settings-agent-card">
-                                  <div className="settings-agent-card__head">
-                                    <div className="settings-agent-card__title">
-                                      <strong>Codex Subscription</strong>
-                                      <span>
-                                        {agentWebAuthStatus === "connected"
-                                          ? tr("Authenticated for web-side agent usage.", "已完成网页端 Agent 授权。")
-                                          : agentWebAuthStatus === "pending"
-                                            ? tr("Waiting for authentication.", "等待授权。")
-                                            : tr("No active login workflow.", "暂无登录授权流程。")}
-                                      </span>
-                                    </div>
-                                    <span
-                                      className={`settings-agent-status${
-                                        agentWebAuthStatus === "connected"
-                                          ? " is-active"
-                                          : agentWebAuthStatus === "idle"
-                                            ? " is-muted"
-                                            : ""
-                                      }`}
-                                    >
-                                      {agentWebAuthStatus === "connected"
-                                        ? tr("Active", "已启用")
-                                        : agentWebAuthStatus === "pending"
-                                          ? tr("Pending", "待处理")
-                                          : tr("Needs action", "待操作")}
-                                    </span>
-                                  </div>
-
-                                  {agentWebAuthStatus === "connected" ? (
-                                    <div className="settings-agent-meta">
-                                      <div className="settings-agent-meta__row">
-                                        <span>{tr("Account", "账户")}</span>
-                                        <span>{settingsEmail}</span>
-                                      </div>
-                                      <div className="settings-agent-meta__row">
-                                        <span>{tr("Session", "会话")}</span>
-                                        <span>{tr("Web agent enabled", "网页 Agent 已启用")}</span>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <div className="settings-agent-code">
-                                      <div>
-                                        <span>{tr("Enter code", "输入授权码")}</span>
-                                        <strong>SSH8-M4Y83</strong>
-                                        <span>{tr("Expires May 29, 2026, 12:20 UTC", "有效期至 2026年5月29日 12:20 UTC")}</span>
-                                      </div>
-                                      <div className="settings-agent-qr" aria-hidden="true">QR</div>
-                                    </div>
-                                  )}
-
                                   <p className="settings-agent-note">
                                     {tr(
-                                      "Use the code or login page to authorize hosted Agent access.",
-                                      "使用授权码或登录页完成托管 Agent 授权。"
+                                      "Choose QR authorization, or copy the code and continue on the login page.",
+                                      "请选择扫码授权，或复制授权码后在登录页继续。"
                                     )}
                                   </p>
 
-                                  <div className="settings-agent-actions">
-                                    {agentWebAuthStatus === "connected" ? (
-                                      <button className="settings-action settings-action--danger" type="button" onClick={resetAgentWebAuth}>
-                                        {tr("Disconnect", "断开连接")}
-                                      </button>
-                                    ) : (
-                                      <>
+                                  <div className="settings-agent-auth-options">
+                                    <section className="settings-agent-auth-option">
+                                      <div>
+                                        <div className="settings-agent-auth-option__head">
+                                          <strong>{tr("Scan QR code", "扫码授权")}</strong>
+                                          <button
+                                            className="settings-action settings-action--quiet"
+                                            type="button"
+                                            onClick={refreshAgentAuthorizationCode}
+                                          >
+                                            {tr("Refresh", "刷新")}
+                                          </button>
+                                        </div>
+                                        <span>{tr("Use your phone to scan and complete authorization.", "请使用手机扫码完成授权。")}</span>
+                                      </div>
+                                      <div className="settings-agent-qr" aria-label={tr("Authorization QR code", "授权二维码")}>
+                                        {agentAuthorizationQrCells.map((isActive, cellIndex) => (
+                                          <span className={isActive ? "is-active" : undefined} key={`${agentWebAuthorizationCode}-${cellIndex}`} />
+                                        ))}
+                                      </div>
+                                    </section>
+
+                                    <section className="settings-agent-auth-option">
+                                      <div className="settings-agent-code-copy">
+                                        <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
+                                        <strong>{agentWebAuthorizationCode}</strong>
+                                      </div>
+                                      <div className="settings-agent-auth-actions">
                                         <button
-                                          className="settings-action settings-action--quiet"
+                                          className="settings-action settings-action--primary"
                                           type="button"
-                                          onClick={() => showAgentClientAction("Authorization code ready to copy.", "授权码已准备复制。")}
+                                          onClick={copyAgentAuthorizationCodeAndOpenLogin}
                                         >
-                                          {tr("Copy code", "复制授权码")}
+                                          {tr("Copy and go", "复制并前往")}
                                         </button>
-                                        <button className="settings-action settings-action--quiet" type="button" onClick={requestAgentWebAuth}>
-                                          <ArrowUpRight size={14} strokeWidth={3} />
-                                          {tr("Open login page", "打开登录页")}
-                                        </button>
-                                        <button className="settings-action settings-action--quiet" type="button" onClick={refreshAgentWebAuth}>
-                                          {tr("Refresh status", "刷新状态")}
-                                        </button>
-                                        <button className="settings-action settings-action--danger" type="button" onClick={resetAgentWebAuth}>
-                                          {tr("Disconnect", "断开连接")}
-                                        </button>
-                                      </>
-                                    )}
+                                      </div>
+                                    </section>
                                   </div>
                                 </article>
                               ) : (
                                 <article className="settings-agent-card">
-                                  <div className="settings-agent-card__head">
-                                    <div className="settings-agent-card__title">
-                                      <strong>OpenAI BYOK</strong>
-                                      <span>{tr("Use your own OpenAI API key for hosted Agent actions.", "使用您自己的 OpenAI API Key 执行托管 Agent。")}</span>
-                                    </div>
-                                    <span className={`settings-agent-status${agentByokKey.trim() ? " is-active" : ""}`}>
-                                      {agentByokKey.trim() ? tr("Active", "已启用") : tr("Needs action", "待操作")}
-                                    </span>
-                                  </div>
-
                                   <div className="settings-agent-form">
                                     <label className="settings-field">
-                                      <span>{tr("Key label", "密钥标签")}</span>
-                                      <input
-                                        className="settings-input"
-                                        value={agentByokLabel}
-                                        onChange={(event) => setAgentByokLabel(event.target.value)}
-                                      />
-                                    </label>
-                                    <label className="settings-field">
-                                      <span>OpenAI API Key</span>
+                                      <span className="settings-field__head">
+                                        <span>OpenAI API Key</span>
+                                        <a
+                                          className="settings-api-key-link"
+                                          href="https://platform.openai.com/api-keys"
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          Get API Key <span className="settings-api-key-link__muted">from OpenAI</span>
+                                          <ArrowUpRight size={13} strokeWidth={3} />
+                                        </a>
+                                      </span>
                                       <input
                                         className="settings-input"
                                         type="password"
                                         value={agentByokKey}
                                         placeholder="sk-..."
-                                        onChange={(event) => setAgentByokKey(event.target.value)}
+                                        disabled={agentByokTestStatus === "testing"}
+                                        onChange={(event) => {
+                                          setAgentByokKey(event.target.value);
+                                          setAgentByokTestStatus("idle");
+                                          setAgentByokTestMessage("");
+                                        }}
                                       />
+                                      {agentByokTestMessage && (
+                                        <span className={`settings-agent-test-message${agentByokTestStatus === "valid" ? " is-success" : " is-error"}`}>
+                                          {agentByokTestMessage}
+                                        </span>
+                                      )}
                                     </label>
                                   </div>
 
-                                  <p className="settings-agent-note">
-                                    {tr(
-                                      "API Key and authorization code are alternative connection methods.",
-                                      "API Key 与授权码二选一使用。"
-                                    )}
-                                  </p>
-
                                   <div className="settings-agent-actions">
-                                    <button className="settings-action settings-action--primary" type="button" onClick={saveAgentByok}>
-                                      {tr("Save key", "保存密钥")}
+                                    <button
+                                      className="settings-action settings-action--primary"
+                                      type="button"
+                                      disabled={agentByokTestStatus === "testing"}
+                                      onClick={testAgentByok}
+                                    >
+                                      {agentByokTestStatus === "testing"
+                                        ? tr("Testing", "测试中")
+                                        : agentByokTestStatus === "valid"
+                                          ? tr("Confirm connection", "确认连接")
+                                          : tr("Test key", "测试密钥")}
                                     </button>
                                   </div>
                                 </article>
                               )}
+                            </section>
+                          </div>
+                        )}
+
+                        {agentDisconnectConfirmProviderId && (
+                          <div
+                            className="settings-agent-connect-overlay"
+                            role="presentation"
+                            onMouseDown={(event) => {
+                              if (event.target === event.currentTarget) setAgentDisconnectConfirmProviderId(null);
+                            }}
+                          >
+                            <section className="settings-agent-confirm-modal" role="dialog" aria-modal="true" aria-label={tr("Confirm disconnection", "确认断连")}>
+                              <header className="settings-agent-connect-modal__header">
+                                <div className="settings-agent-card__title">
+                                  <strong>{tr("Disconnect agent", "确认断连")}</strong>
+                                </div>
+                                <button
+                                  className="settings-agent-connect-modal__close"
+                                  type="button"
+                                  aria-label={tr("Close confirmation dialog", "关闭确认弹窗")}
+                                  onClick={() => setAgentDisconnectConfirmProviderId(null)}
+                                >
+                                  <X size={18} strokeWidth={3} />
+                                </button>
+                              </header>
+                              <p className="settings-agent-confirm-copy">
+                                {tr(
+                                  `Disconnect ${getAgentProviderName(agentDisconnectConfirmProviderId)}? You can reconnect it later.`,
+                                  `确认断开 ${getAgentProviderName(agentDisconnectConfirmProviderId)}？稍后可重新连接。`
+                                )}
+                              </p>
+                              <div className="settings-agent-confirm-actions">
+                                <button
+                                  className="settings-action settings-action--quiet"
+                                  type="button"
+                                  onClick={() => setAgentDisconnectConfirmProviderId(null)}
+                                >
+                                  {tr("Cancel", "取消")}
+                                </button>
+                                <button
+                                  className="settings-action settings-action--danger"
+                                  type="button"
+                                  onClick={() => disconnectAgentProvider(agentDisconnectConfirmProviderId)}
+                                >
+                                  {tr("Confirm disconnect", "确认断连")}
+                                </button>
+                              </div>
                             </section>
                           </div>
                         )}
