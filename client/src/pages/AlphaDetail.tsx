@@ -99,6 +99,11 @@ type MultiLineChartSeries = {
   strokeWidth?: number;
   strokeDasharray?: string;
 };
+type ChartAxisLabels = {
+  x: string;
+  y: string;
+  rightY?: string;
+};
 type CumIcComparisonPoint = {
   date: string;
   x: number;
@@ -299,12 +304,14 @@ function PnlLineChart({
   downColor,
   valueLabel = "PNL",
   valueFormatter = formatPnlValue,
+  axisLabels,
 }: {
   data: PnlChartPoint[];
   upColor: string;
   downColor: string;
   valueLabel?: string;
   valueFormatter?: (value: number) => string;
+  axisLabels: ChartAxisLabels;
 }) {
   const svgId = useId().replace(/:/g, "");
   const { chartRef, chartSize } = useMeasuredChartSize(300);
@@ -431,6 +438,12 @@ function PnlLineChart({
           </>
         ) : null}
       </svg>
+      <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
+        {axisLabels.y}
+      </div>
+      <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
+        {axisLabels.x}
+      </div>
       {yTicks.map((tick) => {
         const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
         return (
@@ -491,7 +504,7 @@ function PnlLineChart({
   );
 }
 
-function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
+function MultiLineReturnChart({ series, axisLabels }: { series: MultiLineChartSeries[]; axisLabels: ChartAxisLabels }) {
   const { chartRef, chartSize } = useMeasuredChartSize(300);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(220, chartSize.height);
@@ -583,10 +596,10 @@ function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
           })}
         </svg>
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
-          Log Cumulative Return
+          {axisLabels.y}
         </div>
         <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          Time
+          {axisLabels.x}
         </div>
         {yTicks.map((tick) => {
           const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
@@ -689,7 +702,7 @@ function MultiLineReturnChart({ series }: { series: MultiLineChartSeries[] }) {
   );
 }
 
-function GroupCumReturnChart({ data }: { data: PnlChartPoint[] }) {
+function GroupCumReturnChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels: ChartAxisLabels }) {
   const { chartRef, chartSize } = useMeasuredChartSize(320);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(220, chartSize.height);
@@ -780,10 +793,10 @@ function GroupCumReturnChart({ data }: { data: PnlChartPoint[] }) {
           })}
         </svg>
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
-          Log Cumulative Return
+          {axisLabels.y}
         </div>
         <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          Time
+          {axisLabels.x}
         </div>
         {yTicks.map((tick) => {
           const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
@@ -903,7 +916,7 @@ function GroupCumReturnChart({ data }: { data: PnlChartPoint[] }) {
   );
 }
 
-function CumIcComparisonChart({ data }: { data: PnlChartPoint[] }) {
+function CumIcComparisonChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels: ChartAxisLabels }) {
   const { chartRef, chartSize } = useMeasuredChartSize(320);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(240, chartSize.height);
@@ -1028,13 +1041,13 @@ function CumIcComparisonChart({ data }: { data: PnlChartPoint[] }) {
         </svg>
 
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
-          Cumulative
+          {axisLabels.y}
         </div>
         <div className={CHART_RIGHT_AXIS_TITLE_CLASS_NAME}>
-          IC
+          {axisLabels.rightY ?? "IC"}
         </div>
         <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          Time
+          {axisLabels.x}
         </div>
 
         {leftTicks.map((tick) => {
@@ -1178,7 +1191,7 @@ function CumIcComparisonChart({ data }: { data: PnlChartPoint[] }) {
   );
 }
 
-function IcDecayChart({ data }: { data: PnlChartPoint[] }) {
+function IcDecayChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels: ChartAxisLabels }) {
   const { chartRef, chartSize } = useMeasuredChartSize(320);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(240, chartSize.height);
@@ -1246,10 +1259,10 @@ function IcDecayChart({ data }: { data: PnlChartPoint[] }) {
         </svg>
 
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
-          Rolling IC Mean
+          {axisLabels.y}
         </div>
         <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          Lag (bars)
+          {axisLabels.x}
         </div>
 
         {yTicks.map((tick) => {
@@ -1370,7 +1383,7 @@ function IcDecayChart({ data }: { data: PnlChartPoint[] }) {
   );
 }
 
-function FactorAutocorrChart({ data }: { data: PnlChartPoint[] }) {
+function FactorAutocorrChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels: ChartAxisLabels }) {
   const { chartRef, chartSize } = useMeasuredChartSize(320);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(240, chartSize.height);
@@ -1445,10 +1458,10 @@ function FactorAutocorrChart({ data }: { data: PnlChartPoint[] }) {
         </svg>
 
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
-          AR
+          {axisLabels.y}
         </div>
         <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          Lag
+          {axisLabels.x}
         </div>
 
         {yTicks.map((tick) => {
@@ -2418,6 +2431,27 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
     const valueFormatter = activeChartKey === "pnl" || activeChartKey === "groupCumReturn"
       ? formatPnlValue
       : formatCompactChartValue;
+    const returnAxisLabels: ChartAxisLabels = {
+      y: tr("Cumulative Return", "累计收益"),
+      x: tr("Time", "时间"),
+    };
+    const groupReturnAxisLabels: ChartAxisLabels = {
+      y: tr("Log Cumulative Return", "对数累计收益"),
+      x: tr("Time", "时间"),
+    };
+    const cumIcAxisLabels: ChartAxisLabels = {
+      y: tr("Cumulative", "累计值"),
+      rightY: "IC",
+      x: tr("Time", "时间"),
+    };
+    const icDecayAxisLabels: ChartAxisLabels = {
+      y: tr("Rolling IC Mean", "滚动 IC 均值"),
+      x: tr("Lag (bars)", "滞后期（K线）"),
+    };
+    const autocorrAxisLabels: ChartAxisLabels = {
+      y: "AR",
+      x: tr("Lag", "滞后期"),
+    };
 
     return (
       <div className="surface-card">
@@ -2462,15 +2496,15 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
         >
           <div className={heightClass}>
             {activeChartKey === "crossNav" ? (
-              <MultiLineReturnChart series={crossNavSeries} />
+              <MultiLineReturnChart series={crossNavSeries} axisLabels={returnAxisLabels} />
             ) : activeChartKey === "cumIc" ? (
-              <CumIcComparisonChart data={data} />
+              <CumIcComparisonChart data={data} axisLabels={cumIcAxisLabels} />
             ) : activeChartKey === "icDecay" ? (
-              <IcDecayChart data={data} />
+              <IcDecayChart data={data} axisLabels={icDecayAxisLabels} />
             ) : activeChartKey === "factorAutoCorr" ? (
-              <FactorAutocorrChart data={data} />
+              <FactorAutocorrChart data={data} axisLabels={autocorrAxisLabels} />
             ) : activeChartKey === "groupCumReturn" ? (
-              <GroupCumReturnChart data={data} />
+              <GroupCumReturnChart data={data} axisLabels={groupReturnAxisLabels} />
             ) : (
               <PnlLineChart
                 data={chartData}
@@ -2478,6 +2512,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
                 downColor={chartColors.downHex}
                 valueLabel={activeChartOption.valueLabel}
                 valueFormatter={valueFormatter}
+                axisLabels={returnAxisLabels}
               />
             )}
           </div>

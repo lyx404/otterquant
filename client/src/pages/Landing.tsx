@@ -14,6 +14,7 @@ import {
   CreditCard,
   Heart,
   Key,
+  Languages,
   Mail,
   MoreHorizontal,
   Pencil,
@@ -66,9 +67,13 @@ type InventorySpecialCard = {
   nameZh: string;
   tagEn: string;
   tagZh: string;
+  metricOneLabelEn: string;
   metricOneLabel: string;
+  metricOneValueEn?: string;
   metricOneValue: string;
+  metricTwoLabelEn?: string;
   metricTwoLabel: string;
+  metricTwoValueEn?: string;
   metricTwoValue: string;
   imageSrc?: string;
   statsLayout?: "inline";
@@ -282,9 +287,13 @@ const inventorySpecialCards: InventorySpecialCard[] = [
     nameZh: "幸运鱼饵",
     tagEn: "Bitcoin",
     tagZh: "比特币",
+    metricOneLabelEn: "Limited across all waters; even passing schools stop to look",
     metricOneLabel: "全海域限量，鱼群路过都要先看一眼",
+    metricOneValueEn: "Average",
     metricOneValue: "一般",
+    metricTwoLabelEn: "",
     metricTwoLabel: "",
+    metricTwoValueEn: "",
     metricTwoValue: "",
     imageSrc: "/assets/bitcoin.svg",
     statsLayout: "inline",
@@ -296,9 +305,13 @@ const inventorySpecialCards: InventorySpecialCard[] = [
     nameZh: "湖畔贝壳",
     tagEn: "Misc",
     tagZh: "特朗普的假发",
+    metricOneLabelEn: "Average wind resistance",
     metricOneLabel: "防风性能一般",
+    metricOneValueEn: "",
     metricOneValue: "",
+    metricTwoLabelEn: "",
     metricTwoLabel: "",
+    metricTwoValueEn: "",
     metricTwoValue: "",
     imageSrc: "/assets/trump-wig.svg",
     statsLayout: "inline",
@@ -404,10 +417,14 @@ function isValidWithdrawalAddress(network: string, address: string) {
   return /^0x[a-fA-F0-9]{6,126}$/.test(value);
 }
 
-function getWithdrawalAddressHint(network: string) {
+function getWithdrawalAddressHint(network: string, lang: "en" | "zh") {
   return network === "Solana (SOL)"
-    ? "请输入 8-128 字符的 Solana 钱包地址。"
-    : "请输入以 0x 开头的 EVM 钱包地址，长度为 8-128 字符。";
+    ? lang === "zh"
+      ? "请输入 8-128 字符的 Solana 钱包地址。"
+      : "Enter an 8-128 character Solana wallet address."
+    : lang === "zh"
+      ? "请输入以 0x 开头的 EVM 钱包地址，长度为 8-128 字符。"
+      : "Enter an EVM wallet address starting with 0x, 8-128 characters.";
 }
 
 function formatWalletAddressPreview(address: string) {
@@ -599,7 +616,7 @@ function buildLinePath(values: number[], width: number, height: number, padding 
 }
 
 export default function Landing() {
-  const { uiLang } = useAppLanguage();
+  const { uiLang, setUiLang } = useAppLanguage();
   const { user, updateUser } = useAuth();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [stageScale, setStageScale] = useState(1);
@@ -881,11 +898,14 @@ export default function Landing() {
   const autoCastElapsedLabel = formatElapsedTime(autoCastElapsed);
   const autoCastCurrentStep = autoCastRunning ? Math.min(autoCastProgress + 1, autoCastCount) : autoCastProgress;
   const autoCastProgressLabel = `${autoCastCurrentStep}/${autoCastCount}`;
-  const mainCastStatusTitle = autoCastRunning ? autoCastProgressLabel : "等待中";
+  const mainCastStatusTitle = autoCastRunning ? autoCastProgressLabel : tr("Waiting", "等待中");
   const mainCastElapsedLabel = autoCastRunning ? autoCastElapsedLabel : manualCastElapsedLabel;
   const mainCastAriaLabel = autoCastRunning
-    ? `自动抛竿进行中 ${autoCastProgressLabel} ${autoCastElapsedLabel}`
-    : `抛竿等待中 ${manualCastElapsedLabel}`;
+    ? tr(
+        `Auto cast in progress ${autoCastProgressLabel} ${autoCastElapsedLabel}`,
+        `自动抛竿进行中 ${autoCastProgressLabel} ${autoCastElapsedLabel}`
+      )
+    : tr(`Cast waiting ${manualCastElapsedLabel}`, `抛竿等待中 ${manualCastElapsedLabel}`);
   const castButtonLabel = tr("Cast", "抛竿");
   const castActionLabel = tr("Cast", "抛竿");
   const updateAutoCastCount = (value: number) => {
@@ -1230,45 +1250,57 @@ export default function Landing() {
 
   const requestAgentWebAuth = () => {
     setAgentWebAuthStatus("pending");
-    showSettingsFeedback("登录已发起", "请扫码或打开登录页完成 Codex 授权。");
+    showSettingsFeedback(
+      tr("Login started", "登录已发起"),
+      tr("Scan the QR code or open the login page to complete Codex authorization.", "请扫码或打开登录页完成 Codex 授权。")
+    );
   };
 
   const refreshAgentWebAuth = () => {
     if (agentWebAuthStatus !== "pending") {
-      showSettingsFeedback("状态已刷新", "当前没有等待中的登录授权。");
+      showSettingsFeedback(
+        tr("Status refreshed", "状态已刷新"),
+        tr("There is no pending login authorization.", "当前没有等待中的登录授权。")
+      );
       return;
     }
 
     setAgentWebAuthStatus("connected");
-    showSettingsFeedback("授权已通过", "Codex Subscription 已连接。");
+    showSettingsFeedback(tr("Authorization approved", "授权已通过"), tr("Codex Subscription connected.", "Codex Subscription 已连接。"));
   };
 
   const resetAgentWebAuth = () => {
     setAgentWebAuthStatus("idle");
-    showSettingsFeedback("连接已断开", "Codex Subscription 已断开。");
+    showSettingsFeedback(tr("Disconnected", "连接已断开"), tr("Codex Subscription disconnected.", "Codex Subscription 已断开。"));
   };
 
   const saveAgentByok = () => {
     if (!agentByokKey.trim()) {
-      showSettingsFeedback("需要 API Key", "请输入 OpenAI API Key 后再保存。");
+      showSettingsFeedback(tr("API key required", "需要 API Key"), tr("Enter an OpenAI API key before saving.", "请输入 OpenAI API Key 后再保存。"));
       return;
     }
 
-    showSettingsFeedback("BYOK 已保存", `${agentByokLabel || "OpenAI BYOK"} 已可用于 Agent。`);
+    showSettingsFeedback(
+      tr("BYOK saved", "BYOK 已保存"),
+      tr(`${agentByokLabel || "OpenAI BYOK"} is ready for Agent use.`, `${agentByokLabel || "OpenAI BYOK"} 已可用于 Agent。`)
+    );
   };
 
   const createAgentApiKey = () => {
     setAgentApiKeyIssued(true);
     setAgentApiKeyCopyable(true);
     setAgentApiKeyId("9f243c2a-n...7e84b1");
-    showSettingsFeedback("Agent API Key 已创建", "请立即复制密钥，关闭后将仅显示一次。");
+    showSettingsFeedback(
+      tr("Agent API key created", "Agent API Key 已创建"),
+      tr("Copy the secret now. It is only shown once after closing.", "请立即复制密钥，关闭后将仅显示一次。")
+    );
   };
 
   const refreshAgentApiKey = () => {
     setAgentApiKeyIssued(true);
     setAgentApiKeyCopyable(true);
     setAgentApiKeyId("68b9124f-k...5d20aa");
-    showSettingsFeedback("Agent API Key 已刷新", "新密钥已生成，请立即复制。");
+    showSettingsFeedback(tr("Agent API key refreshed", "Agent API Key 已刷新"), tr("A new secret has been generated. Copy it now.", "新密钥已生成，请立即复制。"));
   };
 
   const revokeAgentApiKey = () => {
@@ -1276,21 +1308,24 @@ export default function Landing() {
     setAgentApiKeyCopyable(false);
     setAgentApiKeyId("");
     setAgentSkillSnippetVisible(false);
-    showSettingsFeedback("Agent API Key 已撤销", "创建新密钥后可继续配置客户端插件。");
+    showSettingsFeedback(
+      tr("Agent API key revoked", "Agent API Key 已撤销"),
+      tr("Create a new key to continue configuring the client plugin.", "创建新密钥后可继续配置客户端插件。")
+    );
   };
 
   const copyAgentApiKey = () => {
     if (!agentApiKeyCopyable) {
-      showSettingsFeedback("无法复制", "密钥只在创建或刷新后展示一次。");
+      showSettingsFeedback(tr("Cannot copy", "无法复制"), tr("The secret is only shown after creation or refresh.", "密钥只在创建或刷新后展示一次。"));
       return;
     }
 
     setAgentApiKeyCopyable(false);
-    showSettingsFeedback("密钥已复制", "请在客户端安全保存。");
+    showSettingsFeedback(tr("Key copied", "密钥已复制"), tr("Store it securely in your client.", "请在客户端安全保存。"));
   };
 
-  const showAgentClientAction = (message: string) => {
-    showSettingsFeedback("已准备", message);
+  const showAgentClientAction = (messageEn: string, messageZh: string) => {
+    showSettingsFeedback(tr("Ready", "已准备"), tr(messageEn, messageZh));
   };
 
   const openSettingsModal = () => {
@@ -1321,7 +1356,7 @@ export default function Landing() {
 
   const handleSaveSettingsProfile = () => {
     if (!settingsNickname.trim()) {
-      showSettingsFeedback("无法保存", "昵称不能为空。");
+      showSettingsFeedback(tr("Cannot save", "无法保存"), tr("Nickname cannot be empty.", "昵称不能为空。"));
       return;
     }
 
@@ -1333,14 +1368,14 @@ export default function Landing() {
     setSettingsNickname(trimmedNickname);
     setSettingsOriginalNickname(trimmedNickname);
     setSettingsEditingProfile(false);
-    showSettingsFeedback("资料已更新", "昵称与头像信息已保存。");
+    showSettingsFeedback(tr("Profile updated", "资料已更新"), tr("Nickname and avatar saved.", "昵称与头像信息已保存。"));
   };
 
   const handleSettingsAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      showSettingsFeedback("上传失败", "图片大小必须小于 2MB。");
+      showSettingsFeedback(tr("Upload failed", "上传失败"), tr("Image size must be under 2 MB.", "图片大小必须小于 2MB。"));
       event.target.value = "";
       return;
     }
@@ -1362,15 +1397,15 @@ export default function Landing() {
   const handleSaveSettingsEmail = () => {
     const nextEmail = settingsNewEmail.trim();
     if (!settingsEmailVerCode.trim()) {
-      showSettingsFeedback("无法保存", "请输入验证码。");
+      showSettingsFeedback(tr("Cannot save", "无法保存"), tr("Enter the verification code.", "请输入验证码。"));
       return;
     }
     if (!nextEmail) {
-      showSettingsFeedback("无法保存", "请输入新邮箱地址。");
+      showSettingsFeedback(tr("Cannot save", "无法保存"), tr("Enter the new email address.", "请输入新邮箱地址。"));
       return;
     }
     if (!isValidEmailAddress(nextEmail)) {
-      showSettingsFeedback("无法保存", "请输入有效的邮箱地址。");
+      showSettingsFeedback(tr("Cannot save", "无法保存"), tr("Enter a valid email address.", "请输入有效的邮箱地址。"));
       return;
     }
 
@@ -1380,7 +1415,7 @@ export default function Landing() {
     setSettingsEmailCodeSent(false);
     setSettingsNewEmail("");
     setSettingsEditingEmail(false);
-    showSettingsFeedback("邮箱已更新", "新邮箱地址已保存。");
+    showSettingsFeedback(tr("Email updated", "邮箱已更新"), tr("New email address saved.", "新邮箱地址已保存。"));
   };
 
   const handleCancelSettingsPassword = () => {
@@ -1393,15 +1428,15 @@ export default function Landing() {
 
   const handleSaveSettingsPassword = () => {
     if (!settingsPasswordVerCode.trim()) {
-      showSettingsFeedback("无法保存", "请输入验证码。");
+      showSettingsFeedback(tr("Cannot save", "无法保存"), tr("Enter the verification code.", "请输入验证码。"));
       return;
     }
     if (settingsNewPassword.length < 8) {
-      showSettingsFeedback("无法保存", "新密码至少需要 8 位。");
+      showSettingsFeedback(tr("Cannot save", "无法保存"), tr("New password must be at least 8 characters.", "新密码至少需要 8 位。"));
       return;
     }
     if (settingsNewPassword !== settingsConfirmPassword) {
-      showSettingsFeedback("无法保存", "两次输入的密码不一致。");
+      showSettingsFeedback(tr("Cannot save", "无法保存"), tr("The two passwords do not match.", "两次输入的密码不一致。"));
       return;
     }
 
@@ -1410,7 +1445,7 @@ export default function Landing() {
     setSettingsNewPassword("");
     setSettingsConfirmPassword("");
     setSettingsEditingPassword(false);
-    showSettingsFeedback("密码已更新", "下次登录请使用新密码。");
+    showSettingsFeedback(tr("Password updated", "密码已更新"), tr("Use the new password on your next login.", "下次登录请使用新密码。"));
   };
 
   const formatWalletDateTime = (value: string) => {
@@ -1433,7 +1468,7 @@ export default function Landing() {
 
   const handleBindWithdrawWallet = () => {
     if (!isValidWithdrawalAddress(withdrawNetwork, withdrawAddress)) {
-      setWithdrawAddressError(getWithdrawalAddressHint(withdrawNetwork));
+      setWithdrawAddressError(getWithdrawalAddressHint(withdrawNetwork, uiLang));
       setWithdrawAccountBound(false);
       setWithdrawWalletEditing(true);
       return;
@@ -1460,24 +1495,30 @@ export default function Landing() {
   const withdrawWalletFormOpen = !withdrawAccountBound || withdrawWalletEditing;
   const withdrawAddressValid = isValidWithdrawalAddress(withdrawNetwork, withdrawAddress);
   const withdrawPrimaryDisabled =
-    withdrawWalletFormOpen
-      ? !withdrawAddressValue
-      : withdrawSubmitting ||
-        withdrawStatus === "success" ||
-        !withdrawAmountValid ||
-        !withdrawAccountBound ||
-        !withdrawAddressValid;
+    withdrawStatus === "success"
+      ? false
+      : withdrawWalletFormOpen
+        ? !withdrawAddressValue
+        : withdrawSubmitting || !withdrawAmountValid || !withdrawAccountBound || !withdrawAddressValid;
   const withdrawPrimaryLabel = withdrawSubmitting
-    ? "提交中..."
+    ? tr("Submitting...", "提交中...")
     : withdrawStatus === "success"
-      ? "已提交"
+      ? tr("Back", "返回")
       : withdrawWalletFormOpen
         ? withdrawAccountBound
-          ? "保存钱包"
-          : "绑定钱包"
+          ? tr("Save wallet", "保存钱包")
+          : tr("Bind wallet", "绑定钱包")
         : withdrawAccountBound
-        ? "确认提现"
-        : "绑定钱包";
+        ? tr("Confirm withdrawal", "确认提现")
+        : tr("Bind wallet", "绑定钱包");
+  const handleWithdrawPrimaryAction = () => {
+    if (withdrawStatus === "success") {
+      openWalletModal();
+      return;
+    }
+
+    void handleSubmitWithdraw();
+  };
 
   const openStrategyDetail = (strategy: (typeof strategies)[number]) => {
     setSelectedStrategy(strategy);
@@ -1648,6 +1689,7 @@ export default function Landing() {
 
         .hud-stat-card {
           appearance: none;
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: flex-end;
@@ -1658,7 +1700,28 @@ export default function Landing() {
           background: #fff3d3;
           border: 3px solid #c4b89e;
           border-radius: 16px;
+          box-shadow: 0 4px 0 rgba(78, 67, 60, .22);
           font: inherit;
+          transition:
+            transform .16s cubic-bezier(.22, 1, .36, 1),
+            box-shadow .16s cubic-bezier(.22, 1, .36, 1),
+            filter .16s cubic-bezier(.22, 1, .36, 1),
+            border-color .16s cubic-bezier(.22, 1, .36, 1);
+        }
+
+        .hud-stat-card::after {
+          content: "";
+          position: absolute;
+          inset: 6px 7px auto auto;
+          width: 26px;
+          height: 8px;
+          background: rgba(255, 253, 244, .62);
+          border-radius: 999px;
+          opacity: 0;
+          transform: translateY(3px);
+          transition:
+            opacity .16s cubic-bezier(.22, 1, .36, 1),
+            transform .16s cubic-bezier(.22, 1, .36, 1);
         }
 
         .hud-stat-card--button {
@@ -1669,6 +1732,7 @@ export default function Landing() {
           flex: 0 0 auto;
           object-fit: contain;
           image-rendering: pixelated;
+          transition: transform .16s cubic-bezier(.22, 1, .36, 1);
         }
 
         .hud-stat-value {
@@ -1712,6 +1776,10 @@ export default function Landing() {
           align-items: center;
           justify-content: flex-end;
           z-index: 2;
+        }
+
+        .top-actions--en .menu-label {
+          font-size: 18px;
         }
 
         .menu-item {
@@ -2193,11 +2261,28 @@ export default function Landing() {
           white-space: nowrap;
         }
 
-        .hud-stat-card:hover,
         .menu-item:hover,
         .hud-main-action:hover,
         .hud-basket:hover {
           filter: brightness(1.02);
+        }
+
+        .hud-stat-card:hover {
+          transform: translate(-2px, -2px);
+          border-color: #b89a5d;
+          box-shadow:
+            2px 2px 0 rgba(78, 67, 60, .28),
+            0 9px 18px rgba(78, 67, 60, .16);
+          filter: brightness(1.03) saturate(1.04);
+        }
+
+        .hud-stat-card:hover::after {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        .hud-stat-card:hover .hud-stat-icon {
+          transform: translateY(-2px) rotate(-3deg);
         }
 
         .menu-item:active {
@@ -2206,6 +2291,7 @@ export default function Landing() {
 
         .hud-stat-card--button:active {
           transform: translateY(1px);
+          box-shadow: 0 2px 0 rgba(78, 67, 60, .22);
         }
 
         .hud-main-action:active,
@@ -3607,7 +3693,8 @@ export default function Landing() {
 
         .settings-modal {
           width: min(980px, 94vw);
-          max-height: min(820px, 88vh);
+          height: min(680px, 88vh);
+          max-height: 88vh;
           display: flex;
           flex-direction: column;
           background: linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
@@ -3649,6 +3736,7 @@ export default function Landing() {
         }
 
         .settings-content {
+          flex: 1;
           min-height: 0;
           overflow: auto;
           padding: 18px clamp(18px, 2.8vw, 30px) 24px;
@@ -3700,7 +3788,7 @@ export default function Landing() {
         .settings-agent-intro {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-end;
           gap: 14px;
           color: rgba(121, 79, 39, .74);
           font-size: 12px;
@@ -3920,6 +4008,44 @@ export default function Landing() {
 
         .settings-section__icon {
           color: #794f27;
+        }
+
+        .settings-language-options {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .settings-language-option {
+          appearance: none;
+          min-height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 0 14px;
+          color: rgba(121, 79, 39, .72);
+          background: #fffdf4;
+          border: 2px solid rgba(196, 184, 158, .78);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .32);
+          cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 1000;
+        }
+
+        .settings-language-option.is-active {
+          color: var(--ac-text);
+          background: #ffd557;
+          border-color: rgba(121, 79, 39, .34);
+        }
+
+        .settings-language-option__code {
+          color: rgba(121, 79, 39, .58);
+          font-size: 11px;
+          letter-spacing: .08em;
+          text-transform: uppercase;
         }
 
         .settings-profile {
@@ -4609,6 +4735,7 @@ export default function Landing() {
 	        .leaderboard-modal .shop-modal__header {
 	          flex: 0 0 auto;
 	          align-items: center;
+	          justify-content: space-between;
 	          gap: 14px;
 	          padding-top: 16px;
           background: rgba(255, 249, 232, .88);
@@ -4617,18 +4744,22 @@ export default function Landing() {
 
         .leaderboard-modal__heading {
           min-width: 0;
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 14px;
+          gap: 6px;
           flex: 1 1 auto;
         }
 
         .leaderboard-modal .shop-modal__title {
-          font-family: var(--modal-title-font);
-          font-size: 30px;
-          line-height: 1;
-          font-weight: 900;
-          letter-spacing: .02em;
+          min-height: 38px;
+          display: inline-flex;
+          align-items: center;
+          padding: 0 18px;
+          font-family: inherit;
+          font-size: 14px;
+          line-height: 1.2;
+          font-weight: 1000;
+          letter-spacing: 0;
           color: var(--ac-text);
           text-shadow: none;
         }
@@ -4653,62 +4784,142 @@ export default function Landing() {
 
         .leaderboard-tabs {
           display: inline-flex;
+          align-items: center;
           gap: 8px;
-          padding: 5px;
-          background: #fff7e3;
-          border: 2px solid rgba(196, 184, 158, .7);
-          border-radius: var(--radius-sm);
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .35);
+          margin: 0;
+          padding: 0;
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
         }
 
         .leaderboard-tab {
           appearance: none;
-          min-width: 86px;
-          height: 34px;
-          padding: 0 14px;
-          color: #725d42;
+          min-height: 38px;
+          padding: 0 18px;
+          color: rgba(121, 79, 39, .66);
           background: transparent;
           border: 0;
           border-radius: var(--radius-xs);
+          cursor: pointer;
           font: inherit;
-          font-size: 13px;
-          font-weight: 950;
+          font-size: 14px;
+          font-weight: 1000;
+          transition: background 120ms ease, color 120ms ease;
+        }
+
+        .leaderboard-tab:hover {
+          color: var(--ac-text);
+          background: rgba(255, 247, 227, .72);
         }
 
         .leaderboard-tab.is-active {
-          color: #101010;
-          background: #9bdc5c;
-          box-shadow: 2px 2px 0 rgba(80, 63, 40, .38);
+          color: var(--ac-text);
+          background: #ffd557;
+          box-shadow: none;
         }
 
         .leaderboard-podium {
           flex: 0 0 auto;
+          position: relative;
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           align-items: end;
-          gap: 14px;
+          gap: 16px;
           margin-top: 0;
+          padding: 24px 0 8px;
+          isolation: isolate;
+        }
+
+        .leaderboard-podium::before {
+          content: "";
+          position: absolute;
+          left: 4px;
+          right: 4px;
+          bottom: 1px;
+          height: 28px;
+          z-index: -1;
+          background:
+            linear-gradient(90deg, transparent 0 2%, rgba(121, 79, 39, .16) 2% 98%, transparent 98%),
+            repeating-linear-gradient(90deg, rgba(121, 79, 39, .18) 0 2px, transparent 2px 26px),
+            linear-gradient(180deg, #f4d58f 0%, #d5ad62 100%);
+          border: 2px solid rgba(121, 79, 39, .34);
+          border-radius: var(--radius-xs);
+          box-shadow: 0 5px 0 rgba(121, 79, 39, .18);
         }
 
         .leaderboard-podium-card {
           --podium-bg: #fff7e3;
           --podium-edge: rgba(196, 184, 158, .74);
+          --podium-shadow: rgba(121, 79, 39, .2);
+          --podium-medal: #d7c39b;
+          position: relative;
           min-width: 0;
           min-height: var(--podium-height, 150px);
           display: grid;
           align-content: space-between;
           gap: 12px;
-          padding: 16px;
+          overflow: visible;
+          padding: 18px;
           color: var(--ac-text);
-          background: linear-gradient(180deg, #fffdf4 0%, var(--podium-bg) 100%);
+          background:
+            linear-gradient(135deg, rgba(255,255,255,.62) 0 16%, transparent 16% 100%),
+            radial-gradient(circle at 85% 18%, rgba(255,255,255,.72) 0 9px, transparent 10px),
+            linear-gradient(180deg, #fffdf4 0%, var(--podium-bg) 100%);
           border: 2px solid var(--podium-edge);
           border-radius: var(--radius-sm);
           box-shadow:
             inset 0 2px 0 rgba(255,255,255,.56),
-            4px 4px 0 rgba(189, 174, 160, .42);
+            4px 4px 0 var(--podium-shadow),
+            0 12px 22px rgba(66, 48, 31, .12);
+          transform: translateY(var(--podium-lift, 0));
+        }
+
+        .leaderboard-podium-card::before,
+        .leaderboard-podium-card::after {
+          content: "";
+          position: absolute;
+          pointer-events: none;
+        }
+
+        .leaderboard-podium-card::before {
+          left: 14px;
+          right: 14px;
+          bottom: -11px;
+          height: 12px;
+          background: color-mix(in srgb, var(--podium-edge) 52%, #fffdf4);
+          border: 2px solid color-mix(in srgb, var(--podium-edge) 82%, #2c2117);
+          border-top: 0;
+          border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+          box-shadow: 2px 3px 0 rgba(121, 79, 39, .18);
+        }
+
+        .leaderboard-podium-card::after {
+          right: 14px;
+          bottom: 12px;
+          width: 52px;
+          height: 6px;
+          opacity: .58;
+          background: repeating-linear-gradient(90deg, var(--podium-edge) 0 6px, transparent 6px 11px);
+          border-radius: 999px;
+        }
+
+        .leaderboard-podium-card__shine {
+          position: absolute;
+          inset: 8px 8px auto auto;
+          width: 48px;
+          height: 48px;
+          opacity: .52;
+          background:
+            linear-gradient(90deg, transparent 44%, rgba(255, 253, 244, .92) 44% 56%, transparent 56%),
+            linear-gradient(0deg, transparent 44%, rgba(255, 253, 244, .92) 44% 56%, transparent 56%);
+          transform: rotate(18deg) scale(var(--shine-scale, .7));
         }
 
         .leaderboard-podium-card__head {
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -4716,64 +4927,136 @@ export default function Landing() {
         }
 
         .leaderboard-podium-card--rank-1 {
-          --podium-height: 192px;
-          --podium-bg: #ffeeb8;
-          --podium-edge: #e0b84e;
+          --podium-height: 202px;
+          --podium-lift: -10px;
+          --podium-bg: #fff0a8;
+          --podium-edge: #d69b21;
+          --podium-shadow: rgba(169, 110, 28, .32);
+          --podium-medal: #f3b72d;
+          --shine-scale: .95;
+          z-index: 3;
         }
 
         .leaderboard-podium-card--rank-2 {
-          --podium-height: 164px;
-          --podium-bg: #eef3f2;
-          --podium-edge: #b7c3c0;
+          --podium-height: 166px;
+          --podium-bg: #edf4f2;
+          --podium-edge: #93a8a6;
+          --podium-shadow: rgba(86, 106, 104, .22);
+          --podium-medal: #9ca9a8;
         }
 
         .leaderboard-podium-card--rank-3 {
-          --podium-height: 146px;
-          --podium-bg: #f5dcc4;
-          --podium-edge: #c48d5d;
+          --podium-height: 154px;
+          --podium-bg: #f8ddc6;
+          --podium-edge: #b9794c;
+          --podium-shadow: rgba(146, 83, 45, .24);
+          --podium-medal: #b9794c;
         }
 
         .leaderboard-rank-badge {
+          position: relative;
           width: 42px;
           height: 42px;
           display: inline-grid;
           place-items: center;
           color: #fffdf4;
-          background: #4e433c;
-          border: 2px solid #2c2117;
+          background: var(--podium-medal);
+          border: 2px solid color-mix(in srgb, var(--podium-medal) 60%, #2c2117);
           border-radius: 999px;
-          box-shadow: 0 3px 0 rgba(44, 33, 23, .28);
+          box-shadow:
+            inset 0 2px 0 rgba(255,255,255,.42),
+            0 3px 0 rgba(44, 33, 23, .28);
           font-size: 16px;
           font-weight: 1000;
           line-height: 1;
         }
 
+        .leaderboard-rank-badge__ring {
+          position: absolute;
+          inset: 5px;
+          border: 1.5px solid rgba(255, 253, 244, .58);
+          border-radius: 999px;
+        }
+
         .leaderboard-rank-tag {
-          padding: 3px 9px;
-          color: #725d42;
-          background: rgba(255, 253, 244, .72);
-          border: 1.5px solid rgba(196, 184, 158, .76);
+          position: relative;
+          padding: 4px 10px;
+          color: color-mix(in srgb, var(--podium-edge) 68%, #2c2117);
+          background: rgba(255, 253, 244, .82);
+          border: 1.5px solid color-mix(in srgb, var(--podium-edge) 56%, #fffdf4);
           border-radius: 999px;
           font-size: 11px;
-          font-weight: 950;
+          font-weight: 1000;
+          box-shadow: 1px 2px 0 rgba(121, 79, 39, .12);
         }
 
-        .leaderboard-podium-card--rank-1 .leaderboard-rank-badge {
-          background: #f2b934;
-          border-color: #8f6420;
+        .leaderboard-crown {
+          position: absolute;
+          left: 50%;
+          top: -25px;
+          z-index: 4;
+          width: 58px;
+          height: 34px;
+          transform: translateX(-50%);
+          filter: drop-shadow(0 3px 0 rgba(121, 79, 39, .22));
         }
 
-        .leaderboard-podium-card--rank-2 .leaderboard-rank-badge {
-          background: #9ca9a8;
-          border-color: #5d6967;
+        .leaderboard-crown::before {
+          content: "";
+          position: absolute;
+          left: 8px;
+          right: 8px;
+          bottom: 0;
+          height: 13px;
+          background: #f3b72d;
+          border: 2px solid #8f6420;
+          border-radius: 0 0 8px 8px;
         }
 
-        .leaderboard-podium-card--rank-3 .leaderboard-rank-badge {
-          background: #b9794c;
-          border-color: #74452d;
+        .leaderboard-crown span {
+          position: absolute;
+          bottom: 9px;
+          width: 20px;
+          height: 22px;
+          background: #ffd557;
+          border: 2px solid #8f6420;
+          transform: rotate(45deg);
+        }
+
+        .leaderboard-crown span:nth-child(1) {
+          left: 4px;
+        }
+
+        .leaderboard-crown span:nth-child(2) {
+          left: 19px;
+          bottom: 14px;
+        }
+
+        .leaderboard-crown span:nth-child(3) {
+          right: 4px;
+        }
+
+        .leaderboard-champion-ribbon {
+          position: relative;
+          z-index: 1;
+          display: inline-flex;
+          align-items: center;
+          min-height: 22px;
+          margin-bottom: 6px;
+          padding: 0 10px;
+          color: #fffdf4;
+          background: #8f6420;
+          border: 1.5px solid rgba(44, 33, 23, .36);
+          border-radius: var(--radius-xs);
+          box-shadow: 2px 2px 0 rgba(121, 79, 39, .18);
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .08em;
         }
 
         .leaderboard-name {
+          position: relative;
+          z-index: 1;
           overflow: hidden;
           color: var(--ac-text);
           font-size: 17px;
@@ -4784,6 +5067,8 @@ export default function Landing() {
         }
 
         .leaderboard-balance {
+          position: relative;
+          z-index: 1;
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -4803,6 +5088,8 @@ export default function Landing() {
         }
 
         .leaderboard-casts {
+          position: relative;
+          z-index: 1;
           color: #725d42;
           font-size: 12px;
           font-weight: 900;
@@ -5836,6 +6123,17 @@ export default function Landing() {
         }
 
         @media (prefers-reduced-motion: reduce) {
+          .hud-stat-card,
+          .hud-stat-card::after,
+          .hud-stat-icon {
+            transition: none;
+          }
+
+          .hud-stat-card:hover,
+          .hud-stat-card:hover .hud-stat-icon {
+            transform: none;
+          }
+
           .inventory-grid { perspective: none; }
           .inventory-card,
           .inventory-card:hover,
@@ -6809,11 +7107,11 @@ export default function Landing() {
           aria-hidden="true"
         />
 
-        <div className="hud-top-stats" aria-label="数值统计">
+        <div className="hud-top-stats" aria-label={tr("Stats", "数值统计")}>
           <button
             className="hud-stat-card hud-stat-card--button"
             type="button"
-            aria-label="打开钱包"
+            aria-label={tr("Open wallet", "打开钱包")}
             onClick={openWalletModal}
           >
             <img
@@ -6830,7 +7128,7 @@ export default function Landing() {
             </div>
           </button>
 
-          <div className="hud-stat-card hud-stat-card--fish" aria-label="鱼额">
+          <div className="hud-stat-card hud-stat-card--fish" aria-label={tr("Fish balance", "鱼额")}>
             <img
               className="hud-stat-icon"
               src={HUD_ASSETS.fish}
@@ -6846,8 +7144,8 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="top-actions" aria-label="功能入口">
-          <button className="menu-item" type="button" aria-label="鱼塘">
+        <div className={`top-actions${uiLang === "en" ? " top-actions--en" : ""}`} aria-label={tr("Navigation", "功能入口")}>
+          <button className="menu-item" type="button" aria-label={tr("Pond", "鱼塘")}>
             <img
               className="menu-icon"
               src={HUD_ASSETS.pond}
@@ -6856,13 +7154,13 @@ export default function Landing() {
               height="52"
               style={{ top: 12, width: 62, height: 52 }}
             />
-            <span className="menu-label" data-label="鱼塘">鱼塘</span>
+            <span className="menu-label" data-label={tr("Pond", "鱼塘")}>{tr("Pond", "鱼塘")}</span>
           </button>
 
           <button
             className="menu-item"
             type="button"
-            aria-label="鱼市场"
+            aria-label={tr("Fish Market", "鱼市场")}
           >
             <img
               className="menu-icon"
@@ -6872,13 +7170,13 @@ export default function Landing() {
               height="52"
               style={{ top: 16, width: 56, height: 52 }}
             />
-            <span className="menu-label" data-label="鱼市场">鱼市场</span>
+            <span className="menu-label" data-label={tr("Fish Market", "鱼市场")}>{tr("Fish Market", "鱼市场")}</span>
           </button>
 
           <button
             className="menu-item"
             type="button"
-            aria-label="图鉴"
+            aria-label={tr("Inventory", "图鉴")}
             onClick={() => {
               setInventoryControlsHidden(false);
               inventoryScrollTopRef.current = 0;
@@ -6893,13 +7191,13 @@ export default function Landing() {
               height="57"
               style={{ top: 16, width: 48, height: 57 }}
             />
-            <span className="menu-label" data-label="图鉴">图鉴</span>
+            <span className="menu-label" data-label={tr("Inventory", "图鉴")}>{tr("Inventory", "图鉴")}</span>
           </button>
 
           <button
             className="menu-item"
             type="button"
-            aria-label="钱包"
+            aria-label={tr("Wallet", "钱包")}
             onClick={openWalletModal}
           >
             <img
@@ -6910,13 +7208,13 @@ export default function Landing() {
               height="55"
               style={{ top: 12, width: 60, height: 55 }}
             />
-            <span className="menu-label" data-label="钱包">钱包</span>
+            <span className="menu-label" data-label={tr("Wallet", "钱包")}>{tr("Wallet", "钱包")}</span>
           </button>
 
           <button
             className="menu-item"
             type="button"
-            aria-label="排行榜"
+            aria-label={tr("Leaderboard", "排行榜")}
             onClick={() => setLeaderboardOpen(true)}
           >
             <img
@@ -6927,13 +7225,13 @@ export default function Landing() {
               height="62"
               style={{ top: 6, width: 66, height: 62 }}
             />
-            <span className="menu-label" data-label="排行榜">排行榜</span>
+            <span className="menu-label" data-label={tr("Leaderboard", "排行榜")}>{tr("Leaderboard", "排行榜")}</span>
           </button>
 
           <button
             className="menu-item"
             type="button"
-            aria-label="设置"
+            aria-label={tr("Settings", "设置")}
             onClick={openSettingsModal}
           >
             <img
@@ -6944,21 +7242,21 @@ export default function Landing() {
               height="52"
               style={{ top: 12, width: 52, height: 52 }}
             />
-            <span className="menu-label" data-label="设置">设置</span>
+            <span className="menu-label" data-label={tr("Settings", "设置")}>{tr("Settings", "设置")}</span>
           </button>
         </div>
 
-	        <div className="hud-bottom-bar" aria-label="主按钮">
+	        <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
 	          <div className="hud-cast-stack">
 	            {showAutoCastControl && (
-	              <div className="cast-auto-inline" aria-label="自动抛竿设置">
+	              <div className="cast-auto-inline" aria-label={tr("Auto cast settings", "自动抛竿设置")}>
 	                <button
 	                  className="cast-auto-button"
 	                  type="button"
-		                  aria-label="开启自动抛竿"
+		                  aria-label={tr("Enable auto cast", "开启自动抛竿")}
 		                  onClick={openAutoCastSettings}
 		                >
-		                  <span className="cast-auto-title">开启自动抛竿</span>
+		                  <span className="cast-auto-title">{tr("Enable auto cast", "开启自动抛竿")}</span>
 		                </button>
 	              </div>
 	            )}
@@ -6977,10 +7275,10 @@ export default function Landing() {
 	                <button
 	                  className="hud-main-action__stop"
 	                  type="button"
-	                  aria-label={autoCastRunning ? "停止自动抛竿" : "停止抛竿"}
+	                  aria-label={autoCastRunning ? tr("Stop auto cast", "停止自动抛竿") : tr("Stop casting", "停止抛竿")}
 	                  onClick={autoCastRunning ? handleStopAutoCast : handleStopManualCast}
 	                >
-	                  停止
+	                  {tr("Stop", "停止")}
 	                </button>
 	              </div>
 	            ) : (
@@ -7000,7 +7298,7 @@ export default function Landing() {
 	            )}
 	          </div>
 
-          <button className="hud-basket" type="button" aria-label="鱼篓">
+          <button className="hud-basket" type="button" aria-label={tr("Basket", "鱼篓")}>
             <span className="hud-basket__shell" aria-hidden="true">
               <img
                 className="hud-basket__icon"
@@ -7017,9 +7315,9 @@ export default function Landing() {
         <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) closeSettingsModal();
         }}>
-          <section className="shop-modal settings-modal" role="dialog" aria-modal="true" aria-label="设置">
+          <section className="shop-modal settings-modal" role="dialog" aria-modal="true" aria-label={tr("Settings", "设置")}>
             <header className="shop-modal__header">
-              <div className="settings-tabs" role="tablist" aria-label="设置分类">
+              <div className="settings-tabs" role="tablist" aria-label={tr("Settings categories", "设置分类")}>
                 <button
                   className={`settings-tab${settingsActiveTab === "general" ? " is-active" : ""}`}
                   type="button"
@@ -7027,7 +7325,7 @@ export default function Landing() {
                   aria-selected={settingsActiveTab === "general"}
                   onClick={() => setSettingsActiveTab("general")}
                 >
-                  通用设置
+                  {tr("General", "通用设置")}
                 </button>
                 <button
                   className={`settings-tab${settingsActiveTab === "agent" ? " is-active" : ""}`}
@@ -7036,13 +7334,13 @@ export default function Landing() {
                   aria-selected={settingsActiveTab === "agent"}
                   onClick={() => setSettingsActiveTab("agent")}
                 >
-                  agent设置
+                  {tr("Agent settings", "agent设置")}
                 </button>
               </div>
               <button
                 className="shop-modal__close"
                 type="button"
-                aria-label="关闭设置"
+                aria-label={tr("Close settings", "关闭设置")}
                 onClick={closeSettingsModal}
               >
                 <X size={22} strokeWidth={3} />
@@ -7055,8 +7353,40 @@ export default function Landing() {
               <section className="settings-section">
                 <div className="settings-section__head">
                   <div className="settings-section__title">
+                    <Languages className="settings-section__icon" size={18} strokeWidth={3} />
+                    <span>{tr("Language", "语言设置")}</span>
+                  </div>
+                </div>
+
+                <div className="settings-language-options" role="radiogroup" aria-label={tr("Language", "语言设置")}>
+                  <button
+                    className={`settings-language-option${uiLang === "zh" ? " is-active" : ""}`}
+                    type="button"
+                    role="radio"
+                    aria-checked={uiLang === "zh"}
+                    onClick={() => setUiLang("zh")}
+                  >
+                    <span>{tr("Chinese", "中文")}</span>
+                    <span className="settings-language-option__code">ZH</span>
+                  </button>
+                  <button
+                    className={`settings-language-option${uiLang === "en" ? " is-active" : ""}`}
+                    type="button"
+                    role="radio"
+                    aria-checked={uiLang === "en"}
+                    onClick={() => setUiLang("en")}
+                  >
+                    <span>English</span>
+                    <span className="settings-language-option__code">EN</span>
+                  </button>
+                </div>
+              </section>
+
+              <section className="settings-section">
+                <div className="settings-section__head">
+                  <div className="settings-section__title">
                     <User className="settings-section__icon" size={18} strokeWidth={3} />
-                    <span>个人资料</span>
+                    <span>{tr("Profile", "个人资料")}</span>
                   </div>
                   {!settingsEditingProfile ? (
                     <button
@@ -7068,12 +7398,12 @@ export default function Landing() {
                       }}
                     >
                       <Pencil size={14} strokeWidth={3} />
-                      编辑
+                      {tr("Edit", "编辑")}
                     </button>
                   ) : (
                     <button className="settings-action settings-action--quiet" type="button" onClick={handleCancelSettingsProfile}>
                       <X size={14} strokeWidth={3} />
-                      取消
+                      {tr("Cancel", "取消")}
                     </button>
                   )}
                 </div>
@@ -7085,7 +7415,7 @@ export default function Landing() {
                       type="button"
                       disabled={!settingsEditingProfile}
                       onClick={() => settingsEditingProfile && settingsAvatarInputRef.current?.click()}
-                      aria-label="上传头像"
+                      aria-label={tr("Upload avatar", "上传头像")}
                     >
                       {settingsAvatarPreview ? (
                         <img src={settingsAvatarPreview} alt="" />
@@ -7100,24 +7430,24 @@ export default function Landing() {
                       hidden
                       onChange={handleSettingsAvatarChange}
                     />
-                    {settingsEditingProfile && <div className="settings-avatar__hint">点击上传 · 小于 2MB</div>}
+                    {settingsEditingProfile && <div className="settings-avatar__hint">{tr("Click to upload · under 2 MB", "点击上传 · 小于 2MB")}</div>}
                   </div>
 
                   <div>
                     <label className="settings-field">
-                      <span>昵称</span>
+                      <span>{tr("Nickname", "昵称")}</span>
                       <input
                         className="settings-input"
                         value={settingsNickname}
                         disabled={!settingsEditingProfile}
-                        placeholder="请输入昵称"
+                        placeholder={tr("Enter nickname", "请输入昵称")}
                         onChange={(event) => setSettingsNickname(event.target.value)}
                       />
                     </label>
                     {settingsEditingProfile && (
                       <div className="settings-actions">
                         <button className="settings-action settings-action--primary" type="button" onClick={handleSaveSettingsProfile}>
-                          保存资料
+                          {tr("Save profile", "保存资料")}
                         </button>
                       </div>
                     )}
@@ -7129,35 +7459,35 @@ export default function Landing() {
                 <div className="settings-section__head">
                   <div className="settings-section__title">
                     <Mail className="settings-section__icon" size={18} strokeWidth={3} />
-                    <span>修改邮箱</span>
+                    <span>{tr("Change email", "修改邮箱")}</span>
                   </div>
                   {!settingsEditingEmail ? (
                     <button className="settings-action settings-action--quiet" type="button" onClick={() => setSettingsEditingEmail(true)}>
                       <Pencil size={14} strokeWidth={3} />
-                      编辑
+                      {tr("Edit", "编辑")}
                     </button>
                   ) : (
                     <button className="settings-action settings-action--quiet" type="button" onClick={handleCancelSettingsEmail}>
                       <X size={14} strokeWidth={3} />
-                      取消
+                      {tr("Cancel", "取消")}
                     </button>
                   )}
                 </div>
 
                 <div className="settings-grid">
                   <label className="settings-field">
-                    <span>当前邮箱</span>
+                    <span>{tr("Current email", "当前邮箱")}</span>
                     <input className="settings-input" value={settingsEmail} disabled readOnly />
                   </label>
 
                   {settingsEditingEmail && (
                     <label className="settings-field">
-                      <span>验证码</span>
+                      <span>{tr("Verification code", "验证码")}</span>
                       <span className="settings-inline">
                         <input
                           className="settings-input"
                           value={settingsEmailVerCode}
-                          placeholder="请输入验证码"
+                          placeholder={tr("Enter verification code", "请输入验证码")}
                           onChange={(event) => setSettingsEmailVerCode(event.target.value)}
                         />
                         <button
@@ -7165,11 +7495,11 @@ export default function Landing() {
                           type="button"
                           onClick={() => {
                             setSettingsEmailCodeSent(true);
-                            showSettingsFeedback("验证码已发送", "验证码已发送至当前邮箱。");
+                            showSettingsFeedback(tr("Code sent", "验证码已发送"), tr("Verification code sent to your current email.", "验证码已发送至当前邮箱。"));
                           }}
                         >
                           <Send size={14} strokeWidth={3} />
-                          {settingsEmailCodeSent ? "重新发送" : "发送"}
+                          {settingsEmailCodeSent ? tr("Resend", "重新发送") : tr("Send", "发送")}
                         </button>
                       </span>
                     </label>
@@ -7177,16 +7507,16 @@ export default function Landing() {
 
                   {settingsEditingEmail && (
                     <label className="settings-field settings-field--full">
-                      <span>新邮箱</span>
+                      <span>{tr("New email", "新邮箱")}</span>
                       <input
                         className="settings-input"
                         type="email"
                         value={settingsNewEmail}
-                        placeholder="请输入新邮箱地址"
+                        placeholder={tr("Enter new email address", "请输入新邮箱地址")}
                         onChange={(event) => setSettingsNewEmail(event.target.value)}
                       />
                       {settingsNewEmail && !isValidEmailAddress(settingsNewEmail) && (
-                        <span className="settings-helper">请输入有效的邮箱地址</span>
+                        <span className="settings-helper">{tr("Enter a valid email address", "请输入有效的邮箱地址")}</span>
                       )}
                     </label>
                   )}
@@ -7195,7 +7525,7 @@ export default function Landing() {
                 {settingsEditingEmail && (
                   <div className="settings-actions">
                     <button className="settings-action settings-action--primary" type="button" onClick={handleSaveSettingsEmail}>
-                      保存邮箱
+                      {tr("Save email", "保存邮箱")}
                     </button>
                   </div>
                 )}
@@ -7205,17 +7535,17 @@ export default function Landing() {
                 <div className="settings-section__head">
                   <div className="settings-section__title">
                     <Key className="settings-section__icon" size={18} strokeWidth={3} />
-                    <span>修改密码</span>
+                    <span>{tr("Change password", "修改密码")}</span>
                   </div>
                   {!settingsEditingPassword ? (
                     <button className="settings-action settings-action--quiet" type="button" onClick={() => setSettingsEditingPassword(true)}>
                       <Pencil size={14} strokeWidth={3} />
-                      编辑
+                      {tr("Edit", "编辑")}
                     </button>
                   ) : (
                     <button className="settings-action settings-action--quiet" type="button" onClick={handleCancelSettingsPassword}>
                       <X size={14} strokeWidth={3} />
-                      取消
+                      {tr("Cancel", "取消")}
                     </button>
                   )}
                 </div>
@@ -7224,16 +7554,16 @@ export default function Landing() {
                   <>
                     <div className="settings-grid">
                       <label className="settings-field">
-                        <span>邮箱</span>
+                        <span>{tr("Email", "邮箱")}</span>
                         <input className="settings-input" value={settingsEmail} disabled readOnly />
                       </label>
                       <label className="settings-field">
-                        <span>验证码</span>
+                        <span>{tr("Verification code", "验证码")}</span>
                         <span className="settings-inline">
                           <input
                             className="settings-input"
                             value={settingsPasswordVerCode}
-                            placeholder="请输入验证码"
+                            placeholder={tr("Enter verification code", "请输入验证码")}
                             onChange={(event) => setSettingsPasswordVerCode(event.target.value)}
                           />
                           <button
@@ -7241,56 +7571,55 @@ export default function Landing() {
                             type="button"
                             onClick={() => {
                               setSettingsPasswordCodeSent(true);
-                              showSettingsFeedback("验证码已发送", "验证码已发送至邮箱。");
+                              showSettingsFeedback(tr("Code sent", "验证码已发送"), tr("Verification code sent to your email.", "验证码已发送至邮箱。"));
                             }}
                           >
                             <Send size={14} strokeWidth={3} />
-                            {settingsPasswordCodeSent ? "重新发送" : "发送"}
+                            {settingsPasswordCodeSent ? tr("Resend", "重新发送") : tr("Send", "发送")}
                           </button>
                         </span>
                       </label>
                       <label className="settings-field">
-                        <span>新密码</span>
+                        <span>{tr("New password", "新密码")}</span>
                         <input
                           className="settings-input"
                           type="password"
                           value={settingsNewPassword}
-                          placeholder="至少 8 位"
+                          placeholder={tr("At least 8 characters", "至少 8 位")}
                           onChange={(event) => setSettingsNewPassword(event.target.value)}
                         />
                       </label>
                       <label className="settings-field">
-                        <span>确认密码</span>
+                        <span>{tr("Confirm password", "确认密码")}</span>
                         <input
                           className="settings-input"
                           type="password"
                           value={settingsConfirmPassword}
-                          placeholder="再次输入新密码"
+                          placeholder={tr("Re-enter new password", "再次输入新密码")}
                           onChange={(event) => setSettingsConfirmPassword(event.target.value)}
                         />
                       </label>
                     </div>
                     <div className="settings-actions">
                       <button className="settings-action settings-action--primary" type="button" onClick={handleSaveSettingsPassword}>
-                        保存密码
+                        {tr("Save password", "保存密码")}
                       </button>
                     </div>
                   </>
                 ) : (
-                  <p className="settings-helper">通过邮箱验证码验证身份后，可设置新的登录密码。</p>
+                  <p className="settings-helper">{tr("Verify your identity with an email code before setting a new login password.", "通过邮箱验证码验证身份后，可设置新的登录密码。")}</p>
                 )}
               </section>
                 </>
               ) : (
-                <div className="settings-agent-panel" role="tabpanel" aria-label="agent设置">
+                <div className="settings-agent-panel" role="tabpanel" aria-label={tr("Agent settings", "agent设置")}>
                   <div className="settings-agent-intro">
-                    <span>Manage credentials and agent handoff.</span>
                     <button
                       className="settings-action settings-action--quiet"
                       type="button"
-                      onClick={() => showAgentClientAction("连接状态已刷新。")}
+                      onClick={() => showAgentClientAction("Connection status refreshed.", "连接状态已刷新。")}
                     >
-                      刷新
+                      {tr("Refresh", "刷新")}
                     </button>
                   </div>
 
@@ -7301,10 +7630,10 @@ export default function Landing() {
                           <strong>Codex Subscription</strong>
                           <span>
                             {agentWebAuthStatus === "connected"
-                              ? "Authenticated for web-side agent usage."
+                              ? tr("Authenticated for web-side agent usage.", "已完成网页端 Agent 授权。")
                               : agentWebAuthStatus === "pending"
-                                ? "Waiting for authentication."
-                                : "No active login workflow."}
+                                ? tr("Waiting for authentication.", "等待授权。")
+                                : tr("No active login workflow.", "暂无登录授权流程。")}
                           </span>
                         </div>
                         <span
@@ -7317,62 +7646,65 @@ export default function Landing() {
                           }`}
                         >
                           {agentWebAuthStatus === "connected"
-                            ? "Active"
+                            ? tr("Active", "已启用")
                             : agentWebAuthStatus === "pending"
-                              ? "Pending"
-                              : "Needs action"}
+                              ? tr("Pending", "待处理")
+                              : tr("Needs action", "待操作")}
                         </span>
                       </div>
 
                       {agentWebAuthStatus === "connected" ? (
                         <div className="settings-agent-meta">
                           <div className="settings-agent-meta__row">
-                            <span>Account</span>
+                            <span>{tr("Account", "账户")}</span>
                             <span>{settingsEmail}</span>
                           </div>
                           <div className="settings-agent-meta__row">
-                            <span>Session</span>
-                            <span>Web agent enabled</span>
+                            <span>{tr("Session", "会话")}</span>
+                            <span>{tr("Web agent enabled", "网页 Agent 已启用")}</span>
                           </div>
                         </div>
                       ) : (
                         <div className="settings-agent-code">
                           <div>
-                            <span>Enter code</span>
+                            <span>{tr("Enter code", "输入授权码")}</span>
                             <strong>SSH8-M4Y83</strong>
-                            <span>Expires May 29, 2026, 12:20 UTC</span>
+                            <span>{tr("Expires May 29, 2026, 12:20 UTC", "有效期至 2026年5月29日 12:20 UTC")}</span>
                           </div>
                           <div className="settings-agent-qr" aria-hidden="true">QR</div>
                         </div>
                       )}
 
                       <p className="settings-agent-note">
-                        Scan the QR code or open the login page. Web authorization can be used directly in this site after approval.
+                        {tr(
+                          "Scan the QR code or open the login page. Web authorization can be used directly in this site after approval.",
+                          "扫码或打开登录页完成授权，通过后可直接在网页端使用 Agent。"
+                        )}
                       </p>
 
                       <div className="settings-agent-actions">
                         {agentWebAuthStatus === "connected" ? (
                           <button className="settings-action settings-action--danger" type="button" onClick={resetAgentWebAuth}>
-                            Disconnect
+                            {tr("Disconnect", "断开连接")}
                           </button>
                         ) : (
                           <>
                             <button
                               className="settings-action settings-action--quiet"
                               type="button"
-                              onClick={() => showAgentClientAction("授权码已准备复制。")}
+                              onClick={() => showAgentClientAction("Authorization code ready to copy.", "授权码已准备复制。")}
                             >
-                              Copy code
+                              {tr("Copy code", "复制授权码")}
                             </button>
                             <button className="settings-action settings-action--quiet" type="button" onClick={requestAgentWebAuth}>
                               <ArrowUpRight size={14} strokeWidth={3} />
-                              Open login page
+                              {tr("Open login page", "打开登录页")}
                             </button>
                             <button className="settings-action settings-action--quiet" type="button" onClick={refreshAgentWebAuth}>
-                              Refresh Status
+                              {tr("Refresh status", "刷新状态")}
                             </button>
                             <button className="settings-action settings-action--danger" type="button" onClick={resetAgentWebAuth}>
-                              Disconnect
+                              {tr("Disconnect", "断开连接")}
                             </button>
                           </>
                         )}
@@ -7383,16 +7715,16 @@ export default function Landing() {
                       <div className="settings-agent-card__head">
                         <div className="settings-agent-card__title">
                           <strong>OpenAI BYOK</strong>
-                          <span>Attach an OpenAI API key for hosted web-side agent actions.</span>
+                          <span>{tr("Attach an OpenAI API key for hosted web-side agent actions.", "绑定 OpenAI API Key，用于网页端托管 Agent 操作。")}</span>
                         </div>
                         <span className={`settings-agent-status${agentByokKey.trim() ? " is-active" : ""}`}>
-                          {agentByokKey.trim() ? "Active" : "Needs action"}
+                          {agentByokKey.trim() ? tr("Active", "已启用") : tr("Needs action", "待操作")}
                         </span>
                       </div>
 
                       <div className="settings-agent-form">
                         <label className="settings-field">
-                          <span>Key label</span>
+                          <span>{tr("Key label", "密钥标签")}</span>
                           <input
                             className="settings-input"
                             value={agentByokLabel}
@@ -7412,12 +7744,15 @@ export default function Landing() {
                       </div>
 
                       <p className="settings-agent-note">
-                        BYOK is only needed for direct web execution. Client plugin mode can use Agent API Key instead.
+                        {tr(
+                          "BYOK is only needed for direct web execution. Client plugin mode can use Agent API Key instead.",
+                          "BYOK 仅用于网页端直接执行；客户端插件模式可改用 Agent API Key。"
+                        )}
                       </p>
 
                       <div className="settings-agent-actions">
                         <button className="settings-action settings-action--primary" type="button" onClick={saveAgentByok}>
-                          Save key
+                          {tr("Save key", "保存密钥")}
                         </button>
                       </div>
                     </article>
@@ -7426,25 +7761,25 @@ export default function Landing() {
                       <div className="settings-agent-card__head">
                         <div className="settings-agent-card__title">
                           <strong>Agent API Key</strong>
-                          <span>Create and manage the credential used by external clients.</span>
+                          <span>{tr("Create and manage the credential used by external clients.", "创建并管理外部客户端使用的凭证。")}</span>
                         </div>
                         <span className={`settings-agent-status${agentApiKeyIssued ? " is-active" : ""}`}>
-                          {agentApiKeyIssued ? "Active" : "Needs action"}
+                          {agentApiKeyIssued ? tr("Active", "已启用") : tr("Needs action", "待操作")}
                         </span>
                       </div>
 
                       <div className="settings-agent-meta">
                         <div className="settings-agent-meta__row">
-                          <span>Key label</span>
-                          <span>External agent</span>
+                          <span>{tr("Key label", "密钥标签")}</span>
+                          <span>{tr("External agent", "外部 Agent")}</span>
                         </div>
                         <div className="settings-agent-meta__row">
-                          <span>Secret</span>
-                          <span>{agentApiKeyIssued ? (agentApiKeyCopyable ? "sk-agent-live-6q84..." : "****************") : "Not issued"}</span>
+                          <span>{tr("Secret", "密钥")}</span>
+                          <span>{agentApiKeyIssued ? (agentApiKeyCopyable ? "sk-agent-live-6q84..." : "****************") : tr("Not issued", "未签发")}</span>
                         </div>
                         <div className="settings-agent-meta__row">
-                          <span>Key ID</span>
-                          <span>{agentApiKeyIssued ? agentApiKeyId : "None"}</span>
+                          <span>{tr("Key ID", "密钥 ID")}</span>
+                          <span>{agentApiKeyIssued ? agentApiKeyId : tr("None", "无")}</span>
                         </div>
                       </div>
 
@@ -7456,10 +7791,10 @@ export default function Landing() {
                           onClick={createAgentApiKey}
                         >
                           <Key size={14} strokeWidth={3} />
-                          Create key
+                          {tr("Create key", "创建密钥")}
                         </button>
                         <button className="settings-action settings-action--quiet" type="button" onClick={refreshAgentApiKey}>
-                          Refresh key
+                          {tr("Refresh key", "刷新密钥")}
                         </button>
                         <button
                           className="settings-action settings-action--quiet"
@@ -7468,15 +7803,18 @@ export default function Landing() {
                           onClick={copyAgentApiKey}
                         >
                           <ClipboardList size={14} strokeWidth={3} />
-                          Copy key
+                          {tr("Copy key", "复制密钥")}
                         </button>
                         <button className="settings-action settings-action--danger" type="button" disabled={!agentApiKeyIssued} onClick={revokeAgentApiKey}>
-                          Revoke
+                          {tr("Revoke", "撤销")}
                         </button>
                       </div>
 
                       <p className="settings-agent-note">
-                        Secret is only shown once. Revoke and create a new key to show a copyable secret again.
+                        {tr(
+                          "Secret is only shown once. Revoke and create a new key to show a copyable secret again.",
+                          "密钥只展示一次。如需再次复制，请撤销并创建新密钥。"
+                        )}
                       </p>
                     </article>
 
@@ -7484,21 +7822,21 @@ export default function Landing() {
                       <div className="settings-agent-card__head">
                         <div className="settings-agent-card__title">
                           <strong>External Agent Skill</strong>
-                          <span>Install the skill in your own client, then continue agent workflows there.</span>
+                          <span>{tr("Install the skill in your own client, then continue agent workflows there.", "在自己的客户端安装 skill 后，可继续执行 Agent 工作流。")}</span>
                         </div>
                         <span className={`settings-agent-status${agentSkillSnippetVisible ? " is-active" : ""}`}>
-                          {agentSkillSnippetVisible ? "Ready" : "Needs action"}
+                          {agentSkillSnippetVisible ? tr("Ready", "已准备") : tr("Needs action", "待操作")}
                         </span>
                       </div>
 
                       <div className="settings-agent-meta">
                         <div className="settings-agent-meta__row">
-                          <span>Skill instructions</span>
+                          <span>{tr("Skill instructions", "Skill 说明")}</span>
                           <span>skills/external_agent.md</span>
                         </div>
                         <div className="settings-agent-meta__row">
-                          <span>Session</span>
-                          <span>No active workflow</span>
+                          <span>{tr("Session", "会话")}</span>
+                          <span>{tr("No active workflow", "暂无活跃工作流")}</span>
                         </div>
                       </div>
 
@@ -7515,31 +7853,31 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                           type="button"
                           onClick={() => setAgentSkillSnippetVisible((visible) => !visible)}
                         >
-                          {agentSkillSnippetVisible ? "Hide setup snippet" : "Show setup snippet"}
+                          {agentSkillSnippetVisible ? tr("Hide setup snippet", "隐藏配置片段") : tr("Show setup snippet", "显示配置片段")}
                         </button>
                         <button
                           className="settings-action settings-action--quiet"
                           type="button"
                           disabled={!agentApiKeyIssued}
-                          onClick={() => showAgentClientAction("Skill 文件已准备复制。")}
+                          onClick={() => showAgentClientAction("Skill file ready to copy.", "Skill 文件已准备复制。")}
                         >
-                          Copy skill
+                          {tr("Copy skill", "复制 skill")}
                         </button>
                         <button
                           className="settings-action settings-action--quiet"
                           type="button"
                           disabled={!agentSkillSnippetVisible}
-                          onClick={() => showAgentClientAction("Setup snippet 已准备复制。")}
+                          onClick={() => showAgentClientAction("Setup snippet ready to copy.", "Setup snippet 已准备复制。")}
                         >
-                          Copy setup snippet
+                          {tr("Copy setup snippet", "复制配置片段")}
                         </button>
                         <button
                           className="settings-action settings-action--quiet"
                           type="button"
                           disabled={!agentApiKeyIssued}
-                          onClick={() => showAgentClientAction("Skill 安装包已准备下载。")}
+                          onClick={() => showAgentClientAction("Skill package ready to download.", "Skill 安装包已准备下载。")}
                         >
-                          Download
+                          {tr("Download", "下载")}
                         </button>
                       </div>
                     </article>
@@ -7555,15 +7893,15 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
         <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) closeAutoCastSettings();
         }}>
-          <section className="auto-cast-modal" role="dialog" aria-modal="true" aria-label="自动抛竿设置">
+          <section className="auto-cast-modal" role="dialog" aria-modal="true" aria-label={tr("Auto cast settings", "自动抛竿设置")}>
             <div className="auto-cast-modal__body">
               <label className="auto-cast-field">
-                <span>本次抛竿总次数</span>
-                <div className="cast-count-control cast-count-control--modal" role="group" aria-label="设置本次自动抛竿总次数">
+                <span>{tr("Total casts this run", "本次抛竿总次数")}</span>
+                <div className="cast-count-control cast-count-control--modal" role="group" aria-label={tr("Set total auto casts for this run", "设置本次自动抛竿总次数")}>
                   <button
                     className="cast-count-stepper"
                     type="button"
-                    aria-label="减少自动抛竿次数"
+                    aria-label={tr("Decrease auto cast count", "减少自动抛竿次数")}
                     disabled={autoCastDraftCount <= MIN_AUTO_CAST_COUNT}
                     onClick={() => updateAutoCastCount(autoCastDraftCount - 1)}
                   >
@@ -7576,13 +7914,13 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                     max={MAX_AUTO_CAST_COUNT}
                     inputMode="numeric"
                     value={autoCastDraftCount}
-                    aria-label="本次自动抛竿总次数"
+                    aria-label={tr("Total auto casts this run", "本次自动抛竿总次数")}
                     onChange={(event) => updateAutoCastCount(Number(event.target.value))}
                   />
                   <button
                     className="cast-count-stepper"
                     type="button"
-                    aria-label="增加自动抛竿次数"
+                    aria-label={tr("Increase auto cast count", "增加自动抛竿次数")}
                     disabled={autoCastDraftCount >= MAX_AUTO_CAST_COUNT}
                     onClick={() => updateAutoCastCount(autoCastDraftCount + 1)}
                   >
@@ -7590,15 +7928,15 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                   </button>
                 </div>
               </label>
-              <p className="auto-cast-modal__hint">最多 100 次</p>
+              <p className="auto-cast-modal__hint">{tr("Maximum 100 casts", "最多 100 次")}</p>
             </div>
 
             <footer className="auto-cast-modal__actions">
               <button className="auto-cast-modal__button auto-cast-modal__button--ghost" type="button" onClick={closeAutoCastSettings}>
-                取消
+                {tr("Cancel", "取消")}
               </button>
               <button className="auto-cast-modal__button auto-cast-modal__button--primary" type="button" onClick={handleStartAutoCast}>
-                开始
+                {tr("Start", "开始")}
               </button>
             </footer>
           </section>
@@ -7622,7 +7960,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                     <ArrowLeft size={20} strokeWidth={3} />
                   </button>
                 )}
-                <h2 className="shop-modal__title" id="wallet-modal-title">{walletWithdrawOpen ? "提现" : "钱包"}</h2>
+                <h2 className="shop-modal__title" id="wallet-modal-title">{walletWithdrawOpen ? tr("Withdraw", "提现") : tr("Wallet", "钱包")}</h2>
               </div>
               <button
                 className="shop-modal__close"
@@ -7643,10 +7981,10 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                         <section className="wallet-step">
                           <div className="wallet-step__body">
                             <div className="wallet-step__head">
-                              <h3 className="wallet-step__title">{withdrawAccountBound ? "更改绑定钱包" : "绑定钱包"}</h3>
+                              <h3 className="wallet-step__title">{withdrawAccountBound ? tr("Change bound wallet", "更改绑定钱包") : tr("Bind wallet", "绑定钱包")}</h3>
                             </div>
                             <label className="wallet-field">
-                              <span>选择网络</span>
+                              <span>{tr("Network", "选择网络")}</span>
                               <select
                                 className="wallet-select"
                                 value={withdrawNetwork}
@@ -7663,7 +8001,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                               </select>
                             </label>
                             <label className="wallet-field">
-                              <span>钱包地址</span>
+                              <span>{tr("Wallet address", "钱包地址")}</span>
                               <input
                                 className="wallet-input"
                                 value={withdrawAddress}
@@ -7673,7 +8011,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                                   setWithdrawAddressError("");
                                   resetWithdrawFeedback();
                                 }}
-                                placeholder="输入钱包地址"
+                                placeholder={tr("Enter wallet address", "输入钱包地址")}
                               />
                               {withdrawAddressError && (
                                 <span className="wallet-field__hint is-error">
@@ -7700,28 +8038,28 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                         <section className="wallet-step">
                           <div className="wallet-step__body">
                             <div className="wallet-step__head">
-                              <h3 className="wallet-step__title">输入提现金额</h3>
+                              <h3 className="wallet-step__title">{tr("Enter withdrawal amount", "输入提现金额")}</h3>
                             </div>
                             <label className="wallet-field">
                               <span className="wallet-input-unit-wrap">
                                 <input
                                   className="wallet-input wallet-input--with-unit"
                                   inputMode="decimal"
-                                  aria-label="提现金额"
+                                  aria-label={tr("Withdrawal amount", "提现金额")}
                                   value={withdrawAmount ? formatUsdInputValue(withdrawAmount) : ""}
                                   onChange={(event) => {
                                     const clean = event.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
                                     setWithdrawAmount(clean === "" ? 0 : usdToBalance(Number(clean)));
                                     resetWithdrawFeedback();
                                   }}
-                                  placeholder="输入 USD 金额"
+                                  placeholder={tr("Enter USD amount", "输入 USD 金额")}
                                 />
                                 <span className="wallet-input-unit" aria-hidden="true">USD</span>
                               </span>
                             </label>
                             <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
                               <span>
-                                最低 {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · 可提现 {formatUsd(WALLET_BALANCE_USD)}
+                                {tr("Minimum", "最低")} {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · {tr("Available", "可提现")} {formatUsd(WALLET_BALANCE_USD)}
                               </span>
                             </div>
                           </div>
@@ -7731,7 +8069,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                           <div className="wallet-step__body">
                             <div className="wallet-bound-summary">
                               <div className="wallet-bound-summary__main">
-                                <span className="wallet-bound-summary__label">提现至</span>
+                                <span className="wallet-bound-summary__label">{tr("Withdraw to", "提现至")}</span>
                                 <span className="wallet-bound-summary__target">
                                   <span className="wallet-bound-summary__address" title={withdrawAddressValue}>
                                     {withdrawAddressValue}
@@ -7747,7 +8085,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                                   resetWithdrawFeedback();
                                 }}
                               >
-                                更改
+                                {tr("Change", "更改")}
                               </button>
                             </div>
                           </div>
@@ -7755,18 +8093,26 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
 
                         <div className="wallet-withdraw__actions">
                           {withdrawStatus === "error" && (
-                            <div className="wallet-status is-error">提现预览失败。请尝试 10.00 USD、20.00 USD 或 50.00 USD 查看成功状态。</div>
+                            <div className="wallet-status is-error">
+                              {tr(
+                                "Withdrawal preview failed. Try 10.00 USD, 20.00 USD, or 50.00 USD to view the success state.",
+                                "提现预览失败。请尝试 10.00 USD、20.00 USD 或 50.00 USD 查看成功状态。"
+                              )}
+                            </div>
                           )}
                           {withdrawStatus === "success" && (
                             <div className="wallet-status">
-                              {formatUsd(balanceToUsd(withdrawAmount))} 提现申请已提交。
+                              {tr(
+                                `${formatUsd(balanceToUsd(withdrawAmount))} withdrawal request submitted.`,
+                                `${formatUsd(balanceToUsd(withdrawAmount))} 提现申请已提交。`
+                              )}
                             </div>
                           )}
                           <button
                             className="wallet-submit wallet-submit--withdraw"
                             type="button"
                             disabled={withdrawPrimaryDisabled}
-                            onClick={handleSubmitWithdraw}
+                            onClick={handleWithdrawPrimaryAction}
                           >
                             {withdrawPrimaryLabel}
                           </button>
@@ -7791,7 +8137,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                             onClick={openWithdrawModal}
                           >
                             <CreditCard size={16} strokeWidth={3} />
-                            提现
+                            {tr("Withdraw", "提现")}
                           </button>
                         </div>
                       </section>
@@ -7800,13 +8146,13 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                     <section className="wallet-section">
                       <div className="wallet-table">
                         <div className="wallet-table__row wallet-table__row--head">
-                          <span>变更记录</span>
-                          <span>单号</span>
-                          <span>变更时间</span>
+                          <span>{tr("Activity", "变更记录")}</span>
+                          <span>{tr("Order No.", "单号")}</span>
+                          <span>{tr("Time", "变更时间")}</span>
                           <span className="wallet-table__amount">
                             <span className="wallet-table__balance">
                               <img className="wallet-table__balance-icon" src={HUD_ASSETS.coin} alt="" />
-                              <span>余额</span>
+                              <span>{tr("Balance", "余额")}</span>
                             </span>
                           </span>
                         </div>
@@ -7840,10 +8186,9 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
         <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setLeaderboardOpen(false);
         }}>
-          <section className="shop-modal leaderboard-modal" role="dialog" aria-modal="true" aria-labelledby="leaderboard-modal-title">
+          <section className="shop-modal leaderboard-modal" role="dialog" aria-modal="true" aria-label={tr("Leaderboard", "排行榜")}>
             <header className="shop-modal__header">
               <div className="leaderboard-modal__heading">
-                <h2 className="shop-modal__title" id="leaderboard-modal-title">排行榜</h2>
                 <div className="leaderboard-tabs" role="tablist" aria-label={tr("Leaderboard period", "排行榜周期")}>
                   {(["week", "month"] as const).map((period) => (
                     <button
@@ -7876,11 +8221,23 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                     key={row.id}
                     className={`leaderboard-podium-card leaderboard-podium-card--rank-${row.rank}${row.id === CURRENT_LEADERBOARD_USER_ID ? " is-current" : ""}`}
                   >
+                    <span className="leaderboard-podium-card__shine" aria-hidden="true" />
+                    {row.rank === 1 && (
+                      <span className="leaderboard-crown" aria-hidden="true">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    )}
                     <div className="leaderboard-podium-card__head">
-                      <span className="leaderboard-rank-badge">{row.rank}</span>
+                      <span className="leaderboard-rank-badge">
+                        <span className="leaderboard-rank-badge__ring" aria-hidden="true" />
+                        {row.rank}
+                      </span>
                       <span className="leaderboard-rank-tag">TOP {row.rank}</span>
                     </div>
                     <div>
+                      {row.rank === 1 && <div className="leaderboard-champion-ribbon">CHAMPION</div>}
                       <div className="leaderboard-name" title={row.nickname}>{row.nickname}</div>
                       <div className="leaderboard-balance">
                         <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
@@ -7918,7 +8275,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                 {currentLeaderboardRow && !currentLeaderboardInTop50 && (
                   <div className="leaderboard-list-row leaderboard-current-row--sticky is-current">
                     <span className="leaderboard-list__rank">NO.{currentLeaderboardRow.rank}</span>
-                    <span className="leaderboard-list__name">You — #{currentLeaderboardRow.rank}</span>
+                    <span className="leaderboard-list__name">{tr(`You - #${currentLeaderboardRow.rank}`, `你 - #${currentLeaderboardRow.rank}`)}</span>
                     <span className="leaderboard-list__metric">
                       <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
                       <span>{formatLeaderboardBalance(currentLeaderboardRow.balance)}</span>
@@ -7997,7 +8354,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
           >
             <header className="shop-modal__header">
               <div>
-                <h2 className="shop-modal__title" id="inventory-modal-title">图鉴</h2>
+                <h2 className="shop-modal__title" id="inventory-modal-title">{tr("Inventory", "图鉴")}</h2>
               </div>
               <button
                 className="shop-modal__close"
@@ -8281,17 +8638,17 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                     <div className={`inv-stats${item.statsLayout === "inline" ? " inv-stats--inline" : ""}`}>
                       {item.statsLayout === "inline" ? (
                         <div className="inv-stat inv-stat--inline">
-                          <span className="inv-stat__label">{item.metricOneLabel}</span>
+                          <span className="inv-stat__label">{tr(item.metricOneLabelEn, item.metricOneLabel)}</span>
                         </div>
                       ) : (
                         <>
                           <div className="inv-stat">
-                            <span className="inv-stat__label">{item.metricOneLabel}</span>
-                            <span className="inv-stat__value">{item.metricOneValue}</span>
+                            <span className="inv-stat__label">{tr(item.metricOneLabelEn, item.metricOneLabel)}</span>
+                            <span className="inv-stat__value">{tr(item.metricOneValueEn ?? item.metricOneValue, item.metricOneValue)}</span>
                           </div>
                           <div className="inv-stat">
-                            <span className="inv-stat__label">{item.metricTwoLabel}</span>
-                            <span className="inv-stat__value">{item.metricTwoValue}</span>
+                            <span className="inv-stat__label">{tr(item.metricTwoLabelEn ?? item.metricTwoLabel, item.metricTwoLabel)}</span>
+                            <span className="inv-stat__value">{tr(item.metricTwoValueEn ?? item.metricTwoValue, item.metricTwoValue)}</span>
                           </div>
                         </>
                       )}
@@ -8403,7 +8760,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
           <section className="shop-modal" role="dialog" aria-modal="true" aria-labelledby="shop-modal-title">
             <header className="shop-modal__header">
               <div>
-                <h2 className="shop-modal__title" id="shop-modal-title">商店</h2>
+                <h2 className="shop-modal__title" id="shop-modal-title">{tr("Shop", "商店")}</h2>
               </div>
               <button className="shop-modal__close" type="button" aria-label={tr("Close shop", "关闭商店")} onClick={() => setShopOpen(false)}>
                 <X size={22} strokeWidth={3} />
