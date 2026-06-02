@@ -20,7 +20,6 @@ import {
   Pencil,
   PieChart,
   Search,
-  Send,
   Star,
   TrendingUp,
   User,
@@ -278,6 +277,14 @@ const leaderboardEntries: LeaderboardEntry[] = [
     };
   }),
 ];
+const agentConnectableProviders = [
+  { id: "openai", name: "OpenAI", mark: "O" },
+  { id: "anthropic", name: "Anthropic", mark: "A" },
+  { id: "google", name: "Google AI Studio", mark: "G" },
+  { id: "minimax", name: "MiniMax", mark: "M" },
+  { id: "alibaba", name: "Alibaba Cloud", mark: "A" },
+  { id: "deepseek", name: "DeepSeek", mark: "D" },
+] as const;
 
 const inventorySpecialCards: InventorySpecialCard[] = [
   {
@@ -635,6 +642,7 @@ export default function Landing() {
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
+  const [settingsAgentSection, setSettingsAgentSection] = useState<"web" | "client">("web");
   const [settingsNickname, setSettingsNickname] = useState(user?.displayName || "AlphaTrader");
   const [settingsOriginalNickname, setSettingsOriginalNickname] = useState(user?.displayName || "AlphaTrader");
   const [settingsAvatarPreview, setSettingsAvatarPreview] = useState<string | null>(user?.avatar || null);
@@ -651,6 +659,7 @@ export default function Landing() {
   const [settingsNewPassword, setSettingsNewPassword] = useState("");
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
   const [agentWebAuthStatus, setAgentWebAuthStatus] = useState<"idle" | "pending" | "connected">("pending");
+  const [agentConnectModalOpen, setAgentConnectModalOpen] = useState(false);
   const [agentByokLabel, setAgentByokLabel] = useState("OpenAI BYOK");
   const [agentByokKey, setAgentByokKey] = useState("");
   const [agentApiKeyIssued, setAgentApiKeyIssued] = useState(true);
@@ -1330,12 +1339,16 @@ export default function Landing() {
 
   const openSettingsModal = () => {
     setSettingsActiveTab("general");
+    setSettingsAgentSection("web");
+    setAgentConnectModalOpen(false);
     setSettingsOpen(true);
   };
 
   const closeSettingsModal = () => {
     setSettingsOpen(false);
     setSettingsActiveTab("general");
+    setSettingsAgentSection("web");
+    setAgentConnectModalOpen(false);
     setSettingsEditingProfile(false);
     setSettingsEditingEmail(false);
     setSettingsEditingPassword(false);
@@ -1702,37 +1715,24 @@ export default function Landing() {
           border-radius: 16px;
           box-shadow: 0 4px 0 rgba(78, 67, 60, .22);
           font: inherit;
-          transition:
-            transform .16s cubic-bezier(.22, 1, .36, 1),
-            box-shadow .16s cubic-bezier(.22, 1, .36, 1),
-            filter .16s cubic-bezier(.22, 1, .36, 1),
-            border-color .16s cubic-bezier(.22, 1, .36, 1);
-        }
-
-        .hud-stat-card::after {
-          content: "";
-          position: absolute;
-          inset: 6px 7px auto auto;
-          width: 26px;
-          height: 8px;
-          background: rgba(255, 253, 244, .62);
-          border-radius: 999px;
-          opacity: 0;
-          transform: translateY(3px);
-          transition:
-            opacity .16s cubic-bezier(.22, 1, .36, 1),
-            transform .16s cubic-bezier(.22, 1, .36, 1);
+          transition: background-color .14s cubic-bezier(.22, 1, .36, 1);
         }
 
         .hud-stat-card--button {
+          border-width: 0;
+          padding: 15px;
           cursor: pointer;
+        }
+
+        .hud-stat-card--fish {
+          border-width: 0;
+          padding: 15px;
         }
 
         .hud-stat-icon {
           flex: 0 0 auto;
           object-fit: contain;
           image-rendering: pixelated;
-          transition: transform .16s cubic-bezier(.22, 1, .36, 1);
         }
 
         .hud-stat-value {
@@ -1768,6 +1768,7 @@ export default function Landing() {
         }
 
         .top-actions {
+          --menu-label-font-size: 20px;
           position: absolute;
           right: 40px;
           top: 36px;
@@ -1779,7 +1780,13 @@ export default function Landing() {
         }
 
         .top-actions--en .menu-label {
-          font-size: 18px;
+          max-width: 94px;
+          --menu-label-font-size: 16px;
+          letter-spacing: 0;
+        }
+
+        .top-actions--en .menu-label::before {
+          -webkit-text-stroke-width: 3px;
         }
 
         .menu-item {
@@ -1812,7 +1819,7 @@ export default function Landing() {
           text-align: center;
           -webkit-text-stroke-width: 0;
           -webkit-text-stroke-color: transparent;
-          font-size: 20px;
+          font-size: var(--menu-label-font-size);
           font-weight: 900;
           letter-spacing: .08em;
           white-space: nowrap;
@@ -2267,22 +2274,9 @@ export default function Landing() {
           filter: brightness(1.02);
         }
 
+        .hud-top-stats:hover .hud-stat-card,
         .hud-stat-card:hover {
-          transform: translate(-2px, -2px);
-          border-color: #b89a5d;
-          box-shadow:
-            2px 2px 0 rgba(78, 67, 60, .28),
-            0 9px 18px rgba(78, 67, 60, .16);
-          filter: brightness(1.03) saturate(1.04);
-        }
-
-        .hud-stat-card:hover::after {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        .hud-stat-card:hover .hud-stat-icon {
-          transform: translateY(-2px) rotate(-3deg);
+          background: #fff7df;
         }
 
         .menu-item:active {
@@ -3742,6 +3736,12 @@ export default function Landing() {
           padding: 18px clamp(18px, 2.8vw, 30px) 24px;
         }
 
+        .settings-content--agent {
+          padding: 0;
+          overflow: hidden;
+          background: rgba(255, 253, 244, .86);
+        }
+
         .settings-tabs {
           display: inline-flex;
           align-items: center;
@@ -3780,38 +3780,234 @@ export default function Landing() {
         }
 
         .settings-agent-panel {
-          min-height: 360px;
+          min-height: 100%;
+          height: 100%;
           display: grid;
-          gap: 14px;
+          grid-template-columns: 176px minmax(0, 1fr);
+          align-items: start;
+          gap: 0;
         }
 
-        .settings-agent-intro {
+        .settings-agent-side-nav {
+          display: grid;
+          align-content: start;
+          gap: 4px;
+          min-height: 100%;
+          padding: 18px 0;
+          background: rgba(255, 253, 244, .86);
+          border-right: 1.5px solid rgba(121, 79, 39, .2);
+        }
+
+        .settings-agent-side-tab {
+          appearance: none;
+          width: 170px;
+          min-height: 48px;
           display: flex;
           align-items: center;
-          justify-content: flex-end;
-          gap: 14px;
-          color: rgba(121, 79, 39, .74);
+          padding: 0 18px 0 22px;
+          color: rgba(121, 79, 39, .72);
+          text-align: left;
+          background: transparent;
+          border: 0;
+          border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+          box-shadow: none;
+          cursor: pointer;
+          font: inherit;
           font-size: 12px;
-          font-weight: 850;
+          font-weight: 1000;
+          line-height: 1.25;
+          transition: background 120ms ease, color 120ms ease;
+        }
+
+        .settings-agent-side-tab:hover {
+          color: var(--ac-text);
+          background: rgba(255, 253, 244, .66);
+        }
+
+        .settings-agent-side-tab.is-active {
+          color: var(--ac-text);
+          background: #ffd557;
+          box-shadow:
+            inset 0 1.5px 0 rgba(121, 79, 39, .22),
+            inset 0 -1.5px 0 rgba(121, 79, 39, .18);
+        }
+
+        .settings-agent-main {
+          position: relative;
+          min-width: 0;
+          height: 100%;
+          overflow: auto;
+          padding: 22px clamp(20px, 2.6vw, 28px) 28px;
+        }
+
+        .settings-agent-flow-copy {
+          margin: 0 0 16px;
+          color: rgba(121, 79, 39, .72);
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1.45;
         }
 
         .settings-agent-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 14px;
+          gap: 20px 24px;
+        }
+
+        .settings-agent-grid--connect {
+          gap: 22px;
+        }
+
+        .settings-agent-provider-list {
+          display: grid;
+          gap: 0;
+          overflow: hidden;
+          background: rgba(255, 253, 244, .82);
+          border: 1.5px solid rgba(196, 184, 158, .46);
+          border-radius: var(--radius-xs);
+        }
+
+        .settings-agent-provider-row {
+          min-height: 74px;
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 18px;
+          padding: 0 22px;
+          color: var(--ac-text);
+          background: rgba(255, 253, 244, .76);
+          border-bottom: 1px solid rgba(196, 184, 158, .34);
+        }
+
+        .settings-agent-provider-row:last-child {
+          border-bottom: 0;
+        }
+
+        .settings-agent-provider-mark {
+          width: 42px;
+          height: 42px;
+          display: grid;
+          place-items: center;
+          flex: 0 0 auto;
+          color: #fffdf4;
+          background: #1c1b18;
+          border-radius: 50%;
+          font-size: 19px;
+          font-weight: 1000;
+          line-height: 1;
+        }
+
+        .settings-agent-provider-mark--google {
+          color: #4285f4;
+          background: #fffdf4;
+          border: 1.5px solid rgba(196, 184, 158, .52);
+        }
+
+        .settings-agent-provider-mark--minimax {
+          color: #ef4b78;
+          background: #fffdf4;
+          border: 1.5px solid rgba(239, 75, 120, .3);
+        }
+
+        .settings-agent-provider-mark--alibaba {
+          color: #ff6a1a;
+          background: #fffdf4;
+          border: 1.5px solid rgba(255, 106, 26, .3);
+        }
+
+        .settings-agent-provider-mark--deepseek {
+          background: #4f6df5;
+        }
+
+        .settings-agent-provider-name {
+          min-width: 0;
+          color: var(--ac-text);
+          font-size: 17px;
+          font-weight: 1000;
+          line-height: 1.2;
+        }
+
+        .settings-agent-provider-add {
+          appearance: none;
+          min-height: 38px;
+          padding: 0 14px;
+          color: var(--ac-text);
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+          font: inherit;
+          font-size: 16px;
+          font-weight: 1000;
+        }
+
+        .settings-agent-provider-add:hover,
+        .settings-agent-provider-add:focus-visible {
+          background: rgba(255, 213, 87, .72);
+          outline: none;
+        }
+
+        .settings-agent-connect-overlay {
+          position: absolute;
+          inset: 0;
+          z-index: 2;
+          display: grid;
+          place-items: center;
+          padding: 28px;
+          background: rgba(78, 67, 60, .14);
+        }
+
+        .settings-agent-connect-modal {
+          width: min(760px, 100%);
+          max-height: 100%;
+          display: grid;
+          grid-template-rows: auto minmax(0, 1fr);
+          gap: 18px;
+          overflow: auto;
+          padding: 18px;
+          color: var(--ac-text);
+          background: rgba(255, 253, 244, .96);
+          border: 2px solid rgba(196, 184, 158, .7);
+          border-radius: var(--radius-xs);
+          box-shadow:
+            0 0 0 2px rgba(255, 253, 244, .78),
+            4px 4px 0 rgba(189, 174, 160, .5),
+            0 18px 36px rgba(66, 48, 31, .18);
+        }
+
+        .settings-agent-connect-modal__header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .settings-agent-connect-modal__close {
+          appearance: none;
+          width: 34px;
+          height: 34px;
+          display: inline-grid;
+          place-items: center;
+          flex: 0 0 auto;
+          color: var(--ac-text);
+          background: #fff7e3;
+          border: 1.5px solid rgba(196, 184, 158, .72);
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+          box-shadow: none;
         }
 
         .settings-agent-card {
           min-height: 270px;
           display: flex;
           flex-direction: column;
-          gap: 14px;
-          padding: 18px;
+          gap: 16px;
+          padding: 0;
           color: var(--ac-text);
-          background: rgba(255, 253, 244, .78);
-          border: 2px solid rgba(196, 184, 158, .66);
-          border-radius: var(--radius-sm);
-          box-shadow: 3px 3px 0 rgba(189, 174, 160, .3);
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
         }
 
         .settings-agent-card__head {
@@ -3972,6 +4168,18 @@ export default function Landing() {
         }
 
         @media (max-width: 760px) {
+          .settings-agent-panel {
+            grid-template-columns: 1fr;
+          }
+
+          .settings-agent-side-nav {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .settings-agent-side-tab {
+            width: 100%;
+          }
+
           .settings-agent-grid {
             grid-template-columns: 1fr;
           }
@@ -4138,6 +4346,33 @@ export default function Landing() {
           display: flex;
           gap: 8px;
           align-items: center;
+        }
+
+        .settings-code-field {
+          position: relative;
+          display: block;
+        }
+
+        .settings-code-field .settings-input {
+          padding-right: 82px;
+        }
+
+        .settings-action.settings-code-send {
+          position: absolute;
+          top: 50%;
+          right: 6px;
+          min-width: 0;
+          width: max-content;
+          min-height: 30px;
+          padding: 0 9px;
+          transform: translateY(-50%);
+          box-shadow: none;
+        }
+
+        .settings-action.settings-code-send:hover,
+        .settings-action.settings-code-send:active,
+        .settings-action.settings-code-send:focus-visible {
+          box-shadow: none;
         }
 
         .settings-actions {
@@ -6123,15 +6358,8 @@ export default function Landing() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .hud-stat-card,
-          .hud-stat-card::after,
-          .hud-stat-icon {
+          .hud-stat-card {
             transition: none;
-          }
-
-          .hud-stat-card:hover,
-          .hud-stat-card:hover .hud-stat-icon {
-            transform: none;
           }
 
           .inventory-grid { perspective: none; }
@@ -7347,7 +7575,7 @@ export default function Landing() {
               </button>
             </header>
 
-            <div className="settings-content">
+            <div className={`settings-content${settingsActiveTab === "agent" ? " settings-content--agent" : ""}`}>
               {settingsActiveTab === "general" ? (
                 <>
               <section className="settings-section">
@@ -7483,7 +7711,7 @@ export default function Landing() {
                   {settingsEditingEmail && (
                     <label className="settings-field">
                       <span>{tr("Verification code", "验证码")}</span>
-                      <span className="settings-inline">
+                      <span className="settings-code-field">
                         <input
                           className="settings-input"
                           value={settingsEmailVerCode}
@@ -7491,14 +7719,13 @@ export default function Landing() {
                           onChange={(event) => setSettingsEmailVerCode(event.target.value)}
                         />
                         <button
-                          className="settings-action settings-action--quiet"
+                          className="settings-action settings-action--quiet settings-code-send"
                           type="button"
                           onClick={() => {
                             setSettingsEmailCodeSent(true);
                             showSettingsFeedback(tr("Code sent", "验证码已发送"), tr("Verification code sent to your current email.", "验证码已发送至当前邮箱。"));
                           }}
                         >
-                          <Send size={14} strokeWidth={3} />
                           {settingsEmailCodeSent ? tr("Resend", "重新发送") : tr("Send", "发送")}
                         </button>
                       </span>
@@ -7559,7 +7786,7 @@ export default function Landing() {
                       </label>
                       <label className="settings-field">
                         <span>{tr("Verification code", "验证码")}</span>
-                        <span className="settings-inline">
+                        <span className="settings-code-field">
                           <input
                             className="settings-input"
                             value={settingsPasswordVerCode}
@@ -7567,14 +7794,13 @@ export default function Landing() {
                             onChange={(event) => setSettingsPasswordVerCode(event.target.value)}
                           />
                           <button
-                            className="settings-action settings-action--quiet"
+                            className="settings-action settings-action--quiet settings-code-send"
                             type="button"
                             onClick={() => {
                               setSettingsPasswordCodeSent(true);
                               showSettingsFeedback(tr("Code sent", "验证码已发送"), tr("Verification code sent to your email.", "验证码已发送至邮箱。"));
                             }}
                           >
-                            <Send size={14} strokeWidth={3} />
                             {settingsPasswordCodeSent ? tr("Resend", "重新发送") : tr("Send", "发送")}
                           </button>
                         </span>
@@ -7613,149 +7839,220 @@ export default function Landing() {
                 </>
               ) : (
                 <div className="settings-agent-panel" role="tabpanel" aria-label={tr("Agent settings", "agent设置")}>
-                  <div className="settings-agent-intro">
+                  <nav className="settings-agent-side-nav" aria-label={tr("Agent sections", "Agent 设置导航")}>
                     <button
-                      className="settings-action settings-action--quiet"
+                      className={`settings-agent-side-tab${settingsAgentSection === "web" ? " is-active" : ""}`}
                       type="button"
-                      onClick={() => showAgentClientAction("Connection status refreshed.", "连接状态已刷新。")}
+                      aria-current={settingsAgentSection === "web" ? "page" : undefined}
+                      onClick={() => {
+                        setSettingsAgentSection("web");
+                        setAgentConnectModalOpen(false);
+                      }}
                     >
-                      {tr("Refresh", "刷新")}
+                      {tr("Web authorization", "网页端授权")}
                     </button>
-                  </div>
-
-                  <div className="settings-agent-grid">
-                    <article className="settings-agent-card">
-                      <div className="settings-agent-card__head">
-                        <div className="settings-agent-card__title">
-                          <strong>Codex Subscription</strong>
-                          <span>
-                            {agentWebAuthStatus === "connected"
-                              ? tr("Authenticated for web-side agent usage.", "已完成网页端 Agent 授权。")
-                              : agentWebAuthStatus === "pending"
-                                ? tr("Waiting for authentication.", "等待授权。")
-                                : tr("No active login workflow.", "暂无登录授权流程。")}
-                          </span>
+                    <button
+                      className={`settings-agent-side-tab${settingsAgentSection === "client" ? " is-active" : ""}`}
+                      type="button"
+                      aria-current={settingsAgentSection === "client" ? "page" : undefined}
+                      onClick={() => {
+                        setSettingsAgentSection("client");
+                        setAgentConnectModalOpen(false);
+                      }}
+                    >
+                      {tr("Client plugin", "客户端插件")}
+                    </button>
+                  </nav>
+                  <div className="settings-agent-main">
+                    <p className="settings-agent-flow-copy">
+                      {settingsAgentSection === "web"
+                        ? tr("Use directly on the web. No software installation required.", "在网页端直接使用，无需安装任何软件。")
+                        : tr("Install the plugin in your local client and bring it directly into your workflow.", "在您的本地客户端安装插件，直接融入您的工作流。")}
+                    </p>
+                    {settingsAgentSection === "web" ? (
+                      <>
+                        <div className="settings-agent-provider-list" aria-label={tr("Connectable providers", "可连接服务")}>
+                          {agentConnectableProviders.map((provider) => (
+                            <div className="settings-agent-provider-row" key={provider.id}>
+                              <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
+                                {provider.mark}
+                              </span>
+                              <span className="settings-agent-provider-name">{provider.name}</span>
+                              <button
+                                className="settings-agent-provider-add"
+                                type="button"
+                                onClick={() => setAgentConnectModalOpen(true)}
+                              >
+                                Add
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                        <span
-                          className={`settings-agent-status${
-                            agentWebAuthStatus === "connected"
-                              ? " is-active"
-                              : agentWebAuthStatus === "idle"
-                                ? " is-muted"
-                                : ""
-                          }`}
-                        >
-                          {agentWebAuthStatus === "connected"
-                            ? tr("Active", "已启用")
-                            : agentWebAuthStatus === "pending"
-                              ? tr("Pending", "待处理")
-                              : tr("Needs action", "待操作")}
-                        </span>
-                      </div>
 
-                      {agentWebAuthStatus === "connected" ? (
-                        <div className="settings-agent-meta">
-                          <div className="settings-agent-meta__row">
-                            <span>{tr("Account", "账户")}</span>
-                            <span>{settingsEmail}</span>
+                        {agentConnectModalOpen && (
+                          <div
+                            className="settings-agent-connect-overlay"
+                            role="presentation"
+                            onMouseDown={(event) => {
+                              if (event.target === event.currentTarget) setAgentConnectModalOpen(false);
+                            }}
+                          >
+                            <section className="settings-agent-connect-modal" role="dialog" aria-modal="true" aria-label={tr("Connect web authorization", "连接网页端授权")}>
+                              <header className="settings-agent-connect-modal__header">
+                                <div className="settings-agent-card__title">
+                                  <strong>{tr("Connect OpenAI", "连接 OpenAI")}</strong>
+                                  <span>{tr("Configure web authorization before using hosted Agent actions.", "配置网页端授权后，可使用托管 Agent 操作。")}</span>
+                                </div>
+                                <button
+                                  className="settings-agent-connect-modal__close"
+                                  type="button"
+                                  aria-label={tr("Close connection dialog", "关闭连接弹窗")}
+                                  onClick={() => setAgentConnectModalOpen(false)}
+                                >
+                                  <X size={18} strokeWidth={3} />
+                                </button>
+                              </header>
+
+                              <div className="settings-agent-grid settings-agent-grid--connect">
+                                <article className="settings-agent-card">
+                                  <div className="settings-agent-card__head">
+                                    <div className="settings-agent-card__title">
+                                      <strong>Codex Subscription</strong>
+                                      <span>
+                                        {agentWebAuthStatus === "connected"
+                                          ? tr("Authenticated for web-side agent usage.", "已完成网页端 Agent 授权。")
+                                          : agentWebAuthStatus === "pending"
+                                            ? tr("Waiting for authentication.", "等待授权。")
+                                            : tr("No active login workflow.", "暂无登录授权流程。")}
+                                      </span>
+                                    </div>
+                                    <span
+                                      className={`settings-agent-status${
+                                        agentWebAuthStatus === "connected"
+                                          ? " is-active"
+                                          : agentWebAuthStatus === "idle"
+                                            ? " is-muted"
+                                            : ""
+                                      }`}
+                                    >
+                                      {agentWebAuthStatus === "connected"
+                                        ? tr("Active", "已启用")
+                                        : agentWebAuthStatus === "pending"
+                                          ? tr("Pending", "待处理")
+                                          : tr("Needs action", "待操作")}
+                                    </span>
+                                  </div>
+
+                                  {agentWebAuthStatus === "connected" ? (
+                                    <div className="settings-agent-meta">
+                                      <div className="settings-agent-meta__row">
+                                        <span>{tr("Account", "账户")}</span>
+                                        <span>{settingsEmail}</span>
+                                      </div>
+                                      <div className="settings-agent-meta__row">
+                                        <span>{tr("Session", "会话")}</span>
+                                        <span>{tr("Web agent enabled", "网页 Agent 已启用")}</span>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="settings-agent-code">
+                                      <div>
+                                        <span>{tr("Enter code", "输入授权码")}</span>
+                                        <strong>SSH8-M4Y83</strong>
+                                        <span>{tr("Expires May 29, 2026, 12:20 UTC", "有效期至 2026年5月29日 12:20 UTC")}</span>
+                                      </div>
+                                      <div className="settings-agent-qr" aria-hidden="true">QR</div>
+                                    </div>
+                                  )}
+
+                                  <p className="settings-agent-note">
+                                    {tr(
+                                      "Scan the QR code or open the login page. Web authorization can be used directly in this site after approval.",
+                                      "扫码或打开登录页完成授权，通过后可直接在网页端使用 Agent。"
+                                    )}
+                                  </p>
+
+                                  <div className="settings-agent-actions">
+                                    {agentWebAuthStatus === "connected" ? (
+                                      <button className="settings-action settings-action--danger" type="button" onClick={resetAgentWebAuth}>
+                                        {tr("Disconnect", "断开连接")}
+                                      </button>
+                                    ) : (
+                                      <>
+                                        <button
+                                          className="settings-action settings-action--quiet"
+                                          type="button"
+                                          onClick={() => showAgentClientAction("Authorization code ready to copy.", "授权码已准备复制。")}
+                                        >
+                                          {tr("Copy code", "复制授权码")}
+                                        </button>
+                                        <button className="settings-action settings-action--quiet" type="button" onClick={requestAgentWebAuth}>
+                                          <ArrowUpRight size={14} strokeWidth={3} />
+                                          {tr("Open login page", "打开登录页")}
+                                        </button>
+                                        <button className="settings-action settings-action--quiet" type="button" onClick={refreshAgentWebAuth}>
+                                          {tr("Refresh status", "刷新状态")}
+                                        </button>
+                                        <button className="settings-action settings-action--danger" type="button" onClick={resetAgentWebAuth}>
+                                          {tr("Disconnect", "断开连接")}
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </article>
+
+                                <article className="settings-agent-card">
+                                  <div className="settings-agent-card__head">
+                                    <div className="settings-agent-card__title">
+                                      <strong>OpenAI BYOK</strong>
+                                      <span>{tr("Attach an OpenAI API key for hosted web-side agent actions.", "绑定 OpenAI API Key，用于网页端托管 Agent 操作。")}</span>
+                                    </div>
+                                    <span className={`settings-agent-status${agentByokKey.trim() ? " is-active" : ""}`}>
+                                      {agentByokKey.trim() ? tr("Active", "已启用") : tr("Needs action", "待操作")}
+                                    </span>
+                                  </div>
+
+                                  <div className="settings-agent-form">
+                                    <label className="settings-field">
+                                      <span>{tr("Key label", "密钥标签")}</span>
+                                      <input
+                                        className="settings-input"
+                                        value={agentByokLabel}
+                                        onChange={(event) => setAgentByokLabel(event.target.value)}
+                                      />
+                                    </label>
+                                    <label className="settings-field">
+                                      <span>OpenAI API Key</span>
+                                      <input
+                                        className="settings-input"
+                                        type="password"
+                                        value={agentByokKey}
+                                        placeholder="sk-..."
+                                        onChange={(event) => setAgentByokKey(event.target.value)}
+                                      />
+                                    </label>
+                                  </div>
+
+                                  <p className="settings-agent-note">
+                                    {tr(
+                                      "BYOK is only needed for direct web execution. Client plugin mode can use Agent API Key instead.",
+                                      "BYOK 仅用于网页端直接执行；客户端插件模式可改用 Agent API Key。"
+                                    )}
+                                  </p>
+
+                                  <div className="settings-agent-actions">
+                                    <button className="settings-action settings-action--primary" type="button" onClick={saveAgentByok}>
+                                      {tr("Save key", "保存密钥")}
+                                    </button>
+                                  </div>
+                                </article>
+                              </div>
+                            </section>
                           </div>
-                          <div className="settings-agent-meta__row">
-                            <span>{tr("Session", "会话")}</span>
-                            <span>{tr("Web agent enabled", "网页 Agent 已启用")}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="settings-agent-code">
-                          <div>
-                            <span>{tr("Enter code", "输入授权码")}</span>
-                            <strong>SSH8-M4Y83</strong>
-                            <span>{tr("Expires May 29, 2026, 12:20 UTC", "有效期至 2026年5月29日 12:20 UTC")}</span>
-                          </div>
-                          <div className="settings-agent-qr" aria-hidden="true">QR</div>
-                        </div>
-                      )}
-
-                      <p className="settings-agent-note">
-                        {tr(
-                          "Scan the QR code or open the login page. Web authorization can be used directly in this site after approval.",
-                          "扫码或打开登录页完成授权，通过后可直接在网页端使用 Agent。"
                         )}
-                      </p>
-
-                      <div className="settings-agent-actions">
-                        {agentWebAuthStatus === "connected" ? (
-                          <button className="settings-action settings-action--danger" type="button" onClick={resetAgentWebAuth}>
-                            {tr("Disconnect", "断开连接")}
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              className="settings-action settings-action--quiet"
-                              type="button"
-                              onClick={() => showAgentClientAction("Authorization code ready to copy.", "授权码已准备复制。")}
-                            >
-                              {tr("Copy code", "复制授权码")}
-                            </button>
-                            <button className="settings-action settings-action--quiet" type="button" onClick={requestAgentWebAuth}>
-                              <ArrowUpRight size={14} strokeWidth={3} />
-                              {tr("Open login page", "打开登录页")}
-                            </button>
-                            <button className="settings-action settings-action--quiet" type="button" onClick={refreshAgentWebAuth}>
-                              {tr("Refresh status", "刷新状态")}
-                            </button>
-                            <button className="settings-action settings-action--danger" type="button" onClick={resetAgentWebAuth}>
-                              {tr("Disconnect", "断开连接")}
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </article>
-
-                    <article className="settings-agent-card">
-                      <div className="settings-agent-card__head">
-                        <div className="settings-agent-card__title">
-                          <strong>OpenAI BYOK</strong>
-                          <span>{tr("Attach an OpenAI API key for hosted web-side agent actions.", "绑定 OpenAI API Key，用于网页端托管 Agent 操作。")}</span>
-                        </div>
-                        <span className={`settings-agent-status${agentByokKey.trim() ? " is-active" : ""}`}>
-                          {agentByokKey.trim() ? tr("Active", "已启用") : tr("Needs action", "待操作")}
-                        </span>
-                      </div>
-
-                      <div className="settings-agent-form">
-                        <label className="settings-field">
-                          <span>{tr("Key label", "密钥标签")}</span>
-                          <input
-                            className="settings-input"
-                            value={agentByokLabel}
-                            onChange={(event) => setAgentByokLabel(event.target.value)}
-                          />
-                        </label>
-                        <label className="settings-field">
-                          <span>OpenAI API Key</span>
-                          <input
-                            className="settings-input"
-                            type="password"
-                            value={agentByokKey}
-                            placeholder="sk-..."
-                            onChange={(event) => setAgentByokKey(event.target.value)}
-                          />
-                        </label>
-                      </div>
-
-                      <p className="settings-agent-note">
-                        {tr(
-                          "BYOK is only needed for direct web execution. Client plugin mode can use Agent API Key instead.",
-                          "BYOK 仅用于网页端直接执行；客户端插件模式可改用 Agent API Key。"
-                        )}
-                      </p>
-
-                      <div className="settings-agent-actions">
-                        <button className="settings-action settings-action--primary" type="button" onClick={saveAgentByok}>
-                          {tr("Save key", "保存密钥")}
-                        </button>
-                      </div>
-                    </article>
+                      </>
+                    ) : (
+                      <div className="settings-agent-grid">
 
                     <article className="settings-agent-card">
                       <div className="settings-agent-card__head">
@@ -7881,6 +8178,8 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                         </button>
                       </div>
                     </article>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -8274,7 +8573,7 @@ agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
                 </div>
                 {currentLeaderboardRow && !currentLeaderboardInTop50 && (
                   <div className="leaderboard-list-row leaderboard-current-row--sticky is-current">
-                    <span className="leaderboard-list__rank">NO.{currentLeaderboardRow.rank}</span>
+                    <span className="leaderboard-list__rank">{tr("Unranked", "未上榜")}</span>
                     <span className="leaderboard-list__name">{tr(`You - #${currentLeaderboardRow.rank}`, `你 - #${currentLeaderboardRow.rank}`)}</span>
                     <span className="leaderboard-list__metric">
                       <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
