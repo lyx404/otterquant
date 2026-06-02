@@ -660,6 +660,7 @@ export default function Landing() {
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
   const [agentWebAuthStatus, setAgentWebAuthStatus] = useState<"idle" | "pending" | "connected">("pending");
   const [agentConnectModalOpen, setAgentConnectModalOpen] = useState(false);
+  const [agentAuthMethod, setAgentAuthMethod] = useState<"subscription" | "byok">("subscription");
   const [agentByokLabel, setAgentByokLabel] = useState("OpenAI BYOK");
   const [agentByokKey, setAgentByokKey] = useState("");
   const [agentApiKeyIssued, setAgentApiKeyIssued] = useState(true);
@@ -1289,6 +1290,7 @@ export default function Landing() {
       return;
     }
 
+    setAgentAuthMethod("byok");
     showSettingsFeedback(
       tr("BYOK saved", "BYOK 已保存"),
       tr(`${agentByokLabel || "OpenAI BYOK"} is ready for Agent use.`, `${agentByokLabel || "OpenAI BYOK"} 已可用于 Agent。`)
@@ -3780,10 +3782,12 @@ export default function Landing() {
         }
 
         .settings-agent-panel {
+          --settings-agent-side-width: 176px;
+          position: relative;
           min-height: 100%;
           height: 100%;
           display: grid;
-          grid-template-columns: 176px minmax(0, 1fr);
+          grid-template-columns: var(--settings-agent-side-width) minmax(0, 1fr);
           align-items: start;
           gap: 0;
         }
@@ -3833,7 +3837,7 @@ export default function Landing() {
         }
 
         .settings-agent-main {
-          position: relative;
+          position: static;
           min-width: 0;
           height: 100%;
           overflow: auto;
@@ -3852,10 +3856,6 @@ export default function Landing() {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 20px 24px;
-        }
-
-        .settings-agent-grid--connect {
-          gap: 22px;
         }
 
         .settings-agent-provider-list {
@@ -3958,11 +3958,11 @@ export default function Landing() {
         }
 
         .settings-agent-connect-modal {
-          width: min(760px, 100%);
+          width: min(560px, 100%);
           max-height: 100%;
           display: grid;
           grid-template-rows: auto minmax(0, 1fr);
-          gap: 18px;
+          gap: 14px;
           overflow: auto;
           padding: 18px;
           color: var(--ac-text);
@@ -3997,8 +3997,37 @@ export default function Landing() {
           box-shadow: none;
         }
 
+        .settings-agent-method-tabs {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 4px;
+          padding: 4px;
+          background: rgba(255, 247, 227, .82);
+          border: 1.5px solid rgba(196, 184, 158, .52);
+          border-radius: var(--radius-xs);
+        }
+
+        .settings-agent-method-tab {
+          appearance: none;
+          min-height: 38px;
+          padding: 0 12px;
+          color: rgba(121, 79, 39, .68);
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 1000;
+        }
+
+        .settings-agent-method-tab.is-active {
+          color: var(--ac-text);
+          background: #ffd557;
+        }
+
         .settings-agent-card {
-          min-height: 270px;
+          min-height: 0;
           display: flex;
           flex-direction: column;
           gap: 16px;
@@ -4169,6 +4198,7 @@ export default function Landing() {
 
         @media (max-width: 760px) {
           .settings-agent-panel {
+            --settings-agent-side-width: 0px;
             grid-template-columns: 1fr;
           }
 
@@ -7867,7 +7897,7 @@ export default function Landing() {
                     <p className="settings-agent-flow-copy">
                       {settingsAgentSection === "web"
                         ? tr("Use directly on the web. No software installation required.", "在网页端直接使用，无需安装任何软件。")
-                        : tr("Install the plugin in your local client and bring it directly into your workflow.", "在您的本地客户端安装插件，直接融入您的工作流。")}
+                        : tr("Install the plugin in your local client and bring it directly into your workflow.", "在您的本地客户端安装插件，融入您的工作流。")}
                     </p>
                     {settingsAgentSection === "web" ? (
                       <>
@@ -7901,7 +7931,6 @@ export default function Landing() {
                               <header className="settings-agent-connect-modal__header">
                                 <div className="settings-agent-card__title">
                                   <strong>{tr("Connect OpenAI", "连接 OpenAI")}</strong>
-                                  <span>{tr("Configure web authorization before using hosted Agent actions.", "配置网页端授权后，可使用托管 Agent 操作。")}</span>
                                 </div>
                                 <button
                                   className="settings-agent-connect-modal__close"
@@ -7913,7 +7942,28 @@ export default function Landing() {
                                 </button>
                               </header>
 
-                              <div className="settings-agent-grid settings-agent-grid--connect">
+                              <div className="settings-agent-method-tabs" role="tablist" aria-label={tr("Authorization method", "授权方式")}>
+                                <button
+                                  className={`settings-agent-method-tab${agentAuthMethod === "subscription" ? " is-active" : ""}`}
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={agentAuthMethod === "subscription"}
+                                  onClick={() => setAgentAuthMethod("subscription")}
+                                >
+                                  {tr("Authorization code", "授权码")}
+                                </button>
+                                <button
+                                  className={`settings-agent-method-tab${agentAuthMethod === "byok" ? " is-active" : ""}`}
+                                  type="button"
+                                  role="tab"
+                                  aria-selected={agentAuthMethod === "byok"}
+                                  onClick={() => setAgentAuthMethod("byok")}
+                                >
+                                  API Key
+                                </button>
+                              </div>
+
+                              {agentAuthMethod === "subscription" ? (
                                 <article className="settings-agent-card">
                                   <div className="settings-agent-card__head">
                                     <div className="settings-agent-card__title">
@@ -7967,8 +8017,8 @@ export default function Landing() {
 
                                   <p className="settings-agent-note">
                                     {tr(
-                                      "Scan the QR code or open the login page. Web authorization can be used directly in this site after approval.",
-                                      "扫码或打开登录页完成授权，通过后可直接在网页端使用 Agent。"
+                                      "Use the code or login page to authorize hosted Agent access.",
+                                      "使用授权码或登录页完成托管 Agent 授权。"
                                     )}
                                   </p>
 
@@ -8000,12 +8050,12 @@ export default function Landing() {
                                     )}
                                   </div>
                                 </article>
-
+                              ) : (
                                 <article className="settings-agent-card">
                                   <div className="settings-agent-card__head">
                                     <div className="settings-agent-card__title">
                                       <strong>OpenAI BYOK</strong>
-                                      <span>{tr("Attach an OpenAI API key for hosted web-side agent actions.", "绑定 OpenAI API Key，用于网页端托管 Agent 操作。")}</span>
+                                      <span>{tr("Use your own OpenAI API key for hosted Agent actions.", "使用您自己的 OpenAI API Key 执行托管 Agent。")}</span>
                                     </div>
                                     <span className={`settings-agent-status${agentByokKey.trim() ? " is-active" : ""}`}>
                                       {agentByokKey.trim() ? tr("Active", "已启用") : tr("Needs action", "待操作")}
@@ -8035,8 +8085,8 @@ export default function Landing() {
 
                                   <p className="settings-agent-note">
                                     {tr(
-                                      "BYOK is only needed for direct web execution. Client plugin mode can use Agent API Key instead.",
-                                      "BYOK 仅用于网页端直接执行；客户端插件模式可改用 Agent API Key。"
+                                      "API Key and authorization code are alternative connection methods.",
+                                      "API Key 与授权码二选一使用。"
                                     )}
                                   </p>
 
@@ -8046,7 +8096,7 @@ export default function Landing() {
                                     </button>
                                   </div>
                                 </article>
-                              </div>
+                              )}
                             </section>
                           </div>
                         )}
