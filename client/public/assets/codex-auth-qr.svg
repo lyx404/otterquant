@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" role="img" aria-label="Codex authorization QR code">
+  <rect width="300" height="300" fill="#fff"/>
+  <g fill="#050505">
+    <path d="M24 24h72v72H24zM204 24h72v72h-72zM24 204h72v72H24z"/>
+    <path fill="#fff" d="M36 36h48v48H36zM216 36h48v48h-48zM36 216h48v48H36z"/>
+    <path d="M48 48h24v24H48zM228 48h24v24h-24zM48 228h24v24H48z"/>
+    <path d="M108 24h24v12h-24zM144 24h24v12h-24zM180 24h12v24h-12zM120 48h36v12h-36zM168 48h24v12h-24zM108 72h12v24h-12zM132 72h24v12h-24zM168 72h24v24h-24z"/>
+    <path d="M24 108h24v12H24zM60 108h24v12H60zM96 108h24v24H96zM144 108h12v12h-12zM180 108h24v12h-24zM228 108h24v12h-24zM264 108h12v24h-12z"/>
+    <path d="M36 132h36v12H36zM84 132h24v24H84zM120 132h24v12h-24zM156 132h24v12h-24zM204 132h12v24h-12zM240 132h36v12h-36z"/>
+    <path d="M24 156h24v24H24zM60 156h12v12H60zM108 156h24v12h-24zM168 156h24v12h-24zM216 156h24v24h-24zM252 156h24v12h-24z"/>
+    <path d="M84 180h36v12H84zM132 180h12v24h-12zM156 180h12v12h-12zM192 180h36v12h-36zM252 180h24v24h-24z"/>
+    <path d="M108 204h24v12h-24zM144 204h24v12h-24zM180 204h12v24h-12zM204 204h24v12h-24zM240 204h36v12h-36z"/>
+    <path d="M108 228h12v24h-12zM132 228h24v12h-24zM168 228h36v12h-36zM216 228h12v24h-12zM252 228h24v12h-24z"/>
+    <path d="M120 264h36v12h-36zM180 264h24v12h-24zM228 264h12v12h-12zM252 252h24v24h-24z"/>
+    <path d="M132 96h12v12h-12zM156 96h12v24h-12zM120 120h12v12h-12zM168 120h12v12h-12zM192 144h12v12h-12zM144 156h12v12h-12z"/>
+  </g>
+  <circle cx="150" cy="150" r="42" fill="#fff"/>
+  <g fill="none" stroke="#111" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 110c13 0 22 7 28 18"/>
+    <path d="M178 128c7 12 4 25-7 34"/>
+    <path d="M171 162c-9 11-23 14-35 7"/>
+    <path d="M136 169c-13-4-21-16-19-29"/>
+    <path d="M117 140c1-14 11-25 24-29"/>
+    <path d="M141 111c13-5 27-1 37 10"/>
+    <path d="M129 137l21-12 21 12v24l-21 12-21-12z"/>
+  </g>
+</svg>

@@ -12,8 +12,14 @@ import {
   ArrowLeft,
   ArrowUpRight,
   BarChart3,
+  Check,
   ClipboardList,
+  Copy,
   CreditCard,
+  Download,
+  Eye,
+  EyeOff,
+  FileText,
   Heart,
   Key,
   Languages,
@@ -22,9 +28,13 @@ import {
   MoreHorizontal,
   Pencil,
   PieChart,
+  Plus,
+  RefreshCw,
   Search,
+  Send,
   Star,
   TrendingUp,
+  Trash2,
   Unplug,
   User,
   Users,
@@ -295,6 +305,33 @@ const agentConnectableProviders: readonly AgentConnectableProvider[] = [
   { id: "openclaw", name: "OpenClaw", mark: "O", icon: "openclaw" },
 ];
 const agentWebAuthorizationLoginUrl = "https://chatgpt.com/activate";
+type AgentApiKeyItem = {
+  id: string;
+  name: string;
+  apiKey: string;
+  skillVersion: string;
+  createdAt: string;
+  updatedAt: string;
+};
+const AGENT_SKILL_LATEST = "v2.4.1";
+const initialAgentApiKeys: AgentApiKeyItem[] = [
+  {
+    id: "1",
+    name: "My Trading Bot",
+    apiKey: "ot_sk_7x9kM2nP4qR8sT6uW3yA1bC5dE0fG2h",
+    skillVersion: "v2.4.1",
+    createdAt: "2026-03-01",
+    updatedAt: "2026-03-28",
+  },
+  {
+    id: "2",
+    name: "Research Agent",
+    apiKey: "ot_sk_hJ2kL4mN6pQ8rS0tU2vW4xY6zA8bC0dE",
+    skillVersion: "v2.3.0",
+    createdAt: "2026-02-15",
+    updatedAt: "2026-03-15",
+  },
+];
 
 const createAgentAuthorizationCode = () => {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -302,13 +339,33 @@ const createAgentAuthorizationCode = () => {
   return `${segment(4)}-${segment(5)}`;
 };
 
-const createAgentAuthorizationQrCells = (code: string) => {
-  let seed = Array.from(code).reduce((value, character) => value + character.charCodeAt(0), 0);
-  return Array.from({ length: 49 }, (_, index) => {
-    seed = (seed * 1664525 + 1013904223 + index) >>> 0;
-    return seed % 5 < 2;
-  });
+const createAgentApiSecret = () => {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return `ot_sk_${Array.from({ length: 32 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("")}`;
 };
+
+const buildAgentSkillPrompt = (apiKey: string, skillVersion: string) => `# Quandora Trading Skill Configuration
+
+## API Key
+\`${apiKey}\`
+
+## Skill Version
+${skillVersion}
+
+## Setup Instructions
+Paste this entire prompt into your AI agent (ChatGPT / Claude / DeepSeek) to enable Quandora Trading capabilities.
+
+Your agent will be able to:
+- Mine and backtest alpha factors automatically
+- Access real-time market data (CEX & DEX)
+- Submit strategies to the Quandora Arena
+- Monitor portfolio performance
+
+## Connection Endpoint
+https://api.quandora.trade/v1/agent
+
+## Authentication
+Include the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
 
 const inventorySpecialCards: InventorySpecialCard[] = [
   {
@@ -689,17 +746,20 @@ export default function Landing() {
   const [agentStatusTestingProviderId, setAgentStatusTestingProviderId] = useState<AgentProviderId | null>(null);
   const [agentAuthMethod, setAgentAuthMethod] = useState<"code" | "byok">("code");
   const [agentWebAuthorizationCode, setAgentWebAuthorizationCode] = useState("SSH8-M4Y83");
-  const agentAuthorizationQrCells = useMemo(
-    () => createAgentAuthorizationQrCells(agentWebAuthorizationCode),
-    [agentWebAuthorizationCode]
-  );
   const [agentByokKey, setAgentByokKey] = useState("");
   const [agentByokTestStatus, setAgentByokTestStatus] = useState<"idle" | "testing" | "invalid" | "valid">("idle");
   const [agentByokTestMessage, setAgentByokTestMessage] = useState("");
-  const [agentApiKeyIssued, setAgentApiKeyIssued] = useState(true);
-  const [agentApiKeyCopyable, setAgentApiKeyCopyable] = useState(false);
-  const [agentApiKeyId, setAgentApiKeyId] = useState("471967e8-b...1a3c53");
-  const [agentSkillSnippetVisible, setAgentSkillSnippetVisible] = useState(false);
+  const [agentApiKeys, setAgentApiKeys] = useState<AgentApiKeyItem[]>(initialAgentApiKeys);
+  const [agentApiVisibleKeyIds, setAgentApiVisibleKeyIds] = useState<Set<string>>(() => new Set());
+  const [agentApiEditingNameId, setAgentApiEditingNameId] = useState<string | null>(null);
+  const [agentApiEditNameValue, setAgentApiEditNameValue] = useState("");
+  const [agentApiMoreMenuId, setAgentApiMoreMenuId] = useState<string | null>(null);
+  const agentApiMoreMenuRef = useRef<HTMLDivElement | null>(null);
+  const [agentApiDeleteConfirmId, setAgentApiDeleteConfirmId] = useState<string | null>(null);
+  const [agentApiCreateModalOpen, setAgentApiCreateModalOpen] = useState(false);
+  const [agentApiCreateStep, setAgentApiCreateStep] = useState<1 | 2>(1);
+  const [agentApiNewName, setAgentApiNewName] = useState("");
+  const [agentApiCreatedSecret, setAgentApiCreatedSecret] = useState("");
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>("week");
   const [withdrawAmount, setWithdrawAmount] = useState(MIN_AMOUNT);
@@ -769,6 +829,17 @@ export default function Landing() {
       setSettingsEmail(user.email || "alpha@example.com");
     }
   }, [settingsEditingEmail, settingsEditingProfile, user]);
+
+  useEffect(() => {
+    if (!agentApiMoreMenuId) return undefined;
+    const closeAgentApiMenu = (event: MouseEvent) => {
+      if (agentApiMoreMenuRef.current && !agentApiMoreMenuRef.current.contains(event.target as Node)) {
+        setAgentApiMoreMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", closeAgentApiMenu);
+    return () => document.removeEventListener("mousedown", closeAgentApiMenu);
+  }, [agentApiMoreMenuId]);
 
   const filterLabels: Record<FilterKey, string> = {
     all: tr("All", "全部"),
@@ -1410,46 +1481,119 @@ export default function Landing() {
     );
   };
 
-  const createAgentApiKey = () => {
-    setAgentApiKeyIssued(true);
-    setAgentApiKeyCopyable(true);
-    setAgentApiKeyId("9f243c2a-n...7e84b1");
-    showSettingsFeedback(
-      tr("Agent API key created", "Agent API Key 已创建"),
-      tr("Copy the secret now. It is only shown once after closing.", "请立即复制密钥，关闭后将仅显示一次。")
-    );
-  };
-
-  const refreshAgentApiKey = () => {
-    setAgentApiKeyIssued(true);
-    setAgentApiKeyCopyable(true);
-    setAgentApiKeyId("68b9124f-k...5d20aa");
-    showSettingsFeedback(tr("Agent API key refreshed", "Agent API Key 已刷新"), tr("A new secret has been generated. Copy it now.", "新密钥已生成，请立即复制。"));
-  };
-
-  const revokeAgentApiKey = () => {
-    setAgentApiKeyIssued(false);
-    setAgentApiKeyCopyable(false);
-    setAgentApiKeyId("");
-    setAgentSkillSnippetVisible(false);
-    showSettingsFeedback(
-      tr("Agent API key revoked", "Agent API Key 已撤销"),
-      tr("Create a new key to continue configuring the client plugin.", "创建新密钥后可继续配置客户端插件。")
-    );
-  };
-
-  const copyAgentApiKey = () => {
-    if (!agentApiKeyCopyable) {
-      showSettingsFeedback(tr("Cannot copy", "无法复制"), tr("The secret is only shown after creation or refresh.", "密钥只在创建或刷新后展示一次。"));
+  const copyAgentText = (text: string, successTitle: string, successMessage: string) => {
+    if (!navigator.clipboard?.writeText) {
+      showSettingsFeedback(tr("Copy manually", "请手动复制"), text);
       return;
     }
 
-    setAgentApiKeyCopyable(false);
-    showSettingsFeedback(tr("Key copied", "密钥已复制"), tr("Store it securely in your client.", "请在客户端安全保存。"));
+    navigator.clipboard.writeText(text).then(() => {
+      showSettingsFeedback(successTitle, successMessage);
+    }).catch(() => {
+      showSettingsFeedback(tr("Copy failed", "复制失败"), tr("Please copy it manually.", "请手动复制。"));
+    });
   };
 
-  const showAgentClientAction = (messageEn: string, messageZh: string) => {
-    showSettingsFeedback(tr("Ready", "已准备"), tr(messageEn, messageZh));
+  const openAgentApiCreateModal = () => {
+    setAgentApiCreateStep(1);
+    setAgentApiNewName("");
+    setAgentApiCreatedSecret("");
+    setAgentApiCreateModalOpen(true);
+  };
+
+  const createAgentApiKey = () => {
+    if (!agentApiNewName.trim()) {
+      showSettingsFeedback(tr("Cannot create", "无法创建"), tr("Please enter an API name.", "请输入 API 名称。"));
+      return;
+    }
+    setAgentApiCreatedSecret(createAgentApiSecret());
+    setAgentApiCreateStep(2);
+  };
+
+  const finishAgentApiCreate = () => {
+    if (!agentApiCreatedSecret || !agentApiNewName.trim()) {
+      setAgentApiCreateModalOpen(false);
+      return;
+    }
+
+    const now = new Date().toISOString().split("T")[0];
+    const nextKey: AgentApiKeyItem = {
+      id: Date.now().toString(),
+      name: agentApiNewName.trim(),
+      apiKey: agentApiCreatedSecret,
+      skillVersion: AGENT_SKILL_LATEST,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    setAgentApiKeys((current) => [nextKey, ...current]);
+    setAgentApiCreateModalOpen(false);
+    setAgentApiCreateStep(1);
+    setAgentApiNewName("");
+    setAgentApiCreatedSecret("");
+    showSettingsFeedback(tr("API key created", "API 密钥已创建"), tr("Paste the prompt into your AI agent to continue.", "将提示词粘贴到你的 AI Agent 中继续。"));
+  };
+
+  const toggleAgentApiKeyVisibility = (id: string) => {
+    setAgentApiVisibleKeyIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const saveAgentApiName = (id: string) => {
+    if (!agentApiEditNameValue.trim()) {
+      showSettingsFeedback(tr("Cannot save", "无法保存"), tr("Name cannot be empty.", "名称不能为空。"));
+      return;
+    }
+
+    const now = new Date().toISOString().split("T")[0];
+    setAgentApiKeys((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, name: agentApiEditNameValue.trim(), updatedAt: now } : item
+      )
+    );
+    setAgentApiEditingNameId(null);
+    setAgentApiEditNameValue("");
+    showSettingsFeedback(tr("API name updated", "API 名称已更新"), tr("The agent label has been saved.", "Agent 标签已保存。"));
+  };
+
+  const refreshAgentApiSkill = (id: string) => {
+    const now = new Date().toISOString().split("T")[0];
+    let alreadyLatest = false;
+
+    setAgentApiKeys((current) =>
+      current.map((item) => {
+        if (item.id !== id) return item;
+        if (item.skillVersion === AGENT_SKILL_LATEST) {
+          alreadyLatest = true;
+          return item;
+        }
+        return { ...item, skillVersion: AGENT_SKILL_LATEST, updatedAt: now };
+      })
+    );
+
+    showSettingsFeedback(
+      alreadyLatest ? tr("Already latest", "当前已是最新") : tr("Skill updated", "Skill 已更新"),
+      alreadyLatest ? tr("This API key is already using the latest Skill.", "此 API 密钥已使用最新版 Skill。") : tr(`Skill updated to ${AGENT_SKILL_LATEST}.`, `Skill 已更新到 ${AGENT_SKILL_LATEST}。`)
+    );
+  };
+
+  const deleteAgentApiKey = (id: string) => {
+    setAgentApiKeys((current) => current.filter((item) => item.id !== id));
+    setAgentApiDeleteConfirmId(null);
+    showSettingsFeedback(tr("API key deleted", "API 密钥已删除"), tr("Agents using this key will lose access.", "使用此密钥的 Agent 将失去访问权限。"));
+  };
+
+  const copyAgentApiPrompt = (item: AgentApiKeyItem) => {
+    const usesLatest = item.skillVersion === AGENT_SKILL_LATEST;
+    copyAgentText(
+      buildAgentSkillPrompt(item.apiKey, AGENT_SKILL_LATEST),
+      usesLatest ? tr("Prompt copied", "提示词已复制") : tr("Latest prompt copied", "最新版提示词已复制"),
+      usesLatest ? tr("Paste it into your AI agent.", "请粘贴到你的 AI Agent 中。") : tr(`Prompt uses Skill ${AGENT_SKILL_LATEST}.`, `提示词已使用 Skill ${AGENT_SKILL_LATEST}。`)
+    );
   };
 
   const openSettingsModal = () => {
@@ -3801,11 +3945,13 @@ export default function Landing() {
         }
 
         .settings-modal {
+          position: relative;
           width: min(980px, 94vw);
           height: min(680px, 88vh);
           max-height: 88vh;
           display: flex;
           flex-direction: column;
+          overflow: hidden;
           background: linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
           border: 2px solid color-mix(in srgb, var(--ac-border) 82%, var(--ac-text));
           border-radius: var(--radius-xs);
@@ -3896,7 +4042,7 @@ export default function Landing() {
 
         .settings-agent-panel {
           --settings-agent-side-width: 176px;
-          position: relative;
+          position: static;
           min-height: 100%;
           height: 100%;
           display: grid;
@@ -3970,6 +4116,97 @@ export default function Landing() {
           line-height: 1.45;
         }
 
+        .settings-agent-setup-guide {
+          display: grid;
+          grid-template-columns: 40px minmax(0, 1fr);
+          gap: 12px;
+          margin: -4px 0 16px;
+          padding: 12px;
+          background: rgba(255, 248, 232, .74);
+          border: 1.5px solid rgba(196, 184, 158, .58);
+          border-radius: var(--radius-xs);
+        }
+
+        .settings-agent-setup-rail {
+          position: relative;
+          display: grid;
+          grid-template-rows: repeat(3, minmax(0, 1fr));
+          align-items: start;
+          justify-items: center;
+          gap: 16px;
+          padding: 4px 0;
+        }
+
+        .settings-agent-setup-rail::before {
+          content: "";
+          position: absolute;
+          top: 20px;
+          bottom: 20px;
+          left: 50%;
+          width: 1.5px;
+          transform: translateX(-50%);
+          background: rgba(196, 184, 158, .72);
+        }
+
+        .settings-agent-setup-step-dot {
+          z-index: 1;
+          width: 28px;
+          height: 28px;
+          display: inline-grid;
+          place-items: center;
+          color: #5f5a4e;
+          background: #f9f4e4;
+          border: 1.5px solid rgba(196, 184, 158, .72);
+          border-radius: 999px;
+          box-shadow: 0 1px 0 rgba(255, 255, 255, .75) inset;
+        }
+
+        .settings-agent-setup-steps {
+          display: grid;
+          gap: 10px;
+        }
+
+        .settings-agent-setup-step {
+          display: grid;
+          grid-template-columns: 32px minmax(0, 1fr);
+          gap: 12px;
+          align-items: center;
+          min-height: 58px;
+          padding: 10px 12px;
+          color: var(--ac-text);
+          background: #fffdf4;
+          border: 1.5px solid rgba(196, 184, 158, .56);
+          border-radius: var(--radius-xs);
+          box-shadow: 0 1px 0 rgba(255, 255, 255, .72) inset;
+        }
+
+        .settings-agent-setup-step-icon {
+          width: 32px;
+          height: 32px;
+          display: inline-grid;
+          place-items: center;
+          color: #7b5a26;
+          background: #fff4d7;
+          border: 1px solid rgba(196, 184, 158, .44);
+          border-radius: 999px;
+        }
+
+        .settings-agent-setup-step strong {
+          display: block;
+          font-size: 14px;
+          font-weight: 1000;
+          line-height: 1.2;
+        }
+
+        .settings-agent-setup-step span {
+          display: block;
+          margin-top: 4px;
+          color: rgba(121, 79, 39, .68);
+          font-size: 12px;
+          font-weight: 850;
+          line-height: 1.35;
+        }
+
         .settings-agent-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4007,8 +4244,8 @@ export default function Landing() {
         }
 
         .settings-agent-provider-mark {
-          width: 42px;
-          height: 42px;
+          width: 38px;
+          height: 38px;
           box-sizing: border-box;
           display: grid;
           place-items: center;
@@ -4032,6 +4269,13 @@ export default function Landing() {
         .settings-agent-provider-icon {
           width: 38px;
           height: 38px;
+          display: grid;
+          place-items: center;
+        }
+
+        .settings-agent-provider-icon svg {
+          width: 100%;
+          height: 100%;
           display: block;
         }
 
@@ -4041,7 +4285,7 @@ export default function Landing() {
           align-items: center;
           gap: 10px;
           color: var(--ac-text);
-          font-size: 17px;
+          font-size: 14px;
           font-weight: 1000;
           line-height: 1.2;
         }
@@ -4074,7 +4318,7 @@ export default function Landing() {
           border-radius: var(--radius-xs);
           cursor: pointer;
           font: inherit;
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 1000;
         }
 
@@ -4149,7 +4393,7 @@ export default function Landing() {
         .settings-agent-connect-overlay {
           position: absolute;
           inset: 0;
-          z-index: 2;
+          z-index: 6;
           display: grid;
           place-items: center;
           padding: 28px;
@@ -4157,22 +4401,22 @@ export default function Landing() {
         }
 
         .settings-agent-connect-modal {
-          width: min(560px, 100%);
-          height: min(400px, calc(100vh - 56px));
+          position: relative;
+          width: min(548px, 100%);
+          height: auto;
           max-height: 100%;
           display: grid;
-          grid-template-rows: auto auto minmax(0, 1fr);
+          grid-template-rows: auto auto;
           gap: 14px;
           overflow: hidden;
-          padding: 18px;
+          padding: 18px 18px 20px;
           color: var(--ac-text);
-          background: rgba(255, 253, 244, .96);
-          border: 2px solid rgba(196, 184, 158, .7);
+          background: #fffdf4;
+          border: 1.5px solid rgba(121, 79, 39, .28);
           border-radius: var(--radius-xs);
           box-shadow:
-            0 0 0 2px rgba(255, 253, 244, .78),
-            4px 4px 0 rgba(189, 174, 160, .5),
-            0 18px 36px rgba(66, 48, 31, .18);
+            0 0 0 3px rgba(255, 253, 244, .72),
+            0 18px 36px rgba(66, 48, 31, .16);
         }
 
         .settings-agent-confirm-modal {
@@ -4197,6 +4441,34 @@ export default function Landing() {
           gap: 16px;
         }
 
+        .settings-agent-connect-modal--compact-header .settings-agent-connect-modal__header {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 28px;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .settings-agent-connect-modal--compact-header .settings-agent-method-tabs {
+          margin-right: 0;
+        }
+
+        .settings-agent-connect-modal--compact-header .settings-agent-connect-modal__close {
+          width: 28px;
+          height: 28px;
+          padding: 0;
+          color: rgba(121, 79, 39, .78);
+          background: transparent;
+          border: 0;
+          box-shadow: none;
+        }
+
+        .settings-agent-connect-modal--compact-header .settings-agent-connect-modal__close:hover,
+        .settings-agent-connect-modal--compact-header .settings-agent-connect-modal__close:focus-visible {
+          color: var(--ac-text);
+          background: transparent;
+          opacity: .85;
+        }
+
         .settings-agent-connect-modal__close {
           appearance: none;
           width: 34px;
@@ -4215,16 +4487,18 @@ export default function Landing() {
         .settings-agent-method-tabs {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 4px;
-          padding: 4px;
-          background: rgba(255, 247, 227, .82);
+          gap: 3px;
+          min-width: 0;
+          padding: 3px;
+          background: rgba(255, 247, 227, .72);
           border: 1.5px solid rgba(196, 184, 158, .52);
           border-radius: var(--radius-xs);
         }
 
         .settings-agent-method-tab {
           appearance: none;
-          min-height: 38px;
+          min-height: 30px;
+          position: relative;
           padding: 0 12px;
           color: rgba(121, 79, 39, .68);
           background: transparent;
@@ -4234,10 +4508,28 @@ export default function Landing() {
           font: inherit;
           font-size: 13px;
           font-weight: 1000;
+          transition: background 120ms ease, color 120ms ease;
         }
 
         .settings-agent-method-tab.is-active {
           color: var(--ac-text);
+          background: #ffd557;
+          box-shadow: 1px 1px 0 rgba(189, 174, 160, .28);
+        }
+
+        .settings-agent-method-tab.is-active::after {
+          content: none;
+        }
+
+        .settings-agent-method-tab:hover,
+        .settings-agent-method-tab:focus-visible {
+          color: var(--ac-text);
+          background: rgba(255, 213, 87, .52);
+          outline: none;
+        }
+
+        .settings-agent-method-tab.is-active:hover,
+        .settings-agent-method-tab.is-active:focus-visible {
           background: #ffd557;
         }
 
@@ -4256,8 +4548,10 @@ export default function Landing() {
         }
 
         .settings-agent-connect-modal .settings-agent-card {
-          gap: 14px;
-          padding-bottom: 8px;
+          gap: 12px;
+          min-height: 232px;
+          overflow: visible;
+          padding-bottom: 0;
         }
 
         .settings-agent-card__head {
@@ -4305,26 +4599,323 @@ export default function Landing() {
           color: rgba(121, 79, 39, .54);
         }
 
+        .settings-agent-api-panel {
+          gap: 14px;
+        }
+
+        .settings-agent-card__title-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .settings-agent-count {
+          min-width: 24px;
+          height: 20px;
+          display: inline-grid;
+          place-items: center;
+          padding: 0 7px;
+          color: rgba(121, 79, 39, .72);
+          background: #fff7e3;
+          border: 1px solid rgba(196, 184, 158, .5);
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 1000;
+        }
+
+        .settings-agent-api-list {
+          display: grid;
+          gap: 10px;
+        }
+
+        .settings-agent-api-empty {
+          display: grid;
+          place-items: center;
+          gap: 8px;
+          min-height: 150px;
+          color: rgba(121, 79, 39, .62);
+          text-align: center;
+          background: #fff8e8;
+          border: 1.5px dashed rgba(196, 184, 158, .7);
+          border-radius: var(--radius-xs);
+          font-size: 12px;
+          font-weight: 850;
+        }
+
+        .settings-agent-api-item {
+          display: grid;
+          gap: 10px;
+          padding: 14px;
+          background: #fff8e8;
+          border: 1.5px solid rgba(196, 184, 158, .56);
+          border-radius: var(--radius-xs);
+        }
+
+        .settings-agent-api-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .settings-agent-api-name {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .settings-agent-api-name strong {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-size: 14px;
+          font-weight: 1000;
+        }
+
+        .settings-agent-icon-button {
+          appearance: none;
+          width: 28px;
+          height: 28px;
+          display: inline-grid;
+          place-items: center;
+          flex: 0 0 auto;
+          color: rgba(121, 79, 39, .72);
+          background: transparent;
+          border: 1.5px solid transparent;
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+        }
+
+        .settings-agent-icon-button:hover,
+        .settings-agent-icon-button:focus-visible {
+          color: var(--ac-text);
+          background: #fffdf4;
+          border-color: rgba(196, 184, 158, .62);
+        }
+
+        .settings-agent-api-actions {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          flex: 0 0 auto;
+        }
+
+        .settings-agent-api-menu-anchor {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          flex: 0 0 auto;
+        }
+
+        .settings-agent-api-menu {
+          position: absolute;
+          right: 0;
+          top: calc(100% + 6px);
+          z-index: 3;
+          min-width: 138px;
+          padding: 5px;
+          background: #fffdf4;
+          border: 1.5px solid rgba(196, 184, 158, .72);
+          border-radius: var(--radius-xs);
+          box-shadow: 0 12px 24px rgba(66, 48, 31, .16);
+        }
+
+        .settings-agent-api-menu button {
+          appearance: none;
+          width: 100%;
+          min-height: 32px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 0 10px;
+          color: #b14b43;
+          text-align: left;
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .settings-agent-api-menu button:hover {
+          background: rgba(177, 75, 67, .1);
+        }
+
+        .settings-agent-api-keyline {
+          display: grid;
+          grid-template-columns: 72px minmax(0, 1fr);
+          gap: 10px;
+          align-items: center;
+        }
+
+        .settings-agent-api-label {
+          color: rgba(121, 79, 39, .62);
+          font-size: 10px;
+          font-weight: 1000;
+          letter-spacing: .06em;
+          text-transform: uppercase;
+        }
+
+        .settings-agent-api-secret {
+          min-width: 0;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto auto;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 8px;
+          background: rgba(255, 253, 244, .78);
+          border-radius: var(--radius-xs);
+        }
+
+        .settings-agent-api-secret code {
+          min-width: 0;
+          overflow: hidden;
+          color: #6c4622;
+          font-size: 12px;
+          font-weight: 1000;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .settings-agent-api-meta {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 16px;
+          color: rgba(121, 79, 39, .68);
+          font-size: 11px;
+          font-weight: 850;
+        }
+
+        .settings-agent-api-meta strong {
+          color: #9d6b1c;
+          font-weight: 1000;
+        }
+
+        .settings-agent-api-update {
+          color: #b27319;
+        }
+
+        .settings-agent-api-name-edit {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+
+        .settings-agent-api-name-edit .settings-input {
+          min-height: 34px;
+          max-width: 280px;
+          padding-block: 0;
+        }
+
+        .settings-agent-prompt-preview {
+          max-height: 190px;
+          overflow: auto;
+          padding: 12px;
+          color: #4e433c;
+          background: #fff8e8;
+          border: 1.5px solid rgba(196, 184, 158, .56);
+          border-radius: var(--radius-xs);
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 11px;
+          font-weight: 850;
+          line-height: 1.45;
+          white-space: pre-wrap;
+        }
+
+        .settings-agent-api-create-modal {
+          width: min(520px, 100%);
+        }
+
+        .settings-agent-api-steps {
+          display: grid;
+          grid-template-columns: auto minmax(24px, 1fr) auto;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .settings-agent-api-step {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          color: rgba(121, 79, 39, .62);
+          font-size: 12px;
+          font-weight: 1000;
+        }
+
+        .settings-agent-api-step span:first-child {
+          width: 22px;
+          height: 22px;
+          display: inline-grid;
+          place-items: center;
+          background: #fff7e3;
+          border: 1.5px solid rgba(196, 184, 158, .62);
+          border-radius: 999px;
+        }
+
+        .settings-agent-api-step.is-active {
+          color: var(--ac-text);
+        }
+
+        .settings-agent-api-step.is-active span:first-child {
+          background: #ffd557;
+          border-color: rgba(121, 79, 39, .26);
+        }
+
+        .settings-agent-api-step-line {
+          height: 1.5px;
+          background: rgba(196, 184, 158, .56);
+        }
+
         .settings-agent-auth-options {
           display: grid;
-          gap: 12px;
+          grid-template-columns: minmax(168px, .82fr) minmax(0, 1fr);
+          gap: 0;
+          overflow: hidden;
+          background: #fff8e8;
+          padding: 18px;
+          border-radius: var(--radius-xs);
         }
 
         .settings-agent-auth-option {
           display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 12px;
-          align-items: center;
-          padding: 14px;
-          background: #fff7e3;
-          border: 1.5px solid rgba(196, 184, 158, .62);
-          border-radius: var(--radius-xs);
+          grid-template-columns: 1fr;
+          gap: 14px;
+          align-content: start;
+          align-items: start;
+          padding: 0;
+          margin: 0;
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+        }
+
+        .settings-agent-auth-option--scan {
+          padding-right: 20px;
+        }
+
+        .settings-agent-auth-option--code {
+          gap: 18px;
+          padding-left: 20px;
+          border-left: 1px solid rgba(196, 184, 158, .44);
         }
 
         .settings-agent-auth-option > div:first-child,
         .settings-agent-code-copy {
           display: grid;
-          gap: 5px;
+          gap: 6px;
+          min-width: 0;
         }
 
         .settings-agent-auth-option__head {
@@ -4336,8 +4927,9 @@ export default function Landing() {
 
         .settings-agent-auth-option span {
           color: rgba(121, 79, 39, .72);
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 850;
+          line-height: 1.45;
         }
 
         .settings-agent-auth-option strong {
@@ -4345,8 +4937,13 @@ export default function Landing() {
           font-weight: 1000;
         }
 
+        .settings-agent-auth-option__head strong {
+          font-size: 15px;
+          line-height: 1.2;
+        }
+
         .settings-agent-code-copy strong {
-          font-size: 22px;
+          font-size: 23px;
           letter-spacing: .08em;
           line-height: 1;
         }
@@ -4354,29 +4951,33 @@ export default function Landing() {
         .settings-agent-auth-actions {
           display: flex;
           flex-wrap: wrap;
-          justify-content: flex-end;
+          justify-content: flex-start;
+          align-items: center;
           gap: 8px;
         }
 
+        .settings-agent-auth-option--code .settings-action {
+          width: 100%;
+          min-height: 38px;
+        }
+
         .settings-agent-qr {
-          width: 88px;
-          height: 88px;
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 3px;
-          padding: 8px;
-          background: #fffdf4;
-          border: 2px solid rgba(121, 79, 39, .28);
-          border-radius: var(--radius-xs);
+          width: 134px;
+          height: 134px;
+          display: block;
+          justify-self: start;
+          overflow: hidden;
+          background: #fff;
+          border: 0;
+          border-radius: 4px;
         }
 
-        .settings-agent-qr span {
-          background: rgba(121, 79, 39, .16);
-          border-radius: 2px;
-        }
-
-        .settings-agent-qr span.is-active {
-          background: rgba(121, 79, 39, .82);
+        .settings-agent-qr img {
+          width: 100%;
+          height: 100%;
+          display: block;
+          object-fit: cover;
+          image-rendering: auto;
         }
 
         .settings-agent-meta {
@@ -4417,8 +5018,32 @@ export default function Landing() {
           gap: 12px;
         }
 
+        .settings-agent-form--byok {
+          min-height: 202px;
+          align-content: center;
+          gap: 10px;
+        }
+
         .settings-agent-form .settings-field {
           gap: 8px;
+        }
+
+        .settings-agent-form--byok .settings-field {
+          gap: 8px;
+        }
+
+        .settings-agent-form--byok .settings-input {
+          height: 40px;
+        }
+
+        .settings-agent-byok-actions {
+          display: flex;
+          justify-content: flex-end;
+          margin-top: 2px;
+        }
+
+        .settings-agent-byok-actions .settings-action {
+          min-width: 92px;
         }
 
         .settings-field__head {
@@ -4508,6 +5133,40 @@ export default function Landing() {
           line-height: 1.45;
         }
 
+        .settings-agent-auth-note {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          min-height: 30px;
+          margin: 0;
+        }
+
+        .settings-agent-auth-note span {
+          min-width: 0;
+        }
+
+        .settings-agent-refresh-icon {
+          appearance: none;
+          width: 28px;
+          height: 28px;
+          display: inline-grid;
+          place-items: center;
+          flex: 0 0 auto;
+          color: rgba(121, 79, 39, .78);
+          background: transparent;
+          border: 1.5px solid rgba(196, 184, 158, .5);
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+          box-shadow: none;
+        }
+
+        .settings-agent-refresh-icon:hover,
+        .settings-agent-refresh-icon:focus-visible {
+          color: var(--ac-text);
+          background: #ffd557;
+        }
+
         @media (max-width: 760px) {
           .settings-agent-panel {
             --settings-agent-side-width: 0px;
@@ -4535,6 +5194,68 @@ export default function Landing() {
           .settings-agent-provider-actions {
             grid-column: 2;
             justify-content: flex-start;
+          }
+
+          .settings-agent-setup-guide {
+            grid-template-columns: 1fr;
+          }
+
+          .settings-agent-setup-rail {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-rows: none;
+            gap: 10px;
+            padding: 0;
+          }
+
+          .settings-agent-setup-rail::before {
+            top: 50%;
+            right: 20px;
+            left: 20px;
+            bottom: auto;
+            width: auto;
+            height: 1.5px;
+            transform: translateY(-50%);
+          }
+
+          .settings-agent-setup-step {
+            grid-template-columns: 1fr;
+            justify-items: start;
+          }
+
+          .settings-agent-auth-options {
+            grid-template-columns: 1fr;
+            gap: 14px;
+          }
+
+          .settings-agent-auth-option {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+
+          .settings-agent-auth-option--scan {
+            padding-right: 0;
+          }
+
+          .settings-agent-auth-option--code {
+            padding-top: 14px;
+            padding-left: 0;
+            border-top: 1px solid rgba(196, 184, 158, .44);
+            border-left: 0;
+          }
+
+          .settings-agent-auth-actions,
+          .settings-agent-qr {
+            justify-self: start;
+          }
+
+          .settings-agent-api-row,
+          .settings-agent-api-name-edit {
+            align-items: flex-start;
+            flex-direction: column;
+          }
+
+          .settings-agent-api-keyline {
+            grid-template-columns: 1fr;
           }
         }
 
@@ -8225,6 +8946,46 @@ export default function Landing() {
                         ? tr("Use directly on the web. No software installation required.", "在网页端直接使用，无需安装任何软件。")
                         : tr("Install the plugin in your local client and bring it directly into your workflow.", "在您的本地客户端安装插件，融入您的工作流。")}
                     </p>
+                    {settingsAgentSection === "client" && (
+                      <section className="settings-agent-setup-guide" aria-label={tr("Setup guide", "设置引导")}>
+                        <div className="settings-agent-setup-rail" aria-hidden="true">
+                          {[1, 2, 3].map((step) => (
+                            <span className="settings-agent-setup-step-dot" key={step}>
+                              <Check size={15} strokeWidth={3} />
+                            </span>
+                          ))}
+                        </div>
+                        <div className="settings-agent-setup-steps">
+                          <div className="settings-agent-setup-step">
+                            <span className="settings-agent-setup-step-icon" aria-hidden="true">
+                              <Download size={15} strokeWidth={3} />
+                            </span>
+                            <span>
+                              <strong>{tr("1. Download Buddy and sign in", "1. 下载 Buddy 并登录")}</strong>
+                              <span>{tr("Install the local client plugin environment.", "完成本地客户端插件环境准备。")}</span>
+                            </span>
+                          </div>
+                          <div className="settings-agent-setup-step">
+                            <span className="settings-agent-setup-step-icon" aria-hidden="true">
+                              <Key size={15} strokeWidth={3} />
+                            </span>
+                            <span>
+                              <strong>{tr("2. Create API and copy it to your agent client", "2. 创建 API，复制到 Agent 客户端")}</strong>
+                              <span>{tr("Use the generated credential in your own agent workflow.", "将生成的凭证接入您的 Agent 工作流。")}</span>
+                            </span>
+                          </div>
+                          <div className="settings-agent-setup-step">
+                            <span className="settings-agent-setup-step-icon" aria-hidden="true">
+                              <Send size={15} strokeWidth={3} />
+                            </span>
+                            <span>
+                              <strong>{tr("3. Send a request to verify", "3. 发送请求验证")}</strong>
+                              <span>{tr("Confirm the client can access Quandora Trading.", "确认客户端可以访问 Quandora Trading。")}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </section>
+                    )}
                     {settingsAgentSection === "web" ? (
                       <>
                         <div className="settings-agent-provider-list" aria-label={tr("Connectable providers", "可连接服务")}>
@@ -8236,11 +8997,11 @@ export default function Landing() {
                               <div className="settings-agent-provider-row" key={provider.id}>
                                 <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
                                   {"icon" in provider && provider.icon === "codex" ? (
-                                    <Codex.Avatar className="settings-agent-provider-icon" size={42} />
+                                    <Codex.Avatar className="settings-agent-provider-icon" size={38} />
                                   ) : "icon" in provider && provider.icon === "claude" ? (
-                                    <Claude.Avatar className="settings-agent-provider-icon" size={42} />
+                                    <Claude.Avatar className="settings-agent-provider-icon" size={38} />
                                   ) : "icon" in provider && provider.icon === "openclaw" ? (
-                                    <OpenClaw.Avatar className="settings-agent-provider-icon" size={42} />
+                                    <OpenClaw.Avatar className="settings-agent-provider-icon" size={38} />
                                   ) : (
                                     provider.mark
                                   )}
@@ -8303,22 +9064,9 @@ export default function Landing() {
                               if (event.target === event.currentTarget) setAgentConnectModalOpen(false);
                             }}
                           >
-                            <section className="settings-agent-connect-modal" role="dialog" aria-modal="true" aria-label={tr("Connect web authorization", "连接网页端授权")}>
+                            <section className="settings-agent-connect-modal settings-agent-connect-modal--compact-header" role="dialog" aria-modal="true" aria-label={tr("Connect web authorization", "连接网页端授权")}>
                               <header className="settings-agent-connect-modal__header">
-                                <div className="settings-agent-card__title">
-                                  <strong>{tr(`Connect ${getAgentProviderName(agentSelectedProviderId)}`, `连接 ${getAgentProviderName(agentSelectedProviderId)}`)}</strong>
-                                </div>
-                                <button
-                                  className="settings-agent-connect-modal__close"
-                                  type="button"
-                                  aria-label={tr("Close connection dialog", "关闭连接弹窗")}
-                                  onClick={() => setAgentConnectModalOpen(false)}
-                                >
-                                  <X size={18} strokeWidth={3} />
-                                </button>
-                              </header>
-
-                              <div className="settings-agent-method-tabs" role="tablist" aria-label={tr("Authorization method", "授权方式")}>
+                                <div className="settings-agent-method-tabs" role="tablist" aria-label={tr("Authorization method", "授权方式")}>
                                 <button
                                   className={`settings-agent-method-tab${agentAuthMethod === "code" ? " is-active" : ""}`}
                                   type="button"
@@ -8337,40 +9085,51 @@ export default function Landing() {
                                 >
                                   API Key
                                 </button>
-                              </div>
+                                </div>
+                                <button
+                                  className="settings-agent-connect-modal__close"
+                                  type="button"
+                                  aria-label={tr("Close connection dialog", "关闭连接弹窗")}
+                                  onClick={() => setAgentConnectModalOpen(false)}
+                                >
+                                  <X size={18} strokeWidth={3} />
+                                </button>
+                              </header>
 
                               {agentAuthMethod === "code" ? (
                                 <article className="settings-agent-card">
-                                  <p className="settings-agent-note">
-                                    {tr(
-                                      "Choose QR authorization, or copy the code and continue on the login page.",
-                                      "请选择扫码授权，或复制授权码后在登录页继续。"
-                                    )}
-                                  </p>
+                                  <div className="settings-agent-note settings-agent-auth-note">
+                                    <span>
+                                      {tr(
+                                        "Choose QR authorization, or copy the code and continue on the login page.",
+                                        "请选择扫码授权，或复制授权码后在登录页继续。"
+                                      )}
+                                    </span>
+                                    <button
+                                      className="settings-agent-refresh-icon"
+                                      type="button"
+                                      aria-label={tr("Refresh authorization code", "刷新授权码")}
+                                      title={tr("Refresh", "刷新")}
+                                      onClick={refreshAgentAuthorizationCode}
+                                    >
+                                      <RefreshCw size={15} strokeWidth={3} aria-hidden="true" />
+                                    </button>
+                                  </div>
 
                                   <div className="settings-agent-auth-options">
-                                    <section className="settings-agent-auth-option">
+                                    <section className="settings-agent-auth-option settings-agent-auth-option--scan">
                                       <div>
                                         <div className="settings-agent-auth-option__head">
                                           <strong>{tr("Scan QR code", "扫码授权")}</strong>
-                                          <button
-                                            className="settings-action settings-action--quiet"
-                                            type="button"
-                                            onClick={refreshAgentAuthorizationCode}
-                                          >
-                                            {tr("Refresh", "刷新")}
-                                          </button>
                                         </div>
                                         <span>{tr("Use your phone to scan and complete authorization.", "请使用手机扫码完成授权。")}</span>
                                       </div>
                                       <div className="settings-agent-qr" aria-label={tr("Authorization QR code", "授权二维码")}>
-                                        {agentAuthorizationQrCells.map((isActive, cellIndex) => (
-                                          <span className={isActive ? "is-active" : undefined} key={`${agentWebAuthorizationCode}-${cellIndex}`} />
-                                        ))}
+                                        <img src="/assets/codex-auth-qr.svg" alt="" />
                                       </div>
                                     </section>
 
-                                    <section className="settings-agent-auth-option">
+                                    <section className="settings-agent-auth-option settings-agent-auth-option--code">
                                       <div className="settings-agent-code-copy">
                                         <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
                                         <strong>{agentWebAuthorizationCode}</strong>
@@ -8389,7 +9148,7 @@ export default function Landing() {
                                 </article>
                               ) : (
                                 <article className="settings-agent-card">
-                                  <div className="settings-agent-form">
+                                  <div className="settings-agent-form settings-agent-form--byok">
                                     <label className="settings-field">
                                       <span className="settings-field__head">
                                         <span>OpenAI API Key</span>
@@ -8421,21 +9180,21 @@ export default function Landing() {
                                         </span>
                                       )}
                                     </label>
-                                  </div>
 
-                                  <div className="settings-agent-actions">
-                                    <button
-                                      className="settings-action settings-action--primary"
-                                      type="button"
-                                      disabled={agentByokTestStatus === "testing"}
-                                      onClick={testAgentByok}
-                                    >
-                                      {agentByokTestStatus === "testing"
-                                        ? tr("Testing", "测试中")
-                                        : agentByokTestStatus === "valid"
-                                          ? tr("Confirm connection", "确认连接")
-                                          : tr("Test key", "测试密钥")}
-                                    </button>
+                                    <div className="settings-agent-byok-actions">
+                                      <button
+                                        className="settings-action settings-action--primary"
+                                        type="button"
+                                        disabled={agentByokTestStatus === "testing"}
+                                        onClick={testAgentByok}
+                                      >
+                                        {agentByokTestStatus === "testing"
+                                          ? tr("Testing", "测试中")
+                                          : agentByokTestStatus === "valid"
+                                            ? tr("Confirm connection", "确认连接")
+                                            : tr("Test key", "测试密钥")}
+                                      </button>
+                                    </div>
                                   </div>
                                 </article>
                               )}
@@ -8492,133 +9251,237 @@ export default function Landing() {
                         )}
                       </>
                     ) : (
-                      <div className="settings-agent-grid">
+                      <>
+                        <article className="settings-agent-card settings-agent-api-panel">
+                          {agentApiKeys.length === 0 ? (
+                            <div className="settings-agent-api-empty">
+                              <Key size={30} strokeWidth={2.5} />
+                              <span>{tr("No API keys yet", "暂无 API 密钥")}</span>
+                              <span>{tr("Create your first API key to connect your AI agent.", "创建首个 API 密钥以连接你的 AI Agent。")}</span>
+                            </div>
+                          ) : (
+                            <div className="settings-agent-api-list">
+                              {agentApiKeys.map((item) => {
+                                const isVisible = agentApiVisibleKeyIds.has(item.id);
+                                const needsUpdate = item.skillVersion !== AGENT_SKILL_LATEST;
+                                const displayKey = isVisible ? item.apiKey : `${item.apiKey.slice(0, 6)}${"*".repeat(16)}...`;
 
-                    <article className="settings-agent-card">
-                      <div className="settings-agent-card__head">
-                        <div className="settings-agent-card__title">
-                          <strong>Agent API Key</strong>
-                          <span>{tr("Create and manage the credential used by external clients.", "创建并管理外部客户端使用的凭证。")}</span>
-                        </div>
-                        <span className={`settings-agent-status${agentApiKeyIssued ? " is-active" : ""}`}>
-                          {agentApiKeyIssued ? tr("Active", "已启用") : tr("Needs action", "待操作")}
-                        </span>
-                      </div>
+                                return (
+                                  <section className="settings-agent-api-item" key={item.id}>
+                                    <div className="settings-agent-api-row">
+                                      {agentApiEditingNameId === item.id ? (
+                                        <div className="settings-agent-api-name-edit">
+                                          <input
+                                            className="settings-input"
+                                            value={agentApiEditNameValue}
+                                            autoFocus
+                                            onChange={(event) => setAgentApiEditNameValue(event.target.value)}
+                                            onKeyDown={(event) => {
+                                              if (event.key === "Enter") saveAgentApiName(item.id);
+                                              if (event.key === "Escape") setAgentApiEditingNameId(null);
+                                            }}
+                                          />
+                                          <button className="settings-action settings-action--primary" type="button" onClick={() => saveAgentApiName(item.id)}>
+                                            <Check size={13} strokeWidth={3} />
+                                            {tr("Save", "保存")}
+                                          </button>
+                                          <button className="settings-action settings-action--quiet" type="button" onClick={() => setAgentApiEditingNameId(null)}>
+                                            <X size={13} strokeWidth={3} />
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="settings-agent-api-name">
+                                          <strong>{item.name}</strong>
+                                          <button
+                                            className="settings-agent-icon-button"
+                                            type="button"
+                                            aria-label={tr(`Edit ${item.name}`, `编辑 ${item.name}`)}
+                                            onClick={() => {
+                                              setAgentApiEditingNameId(item.id);
+                                              setAgentApiEditNameValue(item.name);
+                                            }}
+                                          >
+                                            <Pencil size={13} strokeWidth={3} />
+                                          </button>
+                                        </div>
+                                      )}
 
-                      <div className="settings-agent-meta">
-                        <div className="settings-agent-meta__row">
-                          <span>{tr("Key label", "密钥标签")}</span>
-                          <span>{tr("External agent", "外部 Agent")}</span>
-                        </div>
-                        <div className="settings-agent-meta__row">
-                          <span>{tr("Secret", "密钥")}</span>
-                          <span>{agentApiKeyIssued ? (agentApiKeyCopyable ? "sk-agent-live-6q84..." : "****************") : tr("Not issued", "未签发")}</span>
-                        </div>
-                        <div className="settings-agent-meta__row">
-                          <span>{tr("Key ID", "密钥 ID")}</span>
-                          <span>{agentApiKeyIssued ? agentApiKeyId : tr("None", "无")}</span>
-                        </div>
-                      </div>
+                                      <div className="settings-agent-api-actions">
+                                        <button className={`settings-action ${needsUpdate ? "settings-action--quiet" : "settings-action--primary"}`} type="button" onClick={() => copyAgentApiPrompt(item)}>
+                                          <FileText size={14} strokeWidth={3} />
+                                          {needsUpdate ? tr("Copy latest prompt", "复制最新版提示词") : tr("Copy prompt", "复制提示词")}
+                                        </button>
+                                        <div className="settings-agent-api-menu-anchor" ref={agentApiMoreMenuId === item.id ? agentApiMoreMenuRef : undefined}>
+                                          <button
+                                            className="settings-agent-icon-button"
+                                            type="button"
+                                            aria-label={tr("More options", "更多操作")}
+                                            onClick={() => setAgentApiMoreMenuId(agentApiMoreMenuId === item.id ? null : item.id)}
+                                          >
+                                            <MoreHorizontal size={16} strokeWidth={3} />
+                                          </button>
+                                          {agentApiMoreMenuId === item.id && (
+                                            <div className="settings-agent-api-menu">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setAgentApiMoreMenuId(null);
+                                                  setAgentApiDeleteConfirmId(item.id);
+                                                }}
+                                              >
+                                                <Trash2 size={13} strokeWidth={3} />
+                                                {tr("Delete API Key", "删除 API 密钥")}
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
 
-                      <div className="settings-agent-actions">
-                        <button
-                          className="settings-action settings-action--primary"
-                          type="button"
-                          disabled={agentApiKeyIssued}
-                          onClick={createAgentApiKey}
-                        >
-                          <Key size={14} strokeWidth={3} />
-                          {tr("Create key", "创建密钥")}
-                        </button>
-                        <button className="settings-action settings-action--quiet" type="button" onClick={refreshAgentApiKey}>
-                          {tr("Refresh key", "刷新密钥")}
-                        </button>
-                        <button
-                          className="settings-action settings-action--quiet"
-                          type="button"
-                          disabled={!agentApiKeyCopyable}
-                          onClick={copyAgentApiKey}
-                        >
-                          <ClipboardList size={14} strokeWidth={3} />
-                          {tr("Copy key", "复制密钥")}
-                        </button>
-                        <button className="settings-action settings-action--danger" type="button" disabled={!agentApiKeyIssued} onClick={revokeAgentApiKey}>
-                          {tr("Revoke", "撤销")}
-                        </button>
-                      </div>
+                                    <div className="settings-agent-api-keyline">
+                                      <span className="settings-agent-api-label">{tr("API Key", "API 密钥")}</span>
+                                      <div className="settings-agent-api-secret">
+                                        <code>{displayKey}</code>
+                                        <button className="settings-agent-icon-button" type="button" aria-label={isVisible ? tr("Hide API Key", "隐藏 API 密钥") : tr("Show API Key", "显示 API 密钥")} onClick={() => toggleAgentApiKeyVisibility(item.id)}>
+                                          {isVisible ? <EyeOff size={13} strokeWidth={3} /> : <Eye size={13} strokeWidth={3} />}
+                                        </button>
+                                        <button className="settings-agent-icon-button" type="button" aria-label={tr("Copy API Key", "复制 API 密钥")} onClick={() => copyAgentText(item.apiKey, tr("API key copied", "API 密钥已复制"), tr("Store it securely in your agent environment.", "请在 Agent 环境中安全保存。"))}>
+                                          <Copy size={13} strokeWidth={3} />
+                                        </button>
+                                      </div>
+                                    </div>
 
-                      <p className="settings-agent-note">
-                        {tr(
-                          "Secret is only shown once. Revoke and create a new key to show a copyable secret again.",
-                          "密钥只展示一次。如需再次复制，请撤销并创建新密钥。"
+                                    <div className="settings-agent-api-meta">
+                                      <span>{tr("Skill", "Skill")} <strong>{item.skillVersion}</strong></span>
+                                      {needsUpdate && <span className="settings-agent-api-update">{tr(`Update available: ${AGENT_SKILL_LATEST}`, `可更新至：${AGENT_SKILL_LATEST}`)}</span>}
+                                      <span>{tr("Updated", "更新于")} {item.updatedAt}</span>
+                                      <button className="settings-agent-icon-button" type="button" aria-label={tr("Check for skill updates", "检查 Skill 更新")} onClick={() => refreshAgentApiSkill(item.id)}>
+                                        <RefreshCw size={13} strokeWidth={3} />
+                                      </button>
+                                    </div>
+                                  </section>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                        </article>
+
+                        {agentApiDeleteConfirmId && (
+                          <div
+                            className="settings-agent-connect-overlay"
+                            role="presentation"
+                            onMouseDown={(event) => {
+                              if (event.target === event.currentTarget) setAgentApiDeleteConfirmId(null);
+                            }}
+                          >
+                            <section className="settings-agent-confirm-modal" role="dialog" aria-modal="true" aria-label={tr("Delete API Key", "删除 API 密钥")}>
+                              <header className="settings-agent-connect-modal__header">
+                                <div className="settings-agent-card__title">
+                                  <strong>{tr("Delete API Key", "删除 API 密钥")}</strong>
+                                </div>
+                                <button className="settings-agent-connect-modal__close" type="button" aria-label={tr("Close confirmation dialog", "关闭确认弹窗")} onClick={() => setAgentApiDeleteConfirmId(null)}>
+                                  <X size={18} strokeWidth={3} />
+                                </button>
+                              </header>
+                              <p className="settings-agent-confirm-copy">
+                                {tr("Are you sure you want to delete", "确认删除")}{" "}
+                                <strong>{agentApiKeys.find((item) => item.id === agentApiDeleteConfirmId)?.name}</strong>?
+                                {" "}
+                                {tr("This action cannot be undone and any agents using this key will lose access.", "该操作不可撤销，使用该密钥的 Agent 将失去访问权限。")}
+                              </p>
+                              <div className="settings-agent-confirm-actions">
+                                <button className="settings-action settings-action--quiet" type="button" onClick={() => setAgentApiDeleteConfirmId(null)}>
+                                  {tr("Cancel", "取消")}
+                                </button>
+                                <button className="settings-action settings-action--danger" type="button" onClick={() => deleteAgentApiKey(agentApiDeleteConfirmId)}>
+                                  {tr("Delete", "删除")}
+                                </button>
+                              </div>
+                            </section>
+                          </div>
                         )}
-                      </p>
-                    </article>
 
-                    <article className="settings-agent-card">
-                      <div className="settings-agent-card__head">
-                        <div className="settings-agent-card__title">
-                          <strong>External Agent Skill</strong>
-                          <span>{tr("Install the skill in your own client, then continue agent workflows there.", "在自己的客户端安装 skill 后，可继续执行 Agent 工作流。")}</span>
-                        </div>
-                        <span className={`settings-agent-status${agentSkillSnippetVisible ? " is-active" : ""}`}>
-                          {agentSkillSnippetVisible ? tr("Ready", "已准备") : tr("Needs action", "待操作")}
-                        </span>
-                      </div>
+                        {agentApiCreateModalOpen && (
+                          <div
+                            className="settings-agent-connect-overlay"
+                            role="presentation"
+                            onMouseDown={(event) => {
+                              if (event.target === event.currentTarget) {
+                                if (agentApiCreateStep === 2) finishAgentApiCreate();
+                                else setAgentApiCreateModalOpen(false);
+                              }
+                            }}
+                          >
+                            <section className="settings-agent-confirm-modal settings-agent-api-create-modal" role="dialog" aria-modal="true" aria-label={agentApiCreateStep === 1 ? tr("Create New API Key", "创建新的 API 密钥") : tr("Your API Key is Ready", "API 密钥已准备就绪")}>
+                              <header className="settings-agent-connect-modal__header">
+                                <div className="settings-agent-card__title">
+                                  <strong>{agentApiCreateStep === 1 ? tr("Create New API Key", "创建新的 API 密钥") : tr("Your API Key is Ready", "API 密钥已准备就绪")}</strong>
+                                </div>
+                                <button
+                                  className="settings-agent-connect-modal__close"
+                                  type="button"
+                                  aria-label={tr("Close API key dialog", "关闭 API 密钥弹窗")}
+                                  onClick={() => {
+                                    if (agentApiCreateStep === 2) finishAgentApiCreate();
+                                    else setAgentApiCreateModalOpen(false);
+                                  }}
+                                >
+                                  <X size={18} strokeWidth={3} />
+                                </button>
+                              </header>
 
-                      <div className="settings-agent-meta">
-                        <div className="settings-agent-meta__row">
-                          <span>{tr("Skill instructions", "Skill 说明")}</span>
-                          <span>skills/external_agent.md</span>
-                        </div>
-                        <div className="settings-agent-meta__row">
-                          <span>{tr("Session", "会话")}</span>
-                          <span>{tr("No active workflow", "暂无活跃工作流")}</span>
-                        </div>
-                      </div>
+                              <div className="settings-agent-api-steps" aria-hidden="true">
+                                <span className={`settings-agent-api-step${agentApiCreateStep >= 1 ? " is-active" : ""}`}><span>1</span>{tr("Generate API", "生成 API")}</span>
+                                <span className="settings-agent-api-step-line" />
+                                <span className={`settings-agent-api-step${agentApiCreateStep >= 2 ? " is-active" : ""}`}><span>2</span>{tr("Paste to Agent", "粘贴到 Agent")}</span>
+                              </div>
 
-                      {agentSkillSnippetVisible && (
-                        <pre className="settings-agent-snippet">
-{`codex skills add external_agent
-agent_key=${agentApiKeyIssued ? agentApiKeyId : "<create-key-first>"}`}
-                        </pre>
-                      )}
-
-                      <div className="settings-agent-actions">
-                        <button
-                          className="settings-action settings-action--quiet"
-                          type="button"
-                          onClick={() => setAgentSkillSnippetVisible((visible) => !visible)}
-                        >
-                          {agentSkillSnippetVisible ? tr("Hide setup snippet", "隐藏配置片段") : tr("Show setup snippet", "显示配置片段")}
-                        </button>
-                        <button
-                          className="settings-action settings-action--quiet"
-                          type="button"
-                          disabled={!agentApiKeyIssued}
-                          onClick={() => showAgentClientAction("Skill file ready to copy.", "Skill 文件已准备复制。")}
-                        >
-                          {tr("Copy skill", "复制 skill")}
-                        </button>
-                        <button
-                          className="settings-action settings-action--quiet"
-                          type="button"
-                          disabled={!agentSkillSnippetVisible}
-                          onClick={() => showAgentClientAction("Setup snippet ready to copy.", "Setup snippet 已准备复制。")}
-                        >
-                          {tr("Copy setup snippet", "复制配置片段")}
-                        </button>
-                        <button
-                          className="settings-action settings-action--quiet"
-                          type="button"
-                          disabled={!agentApiKeyIssued}
-                          onClick={() => showAgentClientAction("Skill package ready to download.", "Skill 安装包已准备下载。")}
-                        >
-                          {tr("Download", "下载")}
-                        </button>
-                      </div>
-                    </article>
-                      </div>
+                              {agentApiCreateStep === 1 ? (
+                                <div className="settings-agent-form">
+                                  <p className="settings-agent-note">{tr("Give your API key a name to identify it later.", "为 API 密钥命名，便于后续识别。")}</p>
+                                  <label className="settings-field">
+                                    <span>{tr("API Name", "API 名称")}</span>
+                                    <input
+                                      className="settings-input"
+                                      value={agentApiNewName}
+                                      autoFocus
+                                      placeholder={tr("e.g., My Trading Bot, Research Agent...", "例如：我的交易机器人、研究 Agent...")}
+                                      onChange={(event) => setAgentApiNewName(event.target.value)}
+                                      onKeyDown={(event) => {
+                                        if (event.key === "Enter") createAgentApiKey();
+                                      }}
+                                    />
+                                  </label>
+                                  <div className="settings-agent-actions">
+                                    <button className="settings-action settings-action--primary" type="button" onClick={createAgentApiKey}>
+                                      {tr("Create API Key", "创建 API 密钥")}
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="settings-agent-form">
+                                  <p className="settings-agent-note">{tr("Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Quandora Trading.", "复制下方提示词并粘贴到你的 AI Agent（ChatGPT / Claude / DeepSeek）即可开始使用 Quandora Trading。")}</p>
+                                  <pre className="settings-agent-prompt-preview">{buildAgentSkillPrompt(agentApiCreatedSecret, AGENT_SKILL_LATEST)}</pre>
+                                  <div className="settings-agent-actions">
+                                    <button
+                                      className="settings-action settings-action--primary"
+                                      type="button"
+                                      onClick={() => copyAgentText(buildAgentSkillPrompt(agentApiCreatedSecret, AGENT_SKILL_LATEST), tr("Prompt copied", "提示词已复制"), tr("Paste it into your AI agent.", "请粘贴到你的 AI Agent 中。"))}
+                                    >
+                                      <Copy size={14} strokeWidth={3} />
+                                      {tr("Copy Prompt", "复制提示词")}
+                                    </button>
+                                    <button className="settings-action settings-action--quiet" type="button" onClick={finishAgentApiCreate}>
+                                      {tr("Done", "完成")}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </section>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
