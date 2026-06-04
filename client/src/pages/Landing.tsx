@@ -73,6 +73,7 @@ type FactorRow = Factor & {
 };
 type InventoryVisualGrade = "SSS" | "SS" | "S" | "A" | "B" | "C" | "D";
 type InventorySpecialType = "prop" | "misc";
+type AgentInstallIde = "claude-code" | "vs-code" | "cursor" | "windsurf" | "cline";
 type InventorySpecialCard = {
   id: string;
   type: InventorySpecialType;
@@ -147,16 +148,25 @@ const GAME_STAGE_HEIGHT = 1040;
 const AUTO_CAST_SINGLE_MIN_SECONDS = 10;
 const AUTO_CAST_SINGLE_MAX_SECONDS = 30;
 const HUD_ASSETS = {
-  coin: "https://www.figma.com/api/mcp/asset/e94ba79e-6c54-4639-8672-15511c5b8323",
-  fish: "https://www.figma.com/api/mcp/asset/72b9da2b-c58c-4724-aa9d-4bea71dda8e3",
-  pond: "https://www.figma.com/api/mcp/asset/fc997177-f3e3-4998-ac99-abd924847fd6",
-  market: "https://www.figma.com/api/mcp/asset/4d1376b9-fb4a-44cb-8921-e61eef5830b8",
-  guide: "https://www.figma.com/api/mcp/asset/77c72db4-8ee0-4d88-9d05-33ac851372bf",
+  coin: "/assets/hud-coin.svg",
+  fish: "/assets/hud-fish.svg",
+  pond: "/assets/hud-pond.svg",
+  market: "/assets/hud-market.svg",
+  guide: "/assets/inventory-menu-icon-v2.svg",
   wallet: "/assets/wallet-menu-icon-new.svg",
-  leaderboard: "https://www.figma.com/api/mcp/asset/46127bf5-288b-48c3-8493-9d040e507def",
+  leaderboard: "/assets/hud-leaderboard.svg",
   settings: "/assets/settings.svg",
   rod: "/assets/cast.svg",
   basket: "/assets/hud-basket-button.svg",
+} as const;
+const RANKING_MODAL_ASSETS = {
+  watermark: "/assets/ranking-modal/watermark-full.png",
+  coin: "/assets/ranking-modal/coin.svg",
+  mascotWeek: "/assets/ranking-modal/mascot.png",
+  mascotMonth: "/assets/ranking-modal/mascot-month.png",
+  rank1: "/assets/ranking-modal/rank-1.svg",
+  rank2: "/assets/ranking-modal/rank-2.svg",
+  rank3: "/assets/ranking-modal/rank-3.svg",
 } as const;
 const WITHDRAWAL_NETWORKS = [
   "Ethereum (ERC20)",
@@ -269,7 +279,7 @@ const leaderboardSeedEntries: LeaderboardEntry[] = [
   { id: "angler-06", nickname: "CEX Otter", weekBalance: 82.5, monthBalance: 390.3, weekCasts: 21, monthCasts: 96 },
   { id: "angler-07", nickname: "River Bot", weekBalance: 75.15, monthBalance: 318.65, weekCasts: 19, monthCasts: 82 },
   { id: "angler-08", nickname: "小满仓", weekBalance: 61.9, monthBalance: 286.45, weekCasts: 17, monthCasts: 77 },
-  { id: CURRENT_LEADERBOARD_USER_ID, nickname: "You", weekBalance: 38.5, monthBalance: 218.4, weekCasts: 12, monthCasts: 58 },
+  { id: CURRENT_LEADERBOARD_USER_ID, nickname: "捕鱼大师", weekBalance: 38.5, monthBalance: 900, weekCasts: 12, monthCasts: 188 },
 ];
 const leaderboardGeneratedNames = [
   "QuantNami", "River Alpha", "蓝鲸策略", "Beta Fisher", "Coral Signal", "星潮猎手", "Delta Hook", "WaveBot",
@@ -332,6 +342,43 @@ const initialAgentApiKeys: AgentApiKeyItem[] = [
     updatedAt: "2026-03-15",
   },
 ];
+const agentInstallIdeOptions: {
+  id: AgentInstallIde;
+  label: string;
+  command: (apiKey: string) => string;
+  verifyCommand: string;
+}[] = [
+  {
+    id: "claude-code",
+    label: "Claude Code",
+    command: (apiKey) => `claude mcp add quandora --scope user --env API_KEY="${apiKey}" -- https://api.quandora.trade/v1/mcp`,
+    verifyCommand: "claude mcp list",
+  },
+  {
+    id: "vs-code",
+    label: "VS Code",
+    command: (apiKey) => `code --add-mcp '{"name":"quandora","url":"https://api.quandora.trade/v1/mcp","env":{"API_KEY":"${apiKey}"}}'`,
+    verifyCommand: "code --list-extensions",
+  },
+  {
+    id: "cursor",
+    label: "Cursor",
+    command: (apiKey) => `cursor --add-mcp '{"name":"quandora","url":"https://api.quandora.trade/v1/mcp","env":{"API_KEY":"${apiKey}"}}'`,
+    verifyCommand: "cursor --version",
+  },
+  {
+    id: "windsurf",
+    label: "Windsurf",
+    command: (apiKey) => `windsurf --add-mcp '{"name":"quandora","url":"https://api.quandora.trade/v1/mcp","env":{"API_KEY":"${apiKey}"}}'`,
+    verifyCommand: "windsurf --version",
+  },
+  {
+    id: "cline",
+    label: "Cline",
+    command: (apiKey) => `cline mcp add quandora --env API_KEY="${apiKey}" --url https://api.quandora.trade/v1/mcp`,
+    verifyCommand: "cline mcp list",
+  },
+];
 
 const createAgentAuthorizationCode = () => {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -374,7 +421,7 @@ const inventorySpecialCards: InventorySpecialCard[] = [
     nameEn: "Lucky Bait",
     nameZh: "幸运鱼饵",
     tagEn: "Bitcoin",
-    tagZh: "比特币",
+    tagZh: "Bitcoin",
     metricOneLabelEn: "Limited across all waters; even passing schools stop to look",
     metricOneLabel: "全海域限量，鱼群路过都要先看一眼",
     metricOneValueEn: "Average",
@@ -647,6 +694,13 @@ function getFactorDefaultSortDir(key: FactorSortKey): Exclude<SortDir, null> {
   return "desc";
 }
 
+function getLeaderboardRankIcon(rank: number) {
+  if (rank === 1) return RANKING_MODAL_ASSETS.rank1;
+  if (rank === 2) return RANKING_MODAL_ASSETS.rank2;
+  if (rank === 3) return RANKING_MODAL_ASSETS.rank3;
+  return null;
+}
+
 function buildFactorCurve(factor: Factor) {
   const returns = parseMetricValue(factor.returns);
   const fitness = Math.max(factor.fitness, 0.05);
@@ -724,6 +778,7 @@ export default function Landing() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
   const [settingsAgentSection, setSettingsAgentSection] = useState<"web" | "client">("web");
+  const [agentInstallIde, setAgentInstallIde] = useState<AgentInstallIde>("claude-code");
   const [settingsNickname, setSettingsNickname] = useState(user?.displayName || "AlphaTrader");
   const [settingsOriginalNickname, setSettingsOriginalNickname] = useState(user?.displayName || "AlphaTrader");
   const [settingsAvatarPreview, setSettingsAvatarPreview] = useState<string | null>(user?.avatar || null);
@@ -762,6 +817,8 @@ export default function Landing() {
   const [agentApiCreatedSecret, setAgentApiCreatedSecret] = useState("");
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>("week");
+  const [leaderboardScrolling, setLeaderboardScrolling] = useState(false);
+  const leaderboardScrollTimerRef = useRef<number | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState(MIN_AMOUNT);
   const [withdrawNetwork, setWithdrawNetwork] = useState(DEFAULT_WITHDRAWAL_NETWORK);
   const [withdrawAddress, setWithdrawAddress] = useState("");
@@ -869,6 +926,9 @@ export default function Landing() {
     key: option,
     label: factorFilterLabels[option],
   }));
+  const selectedAgentInstallIde = agentInstallIdeOptions.find((option) => option.id === agentInstallIde) ?? agentInstallIdeOptions[0];
+  const agentInstallApiKey = agentApiKeys[0]?.apiKey ?? "YOUR_API_KEY";
+  const agentInstallCommand = selectedAgentInstallIde.command(agentInstallApiKey);
 
   const factorSortLabels: Record<FactorSortKey, string> = {
     createdAt: tr("Created At", "创建时间"),
@@ -997,9 +1057,26 @@ export default function Landing() {
   const leaderboardTopRows = leaderboardRows.slice(0, 50);
   const leaderboardListRows = leaderboardTopRows;
   const currentLeaderboardRow = leaderboardRows.find((row) => row.id === CURRENT_LEADERBOARD_USER_ID);
-  const currentLeaderboardInTop50 = Boolean(currentLeaderboardRow && currentLeaderboardRow.rank <= 50);
-  const leaderboardBalanceLabel = leaderboardPeriod === "week" ? tr("New balance this week", "本周新增余额") : tr("New balance this month", "本月新增余额");
-  const leaderboardCastsLabel = leaderboardPeriod === "week" ? tr("Casts this week", "本周抛竿数") : tr("Casts this month", "本月抛竿数");
+  const currentLeaderboardInVisibleList = Boolean(currentLeaderboardRow && currentLeaderboardRow.rank <= leaderboardListRows.length);
+  const leaderboardBalanceLabel = tr("New balance", "新增余额");
+  const leaderboardCastsLabel = tr("Casts", "抛竿数");
+  const handleLeaderboardScroll = useCallback(() => {
+    setLeaderboardScrolling(true);
+    if (leaderboardScrollTimerRef.current !== null) window.clearTimeout(leaderboardScrollTimerRef.current);
+    leaderboardScrollTimerRef.current = window.setTimeout(() => {
+      setLeaderboardScrolling(false);
+      leaderboardScrollTimerRef.current = null;
+    }, 700);
+  }, []);
+  useEffect(() => {
+    if (leaderboardOpen) return undefined;
+    setLeaderboardScrolling(false);
+    if (leaderboardScrollTimerRef.current !== null) {
+      window.clearTimeout(leaderboardScrollTimerRef.current);
+      leaderboardScrollTimerRef.current = null;
+    }
+    return undefined;
+  }, [leaderboardOpen]);
   const manualCastWaiting = manualCastStartedAt !== null;
   const mainCastActive = autoCastRunning || manualCastWaiting;
   const showAutoCastControl = !mainCastActive;
@@ -2479,7 +2556,7 @@ export default function Landing() {
           cursor: pointer;
           font: inherit;
           overflow: visible;
-          transition: transform 80ms ease, filter 80ms ease;
+          transition: transform 120ms cubic-bezier(0.25, 1, 0.5, 1), filter 120ms ease;
         }
 
         .hud-basket__shell {
@@ -2487,6 +2564,8 @@ export default function Landing() {
           inset: 0;
           border-radius: 16px;
           overflow: visible;
+          transform: translateZ(0);
+          transition: transform 120ms cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .hud-basket__icon {
@@ -2495,7 +2574,7 @@ export default function Landing() {
           width: 120px;
           height: 128px;
           object-fit: fill;
-          transition: clip-path 80ms ease;
+          transition: transform 120ms cubic-bezier(0.25, 1, 0.5, 1);
           pointer-events: none;
           user-select: none;
         }
@@ -2544,19 +2623,11 @@ export default function Landing() {
 
         .hud-main-action:active,
         .hud-basket:active {
-          transform: translateY(8px);
+          transform: translateY(6px);
         }
 
         .hud-main-action:active {
           box-shadow: 0 0 0 #4e433c;
-        }
-
-        .hud-basket:active .hud-basket__shell {
-          overflow: hidden;
-        }
-
-        .hud-basket:active .hud-basket__icon {
-          clip-path: inset(0 0 8px 0);
         }
 
 	        .menu-item:focus-visible,
@@ -4206,12 +4277,195 @@ export default function Landing() {
           line-height: 1.35;
         }
 
-        .settings-agent-setup-download {
-          min-height: 30px;
-          padding: 0 10px;
+        .settings-agent-install {
+          display: grid;
+          gap: 22px;
+          color: var(--ac-text);
+        }
+
+        .settings-agent-install ~ .settings-agent-api-panel {
+          display: none;
+        }
+
+        .settings-agent-install__intro {
+          display: grid;
+          gap: 8px;
+        }
+
+        .settings-agent-install__title {
+          margin: 0;
+          color: #1f160c;
+          font-size: 25px;
+          font-weight: 1000;
+          line-height: 1.15;
+        }
+
+        .settings-agent-install__subtitle {
+          margin: 0;
+          color: rgba(121, 79, 39, .66);
+          font-size: 14px;
+          font-weight: 900;
+          line-height: 1.45;
+        }
+
+        .settings-agent-install-tabs {
+          display: flex;
+          align-items: flex-end;
+          gap: 16px;
+          margin: 16px 0 -23px;
+          padding-left: 16px;
+          position: relative;
+          z-index: 2;
+        }
+
+        .settings-agent-install-tab {
+          appearance: none;
+          min-height: 44px;
+          padding: 0 14px;
+          color: rgba(121, 79, 39, .62);
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+          cursor: pointer;
+          font: inherit;
+          font-size: 14px;
+          font-weight: 1000;
           white-space: nowrap;
         }
 
+        .settings-agent-install-tab.is-active {
+          color: #1f160c;
+          background: #fffdf4;
+          box-shadow: inset 0 -2px 0 #1f160c;
+        }
+
+        .settings-agent-install-card {
+          display: grid;
+          gap: 34px;
+          padding: 78px 34px 38px;
+          background: #fffdf4;
+          border: 1.5px solid rgba(196, 184, 158, .72);
+          border-radius: var(--radius-xs);
+          box-shadow: 3px 3px 0 rgba(189, 174, 160, .28);
+        }
+
+        .settings-agent-install-step {
+          display: grid;
+          grid-template-columns: 56px minmax(0, 1fr);
+          gap: 24px;
+          align-items: start;
+        }
+
+        .settings-agent-install-step__num {
+          width: 48px;
+          height: 48px;
+          display: inline-grid;
+          place-items: center;
+          color: #5b5148;
+          background: #f1eee7;
+          border-radius: var(--radius-xs);
+          font-size: 20px;
+          font-weight: 1000;
+        }
+
+        .settings-agent-install-step__body {
+          display: grid;
+          gap: 14px;
+          min-width: 0;
+        }
+
+        .settings-agent-install-step__body h3 {
+          margin: 0;
+          color: #1f160c;
+          font-size: 22px;
+          font-weight: 1000;
+          line-height: 1.22;
+        }
+
+        .settings-agent-install-step__body p {
+          margin: 0;
+          color: rgba(121, 79, 39, .68);
+          font-size: 16px;
+          font-weight: 850;
+          line-height: 1.45;
+        }
+
+        .settings-agent-install-command {
+          min-width: 0;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 34px;
+          align-items: center;
+          gap: 10px;
+          padding: 13px 12px 13px 16px;
+          background: #f0eee9;
+          border: 1.5px solid rgba(196, 184, 158, .48);
+          border-radius: var(--radius-xs);
+        }
+
+        .settings-agent-install-command code {
+          min-width: 0;
+          overflow: hidden;
+          color: #6c655e;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 17px;
+          font-weight: 800;
+          line-height: 1.35;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .settings-agent-install-copy {
+          width: 32px;
+          height: 32px;
+          display: inline-grid;
+          place-items: center;
+          color: #71685f;
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+        }
+
+        .settings-agent-install-copy:hover,
+        .settings-agent-install-copy:focus-visible {
+          color: var(--ac-text);
+          background: rgba(255, 213, 87, .28);
+        }
+
+        .settings-agent-install-checks {
+          display: grid;
+          gap: 14px;
+          margin-top: -2px;
+        }
+
+        .settings-agent-install-check {
+          display: grid;
+          grid-template-columns: 22px minmax(0, 1fr);
+          gap: 14px;
+          align-items: center;
+          color: rgba(121, 79, 39, .68);
+          font-size: 16px;
+          font-weight: 850;
+          line-height: 1.35;
+        }
+
+        .settings-agent-install-check svg {
+          color: #18b560;
+        }
+
+        .settings-agent-install-check code {
+          display: inline-flex;
+          align-items: center;
+          min-height: 28px;
+          padding: 1px 8px;
+          color: #71685f;
+          background: #f1eee9;
+          border: 1px solid rgba(196, 184, 158, .44);
+          border-radius: 4px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 15px;
+          font-weight: 850;
+        }
         .settings-agent-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5079,6 +5333,14 @@ export default function Landing() {
           font-weight: 800;
         }
 
+        .settings-api-key-links {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 14px;
+          margin-top: 2px;
+        }
+
         .settings-agent-test-message {
           margin: -2px 0 0;
           font-size: 11px;
@@ -5871,6 +6133,16 @@ export default function Landing() {
 	          outline: none;
 	        }
 
+	        .wallet-select {
+	          appearance: none;
+	          -webkit-appearance: none;
+	          padding-right: 44px;
+	          background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 14 14' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 5L7 9L11 5' stroke='%23794F27' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+	          background-repeat: no-repeat;
+	          background-position: right 16px center;
+	          background-size: 14px 14px;
+	        }
+
 	        .wallet-input--with-unit {
 	          height: 52px;
 	          padding: 0 68px 0 16px;
@@ -6437,6 +6709,7 @@ export default function Landing() {
           overflow-y: auto;
           background: #fffdf4;
           overscroll-behavior: contain;
+          scrollbar-gutter: stable;
         }
 
         .leaderboard-list-row {
@@ -6512,8 +6785,39 @@ export default function Landing() {
         }
 
         .leaderboard-list-row.is-current {
-          background: linear-gradient(90deg, rgba(255, 207, 63, .24), rgba(155, 220, 92, .14));
-          box-shadow: inset 0 0 0 2px rgba(224, 184, 78, .54);
+          position: relative;
+          overflow: hidden;
+          background: var(--leaderboard-row-bg, #fffdf4);
+        }
+
+        .leaderboard-list-row.is-current::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          padding: 2px;
+          border-radius: inherit;
+          background: conic-gradient(
+            from var(--leaderboard-gradient-angle),
+            #FF9E3D 0%,
+            #FFEC44 25%,
+            #FF9E3D 50%,
+            #FFEC44 75%,
+            #FF9E3D 100%
+          );
+          pointer-events: none;
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          animation: leaderboard-border-rotate 5s linear infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .leaderboard-list-row.is-current::after {
+            animation: none;
+          }
         }
 
         .leaderboard-list-row.leaderboard-current-row--sticky {
@@ -6521,268 +6825,407 @@ export default function Landing() {
           position: relative;
           z-index: 3;
           margin: 0;
-          background: linear-gradient(90deg, #fff2b8 0%, #efffd9 100%);
           border-top: 2px solid rgba(224, 184, 78, .72);
           border-bottom: 0;
           box-shadow: 0 -2px 0 rgba(196, 184, 158, .3), 0 -10px 18px rgba(66, 48, 31, .08);
         }
 
-        .leaderboard-modal .leaderboard-panel {
+        .leaderboard-modal {
+          width: min(960px, calc(100vw - 48px));
+          height: auto;
+          max-height: calc(100svh - 48px);
+          overflow: visible;
+          background: transparent;
+          border: 0;
+          border-radius: 8px;
+          box-shadow: none;
+          color: #794f27;
+        }
+
+        .leaderboard-modal .shop-modal__header {
+          position: relative;
+          z-index: 0;
+          min-height: 72px;
           display: flex;
-          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          gap: 14px;
+          margin-bottom: -10px;
+          padding: 12px 34px 18px;
+          background: #fff7e8;
+          border-bottom: 2px solid rgba(255, 255, 255, .62);
+          border-radius: 8px 8px 0 0;
         }
 
-        .leaderboard-layout {
-          flex: 1 1 auto;
-          min-height: 0;
-          width: 100%;
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) minmax(190px, 28%);
-          gap: 20px;
-          align-items: stretch;
+        .leaderboard-modal .shop-modal__close {
+          width: 38px;
+          height: 38px;
+          color: #725d42;
+          background: #f8f8f0;
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: 4px;
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
         }
 
-        .leaderboard-layout .leaderboard-list {
-          margin-top: 0;
-          background: transparent;
-          border: 0;
-          border-radius: 0;
-          box-shadow: none;
-        }
-
-        .leaderboard-layout .leaderboard-list__scroll {
-          display: grid;
-          align-content: start;
-          gap: 8px;
-          padding-right: 6px;
-          background: transparent;
-        }
-
-        .leaderboard-layout .leaderboard-list-row {
-          min-height: 48px;
-          padding: 10px 14px;
-          grid-template-columns: 62px minmax(0, 1fr) minmax(120px, auto) minmax(88px, auto);
-          background: rgba(255, 253, 244, .92);
-          border: 1.5px solid rgba(196, 184, 158, .62);
-          border-radius: var(--radius-md);
-          box-shadow: 2px 3px 0 rgba(189, 174, 160, .24);
-        }
-
-        .leaderboard-layout .leaderboard-list-row--head {
-          min-height: 0;
-          margin-bottom: 8px;
-          padding: 0 14px 4px;
-          background: transparent;
-          border: 0;
-          border-radius: 0;
-          box-shadow: none;
-          font-size: 11px;
-        }
-
-        .leaderboard-layout .leaderboard-list__rank {
-          min-width: 0;
-          display: grid;
-          justify-items: start;
-          gap: 2px;
-        }
-
-        .leaderboard-layout .leaderboard-list__rank small {
-          min-height: 17px;
+        .leaderboard-tabs {
           display: inline-flex;
           align-items: center;
-          padding: 0 6px;
-          color: #725d42;
-          background: rgba(255, 253, 244, .72);
-          border: 1px solid rgba(196, 184, 158, .6);
-          border-radius: 999px;
-          font-size: 9px;
-          font-weight: 1000;
-          line-height: 1;
+          gap: 8px;
+          padding: 0;
         }
 
-        .leaderboard-layout .leaderboard-list__name {
-          min-width: 0;
-          display: inline-grid;
-          gap: 3px;
+        .leaderboard-tab {
+          width: auto;
+          min-height: 38px;
+          padding: 0 12px;
+          color: rgba(121, 79, 39, .6);
+          background: transparent;
+          border: 0;
+          border-radius: 4px;
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 21px;
+          white-space: nowrap;
+        }
+
+        .leaderboard-tab.is-active,
+        .leaderboard-tab:hover {
+          color: #794f27;
+          background: #ffd557;
+        }
+
+        .leaderboard-panel {
+          position: relative;
+          z-index: 1;
+          height: auto;
+          min-height: 0;
+          display: block;
           overflow: hidden;
+          padding: 0;
+          background: linear-gradient(180deg, #FDD355 0%, #FFF9B4 100%);
+          border-radius: 8px;
+          box-shadow:
+            0 0 0 2px rgba(255, 253, 244, .88),
+            5px 5px 0 rgba(189, 174, 160, .72),
+            0 20px 48px rgba(66, 48, 31, .18);
         }
 
-        .leaderboard-layout .leaderboard-list__name > span:last-child {
+        .leaderboard-panel--week {
+          background: linear-gradient(180deg, #FDD355 0%, #FFF9B4 100%);
+        }
+
+        .leaderboard-panel--month {
+          background: linear-gradient(180deg, #FDB163 0%, #FBE79A 100%);
+        }
+
+        .leaderboard-panel::before {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 1000px;
+          height: 638px;
+          transform: translate(-50%, -50%);
+          background: url("/assets/ranking-modal/watermark-full.png") center / cover no-repeat;
+          pointer-events: none;
+        }
+
+        .leaderboard-figma-content {
+          position: relative;
+          z-index: 1;
+          height: auto;
+          padding: 12px 34px 24px;
+        }
+
+        .leaderboard-list {
+          --leaderboard-scrollbar-outset: 16px;
+          --leaderboard-row-width: 500px;
+          position: relative;
+          z-index: 2;
+          width: var(--leaderboard-row-width);
+          height: auto;
+          margin: 0;
+          overflow: visible;
+          background: transparent;
+          border: 0;
+          border-radius: 6px;
+          box-shadow: none;
+        }
+
+        .leaderboard-list-row {
+          position: relative;
+          width: 100%;
+          box-sizing: border-box;
+          display: grid;
+          grid-template-columns: 50px 180px 100px 80px;
+          gap: 20px;
+          align-items: center;
+          min-height: 54px;
+          padding: 9px 16px;
+          color: #794f27;
+          border: 0;
+          border-radius: 12px;
+          font-size: 13px;
+          font-weight: 950;
+          line-height: 19.5px;
+        }
+
+        .leaderboard-list-row--head {
+          min-height: 50px;
+          padding: 16px 16px 10px;
+          color: #ffffff;
+          background: transparent;
+          border-radius: 0;
+          box-shadow: none;
+          font-size: 12px;
+          line-height: 18px;
+        }
+
+        .leaderboard-list-row--head .leaderboard-list__balance,
+        .leaderboard-list-row--head .leaderboard-list__casts {
+          color: #ffffff;
+        }
+
+        .leaderboard-list__scroll {
+          width: calc(100% + var(--leaderboard-scrollbar-outset));
+          box-sizing: border-box;
+          height: 390px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          overflow-y: auto;
+          overflow-x: hidden;
+          overscroll-behavior: contain;
+          margin-right: calc(-1 * var(--leaderboard-scrollbar-outset));
+          padding-right: var(--leaderboard-scrollbar-outset);
+          background: transparent;
+          scrollbar-gutter: auto;
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+        }
+
+        .leaderboard-list__scroll > .leaderboard-list-row {
+          flex: 0 0 auto;
+          width: var(--leaderboard-row-width);
+          height: 54px;
+          min-height: 54px;
+        }
+
+        .leaderboard-list__scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .leaderboard-list__scroll.is-scrolling {
+          scrollbar-color: rgba(121, 79, 39, .28) rgba(255, 253, 244, .28);
+        }
+
+        .leaderboard-list__scroll::-webkit-scrollbar-track {
+          background: transparent;
+          border-radius: 999px;
+        }
+
+        .leaderboard-list__scroll::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 999px;
+        }
+
+        .leaderboard-list__scroll.is-scrolling::-webkit-scrollbar-track {
+          background: rgba(255, 253, 244, .28);
+        }
+
+        .leaderboard-list__scroll.is-scrolling::-webkit-scrollbar-thumb {
+          background: rgba(121, 79, 39, .28);
+        }
+
+        @property --leaderboard-gradient-angle {
+          syntax: "<angle>";
+          initial-value: 0deg;
+          inherits: false;
+        }
+
+        @keyframes leaderboard-border-rotate {
+          to {
+            --leaderboard-gradient-angle: 360deg;
+          }
+        }
+
+        .leaderboard-list-row--rank-1 {
+          --leaderboard-row-bg: linear-gradient(90deg, #fff19a 0%, #fffae9 44.17%, #fffbf4 100%);
+          background: var(--leaderboard-row-bg);
+        }
+
+        .leaderboard-list-row--rank-2 {
+          --leaderboard-row-bg: linear-gradient(90deg, #eff5f2 0%, #f9f9f3 49.52%, #fffbf4 100%);
+          background: var(--leaderboard-row-bg);
+        }
+
+        .leaderboard-list-row--rank-3 {
+          --leaderboard-row-bg: linear-gradient(90deg, #fae2ce 0%, #fffae9 44.17%, #fffbf4 100%);
+          background: var(--leaderboard-row-bg);
+        }
+
+        .leaderboard-list__scroll > .leaderboard-list-row--rank-1,
+        .leaderboard-list__scroll > .leaderboard-list-row--rank-2,
+        .leaderboard-list__scroll > .leaderboard-list-row--rank-3 {
+          height: 68px;
+          min-height: 68px;
+        }
+
+        .leaderboard-list-row--rank-4 {
+          --leaderboard-row-bg: linear-gradient(90deg, #fffdf4 0%, #fffdf4 100%);
+          background: var(--leaderboard-row-bg);
+        }
+
+        .leaderboard-list-row.is-current {
+          overflow: hidden;
+          background: var(--leaderboard-row-bg, #fffdf4);
+        }
+
+        .leaderboard-list-row.is-current::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          padding: 2px;
+          border-radius: inherit;
+          background: conic-gradient(
+            from var(--leaderboard-gradient-angle),
+            #FDB163 0%,
+            #FBE79A 32%,
+            #FFFFFF 48%,
+            #FBE79A 64%,
+            #FDB163 100%
+          );
+          pointer-events: none;
+          -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          animation: leaderboard-border-rotate 5s linear infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .leaderboard-list-row.is-current::after {
+            animation: none;
+          }
+        }
+
+        .leaderboard-list-row.leaderboard-current-row--sticky {
+          height: 54px;
+          min-height: 54px;
+          margin-top: 4px;
+          padding: 9px 16px;
+          border: 0;
+          border-radius: 12px;
+          box-shadow: 0 -10px 18px rgba(66, 48, 31, .08);
+        }
+
+        .leaderboard-list-row.leaderboard-current-row--sticky.is-unranked {
+          --leaderboard-row-bg: linear-gradient(90deg, #fffdf4 0%, #fffdf4 100%);
+          background: var(--leaderboard-row-bg);
+        }
+
+        .leaderboard-rank-icon {
+          width: 50px;
+          height: 36px;
+          display: block;
+          object-fit: contain;
+          image-rendering: pixelated;
+        }
+
+        .leaderboard-list__rank,
+        .leaderboard-list__name,
+        .leaderboard-list__metric,
+        .leaderboard-list__casts {
           min-width: 0;
+          color: #794f27;
+          text-align: left;
+        }
+
+        .leaderboard-list__name {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .leaderboard-layout .leaderboard-list__balance,
-        .leaderboard-layout .leaderboard-list__casts {
-          text-align: right;
+        .leaderboard-list__metric {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-variant-numeric: tabular-nums;
         }
 
-        .leaderboard-layout .leaderboard-list__metric {
-          justify-content: flex-end;
-          text-align: right;
+        .leaderboard-balance__icon,
+        .leaderboard-list__metric .leaderboard-balance__icon {
+          width: 18px;
+          height: 18px;
+          object-fit: contain;
         }
 
-        .leaderboard-layout .leaderboard-list-row--rank-1,
-        .leaderboard-layout .leaderboard-list-row--rank-2,
-        .leaderboard-layout .leaderboard-list-row--rank-3 {
-          min-height: 64px;
-          border-width: 2px;
-        }
-
-        .leaderboard-layout .leaderboard-list-row--rank-1 {
-          background:
-            linear-gradient(90deg, #f3b72d 0 72px, transparent 72px),
-            linear-gradient(180deg, #fff6c7 0%, #fffdf4 100%);
-          border-color: #d69b21;
-          box-shadow: 3px 4px 0 rgba(169, 110, 28, .28);
-        }
-
-        .leaderboard-layout .leaderboard-list-row--rank-2 {
-          background:
-            linear-gradient(90deg, #9ca9a8 0 72px, transparent 72px),
-            linear-gradient(180deg, #edf4f2 0%, #fffdf4 100%);
-          border-color: #93a8a6;
-          box-shadow: 3px 4px 0 rgba(86, 106, 104, .2);
-        }
-
-        .leaderboard-layout .leaderboard-list-row--rank-3 {
-          background:
-            linear-gradient(90deg, #b9794c 0 72px, transparent 72px),
-            linear-gradient(180deg, #f8ddc6 0%, #fffdf4 100%);
-          border-color: #b9794c;
-          box-shadow: 3px 4px 0 rgba(146, 83, 45, .22);
-        }
-
-        .leaderboard-layout .leaderboard-list-row--rank-1 .leaderboard-list__rank,
-        .leaderboard-layout .leaderboard-list-row--rank-2 .leaderboard-list__rank,
-        .leaderboard-layout .leaderboard-list-row--rank-3 .leaderboard-list__rank {
-          justify-items: center;
-          color: #fffdf4;
-        }
-
-        .leaderboard-layout .leaderboard-list-row--rank-1 .leaderboard-list__rank > span,
-        .leaderboard-layout .leaderboard-list-row--rank-2 .leaderboard-list__rank > span,
-        .leaderboard-layout .leaderboard-list-row--rank-3 .leaderboard-list__rank > span {
-          width: 34px;
-          height: 34px;
-          display: inline-grid;
-          place-items: center;
-          border: 1.5px solid rgba(255, 253, 244, .68);
-          border-radius: 999px;
-          box-shadow: inset 0 2px 0 rgba(255, 255, 255, .32), 0 2px 0 rgba(44, 33, 23, .22);
-          font-size: 15px;
-        }
-
-        .leaderboard-layout .leaderboard-list-row--rank-1 .leaderboard-list__metric {
-          font-size: 18px;
-        }
-
-        .leaderboard-layout .leaderboard-current-row--sticky {
-          margin: 10px 0 0;
-          color: #fffdf4;
-          background: linear-gradient(90deg, #52699d 0%, #384b78 100%);
-          border: 1.5px solid rgba(36, 51, 86, .72);
-          box-shadow: 0 -8px 18px rgba(66, 48, 31, .08), 3px 4px 0 rgba(36, 51, 86, .22);
-        }
-
-        .leaderboard-layout .leaderboard-current-row--sticky .leaderboard-list__rank,
-        .leaderboard-layout .leaderboard-current-row--sticky .leaderboard-list__balance,
-        .leaderboard-layout .leaderboard-current-row--sticky .leaderboard-list__metric,
-        .leaderboard-layout .leaderboard-current-row--sticky .leaderboard-list__casts {
-          color: #fffdf4;
-        }
-
-        .leaderboard-art {
-          position: relative;
-          min-height: 0;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at 50% 26%, rgba(255, 253, 244, .72) 0 42px, transparent 43px),
-            linear-gradient(180deg, rgba(255, 242, 184, .9), rgba(255, 213, 87, .34)),
-            repeating-linear-gradient(135deg, rgba(121, 79, 39, .08) 0 8px, transparent 8px 18px);
-          border: 1.5px solid rgba(214, 155, 33, .36);
-          border-radius: 999px 999px var(--radius-md) var(--radius-md);
-          box-shadow:
-            inset 0 2px 0 rgba(255, 253, 244, .72),
-            3px 4px 0 rgba(189, 174, 160, .32);
-        }
-
-        .leaderboard-art__image {
+        .leaderboard-hero-art {
           position: absolute;
-          left: 50%;
-          top: 18%;
-          width: min(116px, 58%);
+          top: 0;
+          bottom: 0;
+          left: 536px;
+          width: 424px;
           height: auto;
-          opacity: .32;
-          image-rendering: pixelated;
-          transform: translateX(-50%);
-        }
-
-        .leaderboard-art__coin {
-          position: absolute;
-          left: 50%;
-          bottom: 38px;
-          width: 76px;
-          height: 76px;
           display: grid;
           place-items: center;
-          color: #fffdf4;
-          background: #d69b21;
-          border: 2px solid #8f6420;
-          border-radius: 999px;
-          box-shadow:
-            inset 0 3px 0 rgba(255, 253, 244, .38),
-            0 8px 0 rgba(143, 100, 32, .22);
-          font-size: 34px;
-          font-weight: 1000;
-          transform: translateX(-50%);
+          pointer-events: none;
         }
 
-        .leaderboard-art__crown {
+        .leaderboard-hero-art img {
+          width: 450px;
+          height: 454px;
+          object-fit: contain;
+          image-rendering: pixelated;
+        }
+
+        .leaderboard-refresh-note {
           position: absolute;
-          left: 50%;
-          top: 10%;
-          width: 54px;
-          height: 32px;
-          transform: translateX(-50%) rotate(-6deg);
-          filter: drop-shadow(0 3px 0 rgba(121, 79, 39, .22));
+          right: 34px;
+          bottom: 18px;
+          z-index: 3;
+          margin: 0;
+          padding: 6px 10px;
+          color: rgba(121, 79, 39, .76);
+          opacity: .5;
+          background: rgba(255, 253, 244, .56);
+          border: 0;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 950;
+          line-height: 18px;
+          white-space: nowrap;
         }
 
-        .leaderboard-art__crown::before {
-          content: "";
-          position: absolute;
-          left: 8px;
-          right: 8px;
-          bottom: 0;
-          height: 13px;
-          background: #f3b72d;
-          border: 2px solid #8f6420;
-          border-radius: 0 0 8px 8px;
-        }
+        @media (max-width: 760px) {
+          .leaderboard-modal {
+            width: calc(100vw - 24px);
+          }
 
-        .leaderboard-art__crown span {
-          position: absolute;
-          bottom: 9px;
-          width: 18px;
-          height: 20px;
-          background: #ffd557;
-          border: 2px solid #8f6420;
-          transform: rotate(45deg);
-        }
+          .leaderboard-modal .shop-modal__header {
+            padding-inline: 18px;
+          }
 
-        .leaderboard-art__crown span:nth-child(1) {
-          left: 4px;
-        }
+          .leaderboard-panel {
+            height: auto;
+            min-height: 0;
+          }
 
-        .leaderboard-art__crown span:nth-child(2) {
-          left: 19px;
-          bottom: 14px;
-        }
+          .leaderboard-figma-content {
+            padding-inline: 18px;
+            overflow-x: auto;
+          }
 
-        .leaderboard-art__crown span:nth-child(3) {
-          right: 4px;
+          .leaderboard-refresh-note {
+            right: 18px;
+          }
+
+          .leaderboard-hero-art {
+            opacity: .24;
+          }
         }
 
         .inventory-summary {
@@ -9224,58 +9667,88 @@ export default function Landing() {
                     </button>
                   </nav>
                   <div className="settings-agent-main">
-                    {settingsAgentSection === "web" && (
-                      <>
-                    <p className="settings-agent-flow-copy">
-                      {settingsAgentSection === "web"
-                        ? tr("Use directly on the web. No software installation required.", "在网页端直接使用，无需安装任何软件。")
-                        : tr("Install the plugin in your local client and bring it directly into your workflow.", "在您的本地客户端安装插件，融入您的工作流。")}
-                    </p>
-                    {settingsAgentSection === "client" && (
-                      <section className="settings-agent-setup-guide" aria-label={tr("Setup guide", "设置引导")}>
-                        <div className="settings-agent-setup-rail" aria-hidden="true">
-                          {[1, 2, 3].map((step) => (
-                            <span className="settings-agent-setup-step-dot" key={step}>
-                              <Check size={15} strokeWidth={3} />
-                            </span>
+                    {settingsAgentSection === "web" ? (
+                      <p className="settings-agent-flow-copy">
+                        {tr("Use directly on the web. No software installation required.", "在网页端直接使用，无需安装任何软件。")}
+                      </p>
+                    ) : (
+                      <section className="settings-agent-install" aria-label={tr("Install client plugin", "安装客户端插件")}>
+                        <div className="settings-agent-install__intro">
+                          <h3 className="settings-agent-install__title">{tr("Install", "安装")}</h3>
+                          <p className="settings-agent-install__subtitle">
+                            {tr("Select your IDE and follow the instructions below.", "选择您的 IDE，并按下方说明完成安装。")}
+                          </p>
+                        </div>
+
+                        <div className="settings-agent-install-tabs" role="tablist" aria-label={tr("Select IDE", "选择 IDE")}>
+                          {agentInstallIdeOptions.map((option) => (
+                            <button
+                              className={`settings-agent-install-tab${agentInstallIde === option.id ? " is-active" : ""}`}
+                              type="button"
+                              role="tab"
+                              aria-selected={agentInstallIde === option.id}
+                              key={option.id}
+                              onClick={() => setAgentInstallIde(option.id)}
+                            >
+                              {option.label}
+                            </button>
                           ))}
                         </div>
-                        <div className="settings-agent-setup-steps">
-                          <div className="settings-agent-setup-step settings-agent-setup-step--with-action">
-                            <span className="settings-agent-setup-step-icon" aria-hidden="true">
-                              <Download size={15} strokeWidth={3} />
-                            </span>
-                            <span>
-                              <strong>{tr("1. Download Buddy and sign in to Quandora", "1. 下载 Buddy 并登录 Quandora")}</strong>
-                              <span>{tr("Install the local client plugin environment", "完成本地客户端插件环境准备")}</span>
-                            </span>
-                            <button className="settings-action settings-action--primary settings-agent-setup-download" type="button">
-                              <Download size={14} strokeWidth={3} />
-                              {tr("Download", "下载")}
-                            </button>
-                          </div>
-                          <div className="settings-agent-setup-step settings-agent-setup-step--with-action">
-                            <span className="settings-agent-setup-step-icon" aria-hidden="true">
-                              <Key size={15} strokeWidth={3} />
-                            </span>
-                            <span>
-                              <strong>{tr("2. Create API and copy it to your AI client", "2. 创建 API，复制到 AI 客户端")}</strong>
-                              <span>{tr("Use the generated credential in your AI client, such as Codex", "将生成的凭证接入您的 AI 客户端（如Codex）")}</span>
-                            </span>
-                            <button className="settings-action settings-action--primary settings-agent-setup-download" type="button" onClick={openAgentApiCreateModal}>
-                              <Plus size={14} strokeWidth={3} />
-                              {tr("New API", "新建 API")}
-                            </button>
-                          </div>
-                          <div className="settings-agent-setup-step">
-                            <span className="settings-agent-setup-step-icon" aria-hidden="true">
-                              <Send size={15} strokeWidth={3} />
-                            </span>
-                            <span>
-                              <strong>{tr("3. Send a request to verify", "3. 发送请求验证")}</strong>
-                              <span>{tr("Confirm the client can access Quandora", "确认客户端可以访问 Quandora")}</span>
-                            </span>
-                          </div>
+
+                        <div className="settings-agent-install-card">
+                          <section className="settings-agent-install-step">
+                            <span className="settings-agent-install-step__num">1</span>
+                            <div className="settings-agent-install-step__body">
+                              <h3>{tr("Run Installation Command", "运行安装命令")}</h3>
+                              <p>
+                                {tr(
+                                  `Run this command in your terminal to add Quandora MCP to ${selectedAgentInstallIde.label}:`,
+                                  `在终端中运行以下命令，将 Quandora MCP 添加到 ${selectedAgentInstallIde.label}：`
+                                )}
+                              </p>
+                              <div className="settings-agent-install-command">
+                                <code>{agentInstallCommand}</code>
+                                <button
+                                  className="settings-agent-install-copy"
+                                  type="button"
+                                  aria-label={tr("Copy installation command", "复制安装命令")}
+                                  onClick={() => copyAgentText(agentInstallCommand, tr("Command copied", "命令已复制"), tr("Run it in your terminal.", "请在终端中运行。"))}
+                                >
+                                  <Copy size={20} strokeWidth={2.4} />
+                                </button>
+                              </div>
+                            </div>
+                          </section>
+
+                          <section className="settings-agent-install-step">
+                            <span className="settings-agent-install-step__num">2</span>
+                            <div className="settings-agent-install-step__body">
+                              <h3>{tr("Verify Installation", "验证安装")}</h3>
+                              <p>
+                                {tr(
+                                  `After running the command, Quandora MCP will be available in ${selectedAgentInstallIde.label}.`,
+                                  `运行命令后，Quandora MCP 将可在 ${selectedAgentInstallIde.label} 中使用。`
+                                )}
+                              </p>
+                              <div className="settings-agent-install-checks">
+                                <span className="settings-agent-install-check">
+                                  <Check size={20} strokeWidth={2.6} />
+                                  <span>{tr("The MCP server will be automatically configured", "MCP 服务将自动完成配置")}</span>
+                                </span>
+                                <span className="settings-agent-install-check">
+                                  <Check size={20} strokeWidth={2.6} />
+                                  <span>{tr(`You can start using Quandora commands in ${selectedAgentInstallIde.label} immediately`, `您可以立即在 ${selectedAgentInstallIde.label} 中使用 Quandora 命令`)}</span>
+                                </span>
+                                <span className="settings-agent-install-check">
+                                  <RefreshCw size={20} strokeWidth={2.4} />
+                                  <span>
+                                    {tr("To verify, check your MCP servers by running:", "如需验证，可运行命令检查 MCP 服务：")}{" "}
+                                    <code>{selectedAgentInstallIde.verifyCommand}</code>
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                          </section>
                         </div>
                       </section>
                     )}
@@ -9445,15 +9918,6 @@ export default function Landing() {
                                     <label className="settings-field">
                                       <span className="settings-field__head">
                                         <span>OpenAI API Key</span>
-                                        <a
-                                          className="settings-api-key-link"
-                                          href="https://platform.openai.com/api-keys"
-                                          target="_blank"
-                                          rel="noreferrer"
-                                        >
-                                          Get API Key <span className="settings-api-key-link__muted">from OpenAI</span>
-                                          <ArrowUpRight size={13} strokeWidth={3} />
-                                        </a>
                                       </span>
                                       <input
                                         className="settings-input"
@@ -9467,6 +9931,26 @@ export default function Landing() {
                                           setAgentByokTestMessage("");
                                         }}
                                       />
+                                      <span className="settings-api-key-links">
+                                        <a
+                                          className="settings-api-key-link"
+                                          href="https://platform.openai.com/api-keys"
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          Get API Key from OpenAI
+                                          <ArrowUpRight size={13} strokeWidth={3} />
+                                        </a>
+                                        <a
+                                          className="settings-api-key-link"
+                                          href="https://openrouter.ai/settings/keys"
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          Get API Key from OpenRouter
+                                          <ArrowUpRight size={13} strokeWidth={3} />
+                                        </a>
+                                      </span>
                                       {agentByokTestMessage && (
                                         <span className={`settings-agent-test-message${agentByokTestStatus === "valid" ? " is-success" : " is-error"}`}>
                                           {agentByokTestMessage}
@@ -9774,11 +10258,9 @@ export default function Landing() {
                             </section>
                           </div>
                         )}
-                      </>
-                    )}
-                      </>
-                    )}
-                  </div>
+	                      </>
+	                    )}
+	                  </div>
                 </div>
               )}
             </div>
@@ -10111,58 +10593,75 @@ export default function Landing() {
               </button>
             </header>
 
-            <div className="leaderboard-panel">
-              <div className="leaderboard-layout">
+            <div className={`leaderboard-panel leaderboard-panel--${leaderboardPeriod}`}>
+              <div className="leaderboard-figma-content">
                 <section className="leaderboard-list" aria-label={tr("Leaderboard list", "排行榜列表")}>
                   <div className="leaderboard-list-row leaderboard-list-row--head">
                     <span>{tr("Rank", "排名")}</span>
-                    <span>{tr("Nickname", "用户昵称")}</span>
+                    <span>{tr("Nickname", "用户")}</span>
                     <span className="leaderboard-list__balance">{leaderboardBalanceLabel}</span>
                     <span className="leaderboard-list__casts">{leaderboardCastsLabel}</span>
                   </div>
-                  <div className="leaderboard-list__scroll">
-                    {leaderboardListRows.map((row) => (
-                      <div
-                        className={`leaderboard-list-row leaderboard-list-row--rank-${Math.min(row.rank, 3)}${row.id === CURRENT_LEADERBOARD_USER_ID ? " is-current" : ""}`}
-                        key={row.id}
-                      >
-                        <span className="leaderboard-list__rank">
-                          <span>{row.rank <= 3 ? row.rank : `NO.${row.rank}`}</span>
-                          {row.rank <= 3 && <small>TOP {row.rank}</small>}
-                        </span>
-                        <span className="leaderboard-list__name">
-                          {row.rank === 1 && <span className="leaderboard-champion-ribbon">CHAMPION</span>}
-                          <span>{row.nickname}</span>
-                        </span>
-                        <span className="leaderboard-list__metric">
-                          <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
-                          <span>{formatLeaderboardBalance(row.balance)}</span>
-                        </span>
-                        <span className="leaderboard-list__casts">{row.casts}</span>
-                      </div>
-                    ))}
+                  <div
+                    className={`leaderboard-list__scroll${leaderboardScrolling ? " is-scrolling" : ""}`}
+                    onScroll={handleLeaderboardScroll}
+                  >
+                    {leaderboardListRows.map((row) => {
+                      const rankIcon = getLeaderboardRankIcon(row.rank);
+                      return (
+                        <div
+                          className={`leaderboard-list-row leaderboard-list-row--rank-${Math.min(row.rank, 4)}${row.id === CURRENT_LEADERBOARD_USER_ID ? " is-current" : ""}`}
+                          key={row.id}
+                        >
+                          <span className="leaderboard-list__rank">
+                            {rankIcon ? (
+                              <img className="leaderboard-rank-icon" src={rankIcon} alt={`NO.${row.rank}`} />
+                            ) : (
+                              `NO.${row.rank}`
+                            )}
+                          </span>
+                          <span className="leaderboard-list__name">{row.nickname}</span>
+                          <span className="leaderboard-list__metric">
+                            <img className="leaderboard-balance__icon" src={RANKING_MODAL_ASSETS.coin} alt="" />
+                            <span>{formatLeaderboardBalance(row.balance)}</span>
+                          </span>
+                          <span className="leaderboard-list__casts">{row.casts}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                  {currentLeaderboardRow && !currentLeaderboardInTop50 && (
-                    <div className="leaderboard-list-row leaderboard-current-row--sticky is-current">
-                      <span className="leaderboard-list__rank">{tr("Unranked", "未上榜")}</span>
-                      <span className="leaderboard-list__name">{tr(`You - #${currentLeaderboardRow.rank}`, `你 - #${currentLeaderboardRow.rank}`)}</span>
+                  {currentLeaderboardRow && (
+                    <div className={`leaderboard-list-row leaderboard-current-row--sticky leaderboard-list-row--rank-${currentLeaderboardInVisibleList ? Math.min(currentLeaderboardRow.rank, 4) : 4}${currentLeaderboardInVisibleList ? "" : " is-unranked"}`}>
+                      <span className="leaderboard-list__rank">
+                        {currentLeaderboardInVisibleList && getLeaderboardRankIcon(currentLeaderboardRow.rank) ? (
+                          <img className="leaderboard-rank-icon" src={getLeaderboardRankIcon(currentLeaderboardRow.rank) ?? ""} alt={`NO.${currentLeaderboardRow.rank}`} />
+                        ) : currentLeaderboardInVisibleList ? (
+                          `NO.${currentLeaderboardRow.rank}`
+                        ) : (
+                          tr("Unranked", "未上榜")
+                        )}
+                      </span>
+                      <span className="leaderboard-list__name">{currentLeaderboardRow.nickname}</span>
                       <span className="leaderboard-list__metric">
-                        <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
+                        <img className="leaderboard-balance__icon" src={RANKING_MODAL_ASSETS.coin} alt="" />
                         <span>{formatLeaderboardBalance(currentLeaderboardRow.balance)}</span>
                       </span>
                       <span className="leaderboard-list__casts">{currentLeaderboardRow.casts}</span>
                     </div>
                   )}
                 </section>
-                <aside className="leaderboard-art" aria-hidden="true">
-                  <img className="leaderboard-art__image" src={HUD_ASSETS.leaderboard} alt="" />
-                  <div className="leaderboard-art__crown">
-                    <span />
-                    <span />
-                    <span />
-                  </div>
-                  <div className="leaderboard-art__coin">1</div>
+
+                <aside className="leaderboard-hero-art" aria-hidden="true">
+                  <img
+                    src={leaderboardPeriod === "week" ? RANKING_MODAL_ASSETS.mascotWeek : RANKING_MODAL_ASSETS.mascotMonth}
+                    alt=""
+                  />
                 </aside>
+                <p className="leaderboard-refresh-note">
+                  {leaderboardPeriod === "week"
+                    ? tr("Updates Mon 00:00", "每周一 0点 刷新")
+                    : tr("Updates 1st 00:00", "每月1日 0点 刷新")}
+                </p>
               </div>
             </div>
           </section>
