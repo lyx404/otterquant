@@ -821,6 +821,7 @@ export default function Landing() {
   const leaderboardScrollTimerRef = useRef<number | null>(null);
   const [withdrawAmount, setWithdrawAmount] = useState(MIN_AMOUNT);
   const [withdrawNetwork, setWithdrawNetwork] = useState(DEFAULT_WITHDRAWAL_NETWORK);
+  const [withdrawNetworkOpen, setWithdrawNetworkOpen] = useState(false);
   const [withdrawAddress, setWithdrawAddress] = useState("");
   const [withdrawAddressError, setWithdrawAddressError] = useState("");
   const [withdrawAccountBound, setWithdrawAccountBound] = useState(false);
@@ -844,6 +845,7 @@ export default function Landing() {
   const [pendingInventoryDelete, setPendingInventoryDelete] = useState<PendingInventoryDelete>(null);
   const [inventoryToast, setInventoryToast] = useState<InventoryToast>(null);
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
+  const withdrawNetworkSelectRef = useRef<HTMLDivElement | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -897,6 +899,28 @@ export default function Landing() {
     document.addEventListener("mousedown", closeAgentApiMenu);
     return () => document.removeEventListener("mousedown", closeAgentApiMenu);
   }, [agentApiMoreMenuId]);
+
+  useEffect(() => {
+    if (!withdrawNetworkOpen) return undefined;
+
+    const closeWithdrawNetwork = (event: PointerEvent) => {
+      if (withdrawNetworkSelectRef.current && !withdrawNetworkSelectRef.current.contains(event.target as Node)) {
+        setWithdrawNetworkOpen(false);
+      }
+    };
+    const handleWithdrawNetworkKeydown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setWithdrawNetworkOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeWithdrawNetwork);
+    document.addEventListener("keydown", handleWithdrawNetworkKeydown);
+    return () => {
+      document.removeEventListener("pointerdown", closeWithdrawNetwork);
+      document.removeEventListener("keydown", handleWithdrawNetworkKeydown);
+    };
+  }, [withdrawNetworkOpen]);
 
   const filterLabels: Record<FilterKey, string> = {
     all: tr("All", "全部"),
@@ -1410,8 +1434,17 @@ export default function Landing() {
     setWithdrawStatus("idle");
   };
 
+  const handleWithdrawNetworkChange = (network: string) => {
+    setWithdrawNetwork(network);
+    setWithdrawAccountBound(false);
+    setWithdrawAddressError("");
+    resetWithdrawFeedback();
+    setWithdrawNetworkOpen(false);
+  };
+
   const openWalletModal = () => {
     setWalletWithdrawOpen(false);
+    setWithdrawNetworkOpen(false);
     setWalletOpen(true);
     setWithdrawWalletEditing(false);
     resetWithdrawFeedback();
@@ -1419,6 +1452,7 @@ export default function Landing() {
 
   const openWithdrawModal = () => {
     setWalletWithdrawOpen(true);
+    setWithdrawNetworkOpen(false);
     setWithdrawWalletEditing(false);
     resetWithdrawFeedback();
   };
@@ -1426,6 +1460,7 @@ export default function Landing() {
   const closeWalletModal = () => {
     setWalletOpen(false);
     setWalletWithdrawOpen(false);
+    setWithdrawNetworkOpen(false);
     setWithdrawWalletEditing(false);
     resetWithdrawFeedback();
   };
@@ -2556,16 +2591,17 @@ export default function Landing() {
           cursor: pointer;
           font: inherit;
           overflow: visible;
-          transition: transform 120ms cubic-bezier(0.25, 1, 0.5, 1), filter 120ms ease;
+          transition: transform 80ms ease, filter 80ms ease;
         }
 
         .hud-basket__shell {
           position: absolute;
-          inset: 0;
+          inset: 0 0 -8px;
           border-radius: 16px;
-          overflow: visible;
+          overflow: hidden;
+          clip-path: inset(0 0 0 0 round 16px);
           transform: translateZ(0);
-          transition: transform 120ms cubic-bezier(0.25, 1, 0.5, 1);
+          transition: clip-path 80ms ease;
         }
 
         .hud-basket__icon {
@@ -2574,7 +2610,7 @@ export default function Landing() {
           width: 120px;
           height: 128px;
           object-fit: fill;
-          transition: transform 120ms cubic-bezier(0.25, 1, 0.5, 1);
+          transition: transform 80ms ease;
           pointer-events: none;
           user-select: none;
         }
@@ -2628,6 +2664,10 @@ export default function Landing() {
 
         .hud-main-action:active {
           box-shadow: 0 0 0 #4e433c;
+        }
+
+        .hud-basket:active .hud-basket__shell {
+          clip-path: inset(0 0 8px 0 round 16px);
         }
 
 	        .menu-item:focus-visible,
@@ -6118,7 +6158,7 @@ export default function Landing() {
         }
 
         .wallet-input,
-        .wallet-select {
+        .wallet-select__button {
           width: 100%;
           height: 40px;
           color: var(--ac-text);
@@ -6134,13 +6174,105 @@ export default function Landing() {
 	        }
 
 	        .wallet-select {
+	          position: relative;
+	          width: 100%;
+	          cursor: none;
+	        }
+
+	        .wallet-select__button {
 	          appearance: none;
-	          -webkit-appearance: none;
+	          position: relative;
+	          display: flex;
+	          align-items: center;
+	          justify-content: space-between;
+	          gap: 10px;
 	          padding-right: 44px;
-	          background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 14 14' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 5L7 9L11 5' stroke='%23794F27' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-	          background-repeat: no-repeat;
-	          background-position: right 16px center;
-	          background-size: 14px 14px;
+	          text-align: left;
+	          cursor: none;
+	        }
+
+	        .wallet-select__value {
+	          min-width: 0;
+	          overflow: hidden;
+	          color: var(--ac-text);
+	          font-size: 13px;
+	          font-weight: 850;
+	          line-height: 1.2;
+	          text-overflow: ellipsis;
+	          white-space: nowrap;
+	        }
+
+	        .wallet-select__chevron {
+	          position: absolute;
+	          right: 16px;
+	          top: 50%;
+	          width: 14px;
+	          height: 14px;
+	          transform: translateY(-50%) rotate(0deg);
+	          transform-origin: center;
+	          transition: transform 140ms cubic-bezier(.22, 1, .36, 1);
+	        }
+
+	        .wallet-select__chevron::before {
+	          content: "";
+	          position: absolute;
+	          left: 3px;
+	          top: 4px;
+	          width: 8px;
+	          height: 8px;
+	          border-right: 2px solid #794f27;
+	          border-bottom: 2px solid #794f27;
+	          border-radius: 1px;
+	          transform: rotate(45deg);
+	        }
+
+	        .wallet-select.is-open .wallet-select__chevron {
+	          transform: translateY(-50%) rotate(180deg);
+	        }
+
+	        .wallet-select__menu {
+	          position: absolute;
+	          left: 0;
+	          right: 0;
+	          top: calc(100% + 6px);
+	          z-index: 12;
+	          display: grid;
+	          gap: 4px;
+	          padding: 6px;
+	          background: #fffdf4;
+	          border: 1.5px solid rgba(196, 184, 158, .92);
+	          border-radius: var(--radius-sm);
+	          box-shadow: 0 10px 0 rgba(121, 79, 39, .12), 0 16px 28px rgba(78, 67, 60, .18);
+	          cursor: none;
+	        }
+
+	        .wallet-select__option {
+	          appearance: none;
+	          display: flex;
+	          align-items: center;
+	          width: 100%;
+	          min-height: 34px;
+	          padding: 0 10px;
+	          color: var(--ac-text);
+	          background: transparent;
+	          border: 0;
+	          border-radius: var(--radius-xs);
+	          font: inherit;
+	          font-size: 12px;
+	          font-weight: 850;
+	          text-align: left;
+	          cursor: none;
+	        }
+
+	        .wallet-select__option:hover,
+	        .wallet-select__option:focus-visible {
+	          background: #fff3d3;
+	          outline: none;
+	        }
+
+	        .wallet-select__option.is-selected {
+	          color: #5f3b1e;
+	          background: linear-gradient(90deg, rgba(255, 236, 68, .42), rgba(255, 158, 61, .22));
 	        }
 
 	        .wallet-input--with-unit {
@@ -6163,7 +6295,7 @@ export default function Landing() {
 	        }
 
 	        .wallet-input:focus,
-	        .wallet-select:focus {
+	        .wallet-select__button:focus-visible {
           border-color: var(--ac-primary);
           outline: 2px solid rgba(25, 200, 185, .22);
           outline-offset: 2px;
@@ -10362,23 +10494,44 @@ export default function Landing() {
                             <div className="wallet-step__head">
                               <h3 className="wallet-step__title">{withdrawAccountBound ? tr("Change bound wallet", "更改绑定钱包") : tr("Bind wallet", "绑定钱包")}</h3>
                             </div>
-                            <label className="wallet-field">
+                            <div className="wallet-field">
                               <span>{tr("Network", "选择网络")}</span>
-                              <select
-                                className="wallet-select"
-                                value={withdrawNetwork}
-                                onChange={(event) => {
-                                  setWithdrawNetwork(event.target.value);
-                                  setWithdrawAccountBound(false);
-                                  setWithdrawAddressError("");
-                                  resetWithdrawFeedback();
-                                }}
+                              <div
+                                className={`wallet-select${withdrawNetworkOpen ? " is-open" : ""}`}
+                                ref={withdrawNetworkSelectRef}
                               >
-                                {WITHDRAWAL_NETWORKS.map((network) => (
-                                  <option key={network} value={network}>{network}</option>
-                                ))}
-                              </select>
-                            </label>
+                                <button
+                                  className="wallet-select__button"
+                                  type="button"
+                                  aria-haspopup="listbox"
+                                  aria-expanded={withdrawNetworkOpen}
+                                  onClick={() => setWithdrawNetworkOpen((open) => !open)}
+                                >
+                                  <span className="wallet-select__value">{withdrawNetwork}</span>
+                                  <span className="wallet-select__chevron" aria-hidden="true" />
+                                </button>
+                                {withdrawNetworkOpen ? (
+                                  <div
+                                    className="wallet-select__menu"
+                                    role="listbox"
+                                    aria-label={tr("Network", "选择网络")}
+                                  >
+                                    {WITHDRAWAL_NETWORKS.map((network) => (
+                                      <button
+                                        key={network}
+                                        className={`wallet-select__option${network === withdrawNetwork ? " is-selected" : ""}`}
+                                        type="button"
+                                        role="option"
+                                        aria-selected={network === withdrawNetwork}
+                                        onClick={() => handleWithdrawNetworkChange(network)}
+                                      >
+                                        {network}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
                             <label className="wallet-field">
                               <span>{tr("Wallet address", "钱包地址")}</span>
                               <input
