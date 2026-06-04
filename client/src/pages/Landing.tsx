@@ -994,13 +994,8 @@ export default function Landing() {
       }));
   }, [leaderboardPeriod]);
 
-  const leaderboardPodiumRows = [
-    leaderboardRows[1],
-    leaderboardRows[0],
-    leaderboardRows[2],
-  ].filter((entry): entry is (typeof leaderboardRows)[number] => Boolean(entry));
   const leaderboardTopRows = leaderboardRows.slice(0, 50);
-  const leaderboardListRows = leaderboardTopRows.slice(3);
+  const leaderboardListRows = leaderboardTopRows;
   const currentLeaderboardRow = leaderboardRows.find((row) => row.id === CURRENT_LEADERBOARD_USER_ID);
   const currentLeaderboardInTop50 = Boolean(currentLeaderboardRow && currentLeaderboardRow.rank <= 50);
   const leaderboardBalanceLabel = leaderboardPeriod === "week" ? tr("New balance this week", "本周新增余额") : tr("New balance this month", "本月新增余额");
@@ -4180,6 +4175,10 @@ export default function Landing() {
           box-shadow: 0 1px 0 rgba(255, 255, 255, .72) inset;
         }
 
+        .settings-agent-setup-step--with-action {
+          grid-template-columns: 32px minmax(0, 1fr) auto;
+        }
+
         .settings-agent-setup-step-icon {
           width: 32px;
           height: 32px;
@@ -4205,6 +4204,12 @@ export default function Landing() {
           font-size: 12px;
           font-weight: 850;
           line-height: 1.35;
+        }
+
+        .settings-agent-setup-download {
+          min-height: 30px;
+          padding: 0 10px;
+          white-space: nowrap;
         }
 
         .settings-agent-grid {
@@ -5220,6 +5225,14 @@ export default function Landing() {
           .settings-agent-setup-step {
             grid-template-columns: 1fr;
             justify-items: start;
+          }
+
+          .settings-agent-setup-step--with-action {
+            grid-template-columns: 1fr;
+          }
+
+          .settings-agent-setup-download {
+            justify-self: start;
           }
 
           .settings-agent-auth-options {
@@ -6512,6 +6525,264 @@ export default function Landing() {
           border-top: 2px solid rgba(224, 184, 78, .72);
           border-bottom: 0;
           box-shadow: 0 -2px 0 rgba(196, 184, 158, .3), 0 -10px 18px rgba(66, 48, 31, .08);
+        }
+
+        .leaderboard-modal .leaderboard-panel {
+          display: flex;
+          flex-direction: row;
+        }
+
+        .leaderboard-layout {
+          flex: 1 1 auto;
+          min-height: 0;
+          width: 100%;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(190px, 28%);
+          gap: 20px;
+          align-items: stretch;
+        }
+
+        .leaderboard-layout .leaderboard-list {
+          margin-top: 0;
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+
+        .leaderboard-layout .leaderboard-list__scroll {
+          display: grid;
+          align-content: start;
+          gap: 8px;
+          padding-right: 6px;
+          background: transparent;
+        }
+
+        .leaderboard-layout .leaderboard-list-row {
+          min-height: 48px;
+          padding: 10px 14px;
+          grid-template-columns: 62px minmax(0, 1fr) minmax(120px, auto) minmax(88px, auto);
+          background: rgba(255, 253, 244, .92);
+          border: 1.5px solid rgba(196, 184, 158, .62);
+          border-radius: var(--radius-md);
+          box-shadow: 2px 3px 0 rgba(189, 174, 160, .24);
+        }
+
+        .leaderboard-layout .leaderboard-list-row--head {
+          min-height: 0;
+          margin-bottom: 8px;
+          padding: 0 14px 4px;
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+          font-size: 11px;
+        }
+
+        .leaderboard-layout .leaderboard-list__rank {
+          min-width: 0;
+          display: grid;
+          justify-items: start;
+          gap: 2px;
+        }
+
+        .leaderboard-layout .leaderboard-list__rank small {
+          min-height: 17px;
+          display: inline-flex;
+          align-items: center;
+          padding: 0 6px;
+          color: #725d42;
+          background: rgba(255, 253, 244, .72);
+          border: 1px solid rgba(196, 184, 158, .6);
+          border-radius: 999px;
+          font-size: 9px;
+          font-weight: 1000;
+          line-height: 1;
+        }
+
+        .leaderboard-layout .leaderboard-list__name {
+          min-width: 0;
+          display: inline-grid;
+          gap: 3px;
+          overflow: hidden;
+        }
+
+        .leaderboard-layout .leaderboard-list__name > span:last-child {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .leaderboard-layout .leaderboard-list__balance,
+        .leaderboard-layout .leaderboard-list__casts {
+          text-align: right;
+        }
+
+        .leaderboard-layout .leaderboard-list__metric {
+          justify-content: flex-end;
+          text-align: right;
+        }
+
+        .leaderboard-layout .leaderboard-list-row--rank-1,
+        .leaderboard-layout .leaderboard-list-row--rank-2,
+        .leaderboard-layout .leaderboard-list-row--rank-3 {
+          min-height: 64px;
+          border-width: 2px;
+        }
+
+        .leaderboard-layout .leaderboard-list-row--rank-1 {
+          background:
+            linear-gradient(90deg, #f3b72d 0 72px, transparent 72px),
+            linear-gradient(180deg, #fff6c7 0%, #fffdf4 100%);
+          border-color: #d69b21;
+          box-shadow: 3px 4px 0 rgba(169, 110, 28, .28);
+        }
+
+        .leaderboard-layout .leaderboard-list-row--rank-2 {
+          background:
+            linear-gradient(90deg, #9ca9a8 0 72px, transparent 72px),
+            linear-gradient(180deg, #edf4f2 0%, #fffdf4 100%);
+          border-color: #93a8a6;
+          box-shadow: 3px 4px 0 rgba(86, 106, 104, .2);
+        }
+
+        .leaderboard-layout .leaderboard-list-row--rank-3 {
+          background:
+            linear-gradient(90deg, #b9794c 0 72px, transparent 72px),
+            linear-gradient(180deg, #f8ddc6 0%, #fffdf4 100%);
+          border-color: #b9794c;
+          box-shadow: 3px 4px 0 rgba(146, 83, 45, .22);
+        }
+
+        .leaderboard-layout .leaderboard-list-row--rank-1 .leaderboard-list__rank,
+        .leaderboard-layout .leaderboard-list-row--rank-2 .leaderboard-list__rank,
+        .leaderboard-layout .leaderboard-list-row--rank-3 .leaderboard-list__rank {
+          justify-items: center;
+          color: #fffdf4;
+        }
+
+        .leaderboard-layout .leaderboard-list-row--rank-1 .leaderboard-list__rank > span,
+        .leaderboard-layout .leaderboard-list-row--rank-2 .leaderboard-list__rank > span,
+        .leaderboard-layout .leaderboard-list-row--rank-3 .leaderboard-list__rank > span {
+          width: 34px;
+          height: 34px;
+          display: inline-grid;
+          place-items: center;
+          border: 1.5px solid rgba(255, 253, 244, .68);
+          border-radius: 999px;
+          box-shadow: inset 0 2px 0 rgba(255, 255, 255, .32), 0 2px 0 rgba(44, 33, 23, .22);
+          font-size: 15px;
+        }
+
+        .leaderboard-layout .leaderboard-list-row--rank-1 .leaderboard-list__metric {
+          font-size: 18px;
+        }
+
+        .leaderboard-layout .leaderboard-current-row--sticky {
+          margin: 10px 0 0;
+          color: #fffdf4;
+          background: linear-gradient(90deg, #52699d 0%, #384b78 100%);
+          border: 1.5px solid rgba(36, 51, 86, .72);
+          box-shadow: 0 -8px 18px rgba(66, 48, 31, .08), 3px 4px 0 rgba(36, 51, 86, .22);
+        }
+
+        .leaderboard-layout .leaderboard-current-row--sticky .leaderboard-list__rank,
+        .leaderboard-layout .leaderboard-current-row--sticky .leaderboard-list__balance,
+        .leaderboard-layout .leaderboard-current-row--sticky .leaderboard-list__metric,
+        .leaderboard-layout .leaderboard-current-row--sticky .leaderboard-list__casts {
+          color: #fffdf4;
+        }
+
+        .leaderboard-art {
+          position: relative;
+          min-height: 0;
+          overflow: hidden;
+          background:
+            radial-gradient(circle at 50% 26%, rgba(255, 253, 244, .72) 0 42px, transparent 43px),
+            linear-gradient(180deg, rgba(255, 242, 184, .9), rgba(255, 213, 87, .34)),
+            repeating-linear-gradient(135deg, rgba(121, 79, 39, .08) 0 8px, transparent 8px 18px);
+          border: 1.5px solid rgba(214, 155, 33, .36);
+          border-radius: 999px 999px var(--radius-md) var(--radius-md);
+          box-shadow:
+            inset 0 2px 0 rgba(255, 253, 244, .72),
+            3px 4px 0 rgba(189, 174, 160, .32);
+        }
+
+        .leaderboard-art__image {
+          position: absolute;
+          left: 50%;
+          top: 18%;
+          width: min(116px, 58%);
+          height: auto;
+          opacity: .32;
+          image-rendering: pixelated;
+          transform: translateX(-50%);
+        }
+
+        .leaderboard-art__coin {
+          position: absolute;
+          left: 50%;
+          bottom: 38px;
+          width: 76px;
+          height: 76px;
+          display: grid;
+          place-items: center;
+          color: #fffdf4;
+          background: #d69b21;
+          border: 2px solid #8f6420;
+          border-radius: 999px;
+          box-shadow:
+            inset 0 3px 0 rgba(255, 253, 244, .38),
+            0 8px 0 rgba(143, 100, 32, .22);
+          font-size: 34px;
+          font-weight: 1000;
+          transform: translateX(-50%);
+        }
+
+        .leaderboard-art__crown {
+          position: absolute;
+          left: 50%;
+          top: 10%;
+          width: 54px;
+          height: 32px;
+          transform: translateX(-50%) rotate(-6deg);
+          filter: drop-shadow(0 3px 0 rgba(121, 79, 39, .22));
+        }
+
+        .leaderboard-art__crown::before {
+          content: "";
+          position: absolute;
+          left: 8px;
+          right: 8px;
+          bottom: 0;
+          height: 13px;
+          background: #f3b72d;
+          border: 2px solid #8f6420;
+          border-radius: 0 0 8px 8px;
+        }
+
+        .leaderboard-art__crown span {
+          position: absolute;
+          bottom: 9px;
+          width: 18px;
+          height: 20px;
+          background: #ffd557;
+          border: 2px solid #8f6420;
+          transform: rotate(45deg);
+        }
+
+        .leaderboard-art__crown span:nth-child(1) {
+          left: 4px;
+        }
+
+        .leaderboard-art__crown span:nth-child(2) {
+          left: 19px;
+          bottom: 14px;
+        }
+
+        .leaderboard-art__crown span:nth-child(3) {
+          right: 4px;
         }
 
         .inventory-summary {
@@ -8348,6 +8619,14 @@ export default function Landing() {
             min-width: 0;
           }
 
+          .leaderboard-layout {
+            grid-template-columns: 1fr;
+          }
+
+          .leaderboard-art {
+            display: none;
+          }
+
           .shop-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -8384,6 +8663,10 @@ export default function Landing() {
 
           .wallet-card--balance .wallet-action-row {
             justify-content: flex-start;
+          }
+
+          .leaderboard-layout .leaderboard-list-row {
+            grid-template-columns: 52px minmax(0, 1fr) minmax(92px, auto) minmax(58px, auto);
           }
 
           .inventory-card {
@@ -8941,6 +9224,8 @@ export default function Landing() {
                     </button>
                   </nav>
                   <div className="settings-agent-main">
+                    {settingsAgentSection === "web" && (
+                      <>
                     <p className="settings-agent-flow-copy">
                       {settingsAgentSection === "web"
                         ? tr("Use directly on the web. No software installation required.", "在网页端直接使用，无需安装任何软件。")
@@ -8956,23 +9241,31 @@ export default function Landing() {
                           ))}
                         </div>
                         <div className="settings-agent-setup-steps">
-                          <div className="settings-agent-setup-step">
+                          <div className="settings-agent-setup-step settings-agent-setup-step--with-action">
                             <span className="settings-agent-setup-step-icon" aria-hidden="true">
                               <Download size={15} strokeWidth={3} />
                             </span>
                             <span>
-                              <strong>{tr("1. Download Buddy and sign in", "1. 下载 Buddy 并登录")}</strong>
-                              <span>{tr("Install the local client plugin environment.", "完成本地客户端插件环境准备。")}</span>
+                              <strong>{tr("1. Download Buddy and sign in to Quandora", "1. 下载 Buddy 并登录 Quandora")}</strong>
+                              <span>{tr("Install the local client plugin environment", "完成本地客户端插件环境准备")}</span>
                             </span>
+                            <button className="settings-action settings-action--primary settings-agent-setup-download" type="button">
+                              <Download size={14} strokeWidth={3} />
+                              {tr("Download", "下载")}
+                            </button>
                           </div>
-                          <div className="settings-agent-setup-step">
+                          <div className="settings-agent-setup-step settings-agent-setup-step--with-action">
                             <span className="settings-agent-setup-step-icon" aria-hidden="true">
                               <Key size={15} strokeWidth={3} />
                             </span>
                             <span>
-                              <strong>{tr("2. Create API and copy it to your agent client", "2. 创建 API，复制到 Agent 客户端")}</strong>
-                              <span>{tr("Use the generated credential in your own agent workflow.", "将生成的凭证接入您的 Agent 工作流。")}</span>
+                              <strong>{tr("2. Create API and copy it to your AI client", "2. 创建 API，复制到 AI 客户端")}</strong>
+                              <span>{tr("Use the generated credential in your AI client, such as Codex", "将生成的凭证接入您的 AI 客户端（如Codex）")}</span>
                             </span>
+                            <button className="settings-action settings-action--primary settings-agent-setup-download" type="button" onClick={openAgentApiCreateModal}>
+                              <Plus size={14} strokeWidth={3} />
+                              {tr("New API", "新建 API")}
+                            </button>
                           </div>
                           <div className="settings-agent-setup-step">
                             <span className="settings-agent-setup-step-icon" aria-hidden="true">
@@ -8980,7 +9273,7 @@ export default function Landing() {
                             </span>
                             <span>
                               <strong>{tr("3. Send a request to verify", "3. 发送请求验证")}</strong>
-                              <span>{tr("Confirm the client can access Quandora Trading.", "确认客户端可以访问 Quandora Trading。")}</span>
+                              <span>{tr("Confirm the client can access Quandora", "确认客户端可以访问 Quandora")}</span>
                             </span>
                           </div>
                         </div>
@@ -9483,6 +9776,8 @@ export default function Landing() {
                         )}
                       </>
                     )}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -9817,75 +10112,58 @@ export default function Landing() {
             </header>
 
             <div className="leaderboard-panel">
-              <div className="leaderboard-podium" aria-label={tr("Top three leaderboard", "排行榜前三名")}>
-                {leaderboardPodiumRows.map((row) => (
-                  <article
-                    key={row.id}
-                    className={`leaderboard-podium-card leaderboard-podium-card--rank-${row.rank}${row.id === CURRENT_LEADERBOARD_USER_ID ? " is-current" : ""}`}
-                  >
-                    <span className="leaderboard-podium-card__shine" aria-hidden="true" />
-                    {row.rank === 1 && (
-                      <span className="leaderboard-crown" aria-hidden="true">
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                    )}
-                    <div className="leaderboard-podium-card__head">
-                      <span className="leaderboard-rank-badge">
-                        <span className="leaderboard-rank-badge__ring" aria-hidden="true" />
-                        {row.rank}
-                      </span>
-                      <span className="leaderboard-rank-tag">TOP {row.rank}</span>
-                    </div>
-                    <div>
-                      {row.rank === 1 && <div className="leaderboard-champion-ribbon">CHAMPION</div>}
-                      <div className="leaderboard-name" title={row.nickname}>{row.nickname}</div>
-                      <div className="leaderboard-balance">
-                        <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
-                        <span>{formatLeaderboardBalance(row.balance)}</span>
+              <div className="leaderboard-layout">
+                <section className="leaderboard-list" aria-label={tr("Leaderboard list", "排行榜列表")}>
+                  <div className="leaderboard-list-row leaderboard-list-row--head">
+                    <span>{tr("Rank", "排名")}</span>
+                    <span>{tr("Nickname", "用户昵称")}</span>
+                    <span className="leaderboard-list__balance">{leaderboardBalanceLabel}</span>
+                    <span className="leaderboard-list__casts">{leaderboardCastsLabel}</span>
+                  </div>
+                  <div className="leaderboard-list__scroll">
+                    {leaderboardListRows.map((row) => (
+                      <div
+                        className={`leaderboard-list-row leaderboard-list-row--rank-${Math.min(row.rank, 3)}${row.id === CURRENT_LEADERBOARD_USER_ID ? " is-current" : ""}`}
+                        key={row.id}
+                      >
+                        <span className="leaderboard-list__rank">
+                          <span>{row.rank <= 3 ? row.rank : `NO.${row.rank}`}</span>
+                          {row.rank <= 3 && <small>TOP {row.rank}</small>}
+                        </span>
+                        <span className="leaderboard-list__name">
+                          {row.rank === 1 && <span className="leaderboard-champion-ribbon">CHAMPION</span>}
+                          <span>{row.nickname}</span>
+                        </span>
+                        <span className="leaderboard-list__metric">
+                          <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
+                          <span>{formatLeaderboardBalance(row.balance)}</span>
+                        </span>
+                        <span className="leaderboard-list__casts">{row.casts}</span>
                       </div>
-                      <div className="leaderboard-casts">{leaderboardCastsLabel} · {row.casts}</div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              <section className="leaderboard-list" aria-label={tr("Leaderboard list", "排行榜列表")}>
-                <div className="leaderboard-list-row leaderboard-list-row--head">
-                  <span>{tr("Rank", "排名")}</span>
-                  <span>{tr("Nickname", "用户昵称")}</span>
-                  <span className="leaderboard-list__balance">{leaderboardBalanceLabel}</span>
-                  <span className="leaderboard-list__casts">{leaderboardCastsLabel}</span>
-                </div>
-                <div className="leaderboard-list__scroll">
-                  {leaderboardListRows.map((row) => (
-                    <div
-                      className={`leaderboard-list-row${row.id === CURRENT_LEADERBOARD_USER_ID ? " is-current" : ""}`}
-                      key={row.id}
-                    >
-                      <span className="leaderboard-list__rank">NO.{row.rank}</span>
-                      <span className="leaderboard-list__name">{row.nickname}</span>
+                    ))}
+                  </div>
+                  {currentLeaderboardRow && !currentLeaderboardInTop50 && (
+                    <div className="leaderboard-list-row leaderboard-current-row--sticky is-current">
+                      <span className="leaderboard-list__rank">{tr("Unranked", "未上榜")}</span>
+                      <span className="leaderboard-list__name">{tr(`You - #${currentLeaderboardRow.rank}`, `你 - #${currentLeaderboardRow.rank}`)}</span>
                       <span className="leaderboard-list__metric">
                         <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
-                        <span>{formatLeaderboardBalance(row.balance)}</span>
+                        <span>{formatLeaderboardBalance(currentLeaderboardRow.balance)}</span>
                       </span>
-                      <span className="leaderboard-list__casts">{row.casts}</span>
+                      <span className="leaderboard-list__casts">{currentLeaderboardRow.casts}</span>
                     </div>
-                  ))}
-                </div>
-                {currentLeaderboardRow && !currentLeaderboardInTop50 && (
-                  <div className="leaderboard-list-row leaderboard-current-row--sticky is-current">
-                    <span className="leaderboard-list__rank">{tr("Unranked", "未上榜")}</span>
-                    <span className="leaderboard-list__name">{tr(`You - #${currentLeaderboardRow.rank}`, `你 - #${currentLeaderboardRow.rank}`)}</span>
-                    <span className="leaderboard-list__metric">
-                      <img className="leaderboard-balance__icon" src={HUD_ASSETS.coin} alt="" />
-                      <span>{formatLeaderboardBalance(currentLeaderboardRow.balance)}</span>
-                    </span>
-                    <span className="leaderboard-list__casts">{currentLeaderboardRow.casts}</span>
+                  )}
+                </section>
+                <aside className="leaderboard-art" aria-hidden="true">
+                  <img className="leaderboard-art__image" src={HUD_ASSETS.leaderboard} alt="" />
+                  <div className="leaderboard-art__crown">
+                    <span />
+                    <span />
+                    <span />
                   </div>
-                )}
-              </section>
+                  <div className="leaderboard-art__coin">1</div>
+                </aside>
+              </div>
             </div>
           </section>
         </div>
