@@ -311,7 +311,7 @@ type AgentConnectableProvider = {
 type AgentProviderId = AgentConnectableProvider["id"];
 const agentConnectableProviders: readonly AgentConnectableProvider[] = [
   { id: "codex", name: "Codex", mark: "C", icon: "codex" },
-  { id: "claude-code", name: "ClaudeCode", mark: "C", icon: "claude" },
+  { id: "claude-code", name: "Claude Code", mark: "C", icon: "claude" },
   { id: "openclaw", name: "OpenClaw", mark: "O", icon: "openclaw" },
 ];
 const agentWebAuthorizationLoginUrl = "https://chatgpt.com/activate";
@@ -796,7 +796,7 @@ export default function Landing() {
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
   const [agentConnectModalOpen, setAgentConnectModalOpen] = useState(false);
   const [agentSelectedProviderId, setAgentSelectedProviderId] = useState<AgentProviderId>("codex");
-  const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set());
+  const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set(["codex"]));
   const [agentDisconnectConfirmProviderId, setAgentDisconnectConfirmProviderId] = useState<AgentProviderId | null>(null);
   const [agentStatusTestingProviderId, setAgentStatusTestingProviderId] = useState<AgentProviderId | null>(null);
   const [agentAuthMethod, setAgentAuthMethod] = useState<"code" | "byok">("code");
@@ -1510,6 +1510,13 @@ export default function Landing() {
         tr(`${getAgentProviderName(providerId)} is connected.`, `${getAgentProviderName(providerId)} 已连接。`)
       );
     }, 900);
+  };
+
+  const pauseAgentProvider = (providerId: AgentProviderId) => {
+    showSettingsFeedback(
+      tr("Paused", "已暂停"),
+      tr(`${getAgentProviderName(providerId)} paused.`, `${getAgentProviderName(providerId)} 已暂停。`)
+    );
   };
 
   const confirmAgentProviderConnection = () => {
@@ -4052,7 +4059,7 @@ export default function Landing() {
 
         .settings-modal {
           position: relative;
-          width: min(980px, 94vw);
+          width: min(1160px, 94vw);
           height: min(680px, 88vh);
           max-height: 88vh;
           display: flex;
@@ -4152,7 +4159,7 @@ export default function Landing() {
           min-height: 100%;
           height: 100%;
           display: grid;
-          grid-template-columns: var(--settings-agent-side-width) minmax(0, 1fr);
+          grid-template-columns: minmax(0, 1fr);
           align-items: start;
           gap: 0;
         }
@@ -4212,6 +4219,14 @@ export default function Landing() {
           height: 100%;
           overflow: auto;
           padding: 22px clamp(20px, 2.6vw, 28px) 28px;
+        }
+
+        .settings-agent-intro-copy {
+          margin: 0 0 18px;
+          color: rgba(121, 79, 39, .74);
+          font-size: 15px;
+          font-weight: 1000;
+          line-height: 1.45;
         }
 
         .settings-agent-flow-copy {
@@ -4514,60 +4529,83 @@ export default function Landing() {
 
         .settings-agent-provider-list {
           display: grid;
-          gap: 0;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 20px;
           overflow: visible;
-          background: rgba(255, 253, 244, .82);
-          border: 1.5px solid rgba(196, 184, 158, .46);
-          border-radius: var(--radius-xs);
+          background: transparent;
+          border: 0;
+          border-radius: 0;
         }
 
         .settings-agent-provider-row {
-          min-height: 74px;
-          display: grid;
-          grid-template-columns: auto minmax(0, 1fr) auto;
-          align-items: center;
-          gap: 18px;
-          padding: 0 22px;
+          min-height: 206px;
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 28px;
           color: var(--ac-text);
-          background: rgba(255, 253, 244, .76);
-          border-bottom: 1px solid rgba(196, 184, 158, .34);
+          background: rgba(255, 253, 244, .92);
+          border: 2.5px solid rgba(196, 184, 158, .46);
+          border-radius: 20px;
         }
 
         .settings-agent-provider-row:first-child {
-          border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+          border-radius: 20px;
         }
 
         .settings-agent-provider-row:last-child {
-          border-bottom: 0;
-          border-radius: 0 0 var(--radius-xs) var(--radius-xs);
+          border-radius: 20px;
+        }
+
+        .settings-agent-provider-row.is-connected {
+          border-color: rgba(55, 163, 103, .34);
+        }
+
+        .settings-agent-provider-head {
+          min-width: 0;
+          display: grid;
+          grid-template-columns: 76px minmax(0, 1fr);
+          align-items: start;
+          gap: 22px;
         }
 
         .settings-agent-provider-mark {
-          width: 38px;
-          height: 38px;
+          width: 76px;
+          height: 76px;
           box-sizing: border-box;
           display: grid;
           place-items: center;
           flex: 0 0 auto;
           overflow: hidden;
           color: #fffdf4;
-          background: #1c1b18;
-          border-radius: 50%;
-          font-size: 19px;
+          background: #1f1e1b;
+          border-radius: 18px;
+          font-size: 26px;
           font-weight: 1000;
           line-height: 1;
         }
 
         .settings-agent-provider-mark--codex,
-        .settings-agent-provider-mark--claude-code,
+        .settings-agent-provider-mark--claude-code {
+          background: rgba(252, 205, 212, .72);
+          border: 0;
+        }
+
+        .settings-agent-provider-mark--codex {
+          background: rgba(201, 213, 255, .72);
+          border: 0;
+        }
+
         .settings-agent-provider-mark--openclaw {
-          background: transparent;
+          background: #252525;
           border: 0;
         }
 
         .settings-agent-provider-icon {
-          width: 38px;
-          height: 38px;
+          width: 48px;
+          height: 48px;
           display: grid;
           place-items: center;
         }
@@ -4580,31 +4618,131 @@ export default function Landing() {
 
         .settings-agent-provider-name {
           min-width: 0;
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          display: grid;
+          gap: 12px;
           color: var(--ac-text);
-          font-size: 14px;
+          font-size: 30px;
           font-weight: 1000;
-          line-height: 1.2;
+          line-height: 1.05;
         }
 
-        .settings-agent-provider-status {
-          color: rgba(121, 79, 39, .66);
-          font-size: 12px;
-          font-weight: 1000;
+        .settings-agent-provider-name > span:first-child {
+          overflow: hidden;
+          text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .settings-agent-provider-status.is-connected {
-          color: #16794c;
+        .settings-agent-provider-meta {
+          color: rgba(121, 79, 39, .64);
+          font-size: 18px;
+          font-weight: 900;
+          line-height: 1.25;
+        }
+
+        .settings-agent-provider-badge {
+          width: max-content;
+          min-height: 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0;
+          background: transparent;
+          border-radius: 0;
+          color: rgba(121, 79, 39, .66);
+          font-size: 18px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+
+        .settings-agent-provider-badge::before {
+          content: "";
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: currentColor;
+          box-shadow: none;
+        }
+
+        .settings-agent-provider-badge.is-connected {
+          color: #3fae6b;
+          background: transparent;
+        }
+
+        .settings-agent-provider-badge.is-disconnected {
+          color: #c7bea5;
+          background: transparent;
         }
 
         .settings-agent-provider-actions {
           display: flex;
           align-items: center;
-          justify-content: flex-end;
-          gap: 8px;
+          justify-content: flex-start;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .settings-agent-provider-action-button {
+          appearance: none;
+          min-height: 58px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 0 22px;
+          color: var(--ac-text);
+          background: rgba(255, 253, 244, .92);
+          border: 2.5px solid rgba(196, 184, 158, .46);
+          border-radius: 12px;
+          cursor: pointer;
+          font: inherit;
+          font-size: 20px;
+          font-weight: 1000;
+          line-height: 1;
+          box-shadow: 0 2px 0 rgba(121, 79, 39, .08);
+        }
+
+        .settings-agent-provider-action-button--compact {
+          min-height: 50px;
+          padding: 0 16px;
+          font-size: 18px;
+        }
+
+        .settings-agent-provider-action-button svg {
+          width: 22px;
+          height: 22px;
+        }
+
+        .settings-agent-provider-action-button:hover,
+        .settings-agent-provider-action-button:focus-visible {
+          background: #fffdf4;
+          border-color: rgba(121, 79, 39, .34);
+          outline: none;
+        }
+
+        .settings-agent-provider-action-button:disabled {
+          cursor: wait;
+        }
+
+        .settings-agent-provider-action-button.is-loading svg {
+          animation: settings-agent-spin .8s linear infinite;
+        }
+
+        .settings-agent-provider-action-button--primary {
+          background: #f8c840;
+          border-color: rgba(121, 79, 39, .22);
+          border-radius: 12px;
+        }
+
+        @media (max-width: 980px) {
+          .settings-agent-provider-list {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 680px) {
+          .settings-agent-provider-list {
+            grid-template-columns: minmax(0, 1fr);
+          }
         }
 
         .settings-agent-provider-add {
@@ -9772,37 +9910,15 @@ export default function Landing() {
                 </>
               ) : (
                 <div className="settings-agent-panel" role="tabpanel" aria-label={tr("Agent settings", "agent设置")}>
-                  <nav className="settings-agent-side-nav" aria-label={tr("Agent sections", "Agent 设置导航")}>
-                    <button
-                      className={`settings-agent-side-tab${settingsAgentSection === "web" ? " is-active" : ""}`}
-                      type="button"
-                      aria-current={settingsAgentSection === "web" ? "page" : undefined}
-                      onClick={() => {
-                        setSettingsAgentSection("web");
-                        setAgentConnectModalOpen(false);
-                        setAgentDisconnectConfirmProviderId(null);
-                      }}
-                    >
-                      {tr("Web authorization", "网页端授权")}
-                    </button>
-                    <button
-                      className={`settings-agent-side-tab${settingsAgentSection === "client" ? " is-active" : ""}`}
-                      type="button"
-                      aria-current={settingsAgentSection === "client" ? "page" : undefined}
-                      onClick={() => {
-                        setSettingsAgentSection("client");
-                        setAgentConnectModalOpen(false);
-                        setAgentDisconnectConfirmProviderId(null);
-                      }}
-                    >
-                      {tr("Client plugin", "客户端插件")}
-                    </button>
-                  </nav>
                   <div className="settings-agent-main">
+                    <p className="settings-agent-intro-copy">
+                      {tr(
+                        "Choose the AI you want to connect. After configuration, you can start using it.",
+                        "选择您想要接入的 AI，完成配置后即可开始使用。"
+                      )}
+                    </p>
                     {settingsAgentSection === "web" ? (
-                      <p className="settings-agent-flow-copy">
-                        {tr("Use directly on the web. No software installation required.", "在网页端直接使用，无需安装任何软件。")}
-                      </p>
+                      null
                     ) : (
                       <section className="settings-agent-install" aria-label={tr("Install client plugin", "安装客户端插件")}>
                         <div className="settings-agent-install__intro">
@@ -9892,59 +10008,64 @@ export default function Landing() {
                             const isTestingStatus = agentStatusTestingProviderId === provider.id;
 
                             return (
-                              <div className="settings-agent-provider-row" key={provider.id}>
-                                <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
-                                  {"icon" in provider && provider.icon === "codex" ? (
-                                    <Codex.Avatar className="settings-agent-provider-icon" size={38} />
-                                  ) : "icon" in provider && provider.icon === "claude" ? (
-                                    <Claude.Avatar className="settings-agent-provider-icon" size={38} />
-                                  ) : "icon" in provider && provider.icon === "openclaw" ? (
-                                    <OpenClaw.Avatar className="settings-agent-provider-icon" size={38} />
-                                  ) : (
-                                    provider.mark
-                                  )}
-                                </span>
-                                <span className="settings-agent-provider-name">
-                                  <span>{provider.name}</span>
-                                  {isConnected && (
-                                    <span className="settings-agent-provider-status is-connected">
-                                      {tr("Status normal", "状态正常")}
+                              <div className={`settings-agent-provider-row${isConnected ? " is-connected" : " is-disconnected"}`} key={provider.id}>
+                                <div className="settings-agent-provider-head">
+                                  <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
+                                    {"icon" in provider && provider.icon === "codex" ? (
+                                      <Codex.Avatar className="settings-agent-provider-icon" size={48} />
+                                    ) : "icon" in provider && provider.icon === "claude" ? (
+                                      <Claude.Avatar className="settings-agent-provider-icon" size={48} />
+                                    ) : "icon" in provider && provider.icon === "openclaw" ? (
+                                      <OpenClaw.Avatar className="settings-agent-provider-icon" size={48} />
+                                    ) : (
+                                      provider.mark
+                                    )}
+                                  </span>
+                                  <span className="settings-agent-provider-name">
+                                    <span>{provider.name}</span>
+                                    <span className={`settings-agent-provider-badge${isConnected ? " is-connected" : " is-disconnected"}`}>
+                                      {isConnected
+                                        ? tr("Connected · Authorization successful", "已连接 · 授权成功")
+                                        : tr("Not authorized · Waiting for connection", "尚未授权 · 等待连接")}
                                     </span>
-                                  )}
-                                </span>
+                                  </span>
+                                </div>
                                 <div className="settings-agent-provider-actions">
                                   {isConnected ? (
                                     <>
                                       <button
-                                        className="settings-agent-provider-icon-action"
-                                        type="button"
-                                        aria-label={tr("Disconnect", "断连")}
-                                        data-label={tr("Disconnect", "断连")}
-                                        onClick={() => requestDisconnectAgentProvider(provider.id)}
-                                      >
-                                        <Unplug size={18} strokeWidth={2.4} aria-hidden="true" />
-                                      </button>
-                                      <button
-                                        className={`settings-agent-provider-icon-action${isTestingStatus ? " is-loading" : ""}`}
+                                        className={`settings-agent-provider-action-button settings-agent-provider-action-button--compact${isTestingStatus ? " is-loading" : ""}`}
                                         type="button"
                                         aria-label={isTestingStatus ? tr("Testing status", "状态测试中") : tr("Status test", "状态测试")}
-                                        data-label={isTestingStatus ? tr("Testing", "测试中") : tr("Status test", "状态测试")}
                                         disabled={isTestingStatus}
                                         onClick={() => testAgentProviderStatus(provider.id)}
                                       >
-                                        {isTestingStatus ? (
-                                          <LoaderCircle size={18} strokeWidth={2.4} aria-hidden="true" />
-                                        ) : (
-                                          <Activity size={18} strokeWidth={2.4} aria-hidden="true" />
-                                        )}
+                                        <span>{isTestingStatus ? tr("Testing", "检查中") : tr("Check", "检查")}</span>
+                                      </button>
+                                      <button
+                                        className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
+                                        type="button"
+                                        aria-label={tr("Pause", "暂停")}
+                                        onClick={() => pauseAgentProvider(provider.id)}
+                                      >
+                                        <span>{tr("Pause", "暂停")}</span>
+                                      </button>
+                                      <button
+                                        className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
+                                        type="button"
+                                        aria-label={tr("Disconnect", "断连")}
+                                        onClick={() => requestDisconnectAgentProvider(provider.id)}
+                                      >
+                                        <span>{tr("Disconnect", "断开")}</span>
                                       </button>
                                     </>
                                   ) : (
                                     <button
-                                      className="settings-agent-provider-add"
+                                      className="settings-agent-provider-action-button settings-agent-provider-action-button--primary"
                                       type="button"
                                       onClick={() => openAgentConnectModal(provider.id)}
                                     >
+                                      <Plus size={18} strokeWidth={2.6} aria-hidden="true" />
                                       {tr("Connect", "连接")}
                                     </button>
                                   )}
