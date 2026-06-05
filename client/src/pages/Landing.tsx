@@ -7341,11 +7341,10 @@ export default function Landing() {
           border-radius: inherit;
           background: conic-gradient(
             from var(--leaderboard-gradient-angle),
-            #FF9E3D 0%,
-            #FFEC44 25%,
-            #FF9E3D 50%,
-            #FFEC44 75%,
-            #FF9E3D 100%
+            #cc98ff 0%,
+            #ff944a 34%,
+            #ff7cbd 67%,
+            #cc98ff 100%
           );
           pointer-events: none;
           -webkit-mask:
@@ -7632,11 +7631,10 @@ export default function Landing() {
           border-radius: inherit;
           background: conic-gradient(
             from var(--leaderboard-gradient-angle),
-            #FDB163 0%,
-            #FBE79A 32%,
-            #FFFFFF 48%,
-            #FBE79A 64%,
-            #FDB163 100%
+            #cc98ff 0%,
+            #ff944a 34%,
+            #ff7cbd 67%,
+            #cc98ff 100%
           );
           pointer-events: none;
           -webkit-mask:
@@ -10589,7 +10587,7 @@ export default function Landing() {
                                           setAgentConnectStep(3);
                                         }}
                                       >
-                                        {tr("Complete connection", "完成连接")} ✓
+                                        {tr("Verify", "验证")}
                                       </button>
                                     )}
                                   </div>
