@@ -797,8 +797,13 @@ export default function Landing() {
   const [agentConnectModalOpen, setAgentConnectModalOpen] = useState(false);
   const [agentSelectedProviderId, setAgentSelectedProviderId] = useState<AgentProviderId>("codex");
   const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set(["codex"]));
+  const [agentConnectedDeviceNames, setAgentConnectedDeviceNames] = useState<Partial<Record<AgentProviderId, string>>>({ codex: "MacBook Pro" });
   const [agentDisconnectConfirmProviderId, setAgentDisconnectConfirmProviderId] = useState<AgentProviderId | null>(null);
   const [agentStatusTestingProviderId, setAgentStatusTestingProviderId] = useState<AgentProviderId | null>(null);
+  const [agentConnectStep, setAgentConnectStep] = useState<1 | 2 | 3>(1);
+  const [agentConnectMode, setAgentConnectMode] = useState<"web" | "agent">("web");
+  const [agentConnectOpt, setAgentConnectOpt] = useState<"auth" | "api">("auth");
+  const [agentConnectPlugin, setAgentConnectPlugin] = useState<"auto" | "manual">("auto");
   const [agentAuthMethod, setAgentAuthMethod] = useState<"code" | "byok">("code");
   const [agentWebAuthorizationCode, setAgentWebAuthorizationCode] = useState("SSH8-M4Y83");
   const [agentByokKey, setAgentByokKey] = useState("");
@@ -806,6 +811,7 @@ export default function Landing() {
   const [agentByokTestMessage, setAgentByokTestMessage] = useState("");
   const [agentApiKeys, setAgentApiKeys] = useState<AgentApiKeyItem[]>(initialAgentApiKeys);
   const [agentApiVisibleKeyIds, setAgentApiVisibleKeyIds] = useState<Set<string>>(() => new Set());
+  const [agentAuthPreviewOpen, setAgentAuthPreviewOpen] = useState(false);
   const [agentApiEditingNameId, setAgentApiEditingNameId] = useState<string | null>(null);
   const [agentApiEditNameValue, setAgentApiEditNameValue] = useState("");
   const [agentApiMoreMenuId, setAgentApiMoreMenuId] = useState<string | null>(null);
@@ -1477,6 +1483,11 @@ export default function Landing() {
     setAgentSelectedProviderId(providerId);
     setAgentDisconnectConfirmProviderId(null);
     setAgentAuthMethod("code");
+    setAgentConnectPlugin("auto");
+    const agentOnly = providerId === "claude-code" || providerId === "openclaw";
+    setAgentConnectMode(agentOnly ? "agent" : "web");
+    setAgentConnectOpt("auth");
+    setAgentConnectStep(agentOnly ? 2 : 1);
     setAgentConnectModalOpen(true);
   };
 
@@ -1521,6 +1532,7 @@ export default function Landing() {
 
   const confirmAgentProviderConnection = () => {
     setAgentConnectedProviderIds((current) => new Set(current).add(agentSelectedProviderId));
+    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));
     setAgentConnectModalOpen(false);
     showSettingsFeedback(
       tr("Connected", "已连接"),
@@ -1565,7 +1577,7 @@ export default function Landing() {
   const copyAgentAuthorizationCodeAndOpenLogin = () => {
     window.open(agentWebAuthorizationLoginUrl, "_blank", "noopener,noreferrer");
     setAgentConnectedProviderIds((current) => new Set(current).add(agentSelectedProviderId));
-
+    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));
     if (!navigator.clipboard?.writeText) {
       showSettingsFeedback(
         tr("Copy manually", "请手动复制"),
@@ -4219,7 +4231,33 @@ export default function Landing() {
           height: 100%;
           overflow: auto;
           padding: 22px clamp(20px, 2.6vw, 28px) 28px;
+          display: flex;
+          flex-direction: column;
         }
+        .settings-agent-main__topbar {
+          display: flex; align-items: flex-start; justify-content: space-between;
+          gap: 12px; margin-bottom: 16px;
+        }
+        .settings-agent-main__topbar .settings-agent-intro-copy { margin-bottom: 0; }
+        .sac-buddy-banner {
+          display: flex; align-items: center; gap: 12px;
+          margin-top: auto; padding: 14px 16px;
+          background: rgba(255,213,87,.1);
+          border: 1.5px solid rgba(245,200,66,.4);
+          border-radius: var(--radius-xs);
+        }
+        .sac-buddy-banner__icon { font-size: 30px; flex-shrink: 0; }
+        .sac-buddy-banner__body { flex: 1; min-width: 0; }
+        .sac-buddy-banner__title { font-size: 13px; font-weight: 800; color: var(--ac-text); margin-bottom: 2px; }
+        .sac-buddy-banner__desc  { font-size: 11px; color: rgba(121,79,39,.7); line-height: 1.5; }
+        .sac-buddy-banner__btn {
+          appearance: none; flex-shrink: 0;
+          background: #ffd557; color: #5a3e00; border: none;
+          border-radius: var(--radius-xs); padding: 8px 18px;
+          font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+          text-decoration: none; display: inline-block;
+        }
+        .sac-buddy-banner__btn:hover { background: #f5c030; }
 
         .settings-agent-intro-copy {
           margin: 0 0 18px;
@@ -4530,7 +4568,7 @@ export default function Landing() {
         .settings-agent-provider-list {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 20px;
+          gap: 12px;
           overflow: visible;
           background: transparent;
           border: 0;
@@ -4538,25 +4576,25 @@ export default function Landing() {
         }
 
         .settings-agent-provider-row {
-          min-height: 206px;
+          min-height: 0;
           display: flex;
           flex-direction: column;
           align-items: stretch;
           justify-content: space-between;
-          gap: 24px;
-          padding: 28px;
+          gap: 12px;
+          padding: 14px 16px;
           color: var(--ac-text);
           background: rgba(255, 253, 244, .92);
-          border: 2.5px solid rgba(196, 184, 158, .46);
-          border-radius: 20px;
+          border: 2px solid rgba(196, 184, 158, .46);
+          border-radius: 14px;
         }
 
         .settings-agent-provider-row:first-child {
-          border-radius: 20px;
+          border-radius: 14px;
         }
 
         .settings-agent-provider-row:last-child {
-          border-radius: 20px;
+          border-radius: 14px;
         }
 
         .settings-agent-provider-row.is-connected {
@@ -4566,14 +4604,14 @@ export default function Landing() {
         .settings-agent-provider-head {
           min-width: 0;
           display: grid;
-          grid-template-columns: 76px minmax(0, 1fr);
-          align-items: start;
-          gap: 22px;
+          grid-template-columns: 44px minmax(0, 1fr);
+          align-items: center;
+          gap: 12px;
         }
 
         .settings-agent-provider-mark {
-          width: 76px;
-          height: 76px;
+          width: 44px;
+          height: 44px;
           box-sizing: border-box;
           display: grid;
           place-items: center;
@@ -4581,8 +4619,8 @@ export default function Landing() {
           overflow: hidden;
           color: #fffdf4;
           background: #1f1e1b;
-          border-radius: 18px;
-          font-size: 26px;
+          border-radius: 11px;
+          font-size: 16px;
           font-weight: 1000;
           line-height: 1;
         }
@@ -4604,8 +4642,8 @@ export default function Landing() {
         }
 
         .settings-agent-provider-icon {
-          width: 48px;
-          height: 48px;
+          width: 30px;
+          height: 30px;
           display: grid;
           place-items: center;
         }
@@ -4619,9 +4657,9 @@ export default function Landing() {
         .settings-agent-provider-name {
           min-width: 0;
           display: grid;
-          gap: 12px;
+          gap: 5px;
           color: var(--ac-text);
-          font-size: 30px;
+          font-size: 16px;
           font-weight: 1000;
           line-height: 1.05;
         }
@@ -4634,8 +4672,8 @@ export default function Landing() {
 
         .settings-agent-provider-meta {
           color: rgba(121, 79, 39, .64);
-          font-size: 18px;
-          font-weight: 900;
+          font-size: 11px;
+          font-weight: 700;
           line-height: 1.25;
         }
 
@@ -4644,20 +4682,20 @@ export default function Landing() {
           min-height: 0;
           display: inline-flex;
           align-items: center;
-          gap: 10px;
+          gap: 6px;
           padding: 0;
           background: transparent;
           border-radius: 0;
           color: rgba(121, 79, 39, .66);
-          font-size: 18px;
-          font-weight: 900;
+          font-size: 11px;
+          font-weight: 700;
           white-space: nowrap;
         }
 
         .settings-agent-provider-badge::before {
           content: "";
-          width: 14px;
-          height: 14px;
+          width: 7px;
+          height: 7px;
           border-radius: 50%;
           background: currentColor;
           box-shadow: none;
@@ -4677,39 +4715,39 @@ export default function Landing() {
           display: flex;
           align-items: center;
           justify-content: flex-start;
-          gap: 10px;
+          gap: 6px;
           flex-wrap: wrap;
         }
 
         .settings-agent-provider-action-button {
           appearance: none;
-          min-height: 58px;
+          min-height: 32px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          padding: 0 22px;
+          gap: 6px;
+          padding: 0 12px;
           color: var(--ac-text);
           background: rgba(255, 253, 244, .92);
-          border: 2.5px solid rgba(196, 184, 158, .46);
-          border-radius: 12px;
+          border: 1.5px solid rgba(196, 184, 158, .46);
+          border-radius: 8px;
           cursor: pointer;
           font: inherit;
-          font-size: 20px;
-          font-weight: 1000;
+          font-size: 12px;
+          font-weight: 800;
           line-height: 1;
-          box-shadow: 0 2px 0 rgba(121, 79, 39, .08);
+          box-shadow: 0 1px 0 rgba(121, 79, 39, .08);
         }
 
         .settings-agent-provider-action-button--compact {
-          min-height: 50px;
-          padding: 0 16px;
-          font-size: 18px;
+          min-height: 28px;
+          padding: 0 10px;
+          font-size: 12px;
         }
 
         .settings-agent-provider-action-button svg {
-          width: 22px;
-          height: 22px;
+          width: 14px;
+          height: 14px;
         }
 
         .settings-agent-provider-action-button:hover,
@@ -4730,7 +4768,7 @@ export default function Landing() {
         .settings-agent-provider-action-button--primary {
           background: #f8c840;
           border-color: rgba(121, 79, 39, .22);
-          border-radius: 12px;
+          border-radius: 8px;
         }
 
         @media (max-width: 980px) {
@@ -4826,6 +4864,240 @@ export default function Landing() {
           opacity: 1;
           transform: translate(-50%, 0);
         }
+
+        /* ── Multi-step Agent Connect Modal ── */
+        .sac-modal {
+          position: relative;
+          width: min(600px, 100%);
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          overflow: hidden;
+          color: var(--ac-text);
+          background: #fffdf4;
+          border: 1.5px solid rgba(121, 79, 39, .28);
+          border-radius: var(--radius-xs);
+          box-shadow: 0 0 0 3px rgba(255,253,244,.72), 0 18px 36px rgba(66,48,31,.16);
+          animation: sacPopIn 0.18s ease;
+        }
+        @keyframes sacPopIn {
+          from { opacity: 0; transform: scale(0.96) translateY(6px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .sac-header {
+          display: flex; align-items: center;
+          padding: 14px 18px;
+          border-bottom: 1.5px solid rgba(196, 184, 158, .4);
+          gap: 12px;
+        }
+        .sac-title { font-size: 15px; font-weight: 800; color: var(--ac-text); white-space: nowrap; }
+        .sac-close {
+          appearance: none; width: 28px; height: 28px; flex-shrink: 0;
+          display: inline-grid; place-items: center;
+          color: rgba(121,79,39,.7); background: transparent;
+          border: 0; border-radius: var(--radius-xs); cursor: pointer;
+        }
+        .sac-close:hover { color: var(--ac-text); background: rgba(255,213,87,.3); }
+
+        /* Steps bar — inline in header */
+        .sac-steps {
+          flex: 1;
+          display: flex; align-items: center; justify-content: flex-end;
+          gap: 0;
+          padding: 0;
+        }
+        .sac-sitem {
+          display: flex; align-items: center; gap: 5px;
+          position: relative;
+        }
+        .sac-sitem:not(:last-child)::after {
+          content: ''; display: inline-block;
+          width: 18px; height: 1.5px;
+          background: rgba(196,184,158,.5);
+          margin: 0 4px; vertical-align: middle;
+        }
+        .sac-circle {
+          width: 22px; height: 22px; border-radius: 50%;
+          display: inline-flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 800;
+          background: rgba(196,184,158,.3); color: rgba(121,79,39,.5);
+          transition: background 0.2s, color 0.2s; flex-shrink: 0;
+        }
+        .sac-circle--active { background: #5bbcd6; color: #fff; }
+        .sac-circle--done   { background: #ffd557; color: #5a3e00; }
+        .sac-slabel { font-size: 10px; color: rgba(121,79,39,.45); }
+        .sac-slabel--active { color: #3a9bbf; font-weight: 700; }
+        .sac-slabel--done   { color: #b8940a; font-weight: 700; }
+
+        /* Body */
+        .sac-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .sac-sub  { font-size: 12px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
+        .sac-section-label { font-size: 13px; font-weight: 800; color: var(--ac-text); margin: 0; }
+
+        /* Mode cards */
+        .sac-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .sac-mode-card {
+          appearance: none; text-align: left;
+          border: 2px solid rgba(196,184,158,.55); border-radius: var(--radius-xs);
+          padding: 14px; cursor: pointer; background: #fffdf4;
+          display: flex; align-items: flex-start; gap: 10px;
+          transition: border-color 0.15s, background 0.15s;
+          font: inherit; color: inherit;
+        }
+        .sac-mode-card:hover, .sac-mode-card--sel {
+          border-color: #5bbcd6; background: rgba(91,188,214,.07);
+        }
+        .sac-mode-title { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
+        .sac-mode-desc  { font-size: 11px; color: rgba(121,79,39,.65); line-height: 1.5; }
+
+        /* Radio dot */
+        .sac-radio {
+          width: 17px; height: 17px; border-radius: 50%; flex-shrink: 0;
+          border: 2px solid rgba(196,184,158,.7);
+          display: flex; align-items: center; justify-content: center;
+          transition: border-color 0.15s, background 0.15s; margin-top: 1px;
+        }
+        .sac-radio--checked { border-color: #5bbcd6; background: #5bbcd6; }
+        .sac-radio--checked::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #fff; }
+
+        /* Option cards */
+        .sac-opt-card {
+          border: 1.5px solid rgba(196,184,158,.5); border-radius: var(--radius-xs);
+          padding: 12px 14px; cursor: pointer; background: #fffdf4;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .sac-opt-card:hover, .sac-opt-card--sel { border-color: #ffd557; background: #fffbee; }
+        .sac-opt-head  { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .sac-opt-title { font-weight: 700; font-size: 13px; color: var(--ac-text); }
+        .sac-opt-desc  { font-size: 11px; color: rgba(121,79,39,.65); margin-left: 25px; }
+        .sac-opt-detail { margin-top: 12px; margin-left: 25px; }
+        .sac-badge {
+          background: rgba(91,214,155,.2); color: #2a7a4a;
+          font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 10px;
+        }
+
+        /* Note bar inside opt-detail */
+        .sac-note {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 12px; color: rgba(121,79,39,.72);
+          background: rgba(255,213,87,.12); border-radius: var(--radius-xs);
+          padding: 8px 10px; margin-bottom: 10px;
+        }
+        .sac-note span { flex: 1; line-height: 1.5; }
+
+        /* Code box */
+        .sac-code-box {
+          display: flex; align-items: center; gap: 10px;
+          background: #2d2d2d; border-radius: var(--radius-xs);
+          padding: 10px 12px;
+        }
+        .sac-code-box code { flex: 1; font-size: 12px; color: #7dd3b0; font-family: monospace; word-break: break-all; }
+
+        .sac-link { color: #3a9bbf; font-size: 13px; font-weight: 600; text-decoration: none; }
+        .sac-link:hover { text-decoration: underline; }
+
+        .sac-manual-guide { max-height: 280px; overflow-y: auto; }
+        .sac-guide-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: guide-step; }
+        .sac-guide-steps > li { counter-increment: guide-step; display: flex; flex-direction: column; gap: 6px; }
+        .sac-guide-step-title { font-size: 12px; font-weight: 700; color: var(--ac-text); }
+        .sac-guide-step-title::before { content: counter(guide-step) ". "; }
+        .sac-guide-fields { list-style: disc; padding-left: 16px; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: rgba(121,79,39,.8); }
+        .sac-guide-fields code { background: rgba(196,184,158,.2); border-radius: 3px; padding: 0 4px; font-family: monospace; font-size: 11px; }
+        .sac-guide-hint { font-size: 11px; color: rgba(121,79,39,.65); line-height: 1.5; margin: 0; }
+        .sac-guide-img { width: 100%; border-radius: 6px; border: 1px solid rgba(196,184,158,.4); display: block; }
+
+        /* Nav */
+        .sac-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+        .sac-btn-prev {
+          appearance: none; background: transparent; color: rgba(121,79,39,.72);
+          border: 1.5px solid rgba(196,184,158,.7); border-radius: var(--radius-xs);
+          padding: 8px 18px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+        }
+        .sac-btn-next, .sac-btn-sm {
+          appearance: none; background: #ffd557; color: #5a3e00; border: none;
+          border-radius: var(--radius-xs); padding: 8px 22px;
+          font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+        }
+        .sac-btn-sm { padding: 7px 13px; white-space: nowrap; }
+        .sac-btn-next:hover, .sac-btn-sm:hover { background: #f5c030; }
+
+        /* Success */
+        .sac-success { text-align: center; padding: 28px 18px 24px !important; }
+        .sac-success-icon  { font-size: 48px; margin-bottom: 10px; }
+        .sac-success-title { font-size: 17px; font-weight: 800; color: #2a7a4a; margin-bottom: 6px; }
+        .sac-success-msg   { font-size: 13px; color: #4a9a6a; margin-bottom: 16px; }
+
+        .sac-buddy-card {
+          width: 100%; display: flex; align-items: center; gap: 12px;
+          padding: 12px 14px; margin-bottom: 20px;
+          background: rgba(255,213,87,.12);
+          border: 1.5px solid rgba(245,200,66,.5);
+          border-radius: var(--radius-xs);
+          text-align: left;
+        }
+        .sac-buddy-card__icon { font-size: 28px; flex-shrink: 0; }
+        .sac-buddy-card__body { flex: 1; min-width: 0; }
+        .sac-buddy-card__title { font-size: 13px; font-weight: 800; color: var(--ac-text); margin-bottom: 2px; }
+        .sac-buddy-card__desc  { font-size: 11px; color: rgba(121,79,39,.7); line-height: 1.5; }
+        .sac-buddy-card__btn {
+          appearance: none; flex-shrink: 0;
+          background: #ffd557; color: #5a3e00; border: none;
+          border-radius: var(--radius-xs); padding: 7px 14px;
+          font: inherit; font-size: 12px; font-weight: 800; cursor: pointer;
+          text-decoration: none; display: inline-block;
+        }
+        .sac-buddy-card__btn:hover { background: #f5c030; }
+
+        /* Auth preview trigger */
+        .sac-auth-preview-trigger-row { padding: 16px 0 4px; display: flex; justify-content: center; }
+        .sac-auth-preview-trigger {
+          appearance: none; background: transparent;
+          border: 1.5px dashed rgba(196,184,158,.7); border-radius: var(--radius-xs);
+          padding: 7px 16px; font: inherit; font-size: 12px; font-weight: 700;
+          color: rgba(121,79,39,.5); cursor: pointer;
+        }
+        .sac-auth-preview-trigger:hover { border-color: rgba(121,79,39,.4); color: rgba(121,79,39,.8); background: rgba(255,213,87,.1); }
+
+        /* Auth preview modal */
+        .sac-auth-preview {
+          width: min(360px, 96vw);
+          display: flex; flex-direction: column; align-items: center;
+          gap: 0;
+          padding: 32px 28px 24px;
+          background: #fffdf4;
+          border: 1.5px solid rgba(121,79,39,.22);
+          border-radius: var(--radius-xs);
+          box-shadow: 0 0 0 3px rgba(255,253,244,.72), 0 18px 48px rgba(66,48,31,.18);
+          animation: sacPopIn 0.18s ease;
+          text-align: center;
+        }
+        .sac-auth-preview__icon { margin-bottom: 20px; border-radius: 16px; overflow: hidden; }
+        .sac-auth-preview__heading { font-size: 17px; font-weight: 700; color: var(--ac-text); line-height: 1.5; margin: 0 0 12px; }
+        .sac-auth-preview__body { font-size: 13px; color: rgba(121,79,39,.75); line-height: 1.6; margin: 0 0 24px; }
+        .sac-auth-preview__title { font-size: 17px; font-weight: 700; color: var(--ac-text); line-height: 1.5; margin: 0 0 20px; }
+        .sac-auth-preview__perms {
+          width: 100%; list-style: none; padding: 0; margin: 0 0 24px;
+          border-top: 1.5px solid rgba(196,184,158,.4);
+          border-bottom: 1.5px solid rgba(196,184,158,.4);
+        }
+        .sac-auth-preview__perms li {
+          display: flex; align-items: center; gap: 10px;
+          padding: 14px 4px; font-size: 14px; color: var(--ac-text);
+        }
+        .sac-auth-preview__check { color: #3fae6b; font-weight: 800; font-size: 15px; flex-shrink: 0; }
+        .sac-auth-preview__allow {
+          appearance: none; width: 100%; padding: 12px;
+          background: #f8c840; color: #5a3e00; border: none;
+          border-radius: var(--radius-xs); font: inherit; font-size: 14px; font-weight: 800;
+          cursor: pointer; margin-bottom: 10px;
+        }
+        .sac-auth-preview__allow:hover { background: #f5c030; }
+        .sac-auth-preview__cancel {
+          appearance: none; background: transparent; border: 0;
+          font: inherit; font-size: 13px; color: rgba(121,79,39,.6);
+          cursor: pointer; padding: 4px 8px;
+        }
+        .sac-auth-preview__cancel:hover { color: var(--ac-text); }
 
         .settings-agent-connect-overlay {
           position: absolute;
@@ -9911,12 +10183,17 @@ export default function Landing() {
               ) : (
                 <div className="settings-agent-panel" role="tabpanel" aria-label={tr("Agent settings", "agent设置")}>
                   <div className="settings-agent-main">
-                    <p className="settings-agent-intro-copy">
-                      {tr(
-                        "Choose the AI you want to connect. After configuration, you can start using it.",
-                        "选择您想要接入的 AI，完成配置后即可开始使用。"
-                      )}
-                    </p>
+                    <div className="settings-agent-main__topbar">
+                      <p className="settings-agent-intro-copy">
+                        {tr(
+                          "Choose the AI you want to connect. After configuration, you can start using it.",
+                          "选择您想要接入的 AI，完成配置后即可开始使用。"
+                        )}
+                      </p>
+                      <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
+                        🔍 {tr("Authorization popup preview", "授权弹窗示意")}
+                      </button>
+                    </div>
                     {settingsAgentSection === "web" ? (
                       null
                     ) : (
@@ -10025,7 +10302,7 @@ export default function Landing() {
                                     <span>{provider.name}</span>
                                     <span className={`settings-agent-provider-badge${isConnected ? " is-connected" : " is-disconnected"}`}>
                                       {isConnected
-                                        ? tr("Connected · Authorization successful", "已连接 · 授权成功")
+                                        ? `${tr("Connected", "已连接")} · ${agentConnectedDeviceNames[provider.id] ?? tr("Authorization successful", "授权成功")}`
                                         : tr("Not authorized · Waiting for connection", "尚未授权 · 等待连接")}
                                     </span>
                                   </span>
@@ -10041,14 +10318,6 @@ export default function Landing() {
                                         onClick={() => testAgentProviderStatus(provider.id)}
                                       >
                                         <span>{isTestingStatus ? tr("Testing", "检查中") : tr("Check", "检查")}</span>
-                                      </button>
-                                      <button
-                                        className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
-                                        type="button"
-                                        aria-label={tr("Pause", "暂停")}
-                                        onClick={() => pauseAgentProvider(provider.id)}
-                                      >
-                                        <span>{tr("Pause", "暂停")}</span>
                                       </button>
                                       <button
                                         className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
@@ -10083,150 +10352,268 @@ export default function Landing() {
                               if (event.target === event.currentTarget) setAgentConnectModalOpen(false);
                             }}
                           >
-                            <section className="settings-agent-connect-modal settings-agent-connect-modal--compact-header" role="dialog" aria-modal="true" aria-label={tr("Connect web authorization", "连接网页端授权")}>
-                              <header className="settings-agent-connect-modal__header">
-                                <div className="settings-agent-method-tabs" role="tablist" aria-label={tr("Authorization method", "授权方式")}>
-                                <button
-                                  className={`settings-agent-method-tab${agentAuthMethod === "code" ? " is-active" : ""}`}
-                                  type="button"
-                                  role="tab"
-                                  aria-selected={agentAuthMethod === "code"}
-                                  onClick={() => setAgentAuthMethod("code")}
-                                >
-                                  {tr("Authorization code", "授权码")}
-                                </button>
-                                <button
-                                  className={`settings-agent-method-tab${agentAuthMethod === "byok" ? " is-active" : ""}`}
-                                  type="button"
-                                  role="tab"
-                                  aria-selected={agentAuthMethod === "byok"}
-                                  onClick={() => setAgentAuthMethod("byok")}
-                                >
-                                  API Key
-                                </button>
-                                </div>
-                                <button
-                                  className="settings-agent-connect-modal__close"
-                                  type="button"
-                                  aria-label={tr("Close connection dialog", "关闭连接弹窗")}
-                                  onClick={() => setAgentConnectModalOpen(false)}
-                                >
-                                  <X size={18} strokeWidth={3} />
+                            <section className="sac-modal" role="dialog" aria-modal="true" aria-label={tr("Connect agent", "连接 Agent")}>
+                              <header className="sac-header">
+                                <span className="sac-title">{tr("Connect", "连接")} {getAgentProviderName(agentSelectedProviderId)}</span>
+                                {(() => {
+                                  const agentOnly = agentSelectedProviderId === "claude-code" || agentSelectedProviderId === "openclaw";
+                                  const steps: [number, string][] = agentOnly
+                                    ? [[2, tr("Configure", "连接配置")], [3, tr("Done", "完成")]]
+                                    : [[1, tr("Usage", "使用方式")], [2, tr("Configure", "连接配置")], [3, tr("Done", "完成")]];
+                                  return (
+                                    <div className="sac-steps" aria-label={tr("Steps", "步骤")}>
+                                      {steps.map(([n, label]) => (
+                                        <div className="sac-sitem" key={n}>
+                                          <div className={`sac-circle${agentConnectStep === n ? " sac-circle--active" : agentConnectStep > n ? " sac-circle--done" : ""}`}>
+                                            {agentConnectStep > n ? "✓" : agentOnly ? n - 1 : n}
+                                          </div>
+                                          <span className={`sac-slabel${agentConnectStep === n ? " sac-slabel--active" : agentConnectStep > n ? " sac-slabel--done" : ""}`}>{label}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                                <button className="sac-close" type="button" aria-label={tr("Close", "关闭")} onClick={() => setAgentConnectModalOpen(false)}>
+                                  <X size={16} strokeWidth={3} />
                                 </button>
                               </header>
 
-                              {agentAuthMethod === "code" ? (
-                                <article className="settings-agent-card">
-                                  <div className="settings-agent-note settings-agent-auth-note">
-                                    <span>
-                                      {tr(
-                                        "Choose QR authorization, or copy the code and continue on the login page.",
-                                        "请选择扫码授权，或复制授权码后在登录页继续。"
-                                      )}
-                                    </span>
+                              {/* Step 1: Usage mode */}
+                              {agentConnectStep === 1 && (
+                                <div className="sac-body">
+                                  <p className="sac-sub">{tr("Choose where you want to use this Agent.", "请选择您希望在哪个环境中使用该 Agent。")}</p>
+                                  <div className="sac-mode-grid">
                                     <button
-                                      className="settings-agent-refresh-icon"
                                       type="button"
-                                      aria-label={tr("Refresh authorization code", "刷新授权码")}
-                                      title={tr("Refresh", "刷新")}
-                                      onClick={refreshAgentAuthorizationCode}
+                                      className={`sac-mode-card${agentConnectMode === "web" ? " sac-mode-card--sel" : ""}`}
+                                      onClick={() => setAgentConnectMode("web")}
                                     >
-                                      <RefreshCw size={15} strokeWidth={3} aria-hidden="true" />
+                                      <div className={`sac-radio${agentConnectMode === "web" ? " sac-radio--checked" : ""}`} />
+                                      <div>
+                                        <div className="sac-mode-title">🌐 {tr("Use on web", "在网页上使用")}</div>
+                                        <div className="sac-mode-desc">{tr("Get an auth code or API Key to connect quickly.", "获取授权码或 API Key 即可快速接入。")}</div>
+                                      </div>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={`sac-mode-card${agentConnectMode === "agent" ? " sac-mode-card--sel" : ""}`}
+                                      onClick={() => setAgentConnectMode("agent")}
+                                    >
+                                      <div className={`sac-radio${agentConnectMode === "agent" ? " sac-radio--checked" : ""}`} />
+                                      <div>
+                                        <div className="sac-mode-title">🖥️ {tr("Use on local Agent", "在自己的 Agent 上用")}</div>
+                                        <div className="sac-mode-desc">{tr("Install the plugin on your local Agent client.", "在本地 Agent 客户端安装插件完成配置。")}</div>
+                                      </div>
                                     </button>
                                   </div>
+                                  <div className="sac-nav">
+                                    <span />
+                                    <button className="sac-btn-next" type="button" onClick={() => setAgentConnectStep(2)}>{tr("Next", "下一步")} →</button>
+                                  </div>
+                                </div>
+                              )}
 
-                                  <div className="settings-agent-auth-options">
-                                    <section className="settings-agent-auth-option settings-agent-auth-option--scan">
-                                      <div>
-                                        <div className="settings-agent-auth-option__head">
-                                          <strong>{tr("Scan QR code", "扫码授权")}</strong>
+                              {/* Step 2: Configuration */}
+                              {agentConnectStep === 2 && (
+                                <div className="sac-body">
+                                  {agentConnectMode === "web" ? (
+                                    <>
+                                      <p className="sac-section-label">{tr("Web connection config", "连接配置（网页端）")}</p>
+                                      {/* Auth code option */}
+                                      <div className={`sac-opt-card${agentConnectOpt === "auth" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("auth")}>
+                                        <div className="sac-opt-head">
+                                          <div className={`sac-radio${agentConnectOpt === "auth" ? " sac-radio--checked" : ""}`} />
+                                          <span className="sac-opt-title">🔑 {tr("Authorization code", "授权码接入")}</span>
+                                          <span className="sac-badge">{tr("Recommended", "推荐")}</span>
                                         </div>
-                                        <span>{tr("Use your phone to scan and complete authorization.", "请使用手机扫码完成授权。")}</span>
+                                        <div className="sac-opt-desc">{tr("Quick verification with official auth code, no API config needed.", "使用官方授权码快速验证，无需配置 API。")}</div>
+                                        {agentConnectOpt === "auth" && (
+                                          <div className="sac-opt-detail">
+                                            <div className="sac-note">
+                                              <span>{tr("Choose QR authorization, or copy the code and continue on the login page.", "请选择扫码授权，或复制授权码后在登录页继续。")}</span>
+                                              <button className="settings-agent-refresh-icon" type="button" onClick={refreshAgentAuthorizationCode} aria-label={tr("Refresh", "刷新")}>
+                                                <RefreshCw size={14} strokeWidth={3} />
+                                              </button>
+                                            </div>
+                                            <div className="settings-agent-auth-options">
+                                              <section className="settings-agent-auth-option settings-agent-auth-option--scan">
+                                                <div>
+                                                  <div className="settings-agent-auth-option__head"><strong>{tr("Scan QR code", "扫码授权")}</strong></div>
+                                                  <span>{tr("Use your phone to scan and complete authorization.", "请使用手机扫码完成授权。")}</span>
+                                                </div>
+                                                <div className="settings-agent-qr" aria-label={tr("Authorization QR code", "授权二维码")}>
+                                                  <img src="/assets/codex-auth-qr.svg" alt="" />
+                                                </div>
+                                              </section>
+                                              <section className="settings-agent-auth-option settings-agent-auth-option--code">
+                                                <div className="settings-agent-code-copy">
+                                                  <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
+                                                  <strong>{agentWebAuthorizationCode}</strong>
+                                                </div>
+                                                <div className="settings-agent-auth-actions">
+                                                  <button className="settings-action settings-action--primary" type="button" onClick={copyAgentAuthorizationCodeAndOpenLogin}>
+                                                    {tr("Copy and go", "复制并前往")}
+                                                  </button>
+                                                </div>
+                                              </section>
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
-                                      <div className="settings-agent-qr" aria-label={tr("Authorization QR code", "授权二维码")}>
-                                        <img src="/assets/codex-auth-qr.svg" alt="" />
+                                      {/* API key option */}
+                                      <div className={`sac-opt-card${agentConnectOpt === "api" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("api")}>
+                                        <div className="sac-opt-head">
+                                          <div className={`sac-radio${agentConnectOpt === "api" ? " sac-radio--checked" : ""}`} />
+                                          <span className="sac-opt-title">🔌 API Key</span>
+                                        </div>
+                                        <div className="sac-opt-desc">{tr("Call directly with API Key, ideal for developers.", "使用 API Key 直接调用，适合开发者。")}</div>
+                                        {agentConnectOpt === "api" && (
+                                          <div className="sac-opt-detail" onClick={(e) => e.stopPropagation()}>
+                                            <div className="settings-agent-form settings-agent-form--byok">
+                                              <label className="settings-field">
+                                                <span className="settings-field__head"><span>OpenAI API Key</span></span>
+                                                <input
+                                                  className="settings-input"
+                                                  type="password"
+                                                  value={agentByokKey}
+                                                  placeholder="sk-..."
+                                                  disabled={agentByokTestStatus === "testing"}
+                                                  onChange={(event) => {
+                                                    setAgentByokKey(event.target.value);
+                                                    setAgentByokTestStatus("idle");
+                                                    setAgentByokTestMessage("");
+                                                  }}
+                                                />
+                                                {agentByokTestMessage && (
+                                                  <span className={`settings-agent-test-message${agentByokTestStatus === "valid" ? " is-success" : " is-error"}`}>
+                                                    {agentByokTestMessage}
+                                                  </span>
+                                                )}
+                                                <span className="settings-api-key-links">
+                                                  <a className="settings-api-key-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">
+                                                    Get API Key from OpenAI <ArrowUpRight size={13} strokeWidth={3} />
+                                                  </a>
+                                                  <a className="settings-api-key-link" href="https://openrouter.ai/settings/keys" target="_blank" rel="noreferrer">
+                                                    Get API Key from OpenRouter <ArrowUpRight size={13} strokeWidth={3} />
+                                                  </a>
+                                                </span>
+                                              </label>
+                                            </div>
+                                            <div className="sac-nav" style={{marginTop: "12px"}}>
+                                              <span />
+                                              <button
+                                                className="sac-btn-next"
+                                                type="button"
+                                                onClick={() => {
+                                                  if (agentByokTestStatus !== "valid") {
+                                                    testAgentByok();
+                                                  } else {
+                                                    setAgentConnectedProviderIds((cur) => new Set(cur).add(agentSelectedProviderId));
+                                                    setAgentConnectStep(3);
+                                                  }
+                                                }}
+                                              >
+                                                {agentByokTestStatus !== "valid"
+                                                  ? tr("Verify & Connect", "验证并连接")
+                                                  : tr("Complete connection", "完成连接")} ✓
+                                              </button>
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
-                                    </section>
-
-                                    <section className="settings-agent-auth-option settings-agent-auth-option--code">
-                                      <div className="settings-agent-code-copy">
-                                        <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
-                                        <strong>{agentWebAuthorizationCode}</strong>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="sac-section-label">{tr("Plugin installation config", "连接配置（插件安装）")}</p>
+                                      <div className={`sac-opt-card${agentConnectPlugin === "auto" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectPlugin("auto")}>
+                                        <div className="sac-opt-head">
+                                          <div className={`sac-radio${agentConnectPlugin === "auto" ? " sac-radio--checked" : ""}`} />
+                                          <span className="sac-opt-title">⚡ {tr("Auto install", "自动安装")}</span>
+                                          <span className="sac-badge">{tr("One-click", "一键完成")}</span>
+                                        </div>
+                                        <div className="sac-opt-desc">{tr("Enter the following command in the Codex chat to install the plugin.", "在 Codex 的聊天界面中输入以下命令安装插件")}</div>
+                                        {agentConnectPlugin === "auto" && (
+                                          <div className="sac-opt-detail" onClick={(e) => e.stopPropagation()}>
+                                            <div className="sac-code-box">
+                                              <code>npx @codex/buddy install --token=YOUR_TOKEN</code>
+                                              <button className="sac-btn-sm" type="button" onClick={() => navigator.clipboard.writeText("npx @codex/buddy install --token=YOUR_TOKEN").catch(() => {})}>{tr("Copy", "复制")}</button>
+                                            </div>
+                                          </div>
+                                        )}
                                       </div>
-                                      <div className="settings-agent-auth-actions">
-                                        <button
-                                          className="settings-action settings-action--primary"
-                                          type="button"
-                                          onClick={copyAgentAuthorizationCodeAndOpenLogin}
-                                        >
-                                          {tr("Copy and go", "复制并前往")}
-                                        </button>
+                                      <div className={`sac-opt-card${agentConnectPlugin === "manual" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectPlugin("manual")}>
+                                        <div className="sac-opt-head">
+                                          <div className={`sac-radio${agentConnectPlugin === "manual" ? " sac-radio--checked" : ""}`} />
+                                          <span className="sac-opt-title">📂 {tr("Manual install", "手动安装")}</span>
+                                        </div>
+                                        <div className="sac-opt-desc">{tr("Follow the official guide to configure manually.", "按官方文档引导，手动配置插件路径和参数。")}</div>
+                                        {agentConnectPlugin === "manual" && (
+                                          <div className="sac-opt-detail sac-manual-guide" onClick={(e) => e.stopPropagation()}>
+                                            <ol className="sac-guide-steps">
+                                              <li>
+                                                <span className="sac-guide-step-title">{tr('In Codex, click "Plugins → OpenAI Bundled → Add more"', '在Codex应用程序中点击"插件–OpenAI Bundled–添加更多"')}</span>
+                                                <img className="sac-guide-img" src="/assets/manual-step1.png" alt="step 1" />
+                                              </li>
+                                              <li>
+                                                <span className="sac-guide-step-title">{tr("Fill in the following info", "填入以下信息")}</span>
+                                                <ul className="sac-guide-fields">
+                                                  <li>{tr("Source", "来源")}：<code>varsity-tech-product/factor-mining-demo</code></li>
+                                                  <li>{tr("Git ref", "Git 引用")}：<code>main</code></li>
+                                                </ul>
+                                                <img className="sac-guide-img" src="/assets/manual-step2.png" alt="step 2" />
+                                              </li>
+                                              <li>
+                                                <span className="sac-guide-step-title">{tr("Start a new chat session", "开始一个新的聊天会话")}</span>
+                                                <p className="sac-guide-hint">Use the Factor Mining Demo plugin. Verify Factor Mining status, then show me the Factor Mining public task list…</p>
+                                                <img className="sac-guide-img" src="/assets/manual-step3.png" alt="step 3" />
+                                              </li>
+                                              <li>
+                                                <span className="sac-guide-step-title">{tr("Log in to Quandora and authorize", "登录Quandora，并同意授权")}</span>
+                                              </li>
+                                            </ol>
+                                          </div>
+                                        )}
                                       </div>
-                                    </section>
-                                  </div>
-                                </article>
-                              ) : (
-                                <article className="settings-agent-card">
-                                  <div className="settings-agent-form settings-agent-form--byok">
-                                    <label className="settings-field">
-                                      <span className="settings-field__head">
-                                        <span>OpenAI API Key</span>
-                                      </span>
-                                      <input
-                                        className="settings-input"
-                                        type="password"
-                                        value={agentByokKey}
-                                        placeholder="sk-..."
-                                        disabled={agentByokTestStatus === "testing"}
-                                        onChange={(event) => {
-                                          setAgentByokKey(event.target.value);
-                                          setAgentByokTestStatus("idle");
-                                          setAgentByokTestMessage("");
-                                        }}
-                                      />
-                                      <span className="settings-api-key-links">
-                                        <a
-                                          className="settings-api-key-link"
-                                          href="https://platform.openai.com/api-keys"
-                                          target="_blank"
-                                          rel="noreferrer"
-                                        >
-                                          Get API Key from OpenAI
-                                          <ArrowUpRight size={13} strokeWidth={3} />
-                                        </a>
-                                        <a
-                                          className="settings-api-key-link"
-                                          href="https://openrouter.ai/settings/keys"
-                                          target="_blank"
-                                          rel="noreferrer"
-                                        >
-                                          Get API Key from OpenRouter
-                                          <ArrowUpRight size={13} strokeWidth={3} />
-                                        </a>
-                                      </span>
-                                      {agentByokTestMessage && (
-                                        <span className={`settings-agent-test-message${agentByokTestStatus === "valid" ? " is-success" : " is-error"}`}>
-                                          {agentByokTestMessage}
-                                        </span>
-                                      )}
-                                    </label>
-
-                                    <div className="settings-agent-byok-actions">
+                                    </>
+                                  )}
+                                  <div className="sac-nav">
+                                    {!(agentSelectedProviderId === "claude-code" || agentSelectedProviderId === "openclaw") && (
+                                      <button className="sac-btn-prev" type="button" onClick={() => setAgentConnectStep(1)}>← {tr("Back", "上一步")}</button>
+                                    )}
+                                    {agentConnectMode === "agent" && (
                                       <button
-                                        className="settings-action settings-action--primary"
+                                        className="sac-btn-next"
                                         type="button"
-                                        disabled={agentByokTestStatus === "testing"}
-                                        onClick={testAgentByok}
+                                        onClick={() => {
+                                          setAgentConnectedProviderIds((cur) => new Set(cur).add(agentSelectedProviderId));
+                                          setAgentConnectStep(3);
+                                        }}
                                       >
-                                        {agentByokTestStatus === "testing"
-                                          ? tr("Testing", "测试中")
-                                          : agentByokTestStatus === "valid"
-                                            ? tr("Confirm connection", "确认连接")
-                                            : tr("Test key", "测试密钥")}
+                                        {tr("Complete connection", "完成连接")} ✓
                                       </button>
-                                    </div>
+                                    )}
                                   </div>
-                                </article>
+                                </div>
+                              )}
+
+                              {/* Step 3: Success */}
+                              {agentConnectStep === 3 && (
+                                <div className="sac-body sac-success">
+                                  <div className="sac-success-icon">🎉</div>
+                                  <div className="sac-success-title">{tr("Connected!", "连接成功！")}</div>
+                                  <div className="sac-success-msg">{getAgentProviderName(agentSelectedProviderId)} {tr("has been connected. You can start using it now.", "已成功接入，可以开始使用了。")}</div>
+                                  <div className="sac-buddy-card">
+                                    <div className="sac-buddy-card__icon">🐾</div>
+                                    <div className="sac-buddy-card__body">
+                                      <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
+                                      <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                                    </div>
+                                    <a href="#" className="sac-buddy-card__btn" onClick={(e) => e.preventDefault()}>
+                                      {tr("Download", "下载")}
+                                    </a>
+                                  </div>
+                                  <button className="sac-btn-next" type="button" onClick={() => setAgentConnectModalOpen(false)}>{tr("Done", "完成")}</button>
+                                </div>
                               )}
                             </section>
                           </div>
@@ -10279,6 +10666,35 @@ export default function Landing() {
                             </section>
                           </div>
                         )}
+                        {agentAuthPreviewOpen && (
+                          <div className="settings-agent-connect-overlay" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setAgentAuthPreviewOpen(false); }}>
+                            <section className="sac-auth-preview" role="dialog" aria-modal="true">
+                              <div className="sac-auth-preview__icon">
+                                <Claude.Avatar size={64} />
+                              </div>
+                              <p className="sac-auth-preview__heading">
+                                <strong>Claude Code</strong> {tr("would like to access your account and be able to:", "希望访问您的账号并能够：")}
+                              </p>
+                              <p className="sac-auth-preview__body">
+                                {tr(
+                                  "Click \"Allow access\" to let Claude Code handle writing, uploading, and backtesting plugin.py, then fetch factor info and summarize the results.",
+                                  "点击「允许访问」，同意让 Claude Code 来处理 plugin.py 的编写、上传、回测操作，然后获取因子信息，并总结结果"
+                                )}
+                              </p>
+                              <button className="sac-auth-preview__allow" type="button" onClick={() => setAgentAuthPreviewOpen(false)}>
+                                {tr("Allow access", "允许访问")}
+                              </button>
+                            </section>
+                          </div>
+                        )}
+                        <div className="sac-buddy-banner">
+                          <div className="sac-buddy-banner__icon">🐾</div>
+                          <div className="sac-buddy-banner__body">
+                            <div className="sac-buddy-banner__title">{tr("Download Buddy", "下载 Buddy")}</div>
+                            <div className="sac-buddy-banner__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                          </div>
+                          <a href="#" className="sac-buddy-banner__btn" onClick={(e) => e.preventDefault()}>{tr("Download", "下载")}</a>
+                        </div>
                       </>
                     ) : (
                       <>
