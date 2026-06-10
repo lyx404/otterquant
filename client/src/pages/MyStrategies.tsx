@@ -330,7 +330,7 @@ function toStrategyViewRow(index: number): StrategyViewRow {
   const baseExecutionMode: ExecutionMode =
     strategy.status === "live"
       ? "live"
-      : (strategy.status as string) === "paper"
+      : strategy.status === "paper"
         ? "paper"
         : "idle";
   const id = `STR-${463 + index}`;

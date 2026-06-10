@@ -46,7 +46,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { path: "/", labelEn: "Dashboard", labelZh: "仪表盘", icon: LayoutDashboard },
+  { path: "/dashboard", labelEn: "Dashboard", labelZh: "仪表盘", icon: LayoutDashboard },
   {
     path: "/alphas",
     labelEn: "Factors",
@@ -113,7 +113,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   }, [location]);
 
   const isActive = (path: string) => {
-    if (path === "/") return currentPathname === "/";
+    if (path === "/dashboard") return currentPathname === "/dashboard";
     if (path === "/alphas/official") return currentPathname === "/alphas/official" || isOfficialAlphaDetail;
     if (path === "/strategies/official") return currentPathname === "/strategies/official" || isOfficialStrategyDetail;
 

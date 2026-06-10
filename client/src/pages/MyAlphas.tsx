@@ -429,6 +429,7 @@ function getRowGrade(row: Pick<AlphaRow, "submissionStatus" | "osSharpe">): Alph
 }
 
 const REWARD_AMOUNT_BY_GRADE: Record<AlphaGrade, number> = {
+  SS: 1,
   S: 1,
   A: 0.5,
   B: 0.3,
@@ -443,6 +444,10 @@ const REWARD_TEXT_GRADIENT = {
   backgroundClip: "text",
 };
 const GRADE_DISTRIBUTION_TAG_STYLES: Record<AlphaGrade, { bar: string; text: string }> = {
+  SS: {
+    bar: "linear-gradient(135deg,#F59E0B 0%,#FDE68A 48%,#F97316 100%)",
+    text: "#B45309",
+  },
   S: {
     bar: "linear-gradient(135deg,#F59E0B 0%,#FDE68A 48%,#F97316 100%)",
     text: "#B45309",
@@ -683,9 +688,10 @@ export default function MyAlphas() {
     [alphaRows, deletedFactorIds]
   );
 
-  const gradeOrder: AlphaGrade[] = ["S", "A", "B", "C", "D", "F"];
+  const gradeOrder: AlphaGrade[] = ["SS", "S", "A", "B", "C", "D", "F"];
   const gradeDistribution = useMemo(() => {
     const distribution: Record<AlphaGrade, number> = {
+      SS: 0,
       S: 0,
       A: 0,
       B: 0,
@@ -742,7 +748,7 @@ export default function MyAlphas() {
         av = parseFloat(String(a[sortKey as keyof AlphaRow])) || 0;
         bv = parseFloat(String(b[sortKey as keyof AlphaRow])) || 0;
       } else if (sortKey === "grade") {
-        const gradeOrder: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, F: 5 };
+        const gradeOrder: Record<AlphaGrade, number> = { SS: 0, S: 1, A: 2, B: 3, C: 4, D: 5, F: 6 };
         av = gradeOrder[getRowGrade(a)];
         bv = gradeOrder[getRowGrade(b)];
       } else if (sortKey === "submissionStatus" || sortKey === "status_col") {
@@ -794,7 +800,7 @@ export default function MyAlphas() {
 
     if (updated > 0) {
       setGradeRevealTick((v) => v + 1);
-      const order: Record<AlphaGrade, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, F: 5 };
+      const order: Record<AlphaGrade, number> = { SS: 0, S: 1, A: 2, B: 3, C: 4, D: 5, F: 6 };
       revealedThisRound.sort((a, b) => {
         const rankDelta = order[a.grade] - order[b.grade];
         if (rankDelta !== 0) return rankDelta;

@@ -88,9 +88,9 @@ function Router() {
   if (isLoading) return null;
 
   // Public routes that don't need auth
-  const publicPaths = ["/landing", "/auth", "/launch-guide"];
+  const publicPaths = ["/", "/landing", "/auth", "/launch-guide"];
   const isPublicPath = publicPaths.some(
-    (p) => location === p || location.startsWith(p)
+    (p) => location === p || (p !== "/" && location.startsWith(p))
   );
 
   // If not authenticated and trying to access protected route, redirect to auth
@@ -99,16 +99,12 @@ function Router() {
     return <Redirect to="/auth" />;
   }
 
-  // If not authenticated and at root, show landing
-  if (!isAuthenticated && location === "/") {
-    return <Redirect to="/landing" />;
-  }
-
   // If authenticated and not onboarded, redirect to launch guide
   // (except for landing, auth, and launch-guide itself)
   if (
     isAuthenticated &&
     !onboarded &&
+    location !== "/" &&
     location !== "/launch-guide" &&
     location !== "/landing" &&
     location !== "/auth"
@@ -123,9 +119,10 @@ function Router() {
         <Route path="/landing" component={Landing} />
         <Route path="/auth" component={Auth} />
         <Route path="/launch-guide" component={LaunchGuide} />
+        <Route path="/" component={Landing} />
 
         {/* Protected routes */}
-        <Route path="/">
+        <Route path="/dashboard">
           <ProtectedRoute component={Dashboard} />
         </Route>
         <Route path="/alphas">
@@ -181,9 +178,9 @@ function Router() {
 /* ── Layout wrapper: Landing/Auth/LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/launch-guide", "/landing", "/auth", "/link-checkout"];
+  const noLayoutPaths = ["/", "/launch-guide", "/landing", "/auth", "/link-checkout"];
   const hideLayout = noLayoutPaths.some(
-    (p) => location === p || location.startsWith(p)
+    (p) => location === p || (p !== "/" && location.startsWith(p))
   );
 
   if (hideLayout) return <>{children}</>;

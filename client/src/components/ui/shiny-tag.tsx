@@ -1,6 +1,6 @@
 /**
  * ShinyTag — Flat-gradient rarity badge with subtle shine sweep
- * Tiers: S (Gold) | A (Pink) | B (Purple) | C (Green) | D (Blue) | F (Silver)
+ * Tiers: SS/S (Gold) | A (Pink) | B (Purple) | C (Green) | D (Blue) | F (Silver)
  * Shape: rounded-full pill, h-[22px], min-w-[22px]
  * Effect: bg-position shift on hover + subtle white shine sweep on hover
  *
@@ -11,6 +11,7 @@ import { type AlphaGrade } from "@/lib/mockData";
 
 /* ── Per-tier class bundles — gem-rank gradients ── */
 const TIER_CLASSES: Record<AlphaGrade, string> = {
+  SS: "border-[#E5B63A] text-[#7A4B00] bg-[linear-gradient(135deg,#F8B22B_0%,#FBE38C_48%,#F97316_100%)]",
   S: "border-[#E5B63A] text-[#7A4B00] bg-[linear-gradient(135deg,#F8B22B_0%,#FBE38C_48%,#F97316_100%)]",
   A: "border-[#EC5FAF] text-white bg-[linear-gradient(135deg,#EC4899_0%,#F9A8D4_52%,#DB2777_100%)]",
   B: "border-[#9B6CFF] text-white bg-[linear-gradient(135deg,#7C3AED_0%,#C084FC_52%,#6D28D9_100%)]",

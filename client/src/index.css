@@ -263,6 +263,99 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .alpha-detail-tooltip {
+    @apply border border-[#cdbb9f] bg-[#fff3d3] text-[#2c2117];
+    background-color: #fff3d3 !important;
+    color: #2c2117 !important;
+    --tooltip-bg: #fff3d3;
+    border-width: 2px;
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 3px 3px 0 rgba(16, 16, 16, .14);
+    font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .alpha-detail-tooltip[data-side="top"] {
+    transform-origin: bottom center;
+  }
+
+  .alpha-detail-tooltip > .tooltip-arrow {
+    fill: var(--tooltip-bg) !important;
+    color: var(--tooltip-bg) !important;
+    animation: none !important;
+    transition: none !important;
+    filter: none;
+    transform: translateZ(0);
+    will-change: auto;
+    opacity: 1 !important;
+  }
+
+  .alpha-detail-tooltip .tooltip-arrow,
+  .alpha-detail-tooltip .tooltip-arrow svg,
+  .alpha-detail-tooltip .tooltip-arrow path,
+  .alpha-detail-tooltip .tooltip-arrow polygon {
+    color: var(--tooltip-bg) !important;
+    fill: var(--tooltip-bg) !important;
+    stroke: var(--tooltip-bg) !important;
+  }
+
+  .alpha-copy-toast {
+    display: flex;
+    min-width: 240px;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    color: #2c2117;
+    background: #fff3d3;
+    border: 2px solid #cdbb9f;
+    border-radius: 12px;
+    box-shadow: 3px 3px 0 rgba(16, 16, 16, .14);
+    font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    image-rendering: pixelated;
+  }
+
+  .alpha-copy-toast__icon {
+    display: inline-grid;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    place-items: center;
+    color: #075b55;
+    background: #dff7c4;
+    border: 1.5px solid rgba(25, 132, 117, .46);
+    border-radius: 8px;
+    box-shadow: 2px 2px 0 rgba(71, 102, 61, .22);
+  }
+
+  .alpha-copy-toast--error .alpha-copy-toast__icon {
+    color: #b42318;
+    background: #ffe3da;
+    border-color: rgba(196, 61, 45, .42);
+    box-shadow: 2px 2px 0 rgba(135, 58, 45, .18);
+  }
+
+  .alpha-copy-toast__body {
+    min-width: 0;
+  }
+
+  .alpha-copy-toast__title {
+    font-size: 13px;
+    font-weight: 950;
+    line-height: 1.25;
+  }
+
+  .alpha-copy-toast__message {
+    margin-top: 2px;
+    color: #725d42;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
   /* ── Hero Typography — 36px, bold, tight ── */
   .hero-title {
     font-size: 2.25rem;
@@ -469,7 +562,7 @@
   isolation: isolate;
   transform: translate3d(0, 0, 0.01px);
   display: grid;
-  border: 1px solid rgb(255 255 255 / 15%);
+  border: 2px solid rgb(255 255 255 / 15%);
   background: var(--card-bg, #060010);
   overflow: visible;
   box-shadow:
@@ -481,8 +574,9 @@
     rgba(0, 0, 0, 0.1) 0px 32px 64px;
 }
 
-.border-glow-card::before,
-.border-glow-card::after,
+.border-glow-card__mesh,
+.border-glow-card__fill,
+.border-glow-card__orbit,
 .border-glow-card > .edge-light {
   content: "";
   position: absolute;
@@ -492,16 +586,142 @@
   z-index: -1;
 }
 
-.border-glow-card:not(:hover):not(.sweep-active)::before,
-.border-glow-card:not(:hover):not(.sweep-active)::after,
+.border-glow-card:not(:hover):not(.sweep-active) > .border-glow-card__mesh,
+.border-glow-card:not(:hover):not(.sweep-active) > .border-glow-card__fill,
+.border-glow-card:not(:hover):not(.sweep-active) > .border-glow-card__orbit,
 .border-glow-card:not(:hover):not(.sweep-active) > .edge-light {
   opacity: 0;
   transition: opacity 0.75s ease-in-out;
 }
 
+.border-glow-card.border-glow-card--holographic,
+.border-glow-card--holographic.inventory-card {
+  overflow: hidden;
+  background:
+    radial-gradient(circle at var(--card-shine-x, 52%) var(--card-shine-y, 44%), rgba(255, 255, 255, .58), transparent 38%),
+    linear-gradient(135deg, rgba(255, 255, 255, .34), transparent 28%, rgba(255, 236, 137, .2) 54%, transparent 76%),
+    var(--card-bg, #fff7d9);
+  box-shadow: none;
+  transition: box-shadow .24s ease;
+}
+
+.border-glow-card.border-glow-card--holographic:has(.inv-more-menu),
+.border-glow-card--holographic.inventory-card:has(.inv-more-menu) {
+  overflow: visible;
+  z-index: 200;
+}
+
+.border-glow-card.border-glow-card--holographic:hover,
+.border-glow-card.border-glow-card--holographic.sweep-active,
+.border-glow-card--holographic.inventory-card:hover,
+.border-glow-card--holographic.inventory-card.sweep-active {
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, .62),
+    inset 0 0 28px rgba(255, 246, 188, .28),
+    0 14px 24px rgba(20, 20, 20, .14);
+}
+
+.border-glow-card__holographic-glow,
+.border-glow-card__holographic-shift {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.border-glow-card__holographic-glow {
+  background:
+    repeating-linear-gradient(
+      112deg,
+      rgba(255, 255, 255, .22) 0 1px,
+      rgba(255, 204, 56, .16) 1px 3px,
+      transparent 3px 9px
+    ),
+    conic-gradient(
+      from 215deg at var(--card-shine-x, 50%) var(--card-shine-y, 50%),
+      rgba(255, 255, 255, .72),
+      rgba(255, 208, 68, .48),
+      rgba(255, 118, 214, .32),
+      rgba(84, 236, 255, .34),
+      rgba(255, 255, 255, .62)
+    );
+  opacity: .58;
+  mix-blend-mode: multiply;
+}
+
+.border-glow-card__holographic-shift {
+  background:
+    radial-gradient(circle at var(--card-shine-x, 50%) var(--card-shine-y, 50%), rgba(255, 255, 255, .72), transparent 28%),
+    linear-gradient(
+      112deg,
+      transparent 0%,
+      transparent 22%,
+      rgba(255, 255, 255, .08) 32%,
+      rgba(255, 255, 255, .82) 43%,
+      rgba(255, 229, 86, .48) 49%,
+      rgba(108, 230, 255, .28) 55%,
+      transparent 68%,
+      transparent 100%
+    );
+  background-position: 0 0, -180% 0;
+  background-size: 100% 100%, 260% 100%;
+  background-repeat: repeat;
+  opacity: .72;
+  mix-blend-mode: screen;
+  animation: flash-card-glare 3.2s ease-in-out infinite alternate;
+}
+
+.border-glow-card--holographic > .border-glow-inner {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes flash-card-glare {
+  to {
+    background-position: 0 0, 180% 0;
+  }
+}
+
+.border-glow-card__orbit {
+  z-index: 2;
+  padding: 2px;
+  pointer-events: none;
+  background:
+    conic-gradient(
+      from var(--cursor-angle) at center,
+      transparent 0%,
+      transparent 68%,
+      var(--glow-color-20, hsl(44deg 100% 72% / 20%)) 75%,
+      var(--glow-color-60, hsl(44deg 100% 72% / 60%)) 82%,
+      #ffffff 87%,
+      var(--glow-color, hsl(44deg 100% 72% / 100%)) 91%,
+      #ffffff 95%,
+      transparent 100%
+    );
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+  opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+  filter:
+    drop-shadow(0 0 2px var(--glow-color-60, hsl(44deg 100% 72% / 60%)))
+    drop-shadow(0 0 10px var(--glow-color-30, hsl(44deg 100% 72% / 30%)));
+  mix-blend-mode: plus-lighter;
+}
+
+.border-glow-card--perimeter > .edge-light {
+  mask-image: none;
+  opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+}
+
 /* colored mesh-gradient border */
-.border-glow-card::before {
-  border: 1px solid transparent;
+.border-glow-card__mesh {
+  border: 2px solid transparent;
   background:
     linear-gradient(var(--card-bg, #060010) 0 100%) padding-box,
     linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
@@ -527,8 +747,8 @@
 }
 
 /* colored mesh-gradient background fill near edges */
-.border-glow-card::after {
-  border: 1px solid transparent;
+.border-glow-card__fill {
+  border: 2px solid transparent;
   background:
     var(--gradient-one, radial-gradient(at 80% 55%, hsla(268, 100%, 76%, 1) 0px, transparent 50%)) padding-box,
     var(--gradient-two, radial-gradient(at 69% 34%, hsla(349, 100%, 74%, 1) 0px, transparent 50%)) padding-box,
@@ -574,14 +794,14 @@
   inset: var(--glow-padding);
   border-radius: inherit;
   box-shadow:
-    inset 0 0 0 1px var(--glow-color, hsl(40deg 80% 80% / 100%)),
+    inset 0 0 0 2px var(--glow-color, hsl(40deg 80% 80% / 100%)),
     inset 0 0 1px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
     inset 0 0 3px 0 var(--glow-color-50, hsl(40deg 80% 80% / 50%)),
     inset 0 0 6px 0 var(--glow-color-40, hsl(40deg 80% 80% / 40%)),
     inset 0 0 15px 0 var(--glow-color-30, hsl(40deg 80% 80% / 30%)),
     inset 0 0 25px 2px var(--glow-color-20, hsl(40deg 80% 80% / 20%)),
     inset 0 0 50px 2px var(--glow-color-10, hsl(40deg 80% 80% / 10%)),
-    0 0 1px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
+    0 0 2px 0 var(--glow-color-60, hsl(40deg 80% 80% / 60%)),
     0 0 3px 0 var(--glow-color-50, hsl(40deg 80% 80% / 50%)),
     0 0 6px 0 var(--glow-color-40, hsl(40deg 80% 80% / 40%)),
     0 0 15px 0 var(--glow-color-30, hsl(40deg 80% 80% / 30%)),

@@ -287,6 +287,7 @@ function formatModelSummary(models: ModelKey[]) {
 }
 
 const REWARD_AMOUNT_BY_GRADE: Record<AlphaGrade, number> = {
+  SS: 1,
   S: 1,
   A: 0.5,
   B: 0.3,
@@ -745,7 +746,7 @@ function buildRound(input: {
 export default function AlphaEdit() {
   const { uiLang } = useAppLanguage();
   const latestRoundRef = useRef<HTMLElement | null>(null);
-  const generationTimerRef = useRef<number | null>(null);
+  const generationTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [mode, setMode] = useState<AgentMode>("platform");
   const [composerCollapsed, setComposerCollapsed] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);

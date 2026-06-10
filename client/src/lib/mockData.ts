@@ -4,9 +4,10 @@
 // ============================================================
 
 // --- Alpha Grade System ---
-export type AlphaGrade = "S" | "A" | "B" | "C" | "D" | "F";
+export type AlphaGrade = "SS" | "S" | "A" | "B" | "C" | "D" | "F";
 
 export function getAlphaGrade(osSharpe: number): AlphaGrade {
+  if (osSharpe >= 1.8) return "SS";
   if (osSharpe >= 1.5) return "S";
   if (osSharpe >= 1.0) return "A";
   if (osSharpe >= 0.6) return "B";
@@ -15,6 +16,7 @@ export function getAlphaGrade(osSharpe: number): AlphaGrade {
 }
 
 export const GRADE_CONFIG: Record<AlphaGrade, { label: string; color: string; bg: string; border: string; glow: string }> = {
+  SS: { label: "Legendary", color: "#FFD700", bg: "rgba(255, 215, 0, 0.1)", border: "rgba(255, 215, 0, 0.3)", glow: "0 0 40px rgba(255, 215, 0, 0.3)" },
   S: { label: "Legendary", color: "#FFD700", bg: "rgba(255, 215, 0, 0.1)", border: "rgba(255, 215, 0, 0.3)", glow: "0 0 40px rgba(255, 215, 0, 0.3)" },
   A: { label: "Excellent", color: "#818CF8", bg: "rgba(129, 140, 248, 0.1)", border: "rgba(129, 140, 248, 0.3)", glow: "0 0 40px rgba(129, 140, 248, 0.3)" },
   B: { label: "Good", color: "#34D399", bg: "rgba(52, 211, 153, 0.1)", border: "rgba(52, 211, 153, 0.3)", glow: "0 0 40px rgba(52, 211, 153, 0.3)" },
