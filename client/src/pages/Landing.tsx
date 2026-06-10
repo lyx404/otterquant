@@ -303,16 +303,18 @@ const leaderboardEntries: LeaderboardEntry[] = [
 ];
 type AgentProviderIcon = "codex" | "claude" | "openclaw";
 type AgentConnectableProvider = {
-  id: "codex" | "claude-code" | "openclaw";
+  id: "codex" | "openrouter" | "claude-code" | "openclaw";
   name: string;
   mark: string;
   icon?: AgentProviderIcon;
+  modes: ("web" | "agent")[];
 };
 type AgentProviderId = AgentConnectableProvider["id"];
 const agentConnectableProviders: readonly AgentConnectableProvider[] = [
-  { id: "codex", name: "Codex", mark: "C", icon: "codex" },
-  { id: "claude-code", name: "Claude Code", mark: "C", icon: "claude" },
-  { id: "openclaw", name: "OpenClaw", mark: "O", icon: "openclaw" },
+  { id: "codex",      name: "Codex",       mark: "C",  icon: "codex",    modes: ["web", "agent"] },
+  { id: "openrouter", name: "OpenRouter",  mark: "OR",                   modes: ["web"] },
+  { id: "claude-code",name: "Claude Code", mark: "C",  icon: "claude",   modes: ["agent"] },
+  { id: "openclaw",   name: "OpenClaw",    mark: "O",  icon: "openclaw", modes: ["agent"] },
 ];
 const agentWebAuthorizationLoginUrl = "https://chatgpt.com/activate";
 type AgentApiKeyItem = {
@@ -794,13 +796,15 @@ export default function Landing() {
   const [settingsPasswordCodeSent, setSettingsPasswordCodeSent] = useState(false);
   const [settingsNewPassword, setSettingsNewPassword] = useState("");
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
-  const [agentConnectModalOpen, setAgentConnectModalOpen] = useState(false);
   const [agentSelectedProviderId, setAgentSelectedProviderId] = useState<AgentProviderId>("codex");
-  const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set(["codex"]));
+  const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set<AgentProviderId>(["codex"]));
   const [agentConnectedDeviceNames, setAgentConnectedDeviceNames] = useState<Partial<Record<AgentProviderId, string>>>({ codex: "MacBook Pro" });
+  const [agentGlobalConnectMode, setAgentGlobalConnectMode] = useState<"web" | "agent" | null>("web");
+  const [agentModeSwitchWarning, setAgentModeSwitchWarning] = useState(false);
+  // Inline flow view: "mode" = step1 choose mode, "manage" = provider list, "config" = step2, "success" = step3
+  const [agentInlineStep, setAgentInlineStep] = useState<"mode" | "manage" | "config" | "success">("manage");
   const [agentDisconnectConfirmProviderId, setAgentDisconnectConfirmProviderId] = useState<AgentProviderId | null>(null);
   const [agentStatusTestingProviderId, setAgentStatusTestingProviderId] = useState<AgentProviderId | null>(null);
-  const [agentConnectStep, setAgentConnectStep] = useState<1 | 2 | 3>(1);
   const [agentConnectMode, setAgentConnectMode] = useState<"web" | "agent">("web");
   const [agentConnectOpt, setAgentConnectOpt] = useState<"auth" | "api">("auth");
   const [agentConnectPlugin, setAgentConnectPlugin] = useState<"auto" | "manual">("auto");
@@ -1479,20 +1483,37 @@ export default function Landing() {
     return agentConnectableProviders.find((provider) => provider.id === providerId)?.name || "Agent";
   };
 
+  // Enter the inline connect config view for a specific provider (from manage view)
   const openAgentConnectModal = (providerId: AgentProviderId) => {
     setAgentSelectedProviderId(providerId);
     setAgentDisconnectConfirmProviderId(null);
     setAgentAuthMethod("code");
     setAgentConnectPlugin("auto");
-    const agentOnly = providerId === "claude-code" || providerId === "openclaw";
-    setAgentConnectMode(agentOnly ? "agent" : "web");
-    setAgentConnectOpt("auth");
-    setAgentConnectStep(agentOnly ? 2 : 1);
-    setAgentConnectModalOpen(true);
+    // OpenRouter only supports API Key
+    setAgentConnectOpt(providerId === "openrouter" ? "api" : "auth");
+    setAgentModeSwitchWarning(false);
+    setAgentConnectMode(agentGlobalConnectMode ?? "web");
+    setAgentInlineStep("config");
+  };
+
+  // Step 1: choose connection mode, then proceed
+  const proceedFromModeStep = () => {
+    setAgentGlobalConnectMode(agentConnectMode);
+    setAgentModeSwitchWarning(false);
+    setAgentInlineStep("manage");
+  };
+
+  // Request switching the global connection mode (from manage view)
+  const requestSwitchConnectMode = () => {
+    if (agentConnectedProviderIds.size > 0) {
+      setAgentModeSwitchWarning(true);
+      return;
+    }
+    setAgentGlobalConnectMode(null);
+    setAgentInlineStep("mode");
   };
 
   const requestDisconnectAgentProvider = (providerId: AgentProviderId) => {
-    setAgentConnectModalOpen(false);
     setAgentDisconnectConfirmProviderId(providerId);
   };
 
@@ -1500,6 +1521,11 @@ export default function Landing() {
     setAgentConnectedProviderIds((current) => {
       const next = new Set(current);
       next.delete(providerId);
+      // Clear global mode and return to step 1 when no connections remain
+      if (next.size === 0) {
+        setAgentGlobalConnectMode(null);
+        setAgentInlineStep("mode");
+      }
       return next;
     });
     setAgentDisconnectConfirmProviderId(null);
@@ -1507,6 +1533,14 @@ export default function Landing() {
       tr("Disconnected", "已断连"),
       tr(`${getAgentProviderName(providerId)} disconnected.`, `${getAgentProviderName(providerId)} 已断开连接。`)
     );
+  };
+
+  const disconnectAllAgentProviders = () => {
+    setAgentConnectedProviderIds(new Set<AgentProviderId>());
+    setAgentConnectedDeviceNames({});
+    setAgentGlobalConnectMode(null);
+    setAgentInlineStep("mode");
+    showSettingsFeedback(tr("All disconnected", "已全部断连"), tr("All agents disconnected.", "所有 Agent 已断开连接。"));
   };
 
   const testAgentProviderStatus = (providerId: AgentProviderId) => {
@@ -1532,8 +1566,9 @@ export default function Landing() {
 
   const confirmAgentProviderConnection = () => {
     setAgentConnectedProviderIds((current) => new Set(current).add(agentSelectedProviderId));
-    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));
-    setAgentConnectModalOpen(false);
+    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));
+    setAgentGlobalConnectMode(agentConnectMode);
+    setAgentInlineStep("success");
     showSettingsFeedback(
       tr("Connected", "已连接"),
       tr(`${getAgentProviderName(agentSelectedProviderId)} connected.`, `${getAgentProviderName(agentSelectedProviderId)} 已连接。`)
@@ -1725,7 +1760,8 @@ export default function Landing() {
   const openSettingsModal = () => {
     setSettingsActiveTab("general");
     setSettingsAgentSection("web");
-    setAgentConnectModalOpen(false);
+    setAgentInlineStep(agentConnectedProviderIds.size > 0 ? "manage" : "mode");
+    setAgentModeSwitchWarning(false);
     setSettingsOpen(true);
   };
 
@@ -1733,7 +1769,8 @@ export default function Landing() {
     setSettingsOpen(false);
     setSettingsActiveTab("general");
     setSettingsAgentSection("web");
-    setAgentConnectModalOpen(false);
+    setAgentInlineStep(agentConnectedProviderIds.size > 0 ? "manage" : "mode");
+    setAgentModeSwitchWarning(false);
     setSettingsEditingProfile(false);
     setSettingsEditingEmail(false);
     setSettingsEditingPassword(false);
@@ -4239,9 +4276,13 @@ export default function Landing() {
           gap: 12px; margin-bottom: 16px;
         }
         .settings-agent-main__topbar .settings-agent-intro-copy { margin-bottom: 0; }
+        .settings-agent-main__footer {
+          display: flex; justify-content: center;
+          margin-top: auto; padding: 8px 0 16px;
+        }
         .sac-buddy-banner {
           display: flex; align-items: center; gap: 12px;
-          margin-top: auto; padding: 14px 16px;
+          padding: 14px 16px;
           background: rgba(255,213,87,.1);
           border: 1.5px solid rgba(245,200,66,.4);
           border-radius: var(--radius-xs);
@@ -4636,8 +4677,9 @@ export default function Landing() {
           border: 0;
         }
 
-        .settings-agent-provider-mark--openclaw {
-          background: #252525;
+        .settings-agent-provider-mark--openrouter {
+          background: #1a1a1a;
+          color: #fff;
           border: 0;
         }
 
@@ -4932,7 +4974,37 @@ export default function Landing() {
         /* Body */
         .sac-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 12px; }
         .sac-sub  { font-size: 12px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
-        .sac-section-label { font-size: 13px; font-weight: 800; color: var(--ac-text); margin: 0; }
+
+        /* Inline step (page-embedded flow) */
+        .sac-inline-step {
+          padding: 4px 0 0; margin-top: 4px;
+        }
+        .sac-inline-step__head { margin-bottom: 18px; position: relative; }
+        .sac-inline-step__title { font-size: 18px; font-weight: 800; color: var(--ac-text); margin: 0 0 6px; }
+        .sac-inline-step__sub { font-size: 13px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
+        .sac-inline-back {
+          appearance: none; font: inherit; cursor: pointer; background: none; border: none;
+          color: rgba(121,79,39,.7); font-size: 12.5px; font-weight: 700;
+          padding: 0; margin-bottom: 10px; display: inline-flex; align-items: center; gap: 2px;
+        }
+        .sac-inline-back:hover { color: var(--ac-text); }
+        .sac-inline-step .sac-body { padding: 0; }
+
+        /* Connection mode bar (manage view) */
+        .sac-mode-bar {
+          display: flex; align-items: center; justify-content: space-between;
+          background: rgba(91,188,214,.08); border: 1px solid rgba(91,188,214,.3);
+          border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
+        }
+        .sac-mode-bar__label { font-size: 13px; font-weight: 700; color: var(--ac-text); }
+        .sac-mode-bar__switch {
+          appearance: none; font: inherit; cursor: pointer;
+          background: none; border: 1px solid rgba(121,79,39,.3); border-radius: 8px;
+          color: rgba(121,79,39,.85); font-size: 12px; padding: 5px 12px;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .sac-mode-bar__switch:hover { background: rgba(121,79,39,.06); border-color: rgba(121,79,39,.55); }
+
 
         /* Mode cards */
         .sac-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -4949,6 +5021,22 @@ export default function Landing() {
         }
         .sac-mode-title { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
         .sac-mode-desc  { font-size: 11px; color: rgba(121,79,39,.65); line-height: 1.5; }
+        .sac-mode-card--locked { opacity: 0.5; cursor: not-allowed; }
+        .sac-mode-card--locked:hover { border-color: rgba(196,184,158,.55); background: #fffdf4; }
+        .sac-mode-lock { margin-left: auto; font-size: 12px; align-self: center; }
+        .sac-mode-warning {
+          font-size: 12px; color: #b45309; background: rgba(251,191,36,.15);
+          border: 1px solid rgba(251,191,36,.4); border-radius: 6px;
+          padding: 8px 12px; margin-bottom: 10px;
+        }
+        .sac-disconnect-all-row { display: flex; justify-content: flex-end; padding: 0 0 10px; }
+        .sac-disconnect-all-btn {
+          font-size: 12px; font: inherit; cursor: pointer; appearance: none;
+          color: #b45309; background: none; border: 1px solid rgba(180,83,9,.35);
+          border-radius: 6px; padding: 5px 12px;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .sac-disconnect-all-btn:hover { background: rgba(180,83,9,.07); border-color: rgba(180,83,9,.6); }
 
         /* Radio dot */
         .sac-radio {
@@ -10181,17 +10269,6 @@ export default function Landing() {
               ) : (
                 <div className="settings-agent-panel" role="tabpanel" aria-label={tr("Agent settings", "agent设置")}>
                   <div className="settings-agent-main">
-                    <div className="settings-agent-main__topbar">
-                      <p className="settings-agent-intro-copy">
-                        {tr(
-                          "Choose the AI you want to connect. After configuration, you can start using it.",
-                          "选择您想要接入的 AI，完成配置后即可开始使用。"
-                        )}
-                      </p>
-                      <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
-                        🔍 {tr("Authorization popup preview", "授权弹窗示意")}
-                      </button>
-                    </div>
                     {settingsAgentSection === "web" ? (
                       null
                     ) : (
@@ -10277,10 +10354,84 @@ export default function Landing() {
                     )}
                     {settingsAgentSection === "web" ? (
                       <>
+                        {/* ===== Step 1: Choose connection mode (inline) ===== */}
+                        {agentInlineStep === "mode" && (
+                          <div className="sac-inline-step">
+                            <div className="sac-inline-step__head">
+                              <h3 className="sac-inline-step__title">{tr("Choose connection method", "选择连接方式")}</h3>
+                              <p className="sac-inline-step__sub">{tr("Choose where you want to use this Agent. You can only pick one.", "请选择您希望在哪个环境中使用该 Agent，连接方式只能二选一。")}</p>
+                            </div>
+                            <div className="sac-mode-grid">
+                              {(["web", "agent"] as const).map((mode) => (
+                                <button
+                                  key={mode}
+                                  type="button"
+                                  className={`sac-mode-card${agentConnectMode === mode ? " sac-mode-card--sel" : ""}`}
+                                  onClick={() => setAgentConnectMode(mode)}
+                                >
+                                  <div className={`sac-radio${agentConnectMode === mode ? " sac-radio--checked" : ""}`} />
+                                  <div>
+                                    {mode === "web" ? (
+                                      <>
+                                        <div className="sac-mode-title">🌐 {tr("Use on web", "我要在网页上用")}</div>
+                                        <div className="sac-mode-desc">{tr("Get an auth code or API Key to connect quickly.", "获取授权码或 API Key 即可快速接入。")}</div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="sac-mode-title">🖥️ {tr("Use on local Agent", "我要在自己的 Agent 上用")}</div>
+                                        <div className="sac-mode-desc">{tr("Install the plugin on your local Agent client.", "在本地 Agent 客户端安装插件完成配置。")}</div>
+                                      </>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                            <div className="sac-nav">
+                              <span />
+                              <button className="sac-btn-next" type="button" onClick={proceedFromModeStep}>{tr("Next", "下一步")} →</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* ===== Manage view: provider list (stays behind config/success modals) ===== */}
+                        {agentInlineStep !== "mode" && (
+                          <>
+                        {/* Connection mode bar */}
+                        <div className="sac-mode-bar">
+                          <span className="sac-mode-bar__label">
+                            {agentGlobalConnectMode === "agent"
+                              ? `🖥️ ${tr("Using on local Agent", "在自己的 Agent 上用")}`
+                              : `🌐 ${tr("Using on web", "在网页上用")}`}
+                          </span>
+                          <button className="sac-mode-bar__switch" type="button" onClick={requestSwitchConnectMode}>
+                            {tr("Switch method", "切换连接方式")}
+                          </button>
+                        </div>
+                        {agentModeSwitchWarning && (
+                          <div className="sac-mode-warning">
+                            ⚠️ {tr("Please disconnect the current connection before switching methods.", "请先断开当前连接，再切换连接方式。")}
+                          </div>
+                        )}
+                        {/* Agent mode: disconnect-all button */}
+                        {agentGlobalConnectMode === "agent" && agentConnectedProviderIds.size > 0 && (
+                          <div className="sac-disconnect-all-row">
+                            <button className="sac-disconnect-all-btn" type="button" onClick={disconnectAllAgentProviders}>
+                              {tr("Disconnect all", "一键断开全部")}
+                            </button>
+                          </div>
+                        )}
                         <div className="settings-agent-provider-list" aria-label={tr("Connectable providers", "可连接服务")}>
                           {agentConnectableProviders.map((provider) => {
                             const isConnected = agentConnectedProviderIds.has(provider.id);
                             const isTestingStatus = agentStatusTestingProviderId === provider.id;
+                            // Web mode: disable connect if another provider is already connected
+                            const isBlockedByWebLimit = !isConnected && agentGlobalConnectMode === "web" && agentConnectedProviderIds.size > 0;
+                            // Show connected mode tag
+                            const connectedModeLabel = isConnected && agentGlobalConnectMode === "web"
+                              ? ` · 🌐 ${tr("Web", "网页")}`
+                              : isConnected && agentGlobalConnectMode === "agent"
+                              ? ` · 🖥️ ${tr("Agent", "Agent")}`
+                              : "";
 
                             return (
                               <div className={`settings-agent-provider-row${isConnected ? " is-connected" : " is-disconnected"}`} key={provider.id}>
@@ -10288,10 +10439,6 @@ export default function Landing() {
                                   <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
                                     {"icon" in provider && provider.icon === "codex" ? (
                                       <Codex.Avatar className="settings-agent-provider-icon" size={48} />
-                                    ) : "icon" in provider && provider.icon === "claude" ? (
-                                      <Claude.Avatar className="settings-agent-provider-icon" size={48} />
-                                    ) : "icon" in provider && provider.icon === "openclaw" ? (
-                                      <OpenClaw.Avatar className="settings-agent-provider-icon" size={48} />
                                     ) : (
                                       provider.mark
                                     )}
@@ -10300,7 +10447,9 @@ export default function Landing() {
                                     <span>{provider.name}</span>
                                     <span className={`settings-agent-provider-badge${isConnected ? " is-connected" : " is-disconnected"}`}>
                                       {isConnected
-                                        ? `${tr("Connected", "已连接")} · ${agentConnectedDeviceNames[provider.id] ?? tr("Authorization successful", "授权成功")}`
+                                        ? `${tr("Connected", "已连接")} · ${agentConnectedDeviceNames[provider.id] ?? tr("Authorization successful", "授权成功")}${connectedModeLabel}`
+                                        : isBlockedByWebLimit
+                                        ? tr("Disconnect current connection to connect this one", "请先断开当前连接")
                                         : tr("Not authorized · Waiting for connection", "尚未授权 · 等待连接")}
                                     </span>
                                   </span>
@@ -10330,7 +10479,8 @@ export default function Landing() {
                                     <button
                                       className="settings-agent-provider-action-button settings-agent-provider-action-button--primary"
                                       type="button"
-                                      onClick={() => openAgentConnectModal(provider.id)}
+                                      disabled={isBlockedByWebLimit}
+                                      onClick={() => !isBlockedByWebLimit && openAgentConnectModal(provider.id)}
                                     >
                                       <Plus size={18} strokeWidth={2.6} aria-hidden="true" />
                                       {tr("Connect", "连接")}
@@ -10341,84 +10491,31 @@ export default function Landing() {
                             );
                           })}
                         </div>
+                          </>
+                        )}
 
-                        {agentConnectModalOpen && (
+                        {/* ===== Step 2: Configuration (modal) ===== */}
+                        {agentInlineStep === "config" && (
                           <div
                             className="settings-agent-connect-overlay"
                             role="presentation"
                             onMouseDown={(event) => {
-                              if (event.target === event.currentTarget) setAgentConnectModalOpen(false);
+                              if (event.target === event.currentTarget) setAgentInlineStep("manage");
                             }}
                           >
                             <section className="sac-modal" role="dialog" aria-modal="true" aria-label={tr("Connect agent", "连接 Agent")}>
                               <header className="sac-header">
                                 <span className="sac-title">{tr("Connect", "连接")} {getAgentProviderName(agentSelectedProviderId)}</span>
-                                {(() => {
-                                  const agentOnly = agentSelectedProviderId === "claude-code" || agentSelectedProviderId === "openclaw";
-                                  const steps: [number, string][] = agentOnly
-                                    ? [[2, tr("Configure", "连接配置")], [3, tr("Done", "完成")]]
-                                    : [[1, tr("Usage", "使用方式")], [2, tr("Configure", "连接配置")], [3, tr("Done", "完成")]];
-                                  return (
-                                    <div className="sac-steps" aria-label={tr("Steps", "步骤")}>
-                                      {steps.map(([n, label]) => (
-                                        <div className="sac-sitem" key={n}>
-                                          <div className={`sac-circle${agentConnectStep === n ? " sac-circle--active" : agentConnectStep > n ? " sac-circle--done" : ""}`}>
-                                            {agentConnectStep > n ? "✓" : agentOnly ? n - 1 : n}
-                                          </div>
-                                          <span className={`sac-slabel${agentConnectStep === n ? " sac-slabel--active" : agentConnectStep > n ? " sac-slabel--done" : ""}`}>{label}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  );
-                                })()}
-                                <button className="sac-close" type="button" aria-label={tr("Close", "关闭")} onClick={() => setAgentConnectModalOpen(false)}>
+                                <button className="sac-close" type="button" aria-label={tr("Close", "关闭")} onClick={() => setAgentInlineStep("manage")}>
                                   <X size={16} strokeWidth={3} />
                                 </button>
                               </header>
-
-                              {/* Step 1: Usage mode */}
-                              {agentConnectStep === 1 && (
-                                <div className="sac-body">
-                                  <p className="sac-sub">{tr("Choose where you want to use this Agent.", "请选择您希望在哪个环境中使用该 Agent。")}</p>
-                                  <div className="sac-mode-grid">
-                                    <button
-                                      type="button"
-                                      className={`sac-mode-card${agentConnectMode === "web" ? " sac-mode-card--sel" : ""}`}
-                                      onClick={() => setAgentConnectMode("web")}
-                                    >
-                                      <div className={`sac-radio${agentConnectMode === "web" ? " sac-radio--checked" : ""}`} />
-                                      <div>
-                                        <div className="sac-mode-title">🌐 {tr("Use on web", "在网页上使用")}</div>
-                                        <div className="sac-mode-desc">{tr("Get an auth code or API Key to connect quickly.", "获取授权码或 API Key 即可快速接入。")}</div>
-                                      </div>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={`sac-mode-card${agentConnectMode === "agent" ? " sac-mode-card--sel" : ""}`}
-                                      onClick={() => setAgentConnectMode("agent")}
-                                    >
-                                      <div className={`sac-radio${agentConnectMode === "agent" ? " sac-radio--checked" : ""}`} />
-                                      <div>
-                                        <div className="sac-mode-title">🖥️ {tr("Use on local Agent", "在自己的 Agent 上用")}</div>
-                                        <div className="sac-mode-desc">{tr("Install the plugin on your local Agent client.", "在本地 Agent 客户端安装插件完成配置。")}</div>
-                                      </div>
-                                    </button>
-                                  </div>
-                                  <div className="sac-nav">
-                                    <span />
-                                    <button className="sac-btn-next" type="button" onClick={() => setAgentConnectStep(2)}>{tr("Next", "下一步")} →</button>
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Step 2: Configuration */}
-                              {agentConnectStep === 2 && (
-                                <div className="sac-body">
-                                  {agentConnectMode === "web" ? (
-                                    <>
-                                      <p className="sac-section-label">{tr("Web connection config", "连接配置（网页端）")}</p>
-                                      {/* Auth code option */}
-                                      <div className={`sac-opt-card${agentConnectOpt === "auth" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("auth")}>
+                            <div className="sac-body">
+                              {agentConnectMode === "web" ? (
+                                <>
+                                  {/* Auth code option — hidden for OpenRouter (API Key only) */}
+                                  {agentSelectedProviderId !== "openrouter" && (
+                                  <div className={`sac-opt-card${agentConnectOpt === "auth" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("auth")}>
                                         <div className="sac-opt-head">
                                           <div className={`sac-radio${agentConnectOpt === "auth" ? " sac-radio--checked" : ""}`} />
                                           <span className="sac-opt-title">🔑 {tr("Authorization code", "授权码接入")}</span>
@@ -10458,8 +10555,9 @@ export default function Landing() {
                                           </div>
                                         )}
                                       </div>
-                                      {/* API key option */}
-                                      <div className={`sac-opt-card${agentConnectOpt === "api" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("api")}>
+                                  )}
+                                  {/* API key option */}
+                                  <div className={`sac-opt-card${agentConnectOpt === "api" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("api")}>
                                         <div className="sac-opt-head">
                                           <div className={`sac-radio${agentConnectOpt === "api" ? " sac-radio--checked" : ""}`} />
                                           <span className="sac-opt-title">🔌 API Key</span>
@@ -10469,7 +10567,7 @@ export default function Landing() {
                                           <div className="sac-opt-detail" onClick={(e) => e.stopPropagation()}>
                                             <div className="settings-agent-form settings-agent-form--byok">
                                               <label className="settings-field">
-                                                <span className="settings-field__head"><span>OpenAI API Key</span></span>
+                                                <span className="settings-field__head"><span>API Key</span></span>
                                                 <input
                                                   className="settings-input"
                                                   type="password"
@@ -10488,9 +10586,6 @@ export default function Landing() {
                                                   </span>
                                                 )}
                                                 <span className="settings-api-key-links">
-                                                  <a className="settings-api-key-link" href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">
-                                                    Get API Key from OpenAI <ArrowUpRight size={13} strokeWidth={3} />
-                                                  </a>
                                                   <a className="settings-api-key-link" href="https://openrouter.ai/settings/keys" target="_blank" rel="noreferrer">
                                                     Get API Key from OpenRouter <ArrowUpRight size={13} strokeWidth={3} />
                                                   </a>
@@ -10506,8 +10601,7 @@ export default function Landing() {
                                                   if (agentByokTestStatus !== "valid") {
                                                     testAgentByok();
                                                   } else {
-                                                    setAgentConnectedProviderIds((cur) => new Set(cur).add(agentSelectedProviderId));
-                                                    setAgentConnectStep(3);
+                                                    confirmAgentProviderConnection();
                                                   }
                                                 }}
                                               >
@@ -10522,7 +10616,6 @@ export default function Landing() {
                                     </>
                                   ) : (
                                     <>
-                                      <p className="sac-section-label">{tr("Plugin installation config", "连接配置（插件安装）")}</p>
                                       <div className={`sac-opt-card${agentConnectPlugin === "auto" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectPlugin("auto")}>
                                         <div className="sac-opt-head">
                                           <div className={`sac-radio${agentConnectPlugin === "auto" ? " sac-radio--checked" : ""}`} />
@@ -10575,44 +10668,39 @@ export default function Landing() {
                                     </>
                                   )}
                                   <div className="sac-nav">
-                                    {!(agentSelectedProviderId === "claude-code" || agentSelectedProviderId === "openclaw") && (
-                                      <button className="sac-btn-prev" type="button" onClick={() => setAgentConnectStep(1)}>← {tr("Back", "上一步")}</button>
-                                    )}
+                                    <span />
                                     {agentConnectMode === "agent" && (
-                                      <button
-                                        className="sac-btn-next"
-                                        type="button"
-                                        onClick={() => {
-                                          setAgentConnectedProviderIds((cur) => new Set(cur).add(agentSelectedProviderId));
-                                          setAgentConnectStep(3);
-                                        }}
-                                      >
-                                        {tr("Verify", "验证")}
+                                      <button className="sac-btn-next" type="button" onClick={confirmAgentProviderConnection}>
+                                        {tr("Complete connection", "完成连接")} ✓
                                       </button>
                                     )}
                                   </div>
                                 </div>
-                              )}
+                            {/* close sac-body */}
+                            </section>
+                          </div>
+                        )}
 
-                              {/* Step 3: Success */}
-                              {agentConnectStep === 3 && (
-                                <div className="sac-body sac-success">
-                                  <div className="sac-success-icon">🎉</div>
-                                  <div className="sac-success-title">{tr("Connected!", "连接成功！")}</div>
-                                  <div className="sac-success-msg">{getAgentProviderName(agentSelectedProviderId)} {tr("has been connected. You can start using it now.", "已成功接入，可以开始使用了。")}</div>
-                                  <div className="sac-buddy-card">
-                                    <div className="sac-buddy-card__icon">🐾</div>
-                                    <div className="sac-buddy-card__body">
-                                      <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
-                                      <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
-                                    </div>
-                                    <a href="#" className="sac-buddy-card__btn" onClick={(e) => e.preventDefault()}>
-                                      {tr("Download", "下载")}
-                                    </a>
-                                  </div>
-                                  <button className="sac-btn-next" type="button" onClick={() => setAgentConnectModalOpen(false)}>{tr("Done", "完成")}</button>
+                        {/* ===== Step 3: Success (modal) ===== */}
+                        {agentInlineStep === "success" && (
+                          <div className="settings-agent-connect-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setAgentInlineStep("manage"); }}>
+                            <section className="sac-modal" role="dialog" aria-modal="true" aria-label={tr("Connected", "连接成功")}>
+                            <div className="sac-body sac-success">
+                              <div className="sac-success-icon">🎉</div>
+                              <div className="sac-success-title">{tr("Connected!", "连接成功！")}</div>
+                              <div className="sac-success-msg">{getAgentProviderName(agentSelectedProviderId)} {tr("has been connected. You can start using it now.", "已成功接入，可以开始使用了。")}</div>
+                              <div className="sac-buddy-card">
+                                <div className="sac-buddy-card__icon">🐾</div>
+                                <div className="sac-buddy-card__body">
+                                  <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
+                                  <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
                                 </div>
-                              )}
+                                <a href="#" className="sac-buddy-card__btn" onClick={(e) => e.preventDefault()}>
+                                  {tr("Download", "下载")}
+                                </a>
+                              </div>
+                              <button className="sac-btn-next" type="button" onClick={() => setAgentInlineStep("manage")}>{tr("Done", "完成")}</button>
+                            </div>
                             </section>
                           </div>
                         )}
@@ -10685,6 +10773,11 @@ export default function Landing() {
                             </section>
                           </div>
                         )}
+                        <div className="settings-agent-main__footer">
+                          <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
+                            🔍 {tr("Authorization popup preview", "授权弹窗示意")}
+                          </button>
+                        </div>
                         <div className="sac-buddy-banner">
                           <div className="sac-buddy-banner__icon">🐾</div>
                           <div className="sac-buddy-banner__body">
