@@ -15,6 +15,40 @@
 
 @custom-variant dark (&:is(.dark *));
 
+.pageload-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  visibility: hidden;
+  z-index: 9999;
+  pointer-events: none;
+  --page-transition-color: #fffdf4;
+}
+
+.pageload-overlay.is-visible {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.pageload-overlay svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.pageload-overlay svg path {
+  fill: var(--page-transition-color, #fff);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pageload-overlay {
+    display: none;
+  }
+}
+
 @theme inline {
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;

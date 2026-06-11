@@ -5,8 +5,10 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AppLanguageProvider } from "./contexts/AppLanguageContext";
+import { PageTransitionProvider } from "./contexts/PageTransitionContext";
 import SidebarLayout from "./components/SidebarLayout";
 import CustomCursor from "./components/CustomCursor";
+import ScratchCard from "@/pages/ScratchCard";
 import { Suspense, lazy, useState, useEffect, useCallback, createContext, useContext } from "react";
 
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -88,7 +90,7 @@ function Router() {
   if (isLoading) return null;
 
   // Public routes that don't need auth
-  const publicPaths = ["/", "/landing", "/auth", "/launch-guide"];
+  const publicPaths = ["/", "/landing", "/auth", "/launch-guide", "/scratch-card"];
   const isPublicPath = publicPaths.some(
     (p) => location === p || (p !== "/" && location.startsWith(p))
   );
@@ -119,6 +121,7 @@ function Router() {
         <Route path="/landing" component={Landing} />
         <Route path="/auth" component={Auth} />
         <Route path="/launch-guide" component={LaunchGuide} />
+        <Route path="/scratch-card" component={ScratchCard} />
         <Route path="/" component={Landing} />
 
         {/* Protected routes */}
@@ -178,7 +181,7 @@ function Router() {
 /* ── Layout wrapper: Landing/Auth/LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/", "/launch-guide", "/landing", "/auth", "/link-checkout"];
+  const noLayoutPaths = ["/", "/launch-guide", "/landing", "/auth", "/link-checkout", "/scratch-card"];
   const hideLayout = noLayoutPaths.some(
     (p) => location === p || (p !== "/" && location.startsWith(p))
   );
@@ -195,11 +198,13 @@ function App() {
           <TooltipProvider>
             <AuthProvider>
               <OnboardingProvider>
-                <Toaster />
-                <CustomCursor />
-                <LayoutWrapper>
-                  <Router />
-                </LayoutWrapper>
+                <PageTransitionProvider>
+                  <Toaster />
+                  <CustomCursor />
+                  <LayoutWrapper>
+                    <Router />
+                  </LayoutWrapper>
+                </PageTransitionProvider>
               </OnboardingProvider>
             </AuthProvider>
           </TooltipProvider>

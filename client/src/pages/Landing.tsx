@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { Claude, Codex, OpenClaw } from "@lobehub/icons";
+import { Claude, Codex, OpenClaw, OpenRouter } from "@lobehub/icons";
 import { useInView, useReducedMotion } from "motion/react";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
@@ -45,6 +45,7 @@ import { factors, getAlphaGrade, strategies, type AlphaGrade, type Factor } from
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { AlphaViewModeProvider } from "@/contexts/AlphaViewModeContext";
+import { usePageTransition } from "@/contexts/PageTransitionContext";
 
 const filterOptions = ["all", "starred"] as const;
 type FilterKey = (typeof filterOptions)[number];
@@ -130,12 +131,15 @@ type CountUpProps = {
   className?: string;
   startWhen?: boolean;
   separator?: string;
+  prefix?: string;
+  decimals?: number;
   onStart?: () => void;
   onEnd?: () => void;
 };
 
 const BALANCE_PER_USD = 100;
 const SYSTEM_BALANCE_AMOUNT = 1000000;
+const HUD_CASH_AMOUNT = 999.0;
 const FISH_BALANCE_AMOUNT = 10000;
 const MIN_AUTO_CAST_COUNT = 1;
 const MAX_AUTO_CAST_COUNT = 100;
@@ -143,16 +147,18 @@ const WALLET_BALANCE_USD = 74.19;
 const WALLET_BALANCE_AMOUNT = Math.round(WALLET_BALANCE_USD * BALANCE_PER_USD);
 const MIN_AMOUNT = 1000;
 const MAX_AMOUNT = 500000;
-const GAME_STAGE_WIDTH = 1920;
-const GAME_STAGE_HEIGHT = 1040;
+const GAME_STAGE_WIDTH = 1902;
+const GAME_STAGE_HEIGHT = 1080;
 const AUTO_CAST_SINGLE_MIN_SECONDS = 10;
 const AUTO_CAST_SINGLE_MAX_SECONDS = 30;
 const HUD_ASSETS = {
   coin: "/assets/hud-coin.svg",
+  cash: "/assets/hud-cash.svg",
   fish: "/assets/hud-fish.svg",
   pond: "/assets/hud-pond.svg",
   market: "/assets/hud-market.svg",
   guide: "/assets/inventory-menu-icon-v2.svg",
+  scratchCard: "/assets/hud-scratch-card.svg",
   wallet: "/assets/wallet-menu-icon-new.svg",
   leaderboard: "/assets/hud-leaderboard.svg",
   settings: "/assets/settings.svg",
@@ -301,7 +307,7 @@ const leaderboardEntries: LeaderboardEntry[] = [
     };
   }),
 ];
-type AgentProviderIcon = "codex" | "claude" | "openclaw";
+type AgentProviderIcon = "codex" | "claude" | "openclaw" | "openrouter";
 type AgentConnectableProvider = {
   id: "codex" | "openrouter" | "claude-code" | "openclaw";
   name: string;
@@ -312,7 +318,7 @@ type AgentConnectableProvider = {
 type AgentProviderId = AgentConnectableProvider["id"];
 const agentConnectableProviders: readonly AgentConnectableProvider[] = [
   { id: "codex",      name: "Codex",       mark: "C",  icon: "codex",    modes: ["web", "agent"] },
-  { id: "openrouter", name: "OpenRouter",  mark: "OR",                   modes: ["web"] },
+  { id: "openrouter", name: "OpenRouter",  mark: "OR", icon: "openrouter", modes: ["web"] },
   { id: "claude-code",name: "Claude Code", mark: "C",  icon: "claude",   modes: ["agent"] },
   { id: "openclaw",   name: "OpenClaw",    mark: "O",  icon: "openclaw", modes: ["agent"] },
 ];
@@ -580,6 +586,8 @@ function CountUp({
   className = "",
   startWhen = true,
   separator = ",",
+  prefix = "",
+  decimals,
   onStart,
   onEnd,
 }: CountUpProps) {
@@ -611,7 +619,8 @@ function CountUp({
     return parseInt(decimals, 10) !== 0 ? decimals.length : 0;
   }, []);
 
-  const maxDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(targetValue));
+  const inferredDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(targetValue));
+  const maxDecimals = decimals ?? inferredDecimals;
 
   const formatValue = useCallback(
     (latest: number) => {
@@ -621,9 +630,10 @@ function CountUp({
         minimumFractionDigits: hasDecimals ? maxDecimals : 0,
         maximumFractionDigits: hasDecimals ? maxDecimals : 0,
       }).format(latest);
-      return separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
+      const normalizedNumber = separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
+      return `${prefix}${normalizedNumber}`;
     },
-    [maxDecimals, separator]
+    [maxDecimals, prefix, separator]
   );
 
   useEffect(() => {
@@ -762,6 +772,7 @@ function buildLinePath(values: number[], width: number, height: number, padding 
 export default function Landing() {
   const { uiLang, setUiLang } = useAppLanguage();
   const { user, updateUser } = useAuth();
+  const { navigateWithTransition } = usePageTransition();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [stageScale, setStageScale] = useState(1);
   const [autoCastCount, setAutoCastCount] = useState(10);
@@ -1512,11 +1523,8 @@ export default function Landing() {
 
   // Request switching the global connection mode (from manage view)
   const requestSwitchConnectMode = () => {
-    if (agentConnectedProviderIds.size > 0) {
-      setAgentConnectionWarningType("mode");
-      setAgentModeSwitchWarning(true);
-      return;
-    }
+    setAgentModeSwitchWarning(false);
+    setAgentConnectionWarningType("mode");
     setAgentGlobalConnectMode(null);
     setAgentInlineStep("mode");
   };
@@ -1534,11 +1542,6 @@ export default function Landing() {
     setAgentConnectedProviderIds((current) => {
       const next = new Set(current);
       next.delete(providerId);
-      // Clear global mode and return to step 1 when no connections remain
-      if (next.size === 0) {
-        setAgentGlobalConnectMode(null);
-        setAgentInlineStep("mode");
-      }
       return next;
     });
     setAgentDisconnectConfirmProviderId(null);
@@ -2119,8 +2122,8 @@ export default function Landing() {
           position: absolute;
           left: 50%;
           top: 50%;
-          width: 1920px;
-          height: 1040px;
+          width: 1902px;
+          height: 1080px;
           transform: translate(-50%, -50%) scale(var(--stage-scale));
           transform-origin: center center;
         }
@@ -2131,7 +2134,7 @@ export default function Landing() {
           top: 40px;
           display: flex;
           align-items: center;
-          gap: 30px;
+          gap: 16px;
           z-index: 2;
         }
 
@@ -2141,27 +2144,19 @@ export default function Landing() {
           display: flex;
           align-items: center;
           justify-content: flex-end;
-          gap: 12px;
+          gap: 8px;
           height: 65px;
           padding: 12px;
           overflow: hidden;
           background: #fff3d3;
           border: 3px solid #c4b89e;
           border-radius: 16px;
-          box-shadow: 0 4px 0 rgba(78, 67, 60, .22);
           font: inherit;
           transition: background-color .14s cubic-bezier(.22, 1, .36, 1);
         }
 
         .hud-stat-card--button {
-          border-width: 0;
-          padding: 15px;
           cursor: pointer;
-        }
-
-        .hud-stat-card--fish {
-          border-width: 0;
-          padding: 15px;
         }
 
         .hud-stat-icon {
@@ -2171,10 +2166,9 @@ export default function Landing() {
         }
 
         .hud-stat-value {
-          width: 150px;
           color: #4e433c;
           font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-          font-size: 30px;
+          font-size: 26px;
           font-style: normal;
           font-weight: 700;
           font-stretch: 100%;
@@ -2187,19 +2181,13 @@ export default function Landing() {
           white-space: nowrap;
         }
 
-        .hud-stat-card--fish .hud-stat-value {
-          width: 120px;
-          font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-          font-size: 30px;
-          font-style: normal;
-          font-weight: 700;
-          font-stretch: 100%;
-          font-synthesis: none;
-          font-optical-sizing: auto;
-          font-variation-settings: "wght" 700, "BEVL" 1;
-          line-height: 100%;
-          text-align: right;
-          letter-spacing: 0;
+        .hud-stat-value--balance {
+          width: 130px;
+        }
+
+        .hud-stat-value--cash,
+        .hud-stat-value--fish {
+          width: 90px;
         }
 
         .top-actions {
@@ -2723,7 +2711,6 @@ export default function Landing() {
 
         .hud-stat-card--button:active {
           transform: translateY(1px);
-          box-shadow: 0 2px 0 rgba(78, 67, 60, .22);
         }
 
         .hud-main-action:active,
@@ -4306,12 +4293,18 @@ export default function Landing() {
         .sac-buddy-banner__desc  { font-size: 11px; color: rgba(121,79,39,.7); line-height: 1.5; }
         .sac-buddy-banner__btn {
           appearance: none; flex-shrink: 0;
-          background: #ffd557; color: #5a3e00; border: none;
-          border-radius: var(--radius-xs); padding: 8px 18px;
-          font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+          background: rgba(255,253,244,.56);
+          color: rgba(121,79,39,.78);
+          border: 1.5px solid rgba(196,184,158,.48);
+          border-radius: var(--radius-xs); padding: 7px 16px;
+          font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
           text-decoration: none; display: inline-block;
         }
-        .sac-buddy-banner__btn:hover { background: #f5c030; }
+        .sac-buddy-banner__btn:hover {
+          color: var(--ac-text);
+          background: rgba(255,213,87,.18);
+          border-color: rgba(121,79,39,.32);
+        }
 
         .settings-agent-intro-copy {
           margin: 0 0 18px;
@@ -4678,8 +4671,9 @@ export default function Landing() {
           width: 44px;
           height: 44px;
           box-sizing: border-box;
-          display: grid;
-          place-items: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           flex: 0 0 auto;
           overflow: hidden;
           color: #fffdf4;
@@ -4687,7 +4681,7 @@ export default function Landing() {
           border-radius: 11px;
           font-size: 16px;
           font-weight: 1000;
-          line-height: 1;
+          line-height: 0;
         }
 
         .settings-agent-provider-mark--codex,
@@ -4702,22 +4696,44 @@ export default function Landing() {
         }
 
         .settings-agent-provider-mark--openrouter {
-          background: #1a1a1a;
+          background: rgba(201, 213, 255, .72);
           color: #fff;
           border: 0;
         }
 
         .settings-agent-provider-icon {
-          width: 30px;
-          height: 30px;
-          display: grid;
-          place-items: center;
+          width: 100% !important;
+          height: 100% !important;
+          display: block;
+          flex: 0 0 100%;
+          overflow: hidden;
+          border-radius: inherit !important;
+        }
+
+        .settings-agent-provider-icon svg,
+        .settings-agent-provider-icon img,
+        .settings-agent-provider-icon canvas {
+          width: 100% !important;
+          height: 100% !important;
+          display: block;
+          flex: 0 0 100%;
         }
 
         .settings-agent-provider-icon svg {
-          width: 100%;
-          height: 100%;
-          display: block;
+          transform: scale(.76) !important;
+          transform-origin: center;
+        }
+
+        .settings-agent-provider-icon img,
+        .settings-agent-provider-icon canvas {
+          transform: none !important;
+        }
+
+        .settings-agent-provider-mark--openrouter .settings-agent-provider-icon {
+          width: 38px !important;
+          height: 38px !important;
+          flex: 0 0 38px;
+          border-radius: 9px !important;
         }
 
         .settings-agent-provider-name {
@@ -4957,12 +4973,12 @@ export default function Landing() {
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         .sac-header {
-          display: flex; align-items: center;
+          display: flex; align-items: center; justify-content: space-between;
           padding: 14px 18px;
           border-bottom: 1.5px solid rgba(196, 184, 158, .4);
           gap: 12px;
         }
-        .sac-title { font-size: 15px; font-weight: 800; color: var(--ac-text); white-space: nowrap; }
+        .sac-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 800; color: var(--ac-text); white-space: nowrap; }
         .sac-close {
           appearance: none; width: 28px; height: 28px; flex-shrink: 0;
           display: inline-grid; place-items: center;
@@ -5087,6 +5103,18 @@ export default function Landing() {
           transition: border-color 0.15s, background 0.15s;
         }
         .sac-opt-card:hover, .sac-opt-card--sel { border-color: #ffd557; background: #fffbee; }
+        .sac-opt-card--auth-code {
+          position: relative;
+        }
+        .sac-opt-card--auth-code.sac-opt-card--sel {
+          padding-right: 62px;
+        }
+        .sac-opt-card--auth-code.sac-opt-card--sel .settings-agent-refresh-icon {
+          position: absolute;
+          top: 22px;
+          right: 18px;
+          z-index: 1;
+        }
         .sac-opt-card--inline-form,
         .sac-opt-card--inline-form:hover,
         .sac-opt-card--inline-form.sac-opt-card--sel {
@@ -5095,12 +5123,35 @@ export default function Landing() {
           background: transparent;
           border-color: transparent;
         }
+
+        .sac-opt-card--api-web,
+        .sac-opt-card--api-web:hover {
+          box-sizing: border-box;
+          padding: 12px 14px;
+          cursor: pointer;
+          background: #fffdf4;
+          border-color: rgba(196,184,158,.5);
+          transition: none;
+        }
+
+        .sac-opt-card--api-web.sac-opt-card--sel,
+        .sac-opt-card--api-web.sac-opt-card--sel:hover {
+          box-sizing: border-box;
+          padding: 12px 14px;
+          background: #fffbee;
+          border-color: #ffd557;
+        }
+
         .sac-opt-head  { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
         .sac-opt-title { font-weight: 700; font-size: 13px; color: var(--ac-text); }
         .sac-opt-desc  { font-size: 11px; color: rgba(121,79,39,.65); margin-left: 25px; }
         .sac-opt-detail { margin-top: 12px; margin-left: 25px; }
         .sac-opt-card--inline-form .sac-opt-head { margin-bottom: 5px; }
         .sac-opt-card--inline-form .sac-opt-detail { margin: 14px 0 0 25px; }
+        .sac-opt-card--api-web .sac-opt-detail,
+        .sac-opt-card--api-web:hover .sac-opt-detail {
+          margin: 14px 0 0 25px;
+        }
         .sac-opt-card--plain-form .sac-opt-head,
         .sac-opt-card--plain-form .sac-opt-desc { display: none; }
         .sac-opt-card--plain-form .sac-opt-detail { margin: 0; }
@@ -5722,18 +5773,18 @@ export default function Landing() {
 
         .settings-agent-auth-options {
           display: grid;
-          grid-template-columns: minmax(168px, .82fr) minmax(0, 1fr);
-          gap: 0;
-          overflow: hidden;
-          background: #fff8e8;
-          padding: 18px;
-          border-radius: var(--radius-xs);
+          grid-template-columns: minmax(152px, .8fr) minmax(0, 1fr);
+          column-gap: 22px;
+          overflow: visible;
+          background: transparent;
+          padding: 10px 2px 2px;
+          border-radius: 0;
         }
 
         .settings-agent-auth-option {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 14px;
+          gap: 12px;
           align-content: start;
           align-items: start;
           padding: 0;
@@ -5744,13 +5795,13 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option--scan {
-          padding-right: 20px;
+          padding-right: 0;
         }
 
         .settings-agent-auth-option--code {
-          gap: 18px;
-          padding-left: 20px;
-          border-left: 1px solid rgba(196, 184, 158, .44);
+          gap: 16px;
+          padding-left: 22px;
+          border-left: 1px solid rgba(196, 184, 158, .42);
         }
 
         .settings-agent-auth-option > div:first-child,
@@ -5785,9 +5836,21 @@ export default function Landing() {
         }
 
         .settings-agent-code-copy strong {
-          font-size: 23px;
+          font-size: 24px;
           letter-spacing: .08em;
           line-height: 1;
+        }
+
+        .settings-agent-code-copy__head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .settings-agent-code-copy__head span {
+          min-width: 0;
         }
 
         .settings-agent-auth-actions {
@@ -5799,13 +5862,13 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option--code .settings-action {
-          width: 100%;
+          width: min(100%, 240px);
           min-height: 38px;
         }
 
         .settings-agent-qr {
-          width: 134px;
-          height: 134px;
+          width: 126px;
+          height: 126px;
           display: block;
           justify-self: start;
           overflow: hidden;
@@ -6082,7 +6145,15 @@ export default function Landing() {
 
           .settings-agent-auth-options {
             grid-template-columns: 1fr;
-            gap: 14px;
+            gap: 16px;
+            padding: 10px 0 0;
+          }
+
+          .settings-agent-auth-option--code {
+            padding-left: 0;
+            border-left: 0;
+            border-top: 1px solid rgba(196, 184, 158, .42);
+            padding-top: 16px;
           }
 
           .settings-agent-auth-option {
@@ -9820,25 +9891,45 @@ export default function Landing() {
               className="hud-stat-icon"
               src={HUD_ASSETS.coin}
               alt=""
-              width="40"
-              height="41"
+              width="36"
+              height="37"
             />
-            <div className="hud-stat-value">
+            <div className="hud-stat-value hud-stat-value--balance">
               <CountUp to={SYSTEM_BALANCE_AMOUNT} duration={0.5}>
                 {formatBalance(SYSTEM_BALANCE_AMOUNT)}
               </CountUp>
             </div>
           </button>
 
-          <div className="hud-stat-card hud-stat-card--fish" aria-label={tr("Fish balance", "鱼额")}>
+          <button
+            className="hud-stat-card hud-stat-card--button"
+            type="button"
+            aria-label={tr("Open wallet", "打开钱包")}
+            onClick={openWalletModal}
+          >
+            <img
+              className="hud-stat-icon"
+              src={HUD_ASSETS.cash}
+              alt=""
+              width="44"
+              height="28"
+            />
+            <div className="hud-stat-value hud-stat-value--cash">
+              <CountUp to={HUD_CASH_AMOUNT} duration={0.5} prefix="$" decimals={1}>
+                {`$${HUD_CASH_AMOUNT.toFixed(1)}`}
+              </CountUp>
+            </div>
+          </button>
+
+          <div className="hud-stat-card" aria-label={tr("Fish balance", "鱼额")}>
             <img
               className="hud-stat-icon"
               src={HUD_ASSETS.fish}
               alt=""
-              width="46"
-              height="26"
+              width="40"
+              height="27"
             />
-            <div className="hud-stat-value">
+            <div className="hud-stat-value hud-stat-value--fish">
               <CountUp to={FISH_BALANCE_AMOUNT} duration={0.5}>
                 {formatBalance(FISH_BALANCE_AMOUNT)}
               </CountUp>
@@ -9899,18 +9990,18 @@ export default function Landing() {
           <button
             className="menu-item"
             type="button"
-            aria-label={tr("Wallet", "钱包")}
-            onClick={openWalletModal}
+            aria-label={tr("Scratch", "刮刮乐")}
+            onClick={() => navigateWithTransition("/scratch-card")}
           >
             <img
               className="menu-icon"
-              src={HUD_ASSETS.wallet}
+              src={HUD_ASSETS.scratchCard}
               alt=""
-              width="60"
-              height="55"
-              style={{ top: 12, width: 60, height: 55 }}
+              width="56"
+              height="57"
+              style={{ top: 12, width: 56, height: 57 }}
             />
-            <span className="menu-label" data-label={tr("Wallet", "钱包")}>{tr("Wallet", "钱包")}</span>
+            <span className="menu-label" data-label={tr("Scratch", "刮刮乐")}>{tr("Scratch", "刮刮乐")}</span>
           </button>
 
           <button
@@ -10489,11 +10580,13 @@ export default function Landing() {
                                 <div className="settings-agent-provider-head">
                                   <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
                                     {provider.icon === "codex" ? (
-                                      <Codex.Avatar className="settings-agent-provider-icon" size={48} />
+                                      <Codex.Avatar className="settings-agent-provider-icon" size={44} />
                                     ) : provider.icon === "claude" ? (
-                                      <Claude.Avatar className="settings-agent-provider-icon" size={48} />
+                                      <Claude.Avatar className="settings-agent-provider-icon" size={44} />
                                     ) : provider.icon === "openclaw" ? (
-                                      <OpenClaw.Avatar className="settings-agent-provider-icon" size={48} />
+                                      <OpenClaw.Avatar className="settings-agent-provider-icon" size={44} />
+                                    ) : provider.icon === "openrouter" ? (
+                                      <OpenRouter.Avatar className="settings-agent-provider-icon" size={44} />
                                     ) : (
                                       provider.mark
                                     )}
@@ -10515,7 +10608,13 @@ export default function Landing() {
                                         disabled={isTestingStatus}
                                         onClick={() => testAgentProviderStatus(provider.id)}
                                       >
-                                        <span>{isTestingStatus ? tr("Testing", "检查中") : tr("Check", "检查")}</span>
+                                        <span>
+                                          {isTestingStatus
+                                            ? tr("Testing", "检查中")
+                                            : agentGlobalConnectMode === "agent"
+                                              ? tr("Test", "测试")
+                                              : tr("Check", "检查")}
+                                        </span>
                                       </button>
                                       <button
                                         className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
@@ -10525,6 +10624,18 @@ export default function Landing() {
                                       >
                                         <span>{tr("Disconnect", "断开")}</span>
                                       </button>
+                                      {agentGlobalConnectMode === "agent" && (
+                                        <button
+                                          className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            openAgentConnectModal(provider.id);
+                                          }}
+                                        >
+                                          <span>{tr("Connect guide", "连接教程")}</span>
+                                        </button>
+                                      )}
                                     </>
                                   ) : (
                                     <button
@@ -10541,7 +10652,7 @@ export default function Landing() {
                                       }}
                                     >
                                       <Plus size={18} strokeWidth={2.6} aria-hidden="true" />
-                                      {tr("Connect", "连接")}
+                                      {agentGlobalConnectMode === "web" ? tr("Connect", "连接") : tr("Connect guide", "连接教程")}
                                     </button>
                                   )}
                                 </div>
@@ -10573,7 +10684,7 @@ export default function Landing() {
                                 <>
                                   {/* Auth code option — hidden for OpenRouter (API Key only) */}
                                   {!isSelectedOpenRouter && (
-                                  <div className={`sac-opt-card${agentConnectOpt === "auth" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("auth")}>
+                                  <div className={`sac-opt-card sac-opt-card--auth-code${agentConnectOpt === "auth" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("auth")}>
                                         <div className="sac-opt-head">
                                           <div className={`sac-radio${agentConnectOpt === "auth" ? " sac-radio--checked" : ""}`} />
                                           <span className="sac-opt-title">🔑 {tr("Authorization code", "授权码接入")}</span>
@@ -10582,12 +10693,9 @@ export default function Landing() {
                                         <div className="sac-opt-desc">{tr("Quick verification with official auth code, no API config needed.", "使用官方授权码快速验证，无需配置 API。")}</div>
                                         {agentConnectOpt === "auth" && (
                                           <div className="sac-opt-detail">
-                                            <div className="sac-note">
-                                              <span>{tr("Choose QR authorization, or copy the code and continue on the login page.", "请选择扫码授权，或复制授权码后在登录页继续。")}</span>
-                                              <button className="settings-agent-refresh-icon" type="button" onClick={refreshAgentAuthorizationCode} aria-label={tr("Refresh", "刷新")}>
-                                                <RefreshCw size={14} strokeWidth={3} />
-                                              </button>
-                                            </div>
+                                            <button className="settings-agent-refresh-icon" type="button" onClick={refreshAgentAuthorizationCode} aria-label={tr("Refresh", "刷新")}>
+                                              <RefreshCw size={14} strokeWidth={3} />
+                                            </button>
                                             <div className="settings-agent-auth-options">
                                               <section className="settings-agent-auth-option settings-agent-auth-option--scan">
                                                 <div>
@@ -10600,7 +10708,9 @@ export default function Landing() {
                                               </section>
                                               <section className="settings-agent-auth-option settings-agent-auth-option--code">
                                                 <div className="settings-agent-code-copy">
-                                                  <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
+                                                  <div className="settings-agent-code-copy__head">
+                                                    <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
+                                                  </div>
                                                   <strong>{agentWebAuthorizationCode}</strong>
                                                 </div>
                                                 <div className="settings-agent-auth-actions">
@@ -10615,7 +10725,7 @@ export default function Landing() {
                                       </div>
                                   )}
                                   {/* API key option */}
-                                  <div className={`sac-opt-card sac-opt-card--inline-form${isSelectedOpenRouter ? " sac-opt-card--plain-form" : ""}${agentConnectOpt === "api" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("api")}>
+                                  <div className={`sac-opt-card sac-opt-card--inline-form${isSelectedOpenRouter ? " sac-opt-card--plain-form" : " sac-opt-card--api-web"}${agentConnectOpt === "api" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("api")}>
                                       {!isSelectedOpenRouter && (
                                         <div className="sac-opt-head">
                                           <div className={`sac-radio${agentConnectOpt === "api" ? " sac-radio--checked" : ""}`} />
@@ -10629,7 +10739,9 @@ export default function Landing() {
                                           <div className="sac-opt-detail" onClick={(e) => e.stopPropagation()}>
                                             <div className="settings-agent-form settings-agent-form--byok">
                                               <label className="settings-field">
-                                                <span className="settings-field__head"><span>API Key</span></span>
+                                                {isSelectedOpenRouter && (
+                                                  <span className="settings-field__head"><span>API Key</span></span>
+                                                )}
                                                 <input
                                                   className="settings-input"
                                                   type="password"
@@ -10738,7 +10850,7 @@ export default function Landing() {
                                     <span />
                                     {agentConnectMode === "agent" && (
                                       <button className="sac-btn-next" type="button" onClick={confirmAgentProviderConnection}>
-                                        {tr("Complete connection", "完成连接")} ✓
+                                        {tr("OK", "确定")} ✓
                                       </button>
                                     )}
                                   </div>
