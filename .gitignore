@@ -100,6 +100,9 @@ jspm_packages/
 tmp/
 temp/
 
+# Local subproject kept outside this repository
+animal-island-vue/
+
 # Database
 *.db
 *.sqlite
