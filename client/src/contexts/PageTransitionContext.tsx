@@ -10,17 +10,18 @@ import {
 } from "react";
 import { useLocation } from "wouter";
 
-const INITIAL_PATH =
-  "M -5 -5 L -5 65 L 85 65 L 85 -5 Z M 0 0 C 0 0 7.9843788 0 40 0 C 75 0 80 0 80 0 L 80 60 C 80 60 76.055513 60 40 60 C 10 60 0 60 0 60 Z";
-
-const OPEN_PATH =
-  "M -5 -5 L -5 65 L 85 65 L 85 -5 Z M 0 35 C 0 35 15 55 40 35 C 65 15 80 35 80 35 L 80 35 C 80 30 65 10 40 30 C 15 50 0 30 0 30 Z";
-
 const PAGE_TRANSITION_SPEED_IN = 520;
-const PAGE_TRANSITION_SPEED_OUT = 520;
+const PAGE_TRANSITION_SPEED_OUT = 640;
+const CLOSED_RADIUS = 0;
+const OPEN_RADIUS = 150;
+
+type PageTransitionOrigin = {
+  x: number;
+  y: number;
+};
 
 type PageTransitionContextValue = {
-  navigateWithTransition: (to: string) => Promise<void>;
+  navigateWithTransition: (to: string, origin?: PageTransitionOrigin) => Promise<void>;
 };
 
 const PageTransitionContext = createContext<PageTransitionContextValue>({
@@ -29,27 +30,6 @@ const PageTransitionContext = createContext<PageTransitionContextValue>({
 
 function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-}
-
-function tokenizePath(value: string) {
-  return value.match(/[a-zA-Z]|-?\d*\.?\d+/g) ?? [];
-}
-
-function interpolatePath(from: string, to: string, progress: number) {
-  const fromTokens = tokenizePath(from);
-  const toTokens = tokenizePath(to);
-
-  return fromTokens
-    .map((token, index) => {
-      if (/[a-zA-Z]/.test(token)) return token;
-
-      const start = Number(token);
-      const end = Number(toTokens[index]);
-      const current = start + (end - start) * progress;
-
-      return Number(current.toFixed(3));
-    })
-    .join(" ");
 }
 
 function usePrefersReducedMotion() {
@@ -78,15 +58,29 @@ function waitForNextPaint() {
 export function PageTransitionProvider({ children }: { children: ReactNode }) {
   const [location, setLocation] = useLocation();
   const [visible, setVisible] = useState(false);
-  const [pathD, setPathD] = useState(INITIAL_PATH);
+  const [radius, setRadius] = useState(CLOSED_RADIUS);
+  const [origin, setOrigin] = useState({ x: 50, y: 50 });
   const prefersReducedMotion = usePrefersReducedMotion();
   const animatingRef = useRef(false);
   const mountedRef = useRef(true);
   const locationRef = useRef(location);
+  const lastClickRef = useRef({ x: 0.5, y: 0.5 });
 
   useEffect(() => {
     locationRef.current = location;
   }, [location]);
+
+  useEffect(() => {
+    const updateClickOrigin = (event: PointerEvent) => {
+      lastClickRef.current = {
+        x: event.clientX / window.innerWidth,
+        y: event.clientY / window.innerHeight,
+      };
+    };
+
+    window.addEventListener("pointerdown", updateClickOrigin, { capture: true });
+    return () => window.removeEventListener("pointerdown", updateClickOrigin, { capture: true });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -94,7 +88,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const animatePath = useCallback((from: string, to: string, duration: number) => {
+  const animateRadius = useCallback((from: number, to: number, duration: number) => {
     const startedAt = performance.now();
 
     return new Promise<void>((resolve) => {
@@ -106,8 +100,9 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
 
         const elapsed = Math.min((now - startedAt) / duration, 1);
         const progress = easeInOut(elapsed);
+        const current = from + (to - from) * progress;
 
-        setPathD(interpolatePath(from, to, progress));
+        setRadius(current);
 
         if (elapsed < 1) {
           requestAnimationFrame(tick);
@@ -121,7 +116,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const navigateWithTransition = useCallback(
-    async (to: string) => {
+    async (to: string, explicitOrigin?: PageTransitionOrigin) => {
       if (to === locationRef.current) return;
 
       if (prefersReducedMotion || animatingRef.current) {
@@ -129,23 +124,28 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const transitionOrigin = explicitOrigin ?? lastClickRef.current;
       animatingRef.current = true;
-      setPathD(INITIAL_PATH);
+      setOrigin({
+        x: transitionOrigin.x * 100,
+        y: transitionOrigin.y * 100,
+      });
+      setRadius(CLOSED_RADIUS);
       setVisible(true);
 
-      await animatePath(INITIAL_PATH, OPEN_PATH, PAGE_TRANSITION_SPEED_IN);
+      await animateRadius(CLOSED_RADIUS, OPEN_RADIUS, PAGE_TRANSITION_SPEED_IN);
       setLocation(to);
       await waitForNextPaint();
-      await animatePath(OPEN_PATH, INITIAL_PATH, PAGE_TRANSITION_SPEED_OUT);
+      await animateRadius(OPEN_RADIUS, CLOSED_RADIUS, PAGE_TRANSITION_SPEED_OUT);
 
       if (mountedRef.current) {
-        setPathD(INITIAL_PATH);
+        setRadius(CLOSED_RADIUS);
         setVisible(false);
       }
 
       animatingRef.current = false;
     },
-    [animatePath, prefersReducedMotion, setLocation]
+    [animateRadius, prefersReducedMotion, setLocation]
   );
 
   const value = useMemo(() => ({ navigateWithTransition }), [navigateWithTransition]);
@@ -157,10 +157,12 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
         id="page-transition-loader"
         className={`pageload-overlay${visible ? " is-visible" : ""}`}
         aria-hidden="true"
+        style={{
+          "--page-transition-origin-x": `${origin.x}%`,
+          "--page-transition-origin-y": `${origin.y}%`,
+          "--page-transition-radius": `${radius}vmax`,
+        } as React.CSSProperties}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60" preserveAspectRatio="none">
-          <path d={pathD} fillRule="evenodd" />
-        </svg>
       </div>
     </PageTransitionContext.Provider>
   );

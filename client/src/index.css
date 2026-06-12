@@ -24,23 +24,21 @@
   z-index: 9999;
   pointer-events: none;
   --page-transition-color: #fffdf4;
+  --page-transition-origin-x: 50%;
+  --page-transition-origin-y: 50%;
+  --page-transition-radius: 0vmax;
+  background: var(--page-transition-color);
+  clip-path: circle(
+    var(--page-transition-radius) at
+    var(--page-transition-origin-x)
+    var(--page-transition-origin-y)
+  );
+  will-change: clip-path;
 }
 
 .pageload-overlay.is-visible {
   visibility: visible;
   pointer-events: auto;
-}
-
-.pageload-overlay svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.pageload-overlay svg path {
-  fill: var(--page-transition-color, #fff);
 }
 
 @media (prefers-reduced-motion: reduce) {

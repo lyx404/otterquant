@@ -111,6 +111,7 @@ type WalletActivityItem = {
   amount: number;
   direction: "increase" | "decrease";
 };
+type WalletAccountKind = "coin" | "cash";
 type LeaderboardPeriod = "week" | "month";
 type LeaderboardEntry = {
   id: string;
@@ -138,12 +139,12 @@ type CountUpProps = {
 };
 
 const BALANCE_PER_USD = 100;
-const SYSTEM_BALANCE_AMOUNT = 1000000;
-const HUD_CASH_AMOUNT = 999.0;
+const SYSTEM_BALANCE_AMOUNT = 10000;
+const HUD_CASH_AMOUNT = 99.0;
 const FISH_BALANCE_AMOUNT = 10000;
 const MIN_AUTO_CAST_COUNT = 1;
 const MAX_AUTO_CAST_COUNT = 100;
-const WALLET_BALANCE_USD = 74.19;
+const WALLET_BALANCE_USD = HUD_CASH_AMOUNT;
 const WALLET_BALANCE_AMOUNT = Math.round(WALLET_BALANCE_USD * BALANCE_PER_USD);
 const MIN_AMOUNT = 1000;
 const MAX_AMOUNT = 500000;
@@ -182,19 +183,67 @@ const WITHDRAWAL_NETWORKS = [
 ];
 const DEFAULT_WITHDRAWAL_NETWORK = WITHDRAWAL_NETWORKS[0];
 
-const walletActivities: WalletActivityItem[] = [
+const coinActivities: WalletActivityItem[] = [
   {
-    id: "wallet-1",
-    orderNo: "WLT-20260428-001",
+    id: "coin-1",
+    orderNo: "COIN-20260428-001",
+    reasonEn: "Sold SSS-grade factor",
+    reasonZh: "售出SSS级因子",
+    occurredAt: "2026-04-28T10:24:00+08:00",
+    amount: 2800,
+    direction: "increase",
+  },
+  {
+    id: "coin-2",
+    orderNo: "COIN-20260427-002",
+    reasonEn: "Bought scratch card",
+    reasonZh: "购买刮刮乐",
+    occurredAt: "2026-04-27T18:30:00+08:00",
+    amount: 600,
+    direction: "decrease",
+  },
+  {
+    id: "coin-3",
+    orderNo: "COIN-20260426-003",
+    reasonEn: "Sold A-grade factor",
+    reasonZh: "售出A级因子",
+    occurredAt: "2026-04-26T09:10:00+08:00",
+    amount: 5000,
+    direction: "increase",
+  },
+  {
+    id: "coin-4",
+    orderNo: "COIN-20260425-004",
+    reasonEn: "Bought scratch card",
+    reasonZh: "购买刮刮乐",
+    occurredAt: "2026-04-25T21:18:00+08:00",
+    amount: 1200,
+    direction: "decrease",
+  },
+  {
+    id: "coin-5",
+    orderNo: "COIN-20260424-005",
     reasonEn: "Sold S-grade factor",
     reasonZh: "售出S级因子",
+    occurredAt: "2026-04-24T12:06:00+08:00",
+    amount: 3600,
+    direction: "increase",
+  },
+];
+
+const cashActivities: WalletActivityItem[] = [
+  {
+    id: "cash-1",
+    orderNo: "CASH-20260428-001",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-04-28T10:24:00+08:00",
     amount: 32,
     direction: "increase",
   },
   {
-    id: "wallet-2",
-    orderNo: "WLT-20260420-002",
+    id: "cash-2",
+    orderNo: "CASH-20260420-002",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-04-20T09:00:00+08:00",
@@ -202,17 +251,17 @@ const walletActivities: WalletActivityItem[] = [
     direction: "decrease",
   },
   {
-    id: "wallet-3",
-    orderNo: "WLT-20260418-003",
-    reasonEn: "Sold A-grade factor",
-    reasonZh: "售出A级因子",
+    id: "cash-3",
+    orderNo: "CASH-20260418-003",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-04-18T16:42:00+08:00",
     amount: 18,
     direction: "increase",
   },
   {
-    id: "wallet-4",
-    orderNo: "WLT-20260415-004",
+    id: "cash-4",
+    orderNo: "CASH-20260415-004",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-04-15T21:18:00+08:00",
@@ -220,17 +269,17 @@ const walletActivities: WalletActivityItem[] = [
     direction: "decrease",
   },
   {
-    id: "wallet-5",
-    orderNo: "WLT-20260412-005",
-    reasonEn: "Sold SS-grade factor",
-    reasonZh: "售出SS级因子",
+    id: "cash-5",
+    orderNo: "CASH-20260412-005",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-04-12T12:06:00+08:00",
     amount: 12,
     direction: "increase",
   },
   {
-    id: "wallet-6",
-    orderNo: "WLT-20260408-006",
+    id: "cash-6",
+    orderNo: "CASH-20260408-006",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-04-08T19:35:00+08:00",
@@ -238,17 +287,17 @@ const walletActivities: WalletActivityItem[] = [
     direction: "decrease",
   },
   {
-    id: "wallet-7",
-    orderNo: "WLT-20260404-007",
-    reasonEn: "Sold B-grade factor",
-    reasonZh: "售出B级因子",
+    id: "cash-7",
+    orderNo: "CASH-20260404-007",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-04-04T11:20:00+08:00",
     amount: 9,
     direction: "increase",
   },
   {
-    id: "wallet-8",
-    orderNo: "WLT-20260330-008",
+    id: "cash-8",
+    orderNo: "CASH-20260330-008",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-03-30T14:52:00+08:00",
@@ -256,17 +305,17 @@ const walletActivities: WalletActivityItem[] = [
     direction: "decrease",
   },
   {
-    id: "wallet-9",
-    orderNo: "WLT-20260326-009",
-    reasonEn: "Sold C-grade factor",
-    reasonZh: "售出C级因子",
+    id: "cash-9",
+    orderNo: "CASH-20260326-009",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-03-26T08:30:00+08:00",
     amount: 5,
     direction: "increase",
   },
   {
-    id: "wallet-10",
-    orderNo: "WLT-20260321-010",
+    id: "cash-10",
+    orderNo: "CASH-20260321-010",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-03-21T17:48:00+08:00",
@@ -787,6 +836,7 @@ export default function Landing() {
   const [manualCastElapsed, setManualCastElapsed] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [walletAccountKind, setWalletAccountKind] = useState<WalletAccountKind>("coin");
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
@@ -813,6 +863,7 @@ export default function Landing() {
   const [agentGlobalConnectMode, setAgentGlobalConnectMode] = useState<"web" | "agent" | null>("web");
   const [agentModeSwitchWarning, setAgentModeSwitchWarning] = useState(false);
   const [agentConnectionWarningType, setAgentConnectionWarningType] = useState<"mode" | "provider">("mode");
+  const agentProviderWarningTimerRef = useRef<number | null>(null);
   // Inline flow view: "mode" = step1 choose mode, "manage" = provider list, "config" = step2, "success" = step3
   const [agentInlineStep, setAgentInlineStep] = useState<"mode" | "manage" | "config" | "success">("manage");
   const [agentDisconnectConfirmProviderId, setAgentDisconnectConfirmProviderId] = useState<AgentProviderId | null>(null);
@@ -900,6 +951,14 @@ export default function Landing() {
   }, [inventoryToast]);
 
   useEffect(() => {
+    return () => {
+      if (agentProviderWarningTimerRef.current !== null) {
+        window.clearTimeout(agentProviderWarningTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     if (!settingsEditingProfile) {
       setSettingsNickname(user.displayName || "AlphaTrader");
@@ -979,6 +1038,7 @@ export default function Landing() {
   const agentVisibleProviders = agentConnectableProviders.filter((provider) =>
     provider.modes.includes(agentVisibleProviderMode)
   );
+  const shouldShowAgentAuthPreviewTrigger = agentInlineStep === "manage" && agentVisibleProviderMode === "agent";
   const selectedAgentProvider = agentConnectableProviders.find((provider) => provider.id === agentSelectedProviderId);
   const isSelectedOpenRouter = selectedAgentProvider?.name === "OpenRouter";
 
@@ -1470,7 +1530,8 @@ export default function Landing() {
     setWithdrawNetworkOpen(false);
   };
 
-  const openWalletModal = () => {
+  const openWalletModal = (accountKind: WalletAccountKind = walletAccountKind) => {
+    setWalletAccountKind(accountKind);
     setWalletWithdrawOpen(false);
     setWithdrawNetworkOpen(false);
     setWalletOpen(true);
@@ -1501,8 +1562,16 @@ export default function Landing() {
     return agentConnectableProviders.find((provider) => provider.id === providerId)?.name || "Agent";
   };
 
+  const clearAgentProviderWarningTimer = () => {
+    if (agentProviderWarningTimerRef.current !== null) {
+      window.clearTimeout(agentProviderWarningTimerRef.current);
+      agentProviderWarningTimerRef.current = null;
+    }
+  };
+
   // Enter the inline connect config view for a specific provider (from manage view)
   const openAgentConnectModal = (providerId: AgentProviderId) => {
+    clearAgentProviderWarningTimer();
     setAgentSelectedProviderId(providerId);
     setAgentDisconnectConfirmProviderId(null);
     setAgentAuthMethod("code");
@@ -1523,6 +1592,7 @@ export default function Landing() {
 
   // Request switching the global connection mode (from manage view)
   const requestSwitchConnectMode = () => {
+    clearAgentProviderWarningTimer();
     setAgentModeSwitchWarning(false);
     setAgentConnectionWarningType("mode");
     setAgentGlobalConnectMode(null);
@@ -1536,6 +1606,11 @@ export default function Landing() {
   const showAgentProviderBlockedWarning = () => {
     setAgentConnectionWarningType("provider");
     setAgentModeSwitchWarning(true);
+    clearAgentProviderWarningTimer();
+    agentProviderWarningTimerRef.current = window.setTimeout(() => {
+      setAgentModeSwitchWarning(false);
+      agentProviderWarningTimerRef.current = null;
+    }, 2000);
   };
 
   const disconnectAgentProvider = (providerId: AgentProviderId) => {
@@ -1580,15 +1655,28 @@ export default function Landing() {
     );
   };
 
-  const confirmAgentProviderConnection = () => {
+  const finishAgentProviderConnection = (nextStep: "manage" | "success") => {
     setAgentConnectedProviderIds((current) => new Set(current).add(agentSelectedProviderId));
     setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));
     setAgentGlobalConnectMode(agentConnectMode);
-    setAgentInlineStep("success");
+    setAgentInlineStep(nextStep);
     showSettingsFeedback(
       tr("Connected", "已连接"),
       tr(`${getAgentProviderName(agentSelectedProviderId)} connected.`, `${getAgentProviderName(agentSelectedProviderId)} 已连接。`)
     );
+  };
+
+  const confirmAgentProviderConnection = () => {
+    finishAgentProviderConnection("success");
+  };
+
+  const confirmAgentProviderConnectionAndClose = () => {
+    finishAgentProviderConnection("manage");
+  };
+
+  const allowAgentAuthPreviewAccess = () => {
+    setAgentAuthPreviewOpen(false);
+    confirmAgentProviderConnection();
   };
 
   const testAgentByok = () => {
@@ -1964,12 +2052,30 @@ export default function Landing() {
         : tr("Bind wallet", "绑定钱包");
   const handleWithdrawPrimaryAction = () => {
     if (withdrawStatus === "success") {
-      openWalletModal();
+      openWalletModal("cash");
       return;
     }
 
     void handleSubmitWithdraw();
   };
+
+  const activeWalletConfig = walletAccountKind === "coin"
+    ? {
+        title: tr("Game Coins", "游戏币"),
+        balance: formatBalance(SYSTEM_BALANCE_AMOUNT),
+        icon: HUD_ASSETS.coin,
+        activities: coinActivities,
+        formatActivityAmount: formatBalance,
+        allowWithdraw: false,
+      }
+    : {
+        title: tr("Cash", "现金"),
+        balance: `$${HUD_CASH_AMOUNT.toFixed(1)}`,
+        icon: HUD_ASSETS.cash,
+        activities: cashActivities,
+        formatActivityAmount: (amount: number) => `$${amount.toFixed(2)}`,
+        allowWithdraw: true,
+      };
 
   const openStrategyDetail = (strategy: (typeof strategies)[number]) => {
     setSelectedStrategy(strategy);
@@ -4282,10 +4388,14 @@ export default function Landing() {
         }
         .sac-buddy-banner {
           display: flex; align-items: center; gap: 12px;
+          margin-top: auto;
           padding: 14px 16px;
           background: rgba(255,213,87,.1);
           border: 1.5px solid rgba(245,200,66,.4);
           border-radius: var(--radius-xs);
+        }
+        .settings-agent-main__footer + .sac-buddy-banner {
+          margin-top: 0;
         }
         .sac-buddy-banner__icon { font-size: 30px; flex-shrink: 0; }
         .sac-buddy-banner__body { flex: 1; min-width: 0; }
@@ -4845,8 +4955,12 @@ export default function Landing() {
 
         .settings-agent-provider-action-button.is-disabled {
           cursor: not-allowed;
-          opacity: .72;
-          filter: grayscale(.35);
+          color: rgba(121, 79, 39, .58);
+          background: rgba(196, 184, 158, .28);
+          border-color: rgba(196, 184, 158, .42);
+          box-shadow: none;
+          opacity: 1;
+          filter: grayscale(.18);
         }
 
         .settings-agent-provider-action-button.is-loading svg {
@@ -5057,16 +5171,21 @@ export default function Landing() {
         .sac-mode-card {
           appearance: none; text-align: left;
           border: 2px solid rgba(196,184,158,.55); border-radius: var(--radius-xs);
-          padding: 14px; cursor: pointer; background: #fffdf4;
-          display: flex; align-items: flex-start; gap: 10px;
-          transition: border-color 0.15s, background 0.15s;
+          min-height: 100px; padding: 18px 20px; cursor: pointer; background: #fffdf4;
+          display: flex; align-items: center; gap: 14px;
+          transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
           font: inherit; color: inherit;
         }
-        .sac-mode-card:hover, .sac-mode-card--sel {
-          border-color: #5bbcd6; background: rgba(91,188,214,.07);
+        .sac-mode-card:hover {
+          border-color: rgba(255, 207, 72, .95); background: rgba(255, 207, 72, .12);
         }
-        .sac-mode-title { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
-        .sac-mode-desc  { font-size: 11px; color: rgba(121,79,39,.65); line-height: 1.5; }
+        .sac-mode-card--sel {
+          border-color: #f4bd18; background: #ffec9d;
+          box-shadow: inset 0 0 0 2px rgba(255, 250, 218, .72);
+        }
+        .sac-mode-body { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+        .sac-mode-title { font-weight: 800; font-size: 14px; line-height: 1.2; margin-bottom: 0; color: rgba(92, 61, 25, .94); }
+        .sac-mode-desc  { font-size: 12px; color: rgba(121,79,39,.68); line-height: 1.45; }
         .sac-mode-card--locked { opacity: 0.5; cursor: not-allowed; }
         .sac-mode-card--locked:hover { border-color: rgba(196,184,158,.55); background: #fffdf4; }
         .sac-mode-lock { margin-left: auto; font-size: 12px; align-self: center; }
@@ -6529,17 +6648,8 @@ export default function Landing() {
           align-items: center;
         }
 
-        .wallet-card__label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--ac-text-body);
-          font-size: 13px;
-          font-weight: 900;
-        }
-
         .wallet-card__value {
-          margin-top: 10px;
+          margin-top: 0;
           color: var(--ac-text);
           font-size: 32px;
           font-weight: 950;
@@ -9884,8 +9994,8 @@ export default function Landing() {
           <button
             className="hud-stat-card hud-stat-card--button"
             type="button"
-            aria-label={tr("Open wallet", "打开钱包")}
-            onClick={openWalletModal}
+            aria-label={tr("Open game coins", "打开游戏币")}
+            onClick={() => openWalletModal("coin")}
           >
             <img
               className="hud-stat-icon"
@@ -9904,8 +10014,8 @@ export default function Landing() {
           <button
             className="hud-stat-card hud-stat-card--button"
             type="button"
-            aria-label={tr("Open wallet", "打开钱包")}
-            onClick={openWalletModal}
+            aria-label={tr("Open cash", "打开现金")}
+            onClick={() => openWalletModal("cash")}
           >
             <img
               className="hud-stat-icon"
@@ -10506,7 +10616,7 @@ export default function Landing() {
                                   onClick={() => setAgentConnectMode(mode)}
                                 >
                                   <div className={`sac-radio${agentConnectMode === mode ? " sac-radio--checked" : ""}`} />
-                                  <div>
+                                  <div className="sac-mode-body">
                                     {mode === "web" ? (
                                       <>
                                         <div className="sac-mode-title">🌐 {tr("Use on web", "我要在网页上用")}</div>
@@ -10550,32 +10660,24 @@ export default function Landing() {
                                 ? tr("Disconnect the connected agent before starting a new connection.", "请先断开已连接的 agent，再进行新的连接。")
                                 : tr("Please disconnect the current connection before switching methods.", "请先断开当前连接，再切换连接方式。")}
                             </span>
-                            <button className="sac-disconnect-all-btn" type="button" onClick={disconnectAllAgentProviders}>
-                              {tr("Disconnect all", "一键断开全部")}
-                            </button>
+                            {agentConnectionWarningType === "mode" && (
+                              <button className="sac-disconnect-all-btn" type="button" onClick={disconnectAllAgentProviders}>
+                                {tr("Disconnect all", "一键断开全部")}
+                              </button>
+                            )}
                           </div>
                         )}
                         <div className="settings-agent-provider-list" aria-label={tr("Connectable providers", "可连接服务")}>
                           {agentVisibleProviders.map((provider) => {
                             const isConnected = agentConnectedProviderIds.has(provider.id);
                             const isTestingStatus = agentStatusTestingProviderId === provider.id;
-                            // Web mode: disable connect if another provider is already connected
+                            // Web mode: only the connect button is blocked if another provider is already connected.
                             const isBlockedByWebLimit = !isConnected && agentGlobalConnectMode === "web" && agentConnectedProviderIds.size > 0;
 
                             return (
                               <div
-                                className={`settings-agent-provider-row${isConnected ? " is-connected" : " is-disconnected"}${isBlockedByWebLimit ? " is-disabled" : ""}`}
+                                className={`settings-agent-provider-row${isConnected ? " is-connected" : " is-disconnected"}`}
                                 key={provider.id}
-                                role={isBlockedByWebLimit ? "button" : undefined}
-                                tabIndex={isBlockedByWebLimit ? 0 : undefined}
-                                aria-disabled={isBlockedByWebLimit || undefined}
-                                onClick={isBlockedByWebLimit ? showAgentProviderBlockedWarning : undefined}
-                                onKeyDown={isBlockedByWebLimit ? (event) => {
-                                  if (event.key === "Enter" || event.key === " ") {
-                                    event.preventDefault();
-                                    showAgentProviderBlockedWarning();
-                                  }
-                                } : undefined}
                               >
                                 <div className="settings-agent-provider-head">
                                   <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
@@ -10849,7 +10951,7 @@ export default function Landing() {
                                   <div className="sac-nav">
                                     <span />
                                     {agentConnectMode === "agent" && (
-                                      <button className="sac-btn-next" type="button" onClick={confirmAgentProviderConnection}>
+                                      <button className="sac-btn-next" type="button" onClick={confirmAgentProviderConnectionAndClose}>
                                         {tr("OK", "确定")} ✓
                                       </button>
                                     )}
@@ -10946,17 +11048,19 @@ export default function Landing() {
                                   "点击「允许访问」，同意让 Claude Code 来处理 plugin.py 的编写、上传、回测操作，然后获取因子信息，并总结结果"
                                 )}
                               </p>
-                              <button className="sac-auth-preview__allow" type="button" onClick={() => setAgentAuthPreviewOpen(false)}>
+                              <button className="sac-auth-preview__allow" type="button" onClick={allowAgentAuthPreviewAccess}>
                                 {tr("Allow access", "允许访问")}
                               </button>
                             </section>
                           </div>
                         )}
-                        <div className="settings-agent-main__footer">
-                          <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
-                            🔍 {tr("Authorization popup preview", "授权弹窗示意")}
-                          </button>
-                        </div>
+                        {shouldShowAgentAuthPreviewTrigger && (
+                          <div className="settings-agent-main__footer">
+                            <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
+                              🔍 {tr("Authorization popup preview", "授权弹窗示意")}
+                            </button>
+                          </div>
+                        )}
                         <div className="sac-buddy-banner">
                           <div className="sac-buddy-banner__icon">🐾</div>
                           <div className="sac-buddy-banner__body">
@@ -11273,12 +11377,12 @@ export default function Landing() {
                     className="wallet-modal__back"
                     type="button"
                     aria-label={tr("Back to wallet", "返回钱包")}
-                    onClick={openWalletModal}
+                    onClick={() => openWalletModal("cash")}
                   >
                     <ArrowLeft size={20} strokeWidth={3} />
                   </button>
                 )}
-                <h2 className="shop-modal__title" id="wallet-modal-title">{walletWithdrawOpen ? tr("Withdraw", "提现") : tr("Wallet", "钱包")}</h2>
+                <h2 className="shop-modal__title" id="wallet-modal-title">{walletWithdrawOpen ? tr("Withdraw", "提现") : activeWalletConfig.title}</h2>
               </div>
               <button
                 className="shop-modal__close"
@@ -11465,20 +11569,22 @@ export default function Landing() {
                       <section className="wallet-card wallet-card--balance">
                         <div>
                           <div className="wallet-card__value wallet-balance-value">
-                            <img className="wallet-balance-value__icon" src={HUD_ASSETS.coin} alt="" />
-                            <span>{formatBalance(SYSTEM_BALANCE_AMOUNT)}</span>
+                            <img className="wallet-balance-value__icon" src={activeWalletConfig.icon} alt="" />
+                            <span>{activeWalletConfig.balance}</span>
                           </div>
                         </div>
-                        <div className="wallet-action-row">
-                          <button
-                            className="wallet-action"
-                            type="button"
-                            onClick={openWithdrawModal}
-                          >
-                            <CreditCard size={16} strokeWidth={3} />
-                            {tr("Withdraw", "提现")}
-                          </button>
-                        </div>
+                        {activeWalletConfig.allowWithdraw && (
+                          <div className="wallet-action-row">
+                            <button
+                              className="wallet-action"
+                              type="button"
+                              onClick={openWithdrawModal}
+                            >
+                              <CreditCard size={16} strokeWidth={3} />
+                              {tr("Withdraw", "提现")}
+                            </button>
+                          </div>
+                        )}
                       </section>
                     </div>
 
@@ -11490,14 +11596,13 @@ export default function Landing() {
                           <span>{tr("Time", "变更时间")}</span>
                           <span className="wallet-table__amount">
                             <span className="wallet-table__balance">
-                              <img className="wallet-table__balance-icon" src={HUD_ASSETS.coin} alt="" />
+                              <img className="wallet-table__balance-icon" src={activeWalletConfig.icon} alt="" />
                               <span>{tr("Balance", "余额")}</span>
                             </span>
                           </span>
                         </div>
-                        {walletActivities.map((item) => {
+                        {activeWalletConfig.activities.map((item) => {
                           const isIncrease = item.direction === "increase";
-                          const activityBalanceAmount = Math.round(item.amount * BALANCE_PER_USD);
                           return (
                             <div className="wallet-table__row" key={item.id}>
                               <span>{tr(item.reasonEn, item.reasonZh)}</span>
@@ -11505,7 +11610,7 @@ export default function Landing() {
                               <span>{formatWalletDateTime(item.occurredAt)}</span>
                               <span className={`wallet-table__amount ${isIncrease ? "wallet-table__amount--plus" : "wallet-table__amount--minus"}`}>
                                 <span className="wallet-table__balance">
-                                  <span>{isIncrease ? "+" : "-"}{formatBalance(activityBalanceAmount)}</span>
+                                  <span>{isIncrease ? "+" : "-"}{activeWalletConfig.formatActivityAmount(item.amount)}</span>
                                 </span>
                               </span>
                             </div>
