@@ -1,0 +1,2258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>幸运刮刮乐</title>
+  <style>
+    :root {
+      --scale: 1;
+      --ink: #4e433c;
+      --button-text: #5a3e00;
+      --panel: #fdfaec;
+      --gold: #ffdc75;
+      --board: #8c9ee3;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: #c6d1f6;
+      font-family: "Alimama FangYuanTi VF", "Alimama FangYuanTi", "Alibaba PuHuiTi", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+    }
+
+    button {
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      background: transparent;
+      cursor: default;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    img,
+    canvas {
+      -webkit-user-drag: none;
+      user-drag: none;
+    }
+
+    .stage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: #c6d1f6;
+      transform: translate(-50%, -50%) scale(var(--scale));
+      transform-origin: center;
+      isolation: isolate;
+      touch-action: none;
+    }
+
+    .stage[data-state="ready"],
+    .stage[data-state="scratching"] {
+      cursor: none;
+    }
+
+    .stage[data-state="ready"] button,
+    .stage[data-state="scratching"] button {
+      cursor: default;
+    }
+
+    .stage[data-state="ready"] .primary-button,
+    .stage[data-state="scratching"] .primary-button,
+    .stage[data-state="ready"] .batch-all-button,
+    .stage[data-state="scratching"] .batch-all-button,
+    .stage[data-state="ready"] .quantity-button,
+    .stage[data-state="scratching"] .quantity-button {
+      cursor: default;
+    }
+
+    .stage[data-state="done"] #actionButton {
+      cursor: default;
+    }
+
+    .sky {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: 1920px;
+      height: 1088px;
+      max-width: none;
+      object-fit: cover;
+      pointer-events: none;
+      transform: translateX(-50%);
+      z-index: 0;
+    }
+
+    .top-ribbon {
+      position: absolute;
+      top: -5px;
+      width: 1162px;
+      height: 199px;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .top-ribbon.left {
+      left: -8px;
+    }
+
+    .top-ribbon.right {
+      left: 756px;
+      width: 1163px;
+      height: 199px;
+      transform: scaleY(-1) rotate(180deg);
+    }
+
+    .hud {
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      z-index: 8;
+      cursor: default;
+    }
+
+    .hud * {
+      cursor: default;
+    }
+
+    .back-button {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 50px;
+      height: 50px;
+      border: 1.5px solid rgba(196, 184, 158, 0.86);
+      border-radius: 4px;
+      background: #f8f8f0;
+      box-shadow: 2px 2px 0 rgba(189, 174, 160, 0.48);
+    }
+
+    .back-button img {
+      width: 26px;
+      height: 26px;
+    }
+
+    .stats {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .stat {
+      appearance: none;
+      position: relative;
+      height: 65px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 12px;
+      border: 3px solid #c4b89e;
+      border-radius: 16px;
+      background: #fff3d3;
+      overflow: hidden;
+      color: var(--ink);
+      font: inherit;
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: 0;
+      transition: background-color .14s cubic-bezier(.22, 1, .36, 1);
+    }
+
+    .stat-button {
+      cursor: default;
+    }
+
+    .stats:hover .stat,
+    .stat-button:hover {
+      background: #fff7df;
+    }
+
+    .stat-button:active {
+      transform: translateY(1px);
+    }
+
+    .stat.balance {
+      width: 198px;
+    }
+
+    .stat.cash,
+    .stat.fish {
+      width: 166px;
+    }
+
+    .stat img {
+      flex: 0 0 auto;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .stat.balance img {
+      width: 36px;
+      height: 37px;
+    }
+
+    .stat.cash img {
+      width: 44px;
+      height: 28px;
+    }
+
+    .stat.fish img {
+      width: 40px;
+      height: 27px;
+    }
+
+    .stat span {
+      display: block;
+      color: #4e433c;
+      font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 26px;
+      font-style: normal;
+      font-weight: 700;
+      font-stretch: 100%;
+      font-synthesis: none;
+      font-optical-sizing: auto;
+      font-variation-settings: "wght" 700, "BEVL" 1;
+      line-height: 100%;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .stat.balance span {
+      width: 130px;
+    }
+
+    .stat.cash span,
+    .stat.fish span {
+      width: 90px;
+    }
+
+    .wallet-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      background: rgba(78, 67, 60, .22);
+      backdrop-filter: blur(2px);
+    }
+
+    .wallet-overlay[hidden] {
+      display: none;
+    }
+
+    .wallet-modal {
+      width: min(1080px, calc(100% - 80px));
+      max-height: 720px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      color: var(--ink);
+      background: linear-gradient(180deg, #fffdf4 0%, #fff8e7 100%);
+      border: 2px solid rgba(196, 184, 158, .9);
+      border-radius: 8px;
+      box-shadow:
+        0 0 0 2px rgba(255, 253, 244, .88),
+        5px 5px 0 rgba(189, 174, 160, .72),
+        0 20px 48px rgba(66, 48, 31, .18);
+      image-rendering: pixelated;
+    }
+
+    .wallet-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px 18px;
+      background: rgba(255, 249, 232, .88);
+      border-bottom: 2px solid rgba(196, 184, 158, .62);
+    }
+
+    .wallet-modal-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .wallet-modal-close {
+      width: 38px;
+      height: 38px;
+      display: inline-grid;
+      place-items: center;
+      color: var(--ink);
+      background: #fff3d3;
+      border: 1.5px solid rgba(196, 184, 158, .86);
+      border-radius: 4px;
+      box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .wallet-modal-close:hover {
+      transform: translate(-1px, -1px);
+      box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
+    }
+
+    .wallet-modal-content {
+      min-height: 0;
+      overflow: auto;
+      padding: 18px 34px 24px;
+    }
+
+    .wallet-balance-card,
+    .wallet-section {
+      background: rgba(255, 253, 244, .86);
+      border: 2px solid rgba(196, 184, 158, .7);
+      border-radius: 8px;
+      box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
+    }
+
+    .wallet-balance-card {
+      padding: 18px;
+    }
+
+    .wallet-balance-value {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-size: 32px;
+      font-weight: 950;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .wallet-balance-value img {
+      width: 40px;
+      height: 41px;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .wallet-section {
+      margin-top: 16px;
+      overflow: auto;
+    }
+
+    .wallet-table {
+      min-width: 720px;
+    }
+
+    .wallet-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr .75fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 800;
+      border-bottom: 1px solid rgba(196, 184, 158, .45);
+    }
+
+    .wallet-row:last-child {
+      border-bottom: 0;
+    }
+
+    .wallet-row-head {
+      color: rgba(78, 67, 60, .68);
+      background: rgba(255, 249, 232, .65);
+      font-size: 12px;
+      font-weight: 950;
+    }
+
+    .wallet-mono,
+    .wallet-amount {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .wallet-mono {
+      font-size: 12px;
+    }
+
+    .wallet-amount {
+      text-align: right;
+      font-weight: 950;
+    }
+
+    .wallet-amount-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 5px;
+    }
+
+    .wallet-amount-label img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+      image-rendering: pixelated;
+    }
+
+    .action {
+      position: absolute;
+      top: 350px;
+      left: 260px;
+      z-index: 20;
+      width: 320px;
+      height: 310px;
+    }
+
+    .coin-front {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 200px;
+      aspect-ratio: 658 / 655;
+      object-fit: contain;
+      filter: drop-shadow(0 9px 0 rgba(140, 114, 40, 0.2));
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .stage[data-state="purchase"] .coin-front {
+      top: 0;
+    }
+
+    .stage[data-state="ready"] .coin-front,
+    .stage[data-state="scratching"] .coin-front,
+    .stage[data-state="done"] .coin-front {
+      display: none;
+    }
+
+	    .action-controls {
+	      position: absolute;
+	      top: 214px;
+	      left: 50%;
+	      z-index: 18;
+	      display: grid;
+	      width: 320px;
+	      grid-template-columns: repeat(2, 1fr);
+	      grid-template-rows: auto auto;
+	      align-content: start;
+	      align-items: start;
+	      justify-items: center;
+	      column-gap: 12px;
+	      row-gap: 10px;
+	      transform: translateX(-50%);
+	      cursor: default;
+	    }
+
+	    .stage[data-state="purchase"] .action-controls {
+	      grid-template-rows: auto auto;
+	      row-gap: 8px;
+	    }
+
+    .purchase-meta {
+      display: flex;
+	      width: auto;
+	      align-items: center;
+	      justify-content: center;
+	      grid-column: 1 / -1;
+	      grid-row: 2;
+	    }
+
+    .quantity-picker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0;
+      width: 208px;
+      height: 34px;
+      padding: 2px;
+      border: 0;
+      border-radius: 8px;
+      background: #ffedb7;
+      box-shadow: inset 0 2px 0 rgba(255, 255, 255, .36);
+      color: var(--ink);
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .quantity-button {
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      background: #ffdc75;
+      color: #5a3e00;
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 3px 0 rgba(196, 148, 45, .25);
+      cursor: default;
+    }
+
+    .quantity-button:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 rgba(196, 148, 45, .3);
+    }
+
+    .quantity-value {
+      width: 78px;
+      min-width: 78px;
+      padding: 0 2px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      line-height: 1;
+      text-align: center;
+      outline: none;
+      cursor: text;
+      caret-color: #5a3e00;
+      appearance: textfield;
+    }
+
+    .quantity-value::-webkit-outer-spin-button,
+    .quantity-value::-webkit-inner-spin-button {
+      margin: 0;
+      appearance: none;
+    }
+
+    .quantity-value:focus {
+      background: rgba(255, 255, 255, .42);
+      box-shadow: inset 0 0 0 2px rgba(155, 126, 49, .18);
+    }
+
+    .quantity-unit {
+      margin-left: -4px;
+      pointer-events: none;
+    }
+
+    .stage[data-state="ready"] .quantity-picker,
+    .stage[data-state="scratching"] .quantity-picker,
+    .stage[data-state="done"] .quantity-picker {
+      display: none;
+    }
+
+	    .stage[data-state="purchase"] .primary-button {
+	      grid-row: 1;
+	    }
+
+    .stage[data-state="purchase"] .purchase-meta {
+      grid-row: 2;
+    }
+
+    .balance-warning {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      grid-column: 1 / -1;
+      grid-row: 3;
+      min-height: 22px;
+      padding-top: 2px;
+      color: #b7472f;
+      font-size: 17px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .stage[data-balance-warning="true"][data-state="purchase"] .balance-warning {
+      display: flex;
+    }
+
+    .batch-progress {
+      display: none;
+	      align-items: center;
+	      justify-content: center;
+	      grid-column: 1 / -1;
+	      grid-row: 2;
+	      min-width: 112px;
+	      height: 28px;
+      padding: 0 12px;
+      border: 1px solid rgba(86, 76, 72, .16);
+      border-radius: 999px;
+      background: rgba(255, 246, 221, .54);
+      color: rgba(78, 67, 60, .7);
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+      box-shadow: none;
+    }
+
+    .stage[data-batch="multi"][data-state="ready"] .batch-progress,
+    .stage[data-batch="multi"][data-state="scratching"] .batch-progress,
+    .stage[data-batch="multi"][data-state="done"] .batch-progress {
+      display: flex;
+    }
+
+    .settlement {
+      position: absolute;
+      top: 64px;
+      left: 50%;
+      z-index: 3;
+      width: 240px;
+      box-sizing: border-box;
+      display: none;
+      align-items: center;
+      justify-content: space-evenly;
+      gap: 10px;
+      padding: 16px 30px;
+      border: 0;
+      border-radius: 8px;
+      background: #fdfaec;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .42);
+      opacity: 0;
+      transform: translate(-50%, 10px) scale(.96);
+      cursor: default;
+      pointer-events: auto;
+      transition: opacity 260ms ease, transform 320ms cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .stage[data-state="done"] .settlement {
+      display: flex;
+      opacity: 1;
+      transform: translate(-50%, 0) scale(1);
+    }
+
+    .settlement img {
+      width: 60px;
+      height: 38.33px;
+      object-fit: contain;
+      flex: 0 0 auto;
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    .settlement-text {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex: 1 1 auto;
+      min-width: 0;
+      height: max-content;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0;
+      pointer-events: auto;
+    }
+
+    .settlement-label {
+      color: rgba(106, 91, 80, .78);
+      font-size: 17px;
+      white-space: nowrap;
+    }
+
+    .settlement-amount {
+      color: #4e433c;
+      font-size: 31px;
+      white-space: nowrap;
+    }
+
+    .settlement-extra {
+      color: rgba(106, 91, 80, .72);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .primary-button {
+      width: 200px;
+      height: auto;
+      min-height: 82px;
+      display: flex;
+      flex-direction: column;
+	      align-items: center;
+	      justify-content: center;
+	      grid-column: 1 / -1;
+	      grid-row: 1;
+      gap: 5px;
+      padding: 12px 28px;
+      border-radius: 16px;
+      background: #ffedb7;
+      color: var(--button-text);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0;
+      box-shadow: 0 6px 0 rgba(196, 148, 45, 0.26), inset 0 2px 0 rgba(255, 255, 255, 0.26);
+      white-space: nowrap;
+      transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+      cursor: default;
+    }
+
+    .action-label {
+      display: block;
+      font-size: 26px;
+      line-height: .96;
+    }
+
+    .action-price {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      color: rgba(90, 62, 0, .72);
+      font-size: 16px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .stage[data-state="purchase"] .action-price {
+      display: flex;
+    }
+
+    .action-price img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+      opacity: .76;
+    }
+
+    .primary-button:hover {
+      filter: brightness(1.03);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 0 rgba(196, 148, 45, 0.26), inset 0 2px 0 rgba(255, 255, 255, 0.28);
+    }
+
+    .primary-button:focus {
+      outline: none;
+    }
+
+    .primary-button:active {
+      transform: translateY(2px);
+      box-shadow: 0 3px 0 rgba(196, 148, 45, 0.28), inset 0 2px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .batch-all-button {
+      width: 160px;
+      min-height: 82px;
+	      display: none;
+	      align-items: center;
+	      justify-content: center;
+	      grid-column: 2;
+	      grid-row: 1;
+      padding: 12px 24px 14px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(255, 243, 211, .82);
+      color: #5a3e00;
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+      box-shadow: 0 4px 0 rgba(189, 174, 160, .24), inset 0 2px 0 rgba(255, 255, 255, .32);
+      transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+      cursor: default;
+    }
+
+    .batch-all-button:hover {
+      filter: brightness(1.02);
+      transform: translateY(-1px);
+      box-shadow: 0 5px 0 rgba(189, 174, 160, .24), inset 0 2px 0 rgba(255, 255, 255, .32);
+    }
+
+    .batch-all-button:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 rgba(189, 174, 160, .28), inset 0 2px 0 rgba(255, 255, 255, .24);
+    }
+
+    .stage[data-can-reveal-all="true"] .batch-all-button {
+      display: flex;
+      grid-column: 1;
+    }
+
+    .stage[data-can-reveal-all="true"] .primary-button,
+    .stage[data-can-reveal-all="true"] .batch-all-button {
+      width: 144px;
+      height: auto;
+      min-height: 82px;
+      padding: 15px 18px 17px;
+      font-size: 26px;
+    }
+
+    .stage[data-can-reveal-all="true"] .primary-button {
+      grid-column: 2;
+    }
+
+    .stage[data-state="ready"] .primary-button,
+    .stage[data-state="scratching"] .primary-button,
+    .stage[data-state="done"] .primary-button,
+    .stage[data-state="ready"] .batch-all-button,
+    .stage[data-state="scratching"] .batch-all-button,
+    .stage[data-state="done"] .batch-all-button {
+      height: 82px;
+      min-height: 82px;
+    }
+
+    .stage:not([data-state="purchase"]) .purchase-meta {
+      display: none;
+    }
+
+    .side-coin {
+      position: absolute;
+      left: 580px;
+      top: 420px;
+      z-index: 6;
+      width: 159px;
+      height: 200px;
+      display: none;
+      transform: translate(-50%, -50%) rotate(var(--coin-tilt, 0deg));
+      transform-origin: 50% 58%;
+      touch-action: none;
+      pointer-events: none;
+      filter: drop-shadow(12px 15px 0 rgba(103, 82, 35, .22));
+      transition: filter 150ms ease;
+    }
+
+    .side-coin img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .stage[data-state="ready"] .side-coin,
+    .stage[data-state="scratching"] .side-coin {
+      display: block;
+    }
+
+    .ticket {
+      position: absolute;
+      top: 164px;
+      left: 730px;
+      z-index: 3;
+      width: 880px;
+      height: 830px;
+      border-radius: 30px;
+      background: var(--board);
+    }
+
+    .ticket-stars {
+      position: absolute;
+      left: -84px;
+      top: 132px;
+      z-index: 0;
+      width: 1021px;
+      height: 705px;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .banner {
+      position: absolute;
+      top: -78px;
+      left: 50%;
+      z-index: 4;
+      width: 680px;
+      height: 170px;
+      transform: translateX(-50%);
+      pointer-events: auto;
+    }
+
+    .banner img {
+      position: absolute;
+      top: 0;
+      left: 19px;
+      width: 642px;
+      height: 164px;
+      display: block;
+    }
+
+    .banner-title {
+      position: absolute;
+      top: 17px;
+      left: 0;
+      width: 100%;
+      margin: 0;
+      padding-top: 8px;
+      color: #fff;
+      text-align: center;
+      font-size: 52px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0;
+      text-shadow: 0 3px 0 #c25e65;
+    }
+
+    .banner-subtitle {
+      position: absolute;
+      top: 89px;
+      left: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      color: #ffeea8;
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+      transform: translateX(-50%);
+    }
+
+    .banner-subtitle img {
+      position: static;
+      width: 22px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    .panel {
+      position: absolute;
+      left: 100px;
+      z-index: 2;
+      width: 680px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .winning {
+      top: 112px;
+      min-height: 203px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      padding: 20px 50px 30px;
+      border-radius: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      height: 43px;
+      color: var(--ink);
+      font-size: 30px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .section-title img {
+      width: 40px;
+      height: 43px;
+      object-fit: contain;
+    }
+
+    .winning-slots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 60px;
+    }
+
+    .winning-slot {
+      position: relative;
+      width: 150px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 20px;
+      background: var(--gold);
+      color: var(--ink);
+      font-size: 32px;
+      font-weight: 900;
+      line-height: 1;
+      overflow: hidden;
+      transition: transform 260ms ease, opacity 220ms ease;
+    }
+
+    .winning-slot img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .winning-slot span {
+      position: relative;
+      z-index: 1;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      transition: opacity 260ms ease, transform 320ms cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .scratch-panel {
+      top: 335px;
+      height: 412px;
+      border-radius: 20px;
+    }
+
+    .scratch-grid {
+      position: absolute;
+      top: 36px;
+      left: 55px;
+      width: 570px;
+      height: 340px;
+      display: grid;
+      grid-template-columns: repeat(3, 150px);
+      grid-template-rows: repeat(2, 150px);
+      column-gap: 60px;
+      row-gap: 40px;
+    }
+
+    .prize-tile {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: var(--gold);
+      overflow: hidden;
+      transform: translateZ(0);
+    }
+
+    .result {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--ink);
+      text-align: center;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .result .num {
+      font-size: 40px;
+    }
+
+    .result .cash {
+      font-size: 26px;
+    }
+
+    .tile-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 150px;
+      height: 150px;
+      display: block;
+      border-radius: 50%;
+      touch-action: none;
+    }
+
+    .number-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      width: 150px;
+      height: 80px;
+      display: block;
+      border-radius: 20px;
+      touch-action: none;
+    }
+
+    .stage[data-state="done"] .tile-canvas,
+    .stage[data-state="done"] .number-canvas {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 260ms ease;
+    }
+
+    .spark {
+      position: absolute;
+      z-index: 14;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: rgba(255, 238, 168, .94);
+      box-shadow: 0 0 0 4px rgba(255, 220, 117, .28);
+      pointer-events: none;
+      animation: spark 520ms ease-out forwards;
+    }
+
+    .win-pop {
+      animation: pop 420ms cubic-bezier(.18, .9, .22, 1.2);
+    }
+
+    @keyframes spark {
+      from {
+        opacity: .95;
+        transform: translate(-50%, -50%) scale(.7);
+      }
+      to {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(.15);
+      }
+    }
+
+    @keyframes pop {
+      0% {
+        transform: scale(.88);
+      }
+      60% {
+        transform: scale(1.08);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="stage" data-state="purchase" aria-label="幸运刮刮乐">
+    <img class="sky" src="./assets/bg.png" alt="">
+    <img class="top-ribbon left" src="./assets/top-left.svg" alt="">
+    <img class="top-ribbon right" src="./assets/top-right.svg" alt="">
+
+    <header class="hud" aria-label="数值统计" data-i18n-aria="stats">
+      <button class="back-button" type="button" aria-label="返回钱包" data-i18n-aria="back">
+        <img src="./assets/back.svg" alt="">
+      </button>
+      <div class="stats">
+        <button class="stat stat-button balance" type="button" aria-label="打开游戏币" data-wallet-target="coin" data-i18n-aria="openGameCoins">
+          <img src="/assets/hud-coin.svg" alt="">
+          <span data-hud-value="coin">1,000,000</span>
+        </button>
+        <button class="stat stat-button cash" type="button" aria-label="打开现金" data-wallet-target="cash" data-i18n-aria="openCash">
+          <img src="/assets/hud-cash.svg" alt="">
+          <span data-hud-value="cash">$999.0</span>
+        </button>
+        <div class="stat fish">
+          <img src="/assets/hud-fish.svg" alt="">
+          <span data-hud-value="fish">10,000</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="wallet-overlay" id="walletOverlay" hidden>
+      <section class="wallet-modal" role="dialog" aria-modal="true" aria-labelledby="walletModalTitle">
+        <header class="wallet-modal-header">
+          <h2 class="wallet-modal-title" id="walletModalTitle">游戏币</h2>
+          <button class="wallet-modal-close" type="button" aria-label="关闭钱包" data-i18n-aria="closeWallet">×</button>
+        </header>
+        <div class="wallet-modal-content">
+          <section class="wallet-balance-card">
+            <div class="wallet-balance-value">
+              <img id="walletBalanceIcon" src="/assets/hud-coin.svg" alt="">
+              <span id="walletBalanceValue">1,000,000</span>
+            </div>
+          </section>
+          <section class="wallet-section">
+            <div class="wallet-table" id="walletTable"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <section class="action" aria-label="刮奖操作" data-i18n-aria="scratchAction">
+      <img class="coin-front" src="./assets/coin-front.png" alt="">
+      <div class="settlement" aria-live="polite">
+        <img src="./assets/cash.svg" alt="">
+        <div class="settlement-text">
+          <span class="settlement-label">中奖金额</span>
+          <span class="settlement-amount">$1.1</span>
+          <span class="settlement-extra"></span>
+        </div>
+      </div>
+      <div class="action-controls">
+        <div class="batch-progress" id="batchProgress">第 1/1 张</div>
+        <button class="primary-button" type="button" id="actionButton">
+          <span class="action-label">开始刮奖</span>
+          <span class="action-price" aria-hidden="true">
+            <img src="./assets/balance.svg" alt="">
+            <span class="action-price-value">1000</span>
+          </span>
+        </button>
+        <button class="batch-all-button" type="button" id="batchAllButton">一键全开</button>
+        <div class="purchase-meta" aria-label="购买信息" data-i18n-aria="purchaseInfo">
+          <div class="quantity-picker" aria-label="购买张数" data-i18n-aria="quantity">
+            <button class="quantity-button" type="button" data-quantity-action="minus" aria-label="减少购买张数" data-i18n-aria="quantityMinus">−</button>
+            <input class="quantity-value" id="ticketQuantity" type="text" inputmode="numeric" pattern="[0-9]*" min="1" max="100" value="1" aria-label="购买张数" autocomplete="off" data-i18n-aria="quantity">
+            <span class="quantity-unit" aria-hidden="true">张</span>
+            <button class="quantity-button" type="button" data-quantity-action="plus" aria-label="增加购买张数" data-i18n-aria="quantityPlus">+</button>
+          </div>
+        </div>
+        <div class="balance-warning" id="balanceWarning" role="status" aria-live="polite" data-i18n="insufficientBalance">余额不足</div>
+      </div>
+    </section>
+
+    <section class="ticket" aria-label="刮刮乐彩票" data-i18n-aria="ticket">
+      <img class="ticket-stars" src="./assets/stars.png" alt="">
+      <div class="banner">
+        <img src="./assets/banner.svg" alt="">
+        <h1 class="banner-title" data-i18n="title">幸运刮刮乐</h1>
+        <div class="banner-subtitle">
+          <img src="./assets/star-small.svg" alt="">
+          <span data-i18n="subtitle">刮开好运，现金惊喜即刻到手</span>
+          <img src="./assets/star-small.svg" alt="">
+        </div>
+      </div>
+
+      <div class="panel winning" aria-label="中奖号码" data-i18n-aria="winningNumbers">
+        <div class="section-title">
+          <img src="./assets/star-med.svg" alt="">
+          <span data-i18n="winningNumbers">中奖号码</span>
+          <img src="./assets/star-med.svg" alt="">
+        </div>
+        <div class="winning-slots">
+          <div class="winning-slot"><span>1</span><canvas class="number-canvas"></canvas></div>
+          <div class="winning-slot"><span>6</span><canvas class="number-canvas"></canvas></div>
+          <div class="winning-slot"><span>20</span><canvas class="number-canvas"></canvas></div>
+        </div>
+      </div>
+
+      <div class="panel scratch-panel" id="scratchPanel" aria-label="待刮区" data-i18n-aria="scratchArea">
+        <div class="scratch-grid" id="scratchGrid">
+          <div class="prize-tile" data-index="0"><div class="result"><span class="num">1</span><span class="cash">$0.1</span></div><canvas class="tile-canvas"></canvas></div>
+          <div class="prize-tile" data-index="1"><div class="result"><span class="num">10</span><span class="cash">$0.1</span></div><canvas class="tile-canvas"></canvas></div>
+          <div class="prize-tile" data-index="2"><div class="result"><span class="num">12</span><span class="cash">$0.5</span></div><canvas class="tile-canvas"></canvas></div>
+          <div class="prize-tile" data-index="3"><div class="result"><span class="num">12</span><span class="cash">$0.3</span></div><canvas class="tile-canvas"></canvas></div>
+          <div class="prize-tile" data-index="4"><div class="result"><span class="num">5</span><span class="cash">$10.0</span></div><canvas class="tile-canvas"></canvas></div>
+          <div class="prize-tile" data-index="5"><div class="result"><span class="num">20</span><span class="cash">$1.0</span></div><canvas class="tile-canvas"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="side-coin" id="sideCoin" aria-hidden="true">
+      <img src="./assets/coin-side.png" alt="">
+    </div>
+  </main>
+
+  <script>
+    const stage = document.querySelector(".stage");
+    const backButton = document.querySelector(".back-button");
+    const sideCoin = document.querySelector("#sideCoin");
+    const actionButton = document.querySelector("#actionButton");
+    const actionLabel = document.querySelector(".action-label");
+    const actionPriceValue = document.querySelector(".action-price-value");
+    const batchAllButton = document.querySelector("#batchAllButton");
+    const hudCoinValue = document.querySelector('[data-hud-value="coin"]');
+    const hudCashValue = document.querySelector('[data-hud-value="cash"]');
+    const hudFishValue = document.querySelector('[data-hud-value="fish"]');
+    const walletButtons = [...document.querySelectorAll("[data-wallet-target]")];
+    const walletOverlay = document.querySelector("#walletOverlay");
+    const walletModalTitle = document.querySelector("#walletModalTitle");
+    const walletBalanceIcon = document.querySelector("#walletBalanceIcon");
+    const walletBalanceValue = document.querySelector("#walletBalanceValue");
+    const walletTable = document.querySelector("#walletTable");
+    const walletCloseButton = document.querySelector(".wallet-modal-close");
+    const quantityValue = document.querySelector("#ticketQuantity");
+    const quantityPicker = document.querySelector(".quantity-picker");
+    const quantityButtons = [...document.querySelectorAll("[data-quantity-action]")];
+    const batchProgress = document.querySelector("#batchProgress");
+    const balanceWarning = document.querySelector("#balanceWarning");
+    const settlementLabel = document.querySelector(".settlement-label");
+    const settlementAmount = document.querySelector(".settlement-amount");
+    const settlementExtra = document.querySelector(".settlement-extra");
+    const winningValueNodes = [...document.querySelectorAll(".winning-slot span")];
+    const prizeNumberNodes = [...document.querySelectorAll(".prize-tile .num")];
+    const prizeCashNodes = [...document.querySelectorAll(".prize-tile .cash")];
+    const scratchPanel = document.querySelector("#scratchPanel");
+    const numberCanvases = [...document.querySelectorAll(".number-canvas")];
+    const tileCanvases = [...document.querySelectorAll(".tile-canvas")];
+    const tiles = [...document.querySelectorAll(".prize-tile")];
+    const STAGE_W = 1920;
+    const STAGE_H = 1080;
+    const TILE = 150;
+    const NUMBER_W = 150;
+    const NUMBER_H = 80;
+    const INITIAL_COIN_BALANCE = 10000;
+    const INITIAL_CASH_CENTS = 9900;
+    const FISH_BALANCE = 10000;
+    const MIN_TICKET_QUANTITY = 1;
+    const MAX_TICKET_QUANTITY = 100;
+    const TICKET_PRICE = 1000;
+    const WALLET_ACTIVITIES = {
+      coin: [
+        { id: "coin-1", orderNo: "COIN-20260428-001", reasonZh: "售出SSS级因子", reasonEn: "Sold SSS-grade factor", occurredAt: "2026-04-28T10:24:00+08:00", amount: 2800, direction: "increase" },
+        { id: "coin-2", orderNo: "COIN-20260427-002", reasonZh: "购买刮刮乐", reasonEn: "Bought scratch card", occurredAt: "2026-04-27T18:30:00+08:00", amount: 600, direction: "decrease" },
+        { id: "coin-3", orderNo: "COIN-20260426-003", reasonZh: "售出A级因子", reasonEn: "Sold A-grade factor", occurredAt: "2026-04-26T09:10:00+08:00", amount: 5000, direction: "increase" },
+        { id: "coin-4", orderNo: "COIN-20260425-004", reasonZh: "购买刮刮乐", reasonEn: "Bought scratch card", occurredAt: "2026-04-25T21:18:00+08:00", amount: 1200, direction: "decrease" },
+        { id: "coin-5", orderNo: "COIN-20260424-005", reasonZh: "售出S级因子", reasonEn: "Sold S-grade factor", occurredAt: "2026-04-24T12:06:00+08:00", amount: 3600, direction: "increase" }
+      ],
+      cash: [
+        { id: "cash-1", orderNo: "CASH-20260428-001", reasonZh: "刮刮乐中奖", reasonEn: "Scratch card prize", occurredAt: "2026-04-28T10:24:00+08:00", amount: 32, direction: "increase" },
+        { id: "cash-2", orderNo: "CASH-20260420-002", reasonZh: "提现", reasonEn: "Withdrawal", occurredAt: "2026-04-20T09:00:00+08:00", amount: 20, direction: "decrease" },
+        { id: "cash-3", orderNo: "CASH-20260418-003", reasonZh: "刮刮乐中奖", reasonEn: "Scratch card prize", occurredAt: "2026-04-18T16:42:00+08:00", amount: 18, direction: "increase" },
+        { id: "cash-4", orderNo: "CASH-20260415-004", reasonZh: "提现", reasonEn: "Withdrawal", occurredAt: "2026-04-15T21:18:00+08:00", amount: 6, direction: "decrease" },
+        { id: "cash-5", orderNo: "CASH-20260412-005", reasonZh: "刮刮乐中奖", reasonEn: "Scratch card prize", occurredAt: "2026-04-12T12:06:00+08:00", amount: 12, direction: "increase" }
+      ]
+    };
+    const I18N = {
+      zh: {
+        htmlLang: "zh-CN",
+        pageTitle: "幸运刮刮乐",
+        title: "幸运刮刮乐",
+        subtitle: "刮开好运，现金惊喜即刻到手",
+        stats: "数值统计",
+        back: "返回钱包",
+        scratchAction: "刮奖操作",
+        purchaseInfo: "购买信息",
+        openGameCoins: "打开游戏币",
+        openCash: "打开现金",
+        quantity: "购买张数",
+        quantityMinus: "减少购买张数",
+        quantityPlus: "增加购买张数",
+        ticket: "刮刮乐彩票",
+        winningNumbers: "中奖号码",
+        scratchArea: "待刮区",
+        ticketUnit: "张",
+        start: "开始刮奖",
+        reveal: "一键刮开",
+        revealAll: "一键全开",
+        next: "下一张",
+        confirm: "确认",
+        prizeAmount: "中奖金额",
+        totalPrizeAmount: "总中奖金额",
+        noPrize: "未中奖",
+        cumulative: "累计",
+        gameCoins: "游戏币",
+        cash: "现金",
+        activity: "变更记录",
+        orderNo: "单号",
+        time: "变更时间",
+        balance: "余额",
+        closeWallet: "关闭钱包",
+        insufficientBalance: "余额不足",
+        completedProgress: (total) => `已完成 ${total}/${total} 张`,
+        currentProgress: (current, total) => `第 ${current}/${total} 张`,
+      },
+      en: {
+        htmlLang: "en",
+        pageTitle: "Lucky Scratch Card",
+        title: "Lucky Scratch Card",
+        subtitle: "Scratch for luck. Cash surprises land instantly.",
+        stats: "Stats",
+        back: "Back to wallet",
+        scratchAction: "Scratch action",
+        purchaseInfo: "Purchase info",
+        openGameCoins: "Open game coins",
+        openCash: "Open cash",
+        quantity: "Qty",
+        quantityMinus: "Decrease qty",
+        quantityPlus: "Increase qty",
+        ticket: "Scratch card ticket",
+        winningNumbers: "Winning Numbers",
+        scratchArea: "Scratch Area",
+        ticketUnit: "tix",
+        start: "Start",
+        reveal: "Reveal",
+        revealAll: "Reveal All",
+        next: "Next",
+        confirm: "Confirm",
+        prizeAmount: "Prize Amount",
+        totalPrizeAmount: "Total Prize",
+        noPrize: "No Prize",
+        cumulative: "Total",
+        gameCoins: "Game Coins",
+        cash: "Cash",
+        activity: "Activity",
+        orderNo: "Order No.",
+        time: "Time",
+        balance: "Balance",
+        closeWallet: "Close wallet",
+        insufficientBalance: "Insufficient balance",
+        completedProgress: (total) => `Completed ${total}/${total}`,
+        currentProgress: (current, total) => `${current}/${total}`,
+      }
+    };
+    const urlLang = new URLSearchParams(window.location.search).get("lang");
+    const storedLang = window.localStorage?.getItem("otter_ui_lang");
+    let currentLang = urlLang === "zh" || urlLang === "en"
+      ? urlLang
+      : storedLang === "zh"
+        ? "zh"
+        : "en";
+    const t = (key, ...args) => {
+      const value = I18N[currentLang][key] ?? I18N.en[key] ?? key;
+      return typeof value === "function" ? value(...args) : value;
+    };
+    function applyLanguage() {
+      document.documentElement.lang = t("htmlLang");
+      document.title = t("pageTitle");
+      stage.setAttribute("aria-label", t("title"));
+      document.querySelectorAll("[data-i18n]").forEach(node => {
+        node.textContent = t(node.dataset.i18n);
+      });
+      document.querySelectorAll("[data-i18n-aria]").forEach(node => {
+        node.setAttribute("aria-label", t(node.dataset.i18nAria));
+      });
+      document.querySelector(".quantity-unit").textContent = t("ticketUnit");
+      batchAllButton.textContent = t("revealAll");
+      updateBatchProgress();
+      updateSettlement();
+      setState(state);
+    }
+    const coinReady = { x: 580, y: 420 };
+    const winningOrigin = { x: 830, y: 276 };
+    const scratchOrigin = { x: 830, y: 499 };
+    const numberPositions = [
+      { x: 55, y: 93 },
+      { x: 265, y: 93 },
+      { x: 475, y: 93 }
+    ];
+    const tilePositions = [
+      { x: 55, y: 36 },
+      { x: 265, y: 36 },
+      { x: 475, y: 36 },
+      { x: 55, y: 226 },
+      { x: 265, y: 226 },
+      { x: 475, y: 226 }
+    ];
+    const scratchAreas = [
+      ...numberCanvases.map((canvas, index) => ({
+        canvas,
+        type: "number",
+        x: winningOrigin.x + numberPositions[index].x,
+        y: winningOrigin.y + numberPositions[index].y,
+        width: NUMBER_W,
+        height: NUMBER_H
+      })),
+      ...tileCanvases.map((canvas, index) => ({
+        canvas,
+        type: "tile",
+        x: scratchOrigin.x + tilePositions[index].x,
+        y: scratchOrigin.y + tilePositions[index].y,
+        width: TILE,
+        height: TILE
+      }))
+    ];
+    const TICKET_POOL = [
+      {
+        winning: [1, 6, 20],
+        prizes: [
+          { num: 1, cents: 10 },
+          { num: 10, cents: 10 },
+          { num: 12, cents: 50 },
+          { num: 12, cents: 30 },
+          { num: 5, cents: 1000 },
+          { num: 20, cents: 100 }
+        ]
+      },
+      {
+        winning: [3, 8, 12],
+        prizes: [
+          { num: 3, cents: 20 },
+          { num: 9, cents: 10 },
+          { num: 12, cents: 70 },
+          { num: 8, cents: 40 },
+          { num: 14, cents: 20 },
+          { num: 18, cents: 200 }
+        ]
+      },
+      {
+        winning: [2, 5, 16],
+        prizes: [
+          { num: 2, cents: 50 },
+          { num: 7, cents: 10 },
+          { num: 16, cents: 120 },
+          { num: 11, cents: 30 },
+          { num: 5, cents: 200 },
+          { num: 19, cents: 20 }
+        ]
+      },
+      {
+        winning: [4, 10, 18],
+        prizes: [
+          { num: 1, cents: 10 },
+          { num: 10, cents: 80 },
+          { num: 18, cents: 150 },
+          { num: 6, cents: 20 },
+          { num: 4, cents: 60 },
+          { num: 20, cents: 100 }
+        ]
+      },
+      {
+        winning: [7, 13, 19],
+        prizes: [
+          { num: 7, cents: 30 },
+          { num: 13, cents: 100 },
+          { num: 15, cents: 10 },
+          { num: 19, cents: 200 },
+          { num: 2, cents: 20 },
+          { num: 8, cents: 40 }
+        ]
+      },
+      {
+        winning: [9, 14, 18],
+        prizes: [
+          { num: 1, cents: 10 },
+          { num: 3, cents: 20 },
+          { num: 5, cents: 30 },
+          { num: 7, cents: 50 },
+          { num: 12, cents: 100 },
+          { num: 20, cents: 200 }
+        ]
+      }
+    ];
+
+    let state = "purchase";
+    let selectedQuantity = 1;
+    let batchTickets = [TICKET_POOL[0]];
+    let batchWins = [];
+    let currentTicketIndex = 0;
+    let scratchingActive = false;
+    let lastScratchPoint = null;
+    let lastProgressCheck = 0;
+    let lastSpark = 0;
+    let coinBalance = INITIAL_COIN_BALANCE;
+    let cashCents = INITIAL_CASH_CENTS;
+    let cashAwardSettled = false;
+    let hudAnimationFrame = null;
+
+    function clearBalanceWarning() {
+      stage.dataset.balanceWarning = "false";
+    }
+
+    function showBalanceWarning() {
+      balanceWarning.textContent = t("insufficientBalance");
+      stage.dataset.balanceWarning = "true";
+    }
+
+    function resizeStage() {
+      const scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+      document.documentElement.style.setProperty("--scale", scale);
+    }
+
+    function formatCash(cents) {
+      return `$${(cents / 100).toFixed(1)}`;
+    }
+
+    function formatBalance(value) {
+      return Intl.NumberFormat("en-US").format(Math.round(value));
+    }
+
+    function renderHudValues() {
+      hudCoinValue.textContent = formatBalance(coinBalance);
+      hudCashValue.textContent = formatCash(cashCents);
+      hudFishValue.textContent = formatBalance(FISH_BALANCE);
+    }
+
+    function formatWalletDateTime(value) {
+      return new Intl.DateTimeFormat(currentLang === "zh" ? "zh-CN" : "en-US", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false
+      }).format(new Date(value));
+    }
+
+    function closeWallet() {
+      walletOverlay.hidden = true;
+    }
+
+    function showWallet(accountKind) {
+      const kind = accountKind === "cash" ? "cash" : "coin";
+      const isCash = kind === "cash";
+      const icon = isCash ? "/assets/hud-cash.svg" : "/assets/hud-coin.svg";
+      const activities = WALLET_ACTIVITIES[kind];
+      walletModalTitle.textContent = isCash ? t("cash") : t("gameCoins");
+      walletBalanceIcon.src = icon;
+      walletBalanceValue.textContent = isCash ? formatCash(cashCents) : formatBalance(coinBalance);
+      walletTable.innerHTML = `
+        <div class="wallet-row wallet-row-head">
+          <span>${t("activity")}</span>
+          <span>${t("orderNo")}</span>
+          <span>${t("time")}</span>
+          <span class="wallet-amount">
+            <span class="wallet-amount-label">
+              <img src="${icon}" alt="">
+              <span>${t("balance")}</span>
+            </span>
+          </span>
+        </div>
+        ${activities.map(item => `
+          <div class="wallet-row">
+            <span>${currentLang === "zh" ? item.reasonZh : item.reasonEn}</span>
+            <span class="wallet-mono">${item.orderNo}</span>
+            <span>${formatWalletDateTime(item.occurredAt)}</span>
+            <span class="wallet-amount">${item.direction === "increase" ? "+" : "-"}${isCash ? `$${item.amount.toFixed(2)}` : formatBalance(item.amount)}</span>
+          </div>
+        `).join("")}
+      `;
+      walletOverlay.hidden = false;
+    }
+
+    function animateHudValue(node, from, to, formatter, duration = 500) {
+      if (hudAnimationFrame !== null) {
+        cancelAnimationFrame(hudAnimationFrame);
+        hudAnimationFrame = null;
+      }
+
+      const shouldReduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      if (shouldReduceMotion || duration <= 0) {
+        node.textContent = formatter(to);
+        return;
+      }
+
+      const startedAt = performance.now();
+      const tick = (now) => {
+        const progress = Math.min((now - startedAt) / duration, 1);
+        const latest = from + (to - from) * progress;
+        node.textContent = formatter(latest);
+        if (progress < 1) {
+          hudAnimationFrame = requestAnimationFrame(tick);
+          return;
+        }
+        hudAnimationFrame = null;
+        node.textContent = formatter(to);
+      };
+
+      hudAnimationFrame = requestAnimationFrame(tick);
+    }
+
+    function addCashAward() {
+      if (cashAwardSettled) return;
+      const awardCents = batchWins.length > 0 ? batchTotalCents() : ticketWinCents(batchTickets[0] || TICKET_POOL[0]);
+      if (awardCents <= 0) {
+        cashAwardSettled = true;
+        hudCashValue.textContent = formatCash(cashCents);
+        return;
+      }
+      const previousCashCents = cashCents;
+      cashCents += awardCents;
+      cashAwardSettled = true;
+      animateHudValue(hudCashValue, previousCashCents, cashCents, value => formatCash(Math.round(value)));
+    }
+
+    function spendCoins(amount) {
+      const previousCoinBalance = coinBalance;
+      coinBalance = Math.max(0, coinBalance - amount);
+      animateHudValue(hudCoinValue, previousCoinBalance, coinBalance, formatBalance);
+    }
+
+    function ticketWinCents(ticket) {
+      return ticket.prizes.reduce((sum, prize) => (
+        ticket.winning.includes(prize.num) ? sum + prize.cents : sum
+      ), 0);
+    }
+
+    function batchTotalCents() {
+      return batchWins.reduce((sum, cents) => sum + (cents || 0), 0);
+    }
+
+    function hasMoreTickets() {
+      return currentTicketIndex < batchTickets.length - 1;
+    }
+
+    function clampQuantity(value) {
+      return Math.max(MIN_TICKET_QUANTITY, Math.min(MAX_TICKET_QUANTITY, value));
+    }
+
+    function setQuantity(value) {
+      selectedQuantity = clampQuantity(value);
+      clearBalanceWarning();
+      updateQuantityLabel();
+    }
+
+    function updatePurchaseAmount() {
+      actionPriceValue.textContent = String(TICKET_PRICE * selectedQuantity);
+    }
+
+    function updateQuantityLabel() {
+      quantityValue.value = String(selectedQuantity);
+      updatePurchaseAmount();
+    }
+
+    function commitQuantityInput({ keepFocus = false } = {}) {
+      const digits = quantityValue.value.replace(/\D/g, "");
+      if (!digits) {
+        updateQuantityLabel();
+        return;
+      }
+      setQuantity(Number(digits));
+      if (keepFocus) {
+        quantityValue.select();
+      }
+    }
+
+    function updateTicketFace() {
+      const ticket = batchTickets[currentTicketIndex] || TICKET_POOL[0];
+      winningValueNodes.forEach((node, index) => {
+        node.textContent = ticket.winning[index];
+      });
+      prizeNumberNodes.forEach((node, index) => {
+        node.textContent = ticket.prizes[index].num;
+      });
+      prizeCashNodes.forEach((node, index) => {
+        node.textContent = formatCash(ticket.prizes[index].cents);
+      });
+    }
+
+    function updateBatchProgress() {
+      stage.dataset.batch = batchTickets.length > 1 ? "multi" : "single";
+      stage.dataset.canRevealAll = batchTickets.length > 1 && currentTicketIndex < batchTickets.length - 1
+        ? "true"
+        : "false";
+      if (batchTickets.length > 1) {
+        batchProgress.textContent = state === "done" && !hasMoreTickets()
+          ? t("completedProgress", batchTickets.length)
+          : t("currentProgress", currentTicketIndex + 1, batchTickets.length);
+      } else {
+        batchProgress.textContent = "";
+      }
+    }
+
+    function updateSettlement() {
+      const currentWin = batchWins[currentTicketIndex] ?? ticketWinCents(batchTickets[currentTicketIndex] || TICKET_POOL[0]);
+      const totalWin = batchTotalCents();
+      const isBatchFinished = batchTickets.length > 1 && currentTicketIndex === batchTickets.length - 1;
+      const displayWin = isBatchFinished ? totalWin : currentWin;
+      settlementLabel.textContent = displayWin > 0
+        ? isBatchFinished ? t("totalPrizeAmount") : t("prizeAmount")
+        : t("noPrize");
+      settlementAmount.textContent = formatCash(displayWin);
+      settlementExtra.textContent = batchTickets.length > 1 && !isBatchFinished
+        ? `${t("cumulative")} ${formatCash(totalWin)}`
+        : "";
+    }
+
+    function setActionLabel(text) {
+      actionLabel.textContent = text;
+    }
+
+    function setState(next) {
+      state = next;
+      stage.dataset.state = next;
+      if (next === "purchase") {
+        setActionLabel(t("start"));
+      }
+      if (next === "ready" || next === "scratching") {
+        setActionLabel(t("reveal"));
+      }
+      if (next === "done") {
+        setActionLabel(hasMoreTickets() ? t("next") : t("confirm"));
+        updateSettlement();
+      }
+      updateBatchProgress();
+    }
+
+    function moveCoin(x, y, tilt = 0) {
+      sideCoin.style.left = `${x}px`;
+      sideCoin.style.top = `${y}px`;
+      sideCoin.style.setProperty("--coin-tilt", `${tilt}deg`);
+    }
+
+    function roundedRect(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+      ctx.lineTo(x + width, y + height - r);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      ctx.lineTo(x + r, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function drawNumberCover(canvas) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = NUMBER_W * dpr;
+      canvas.height = NUMBER_H * dpr;
+      canvas.style.width = `${NUMBER_W}px`;
+      canvas.style.height = `${NUMBER_H}px`;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, NUMBER_W, NUMBER_H);
+      roundedRect(ctx, 0, 0, NUMBER_W, NUMBER_H, 20);
+      ctx.fillStyle = "#d2d2d1";
+      ctx.fill();
+      ctx.fillStyle = "rgba(255, 255, 255, .42)";
+      ctx.font = "900 40px 'Alimama FangYuanTi VF', 'PingFang SC', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("?", NUMBER_W / 2, NUMBER_H / 2 + 1);
+      ctx.globalCompositeOperation = "source-over";
+      canvas.style.opacity = "1";
+    }
+
+    function drawTileCover(canvas) {
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = TILE * dpr;
+      canvas.height = TILE * dpr;
+      canvas.style.width = `${TILE}px`;
+      canvas.style.height = `${TILE}px`;
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, TILE, TILE);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(75, 75, 75, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.fillStyle = "#d2d2d1";
+      ctx.fillRect(0, 0, TILE, TILE);
+      ctx.fillStyle = "rgba(255, 255, 255, .3)";
+      drawClover(ctx);
+      ctx.restore();
+      ctx.globalCompositeOperation = "source-over";
+      canvas.style.opacity = "1";
+    }
+
+    function drawClover(ctx) {
+      const paths = [
+        "M97.0246 101.438C99.4018 104.141 100.661 107.648 100.546 111.245C100.431 114.844 98.95 118.263 96.4044 120.809C93.8589 123.355 90.439 124.835 86.841 124.951C83.2431 125.066 79.7364 123.806 77.0333 121.429L75.0314 119.427C74.4691 120.189 73.7954 120.863 73.0333 121.425C70.3291 123.803 66.8202 125.063 63.2208 124.948C59.6217 124.832 56.2017 123.35 53.6554 120.804C51.109 118.258 49.6272 114.837 49.5119 111.238C49.3966 107.638 50.6562 104.13 53.0343 101.426L75.0236 79.4369L97.0246 101.438Z",
+        "M111.277 49.473C114.876 49.5883 118.297 51.0691 120.844 53.6156C123.39 56.162 124.871 59.5827 124.986 63.182C125.102 66.7815 123.842 70.2903 121.464 72.9945L119.466 74.9926L121.468 76.9945C123.843 79.7012 125.103 83.2084 124.993 86.808C124.883 90.4077 123.411 93.8317 120.874 96.3881C118.341 98.9681 114.91 100.471 111.296 100.581C107.682 100.692 104.165 99.402 101.48 96.9818L79.4757 74.9847L101.465 52.9955C104.169 50.6171 107.677 49.3579 111.277 49.473Z",
+        "M38.7814 49.4193C42.395 49.3087 45.9121 50.5977 48.5978 53.0179L70.5949 75.015L48.6046 97.0043C45.9005 99.3826 42.3925 100.642 38.7931 100.527C35.1937 100.412 31.7732 98.9305 29.2267 96.3842C26.6802 93.8377 25.1985 90.4171 25.0831 86.8177C24.9679 83.2183 26.2272 79.7095 28.6056 77.0052L30.6036 75.0072L28.6017 73.0052C26.1827 70.3186 24.895 66.8014 25.007 63.1879C25.119 59.5742 26.6223 56.1434 29.2033 53.6117C31.736 51.0317 35.1677 49.5299 38.7814 49.4193Z",
+        "M63.2267 25.0492C66.8264 24.939 70.3344 26.1989 73.0411 28.5746L75.0421 30.5765C75.6043 29.8144 76.2781 29.1407 77.0402 28.5785C79.7478 26.2038 83.2559 24.9455 86.8556 25.057C90.4554 25.1686 93.8793 26.6422 96.4347 29.1801C99.0155 31.7117 100.519 35.1427 100.631 38.7562C100.743 42.3698 99.4545 45.887 97.0353 48.5736L75.046 70.5629L53.0451 48.5629C50.7143 45.835 49.4847 42.3357 49.5958 38.7494C49.707 35.163 51.1513 31.7466 53.6466 29.1683C56.203 26.6315 59.6269 25.1594 63.2267 25.0492Z"
+      ];
+      for (const d of paths) {
+        ctx.fill(new Path2D(d));
+      }
+    }
+
+    function resetTicket() {
+      updateTicketFace();
+      numberCanvases.forEach(drawNumberCover);
+      tileCanvases.forEach(drawTileCover);
+      tiles.forEach(tile => tile.classList.remove("win-pop"));
+      moveCoin(coinReady.x, coinReady.y, 0);
+      lastScratchPoint = null;
+      lastProgressCheck = 0;
+    }
+
+    function scenePoint(event) {
+      const rect = stage.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) / rect.width * STAGE_W,
+        y: (event.clientY - rect.top) / rect.height * STAGE_H
+      };
+    }
+
+    function eraseCircle(ctx, x, y, radius) {
+      const gradient = ctx.createRadialGradient(x, y, 2, x, y, radius);
+      gradient.addColorStop(0, "rgba(0,0,0,1)");
+      gradient.addColorStop(.72, "rgba(0,0,0,.88)");
+      gradient.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalCompositeOperation = "source-over";
+    }
+
+    function scratchAt(sceneX, sceneY) {
+      if (state === "ready") {
+        setState("scratching");
+      }
+
+      const point = { x: sceneX, y: sceneY };
+
+      scratchAreas.forEach(area => {
+        const localX = sceneX - area.x;
+        const localY = sceneY - area.y;
+        const inTileReach = area.type === "tile" && Math.hypot(localX - 75, localY - 75) <= 112;
+        const inNumberReach = area.type === "number" &&
+          localX >= -34 && localX <= area.width + 34 &&
+          localY >= -34 && localY <= area.height + 34;
+        if (!inTileReach && !inNumberReach) return;
+
+        const ctx = area.canvas.getContext("2d", { willReadFrequently: true });
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const eraseRadius = area.type === "number" ? 25 : 30;
+
+        if (lastScratchPoint) {
+          const prevX = lastScratchPoint.x - area.x;
+          const prevY = lastScratchPoint.y - area.y;
+          const distance = Math.hypot(localX - prevX, localY - prevY);
+          const steps = Math.max(1, Math.ceil(distance / 14));
+          for (let i = 0; i <= steps; i += 1) {
+            const t = i / steps;
+            eraseCircle(ctx, prevX + (localX - prevX) * t, prevY + (localY - prevY) * t, eraseRadius);
+          }
+        } else {
+          eraseCircle(ctx, localX, localY, eraseRadius + 4);
+        }
+      });
+
+      lastScratchPoint = point;
+      maybeSpark(sceneX, sceneY);
+
+      const now = performance.now();
+      if (now - lastProgressCheck > 120) {
+        lastProgressCheck = now;
+        const progress = revealProgress();
+        if (progress.overall > .66 && progress.numbers > .52 && progress.tiles > .58) {
+          revealAll();
+        }
+      }
+    }
+
+    function revealProgress() {
+      let transparent = 0;
+      let total = 0;
+      let numberTransparent = 0;
+      let numberTotal = 0;
+      let tileTransparent = 0;
+      let tileTotal = 0;
+      const dpr = window.devicePixelRatio || 1;
+
+      scratchAreas.forEach(area => {
+        const ctx = area.canvas.getContext("2d", { willReadFrequently: true });
+        const data = ctx.getImageData(0, 0, area.canvas.width, area.canvas.height).data;
+        const step = Math.max(4, Math.floor(dpr * 5));
+        for (let y = 0; y < area.canvas.height; y += step) {
+          for (let x = 0; x < area.canvas.width; x += step) {
+            const lx = x / dpr - 75;
+            const ly = y / dpr - (area.type === "number" ? NUMBER_H / 2 : 75);
+            if (area.type === "tile" && lx * lx + ly * ly > 75 * 75) continue;
+            total += 1;
+            if (area.type === "number") {
+              numberTotal += 1;
+            } else {
+              tileTotal += 1;
+            }
+            const isTransparent = data[(y * area.canvas.width + x) * 4 + 3] < 18;
+            if (isTransparent) {
+              transparent += 1;
+              if (area.type === "number") {
+                numberTransparent += 1;
+              } else {
+                tileTransparent += 1;
+              }
+            }
+          }
+        }
+      });
+
+      return {
+        overall: total ? transparent / total : 0,
+        numbers: numberTotal ? numberTransparent / numberTotal : 0,
+        tiles: tileTotal ? tileTransparent / tileTotal : 0
+      };
+    }
+
+    function showRevealedTicket() {
+      const ticket = batchTickets[currentTicketIndex] || TICKET_POOL[0];
+      scratchAreas.forEach(area => {
+        const ctx = area.canvas.getContext("2d");
+        ctx.clearRect(0, 0, area.canvas.width, area.canvas.height);
+        area.canvas.style.opacity = "0";
+      });
+      tiles.forEach((tile, index) => {
+        const isWinningPrize = ticket.winning.includes(ticket.prizes[index].num);
+        if (isWinningPrize) {
+          setTimeout(() => tile.classList.add("win-pop"), index * 55);
+        }
+      });
+      scratchingActive = false;
+      lastScratchPoint = null;
+    }
+
+    function revealAll() {
+      if (state === "done") return;
+      batchWins[currentTicketIndex] = ticketWinCents(batchTickets[currentTicketIndex] || TICKET_POOL[0]);
+      setState("done");
+      showRevealedTicket();
+    }
+
+    function revealBatchAll() {
+      if (state === "purchase" || batchTickets.length <= 1) return;
+      batchTickets.forEach((ticket, index) => {
+        batchWins[index] = ticketWinCents(ticket);
+      });
+      currentTicketIndex = batchTickets.length - 1;
+      updateTicketFace();
+      setState("done");
+      showRevealedTicket();
+    }
+
+    function pickTicket() {
+      return TICKET_POOL[Math.floor(Math.random() * TICKET_POOL.length)];
+    }
+
+    function beginBatch(event) {
+      clearBalanceWarning();
+      const purchaseCost = TICKET_PRICE * selectedQuantity;
+      if (purchaseCost > coinBalance) {
+        showBalanceWarning();
+        return;
+      }
+      batchTickets = Array.from({ length: selectedQuantity }, pickTicket);
+      batchWins = new Array(batchTickets.length).fill(0);
+      currentTicketIndex = 0;
+      cashAwardSettled = false;
+      spendCoins(purchaseCost);
+      resetTicket();
+      setState("ready");
+      const point = scenePoint(event);
+      moveCoin(point.x, point.y, 0);
+    }
+
+    function nextTicket(event) {
+      currentTicketIndex += 1;
+      resetTicket();
+      setState("ready");
+      const point = scenePoint(event);
+      moveCoin(point.x, point.y, 0);
+    }
+
+    function returnToDefault() {
+      selectedQuantity = 1;
+      clearBalanceWarning();
+      batchTickets = [TICKET_POOL[0]];
+      batchWins = [];
+      currentTicketIndex = 0;
+      cashAwardSettled = false;
+      scratchingActive = false;
+      lastScratchPoint = null;
+      lastProgressCheck = 0;
+      document.querySelectorAll(".spark").forEach(spark => spark.remove());
+      updateQuantityLabel();
+      resetTicket();
+      setState("purchase");
+    }
+
+    function openWallet(accountKind) {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "scratch-card:wallet", accountKind }, window.location.origin);
+        return;
+      }
+      showWallet(accountKind);
+    }
+
+    function maybeSpark(x, y) {
+      const now = performance.now();
+      if (now - lastSpark < 70) return;
+      lastSpark = now;
+      const spark = document.createElement("span");
+      spark.className = "spark";
+      spark.style.left = `${x}px`;
+      spark.style.top = `${y}px`;
+      spark.style.setProperty("--dx", `${Math.round((Math.random() - .5) * 70)}px`);
+      spark.style.setProperty("--dy", `${Math.round((Math.random() - .5) * 70)}px`);
+      stage.appendChild(spark);
+      spark.addEventListener("animationend", () => spark.remove(), { once: true });
+    }
+
+    function beginScratch(event) {
+      if (state !== "ready" && state !== "scratching") return;
+      if (event.target.closest("button")) return;
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      scratchingActive = true;
+      stage.setPointerCapture(event.pointerId);
+      const point = scenePoint(event);
+      moveCoin(point.x, point.y, 8);
+      scratchAt(point.x, point.y);
+    }
+
+    function continuePointer(event) {
+      if (state !== "ready" && state !== "scratching") return;
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      const point = scenePoint(event);
+      const tilt = Math.max(-16, Math.min(16, (event.movementX || 0) * .8));
+      moveCoin(point.x, point.y, scratchingActive ? tilt : 0);
+      if (scratchingActive) {
+        scratchAt(point.x, point.y);
+      }
+    }
+
+    function endScratch(event) {
+      if (!scratchingActive) return;
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      scratchingActive = false;
+      lastScratchPoint = null;
+      sideCoin.style.setProperty("--coin-tilt", "0deg");
+      if (stage.hasPointerCapture(event.pointerId)) {
+        stage.releasePointerCapture(event.pointerId);
+      }
+    }
+
+    quantityButtons.forEach(button => {
+      button.addEventListener("click", event => {
+        event.stopPropagation();
+        const direction = button.dataset.quantityAction === "plus" ? 1 : -1;
+        setQuantity(selectedQuantity + direction);
+      });
+    });
+
+    walletButtons.forEach(button => {
+      button.addEventListener("click", () => {
+        openWallet(button.dataset.walletTarget);
+      });
+    });
+
+    walletOverlay.addEventListener("mousedown", event => {
+      if (event.target === walletOverlay) {
+        closeWallet();
+      }
+    });
+
+    walletCloseButton.addEventListener("click", closeWallet);
+
+    quantityPicker.addEventListener("click", event => {
+      if (event.target.closest("button")) return;
+      quantityValue.focus();
+      quantityValue.select();
+    });
+
+    quantityValue.addEventListener("focus", () => {
+      quantityValue.select();
+    });
+
+    quantityValue.addEventListener("input", () => {
+      const digits = quantityValue.value.replace(/\D/g, "");
+      if (!digits) {
+        quantityValue.value = "";
+        return;
+      }
+      setQuantity(Number(digits));
+    });
+
+    quantityValue.addEventListener("blur", () => {
+      commitQuantityInput();
+    });
+
+    quantityValue.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        commitQuantityInput();
+        quantityValue.blur();
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        updateQuantityLabel();
+        quantityValue.blur();
+      }
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setQuantity(selectedQuantity + 1);
+        quantityValue.select();
+      }
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setQuantity(selectedQuantity - 1);
+        quantityValue.select();
+      }
+      const allowedKeys = [
+        "Backspace",
+        "Delete",
+        "Tab",
+        "Enter",
+        "Escape",
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown",
+        "Home",
+        "End"
+      ];
+      const isShortcut = event.metaKey || event.ctrlKey;
+      const isDigit = /^\d$/.test(event.key);
+      if (!isDigit && !allowedKeys.includes(event.key) && !isShortcut) {
+        event.preventDefault();
+      }
+    });
+
+    actionButton.addEventListener("click", event => {
+      if (state === "purchase") {
+        beginBatch(event);
+        return;
+      }
+
+      if (state === "done") {
+        if (hasMoreTickets()) {
+          nextTicket(event);
+        } else {
+          addCashAward();
+          returnToDefault();
+        }
+        return;
+      }
+
+      if (state === "ready") {
+        setState("scratching");
+      }
+      revealAll();
+    });
+
+    batchAllButton.addEventListener("click", event => {
+      event.stopPropagation();
+      revealBatchAll();
+    });
+
+    backButton.addEventListener("click", event => {
+      const origin = {
+        x: event.clientX / window.innerWidth,
+        y: event.clientY / window.innerHeight
+      };
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: "scratch-card:back", origin }, window.location.origin);
+        return;
+      }
+      window.history.back();
+    });
+
+    stage.addEventListener("pointerdown", beginScratch);
+    stage.addEventListener("pointermove", continuePointer);
+    stage.addEventListener("pointerup", endScratch);
+    stage.addEventListener("pointercancel", endScratch);
+    document.addEventListener("selectstart", event => {
+      if (state === "ready" || state === "scratching") {
+        event.preventDefault();
+      }
+    });
+    document.addEventListener("dragstart", event => {
+      if (stage.contains(event.target)) {
+        event.preventDefault();
+      }
+    });
+    window.addEventListener("resize", resizeStage);
+
+    resizeStage();
+    applyLanguage();
+    renderHudValues();
+    updateQuantityLabel();
+    updateTicketFace();
+    updateBatchProgress();
+    resetTicket();
+  </script>
+</body>
+</html>

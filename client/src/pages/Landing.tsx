@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
-import { Claude, Codex, OpenClaw } from "@lobehub/icons";
+import { Claude, Codex, OpenClaw, OpenRouter } from "@lobehub/icons";
 import { useInView, useReducedMotion } from "motion/react";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
@@ -45,6 +45,7 @@ import { factors, getAlphaGrade, strategies, type AlphaGrade, type Factor } from
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { AlphaViewModeProvider } from "@/contexts/AlphaViewModeContext";
+import { usePageTransition } from "@/contexts/PageTransitionContext";
 
 const filterOptions = ["all", "starred"] as const;
 type FilterKey = (typeof filterOptions)[number];
@@ -110,6 +111,7 @@ type WalletActivityItem = {
   amount: number;
   direction: "increase" | "decrease";
 };
+type WalletAccountKind = "coin" | "cash";
 type LeaderboardPeriod = "week" | "month";
 type LeaderboardEntry = {
   id: string;
@@ -130,29 +132,34 @@ type CountUpProps = {
   className?: string;
   startWhen?: boolean;
   separator?: string;
+  prefix?: string;
+  decimals?: number;
   onStart?: () => void;
   onEnd?: () => void;
 };
 
 const BALANCE_PER_USD = 100;
-const SYSTEM_BALANCE_AMOUNT = 1000000;
+const SYSTEM_BALANCE_AMOUNT = 10000;
+const HUD_CASH_AMOUNT = 99.0;
 const FISH_BALANCE_AMOUNT = 10000;
 const MIN_AUTO_CAST_COUNT = 1;
 const MAX_AUTO_CAST_COUNT = 100;
-const WALLET_BALANCE_USD = 74.19;
+const WALLET_BALANCE_USD = HUD_CASH_AMOUNT;
 const WALLET_BALANCE_AMOUNT = Math.round(WALLET_BALANCE_USD * BALANCE_PER_USD);
 const MIN_AMOUNT = 1000;
 const MAX_AMOUNT = 500000;
-const GAME_STAGE_WIDTH = 1920;
-const GAME_STAGE_HEIGHT = 1040;
+const GAME_STAGE_WIDTH = 1902;
+const GAME_STAGE_HEIGHT = 1080;
 const AUTO_CAST_SINGLE_MIN_SECONDS = 10;
 const AUTO_CAST_SINGLE_MAX_SECONDS = 30;
 const HUD_ASSETS = {
   coin: "/assets/hud-coin.svg",
+  cash: "/assets/hud-cash.svg",
   fish: "/assets/hud-fish.svg",
   pond: "/assets/hud-pond.svg",
   market: "/assets/hud-market.svg",
   guide: "/assets/inventory-menu-icon-v2.svg",
+  scratchCard: "/assets/hud-scratch-card.svg",
   wallet: "/assets/wallet-menu-icon-new.svg",
   leaderboard: "/assets/hud-leaderboard.svg",
   settings: "/assets/settings.svg",
@@ -176,19 +183,67 @@ const WITHDRAWAL_NETWORKS = [
 ];
 const DEFAULT_WITHDRAWAL_NETWORK = WITHDRAWAL_NETWORKS[0];
 
-const walletActivities: WalletActivityItem[] = [
+const coinActivities: WalletActivityItem[] = [
   {
-    id: "wallet-1",
-    orderNo: "WLT-20260428-001",
+    id: "coin-1",
+    orderNo: "COIN-20260428-001",
+    reasonEn: "Sold SSS-grade factor",
+    reasonZh: "售出SSS级因子",
+    occurredAt: "2026-04-28T10:24:00+08:00",
+    amount: 2800,
+    direction: "increase",
+  },
+  {
+    id: "coin-2",
+    orderNo: "COIN-20260427-002",
+    reasonEn: "Bought scratch card",
+    reasonZh: "购买刮刮乐",
+    occurredAt: "2026-04-27T18:30:00+08:00",
+    amount: 600,
+    direction: "decrease",
+  },
+  {
+    id: "coin-3",
+    orderNo: "COIN-20260426-003",
+    reasonEn: "Sold A-grade factor",
+    reasonZh: "售出A级因子",
+    occurredAt: "2026-04-26T09:10:00+08:00",
+    amount: 5000,
+    direction: "increase",
+  },
+  {
+    id: "coin-4",
+    orderNo: "COIN-20260425-004",
+    reasonEn: "Bought scratch card",
+    reasonZh: "购买刮刮乐",
+    occurredAt: "2026-04-25T21:18:00+08:00",
+    amount: 1200,
+    direction: "decrease",
+  },
+  {
+    id: "coin-5",
+    orderNo: "COIN-20260424-005",
     reasonEn: "Sold S-grade factor",
     reasonZh: "售出S级因子",
+    occurredAt: "2026-04-24T12:06:00+08:00",
+    amount: 3600,
+    direction: "increase",
+  },
+];
+
+const cashActivities: WalletActivityItem[] = [
+  {
+    id: "cash-1",
+    orderNo: "CASH-20260428-001",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-04-28T10:24:00+08:00",
     amount: 32,
     direction: "increase",
   },
   {
-    id: "wallet-2",
-    orderNo: "WLT-20260420-002",
+    id: "cash-2",
+    orderNo: "CASH-20260420-002",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-04-20T09:00:00+08:00",
@@ -196,17 +251,17 @@ const walletActivities: WalletActivityItem[] = [
     direction: "decrease",
   },
   {
-    id: "wallet-3",
-    orderNo: "WLT-20260418-003",
-    reasonEn: "Sold A-grade factor",
-    reasonZh: "售出A级因子",
+    id: "cash-3",
+    orderNo: "CASH-20260418-003",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-04-18T16:42:00+08:00",
     amount: 18,
     direction: "increase",
   },
   {
-    id: "wallet-4",
-    orderNo: "WLT-20260415-004",
+    id: "cash-4",
+    orderNo: "CASH-20260415-004",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-04-15T21:18:00+08:00",
@@ -214,17 +269,17 @@ const walletActivities: WalletActivityItem[] = [
     direction: "decrease",
   },
   {
-    id: "wallet-5",
-    orderNo: "WLT-20260412-005",
-    reasonEn: "Sold SS-grade factor",
-    reasonZh: "售出SS级因子",
+    id: "cash-5",
+    orderNo: "CASH-20260412-005",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-04-12T12:06:00+08:00",
     amount: 12,
     direction: "increase",
   },
   {
-    id: "wallet-6",
-    orderNo: "WLT-20260408-006",
+    id: "cash-6",
+    orderNo: "CASH-20260408-006",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-04-08T19:35:00+08:00",
@@ -232,17 +287,17 @@ const walletActivities: WalletActivityItem[] = [
     direction: "decrease",
   },
   {
-    id: "wallet-7",
-    orderNo: "WLT-20260404-007",
-    reasonEn: "Sold B-grade factor",
-    reasonZh: "售出B级因子",
+    id: "cash-7",
+    orderNo: "CASH-20260404-007",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-04-04T11:20:00+08:00",
     amount: 9,
     direction: "increase",
   },
   {
-    id: "wallet-8",
-    orderNo: "WLT-20260330-008",
+    id: "cash-8",
+    orderNo: "CASH-20260330-008",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-03-30T14:52:00+08:00",
@@ -250,17 +305,17 @@ const walletActivities: WalletActivityItem[] = [
     direction: "decrease",
   },
   {
-    id: "wallet-9",
-    orderNo: "WLT-20260326-009",
-    reasonEn: "Sold C-grade factor",
-    reasonZh: "售出C级因子",
+    id: "cash-9",
+    orderNo: "CASH-20260326-009",
+    reasonEn: "Scratch card prize",
+    reasonZh: "刮刮乐中奖",
     occurredAt: "2026-03-26T08:30:00+08:00",
     amount: 5,
     direction: "increase",
   },
   {
-    id: "wallet-10",
-    orderNo: "WLT-20260321-010",
+    id: "cash-10",
+    orderNo: "CASH-20260321-010",
     reasonEn: "Withdrawal",
     reasonZh: "提现",
     occurredAt: "2026-03-21T17:48:00+08:00",
@@ -301,7 +356,7 @@ const leaderboardEntries: LeaderboardEntry[] = [
     };
   }),
 ];
-type AgentProviderIcon = "codex" | "claude" | "openclaw";
+type AgentProviderIcon = "codex" | "claude" | "openclaw" | "openrouter";
 type AgentConnectableProvider = {
   id: "codex" | "openrouter" | "claude-code" | "openclaw";
   name: string;
@@ -312,7 +367,7 @@ type AgentConnectableProvider = {
 type AgentProviderId = AgentConnectableProvider["id"];
 const agentConnectableProviders: readonly AgentConnectableProvider[] = [
   { id: "codex",      name: "Codex",       mark: "C",  icon: "codex",    modes: ["web", "agent"] },
-  { id: "openrouter", name: "OpenRouter",  mark: "OR",                   modes: ["web"] },
+  { id: "openrouter", name: "OpenRouter",  mark: "OR", icon: "openrouter", modes: ["web"] },
   { id: "claude-code",name: "Claude Code", mark: "C",  icon: "claude",   modes: ["agent"] },
   { id: "openclaw",   name: "OpenClaw",    mark: "O",  icon: "openclaw", modes: ["agent"] },
 ];
@@ -580,6 +635,8 @@ function CountUp({
   className = "",
   startWhen = true,
   separator = ",",
+  prefix = "",
+  decimals,
   onStart,
   onEnd,
 }: CountUpProps) {
@@ -611,7 +668,8 @@ function CountUp({
     return parseInt(decimals, 10) !== 0 ? decimals.length : 0;
   }, []);
 
-  const maxDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(targetValue));
+  const inferredDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(targetValue));
+  const maxDecimals = decimals ?? inferredDecimals;
 
   const formatValue = useCallback(
     (latest: number) => {
@@ -621,9 +679,10 @@ function CountUp({
         minimumFractionDigits: hasDecimals ? maxDecimals : 0,
         maximumFractionDigits: hasDecimals ? maxDecimals : 0,
       }).format(latest);
-      return separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
+      const normalizedNumber = separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
+      return `${prefix}${normalizedNumber}`;
     },
-    [maxDecimals, separator]
+    [maxDecimals, prefix, separator]
   );
 
   useEffect(() => {
@@ -762,6 +821,7 @@ function buildLinePath(values: number[], width: number, height: number, padding 
 export default function Landing() {
   const { uiLang, setUiLang } = useAppLanguage();
   const { user, updateUser } = useAuth();
+  const { navigateWithTransition } = usePageTransition();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [stageScale, setStageScale] = useState(1);
   const [autoCastCount, setAutoCastCount] = useState(10);
@@ -776,6 +836,7 @@ export default function Landing() {
   const [manualCastElapsed, setManualCastElapsed] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
+  const [walletAccountKind, setWalletAccountKind] = useState<WalletAccountKind>("coin");
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
@@ -802,6 +863,7 @@ export default function Landing() {
   const [agentGlobalConnectMode, setAgentGlobalConnectMode] = useState<"web" | "agent" | null>("web");
   const [agentModeSwitchWarning, setAgentModeSwitchWarning] = useState(false);
   const [agentConnectionWarningType, setAgentConnectionWarningType] = useState<"mode" | "provider">("mode");
+  const agentProviderWarningTimerRef = useRef<number | null>(null);
   // Inline flow view: "mode" = step1 choose mode, "manage" = provider list, "config" = step2, "success" = step3
   const [agentInlineStep, setAgentInlineStep] = useState<"mode" | "manage" | "config" | "success">("manage");
   const [agentDisconnectConfirmProviderId, setAgentDisconnectConfirmProviderId] = useState<AgentProviderId | null>(null);
@@ -889,6 +951,14 @@ export default function Landing() {
   }, [inventoryToast]);
 
   useEffect(() => {
+    return () => {
+      if (agentProviderWarningTimerRef.current !== null) {
+        window.clearTimeout(agentProviderWarningTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     if (!settingsEditingProfile) {
       setSettingsNickname(user.displayName || "AlphaTrader");
@@ -968,6 +1038,7 @@ export default function Landing() {
   const agentVisibleProviders = agentConnectableProviders.filter((provider) =>
     provider.modes.includes(agentVisibleProviderMode)
   );
+  const shouldShowAgentAuthPreviewTrigger = agentInlineStep === "manage" && agentVisibleProviderMode === "agent";
   const selectedAgentProvider = agentConnectableProviders.find((provider) => provider.id === agentSelectedProviderId);
   const isSelectedOpenRouter = selectedAgentProvider?.name === "OpenRouter";
 
@@ -1459,7 +1530,8 @@ export default function Landing() {
     setWithdrawNetworkOpen(false);
   };
 
-  const openWalletModal = () => {
+  const openWalletModal = (accountKind: WalletAccountKind = walletAccountKind) => {
+    setWalletAccountKind(accountKind);
     setWalletWithdrawOpen(false);
     setWithdrawNetworkOpen(false);
     setWalletOpen(true);
@@ -1490,8 +1562,16 @@ export default function Landing() {
     return agentConnectableProviders.find((provider) => provider.id === providerId)?.name || "Agent";
   };
 
+  const clearAgentProviderWarningTimer = () => {
+    if (agentProviderWarningTimerRef.current !== null) {
+      window.clearTimeout(agentProviderWarningTimerRef.current);
+      agentProviderWarningTimerRef.current = null;
+    }
+  };
+
   // Enter the inline connect config view for a specific provider (from manage view)
   const openAgentConnectModal = (providerId: AgentProviderId) => {
+    clearAgentProviderWarningTimer();
     setAgentSelectedProviderId(providerId);
     setAgentDisconnectConfirmProviderId(null);
     setAgentAuthMethod("code");
@@ -1512,11 +1592,9 @@ export default function Landing() {
 
   // Request switching the global connection mode (from manage view)
   const requestSwitchConnectMode = () => {
-    if (agentConnectedProviderIds.size > 0) {
-      setAgentConnectionWarningType("mode");
-      setAgentModeSwitchWarning(true);
-      return;
-    }
+    clearAgentProviderWarningTimer();
+    setAgentModeSwitchWarning(false);
+    setAgentConnectionWarningType("mode");
     setAgentGlobalConnectMode(null);
     setAgentInlineStep("mode");
   };
@@ -1528,17 +1606,17 @@ export default function Landing() {
   const showAgentProviderBlockedWarning = () => {
     setAgentConnectionWarningType("provider");
     setAgentModeSwitchWarning(true);
+    clearAgentProviderWarningTimer();
+    agentProviderWarningTimerRef.current = window.setTimeout(() => {
+      setAgentModeSwitchWarning(false);
+      agentProviderWarningTimerRef.current = null;
+    }, 2000);
   };
 
   const disconnectAgentProvider = (providerId: AgentProviderId) => {
     setAgentConnectedProviderIds((current) => {
       const next = new Set(current);
       next.delete(providerId);
-      // Clear global mode and return to step 1 when no connections remain
-      if (next.size === 0) {
-        setAgentGlobalConnectMode(null);
-        setAgentInlineStep("mode");
-      }
       return next;
     });
     setAgentDisconnectConfirmProviderId(null);
@@ -1577,15 +1655,28 @@ export default function Landing() {
     );
   };
 
-  const confirmAgentProviderConnection = () => {
+  const finishAgentProviderConnection = (nextStep: "manage" | "success") => {
     setAgentConnectedProviderIds((current) => new Set(current).add(agentSelectedProviderId));
     setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));
     setAgentGlobalConnectMode(agentConnectMode);
-    setAgentInlineStep("success");
+    setAgentInlineStep(nextStep);
     showSettingsFeedback(
       tr("Connected", "已连接"),
       tr(`${getAgentProviderName(agentSelectedProviderId)} connected.`, `${getAgentProviderName(agentSelectedProviderId)} 已连接。`)
     );
+  };
+
+  const confirmAgentProviderConnection = () => {
+    finishAgentProviderConnection("success");
+  };
+
+  const confirmAgentProviderConnectionAndClose = () => {
+    finishAgentProviderConnection("manage");
+  };
+
+  const allowAgentAuthPreviewAccess = () => {
+    setAgentAuthPreviewOpen(false);
+    confirmAgentProviderConnection();
   };
 
   const testAgentByok = () => {
@@ -1961,12 +2052,30 @@ export default function Landing() {
         : tr("Bind wallet", "绑定钱包");
   const handleWithdrawPrimaryAction = () => {
     if (withdrawStatus === "success") {
-      openWalletModal();
+      openWalletModal("cash");
       return;
     }
 
     void handleSubmitWithdraw();
   };
+
+  const activeWalletConfig = walletAccountKind === "coin"
+    ? {
+        title: tr("Game Coins", "游戏币"),
+        balance: formatBalance(SYSTEM_BALANCE_AMOUNT),
+        icon: HUD_ASSETS.coin,
+        activities: coinActivities,
+        formatActivityAmount: formatBalance,
+        allowWithdraw: false,
+      }
+    : {
+        title: tr("Cash", "现金"),
+        balance: `$${HUD_CASH_AMOUNT.toFixed(1)}`,
+        icon: HUD_ASSETS.cash,
+        activities: cashActivities,
+        formatActivityAmount: (amount: number) => `$${amount.toFixed(2)}`,
+        allowWithdraw: true,
+      };
 
   const openStrategyDetail = (strategy: (typeof strategies)[number]) => {
     setSelectedStrategy(strategy);
@@ -2119,8 +2228,8 @@ export default function Landing() {
           position: absolute;
           left: 50%;
           top: 50%;
-          width: 1920px;
-          height: 1040px;
+          width: 1902px;
+          height: 1080px;
           transform: translate(-50%, -50%) scale(var(--stage-scale));
           transform-origin: center center;
         }
@@ -2131,7 +2240,7 @@ export default function Landing() {
           top: 40px;
           display: flex;
           align-items: center;
-          gap: 30px;
+          gap: 16px;
           z-index: 2;
         }
 
@@ -2141,27 +2250,19 @@ export default function Landing() {
           display: flex;
           align-items: center;
           justify-content: flex-end;
-          gap: 12px;
+          gap: 8px;
           height: 65px;
           padding: 12px;
           overflow: hidden;
           background: #fff3d3;
           border: 3px solid #c4b89e;
           border-radius: 16px;
-          box-shadow: 0 4px 0 rgba(78, 67, 60, .22);
           font: inherit;
           transition: background-color .14s cubic-bezier(.22, 1, .36, 1);
         }
 
         .hud-stat-card--button {
-          border-width: 0;
-          padding: 15px;
           cursor: pointer;
-        }
-
-        .hud-stat-card--fish {
-          border-width: 0;
-          padding: 15px;
         }
 
         .hud-stat-icon {
@@ -2171,10 +2272,9 @@ export default function Landing() {
         }
 
         .hud-stat-value {
-          width: 150px;
           color: #4e433c;
           font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-          font-size: 30px;
+          font-size: 26px;
           font-style: normal;
           font-weight: 700;
           font-stretch: 100%;
@@ -2187,19 +2287,13 @@ export default function Landing() {
           white-space: nowrap;
         }
 
-        .hud-stat-card--fish .hud-stat-value {
-          width: 120px;
-          font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-          font-size: 30px;
-          font-style: normal;
-          font-weight: 700;
-          font-stretch: 100%;
-          font-synthesis: none;
-          font-optical-sizing: auto;
-          font-variation-settings: "wght" 700, "BEVL" 1;
-          line-height: 100%;
-          text-align: right;
-          letter-spacing: 0;
+        .hud-stat-value--balance {
+          width: 130px;
+        }
+
+        .hud-stat-value--cash,
+        .hud-stat-value--fish {
+          width: 90px;
         }
 
         .top-actions {
@@ -2723,7 +2817,6 @@ export default function Landing() {
 
         .hud-stat-card--button:active {
           transform: translateY(1px);
-          box-shadow: 0 2px 0 rgba(78, 67, 60, .22);
         }
 
         .hud-main-action:active,
@@ -4295,10 +4388,14 @@ export default function Landing() {
         }
         .sac-buddy-banner {
           display: flex; align-items: center; gap: 12px;
+          margin-top: auto;
           padding: 14px 16px;
           background: rgba(255,213,87,.1);
           border: 1.5px solid rgba(245,200,66,.4);
           border-radius: var(--radius-xs);
+        }
+        .settings-agent-main__footer + .sac-buddy-banner {
+          margin-top: 0;
         }
         .sac-buddy-banner__icon { font-size: 30px; flex-shrink: 0; }
         .sac-buddy-banner__body { flex: 1; min-width: 0; }
@@ -4306,12 +4403,18 @@ export default function Landing() {
         .sac-buddy-banner__desc  { font-size: 11px; color: rgba(121,79,39,.7); line-height: 1.5; }
         .sac-buddy-banner__btn {
           appearance: none; flex-shrink: 0;
-          background: #ffd557; color: #5a3e00; border: none;
-          border-radius: var(--radius-xs); padding: 8px 18px;
-          font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+          background: rgba(255,253,244,.56);
+          color: rgba(121,79,39,.78);
+          border: 1.5px solid rgba(196,184,158,.48);
+          border-radius: var(--radius-xs); padding: 7px 16px;
+          font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
           text-decoration: none; display: inline-block;
         }
-        .sac-buddy-banner__btn:hover { background: #f5c030; }
+        .sac-buddy-banner__btn:hover {
+          color: var(--ac-text);
+          background: rgba(255,213,87,.18);
+          border-color: rgba(121,79,39,.32);
+        }
 
         .settings-agent-intro-copy {
           margin: 0 0 18px;
@@ -4678,8 +4781,9 @@ export default function Landing() {
           width: 44px;
           height: 44px;
           box-sizing: border-box;
-          display: grid;
-          place-items: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           flex: 0 0 auto;
           overflow: hidden;
           color: #fffdf4;
@@ -4687,7 +4791,7 @@ export default function Landing() {
           border-radius: 11px;
           font-size: 16px;
           font-weight: 1000;
-          line-height: 1;
+          line-height: 0;
         }
 
         .settings-agent-provider-mark--codex,
@@ -4702,22 +4806,44 @@ export default function Landing() {
         }
 
         .settings-agent-provider-mark--openrouter {
-          background: #1a1a1a;
+          background: rgba(201, 213, 255, .72);
           color: #fff;
           border: 0;
         }
 
         .settings-agent-provider-icon {
-          width: 30px;
-          height: 30px;
-          display: grid;
-          place-items: center;
+          width: 100% !important;
+          height: 100% !important;
+          display: block;
+          flex: 0 0 100%;
+          overflow: hidden;
+          border-radius: inherit !important;
+        }
+
+        .settings-agent-provider-icon svg,
+        .settings-agent-provider-icon img,
+        .settings-agent-provider-icon canvas {
+          width: 100% !important;
+          height: 100% !important;
+          display: block;
+          flex: 0 0 100%;
         }
 
         .settings-agent-provider-icon svg {
-          width: 100%;
-          height: 100%;
-          display: block;
+          transform: scale(.76) !important;
+          transform-origin: center;
+        }
+
+        .settings-agent-provider-icon img,
+        .settings-agent-provider-icon canvas {
+          transform: none !important;
+        }
+
+        .settings-agent-provider-mark--openrouter .settings-agent-provider-icon {
+          width: 38px !important;
+          height: 38px !important;
+          flex: 0 0 38px;
+          border-radius: 9px !important;
         }
 
         .settings-agent-provider-name {
@@ -4829,8 +4955,12 @@ export default function Landing() {
 
         .settings-agent-provider-action-button.is-disabled {
           cursor: not-allowed;
-          opacity: .72;
-          filter: grayscale(.35);
+          color: rgba(121, 79, 39, .58);
+          background: rgba(196, 184, 158, .28);
+          border-color: rgba(196, 184, 158, .42);
+          box-shadow: none;
+          opacity: 1;
+          filter: grayscale(.18);
         }
 
         .settings-agent-provider-action-button.is-loading svg {
@@ -4957,12 +5087,12 @@ export default function Landing() {
           to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         .sac-header {
-          display: flex; align-items: center;
+          display: flex; align-items: center; justify-content: space-between;
           padding: 14px 18px;
           border-bottom: 1.5px solid rgba(196, 184, 158, .4);
           gap: 12px;
         }
-        .sac-title { font-size: 15px; font-weight: 800; color: var(--ac-text); white-space: nowrap; }
+        .sac-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 800; color: var(--ac-text); white-space: nowrap; }
         .sac-close {
           appearance: none; width: 28px; height: 28px; flex-shrink: 0;
           display: inline-grid; place-items: center;
@@ -5041,16 +5171,21 @@ export default function Landing() {
         .sac-mode-card {
           appearance: none; text-align: left;
           border: 2px solid rgba(196,184,158,.55); border-radius: var(--radius-xs);
-          padding: 14px; cursor: pointer; background: #fffdf4;
-          display: flex; align-items: flex-start; gap: 10px;
-          transition: border-color 0.15s, background 0.15s;
+          min-height: 100px; padding: 18px 20px; cursor: pointer; background: #fffdf4;
+          display: flex; align-items: center; gap: 14px;
+          transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
           font: inherit; color: inherit;
         }
-        .sac-mode-card:hover, .sac-mode-card--sel {
-          border-color: #5bbcd6; background: rgba(91,188,214,.07);
+        .sac-mode-card:hover {
+          border-color: rgba(255, 207, 72, .95); background: rgba(255, 207, 72, .12);
         }
-        .sac-mode-title { font-weight: 700; font-size: 13px; margin-bottom: 3px; }
-        .sac-mode-desc  { font-size: 11px; color: rgba(121,79,39,.65); line-height: 1.5; }
+        .sac-mode-card--sel {
+          border-color: #f4bd18; background: #ffec9d;
+          box-shadow: inset 0 0 0 2px rgba(255, 250, 218, .72);
+        }
+        .sac-mode-body { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
+        .sac-mode-title { font-weight: 800; font-size: 14px; line-height: 1.2; margin-bottom: 0; color: rgba(92, 61, 25, .94); }
+        .sac-mode-desc  { font-size: 12px; color: rgba(121,79,39,.68); line-height: 1.45; }
         .sac-mode-card--locked { opacity: 0.5; cursor: not-allowed; }
         .sac-mode-card--locked:hover { border-color: rgba(196,184,158,.55); background: #fffdf4; }
         .sac-mode-lock { margin-left: auto; font-size: 12px; align-self: center; }
@@ -5087,6 +5222,18 @@ export default function Landing() {
           transition: border-color 0.15s, background 0.15s;
         }
         .sac-opt-card:hover, .sac-opt-card--sel { border-color: #ffd557; background: #fffbee; }
+        .sac-opt-card--auth-code {
+          position: relative;
+        }
+        .sac-opt-card--auth-code.sac-opt-card--sel {
+          padding-right: 62px;
+        }
+        .sac-opt-card--auth-code.sac-opt-card--sel .settings-agent-refresh-icon {
+          position: absolute;
+          top: 22px;
+          right: 18px;
+          z-index: 1;
+        }
         .sac-opt-card--inline-form,
         .sac-opt-card--inline-form:hover,
         .sac-opt-card--inline-form.sac-opt-card--sel {
@@ -5095,12 +5242,35 @@ export default function Landing() {
           background: transparent;
           border-color: transparent;
         }
+
+        .sac-opt-card--api-web,
+        .sac-opt-card--api-web:hover {
+          box-sizing: border-box;
+          padding: 12px 14px;
+          cursor: pointer;
+          background: #fffdf4;
+          border-color: rgba(196,184,158,.5);
+          transition: none;
+        }
+
+        .sac-opt-card--api-web.sac-opt-card--sel,
+        .sac-opt-card--api-web.sac-opt-card--sel:hover {
+          box-sizing: border-box;
+          padding: 12px 14px;
+          background: #fffbee;
+          border-color: #ffd557;
+        }
+
         .sac-opt-head  { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
         .sac-opt-title { font-weight: 700; font-size: 13px; color: var(--ac-text); }
         .sac-opt-desc  { font-size: 11px; color: rgba(121,79,39,.65); margin-left: 25px; }
         .sac-opt-detail { margin-top: 12px; margin-left: 25px; }
         .sac-opt-card--inline-form .sac-opt-head { margin-bottom: 5px; }
         .sac-opt-card--inline-form .sac-opt-detail { margin: 14px 0 0 25px; }
+        .sac-opt-card--api-web .sac-opt-detail,
+        .sac-opt-card--api-web:hover .sac-opt-detail {
+          margin: 14px 0 0 25px;
+        }
         .sac-opt-card--plain-form .sac-opt-head,
         .sac-opt-card--plain-form .sac-opt-desc { display: none; }
         .sac-opt-card--plain-form .sac-opt-detail { margin: 0; }
@@ -5722,18 +5892,18 @@ export default function Landing() {
 
         .settings-agent-auth-options {
           display: grid;
-          grid-template-columns: minmax(168px, .82fr) minmax(0, 1fr);
-          gap: 0;
-          overflow: hidden;
-          background: #fff8e8;
-          padding: 18px;
-          border-radius: var(--radius-xs);
+          grid-template-columns: minmax(152px, .8fr) minmax(0, 1fr);
+          column-gap: 22px;
+          overflow: visible;
+          background: transparent;
+          padding: 10px 2px 2px;
+          border-radius: 0;
         }
 
         .settings-agent-auth-option {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 14px;
+          gap: 12px;
           align-content: start;
           align-items: start;
           padding: 0;
@@ -5744,13 +5914,13 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option--scan {
-          padding-right: 20px;
+          padding-right: 0;
         }
 
         .settings-agent-auth-option--code {
-          gap: 18px;
-          padding-left: 20px;
-          border-left: 1px solid rgba(196, 184, 158, .44);
+          gap: 16px;
+          padding-left: 22px;
+          border-left: 1px solid rgba(196, 184, 158, .42);
         }
 
         .settings-agent-auth-option > div:first-child,
@@ -5785,9 +5955,21 @@ export default function Landing() {
         }
 
         .settings-agent-code-copy strong {
-          font-size: 23px;
+          font-size: 24px;
           letter-spacing: .08em;
           line-height: 1;
+        }
+
+        .settings-agent-code-copy__head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .settings-agent-code-copy__head span {
+          min-width: 0;
         }
 
         .settings-agent-auth-actions {
@@ -5799,13 +5981,13 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option--code .settings-action {
-          width: 100%;
+          width: min(100%, 240px);
           min-height: 38px;
         }
 
         .settings-agent-qr {
-          width: 134px;
-          height: 134px;
+          width: 126px;
+          height: 126px;
           display: block;
           justify-self: start;
           overflow: hidden;
@@ -6082,7 +6264,15 @@ export default function Landing() {
 
           .settings-agent-auth-options {
             grid-template-columns: 1fr;
-            gap: 14px;
+            gap: 16px;
+            padding: 10px 0 0;
+          }
+
+          .settings-agent-auth-option--code {
+            padding-left: 0;
+            border-left: 0;
+            border-top: 1px solid rgba(196, 184, 158, .42);
+            padding-top: 16px;
           }
 
           .settings-agent-auth-option {
@@ -6458,17 +6648,8 @@ export default function Landing() {
           align-items: center;
         }
 
-        .wallet-card__label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--ac-text-body);
-          font-size: 13px;
-          font-weight: 900;
-        }
-
         .wallet-card__value {
-          margin-top: 10px;
+          margin-top: 0;
           color: var(--ac-text);
           font-size: 32px;
           font-weight: 950;
@@ -9813,32 +9994,52 @@ export default function Landing() {
           <button
             className="hud-stat-card hud-stat-card--button"
             type="button"
-            aria-label={tr("Open wallet", "打开钱包")}
-            onClick={openWalletModal}
+            aria-label={tr("Open game coins", "打开游戏币")}
+            onClick={() => openWalletModal("coin")}
           >
             <img
               className="hud-stat-icon"
               src={HUD_ASSETS.coin}
               alt=""
-              width="40"
-              height="41"
+              width="36"
+              height="37"
             />
-            <div className="hud-stat-value">
+            <div className="hud-stat-value hud-stat-value--balance">
               <CountUp to={SYSTEM_BALANCE_AMOUNT} duration={0.5}>
                 {formatBalance(SYSTEM_BALANCE_AMOUNT)}
               </CountUp>
             </div>
           </button>
 
-          <div className="hud-stat-card hud-stat-card--fish" aria-label={tr("Fish balance", "鱼额")}>
+          <button
+            className="hud-stat-card hud-stat-card--button"
+            type="button"
+            aria-label={tr("Open cash", "打开现金")}
+            onClick={() => openWalletModal("cash")}
+          >
+            <img
+              className="hud-stat-icon"
+              src={HUD_ASSETS.cash}
+              alt=""
+              width="44"
+              height="28"
+            />
+            <div className="hud-stat-value hud-stat-value--cash">
+              <CountUp to={HUD_CASH_AMOUNT} duration={0.5} prefix="$" decimals={1}>
+                {`$${HUD_CASH_AMOUNT.toFixed(1)}`}
+              </CountUp>
+            </div>
+          </button>
+
+          <div className="hud-stat-card" aria-label={tr("Fish balance", "鱼额")}>
             <img
               className="hud-stat-icon"
               src={HUD_ASSETS.fish}
               alt=""
-              width="46"
-              height="26"
+              width="40"
+              height="27"
             />
-            <div className="hud-stat-value">
+            <div className="hud-stat-value hud-stat-value--fish">
               <CountUp to={FISH_BALANCE_AMOUNT} duration={0.5}>
                 {formatBalance(FISH_BALANCE_AMOUNT)}
               </CountUp>
@@ -9899,18 +10100,18 @@ export default function Landing() {
           <button
             className="menu-item"
             type="button"
-            aria-label={tr("Wallet", "钱包")}
-            onClick={openWalletModal}
+            aria-label={tr("Scratch", "刮刮乐")}
+            onClick={() => navigateWithTransition("/scratch-card")}
           >
             <img
               className="menu-icon"
-              src={HUD_ASSETS.wallet}
+              src={HUD_ASSETS.scratchCard}
               alt=""
-              width="60"
-              height="55"
-              style={{ top: 12, width: 60, height: 55 }}
+              width="56"
+              height="57"
+              style={{ top: 12, width: 56, height: 57 }}
             />
-            <span className="menu-label" data-label={tr("Wallet", "钱包")}>{tr("Wallet", "钱包")}</span>
+            <span className="menu-label" data-label={tr("Scratch", "刮刮乐")}>{tr("Scratch", "刮刮乐")}</span>
           </button>
 
           <button
@@ -10415,7 +10616,7 @@ export default function Landing() {
                                   onClick={() => setAgentConnectMode(mode)}
                                 >
                                   <div className={`sac-radio${agentConnectMode === mode ? " sac-radio--checked" : ""}`} />
-                                  <div>
+                                  <div className="sac-mode-body">
                                     {mode === "web" ? (
                                       <>
                                         <div className="sac-mode-title">🌐 {tr("Use on web", "我要在网页上用")}</div>
@@ -10459,41 +10660,35 @@ export default function Landing() {
                                 ? tr("Disconnect the connected agent before starting a new connection.", "请先断开已连接的 agent，再进行新的连接。")
                                 : tr("Please disconnect the current connection before switching methods.", "请先断开当前连接，再切换连接方式。")}
                             </span>
-                            <button className="sac-disconnect-all-btn" type="button" onClick={disconnectAllAgentProviders}>
-                              {tr("Disconnect all", "一键断开全部")}
-                            </button>
+                            {agentConnectionWarningType === "mode" && (
+                              <button className="sac-disconnect-all-btn" type="button" onClick={disconnectAllAgentProviders}>
+                                {tr("Disconnect all", "一键断开全部")}
+                              </button>
+                            )}
                           </div>
                         )}
                         <div className="settings-agent-provider-list" aria-label={tr("Connectable providers", "可连接服务")}>
                           {agentVisibleProviders.map((provider) => {
                             const isConnected = agentConnectedProviderIds.has(provider.id);
                             const isTestingStatus = agentStatusTestingProviderId === provider.id;
-                            // Web mode: disable connect if another provider is already connected
+                            // Web mode: only the connect button is blocked if another provider is already connected.
                             const isBlockedByWebLimit = !isConnected && agentGlobalConnectMode === "web" && agentConnectedProviderIds.size > 0;
 
                             return (
                               <div
-                                className={`settings-agent-provider-row${isConnected ? " is-connected" : " is-disconnected"}${isBlockedByWebLimit ? " is-disabled" : ""}`}
+                                className={`settings-agent-provider-row${isConnected ? " is-connected" : " is-disconnected"}`}
                                 key={provider.id}
-                                role={isBlockedByWebLimit ? "button" : undefined}
-                                tabIndex={isBlockedByWebLimit ? 0 : undefined}
-                                aria-disabled={isBlockedByWebLimit || undefined}
-                                onClick={isBlockedByWebLimit ? showAgentProviderBlockedWarning : undefined}
-                                onKeyDown={isBlockedByWebLimit ? (event) => {
-                                  if (event.key === "Enter" || event.key === " ") {
-                                    event.preventDefault();
-                                    showAgentProviderBlockedWarning();
-                                  }
-                                } : undefined}
                               >
                                 <div className="settings-agent-provider-head">
                                   <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
                                     {provider.icon === "codex" ? (
-                                      <Codex.Avatar className="settings-agent-provider-icon" size={48} />
+                                      <Codex.Avatar className="settings-agent-provider-icon" size={44} />
                                     ) : provider.icon === "claude" ? (
-                                      <Claude.Avatar className="settings-agent-provider-icon" size={48} />
+                                      <Claude.Avatar className="settings-agent-provider-icon" size={44} />
                                     ) : provider.icon === "openclaw" ? (
-                                      <OpenClaw.Avatar className="settings-agent-provider-icon" size={48} />
+                                      <OpenClaw.Avatar className="settings-agent-provider-icon" size={44} />
+                                    ) : provider.icon === "openrouter" ? (
+                                      <OpenRouter.Avatar className="settings-agent-provider-icon" size={44} />
                                     ) : (
                                       provider.mark
                                     )}
@@ -10515,7 +10710,13 @@ export default function Landing() {
                                         disabled={isTestingStatus}
                                         onClick={() => testAgentProviderStatus(provider.id)}
                                       >
-                                        <span>{isTestingStatus ? tr("Testing", "检查中") : tr("Check", "检查")}</span>
+                                        <span>
+                                          {isTestingStatus
+                                            ? tr("Testing", "检查中")
+                                            : agentGlobalConnectMode === "agent"
+                                              ? tr("Test", "测试")
+                                              : tr("Check", "检查")}
+                                        </span>
                                       </button>
                                       <button
                                         className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
@@ -10525,6 +10726,18 @@ export default function Landing() {
                                       >
                                         <span>{tr("Disconnect", "断开")}</span>
                                       </button>
+                                      {agentGlobalConnectMode === "agent" && (
+                                        <button
+                                          className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
+                                          type="button"
+                                          onClick={(event) => {
+                                            event.stopPropagation();
+                                            openAgentConnectModal(provider.id);
+                                          }}
+                                        >
+                                          <span>{tr("Connect guide", "连接教程")}</span>
+                                        </button>
+                                      )}
                                     </>
                                   ) : (
                                     <button
@@ -10541,7 +10754,7 @@ export default function Landing() {
                                       }}
                                     >
                                       <Plus size={18} strokeWidth={2.6} aria-hidden="true" />
-                                      {tr("Connect", "连接")}
+                                      {agentGlobalConnectMode === "web" ? tr("Connect", "连接") : tr("Connect guide", "连接教程")}
                                     </button>
                                   )}
                                 </div>
@@ -10573,7 +10786,7 @@ export default function Landing() {
                                 <>
                                   {/* Auth code option — hidden for OpenRouter (API Key only) */}
                                   {!isSelectedOpenRouter && (
-                                  <div className={`sac-opt-card${agentConnectOpt === "auth" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("auth")}>
+                                  <div className={`sac-opt-card sac-opt-card--auth-code${agentConnectOpt === "auth" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("auth")}>
                                         <div className="sac-opt-head">
                                           <div className={`sac-radio${agentConnectOpt === "auth" ? " sac-radio--checked" : ""}`} />
                                           <span className="sac-opt-title">🔑 {tr("Authorization code", "授权码接入")}</span>
@@ -10582,12 +10795,9 @@ export default function Landing() {
                                         <div className="sac-opt-desc">{tr("Quick verification with official auth code, no API config needed.", "使用官方授权码快速验证，无需配置 API。")}</div>
                                         {agentConnectOpt === "auth" && (
                                           <div className="sac-opt-detail">
-                                            <div className="sac-note">
-                                              <span>{tr("Choose QR authorization, or copy the code and continue on the login page.", "请选择扫码授权，或复制授权码后在登录页继续。")}</span>
-                                              <button className="settings-agent-refresh-icon" type="button" onClick={refreshAgentAuthorizationCode} aria-label={tr("Refresh", "刷新")}>
-                                                <RefreshCw size={14} strokeWidth={3} />
-                                              </button>
-                                            </div>
+                                            <button className="settings-agent-refresh-icon" type="button" onClick={refreshAgentAuthorizationCode} aria-label={tr("Refresh", "刷新")}>
+                                              <RefreshCw size={14} strokeWidth={3} />
+                                            </button>
                                             <div className="settings-agent-auth-options">
                                               <section className="settings-agent-auth-option settings-agent-auth-option--scan">
                                                 <div>
@@ -10600,7 +10810,9 @@ export default function Landing() {
                                               </section>
                                               <section className="settings-agent-auth-option settings-agent-auth-option--code">
                                                 <div className="settings-agent-code-copy">
-                                                  <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
+                                                  <div className="settings-agent-code-copy__head">
+                                                    <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
+                                                  </div>
                                                   <strong>{agentWebAuthorizationCode}</strong>
                                                 </div>
                                                 <div className="settings-agent-auth-actions">
@@ -10615,7 +10827,7 @@ export default function Landing() {
                                       </div>
                                   )}
                                   {/* API key option */}
-                                  <div className={`sac-opt-card sac-opt-card--inline-form${isSelectedOpenRouter ? " sac-opt-card--plain-form" : ""}${agentConnectOpt === "api" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("api")}>
+                                  <div className={`sac-opt-card sac-opt-card--inline-form${isSelectedOpenRouter ? " sac-opt-card--plain-form" : " sac-opt-card--api-web"}${agentConnectOpt === "api" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("api")}>
                                       {!isSelectedOpenRouter && (
                                         <div className="sac-opt-head">
                                           <div className={`sac-radio${agentConnectOpt === "api" ? " sac-radio--checked" : ""}`} />
@@ -10629,7 +10841,9 @@ export default function Landing() {
                                           <div className="sac-opt-detail" onClick={(e) => e.stopPropagation()}>
                                             <div className="settings-agent-form settings-agent-form--byok">
                                               <label className="settings-field">
-                                                <span className="settings-field__head"><span>API Key</span></span>
+                                                {isSelectedOpenRouter && (
+                                                  <span className="settings-field__head"><span>API Key</span></span>
+                                                )}
                                                 <input
                                                   className="settings-input"
                                                   type="password"
@@ -10737,8 +10951,8 @@ export default function Landing() {
                                   <div className="sac-nav">
                                     <span />
                                     {agentConnectMode === "agent" && (
-                                      <button className="sac-btn-next" type="button" onClick={confirmAgentProviderConnection}>
-                                        {tr("Complete connection", "完成连接")} ✓
+                                      <button className="sac-btn-next" type="button" onClick={confirmAgentProviderConnectionAndClose}>
+                                        {tr("OK", "确定")} ✓
                                       </button>
                                     )}
                                   </div>
@@ -10834,17 +11048,19 @@ export default function Landing() {
                                   "点击「允许访问」，同意让 Claude Code 来处理 plugin.py 的编写、上传、回测操作，然后获取因子信息，并总结结果"
                                 )}
                               </p>
-                              <button className="sac-auth-preview__allow" type="button" onClick={() => setAgentAuthPreviewOpen(false)}>
+                              <button className="sac-auth-preview__allow" type="button" onClick={allowAgentAuthPreviewAccess}>
                                 {tr("Allow access", "允许访问")}
                               </button>
                             </section>
                           </div>
                         )}
-                        <div className="settings-agent-main__footer">
-                          <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
-                            🔍 {tr("Authorization popup preview", "授权弹窗示意")}
-                          </button>
-                        </div>
+                        {shouldShowAgentAuthPreviewTrigger && (
+                          <div className="settings-agent-main__footer">
+                            <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
+                              🔍 {tr("Authorization popup preview", "授权弹窗示意")}
+                            </button>
+                          </div>
+                        )}
                         <div className="sac-buddy-banner">
                           <div className="sac-buddy-banner__icon">🐾</div>
                           <div className="sac-buddy-banner__body">
@@ -11161,12 +11377,12 @@ export default function Landing() {
                     className="wallet-modal__back"
                     type="button"
                     aria-label={tr("Back to wallet", "返回钱包")}
-                    onClick={openWalletModal}
+                    onClick={() => openWalletModal("cash")}
                   >
                     <ArrowLeft size={20} strokeWidth={3} />
                   </button>
                 )}
-                <h2 className="shop-modal__title" id="wallet-modal-title">{walletWithdrawOpen ? tr("Withdraw", "提现") : tr("Wallet", "钱包")}</h2>
+                <h2 className="shop-modal__title" id="wallet-modal-title">{walletWithdrawOpen ? tr("Withdraw", "提现") : activeWalletConfig.title}</h2>
               </div>
               <button
                 className="shop-modal__close"
@@ -11353,20 +11569,22 @@ export default function Landing() {
                       <section className="wallet-card wallet-card--balance">
                         <div>
                           <div className="wallet-card__value wallet-balance-value">
-                            <img className="wallet-balance-value__icon" src={HUD_ASSETS.coin} alt="" />
-                            <span>{formatBalance(SYSTEM_BALANCE_AMOUNT)}</span>
+                            <img className="wallet-balance-value__icon" src={activeWalletConfig.icon} alt="" />
+                            <span>{activeWalletConfig.balance}</span>
                           </div>
                         </div>
-                        <div className="wallet-action-row">
-                          <button
-                            className="wallet-action"
-                            type="button"
-                            onClick={openWithdrawModal}
-                          >
-                            <CreditCard size={16} strokeWidth={3} />
-                            {tr("Withdraw", "提现")}
-                          </button>
-                        </div>
+                        {activeWalletConfig.allowWithdraw && (
+                          <div className="wallet-action-row">
+                            <button
+                              className="wallet-action"
+                              type="button"
+                              onClick={openWithdrawModal}
+                            >
+                              <CreditCard size={16} strokeWidth={3} />
+                              {tr("Withdraw", "提现")}
+                            </button>
+                          </div>
+                        )}
                       </section>
                     </div>
 
@@ -11378,14 +11596,13 @@ export default function Landing() {
                           <span>{tr("Time", "变更时间")}</span>
                           <span className="wallet-table__amount">
                             <span className="wallet-table__balance">
-                              <img className="wallet-table__balance-icon" src={HUD_ASSETS.coin} alt="" />
+                              <img className="wallet-table__balance-icon" src={activeWalletConfig.icon} alt="" />
                               <span>{tr("Balance", "余额")}</span>
                             </span>
                           </span>
                         </div>
-                        {walletActivities.map((item) => {
+                        {activeWalletConfig.activities.map((item) => {
                           const isIncrease = item.direction === "increase";
-                          const activityBalanceAmount = Math.round(item.amount * BALANCE_PER_USD);
                           return (
                             <div className="wallet-table__row" key={item.id}>
                               <span>{tr(item.reasonEn, item.reasonZh)}</span>
@@ -11393,7 +11610,7 @@ export default function Landing() {
                               <span>{formatWalletDateTime(item.occurredAt)}</span>
                               <span className={`wallet-table__amount ${isIncrease ? "wallet-table__amount--plus" : "wallet-table__amount--minus"}`}>
                                 <span className="wallet-table__balance">
-                                  <span>{isIncrease ? "+" : "-"}{formatBalance(activityBalanceAmount)}</span>
+                                  <span>{isIncrease ? "+" : "-"}{activeWalletConfig.formatActivityAmount(item.amount)}</span>
                                 </span>
                               </span>
                             </div>
