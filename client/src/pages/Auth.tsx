@@ -640,7 +640,7 @@ export default function Auth() {
         .auth-footer {
           margin: 0 0 -4px;
           padding-top: 8px;
-          color: rgba(114, 93, 66, .5);
+          color: rgba(0, 0, 0, .3);
           font-size: 12px;
           font-weight: 750;
           line-height: 1.45;
@@ -649,7 +649,7 @@ export default function Auth() {
 
         .auth-footer button {
           appearance: none;
-          color: rgba(255, 255, 255, .8);
+          color: #ffffff;
           background: transparent;
           border: 0;
           cursor: pointer;
@@ -663,7 +663,7 @@ export default function Auth() {
           position: relative;
           z-index: 2;
           margin: -2px 8px 0;
-          color: rgba(114, 93, 66, .5);
+          color: rgba(0, 0, 0, .3);
           font-size: 10px;
           font-weight: 750;
           line-height: 1.5;
@@ -744,7 +744,7 @@ export default function Auth() {
             <div className="auth-brand">
               <div>
                 <img className="auth-brand__logo" src="/assets/quandora-logo.svg" alt="Quandora" />
-                <p>{tr("Start your AI factor mining journey.", "开启你的 AI 因子挖掘之旅。")}</p>
+                <p>{tr("Start your AI factor mining journey.", "开启你的 AI 因子挖掘之旅")}</p>
               </div>
             </div>
           </header>

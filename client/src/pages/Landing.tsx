@@ -36,6 +36,8 @@ import {
   User,
   Users,
   Wallet,
+  ZoomIn,
+  ZoomOut,
   X,
 } from "lucide-react";
 import { factors, getAlphaGrade, strategies, type AlphaGrade, type Factor } from "@/lib/mockData";
@@ -43,6 +45,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { AlphaViewModeProvider } from "@/contexts/AlphaViewModeContext";
 import { usePageTransition } from "@/contexts/PageTransitionContext";
+import disconnectedBasketUrl from "@/assets/disconnected-basket.svg";
+import noticeIconUrl from "@/assets/notice.svg";
 import {
   BALANCE_PER_USD,
   FISH_BALANCE_AMOUNT,
@@ -110,6 +114,10 @@ type PendingInventoryDelete =
 type InventoryToast = {
   id: number;
   title: string;
+  message: string;
+} | null;
+type BasketEmptyToast = {
+  id: number;
   message: string;
 } | null;
 type LeaderboardPeriod = "week" | "month";
@@ -594,6 +602,8 @@ export default function Landing() {
   const [agentConnectMode, setAgentConnectMode] = useState<"web" | "agent">("web");
   const [agentConnectOpt, setAgentConnectOpt] = useState<"auth" | "api">("auth");
   const [agentConnectPlugin, setAgentConnectPlugin] = useState<"auto" | "manual">("auto");
+  const [agentGuidePreviewImageSrc, setAgentGuidePreviewImageSrc] = useState<string | null>(null);
+  const [agentGuidePreviewScale, setAgentGuidePreviewScale] = useState(1);
   const [agentAuthMethod, setAgentAuthMethod] = useState<"code" | "byok">("code");
   const [agentWebAuthorizationCode, setAgentWebAuthorizationCode] = useState("SSH8-M4Y83");
   const [agentByokKey, setAgentByokKey] = useState("");
@@ -602,6 +612,7 @@ export default function Landing() {
   const [agentApiKeys, setAgentApiKeys] = useState<AgentApiKeyItem[]>(initialAgentApiKeys);
   const [agentApiVisibleKeyIds, setAgentApiVisibleKeyIds] = useState<Set<string>>(() => new Set());
   const [agentAuthPreviewOpen, setAgentAuthPreviewOpen] = useState(false);
+  const [agentAuthPreviewSuccessOpen, setAgentAuthPreviewSuccessOpen] = useState(false);
   const [agentAuthPreviewProviderId, setAgentAuthPreviewProviderId] = useState<AgentAuthPreviewProviderId>("openclaw");
   const [agentTimeoutPreviewOpen, setAgentTimeoutPreviewOpen] = useState(false);
   const [agentTimeoutPreviewProviderId, setAgentTimeoutPreviewProviderId] = useState<AgentAuthPreviewProviderId>("openclaw");
@@ -643,6 +654,7 @@ export default function Landing() {
   const [deletedInventoryItemIds, setDeletedInventoryItemIds] = useState<Set<string>>(() => new Set());
   const [pendingInventoryDelete, setPendingInventoryDelete] = useState<PendingInventoryDelete>(null);
   const [inventoryToast, setInventoryToast] = useState<InventoryToast>(null);
+  const [basketEmptyToast, setBasketEmptyToast] = useState<BasketEmptyToast>(null);
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
   const withdrawNetworkSelectRef = useRef<HTMLDivElement | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
@@ -681,6 +693,12 @@ export default function Landing() {
     const toastTimer = window.setTimeout(() => setInventoryToast(null), 2600);
     return () => window.clearTimeout(toastTimer);
   }, [inventoryToast]);
+
+  useEffect(() => {
+    if (!basketEmptyToast) return undefined;
+    const toastTimer = window.setTimeout(() => setBasketEmptyToast(null), 1600);
+    return () => window.clearTimeout(toastTimer);
+  }, [basketEmptyToast]);
 
   useEffect(() => {
     if (!user) return;
@@ -936,8 +954,12 @@ export default function Landing() {
         `自动抛竿进行中 ${autoCastProgressLabel} ${autoCastElapsedLabel}`
       )
     : tr(`Cast waiting ${manualCastElapsedLabel}`, `抛竿等待中 ${manualCastElapsedLabel}`);
+  const isAgentDisconnected = Boolean(user) && agentConnectedProviderIds.size === 0;
+  const isClientAgentConnected = agentGlobalConnectMode === "agent" && agentConnectedProviderIds.size > 0;
   const castButtonLabel = tr("Cast", "抛竿");
   const castActionLabel = tr("Cast", "抛竿");
+  const agentRequiredLabel = tr("Connect an agent to use", "连接agent后使用");
+  const clientAgentOnlyLabel = tr("Use the connected local agent", "请到已连接的本地agent上操作");
   const basketItemCount =
     basketBadgeMode === "hidden" ? 0 : basketBadgeMode === "one" ? 1 : basketBadgeMode === "ten" ? 10 : 100;
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
@@ -946,7 +968,7 @@ export default function Landing() {
   };
 
   const openAutoCastSettings = () => {
-    if (autoCastRunning || manualCastWaiting) return;
+    if (autoCastRunning || manualCastWaiting || isAgentDisconnected) return;
     setAutoCastDraftCount(autoCastCount);
     setAutoCastSettingsOpen(true);
   };
@@ -989,9 +1011,17 @@ export default function Landing() {
   };
 
   const handleMainCastClick = () => {
-    if (autoCastRunning || manualCastWaiting) return;
+    if (autoCastRunning || manualCastWaiting || isAgentDisconnected) return;
     setManualCastElapsed(0);
     setManualCastStartedAt(Date.now());
+  };
+
+  const handleBasketClick = () => {
+    if (basketBadgeMode !== "hidden") return;
+    setBasketEmptyToast({
+      id: Date.now(),
+      message: tr("Empty", "空空如也"),
+    });
   };
 
   const handleStopManualCast = () => {
@@ -1002,12 +1032,49 @@ export default function Landing() {
   const openAgentSettingsForScenario = (nextInlineStep: "mode" | "manage" = "manage") => {
     setSettingsOpen(true);
     setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
     setAgentModeSwitchWarning(false);
     setAgentDisconnectConfirmProviderId(null);
     setAgentInlineStep(nextInlineStep);
   };
 
-  const applyTestScenario = (scenario: "logged-out" | "agent-disconnected" | "client-agent-connected") => {
+  const openAgentRequiredSettings = () => {
+    setSettingsOpen(true);
+    setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
+    setAgentGlobalConnectMode(null);
+    setAgentConnectMode("web");
+    setAgentInlineStep("mode");
+    setAgentModeSwitchWarning(false);
+    setAgentDisconnectConfirmProviderId(null);
+  };
+
+  const openClientAgentSettings = () => {
+    setSettingsOpen(true);
+    setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
+    setAgentGlobalConnectMode("agent");
+    setAgentConnectMode("agent");
+    setAgentInlineStep("manage");
+    setAgentModeSwitchWarning(false);
+    setAgentDisconnectConfirmProviderId(null);
+  };
+
+  const setDisconnectedAgentScenario = () => {
+    setAutoCastRunning(false);
+    setAutoCastSingleStartedAt(null);
+    setManualCastStartedAt(null);
+    setManualCastElapsed(0);
+    setAgentConnectedProviderIds(new Set<AgentProviderId>());
+    setAgentConnectedDeviceNames({});
+    setAgentProviderAvailabilityById({});
+    setAgentGlobalConnectMode(null);
+    setAgentConnectMode("web");
+    setAgentInlineStep("mode");
+    setSettingsOpen(false);
+  };
+
+  const applyTestScenario = (scenario: "logged-out" | "agent-disconnected" | "web-agent-connected" | "client-agent-connected") => {
     setInventoryToast(null);
     setAgentStatusTestingProviderId(null);
     setAgentAuthPreviewOpen(false);
@@ -1015,12 +1082,7 @@ export default function Landing() {
 
     if (scenario === "logged-out") {
       logout();
-      setAgentConnectedProviderIds(new Set<AgentProviderId>());
-      setAgentConnectedDeviceNames({});
-      setAgentProviderAvailabilityById({});
-      setAgentGlobalConnectMode(null);
-      setAgentConnectMode("web");
-      setAgentInlineStep("mode");
+      setDisconnectedAgentScenario();
       setSettingsOpen(false);
       navigateWithTransition("/auth");
       return;
@@ -1031,13 +1093,23 @@ export default function Landing() {
     }
 
     if (scenario === "agent-disconnected") {
-      setAgentConnectedProviderIds(new Set<AgentProviderId>());
-      setAgentConnectedDeviceNames({});
+      setDisconnectedAgentScenario();
+      setSettingsOpen(false);
+      return;
+    }
+
+    if (scenario === "web-agent-connected") {
+      setAgentConnectedProviderIds(new Set<AgentProviderId>(["codex"]));
+      setAgentConnectedDeviceNames({ codex: "Web" });
       setAgentProviderAvailabilityById({});
-      setAgentGlobalConnectMode(null);
+      setAgentGlobalConnectMode("web");
       setAgentConnectMode("web");
-      setAgentInlineStep("mode");
-      openAgentSettingsForScenario("mode");
+      setSettingsOpen(false);
+      setSettingsActiveTab("agent");
+      setSettingsAgentSection("web");
+      setAgentModeSwitchWarning(false);
+      setAgentDisconnectConfirmProviderId(null);
+      setAgentInlineStep("manage");
       return;
     }
 
@@ -1046,8 +1118,12 @@ export default function Landing() {
     setAgentProviderAvailabilityById({ ...initialAgentProviderAvailabilityById });
     setAgentGlobalConnectMode("agent");
     setAgentConnectMode("agent");
-    setAgentInlineStep("manage");
-    openAgentSettingsForScenario();
+    setSettingsOpen(false);
+    setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
+    setAgentModeSwitchWarning(false);
+    setAgentDisconnectConfirmProviderId(null);
+    setAgentInlineStep("mode");
   };
 
   const toggleBasketBadgeScenario = () => {
@@ -1484,6 +1560,7 @@ export default function Landing() {
   const openNextAgentAuthPreview = () => {
     const nextProviderId = getNextAgentAuthPreviewProviderId(agentAuthPreviewProviderId);
     setAgentAuthPreviewProviderId(nextProviderId);
+    setAgentAuthPreviewSuccessOpen(false);
     setAgentAuthPreviewOpen(true);
   };
 
@@ -1523,6 +1600,12 @@ export default function Landing() {
   const requestSwitchConnectMode = () => {
     setAgentModeSwitchWarning(false);
     setAgentConnectionWarningType("mode");
+    const connectedWebAgentCount = agentGlobalConnectMode === "web" ? agentConnectedProviderIds.size : 0;
+    const connectedClientAgentCount = agentGlobalConnectMode === "agent" ? agentConnectedProviderIds.size : 0;
+    if (connectedWebAgentCount > 0 || connectedClientAgentCount > 0) {
+      setAgentModeSwitchWarning(true);
+      return;
+    }
     setAgentGlobalConnectMode(null);
     setAgentInlineStep("mode");
   };
@@ -1640,7 +1723,11 @@ export default function Landing() {
 
   const allowAgentAuthPreviewAccess = () => {
     setAgentAuthPreviewOpen(false);
-    confirmAgentProviderConnection();
+    setAgentSelectedProviderId(agentAuthPreviewProviderId);
+    setAgentConnectedProviderIds((current) => new Set(current).add(agentAuthPreviewProviderId));
+    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentAuthPreviewProviderId]: "MacBook Pro" }));
+    setAgentGlobalConnectMode("agent");
+    setAgentAuthPreviewSuccessOpen(true);
   };
 
   const testAgentByok = () => {
@@ -1725,6 +1812,23 @@ export default function Landing() {
 
   const copyAgentManualField = (text: string, label: string) => {
     copyAgentText(text, tr("Copied", "已复制"), tr(`${label} copied.`, `${label} 已复制。`));
+  };
+
+  const openAgentGuidePreview = (src: string) => {
+    setAgentGuidePreviewImageSrc(src);
+    setAgentGuidePreviewScale(1);
+  };
+
+  const closeAgentGuidePreview = () => {
+    setAgentGuidePreviewImageSrc(null);
+    setAgentGuidePreviewScale(1);
+  };
+
+  const zoomAgentGuidePreview = (direction: "in" | "out") => {
+    setAgentGuidePreviewScale((current) => {
+      const next = direction === "in" ? current + 0.25 : current - 0.25;
+      return Math.min(3, Math.max(0.5, Number(next.toFixed(2))));
+    });
   };
 
   const openAgentApiCreateModal = () => {
@@ -2594,43 +2698,291 @@ export default function Landing() {
           text-shadow: none;
         }
 
-	        .hud-bottom-bar {
-	          position: absolute;
-	          left: 50%;
-	          bottom: 40px;
-	          transform: translateX(-50%);
+        .hud-bottom-bar {
+          position: absolute;
+          left: 50%;
+          bottom: 40px;
+          transform: translateX(-50%);
           display: flex;
           align-items: flex-end;
           gap: 30px;
-	          z-index: 2;
-	        }
+          z-index: 2;
+        }
 
-	        .hud-cast-stack {
-	          display: flex;
-	          flex-direction: column;
-	          align-items: stretch;
-	          gap: 0;
-	        }
+        .hud-cast-stack {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+        }
 
-	        .cast-auto-inline {
-	          display: flex;
-	          align-items: flex-end;
-	          gap: 8px;
-	          justify-content: center;
-	          margin-bottom: -6px;
-	          position: relative;
-	          z-index: 1;
-	          transition: transform 80ms ease;
-	        }
+        .cast-auto-inline {
+          display: flex;
+          align-items: flex-end;
+          gap: 8px;
+          justify-content: center;
+          margin-bottom: -6px;
+          position: relative;
+          z-index: 1;
+          transition: transform 80ms ease;
+        }
 
-	        .hud-cast-stack:has(.hud-main-action:active) .cast-auto-inline {
-	          transform: translateY(8px);
-	        }
+        .hud-cast-stack:has(.hud-main-action:active) .cast-auto-inline {
+          transform: translateY(8px);
+        }
 
-	        .cast-auto-button,
-	        .cast-auto-stop {
-	          appearance: none;
-	          border: 0;
+        .hud-disconnected-actions {
+          position: relative;
+          width: 451px;
+          height: 232px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 20px;
+        }
+
+        .hud-disconnected-actions__tip {
+          position: relative;
+          width: 451px;
+          height: 92px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 22px;
+          padding: 16px 12px;
+          color: #fd5f5a;
+          background: #ffedb7;
+          border: 0;
+          border-radius: 16px;
+          box-shadow: 0 8px 0 #4e433c;
+          cursor: pointer;
+          font: inherit;
+          font-size: 30px;
+          font-weight: 700;
+          line-height: normal;
+          white-space: nowrap;
+          transition: transform 80ms ease, filter 120ms ease, box-shadow 80ms ease;
+        }
+
+        .hud-disconnected-actions__tip:hover {
+          filter: brightness(1.02);
+        }
+
+        .hud-disconnected-actions__tip:active {
+          transform: translateY(6px);
+          box-shadow: none;
+        }
+
+        .hud-disconnected-actions__tip:active::after {
+          opacity: 0;
+        }
+
+        .hud-disconnected-actions__tip::before,
+        .hud-disconnected-actions__tip::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .hud-disconnected-actions__tip::after {
+          bottom: -17px;
+          width: 34px;
+          height: 17px;
+          background: #4e433c;
+          clip-path: path("M 0 0 H 34 L 19.828 14.172 Q 17 17 14.172 14.172 Z");
+        }
+
+        .hud-disconnected-actions__tip::before {
+          bottom: -9px;
+          z-index: 1;
+          width: 26px;
+          height: 13px;
+          background: #ffedb7;
+          clip-path: path("M 0 0 H 26 L 15.828 10.172 Q 13 13 10.172 10.172 Z");
+        }
+
+        .hud-disconnected-actions__tip-icon {
+          flex: 0 0 auto;
+          width: 60px;
+          height: 60px;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .hud-disconnected-actions__tip-label {
+          position: relative;
+          z-index: 2;
+        }
+
+        .hud-disconnected-actions__main {
+          position: relative;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 30px;
+          transition: transform 80ms ease;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .hud-disconnected-actions__tip,
+          .hud-disconnected-actions__main {
+            transition: none;
+          }
+        }
+
+        .hud-disconnected-actions__cast {
+          flex: 0 0 auto;
+          width: 301px;
+          height: 120px;
+          display: flex;
+          align-items: center;
+          gap: 36px;
+          padding: 20px 40px;
+          color: inherit;
+          background: #eeece8;
+          border: 0;
+          border-radius: 16px;
+          box-shadow: none;
+          cursor: not-allowed;
+          font: inherit;
+        }
+
+        .hud-disconnected-actions__cast-tool {
+          flex: 0 0 auto;
+          width: 80px;
+          height: 79px;
+          object-fit: contain;
+          image-rendering: pixelated;
+          opacity: .3;
+          filter: grayscale(1) saturate(0);
+        }
+
+        .hud-disconnected-actions__cast-label {
+          position: relative;
+          z-index: 0;
+          display: inline-block;
+          color: #fff;
+          -webkit-text-fill-color: #fff;
+          text-align: center;
+          font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-size: 50px;
+          font-style: normal;
+          font-weight: 700;
+          font-synthesis: none;
+          font-variation-settings: "wght" 700, "BEVL" 1;
+          line-height: 100%;
+          letter-spacing: 5px;
+          opacity: .3;
+          paint-order: stroke fill;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          white-space: nowrap;
+        }
+
+        .hud-disconnected-actions__cast-label::before {
+          content: attr(data-label);
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          color: #fff;
+          text-align: center;
+          -webkit-text-fill-color: #fff;
+          -webkit-text-stroke-width: 10px;
+          -webkit-text-stroke-color: #4e433c;
+          paint-order: stroke fill;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          text-shadow:
+            0 1px 0 #4e433c,
+            1px 0 0 #4e433c,
+            0 -1px 0 #4e433c,
+            -1px 0 0 #4e433c,
+            1px 1px 0 #4e433c,
+            -1px 1px 0 #4e433c,
+            1px -1px 0 #4e433c,
+            -1px -1px 0 #4e433c;
+        }
+
+        .hud-disconnected-actions__basket {
+          position: relative;
+          flex: 0 0 120px;
+          width: 120px;
+          height: 120px;
+          padding: 0;
+          background: transparent;
+          border: 0;
+          border-radius: 16px;
+          box-shadow: none;
+          cursor: not-allowed;
+          font: inherit;
+          overflow: visible;
+        }
+
+        .hud-disconnected-actions__basket-icon {
+          position: absolute;
+          inset: 0;
+          width: 120px;
+          height: 120px;
+          object-fit: fill;
+          pointer-events: none;
+          user-select: none;
+          opacity: 1;
+        }
+
+        .hud-basket-empty-toast {
+          position: absolute;
+          left: 50%;
+          bottom: calc(100% + 12px);
+          transform: translateX(-50%);
+          z-index: 3;
+          min-width: 94px;
+          padding: 8px 14px;
+          color: #6f431f;
+          background: #fff7df;
+          border: 2px solid rgba(196, 184, 158, .92);
+          border-radius: 999px;
+          box-shadow: 0 4px 0 rgba(78, 67, 60, .28), inset 0 2px 0 rgba(255, 255, 255, .72);
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 1.2;
+          text-align: center;
+          white-space: nowrap;
+          pointer-events: none;
+          animation: hud-basket-toast-pop 160ms ease-out;
+        }
+
+        .hud-basket-empty-toast::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          bottom: -8px;
+          width: 12px;
+          height: 12px;
+          background: #fff7df;
+          border-right: 2px solid rgba(196, 184, 158, .92);
+          border-bottom: 2px solid rgba(196, 184, 158, .92);
+          transform: translateX(-50%) rotate(45deg);
+        }
+
+        @keyframes hud-basket-toast-pop {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(6px) scale(.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+        }
+
+        .cast-auto-button,
+        .cast-auto-stop {
+          appearance: none;
+          border: 0;
 	          color: #4e433c;
 	          cursor: pointer;
 	          font: inherit;
@@ -2659,6 +3011,13 @@ export default function Landing() {
 
         button.cast-auto-button:not(:disabled):hover {
           transform: translateY(-2px);
+        }
+
+        .cast-auto-button.is-disabled {
+          color: rgba(78, 67, 60, .46);
+          background: rgba(255, 247, 227, .64);
+          cursor: not-allowed;
+          filter: grayscale(.25);
         }
 
         .cast-auto-button.is-running {
@@ -2865,6 +3224,43 @@ export default function Landing() {
           cursor: default;
         }
 
+        .hud-main-action--notice {
+          width: 415px;
+          min-width: 415px;
+          justify-content: center;
+          gap: 0;
+          padding: 20px 40px;
+          color: #4e433c;
+          background: #ffedb7;
+          box-shadow: none;
+          cursor: default;
+        }
+
+        .hud-main-action--notice .hud-main-action__label {
+          color: #4e433c;
+          -webkit-text-fill-color: #4e433c;
+          font-size: 24px;
+          font-weight: 700;
+          letter-spacing: 0;
+          line-height: normal;
+          white-space: nowrap;
+        }
+
+        .hud-main-action--notice .hud-main-action__label::before {
+          content: none;
+        }
+
+        .hud-main-action__notice-icon {
+          position: absolute;
+          top: -26px;
+          right: -10px;
+          width: 60px;
+          height: 60px;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
+        }
+
         .hud-main-action__tool {
           flex: 0 0 auto;
           width: 80px;
@@ -3007,31 +3403,33 @@ export default function Landing() {
 
         .hud-badge {
           position: absolute;
-          right: -10px;
-          top: -17px;
-          width: 40px;
-          height: 40px;
+          left: 110px;
+          top: 32px;
+          width: 60px;
+          height: 60px;
           display: grid;
           place-items: center;
           border-radius: 999px;
+          transform: translate(-50%, -50%);
           background: #fd5f5a;
         }
 
         .hud-badge span {
           color: #fff;
-          font-size: 22px;
+          font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-size: 28px;
           font-weight: 900;
-          line-height: 1;
+          line-height: normal;
           white-space: nowrap;
         }
 
         .hud-badge--compact span {
-          font-size: 17px;
+          font-size: 22px;
         }
 
         .menu-item:hover,
-        .hud-main-action:hover,
-        .hud-basket:hover {
+        .hud-main-action:not(:disabled):hover,
+        .hud-basket:not(:disabled):hover {
           filter: brightness(1.02);
         }
 
@@ -3039,22 +3437,38 @@ export default function Landing() {
           transform: translateY(1px);
         }
 
-        .hud-main-action:active,
-        .hud-basket:active {
+        .hud-main-action:not(:disabled):active,
+        .hud-basket:not(:disabled):active {
           transform: translateY(6px);
         }
 
-        .hud-main-action:active {
+        .hud-main-action:not(:disabled):active {
           box-shadow: 0 0 0 #4e433c;
         }
 
-        .hud-basket:active .hud-basket__shell {
+        .hud-basket:not(:disabled):active .hud-basket__shell {
           clip-path: inset(0 0 8px 0 round 16px);
+        }
+
+        .hud-main-action--disabled,
+        .hud-main-action--disabled:hover,
+        .hud-main-action--disabled:active {
+          box-shadow: none;
+          filter: none;
+          transform: none;
+        }
+
+        .hud-basket--disabled,
+        .hud-basket--disabled:hover,
+        .hud-basket--disabled:active {
+          filter: grayscale(1);
+          transform: none;
         }
 
 	        .menu-item:focus-visible,
 	        .cast-auto-button:focus-visible,
 	        .cast-auto-stop:focus-visible,
+	        .hud-agent-required:focus-visible,
 	        .cast-count-stepper:focus-visible,
 	        .cast-count-input:focus-visible,
 	        .auto-cast-modal__button:focus-visible,
@@ -5374,6 +5788,10 @@ export default function Landing() {
           box-shadow: 0 0 0 3px rgba(255,253,244,.72), 0 18px 36px rgba(66,48,31,.16);
           animation: sacPopIn 0.18s ease;
         }
+        .sac-modal:has(.sac-success) {
+          width: fit-content;
+          max-width: 100%;
+        }
         @keyframes sacPopIn {
           from { opacity: 0; transform: scale(0.96) translateY(6px); }
           to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -5451,7 +5869,7 @@ export default function Landing() {
         /* Connection mode bar (manage view) */
         .sac-mode-bar {
           display: flex; align-items: center; justify-content: space-between;
-          background: rgba(255, 213, 87, .08); border: 0;
+          background: #fff2c9; border: 1.5px solid rgba(212, 159, 47, .36);
           border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
         }
         .sac-mode-bar__label { font-size: 13px; font-weight: 700; color: var(--ac-text); }
@@ -5508,6 +5926,28 @@ export default function Landing() {
           transition: background 0.15s, border-color 0.15s;
         }
         .sac-disconnect-all-btn:hover { background: rgba(180,83,9,.07); border-color: rgba(180,83,9,.6); }
+
+        .sac-mode-warning .settings-agent-confirm-actions {
+          justify-content: flex-end;
+          align-items: center;
+        }
+
+        .sac-mode-warning .sac-disconnect-all-btn {
+          order: -1;
+          height: 34px;
+          border: 0;
+          padding: 0 14px;
+          font-size: 12px;
+          line-height: 34px;
+          box-shadow: none;
+        }
+
+        .sac-mode-warning .settings-action--primary {
+          height: 28px;
+          padding: 0 14px;
+          background: #ffedb7;
+          box-shadow: none;
+        }
 
         /* Radio dot */
         .sac-radio {
@@ -5595,30 +6035,39 @@ export default function Landing() {
         /* Code box */
         .sac-code-box {
           display: flex; align-items: center; gap: 10px;
-          background: #f5f5f5; border-radius: var(--radius-xs);
-          padding: 10px 12px;
+          background: rgba(255, 253, 244, .82);
+          border: 1.5px solid rgba(196,184,158,.52);
+          border-radius: var(--radius-xs);
+          padding: 8px 10px 8px 12px;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
         }
-        .sac-code-box code { flex: 1; font-size: 12px; color: rgb(121,79,39); font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; word-break: break-all; }
+        .sac-code-box code { flex: 1; font-size: 12px; color: rgb(121,79,39); font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; }
 
         .sac-code-copy {
           appearance: none;
-          width: 30px;
-          height: 30px;
+          width: 28px;
+          height: 28px;
           display: inline-grid;
           place-items: center;
           flex: 0 0 auto;
-          color: rgba(121,79,39,.72);
-          background: transparent;
-          border: 0;
+          color: var(--ac-text);
+          background: rgba(255,213,87,.28);
+          border: 1.5px solid rgba(121,79,39,.16);
           border-radius: var(--radius-xs);
           cursor: pointer;
+          transition: background .15s ease, border-color .15s ease, transform .15s ease;
         }
 
         .sac-code-copy:hover,
         .sac-code-copy:focus-visible {
           color: var(--ac-text);
-          background: rgba(255,213,87,.28);
+          background: rgba(255,213,87,.72);
+          border-color: rgba(121,79,39,.28);
           outline: none;
+        }
+
+        .sac-code-copy:active {
+          transform: translateY(1px);
         }
 
         .sac-link { color: #3a9bbf; font-size: 13px; font-weight: 600; text-decoration: none; }
@@ -5650,7 +6099,128 @@ export default function Landing() {
         .sac-guide-copy:focus-visible { color: var(--ac-text); background: #fffdf4; outline: none; }
         .sac-guide-hint-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
         .sac-guide-hint { font-size: 11px; color: rgba(121,79,39,.65); line-height: 1.5; margin: 0; }
-        .sac-guide-img { width: 100%; border-radius: 6px; border: 1px solid rgba(196,184,158,.4); display: block; }
+        .sac-guide-img-button {
+          appearance: none;
+          display: block;
+          width: 100%;
+          padding: 0;
+          background: transparent;
+          border: 0;
+          border-radius: 6px;
+          cursor: zoom-in;
+        }
+        .sac-guide-img-button:focus-visible {
+          outline: 2px solid #ffd557;
+          outline-offset: 2px;
+        }
+        .sac-guide-img { width: 100%; border-radius: 6px; border: 1px solid rgba(196,184,158,.4); display: block; transition: border-color .15s ease, box-shadow .15s ease; }
+        .sac-guide-img-button:hover .sac-guide-img,
+        .sac-guide-img-button:focus-visible .sac-guide-img {
+          border-color: rgba(121,79,39,.36);
+          box-shadow: 0 8px 18px rgba(66,48,31,.14);
+        }
+
+        .sac-image-preview-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 90;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 42px;
+          background: rgba(25, 31, 37, .52);
+          backdrop-filter: blur(5px);
+        }
+        .sac-image-preview-modal {
+          position: relative;
+          width: min(1180px, 94vw);
+          height: min(820px, 88vh);
+          display: grid;
+          place-items: center;
+          overflow: auto;
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+        .sac-image-preview-close {
+          appearance: none;
+          position: fixed;
+          top: 26px;
+          right: 30px;
+          z-index: 2;
+          width: 34px;
+          height: 34px;
+          display: inline-grid;
+          place-items: center;
+          color: #fffdf4;
+          background: rgba(25, 31, 37, .5);
+          border: 0;
+          border-radius: 999px;
+          cursor: pointer;
+        }
+        .sac-image-preview-close:hover,
+        .sac-image-preview-close:focus-visible {
+          color: #5a3e00;
+          background: #ffd557;
+          outline: none;
+        }
+        .sac-image-preview-toolbar {
+          position: fixed;
+          top: 26px;
+          left: 50%;
+          z-index: 2;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px;
+          background: rgba(25, 31, 37, .5);
+          border-radius: 999px;
+          transform: translateX(-50%);
+        }
+        .sac-image-preview-tool {
+          appearance: none;
+          min-width: 34px;
+          height: 34px;
+          display: inline-grid;
+          place-items: center;
+          padding: 0 10px;
+          color: #fffdf4;
+          background: transparent;
+          border: 0;
+          border-radius: 999px;
+          cursor: pointer;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+        .sac-image-preview-tool:hover,
+        .sac-image-preview-tool:focus-visible {
+          color: #5a3e00;
+          background: #ffd557;
+          outline: none;
+        }
+        .sac-image-preview-tool:disabled {
+          opacity: .38;
+          cursor: not-allowed;
+        }
+        .sac-image-preview-body {
+          width: max-content;
+          height: max-content;
+          display: block;
+        }
+        .sac-image-preview-body img {
+          display: block;
+          max-width: min(1120px, calc(94vw - 84px));
+          max-height: calc(88vh - 84px);
+          width: auto;
+          height: auto;
+          border: 0;
+          border-radius: 0;
+          box-shadow: 0 18px 44px rgba(25, 31, 37, .36);
+          transform-origin: center;
+        }
 
         /* Nav */
         .sac-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
@@ -5668,7 +6238,14 @@ export default function Landing() {
         .sac-btn-next:hover, .sac-btn-sm:hover { background: #f5c030; }
 
         /* Success */
-        .sac-success { text-align: center; padding: 28px 18px 24px !important; }
+        .sac-success {
+          box-sizing: border-box;
+          width: 450px;
+          max-width: 100%;
+          margin-inline: auto;
+          text-align: center;
+          padding: 28px 18px 24px !important;
+        }
         .sac-success-icon  { font-size: 48px; margin-bottom: 10px; }
         .sac-success-title { font-size: 17px; font-weight: 800; color: #2a7a4a; margin-bottom: 6px; }
         .sac-success-msg   { font-size: 13px; color: #4a9a6a; margin-bottom: 16px; }
@@ -6236,20 +6813,22 @@ export default function Landing() {
         .settings-agent-auth-options {
           width: 100%;
           display: grid;
-          grid-template-columns: minmax(152px, .8fr) minmax(0, 1fr);
-          column-gap: 22px;
+          grid-template-columns: minmax(136px, .74fr) minmax(0, 1fr);
+          column-gap: 18px;
           overflow: visible;
-          background: #fffefa;
-          padding: 14px 14px 14px;
-          border-radius: 4px;
+          background: rgba(255, 253, 244, .82);
+          border: 0;
+          border-radius: var(--radius-xs);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+          padding: 12px;
         }
 
         .settings-agent-auth-option {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 12px;
-          align-content: start;
-          align-items: start;
+          gap: 10px;
+          align-content: center;
+          align-items: center;
           padding: 0;
           margin: 0;
           background: transparent;
@@ -6262,9 +6841,9 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option--code {
-          gap: 16px;
-          padding-left: 22px;
-          border-left: 1px solid rgba(196, 184, 158, .42);
+          gap: 14px;
+          padding-left: 18px;
+          border-left: 1.5px solid rgba(196, 184, 158, .1);
         }
 
         .settings-agent-auth-option > div:first-child,
@@ -6282,9 +6861,9 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option span {
-          color: rgba(121, 79, 39, .72);
-          font-size: 11px;
-          font-weight: 850;
+          color: rgba(121, 79, 39, .66);
+          font-size: 10px;
+          font-weight: 750;
           line-height: 1.45;
         }
 
@@ -6294,13 +6873,15 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option__head strong {
-          font-size: 15px;
+          font-size: 13px;
           line-height: 1.2;
         }
 
         .settings-agent-code-copy strong {
-          font-size: 24px;
-          letter-spacing: .08em;
+          color: rgb(121,79,39);
+          font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 20px;
+          letter-spacing: .06em;
           line-height: 1;
         }
 
@@ -6326,22 +6907,34 @@ export default function Landing() {
 
         .settings-agent-auth-option--code .settings-action {
           width: min(100%, 240px);
-          min-height: 38px;
+          min-height: 36px;
+          border-radius: var(--radius-xs);
+          font-size: 12px;
+          font-weight: 900;
         }
 
         .settings-agent-auth-option--code .settings-action--primary {
-          box-shadow: none;
+          color: #5a3e00;
+          background: #ffd557;
+          border: 0;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.42);
+        }
+
+        .settings-agent-auth-option--code .settings-action--primary:hover,
+        .settings-agent-auth-option--code .settings-action--primary:focus-visible {
+          background: #f5c030;
         }
 
         .settings-agent-qr {
-          width: 126px;
-          height: 126px;
+          width: 116px;
+          height: 116px;
           display: block;
           justify-self: start;
           overflow: hidden;
           background: #fff;
-          border: 0;
-          border-radius: 4px;
+          border: 1.5px solid rgba(196,184,158,.42);
+          border-radius: 6px;
+          padding: 5px;
         }
 
         .settings-agent-qr img {
@@ -6612,15 +7205,15 @@ export default function Landing() {
 
           .settings-agent-auth-options {
             grid-template-columns: 1fr;
-            gap: 16px;
-            padding: 10px 0 0;
+            gap: 14px;
+            padding: 12px;
           }
 
           .settings-agent-auth-option--code {
             padding-left: 0;
             border-left: 0;
-            border-top: 1px solid rgba(196, 184, 158, .42);
-            padding-top: 16px;
+            border-top: 1.5px solid rgba(196, 184, 158, .46);
+            padding-top: 14px;
           }
 
           .settings-agent-auth-option {
@@ -6660,7 +7253,7 @@ export default function Landing() {
           background: rgba(255, 253, 244, .86);
           border: 2px solid rgba(196, 184, 158, .7);
           border-radius: var(--radius-sm);
-          box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
+          box-shadow: none;
         }
 
         .settings-section + .settings-section {
@@ -6763,7 +7356,7 @@ export default function Landing() {
           background: #fffdf4;
           border: 2px solid rgba(196, 184, 158, .78);
           border-radius: var(--radius-xs);
-          box-shadow: inset 0 2px 0 rgba(189, 174, 160, .22);
+          box-shadow: none;
           font: inherit;
           font-size: 13px;
           font-weight: 850;
@@ -6835,7 +7428,7 @@ export default function Landing() {
           background: var(--ac-cream-light);
           border: 0;
           border-radius: var(--radius-xs);
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .42);
+          box-shadow: none;
           cursor: pointer;
           font: inherit;
           font-size: 12px;
@@ -9911,6 +10504,13 @@ export default function Landing() {
                     <button
                       className="test-scenario-button"
                       type="button"
+                      onClick={() => applyTestScenario("web-agent-connected")}
+                    >
+                      <span>{tr("Web agent", "连接网页agent")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
                       onClick={() => applyTestScenario("client-agent-connected")}
                     >
                       <span>{tr("Client agent", "连接客户端agent")}</span>
@@ -9958,6 +10558,33 @@ export default function Landing() {
           </div>
         )}
 
+        {agentAuthPreviewSuccessOpen && (
+          <div className="settings-agent-connect-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setAgentAuthPreviewSuccessOpen(false); }}>
+            <section className="sac-modal" role="dialog" aria-modal="true" aria-label={tr("Connected", "连接成功")}>
+              <div className="sac-body sac-success">
+                <div className="sac-success-icon">🎉</div>
+                <div className="sac-success-title">{tr("Connected!", "连接成功！")}</div>
+                <div className="sac-success-msg">
+                  {getAgentProviderName(agentAuthPreviewProviderId)} {tr("has been connected. You can start using it now.", "已成功接入，可以开始使用了。")}
+                </div>
+                <div className="sac-buddy-card">
+                  <div className="sac-buddy-card__icon">🐾</div>
+                  <div className="sac-buddy-card__body">
+                    <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
+                    <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                  </div>
+                  <a href="#" className="sac-buddy-card__btn" onClick={(event) => event.preventDefault()}>
+                    {tr("Download", "下载")}
+                  </a>
+                </div>
+                <button className="sac-btn-next" type="button" onClick={() => setAgentAuthPreviewSuccessOpen(false)}>
+                  {tr("Done", "完成")}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
         {agentTimeoutPreviewOpen && (
           <div
             className="settings-agent-connect-overlay"
@@ -9990,72 +10617,106 @@ export default function Landing() {
           </div>
         )}
 
-	        <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
-	          <div className="hud-cast-stack">
-	            {showAutoCastControl && (
-	              <div className="cast-auto-inline" aria-label={tr("Auto cast settings", "自动抛竿设置")}>
-	                <button
-	                  className="cast-auto-button"
-	                  type="button"
-		                  aria-label={tr("Enable auto cast", "开启自动抛竿")}
-		                  onClick={openAutoCastSettings}
-		                >
-		                  <span className="cast-auto-title">{tr("Enable auto cast", "开启自动抛竿")}</span>
-		                </button>
-	              </div>
-	            )}
+        <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
+          {isAgentDisconnected && !mainCastActive ? (
+            <div className="hud-disconnected-actions">
+              <button className="hud-disconnected-actions__tip" type="button" onClick={openAgentRequiredSettings}>
+                <img className="hud-disconnected-actions__tip-icon" src={noticeIconUrl} alt="" aria-hidden="true" />
+                <span className="hud-disconnected-actions__tip-label">{agentRequiredLabel}</span>
+              </button>
+              <div className="hud-disconnected-actions__main">
+                <button
+                  className="hud-disconnected-actions__cast"
+                  type="button"
+                  aria-label={agentRequiredLabel}
+                  aria-disabled="true"
+                  disabled
+                >
+                  <img className="hud-disconnected-actions__cast-tool" src={HUD_ASSETS.rod} alt="" />
+                  <span className="hud-disconnected-actions__cast-label" data-label={castButtonLabel}>{castButtonLabel}</span>
+                </button>
+                <button
+                  className="hud-disconnected-actions__basket"
+                  type="button"
+                  aria-label={tr("Basket", "鱼篓")}
+                  aria-disabled="true"
+                  disabled
+                >
+                  <img className="hud-disconnected-actions__basket-icon" src={disconnectedBasketUrl} alt="" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="hud-cast-stack">
+                {showAutoCastControl && !isClientAgentConnected && (
+                  <div className="cast-auto-inline" aria-label={tr("Auto cast settings", "自动抛竿设置")}>
+                    <button
+                      className="cast-auto-button"
+                      type="button"
+                      aria-label={tr("Enable auto cast", "开启自动抛竿")}
+                      onClick={openAutoCastSettings}
+                    >
+                      <span className="cast-auto-title">{tr("Enable auto cast", "开启自动抛竿")}</span>
+                    </button>
+                  </div>
+                )}
 
-            {mainCastActive ? (
-	              <div className="hud-main-action hud-main-action--waiting" role="group" aria-label={mainCastAriaLabel}>
-	                <img
-	                  className="hud-main-action__tool"
-	                  src={HUD_ASSETS.rod}
-	                  alt=""
-	                />
-	                <span className="hud-main-action__waiting">
-	                  <span className="hud-main-action__waiting-title">{mainCastStatusTitle}</span>
-	                  <span className="hud-main-action__timer">{mainCastElapsedLabel}</span>
-	                </span>
-	                <button
-	                  className="hud-main-action__stop"
-	                  type="button"
-	                  aria-label={autoCastRunning ? tr("Stop auto cast", "停止自动抛竿") : tr("Stop casting", "停止抛竿")}
-	                  onClick={autoCastRunning ? handleStopAutoCast : handleStopManualCast}
-	                >
-	                  {tr("Stop", "停止")}
-	                </button>
-	              </div>
-	            ) : (
-	              <button className="hud-main-action" type="button" aria-label={castActionLabel} onClick={handleMainCastClick}>
-	                <img
-	                  className="hud-main-action__tool"
-	                  src={HUD_ASSETS.rod}
-	                  alt=""
-	                />
-	                <span
-	                  className="hud-main-action__label"
-	                  data-label={castButtonLabel}
-	                >
-	                  {castButtonLabel}
-	                </span>
-	              </button>
-	            )}
-	          </div>
+                {mainCastActive ? (
+                  <div className="hud-main-action hud-main-action--waiting" role="group" aria-label={mainCastAriaLabel}>
+                    <img className="hud-main-action__tool" src={HUD_ASSETS.rod} alt="" />
+                    <span className="hud-main-action__waiting">
+                      <span className="hud-main-action__waiting-title">{mainCastStatusTitle}</span>
+                      <span className="hud-main-action__timer">{mainCastElapsedLabel}</span>
+                    </span>
+                    <button
+                      className="hud-main-action__stop"
+                      type="button"
+                      aria-label={autoCastRunning ? tr("Stop auto cast", "停止自动抛竿") : tr("Stop casting", "停止抛竿")}
+                      onClick={autoCastRunning ? handleStopAutoCast : handleStopManualCast}
+                    >
+                      {tr("Stop", "停止")}
+                    </button>
+                  </div>
+                ) : isClientAgentConnected ? (
+                  <button
+                    className="hud-main-action hud-main-action--notice"
+                    type="button"
+                    aria-label={clientAgentOnlyLabel}
+                    onClick={openClientAgentSettings}
+                  >
+                    <span className="hud-main-action__label" data-label={clientAgentOnlyLabel}>
+                      {clientAgentOnlyLabel}
+                    </span>
+                    <img className="hud-main-action__notice-icon" src={noticeIconUrl} alt="" aria-hidden="true" />
+                  </button>
+                ) : (
+                  <button className="hud-main-action" type="button" aria-label={castActionLabel} onClick={handleMainCastClick}>
+                    <img className="hud-main-action__tool" src={HUD_ASSETS.rod} alt="" />
+                    <span className="hud-main-action__label" data-label={castButtonLabel}>
+                      {castButtonLabel}
+                    </span>
+                  </button>
+                )}
+              </div>
 
-          <button className="hud-basket" type="button" aria-label={tr("Basket", "鱼篓")}>
-            <span className="hud-basket__shell" aria-hidden="true">
-              <img
-                className="hud-basket__icon"
-                src={HUD_ASSETS.basket}
-                alt=""
-              />
-            </span>
-            {basketBadgeLabel && (
-              <span className={`hud-badge${basketBadgeLabel === "99+" ? " hud-badge--compact" : ""}`}>
-                <span>{basketBadgeLabel}</span>
-              </span>
-            )}
-          </button>
+              <button className="hud-basket" type="button" aria-label={tr("Basket", "鱼篓")} onClick={handleBasketClick}>
+                <span className="hud-basket__shell" aria-hidden="true">
+                  <img className="hud-basket__icon" src={HUD_ASSETS.basket} alt="" />
+                </span>
+                {basketBadgeLabel && (
+                  <span className={`hud-badge${basketBadgeLabel === "99+" ? " hud-badge--compact" : ""}`}>
+                    <span>{basketBadgeLabel}</span>
+                  </span>
+                )}
+                {basketEmptyToast && (
+                  <span key={basketEmptyToast.id} className="hud-basket-empty-toast" role="status" aria-live="polite">
+                    {basketEmptyToast.message}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -10494,22 +11155,20 @@ export default function Landing() {
                               <p className="settings-agent-confirm-copy">
                                 {agentConnectionWarningType === "provider"
                                   ? tr("Disconnect the connected agent before starting a new connection.", "请先断开已连接的 agent，再进行新的连接。")
-                                  : tr("Please disconnect the current connection before switching methods.", "请先断开当前连接，再切换连接方式。")}
+                                  : tr("Disconnect the connected agent before switching methods.", "需断开已连接的agent，再切换连接方式。")}
                               </p>
-                              {agentConnectionWarningType === "mode" && (
-                                <div className="settings-agent-confirm-actions">
+                              <div className="settings-agent-confirm-actions">
+                                {agentConnectionWarningType === "mode" && (
                                   <button className="sac-disconnect-all-btn" type="button" onClick={disconnectAllAgentProviders}>
                                     {tr("Disconnect all", "一键断开全部")}
                                   </button>
-                                </div>
-                              )}
-                              <div className="settings-agent-confirm-actions">
+                                )}
                                 <button
                                   className="settings-action settings-action--primary"
                                   type="button"
                                   onClick={() => setAgentModeSwitchWarning(false)}
                                 >
-                                  {tr("Confirm", "确认")}
+                                  {tr("Cancel", "取消")}
                                 </button>
                               </div>
                             </section>
@@ -10814,7 +11473,9 @@ export default function Landing() {
                                             <ol className="sac-guide-steps">
                                               <li>
                                                 <span className="sac-guide-step-title">{tr('In Codex, click "Plugins → OpenAI Bundled → Add more"', '在Codex应用程序中点击"插件–OpenAI Bundled–添加更多"')}</span>
-                                                <img className="sac-guide-img" src="/assets/manual-step1.png" alt="step 1" />
+                                                <button className="sac-guide-img-button" type="button" aria-label={tr("Preview step 1 image", "预览步骤 1 图片")} onClick={() => openAgentGuidePreview("/assets/manual-step1.png")}>
+                                                  <img className="sac-guide-img" src="/assets/manual-step1.png" alt="step 1" />
+                                                </button>
                                               </li>
                                               <li>
                                                 <span className="sac-guide-step-title">{tr("Fill in the following info", "填入以下信息")}</span>
@@ -10846,7 +11507,9 @@ export default function Landing() {
                                                     </span>
                                                   </li>
                                                 </ul>
-                                                <img className="sac-guide-img" src="/assets/manual-step2.png" alt="step 2" />
+                                                <button className="sac-guide-img-button" type="button" aria-label={tr("Preview step 2 image", "预览步骤 2 图片")} onClick={() => openAgentGuidePreview("/assets/manual-step2.png")}>
+                                                  <img className="sac-guide-img" src="/assets/manual-step2.png" alt="step 2" />
+                                                </button>
                                               </li>
                                               <li>
                                                 <span className="sac-guide-step-title">{tr("Start a new chat session", "开始一个新的聊天会话")}</span>
@@ -10861,7 +11524,9 @@ export default function Landing() {
                                                     <Copy size={11} strokeWidth={3} />
                                                   </button>
                                                 </div>
-                                                <img className="sac-guide-img" src="/assets/manual-step3.png" alt="step 3" />
+                                                <button className="sac-guide-img-button" type="button" aria-label={tr("Preview step 3 image", "预览步骤 3 图片")} onClick={() => openAgentGuidePreview("/assets/manual-step3.png")}>
+                                                  <img className="sac-guide-img" src="/assets/manual-step3.png" alt="step 3" />
+                                                </button>
                                               </li>
                                               <li>
                                                 <span className="sac-guide-step-title">{tr("Log in to Quandora and authorize", "登录Quandora，并同意授权")}</span>
@@ -10870,6 +11535,33 @@ export default function Landing() {
                                           </div>
                                         )}
                                       </div>
+                                      {agentGuidePreviewImageSrc && (
+                                        <div className="sac-image-preview-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeAgentGuidePreview(); }}>
+                                          <section className="sac-image-preview-modal" role="dialog" aria-modal="true" aria-label={tr("Image preview", "图片预览")}>
+                                            <div className="sac-image-preview-toolbar" role="group" aria-label={tr("Image zoom controls", "图片缩放控制")}>
+                                              <button className="sac-image-preview-tool" type="button" aria-label={tr("Zoom out", "缩小")} disabled={agentGuidePreviewScale <= 0.5} onClick={() => zoomAgentGuidePreview("out")}>
+                                                <ZoomOut size={16} strokeWidth={3} />
+                                              </button>
+                                              <button className="sac-image-preview-tool" type="button" onClick={() => setAgentGuidePreviewScale(1)}>
+                                                {tr("Original size", "原尺寸")}
+                                              </button>
+                                              <button className="sac-image-preview-tool" type="button" aria-label={tr("Zoom in", "放大")} disabled={agentGuidePreviewScale >= 3} onClick={() => zoomAgentGuidePreview("in")}>
+                                                <ZoomIn size={16} strokeWidth={3} />
+                                              </button>
+                                            </div>
+                                            <button className="sac-image-preview-close" type="button" aria-label={tr("Close image preview", "关闭图片预览")} onClick={closeAgentGuidePreview}>
+                                              <X size={20} strokeWidth={3} />
+                                            </button>
+                                            <div className="sac-image-preview-body">
+                                              <img
+                                                src={agentGuidePreviewImageSrc}
+                                                alt={tr("Manual install guide preview", "手动安装教程预览")}
+                                                style={{ transform: `scale(${agentGuidePreviewScale})` }}
+                                              />
+                                            </div>
+                                          </section>
+                                        </div>
+                                      )}
                                     </>
                                   )}
                                   {agentConnectMode === "agent" && (
