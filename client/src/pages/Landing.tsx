@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { Claude, Codex, OpenClaw, OpenRouter } from "@lobehub/icons";
+import { Claude, Codex, OpenAI, OpenClaw, OpenRouter } from "@lobehub/icons";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
@@ -226,7 +226,6 @@ const initialAgentProviderAvailabilityById: Partial<Record<AgentProviderId, Agen
   "claude-code": "outdated",
   openclaw: "unavailable",
 };
-const agentWebAuthorizationLoginUrl = "https://chatgpt.com/activate";
 type AgentApiKeyItem = {
   id: string;
   name: string;
@@ -295,12 +294,6 @@ const agentInstallIdeOptions: {
     verifyCommand: "cline mcp list",
   },
 ];
-
-const createAgentAuthorizationCode = () => {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const segment = (length: number) => Array.from({ length }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
-  return `${segment(4)}-${segment(5)}`;
-};
 
 const createAgentApiSecret = () => {
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -602,12 +595,10 @@ export default function Landing() {
   const [agentDisconnectConfirmProviderId, setAgentDisconnectConfirmProviderId] = useState<AgentProviderId | null>(null);
   const [agentStatusTestingProviderId, setAgentStatusTestingProviderId] = useState<AgentProviderId | null>(null);
   const [agentConnectMode, setAgentConnectMode] = useState<"web" | "agent">("web");
-  const [agentConnectOpt, setAgentConnectOpt] = useState<"auth" | "api">("auth");
+  const [agentConnectOpt, setAgentConnectOpt] = useState<"auth" | "api">("api");
   const [agentConnectPlugin, setAgentConnectPlugin] = useState<"auto" | "manual">("auto");
   const [agentGuidePreviewImageSrc, setAgentGuidePreviewImageSrc] = useState<string | null>(null);
   const [agentGuidePreviewScale, setAgentGuidePreviewScale] = useState(1);
-  const [agentAuthMethod, setAgentAuthMethod] = useState<"code" | "byok">("code");
-  const [agentWebAuthorizationCode, setAgentWebAuthorizationCode] = useState("SSH8-M4Y83");
   const [agentByokKey, setAgentByokKey] = useState("");
   const [agentByokTestStatus, setAgentByokTestStatus] = useState<"idle" | "testing" | "invalid" | "valid">("idle");
   const [agentByokTestMessage, setAgentByokTestMessage] = useState("");
@@ -782,6 +773,19 @@ export default function Landing() {
     provider.id !== "openrouter" &&
     provider.modes.includes(agentVisibleProviderMode)
   );
+  const getAgentProviderDisplayName = (provider: AgentConnectableProvider) =>
+    provider.id === "codex" && agentVisibleProviderMode === "web" ? "ChatGPT" : provider.name;
+  const renderAgentProviderIcon = (provider: AgentConnectableProvider) => {
+    if (provider.icon === "codex") {
+      return agentVisibleProviderMode === "web"
+        ? <OpenAI.Avatar className="settings-agent-provider-icon" size={44} />
+        : <Codex.Avatar className="settings-agent-provider-icon" size={44} />;
+    }
+    if (provider.icon === "claude") return <Claude.Avatar className="settings-agent-provider-icon" size={44} />;
+    if (provider.icon === "openclaw") return <OpenClaw.Avatar className="settings-agent-provider-icon" size={44} />;
+    if (provider.icon === "openrouter") return <OpenRouter.Avatar className="settings-agent-provider-icon" size={44} />;
+    return provider.mark;
+  };
   const shouldShowAgentAuthPreviewTrigger = agentInlineStep === "manage" && agentVisibleProviderMode === "agent";
   const selectedAgentProvider = agentConnectableProviders.find((provider) => provider.id === agentSelectedProviderId);
   const isSelectedOpenRouter = selectedAgentProvider?.name === "OpenRouter";
@@ -1554,6 +1558,11 @@ export default function Landing() {
     return agentConnectableProviders.find((provider) => provider.id === providerId)?.name || "Agent";
   };
 
+  const getAgentProviderNameForMode = (providerId: AgentProviderId, mode: "web" | "agent") => {
+    if (providerId === "codex" && mode === "web") return "ChatGPT";
+    return getAgentProviderName(providerId);
+  };
+
   const getNextAgentAuthPreviewProviderId = (currentProviderId: AgentAuthPreviewProviderId) => {
     const currentIndex = agentAuthPreviewProviderIds.indexOf(currentProviderId);
     return agentAuthPreviewProviderIds[(currentIndex + 1) % agentAuthPreviewProviderIds.length];
@@ -1582,10 +1591,8 @@ export default function Landing() {
   const openAgentConnectModal = (providerId: AgentProviderId) => {
     setAgentSelectedProviderId(providerId);
     setAgentDisconnectConfirmProviderId(null);
-    setAgentAuthMethod("code");
     setAgentConnectPlugin("auto");
-    // OpenRouter only supports API Key
-    setAgentConnectOpt(providerId === "openrouter" ? "api" : "auth");
+    setAgentConnectOpt("api");
     setAgentModeSwitchWarning(false);
     setAgentConnectMode(agentGlobalConnectMode ?? "web");
     setAgentInlineStep("config");
@@ -1764,39 +1771,6 @@ export default function Landing() {
       setAgentByokTestStatus("valid");
       setAgentByokTestMessage(tr("API Key is available.", "API Key 可用。"));
     }, 900);
-  };
-
-  const copyAgentAuthorizationCodeAndOpenLogin = () => {
-    window.open(agentWebAuthorizationLoginUrl, "_blank", "noopener,noreferrer");
-    setAgentConnectedProviderIds((current) => new Set(current).add(agentSelectedProviderId));
-    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentSelectedProviderId]: "MacBook Pro" }));
-    if (!navigator.clipboard?.writeText) {
-      showSettingsFeedback(
-        tr("Copy manually", "请手动复制"),
-        tr("The login page has opened. Copy the authorization code manually if needed.", "登录页已打开，如有需要请手动复制授权码。")
-      );
-      return;
-    }
-
-    navigator.clipboard.writeText(agentWebAuthorizationCode).then(() => {
-      showSettingsFeedback(
-        tr("Authorization code copied", "授权码已复制"),
-        tr("The login page has opened in a new tab.", "登录页已在新标签页打开。")
-      );
-    }).catch(() => {
-      showSettingsFeedback(
-        tr("Copy failed", "复制失败"),
-        tr("Copy the authorization code manually, then continue on the login page.", "请手动复制授权码，然后在登录页继续操作。")
-      );
-    });
-  };
-
-  const refreshAgentAuthorizationCode = () => {
-    setAgentWebAuthorizationCode(createAgentAuthorizationCode());
-    showSettingsFeedback(
-      tr("Authorization code refreshed", "授权码已刷新"),
-      tr("Use the new authorization code or scan the refreshed QR code.", "请使用新的授权码，或扫描刷新后的二维码。")
-    );
   };
 
   const copyAgentText = (text: string, successTitle: string, successMessage: string) => {
@@ -2769,6 +2743,10 @@ export default function Landing() {
 
         .hud-disconnected-actions__tip:hover {
           filter: brightness(1.02);
+        }
+
+        .hud-disconnected-actions__tip.is-en {
+          font-size: 26px;
         }
 
         .hud-disconnected-actions__tip:active {
@@ -4851,7 +4829,7 @@ export default function Landing() {
         .settings-modal {
           position: relative;
           width: min(1160px, 94vw);
-          height: min(680px, 88vh);
+          height: min(580px, 88vh);
           max-height: 88vh;
           display: flex;
           flex-direction: column;
@@ -5778,7 +5756,7 @@ export default function Landing() {
         .sac-modal {
           position: relative;
           width: min(600px, 100%);
-          height: fit-content;
+          max-height: 100%;
           display: flex;
           flex-direction: column;
           gap: 0;
@@ -5845,11 +5823,12 @@ export default function Landing() {
 
         /* Body */
         .sac-body {
-          height: fit-content;
-          padding: 16px 18px 18px;
+          min-height: 0;
+          padding: 16px 18px 24px;
           display: flex;
           flex-direction: column;
           gap: 12px;
+          overflow-y: auto;
         }
         .sac-sub  { font-size: 12px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
 
@@ -5944,10 +5923,10 @@ export default function Landing() {
           box-shadow: none;
         }
 
-        .sac-mode-warning .settings-action--primary {
+        .sac-mode-warning .settings-agent-confirm-actions .settings-action--primary {
           height: 28px;
           padding: 0 14px;
-          background: #ffedb7;
+          background: #fff7e3;
           box-shadow: none;
         }
 
@@ -6020,6 +5999,33 @@ export default function Landing() {
         .sac-opt-card--plain-form .sac-opt-head,
         .sac-opt-card--plain-form .sac-opt-desc { display: none; }
         .sac-opt-card--plain-form .sac-opt-detail { margin: 0; }
+        .sac-api-panel {
+          display: grid;
+          gap: 8px;
+          padding: 4px 0 0;
+        }
+        .sac-api-panel__head {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .sac-api-panel__desc {
+          color: rgba(121,79,39,.66);
+          font-size: 11px;
+          line-height: 1.5;
+        }
+        .sac-api-panel__detail {
+          display: grid;
+          gap: 8px;
+        }
+        .sac-api-panel__actions {
+          display: flex;
+          justify-content: flex-end;
+          padding-top: 0;
+        }
+        .sac-api-panel--plain .sac-api-panel__detail {
+          padding-left: 0;
+        }
         .sac-badge {
           background: rgba(91,214,155,.2); color: #2a7a4a;
           font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 10px;
@@ -6075,7 +6081,7 @@ export default function Landing() {
         .sac-link { color: #3a9bbf; font-size: 13px; font-weight: 600; text-decoration: none; }
         .sac-link:hover { text-decoration: underline; }
 
-        .sac-manual-guide { max-height: 280px; overflow-y: auto; }
+        .sac-manual-guide { max-height: min(280px, 42vh); overflow-y: auto; }
         .sac-guide-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: guide-step; }
         .sac-guide-steps > li { counter-increment: guide-step; display: flex; flex-direction: column; gap: 6px; }
         .sac-guide-step-title { font-size: 12px; font-weight: 700; color: var(--ac-text); }
@@ -10569,16 +10575,18 @@ export default function Landing() {
                 <div className="sac-success-msg">
                   {getAgentProviderName(agentAuthPreviewProviderId)} {tr("has been connected. You can start using it now.", "已成功接入，可以开始使用了。")}
                 </div>
-                <div className="sac-buddy-card">
-                  <div className="sac-buddy-card__icon">🐾</div>
-                  <div className="sac-buddy-card__body">
-                    <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
-                    <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                {gameVersionMode === "normal" && (
+                  <div className="sac-buddy-card">
+                    <div className="sac-buddy-card__icon">🐾</div>
+                    <div className="sac-buddy-card__body">
+                      <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
+                      <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                    </div>
+                    <a href="#" className="sac-buddy-card__btn" onClick={(event) => event.preventDefault()}>
+                      {tr("Download", "下载")}
+                    </a>
                   </div>
-                  <a href="#" className="sac-buddy-card__btn" onClick={(event) => event.preventDefault()}>
-                    {tr("Download", "下载")}
-                  </a>
-                </div>
+                )}
                 <button className="sac-btn-next" type="button" onClick={() => setAgentAuthPreviewSuccessOpen(false)}>
                   {tr("Done", "完成")}
                 </button>
@@ -10622,7 +10630,7 @@ export default function Landing() {
         <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
           {isAgentDisconnected && !mainCastActive ? (
             <div className="hud-disconnected-actions">
-              <button className="hud-disconnected-actions__tip" type="button" onClick={openAgentRequiredSettings}>
+              <button className={`hud-disconnected-actions__tip${uiLang === "en" ? " is-en" : ""}`} type="button" onClick={openAgentRequiredSettings}>
                 <img className="hud-disconnected-actions__tip-icon" src={noticeIconUrl} alt="" aria-hidden="true" />
                 <span className="hud-disconnected-actions__tip-label">{agentRequiredLabel}</span>
               </button>
@@ -11104,7 +11112,7 @@ export default function Landing() {
                                     {mode === "web" ? (
                                       <>
                                         <div className="sac-mode-title">{tr("Use on web", "在网页上用")}</div>
-                                        <div className="sac-mode-desc">{tr("Get an auth code or API Key to connect quickly.", "获取授权码或 API Key 即可快速接入。")}</div>
+                                        <div className="sac-mode-desc">{tr("Get an API Key to connect quickly. Supports ChatGPT.", "获取 API Key 即可快速接入，支持ChatGPT。")}</div>
                                       </>
                                     ) : (
                                       <>
@@ -11212,20 +11220,10 @@ export default function Landing() {
                               >
                                 <div className="settings-agent-provider-head">
                                   <span className={`settings-agent-provider-mark settings-agent-provider-mark--${provider.id}`} aria-hidden="true">
-                                    {provider.icon === "codex" ? (
-                                      <Codex.Avatar className="settings-agent-provider-icon" size={44} />
-                                    ) : provider.icon === "claude" ? (
-                                      <Claude.Avatar className="settings-agent-provider-icon" size={44} />
-                                    ) : provider.icon === "openclaw" ? (
-                                      <OpenClaw.Avatar className="settings-agent-provider-icon" size={44} />
-                                    ) : provider.icon === "openrouter" ? (
-                                      <OpenRouter.Avatar className="settings-agent-provider-icon" size={44} />
-                                    ) : (
-                                      provider.mark
-                                    )}
+                                    {renderAgentProviderIcon(provider)}
                                   </span>
                                   <span className="settings-agent-provider-name">
-                                    <span>{provider.name}</span>
+                                    <span>{getAgentProviderDisplayName(provider)}</span>
                                     <span className="settings-agent-provider-status-line">
                                       <span className={`settings-agent-provider-badge${providerBadgeClass}`}>
                                         {providerBadgeLabel}
@@ -11320,7 +11318,7 @@ export default function Landing() {
                           >
                             <section className="sac-modal" role="dialog" aria-modal="true" aria-label={tr("Connect agent", "连接 Agent")}>
                               <header className="sac-header">
-                                <span className="sac-title">{tr("Connect", "连接")} {getAgentProviderName(agentSelectedProviderId)}</span>
+                                <span className="sac-title">{tr("Connect", "连接")} {getAgentProviderNameForMode(agentSelectedProviderId, agentConnectMode)}</span>
                                 <button className="sac-close" type="button" aria-label={tr("Close", "关闭")} onClick={() => setAgentInlineStep("manage")}>
                                   <X size={16} strokeWidth={3} />
                                 </button>
@@ -11328,116 +11326,69 @@ export default function Landing() {
                             <div className="sac-body">
                               {agentConnectMode === "web" ? (
                                 <>
-                                  {/* Auth code option — hidden for OpenRouter (API Key only) */}
-                                  {!isSelectedOpenRouter && (
-                                  <div className={`sac-opt-card sac-opt-card--auth-code${agentConnectOpt === "auth" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("auth")}>
-                                        <div className="sac-opt-head">
-                                          <div className={`sac-radio${agentConnectOpt === "auth" ? " sac-radio--checked" : ""}`} />
-                                          <span className="sac-opt-title">🔑 {tr("Authorization code", "授权码接入")}</span>
-                                          <span className="sac-badge">{tr("Recommended", "推荐")}</span>
-                                        </div>
-                                        <div className="sac-opt-desc">{tr("Quick verification with official auth code, no API config needed.", "使用官方授权码快速验证，无需配置 API。")}</div>
-                                        {agentConnectOpt === "auth" && (
-                                          <div className="sac-opt-detail">
-                                            <button className="settings-agent-refresh-icon" type="button" onClick={refreshAgentAuthorizationCode} aria-label={tr("Refresh", "刷新")}>
-                                              <RefreshCw size={14} strokeWidth={3} />
-                                            </button>
-                                            <div className="settings-agent-auth-options">
-                                              <section className="settings-agent-auth-option settings-agent-auth-option--scan">
-                                                <div>
-                                                  <div className="settings-agent-auth-option__head"><strong>{tr("Scan QR code", "扫码授权")}</strong></div>
-                                                  <span>{tr("Use your phone to scan and complete authorization.", "请使用手机扫码完成授权。")}</span>
-                                                </div>
-                                                <div className="settings-agent-qr" aria-label={tr("Authorization QR code", "授权二维码")}>
-                                                  <img src="/assets/codex-auth-qr.svg" alt="" />
-                                                </div>
-                                              </section>
-                                              <section className="settings-agent-auth-option settings-agent-auth-option--code">
-                                                <div className="settings-agent-code-copy">
-                                                  <div className="settings-agent-code-copy__head">
-                                                    <span>{tr("Authorization code (valid for 10 minutes)", "授权码（10分钟内有效期）")}</span>
-                                                  </div>
-                                                  <strong>{agentWebAuthorizationCode}</strong>
-                                                </div>
-                                                <div className="settings-agent-auth-actions">
-                                                  <button className="settings-action settings-action--primary" type="button" onClick={copyAgentAuthorizationCodeAndOpenLogin}>
-                                                    {tr("Copy and go", "复制并前往")}
-                                                  </button>
-                                                </div>
-                                              </section>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                  )}
                                   {/* API key option */}
-                                  <div className={`sac-opt-card sac-opt-card--inline-form${isSelectedOpenRouter ? " sac-opt-card--plain-form" : " sac-opt-card--api-web"}${agentConnectOpt === "api" ? " sac-opt-card--sel" : ""}`} onClick={() => setAgentConnectOpt("api")}>
-                                      {!isSelectedOpenRouter && (
-                                        <div className="sac-opt-head">
-                                          <div className={`sac-radio${agentConnectOpt === "api" ? " sac-radio--checked" : ""}`} />
-                                          <span className="sac-opt-title">🔌 API Key</span>
+                                  <div className={`sac-api-panel${isSelectedOpenRouter ? " sac-api-panel--plain" : ""}`}>
+                                    {!isSelectedOpenRouter && (
+                                      <>
+                                        <div className="sac-api-panel__head">
+                                          <span className="sac-opt-title">{tr("Enter API Key", "输入 API Key")}</span>
                                         </div>
-                                      )}
-                                      {!isSelectedOpenRouter && (
-                                        <div className="sac-opt-desc">{tr("Call directly with API Key.", "使用 API Key 直接调用。")}</div>
-                                      )}
-                                        {agentConnectOpt === "api" && (
-                                          <div className="sac-opt-detail" onClick={(e) => e.stopPropagation()}>
-                                            <div className="settings-agent-form settings-agent-form--byok">
-                                              <label className="settings-field">
-                                                {isSelectedOpenRouter && (
-                                                  <span className="settings-field__head"><span>API Key</span></span>
-                                                )}
-                                                <input
-                                                  className="settings-input"
-                                                  type="password"
-                                                  value={agentByokKey}
-                                                  placeholder="sk-..."
-                                                  disabled={agentByokTestStatus === "testing"}
-                                                  onChange={(event) => {
-                                                    setAgentByokKey(event.target.value);
-                                                    setAgentByokTestStatus("idle");
-                                                    setAgentByokTestMessage("");
-                                                  }}
-                                                />
-                                                {agentByokTestMessage && (
-                                                  <span className={`settings-agent-test-message${agentByokTestStatus === "valid" ? " is-success" : " is-error"}`}>
-                                                    {agentByokTestMessage}
-                                                  </span>
-                                                )}
-                                                <span className="settings-api-key-links">
-                                                  <a
-                                                    className="settings-api-key-link"
-                                                    href={isSelectedOpenRouter ? "https://openrouter.ai/settings/keys" : "https://platform.openai.com/api-keys"}
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                  >
-                                                    {isSelectedOpenRouter ? "Get API Key from OpenRouter" : "Get API Key from OpenAI"} <ArrowUpRight size={13} strokeWidth={3} />
-                                                  </a>
-                                                </span>
-                                              </label>
-                                            </div>
-                                            <div className="sac-nav" style={{marginTop: "12px"}}>
-                                              <span />
-                                              <button
-                                                className="sac-btn-next"
-                                                type="button"
-                                                onClick={() => {
-                                                  if (agentByokTestStatus !== "valid") {
-                                                    testAgentByok();
-                                                  } else {
-                                                    confirmAgentProviderConnection();
-                                                  }
-                                                }}
-                                              >
-                                                {agentByokTestStatus !== "valid"
-                                                  ? tr("Verify & Connect", "验证并连接")
-                                                  : tr("Complete connection", "完成连接")} ✓
-                                              </button>
-                                            </div>
-                                          </div>
+                                      </>
+                                    )}
+                                    <div className="sac-api-panel__detail">
+                                      <label className="settings-field settings-field--compact">
+                                        {isSelectedOpenRouter && (
+                                          <span className="settings-field__head"><span>API Key</span></span>
                                         )}
+                                        <input
+                                          className="settings-input"
+                                          type="password"
+                                          value={agentByokKey}
+                                          placeholder="sk-..."
+                                          disabled={agentByokTestStatus === "testing"}
+                                          onChange={(event) => {
+                                            setAgentByokKey(event.target.value);
+                                            setAgentByokTestStatus("idle");
+                                            setAgentByokTestMessage("");
+                                          }}
+                                        />
+                                      </label>
+                                      {agentByokTestMessage && (
+                                        <span className={`settings-agent-test-message${agentByokTestStatus === "valid" ? " is-success" : " is-error"}`}>
+                                          {agentByokTestMessage}
+                                        </span>
+                                      )}
+                                      <span className="settings-api-key-links">
+                                        <a
+                                          className="settings-api-key-link"
+                                          href={isSelectedOpenRouter ? "https://openrouter.ai/settings/keys" : "https://platform.openai.com/api-keys"}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          {isSelectedOpenRouter
+                                            ? tr("Get API Key from OpenRouter", "从 OpenRouter 获取 API Key")
+                                            : tr("Get API Key from OpenAI", "从 OpenAI 获取 API Key")} <ArrowUpRight size={13} strokeWidth={3} />
+                                        </a>
+                                      </span>
+                                      <div className="sac-api-panel__actions">
+                                        <button
+                                          className="sac-btn-next"
+                                          type="button"
+                                          onClick={() => {
+                                            if (agentByokTestStatus !== "valid") {
+                                              testAgentByok();
+                                            } else {
+                                              confirmAgentProviderConnection();
+                                            }
+                                          }}
+                                        >
+                                          {agentByokTestStatus !== "valid"
+                                            ? tr("Verify & Connect", "验证并连接")
+                                            : tr("Complete connection", "完成连接")} ✓
+                                        </button>
                                       </div>
+                                    </div>
+                                  </div>
                                     </>
                                   ) : (
                                     <>
@@ -11588,16 +11539,18 @@ export default function Landing() {
                               <div className="sac-success-icon">🎉</div>
                               <div className="sac-success-title">{tr("Connected!", "连接成功！")}</div>
                               <div className="sac-success-msg">{getAgentProviderName(agentSelectedProviderId)} {tr("has been connected. You can start using it now.", "已成功接入，可以开始使用了。")}</div>
-                              <div className="sac-buddy-card">
-                                <div className="sac-buddy-card__icon">🐾</div>
-                                <div className="sac-buddy-card__body">
-                                  <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
-                                  <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                              {gameVersionMode === "normal" && (
+                                <div className="sac-buddy-card">
+                                  <div className="sac-buddy-card__icon">🐾</div>
+                                  <div className="sac-buddy-card__body">
+                                    <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
+                                    <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                                  </div>
+                                  <a href="#" className="sac-buddy-card__btn" onClick={(e) => e.preventDefault()}>
+                                    {tr("Download", "下载")}
+                                  </a>
                                 </div>
-                                <a href="#" className="sac-buddy-card__btn" onClick={(e) => e.preventDefault()}>
-                                  {tr("Download", "下载")}
-                                </a>
-                              </div>
+                              )}
                               <button className="sac-btn-next" type="button" onClick={() => setAgentInlineStep("manage")}>{tr("Done", "完成")}</button>
                             </div>
                             </section>
@@ -11651,7 +11604,7 @@ export default function Landing() {
                             </section>
                           </div>
                         )}
-                        {agentInlineStep !== "mode" && (
+                        {agentInlineStep !== "mode" && gameVersionMode === "normal" && (
                           <div className="sac-buddy-banner">
                             <div className="sac-buddy-banner__icon">🐾</div>
                             <div className="sac-buddy-banner__body">
