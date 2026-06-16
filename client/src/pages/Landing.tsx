@@ -5752,7 +5752,7 @@ export default function Landing() {
         .sac-modal {
           position: relative;
           width: min(600px, 100%);
-          height: fit-content;
+          max-height: 100%;
           display: flex;
           flex-direction: column;
           gap: 0;
@@ -5819,11 +5819,12 @@ export default function Landing() {
 
         /* Body */
         .sac-body {
-          height: fit-content;
+          min-height: 0;
           padding: 16px 18px 24px;
           display: flex;
           flex-direction: column;
           gap: 12px;
+          overflow-y: auto;
         }
         .sac-sub  { font-size: 12px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
 
@@ -6076,7 +6077,7 @@ export default function Landing() {
         .sac-link { color: #3a9bbf; font-size: 13px; font-weight: 600; text-decoration: none; }
         .sac-link:hover { text-decoration: underline; }
 
-        .sac-manual-guide { max-height: 280px; overflow-y: auto; }
+        .sac-manual-guide { max-height: min(280px, 42vh); overflow-y: auto; }
         .sac-guide-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: guide-step; }
         .sac-guide-steps > li { counter-increment: guide-step; display: flex; flex-direction: column; gap: 6px; }
         .sac-guide-step-title { font-size: 12px; font-weight: 700; color: var(--ac-text); }
