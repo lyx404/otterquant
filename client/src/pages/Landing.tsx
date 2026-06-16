@@ -5820,7 +5820,7 @@ export default function Landing() {
         /* Body */
         .sac-body {
           height: fit-content;
-          padding: 16px 18px 18px;
+          padding: 16px 18px 24px;
           display: flex;
           flex-direction: column;
           gap: 12px;
@@ -6016,7 +6016,7 @@ export default function Landing() {
         .sac-api-panel__actions {
           display: flex;
           justify-content: flex-end;
-          padding-top: 4px;
+          padding-top: 0;
         }
         .sac-api-panel--plain .sac-api-panel__detail {
           padding-left: 0;
