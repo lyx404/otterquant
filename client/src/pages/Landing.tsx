@@ -2745,6 +2745,10 @@ export default function Landing() {
           filter: brightness(1.02);
         }
 
+        .hud-disconnected-actions__tip.is-en {
+          font-size: 26px;
+        }
+
         .hud-disconnected-actions__tip:active {
           transform: translateY(6px);
           box-shadow: none;
@@ -10626,7 +10630,7 @@ export default function Landing() {
         <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
           {isAgentDisconnected && !mainCastActive ? (
             <div className="hud-disconnected-actions">
-              <button className="hud-disconnected-actions__tip" type="button" onClick={openAgentRequiredSettings}>
+              <button className={`hud-disconnected-actions__tip${uiLang === "en" ? " is-en" : ""}`} type="button" onClick={openAgentRequiredSettings}>
                 <img className="hud-disconnected-actions__tip-icon" src={noticeIconUrl} alt="" aria-hidden="true" />
                 <span className="hud-disconnected-actions__tip-label">{agentRequiredLabel}</span>
               </button>
