@@ -544,11 +544,13 @@ export default function Landing() {
   const { user, login, logout, updateUser } = useAuth();
   const { navigateWithTransition } = usePageTransition();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const shouldForceShowTestScenarioPanel = true;
   const shouldShowTestScenarioPanel =
-    typeof window !== "undefined" &&
+    shouldForceShowTestScenarioPanel ||
+    (typeof window !== "undefined" &&
     (window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1" ||
-      Boolean((window as Window & { __MANUS_HOST_DEV__?: boolean }).__MANUS_HOST_DEV__));
+      Boolean((window as Window & { __MANUS_HOST_DEV__?: boolean }).__MANUS_HOST_DEV__)));
   const [stageScale, setStageScale] = useState(1);
   const [gameVersionMode, setGameVersionMode] = useState<GameVersionMode>("normal");
   const [basketBadgeMode, setBasketBadgeMode] = useState<BasketBadgeMode>("hidden");
