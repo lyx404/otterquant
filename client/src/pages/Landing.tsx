@@ -23,7 +23,6 @@ import {
   Heart,
   Key,
   Languages,
-  LoaderCircle,
   Mail,
   MoreHorizontal,
   Pencil,
@@ -31,11 +30,9 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Send,
   Star,
   TrendingUp,
   Trash2,
-  Unplug,
   User,
   Users,
   Wallet,
@@ -126,7 +123,7 @@ type LeaderboardEntry = {
 };
 type FundsStatus = "idle" | "processing" | "success" | "error";
 type GameVersionMode = "normal" | "mvp";
-type BasketBadgeMode = "hidden" | "ten" | "overflow";
+type BasketBadgeMode = "hidden" | "one" | "ten" | "overflow";
 type TestScenarioPanelState = "expanded" | "collapsed";
 type InventoryScenarioMode = "multiple" | "empty" | "single";
 type TestScenarioPanelPosition = {
@@ -201,6 +198,7 @@ const leaderboardEntries: LeaderboardEntry[] = [
 ];
 type AgentProviderIcon = "codex" | "claude" | "openclaw" | "openrouter";
 type AgentProviderAvailability = "available" | "unavailable" | "outdated";
+type AgentAuthPreviewProviderId = "codex" | "claude-code" | "openclaw";
 type AgentConnectableProvider = {
   id: "codex" | "openrouter" | "claude-code" | "openclaw";
   name: string;
@@ -215,6 +213,7 @@ const agentConnectableProviders: readonly AgentConnectableProvider[] = [
   { id: "claude-code",name: "Claude Code", mark: "C",  icon: "claude",   modes: ["agent"] },
   { id: "openclaw",   name: "OpenClaw",    mark: "O",  icon: "openclaw", modes: ["agent"] },
 ];
+const agentAuthPreviewProviderIds: readonly AgentAuthPreviewProviderId[] = ["codex", "claude-code", "openclaw"];
 const initialAgentProviderAvailabilityById: Partial<Record<AgentProviderId, AgentProviderAvailability>> = {
   "claude-code": "outdated",
   openclaw: "unavailable",
@@ -229,6 +228,10 @@ type AgentApiKeyItem = {
   updatedAt: string;
 };
 const AGENT_SKILL_LATEST = "v2.4.1";
+const AGENT_MANUAL_SOURCE = "varsity-tech-product/factor-mining-demo";
+const AGENT_MANUAL_GIT_REF = "main";
+const AGENT_MANUAL_PROMPT =
+  "Use the Factor Mining Demo plugin. Verify Factor Mining status, then show me the Factor Mining public task list. Do not create a session until I choose a public task or provide a custom idea. Then write a valid plugin.py locally, upload it, wait for the backtest, fetch the default factor card if available, and summarize the result.";
 const initialAgentApiKeys: AgentApiKeyItem[] = [
   {
     id: "1",
@@ -599,7 +602,9 @@ export default function Landing() {
   const [agentApiKeys, setAgentApiKeys] = useState<AgentApiKeyItem[]>(initialAgentApiKeys);
   const [agentApiVisibleKeyIds, setAgentApiVisibleKeyIds] = useState<Set<string>>(() => new Set());
   const [agentAuthPreviewOpen, setAgentAuthPreviewOpen] = useState(false);
+  const [agentAuthPreviewProviderId, setAgentAuthPreviewProviderId] = useState<AgentAuthPreviewProviderId>("openclaw");
   const [agentTimeoutPreviewOpen, setAgentTimeoutPreviewOpen] = useState(false);
+  const [agentTimeoutPreviewProviderId, setAgentTimeoutPreviewProviderId] = useState<AgentAuthPreviewProviderId>("openclaw");
   const [agentApiEditingNameId, setAgentApiEditingNameId] = useState<string | null>(null);
   const [agentApiEditNameValue, setAgentApiEditNameValue] = useState("");
   const [agentApiMoreMenuId, setAgentApiMoreMenuId] = useState<string | null>(null);
@@ -933,7 +938,8 @@ export default function Landing() {
     : tr(`Cast waiting ${manualCastElapsedLabel}`, `抛竿等待中 ${manualCastElapsedLabel}`);
   const castButtonLabel = tr("Cast", "抛竿");
   const castActionLabel = tr("Cast", "抛竿");
-  const basketItemCount = basketBadgeMode === "hidden" ? 0 : basketBadgeMode === "ten" ? 10 : 100;
+  const basketItemCount =
+    basketBadgeMode === "hidden" ? 0 : basketBadgeMode === "one" ? 1 : basketBadgeMode === "ten" ? 10 : 100;
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
   const updateAutoCastCount = (value: number) => {
     setAutoCastDraftCount(clampAutoCastCount(value));
@@ -1016,7 +1022,6 @@ export default function Landing() {
       setAgentConnectMode("web");
       setAgentInlineStep("mode");
       setSettingsOpen(false);
-      showSettingsFeedback(tr("Scenario applied", "测试场景已切换"), tr("Logged out.", "未登录"));
       navigateWithTransition("/auth");
       return;
     }
@@ -1033,7 +1038,6 @@ export default function Landing() {
       setAgentConnectMode("web");
       setAgentInlineStep("mode");
       openAgentSettingsForScenario("mode");
-      showSettingsFeedback(tr("Scenario applied", "测试场景已切换"), tr("Agent disconnected.", "未连接 agent"));
       return;
     }
 
@@ -1044,12 +1048,12 @@ export default function Landing() {
     setAgentConnectMode("agent");
     setAgentInlineStep("manage");
     openAgentSettingsForScenario();
-    showSettingsFeedback(tr("Scenario applied", "测试场景已切换"), tr("Client agent connected.", "连接客户端 agent"));
   };
 
   const toggleBasketBadgeScenario = () => {
     setBasketBadgeMode((current) => {
-      if (current === "hidden") return "ten";
+      if (current === "hidden") return "one";
+      if (current === "one") return "ten";
       if (current === "ten") return "overflow";
       return "hidden";
     });
@@ -1472,6 +1476,29 @@ export default function Landing() {
     return agentConnectableProviders.find((provider) => provider.id === providerId)?.name || "Agent";
   };
 
+  const getNextAgentAuthPreviewProviderId = (currentProviderId: AgentAuthPreviewProviderId) => {
+    const currentIndex = agentAuthPreviewProviderIds.indexOf(currentProviderId);
+    return agentAuthPreviewProviderIds[(currentIndex + 1) % agentAuthPreviewProviderIds.length];
+  };
+
+  const openNextAgentAuthPreview = () => {
+    const nextProviderId = getNextAgentAuthPreviewProviderId(agentAuthPreviewProviderId);
+    setAgentAuthPreviewProviderId(nextProviderId);
+    setAgentAuthPreviewOpen(true);
+  };
+
+  const openNextAgentTimeoutPreview = () => {
+    const nextProviderId = getNextAgentAuthPreviewProviderId(agentTimeoutPreviewProviderId);
+    setAgentTimeoutPreviewProviderId(nextProviderId);
+    setAgentTimeoutPreviewOpen(true);
+  };
+
+  const renderAgentAuthPreviewIcon = (providerId: AgentAuthPreviewProviderId) => {
+    if (providerId === "codex") return <Codex.Avatar size={64} />;
+    if (providerId === "openclaw") return <OpenClaw.Avatar size={64} />;
+    return <Claude.Avatar size={64} />;
+  };
+
   // Enter the inline connect config view for a specific provider (from manage view)
   const openAgentConnectModal = (providerId: AgentProviderId) => {
     setAgentSelectedProviderId(providerId);
@@ -1560,10 +1587,28 @@ export default function Landing() {
 
     window.setTimeout(() => {
       setAgentStatusTestingProviderId(null);
-      showSettingsFeedback(
-        tr("Status available", "状态正常"),
-        tr(`${getAgentProviderName(providerId)} is connected.`, `${getAgentProviderName(providerId)} 已连接。`)
-      );
+      const nextAvailability: AgentProviderAvailability =
+        providerId === "claude-code" ? "outdated" : "available";
+      const nextConnected = providerId === "codex";
+
+      setAgentProviderAvailabilityById((current) => {
+        const next = { ...current };
+        if (nextAvailability === "available") {
+          delete next[providerId];
+        } else {
+          next[providerId] = nextAvailability;
+        }
+        return next;
+      });
+      setAgentConnectedProviderIds((current) => {
+        const next = new Set(current);
+        if (nextConnected) {
+          next.add(providerId);
+        } else {
+          next.delete(providerId);
+        }
+        return next;
+      });
     }, 900);
   };
 
@@ -1676,6 +1721,10 @@ export default function Landing() {
     }).catch(() => {
       showSettingsFeedback(tr("Copy failed", "复制失败"), tr("Please copy it manually.", "请手动复制。"));
     });
+  };
+
+  const copyAgentManualField = (text: string, label: string) => {
+    copyAgentText(text, tr("Copied", "已复制"), tr(`${label} copied.`, `${label} 已复制。`));
   };
 
   const openAgentApiCreateModal = () => {
@@ -2363,7 +2412,28 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           align-items: stretch;
-          gap: 14px;
+          gap: 16px;
+        }
+
+        .test-scenario-group {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+        }
+
+        .test-scenario-group + .test-scenario-group {
+          padding-top: 12px;
+          border-top: 1.5px dashed rgba(196, 184, 158, .54);
+        }
+
+        .test-scenario-group__title {
+          color: rgba(121, 79, 39, .42);
+          font-size: 12px;
+          font-weight: 900;
+          line-height: 1;
+          letter-spacing: 0;
+          white-space: nowrap;
         }
 
         .test-version-segmented {
@@ -2417,7 +2487,6 @@ export default function Landing() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
           padding: 0 18px;
           color: rgba(121, 79, 39, .68);
           background: rgba(255, 253, 244, .72);
@@ -2442,11 +2511,16 @@ export default function Landing() {
           transform: translateY(-1px);
         }
 
-        .test-scenario-button svg {
-          width: 20px;
-          height: 20px;
-          color: rgba(121, 79, 39, .52);
-          stroke-width: 3;
+        .test-scenario-button-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .test-scenario-button--preview {
+          height: 44px;
+          font-size: 16px;
+          border-style: solid;
         }
 
         .top-actions {
@@ -5090,12 +5164,22 @@ export default function Landing() {
           background: transparent;
         }
 
+        .settings-agent-provider-status-line {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
         .settings-agent-provider-hint {
-          margin: -4px 0 0 56px;
-          color: rgba(121, 79, 39, .68);
-          font-size: 12px;
-          font-weight: 650;
-          line-height: 1.45;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: rgba(121, 79, 39, .46);
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1.25;
         }
 
         .settings-agent-provider-actions {
@@ -5546,7 +5630,25 @@ export default function Landing() {
         .sac-guide-step-title { font-size: 12px; font-weight: 700; color: var(--ac-text); }
         .sac-guide-step-title::before { content: counter(guide-step) ". "; }
         .sac-guide-fields { list-style: disc; padding-left: 16px; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: rgba(121,79,39,.8); }
+        .sac-guide-field-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
         .sac-guide-fields code { background: rgba(196,184,158,.2); border-radius: 3px; padding: 0 4px; font-family: monospace; font-size: 11px; }
+        .sac-guide-copy {
+          appearance: none;
+          width: 22px;
+          height: 22px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: 0 0 auto;
+          color: rgba(121,79,39,.68);
+          background: rgba(255,253,244,.76);
+          border: 1px solid rgba(196,184,158,.52);
+          border-radius: 5px;
+          cursor: pointer;
+        }
+        .sac-guide-copy:hover,
+        .sac-guide-copy:focus-visible { color: var(--ac-text); background: #fffdf4; outline: none; }
+        .sac-guide-hint-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
         .sac-guide-hint { font-size: 11px; color: rgba(121,79,39,.65); line-height: 1.5; margin: 0; }
         .sac-guide-img { width: 100%; border-radius: 6px; border: 1px solid rgba(196,184,158,.4); display: block; }
 
@@ -9042,6 +9144,19 @@ export default function Landing() {
 
         .inventory-empty {
           grid-column: 1 / -1;
+          align-self: stretch;
+          min-height: 100%;
+          display: grid;
+          place-items: center;
+          padding: 0;
+          color: rgba(121, 79, 39, .38);
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          font-size: 18px;
+          font-weight: 900;
+          line-height: 1;
+          text-align: center;
         }
 
         .inventory-detail-modal {
@@ -9720,80 +9835,158 @@ export default function Landing() {
             </div>
             {testScenarioPanelState === "expanded" && (
               <div className="test-scenario-panel__body">
-                <div className="test-version-segmented" role="tablist" aria-label={tr("Game version mode", "游戏版本")}>
-                  <button
-                    className={`test-version-segment${gameVersionMode === "normal" ? " is-active" : ""}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={gameVersionMode === "normal"}
-                    onClick={() => setGameVersionMode("normal")}
-                  >
-                    {tr("Normal version", "正常版本")}
+                <section className="test-scenario-group" aria-labelledby="test-version-group-title">
+                  <span id="test-version-group-title" className="test-scenario-group__title">{tr("Version", "版本选择")}</span>
+                  <div className="test-version-segmented" role="tablist" aria-label={tr("Game version mode", "游戏版本")}>
+                    <button
+                      className={`test-version-segment${gameVersionMode === "normal" ? " is-active" : ""}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={gameVersionMode === "normal"}
+                      onClick={() => setGameVersionMode("normal")}
+                    >
+                      {tr("Normal version", "正常版本")}
+                    </button>
+                    <button
+                      className={`test-version-segment${gameVersionMode === "mvp" ? " is-active" : ""}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={gameVersionMode === "mvp"}
+                      onClick={() => setGameVersionMode("mvp")}
+                    >
+                      {tr("MVP version", "MVP版")}
+                    </button>
+                  </div>
+                </section>
+
+                <section className="test-scenario-group" aria-labelledby="test-data-group-title">
+                  <span id="test-data-group-title" className="test-scenario-group__title">{tr("Data state", "数据状态")}</span>
+                  <div className="test-scenario-button-group">
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={toggleBasketBadgeScenario}
+                      aria-label={tr("Toggle basket badge", "切换鱼篓角标")}
+                    >
+                      <span>
+                        {tr(
+                          `Basket badge: ${basketBadgeMode === "hidden" ? "hidden" : basketBadgeMode === "one" ? "1" : basketBadgeMode === "ten" ? "10" : "99+"}`,
+                          `鱼篓角标：${basketBadgeMode === "hidden" ? "隐藏" : basketBadgeMode === "one" ? "1" : basketBadgeMode === "ten" ? "10" : "99+"}`
+                        )}
+                      </span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={toggleInventoryScenario}
+                      aria-label={tr("Toggle inventory state", "切换图鉴状态")}
+                    >
+                      <span>
+                        {tr(
+                          `Inventory: ${inventoryScenarioMode === "empty" ? "empty" : inventoryScenarioMode === "single" ? "1 item" : "multiple"}`,
+                          `图鉴状态：${inventoryScenarioMode === "empty" ? "无数据" : inventoryScenarioMode === "single" ? "1个数据" : "多个数据"}`
+                        )}
+                      </span>
+                    </button>
+                  </div>
+                </section>
+
+                <section className="test-scenario-group" aria-labelledby="test-agent-group-title">
+                  <span id="test-agent-group-title" className="test-scenario-group__title">{tr("Agent connection", "agent连接")}</span>
+                  <div className="test-scenario-button-group">
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={() => applyTestScenario("logged-out")}
+                    >
+                      <span>{tr("Logged out", "未登录")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={() => applyTestScenario("agent-disconnected")}
+                    >
+                      <span>{tr("Agent disconnected", "未连接agent")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={() => applyTestScenario("client-agent-connected")}
+                    >
+                      <span>{tr("Client agent", "连接客户端agent")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button test-scenario-button--preview"
+                      type="button"
+                      onClick={openNextAgentAuthPreview}
+                    >
+                      <span>{tr("Authorization popup preview", "授权弹窗示意")}</span>
                   </button>
                   <button
-                    className={`test-version-segment${gameVersionMode === "mvp" ? " is-active" : ""}`}
+                    className="test-scenario-button test-scenario-button--preview"
                     type="button"
-                    role="tab"
-                    aria-selected={gameVersionMode === "mvp"}
-                    onClick={() => setGameVersionMode("mvp")}
+                    onClick={openNextAgentTimeoutPreview}
                   >
-                    {tr("MVP version", "MVP版")}
+                    <span>{tr("Timeout popup preview", "请求超时弹窗示意")}</span>
                   </button>
-                </div>
-                <button
-                  className="test-scenario-button"
-                  type="button"
-                  onClick={toggleBasketBadgeScenario}
-                  aria-label={tr("Toggle basket badge", "切换鱼篓角标")}
-                >
-                  <ClipboardList size={20} aria-hidden="true" />
-                  <span>
-                    {tr(
-                      `Basket badge: ${basketBadgeMode === "hidden" ? "hidden" : basketBadgeMode === "ten" ? "10" : "99+"}`,
-                      `鱼篓角标：${basketBadgeMode === "hidden" ? "隐藏" : basketBadgeMode === "ten" ? "10" : "99+"}`
-                    )}
-                  </span>
-                </button>
-                <button
-                  className="test-scenario-button"
-                  type="button"
-                  onClick={toggleInventoryScenario}
-                  aria-label={tr("Toggle inventory state", "切换图鉴状态")}
-                >
-                  <FileText size={20} aria-hidden="true" />
-                  <span>
-                    {tr(
-                      `Inventory: ${inventoryScenarioMode === "empty" ? "empty" : inventoryScenarioMode === "single" ? "1 item" : "multiple"}`,
-                      `图鉴状态：${inventoryScenarioMode === "empty" ? "无数据" : inventoryScenarioMode === "single" ? "1个数据" : "多个数据"}`
-                    )}
-                  </span>
-                </button>
-                <button
-                  className="test-scenario-button"
-                  type="button"
-                  onClick={() => applyTestScenario("logged-out")}
-                >
-                  <User size={20} aria-hidden="true" />
-                  <span>{tr("Logged out", "未登录")}</span>
-                </button>
-                <button
-                  className="test-scenario-button"
-                  type="button"
-                  onClick={() => applyTestScenario("agent-disconnected")}
-                >
-                  <Unplug size={20} aria-hidden="true" />
-                  <span>{tr("Agent disconnected", "未连接agent")}</span>
-                </button>
-                <button
-                  className="test-scenario-button"
-                  type="button"
-                  onClick={() => applyTestScenario("client-agent-connected")}
-                >
-                  <Send size={20} aria-hidden="true" />
-                  <span>{tr("Client agent", "连接客户端agent")}</span>
-                </button>
+                  </div>
+                </section>
               </div>
             )}
+          </div>
+        )}
+
+        {agentAuthPreviewOpen && (
+          <div className="settings-agent-connect-overlay" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setAgentAuthPreviewOpen(false); }}>
+            <section className="sac-auth-preview" role="dialog" aria-modal="true">
+              <div className="sac-auth-preview__icon" aria-hidden="true">
+                {renderAgentAuthPreviewIcon(agentAuthPreviewProviderId)}
+              </div>
+              <p className="sac-auth-preview__heading">
+                <strong>{getAgentProviderName(agentAuthPreviewProviderId)}</strong> {tr("would like to access your account and be able to:", "希望访问您的账号并能够：")}
+              </p>
+              <p className="sac-auth-preview__body">
+                {tr(
+                  `Allow ${getAgentProviderName(agentAuthPreviewProviderId)} to write, upload, and backtest plugin.py, then retrieve factor details and summarize the results.`,
+                  `授权 ${getAgentProviderName(agentAuthPreviewProviderId)} 编写、上传并回测 plugin.py，随后获取因子信息并生成结果摘要。`
+                )}
+              </p>
+              <button className="sac-auth-preview__allow" type="button" onClick={allowAgentAuthPreviewAccess}>
+                {tr("Allow access", "允许访问")}
+              </button>
+            </section>
+          </div>
+        )}
+
+        {agentTimeoutPreviewOpen && (
+          <div
+            className="settings-agent-connect-overlay"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setAgentTimeoutPreviewOpen(false);
+            }}
+          >
+            <section className="sac-auth-preview sac-auth-preview--timeout" role="dialog" aria-modal="true" aria-label={tr("Connection request expired", "连接请求已过期")}>
+              <div className="sac-auth-preview__icon" aria-hidden="true">
+                {renderAgentAuthPreviewIcon(agentTimeoutPreviewProviderId)}
+              </div>
+              <p className="sac-auth-preview__heading">
+                {tr("Connection request expired", "连接请求已过期")}
+              </p>
+              <p className="sac-auth-preview__body">
+                {tr(
+                  `This connection request has expired. Return to ${getAgentProviderName(agentTimeoutPreviewProviderId)} and start a new connection request.`,
+                  `本次连接请求已过期，需回到 ${getAgentProviderName(agentTimeoutPreviewProviderId)} 重新发起连接。`
+                )}
+              </p>
+              <button
+                className="sac-auth-preview__allow"
+                type="button"
+                onClick={() => setAgentTimeoutPreviewOpen(false)}
+              >
+                {tr("Confirm", "确认")}
+              </button>
+            </section>
           </div>
         )}
 
@@ -10372,36 +10565,36 @@ export default function Landing() {
                                   </span>
                                   <span className="settings-agent-provider-name">
                                     <span>{provider.name}</span>
-                                    <span className={`settings-agent-provider-badge${providerBadgeClass}`}>
-                                      {providerBadgeLabel}
+                                    <span className="settings-agent-provider-status-line">
+                                      <span className={`settings-agent-provider-badge${providerBadgeClass}`}>
+                                        {providerBadgeLabel}
+                                      </span>
+                                      {providerHint && (
+                                        <span className="settings-agent-provider-hint">
+                                          {providerHint}
+                                        </span>
+                                      )}
                                     </span>
                                   </span>
                                 </div>
-                                {providerHint && (
-                                  <div className="settings-agent-provider-hint">
-                                    {providerHint}
-                                  </div>
-                                )}
                                 <div className="settings-agent-provider-actions">
                                   {isConnected || isUnavailable ? (
                                     <>
-                                      {isConnected && (
-                                        <button
-                                          className={`settings-agent-provider-action-button settings-agent-provider-action-button--compact${isTestingStatus ? " is-loading" : ""}`}
-                                          type="button"
-                                          aria-label={isTestingStatus ? tr("Testing status", "状态测试中") : tr("Status test", "状态测试")}
-                                          disabled={isTestingStatus}
-                                          onClick={() => testAgentProviderStatus(provider.id)}
-                                        >
-                                          <span>
-                                            {isTestingStatus
-                                              ? tr("Testing", "检查中")
-                                              : agentGlobalConnectMode === "agent"
-                                                ? tr("Test", "测试")
-                                                : tr("Check", "检查")}
-                                          </span>
-                                        </button>
-                                      )}
+                                      <button
+                                        className={`settings-agent-provider-action-button settings-agent-provider-action-button--compact${isTestingStatus ? " is-loading" : ""}`}
+                                        type="button"
+                                        aria-label={isTestingStatus ? tr("Testing status", "状态测试中") : tr("Status test", "状态测试")}
+                                        disabled={isTestingStatus}
+                                        onClick={() => testAgentProviderStatus(provider.id)}
+                                      >
+                                        <span>
+                                          {isTestingStatus
+                                            ? tr("Testing", "检查中")
+                                            : agentGlobalConnectMode === "agent"
+                                              ? tr("Test", "测试")
+                                              : tr("Check", "检查")}
+                                        </span>
+                                      </button>
                                       <button
                                         className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
                                         type="button"
@@ -10626,14 +10819,48 @@ export default function Landing() {
                                               <li>
                                                 <span className="sac-guide-step-title">{tr("Fill in the following info", "填入以下信息")}</span>
                                                 <ul className="sac-guide-fields">
-                                                  <li>{tr("Source", "来源")}：<code>varsity-tech-product/factor-mining-demo</code></li>
-                                                  <li>{tr("Git ref", "Git 引用")}：<code>main</code></li>
+                                                  <li>
+                                                    <span className="sac-guide-field-line">
+                                                      <span>{tr("Source", "来源")}：<code>{AGENT_MANUAL_SOURCE}</code></span>
+                                                      <button
+                                                        className="sac-guide-copy"
+                                                        type="button"
+                                                        aria-label={tr("Copy source", "复制来源")}
+                                                        onClick={() => copyAgentManualField(AGENT_MANUAL_SOURCE, tr("Source", "来源"))}
+                                                      >
+                                                        <Copy size={11} strokeWidth={3} />
+                                                      </button>
+                                                    </span>
+                                                  </li>
+                                                  <li>
+                                                    <span className="sac-guide-field-line">
+                                                      <span>{tr("Git ref", "Git 引用")}：<code>{AGENT_MANUAL_GIT_REF}</code></span>
+                                                      <button
+                                                        className="sac-guide-copy"
+                                                        type="button"
+                                                        aria-label={tr("Copy git ref", "复制 Git 引用")}
+                                                        onClick={() => copyAgentManualField(AGENT_MANUAL_GIT_REF, tr("Git ref", "Git 引用"))}
+                                                      >
+                                                        <Copy size={11} strokeWidth={3} />
+                                                      </button>
+                                                    </span>
+                                                  </li>
                                                 </ul>
                                                 <img className="sac-guide-img" src="/assets/manual-step2.png" alt="step 2" />
                                               </li>
                                               <li>
                                                 <span className="sac-guide-step-title">{tr("Start a new chat session", "开始一个新的聊天会话")}</span>
-                                                <p className="sac-guide-hint">Use the Factor Mining Demo plugin. Verify Factor Mining status, then show me the Factor Mining public task list…</p>
+                                                <div className="sac-guide-hint-wrap">
+                                                  <p className="sac-guide-hint">{AGENT_MANUAL_PROMPT}</p>
+                                                  <button
+                                                    className="sac-guide-copy"
+                                                    type="button"
+                                                    aria-label={tr("Copy prompt", "复制提示词")}
+                                                    onClick={() => copyAgentManualField(AGENT_MANUAL_PROMPT, tr("Prompt", "提示词"))}
+                                                  >
+                                                    <Copy size={11} strokeWidth={3} />
+                                                  </button>
+                                                </div>
                                                 <img className="sac-guide-img" src="/assets/manual-step3.png" alt="step 3" />
                                               </li>
                                               <li>
@@ -10728,68 +10955,6 @@ export default function Landing() {
                                 </button>
                               </div>
                             </section>
-                          </div>
-                        )}
-                        {agentAuthPreviewOpen && (
-                          <div className="settings-agent-connect-overlay" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setAgentAuthPreviewOpen(false); }}>
-                            <section className="sac-auth-preview" role="dialog" aria-modal="true">
-                              <div className="sac-auth-preview__icon">
-                                <Claude.Avatar size={64} />
-                              </div>
-                              <p className="sac-auth-preview__heading">
-                                <strong>Claude Code</strong> {tr("would like to access your account and be able to:", "希望访问您的账号并能够：")}
-                              </p>
-                              <p className="sac-auth-preview__body">
-                                {tr(
-                                  "Allow Claude Code to write, upload, and backtest plugin.py, then retrieve factor details and summarize the results.",
-                                  "授权 Claude Code 编写、上传并回测 plugin.py，随后获取因子信息并生成结果摘要。"
-                                )}
-                              </p>
-                              <button className="sac-auth-preview__allow" type="button" onClick={allowAgentAuthPreviewAccess}>
-                                {tr("Allow access", "允许访问")}
-                              </button>
-                            </section>
-                          </div>
-                        )}
-                        {agentTimeoutPreviewOpen && (
-                          <div
-                            className="settings-agent-connect-overlay"
-                            role="presentation"
-                            onMouseDown={(event) => {
-                              if (event.target === event.currentTarget) setAgentTimeoutPreviewOpen(false);
-                            }}
-                          >
-                            <section className="sac-auth-preview sac-auth-preview--timeout" role="dialog" aria-modal="true" aria-label={tr("Connection request expired", "连接请求已过期")}>
-                              <div className="sac-auth-preview__icon">
-                                <Claude.Avatar size={64} />
-                              </div>
-                              <p className="sac-auth-preview__heading">
-                                {tr("Connection request expired", "连接请求已过期")}
-                              </p>
-                              <p className="sac-auth-preview__body">
-                                {tr(
-                                  "This connection request has expired. Return to your agent and start a new connection request.",
-                                  "本次连接请求已过期，需回到 agent 重新发起连接。"
-                                )}
-                              </p>
-                              <button
-                                className="sac-auth-preview__allow"
-                                type="button"
-                                onClick={() => setAgentTimeoutPreviewOpen(false)}
-                              >
-                                {tr("Confirm", "确认")}
-                              </button>
-                            </section>
-                          </div>
-                        )}
-                        {shouldShowAgentAuthPreviewTrigger && (
-                          <div className="settings-agent-main__footer">
-                            <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
-                              🔍 {tr("Authorization popup preview", "授权弹窗示意")}
-                            </button>
-                            <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentTimeoutPreviewOpen(true)}>
-                              ⏱ {tr("Timeout popup preview", "请求超时弹窗示意")}
-                            </button>
                           </div>
                         )}
                         {agentInlineStep !== "mode" && (
@@ -11639,7 +11804,7 @@ export default function Landing() {
               })}
 
               {displayedInventoryFactors.length === 0 && displayedInventorySpecialCards.length === 0 && (
-                <div className="shop-empty inventory-empty">{tr("No factors match your filters.", "没有符合当前筛选条件的因子。")}</div>
+                <div className="shop-empty inventory-empty">{tr("Nothing here", "空空如也")}</div>
               )}
             </div>
           </section>

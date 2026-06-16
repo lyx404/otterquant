@@ -7,13 +7,10 @@ import gsap from "gsap";
 import {
   ArrowLeft,
   ArrowRight,
-  AtSign,
   Eye,
   EyeOff,
   Languages,
   Loader2,
-  Lock,
-  Mail,
 } from "lucide-react";
 
 type AuthMode = "login" | "register" | "forgot";
@@ -291,13 +288,13 @@ export default function Auth() {
         .auth-shell {
           width: min(430px, 92vw);
           display: grid;
-          gap: 14px;
+          gap: 12px;
         }
 
         .auth-panel {
           padding: 18px;
           background: rgba(255, 253, 244, .96);
-          border: 3px solid var(--auth-border);
+          border: 0;
           border-radius: 10px;
           box-shadow:
             0 0 0 3px rgba(255, 253, 244, .72),
@@ -306,60 +303,43 @@ export default function Auth() {
 
         .auth-panel__head {
           display: flex;
+          flex-direction: column;
           align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 0 8px;
+          gap: 6px;
+          padding: 0 8px 10px;
+          text-align: center;
         }
 
         .auth-brand {
           display: flex;
+          flex-direction: column;
           align-items: center;
           min-width: 0;
         }
 
         .auth-brand__logo {
-          width: 150px;
+          width: 200px;
           height: auto;
           display: block;
+          padding-bottom: 2px;
           object-fit: contain;
         }
 
         .auth-brand p {
-          margin: 6px 0 0;
+          margin: 2px 0 0;
           color: rgba(255, 253, 244, .86);
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 800;
           line-height: 1.35;
-        }
-
-        .auth-back {
-          appearance: none;
-          width: 36px;
-          height: 36px;
-          display: inline-grid;
-          place-items: center;
-          flex: 0 0 auto;
-          color: var(--auth-text);
-          background: #fff8e8;
-          border: 2px solid var(--auth-border);
-          border-radius: 6px;
-          box-shadow: none;
-          cursor: pointer;
-        }
-
-        .auth-back:hover,
-        .auth-back:focus-visible {
-          background: #fff4d7;
-          outline: none;
+          text-align: center;
         }
 
         .auth-tabs {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 8px;
-          padding: 6px;
-          margin-bottom: 16px;
+          padding: 2px;
+          margin: -6px 0 22px;
           background: rgba(247, 243, 223, .78);
           border: 2px solid rgba(196, 184, 158, .72);
           border-radius: 8px;
@@ -396,20 +376,48 @@ export default function Auth() {
         }
 
         .auth-reset-copy {
+          position: relative;
+          min-height: 34px;
           margin-bottom: 18px;
+          padding-left: 46px;
+          text-align: left;
+        }
+
+        .auth-reset-back {
+          appearance: none;
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 34px;
+          height: 34px;
+          display: inline-grid;
+          place-items: center;
+          color: var(--auth-text);
+          background: #fff8e8;
+          border: 2px solid var(--auth-border);
+          border-radius: 6px;
+          box-shadow: none;
+          cursor: pointer;
+        }
+
+        .auth-reset-back:hover,
+        .auth-reset-back:focus-visible {
+          background: #fff4d7;
+          outline: none;
         }
 
         .auth-reset-copy h2 {
-          margin: 0 0 10px;
+          margin: 0 0 2px;
           color: var(--auth-text);
-          font-size: 23px;
+          font-size: 20px;
           font-weight: 950;
           line-height: 1.15;
         }
 
         .auth-reset-copy p {
           margin: 0;
-          color: rgba(151, 160, 179, .72);
+          color: rgba(114, 93, 66, .62);
           font-size: 12px;
           font-weight: 800;
           line-height: 1.5;
@@ -421,54 +429,18 @@ export default function Auth() {
         }
 
         .auth-form--reset {
-          gap: 16px;
-          margin-top: 2px;
+          gap: 2px;
         }
 
-        .auth-form--reset .auth-field,
         .auth-form--reset .auth-agreement,
-        .auth-form--reset .auth-forgot,
-        .auth-form--reset .auth-field-feedback {
+        .auth-form--reset .auth-forgot {
           display: none;
         }
 
         .auth-form--reset .auth-reset-email {
           display: grid;
-          gap: 10px;
-        }
-
-        .auth-form--reset .auth-reset-email label {
-          color: rgba(255, 255, 255, .72);
-          font-size: 18px;
-          font-weight: 850;
-          line-height: 1.2;
-        }
-
-        .auth-form--reset .auth-reset-email .auth-input {
-          height: 58px;
-          padding-left: 18px;
-          background: #0e1219;
-          color: #f4f6f8;
-          border-color: #9f7a14;
-          border-radius: 22px;
-        }
-
-        .auth-form--reset .auth-reset-email .auth-input::placeholder {
-          color: rgba(244, 246, 248, .38);
-        }
-
-        .auth-form--reset .auth-reset-email .auth-input-wrap svg {
-          display: none;
-        }
-
-        .auth-form--reset .auth-submit {
-          margin-top: 2px;
-          height: 56px;
-          font-size: 17px;
-        }
-
-        .auth-form--reset .auth-submit svg:last-child {
-          display: none;
+          gap: 6px;
+          padding-top: 8px;
         }
 
         .auth-field {
@@ -491,19 +463,11 @@ export default function Auth() {
           position: relative;
         }
 
-        .auth-input-wrap svg {
-          position: absolute;
-          left: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: rgba(121, 79, 39, .48);
-        }
-
         .auth-input {
           width: 100%;
           height: 42px;
           box-sizing: border-box;
-          padding: 0 12px 0 38px;
+          padding: 0 12px;
           color: var(--auth-text);
           background: #fff9e9;
           border: 2px solid rgba(196, 184, 158, .9);
@@ -654,7 +618,7 @@ export default function Auth() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          margin-top: 4px;
+          margin-top: 12px;
           color: #5a3e00;
           background: #ffd557;
           border-radius: 7px;
@@ -674,8 +638,9 @@ export default function Auth() {
         }
 
         .auth-footer {
-          margin: 0;
-          color: rgba(114, 93, 66, .72);
+          margin: 0 0 -4px;
+          padding-top: 8px;
+          color: rgba(114, 93, 66, .5);
           font-size: 12px;
           font-weight: 750;
           line-height: 1.45;
@@ -684,7 +649,7 @@ export default function Auth() {
 
         .auth-footer button {
           appearance: none;
-          color: var(--auth-text);
+          color: rgba(255, 255, 255, .8);
           background: transparent;
           border: 0;
           cursor: pointer;
@@ -695,6 +660,8 @@ export default function Auth() {
         }
 
         .auth-terms {
+          position: relative;
+          z-index: 2;
           margin: -2px 8px 0;
           color: rgba(114, 93, 66, .5);
           font-size: 10px;
@@ -777,17 +744,22 @@ export default function Auth() {
             <div className="auth-brand">
               <div>
                 <img className="auth-brand__logo" src="/assets/quandora-logo.svg" alt="Quandora" />
-                <p>{tr("Cast once more to enter the lake.", "登录后继续抛竿探索。")}</p>
+                <p>{tr("Start your AI factor mining journey.", "开启你的 AI 因子挖掘之旅。")}</p>
               </div>
             </div>
-            <button className="auth-back" type="button" aria-label={tr("Back", "返回")} onClick={() => navigate("/")}>
-              <ArrowLeft size={18} strokeWidth={3} />
-            </button>
           </header>
 
           <div className="auth-panel" ref={panelRef}>
             {mode === "forgot" ? (
               <div className="auth-reset-copy">
+                <button
+                  className="auth-reset-back"
+                  type="button"
+                  aria-label={tr("Back to log in", "返回登录")}
+                  onClick={() => switchMode("login")}
+                >
+                  <ArrowLeft size={18} strokeWidth={3} />
+                </button>
                 <h2>{tr("Reset password", "重置密码")}</h2>
                 <p>{tr("Enter your registered email. We will send a verification code to your inbox.", "输入注册邮箱，我们会向你的邮箱发送验证码。")}</p>
               </div>
@@ -811,7 +783,7 @@ export default function Auth() {
             <form onSubmit={handleSubmit} noValidate>
               <div className={`auth-form${mode === "forgot" ? " auth-form--reset" : ""}`} ref={formRef}>
               {mode === "forgot" && (
-                <div className="auth-reset-email">
+                <div className="auth-field auth-reset-email">
                   <label htmlFor="auth-reset-email">{tr("Email", "邮箱")}</label>
                   <div className="auth-input-wrap">
                     <input
@@ -820,7 +792,7 @@ export default function Auth() {
                       type="email"
                       value={email}
                       aria-invalid={Boolean(fieldErrors.email)}
-                      aria-describedby="auth-email-feedback"
+                      aria-describedby="auth-reset-email-feedback"
                       onChange={(event) => {
                         setEmail(event.target.value);
                         setFieldErrors((current) => ({ ...current, email: undefined }));
@@ -829,12 +801,14 @@ export default function Auth() {
                       autoComplete="email"
                     />
                   </div>
+                  <span id="auth-reset-email-feedback" className={`auth-field-feedback${codeSent ? " is-success" : ""}`}>
+                    {fieldErrors.email || (codeSent ? tr("Verification code sent", "验证码已发送") : " ")}
+                  </span>
                 </div>
               )}
               <div className={`auth-field${mode === "forgot" ? " auth-field--hidden" : ""}`}>
                 <label htmlFor="auth-email">{tr("Email", "邮箱")}</label>
                 <div className="auth-input-wrap">
-                  <Mail size={16} strokeWidth={3} />
                   <input
                     id="auth-email"
                     className="auth-input"
@@ -857,7 +831,6 @@ export default function Auth() {
                 <div className="auth-field">
                   <label htmlFor="auth-nickname">{tr("Nickname", "设置昵称")}</label>
                   <div className="auth-input-wrap">
-                    <AtSign size={16} strokeWidth={3} />
                     <input
                       id="auth-nickname"
                       className="auth-input"
@@ -881,7 +854,6 @@ export default function Auth() {
               <div className="auth-field">
                 <label htmlFor="auth-password">{tr("Password", "密码")}</label>
                 <div className="auth-input-wrap">
-                  <Lock size={16} strokeWidth={3} />
                   <input
                     id="auth-password"
                     className="auth-input"
@@ -935,23 +907,19 @@ export default function Auth() {
               )}
 
               <button className="auth-submit" type="submit" disabled={submitting || sending || countdown > 0}>
-                {submitting || sending ? <Loader2 size={16} className="animate-spin" /> : mode === "forgot" ? <Mail size={16} strokeWidth={3} /> : null}
+                {submitting || sending ? <Loader2 size={16} className="animate-spin" /> : null}
                 <span>{mode === "forgot" && countdown > 0 ? `${countdown}s` : submitLabel}</span>
                 {!submitting && mode !== "forgot" && <ArrowRight size={16} strokeWidth={3} />}
               </button>
               </div>
             </form>
           </div>
+          {mode !== "forgot" && (
           <p className="auth-footer">
             {mode === "login" ? (
               <>
                 {tr("No account yet?", "还没有账号？")}{" "}
                 <button type="button" onClick={() => switchMode("register")}>{tr("Sign up", "立即注册")}</button>
-              </>
-            ) : mode === "forgot" ? (
-              <>
-                {tr("Remembered your password?", "想起密码了？")}{" "}
-                <button type="button" onClick={() => switchMode("login")}>{tr("Back to log in", "返回登录")}</button>
               </>
             ) : (
               <>
@@ -960,6 +928,7 @@ export default function Auth() {
               </>
             )}
           </p>
+          )}
           <p className="auth-terms">
             {tr("By continuing, you agree to the service terms and privacy policy.", "继续即表示同意服务条款与隐私政策。")}
           </p>

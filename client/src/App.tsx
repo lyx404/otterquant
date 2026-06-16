@@ -109,7 +109,8 @@ function Router() {
     location !== "/" &&
     location !== "/launch-guide" &&
     location !== "/landing" &&
-    location !== "/auth"
+    location !== "/auth" &&
+    location !== "/scratch-card"
   ) {
     return <Redirect to="/launch-guide" />;
   }
