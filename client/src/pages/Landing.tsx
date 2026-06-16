@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Claude, Codex, OpenClaw, OpenRouter } from "@lobehub/icons";
-import { useInView, useReducedMotion } from "motion/react";
 import { Link } from "wouter";
 import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
 import type { SelectOption } from "animal-island-ui";
 import AlphaDetail from "@/pages/AlphaDetail";
 import BorderGlow from "@/components/ui/border-glow-card";
+import { GameHudStats } from "@/components/GameHudStats";
+import { GameWalletModal } from "@/components/GameWalletModal";
 import {
   Activity,
   ArrowLeft,
@@ -15,7 +16,6 @@ import {
   Check,
   ClipboardList,
   Copy,
-  CreditCard,
   Download,
   Eye,
   EyeOff,
@@ -23,7 +23,6 @@ import {
   Heart,
   Key,
   Languages,
-  LoaderCircle,
   Mail,
   MoreHorizontal,
   Pencil,
@@ -31,14 +30,14 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Send,
   Star,
   TrendingUp,
   Trash2,
-  Unplug,
   User,
   Users,
   Wallet,
+  ZoomIn,
+  ZoomOut,
   X,
 } from "lucide-react";
 import { factors, getAlphaGrade, strategies, type AlphaGrade, type Factor } from "@/lib/mockData";
@@ -46,6 +45,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { AlphaViewModeProvider } from "@/contexts/AlphaViewModeContext";
 import { usePageTransition } from "@/contexts/PageTransitionContext";
+import disconnectedBasketUrl from "@/assets/disconnected-basket.svg";
+import noticeIconUrl from "@/assets/notice.svg";
+import {
+  BALANCE_PER_USD,
+  FISH_BALANCE_AMOUNT,
+  formatBalance,
+  HUD_ASSETS,
+  HUD_CASH_AMOUNT,
+  SYSTEM_BALANCE_AMOUNT,
+  WALLET_BALANCE_AMOUNT,
+  WALLET_BALANCE_USD,
+  balanceToUsd,
+  usdToBalance,
+  type GameWalletAccountKind,
+} from "@/lib/gameWallet";
 
 const filterOptions = ["all", "starred"] as const;
 type FilterKey = (typeof filterOptions)[number];
@@ -102,16 +116,10 @@ type InventoryToast = {
   title: string;
   message: string;
 } | null;
-type WalletActivityItem = {
-  id: string;
-  orderNo: string;
-  reasonEn: string;
-  reasonZh: string;
-  occurredAt: string;
-  amount: number;
-  direction: "increase" | "decrease";
-};
-type WalletAccountKind = "coin" | "cash";
+type BasketEmptyToast = {
+  id: number;
+  message: string;
+} | null;
 type LeaderboardPeriod = "week" | "month";
 type LeaderboardEntry = {
   id: string;
@@ -122,50 +130,31 @@ type LeaderboardEntry = {
   monthCasts: number;
 };
 type FundsStatus = "idle" | "processing" | "success" | "error";
-type CountUpProps = {
-  to?: number | string;
-  children?: React.ReactNode;
-  from?: number;
-  direction?: "up" | "down";
-  delay?: number;
-  duration?: number;
-  className?: string;
-  startWhen?: boolean;
-  separator?: string;
-  prefix?: string;
-  decimals?: number;
-  onStart?: () => void;
-  onEnd?: () => void;
+type GameVersionMode = "normal" | "mvp";
+type BasketBadgeMode = "hidden" | "one" | "ten" | "overflow";
+type TestScenarioPanelState = "expanded" | "collapsed";
+type InventoryScenarioMode = "multiple" | "empty" | "single";
+type TestScenarioPanelPosition = {
+  left: number;
+  top: number;
+};
+type TestScenarioPanelDragState = TestScenarioPanelPosition & {
+  pointerId: number;
+  startClientX: number;
+  startClientY: number;
+  panelWidth: number;
+  panelHeight: number;
 };
 
-const BALANCE_PER_USD = 100;
-const SYSTEM_BALANCE_AMOUNT = 10000;
-const HUD_CASH_AMOUNT = 99.0;
-const FISH_BALANCE_AMOUNT = 10000;
 const MIN_AUTO_CAST_COUNT = 1;
 const MAX_AUTO_CAST_COUNT = 100;
-const WALLET_BALANCE_USD = HUD_CASH_AMOUNT;
-const WALLET_BALANCE_AMOUNT = Math.round(WALLET_BALANCE_USD * BALANCE_PER_USD);
 const MIN_AMOUNT = 1000;
 const MAX_AMOUNT = 500000;
 const GAME_STAGE_WIDTH = 1902;
 const GAME_STAGE_HEIGHT = 1080;
+const TEST_SCENARIO_PANEL_DEFAULT_POSITION: TestScenarioPanelPosition = { left: 34, top: 124 };
 const AUTO_CAST_SINGLE_MIN_SECONDS = 10;
 const AUTO_CAST_SINGLE_MAX_SECONDS = 30;
-const HUD_ASSETS = {
-  coin: "/assets/hud-coin.svg",
-  cash: "/assets/hud-cash.svg",
-  fish: "/assets/hud-fish.svg",
-  pond: "/assets/hud-pond.svg",
-  market: "/assets/hud-market.svg",
-  guide: "/assets/inventory-menu-icon-v2.svg",
-  scratchCard: "/assets/hud-scratch-card.svg",
-  wallet: "/assets/wallet-menu-icon-new.svg",
-  leaderboard: "/assets/hud-leaderboard.svg",
-  settings: "/assets/settings.svg",
-  rod: "/assets/cast.svg",
-  basket: "/assets/hud-basket-button.svg",
-} as const;
 const RANKING_MODAL_ASSETS = {
   watermark: "/assets/ranking-modal/watermark-full.png",
   coin: "/assets/ranking-modal/coin.svg",
@@ -182,147 +171,6 @@ const WITHDRAWAL_NETWORKS = [
   "Solana (SOL)",
 ];
 const DEFAULT_WITHDRAWAL_NETWORK = WITHDRAWAL_NETWORKS[0];
-
-const coinActivities: WalletActivityItem[] = [
-  {
-    id: "coin-1",
-    orderNo: "COIN-20260428-001",
-    reasonEn: "Sold SSS-grade factor",
-    reasonZh: "售出SSS级因子",
-    occurredAt: "2026-04-28T10:24:00+08:00",
-    amount: 2800,
-    direction: "increase",
-  },
-  {
-    id: "coin-2",
-    orderNo: "COIN-20260427-002",
-    reasonEn: "Bought scratch card",
-    reasonZh: "购买刮刮乐",
-    occurredAt: "2026-04-27T18:30:00+08:00",
-    amount: 600,
-    direction: "decrease",
-  },
-  {
-    id: "coin-3",
-    orderNo: "COIN-20260426-003",
-    reasonEn: "Sold A-grade factor",
-    reasonZh: "售出A级因子",
-    occurredAt: "2026-04-26T09:10:00+08:00",
-    amount: 5000,
-    direction: "increase",
-  },
-  {
-    id: "coin-4",
-    orderNo: "COIN-20260425-004",
-    reasonEn: "Bought scratch card",
-    reasonZh: "购买刮刮乐",
-    occurredAt: "2026-04-25T21:18:00+08:00",
-    amount: 1200,
-    direction: "decrease",
-  },
-  {
-    id: "coin-5",
-    orderNo: "COIN-20260424-005",
-    reasonEn: "Sold S-grade factor",
-    reasonZh: "售出S级因子",
-    occurredAt: "2026-04-24T12:06:00+08:00",
-    amount: 3600,
-    direction: "increase",
-  },
-];
-
-const cashActivities: WalletActivityItem[] = [
-  {
-    id: "cash-1",
-    orderNo: "CASH-20260428-001",
-    reasonEn: "Scratch card prize",
-    reasonZh: "刮刮乐中奖",
-    occurredAt: "2026-04-28T10:24:00+08:00",
-    amount: 32,
-    direction: "increase",
-  },
-  {
-    id: "cash-2",
-    orderNo: "CASH-20260420-002",
-    reasonEn: "Withdrawal",
-    reasonZh: "提现",
-    occurredAt: "2026-04-20T09:00:00+08:00",
-    amount: 20,
-    direction: "decrease",
-  },
-  {
-    id: "cash-3",
-    orderNo: "CASH-20260418-003",
-    reasonEn: "Scratch card prize",
-    reasonZh: "刮刮乐中奖",
-    occurredAt: "2026-04-18T16:42:00+08:00",
-    amount: 18,
-    direction: "increase",
-  },
-  {
-    id: "cash-4",
-    orderNo: "CASH-20260415-004",
-    reasonEn: "Withdrawal",
-    reasonZh: "提现",
-    occurredAt: "2026-04-15T21:18:00+08:00",
-    amount: 6,
-    direction: "decrease",
-  },
-  {
-    id: "cash-5",
-    orderNo: "CASH-20260412-005",
-    reasonEn: "Scratch card prize",
-    reasonZh: "刮刮乐中奖",
-    occurredAt: "2026-04-12T12:06:00+08:00",
-    amount: 12,
-    direction: "increase",
-  },
-  {
-    id: "cash-6",
-    orderNo: "CASH-20260408-006",
-    reasonEn: "Withdrawal",
-    reasonZh: "提现",
-    occurredAt: "2026-04-08T19:35:00+08:00",
-    amount: 4,
-    direction: "decrease",
-  },
-  {
-    id: "cash-7",
-    orderNo: "CASH-20260404-007",
-    reasonEn: "Scratch card prize",
-    reasonZh: "刮刮乐中奖",
-    occurredAt: "2026-04-04T11:20:00+08:00",
-    amount: 9,
-    direction: "increase",
-  },
-  {
-    id: "cash-8",
-    orderNo: "CASH-20260330-008",
-    reasonEn: "Withdrawal",
-    reasonZh: "提现",
-    occurredAt: "2026-03-30T14:52:00+08:00",
-    amount: 3,
-    direction: "decrease",
-  },
-  {
-    id: "cash-9",
-    orderNo: "CASH-20260326-009",
-    reasonEn: "Scratch card prize",
-    reasonZh: "刮刮乐中奖",
-    occurredAt: "2026-03-26T08:30:00+08:00",
-    amount: 5,
-    direction: "increase",
-  },
-  {
-    id: "cash-10",
-    orderNo: "CASH-20260321-010",
-    reasonEn: "Withdrawal",
-    reasonZh: "提现",
-    occurredAt: "2026-03-21T17:48:00+08:00",
-    amount: 15,
-    direction: "decrease",
-  },
-];
 
 const CURRENT_LEADERBOARD_USER_ID = "current-user";
 const leaderboardSeedEntries: LeaderboardEntry[] = [
@@ -357,6 +205,8 @@ const leaderboardEntries: LeaderboardEntry[] = [
   }),
 ];
 type AgentProviderIcon = "codex" | "claude" | "openclaw" | "openrouter";
+type AgentProviderAvailability = "available" | "unavailable" | "outdated";
+type AgentAuthPreviewProviderId = "codex" | "claude-code" | "openclaw";
 type AgentConnectableProvider = {
   id: "codex" | "openrouter" | "claude-code" | "openclaw";
   name: string;
@@ -371,6 +221,11 @@ const agentConnectableProviders: readonly AgentConnectableProvider[] = [
   { id: "claude-code",name: "Claude Code", mark: "C",  icon: "claude",   modes: ["agent"] },
   { id: "openclaw",   name: "OpenClaw",    mark: "O",  icon: "openclaw", modes: ["agent"] },
 ];
+const agentAuthPreviewProviderIds: readonly AgentAuthPreviewProviderId[] = ["codex", "claude-code", "openclaw"];
+const initialAgentProviderAvailabilityById: Partial<Record<AgentProviderId, AgentProviderAvailability>> = {
+  "claude-code": "outdated",
+  openclaw: "unavailable",
+};
 const agentWebAuthorizationLoginUrl = "https://chatgpt.com/activate";
 type AgentApiKeyItem = {
   id: string;
@@ -381,6 +236,10 @@ type AgentApiKeyItem = {
   updatedAt: string;
 };
 const AGENT_SKILL_LATEST = "v2.4.1";
+const AGENT_MANUAL_SOURCE = "varsity-tech-product/factor-mining-demo";
+const AGENT_MANUAL_GIT_REF = "main";
+const AGENT_MANUAL_PROMPT =
+  "Use the Factor Mining Demo plugin. Verify Factor Mining status, then show me the Factor Mining public task list. Do not create a session until I choose a public task or provide a custom idea. Then write a valid plugin.py locally, upload it, wait for the backtest, fetch the default factor card if available, and summarize the result.";
 const initialAgentApiKeys: AgentApiKeyItem[] = [
   {
     id: "1",
@@ -571,21 +430,9 @@ function formatUsdInputValue(amount: number) {
   });
 }
 
-function formatBalance(amount: number) {
-  return `${Math.round(Number(amount) || 0).toLocaleString()}`;
-}
-
 function clampAutoCastCount(value: number) {
   if (!Number.isFinite(value)) return MIN_AUTO_CAST_COUNT;
   return Math.min(MAX_AUTO_CAST_COUNT, Math.max(MIN_AUTO_CAST_COUNT, Math.round(value)));
-}
-
-function balanceToUsd(amount: number) {
-  return (Number(amount) || 0) / BALANCE_PER_USD;
-}
-
-function usdToBalance(amount: number) {
-  return Math.round((Number(amount) || 0) * BALANCE_PER_USD);
 }
 
 function formatLeaderboardBalance(amount: number) {
@@ -623,132 +470,6 @@ function formatWalletAddressPreview(address: string) {
   const value = address.trim();
   if (value.length <= 18) return value;
   return `${value.slice(0, 8)}...${value.slice(-6)}`;
-}
-
-function CountUp({
-  to,
-  children,
-  from = 0,
-  direction = "up",
-  delay = 0,
-  duration = 0.5,
-  className = "",
-  startWhen = true,
-  separator = ",",
-  prefix = "",
-  decimals,
-  onStart,
-  onEnd,
-}: CountUpProps) {
-  const ref = useRef<HTMLSpanElement | null>(null);
-  const frameRef = useRef<number | null>(null);
-  const timeoutRef = useRef<number | null>(null);
-  const shouldReduceMotion = useReducedMotion();
-
-  const parseNumber = useCallback((value: unknown) => {
-    if (typeof value === "number") return value;
-    const matched = String(value ?? "")
-      .replace(/,/g, "")
-      .match(/-?\d+(\.\d+)?/);
-    return matched ? Number(matched[0]) : 0;
-  }, []);
-
-  const targetValue = useMemo(
-    () => (typeof to === "number" ? to : parseNumber(to ?? children)),
-    [children, parseNumber, to]
-  );
-  const startValue = direction === "down" ? targetValue : from;
-  const endValue = direction === "down" ? from : targetValue;
-  const isInView = useInView(ref, { once: true, margin: "0px" });
-
-  const getDecimalPlaces = useCallback((num: number) => {
-    const str = num.toString();
-    if (!str.includes(".")) return 0;
-    const decimals = str.split(".")[1] ?? "";
-    return parseInt(decimals, 10) !== 0 ? decimals.length : 0;
-  }, []);
-
-  const inferredDecimals = Math.max(getDecimalPlaces(from), getDecimalPlaces(targetValue));
-  const maxDecimals = decimals ?? inferredDecimals;
-
-  const formatValue = useCallback(
-    (latest: number) => {
-      const hasDecimals = maxDecimals > 0;
-      const formattedNumber = Intl.NumberFormat("en-US", {
-        useGrouping: Boolean(separator),
-        minimumFractionDigits: hasDecimals ? maxDecimals : 0,
-        maximumFractionDigits: hasDecimals ? maxDecimals : 0,
-      }).format(latest);
-      const normalizedNumber = separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
-      return `${prefix}${normalizedNumber}`;
-    },
-    [maxDecimals, prefix, separator]
-  );
-
-  useEffect(() => {
-    if (ref.current) ref.current.textContent = formatValue(startValue);
-  }, [formatValue, startValue]);
-
-  useEffect(() => {
-    if (frameRef.current !== null) {
-      window.cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
-    }
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-
-    if (!isInView || !startWhen) return undefined;
-    onStart?.();
-
-    if (shouldReduceMotion) {
-      if (ref.current) ref.current.textContent = formatValue(endValue);
-      onEnd?.();
-      return undefined;
-    }
-
-    const durationMs = Math.max(duration, 0.1) * 1000;
-    const startAnimation = () => {
-      const animationStart = performance.now();
-
-      const tick = (now: number) => {
-        const progress = Math.min((now - animationStart) / durationMs, 1);
-        const latest = startValue + (endValue - startValue) * progress;
-
-        if (ref.current) ref.current.textContent = formatValue(latest);
-
-        if (progress < 1) {
-          frameRef.current = window.requestAnimationFrame(tick);
-          return;
-        }
-
-        frameRef.current = null;
-        onEnd?.();
-      };
-
-      frameRef.current = window.requestAnimationFrame(tick);
-    };
-
-    timeoutRef.current = window.setTimeout(startAnimation, delay * 1000);
-
-    return () => {
-      if (frameRef.current !== null) {
-        window.cancelAnimationFrame(frameRef.current);
-        frameRef.current = null;
-      }
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-    };
-  }, [delay, duration, endValue, formatValue, isInView, onEnd, onStart, shouldReduceMotion, startWhen, startValue]);
-
-  return (
-    <span className={className} ref={ref}>
-      {children}
-    </span>
-  );
 }
 
 function getFactorDefaultSortDir(key: FactorSortKey): Exclude<SortDir, null> {
@@ -820,10 +541,22 @@ function buildLinePath(values: number[], width: number, height: number, padding 
 
 export default function Landing() {
   const { uiLang, setUiLang } = useAppLanguage();
-  const { user, updateUser } = useAuth();
+  const { user, login, logout, updateUser } = useAuth();
   const { navigateWithTransition } = usePageTransition();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const shouldShowTestScenarioPanel =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      Boolean((window as Window & { __MANUS_HOST_DEV__?: boolean }).__MANUS_HOST_DEV__));
   const [stageScale, setStageScale] = useState(1);
+  const [gameVersionMode, setGameVersionMode] = useState<GameVersionMode>("normal");
+  const [basketBadgeMode, setBasketBadgeMode] = useState<BasketBadgeMode>("hidden");
+  const [testScenarioPanelState, setTestScenarioPanelState] = useState<TestScenarioPanelState>("expanded");
+  const [inventoryScenarioMode, setInventoryScenarioMode] = useState<InventoryScenarioMode>("multiple");
+  const [testScenarioPanelPosition, setTestScenarioPanelPosition] = useState<TestScenarioPanelPosition>(TEST_SCENARIO_PANEL_DEFAULT_POSITION);
+  const testScenarioPanelDragRef = useRef<TestScenarioPanelDragState | null>(null);
+  const testScenarioPanelDragCleanupRef = useRef<(() => void) | null>(null);
   const [autoCastCount, setAutoCastCount] = useState(10);
   const [autoCastDraftCount, setAutoCastDraftCount] = useState(10);
   const [autoCastSettingsOpen, setAutoCastSettingsOpen] = useState(false);
@@ -836,7 +569,7 @@ export default function Landing() {
   const [manualCastElapsed, setManualCastElapsed] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [walletOpen, setWalletOpen] = useState(false);
-  const [walletAccountKind, setWalletAccountKind] = useState<WalletAccountKind>("coin");
+  const [walletAccountKind, setWalletAccountKind] = useState<GameWalletAccountKind>("coin");
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
@@ -844,8 +577,6 @@ export default function Landing() {
   const [agentInstallIde, setAgentInstallIde] = useState<AgentInstallIde>("claude-code");
   const [settingsNickname, setSettingsNickname] = useState(user?.displayName || "AlphaTrader");
   const [settingsOriginalNickname, setSettingsOriginalNickname] = useState(user?.displayName || "AlphaTrader");
-  const [settingsAvatarPreview, setSettingsAvatarPreview] = useState<string | null>(user?.avatar || null);
-  const settingsAvatarInputRef = useRef<HTMLInputElement | null>(null);
   const [settingsEmail, setSettingsEmail] = useState(user?.email || "alpha@example.com");
   const [settingsEditingProfile, setSettingsEditingProfile] = useState(false);
   const [settingsEditingEmail, setSettingsEditingEmail] = useState(false);
@@ -860,10 +591,10 @@ export default function Landing() {
   const [agentSelectedProviderId, setAgentSelectedProviderId] = useState<AgentProviderId>("codex");
   const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set<AgentProviderId>(["codex"]));
   const [agentConnectedDeviceNames, setAgentConnectedDeviceNames] = useState<Partial<Record<AgentProviderId, string>>>({ codex: "MacBook Pro" });
+  const [agentProviderAvailabilityById, setAgentProviderAvailabilityById] = useState<Partial<Record<AgentProviderId, AgentProviderAvailability>>>(() => ({ ...initialAgentProviderAvailabilityById }));
   const [agentGlobalConnectMode, setAgentGlobalConnectMode] = useState<"web" | "agent" | null>("web");
   const [agentModeSwitchWarning, setAgentModeSwitchWarning] = useState(false);
   const [agentConnectionWarningType, setAgentConnectionWarningType] = useState<"mode" | "provider">("mode");
-  const agentProviderWarningTimerRef = useRef<number | null>(null);
   // Inline flow view: "mode" = step1 choose mode, "manage" = provider list, "config" = step2, "success" = step3
   const [agentInlineStep, setAgentInlineStep] = useState<"mode" | "manage" | "config" | "success">("manage");
   const [agentDisconnectConfirmProviderId, setAgentDisconnectConfirmProviderId] = useState<AgentProviderId | null>(null);
@@ -871,6 +602,8 @@ export default function Landing() {
   const [agentConnectMode, setAgentConnectMode] = useState<"web" | "agent">("web");
   const [agentConnectOpt, setAgentConnectOpt] = useState<"auth" | "api">("auth");
   const [agentConnectPlugin, setAgentConnectPlugin] = useState<"auto" | "manual">("auto");
+  const [agentGuidePreviewImageSrc, setAgentGuidePreviewImageSrc] = useState<string | null>(null);
+  const [agentGuidePreviewScale, setAgentGuidePreviewScale] = useState(1);
   const [agentAuthMethod, setAgentAuthMethod] = useState<"code" | "byok">("code");
   const [agentWebAuthorizationCode, setAgentWebAuthorizationCode] = useState("SSH8-M4Y83");
   const [agentByokKey, setAgentByokKey] = useState("");
@@ -879,6 +612,10 @@ export default function Landing() {
   const [agentApiKeys, setAgentApiKeys] = useState<AgentApiKeyItem[]>(initialAgentApiKeys);
   const [agentApiVisibleKeyIds, setAgentApiVisibleKeyIds] = useState<Set<string>>(() => new Set());
   const [agentAuthPreviewOpen, setAgentAuthPreviewOpen] = useState(false);
+  const [agentAuthPreviewSuccessOpen, setAgentAuthPreviewSuccessOpen] = useState(false);
+  const [agentAuthPreviewProviderId, setAgentAuthPreviewProviderId] = useState<AgentAuthPreviewProviderId>("openclaw");
+  const [agentTimeoutPreviewOpen, setAgentTimeoutPreviewOpen] = useState(false);
+  const [agentTimeoutPreviewProviderId, setAgentTimeoutPreviewProviderId] = useState<AgentAuthPreviewProviderId>("openclaw");
   const [agentApiEditingNameId, setAgentApiEditingNameId] = useState<string | null>(null);
   const [agentApiEditNameValue, setAgentApiEditNameValue] = useState("");
   const [agentApiMoreMenuId, setAgentApiMoreMenuId] = useState<string | null>(null);
@@ -917,6 +654,7 @@ export default function Landing() {
   const [deletedInventoryItemIds, setDeletedInventoryItemIds] = useState<Set<string>>(() => new Set());
   const [pendingInventoryDelete, setPendingInventoryDelete] = useState<PendingInventoryDelete>(null);
   const [inventoryToast, setInventoryToast] = useState<InventoryToast>(null);
+  const [basketEmptyToast, setBasketEmptyToast] = useState<BasketEmptyToast>(null);
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
   const withdrawNetworkSelectRef = useRef<HTMLDivElement | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
@@ -945,25 +683,28 @@ export default function Landing() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      testScenarioPanelDragCleanupRef.current?.();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!inventoryToast) return undefined;
     const toastTimer = window.setTimeout(() => setInventoryToast(null), 2600);
     return () => window.clearTimeout(toastTimer);
   }, [inventoryToast]);
 
   useEffect(() => {
-    return () => {
-      if (agentProviderWarningTimerRef.current !== null) {
-        window.clearTimeout(agentProviderWarningTimerRef.current);
-      }
-    };
-  }, []);
+    if (!basketEmptyToast) return undefined;
+    const toastTimer = window.setTimeout(() => setBasketEmptyToast(null), 1600);
+    return () => window.clearTimeout(toastTimer);
+  }, [basketEmptyToast]);
 
   useEffect(() => {
     if (!user) return;
     if (!settingsEditingProfile) {
       setSettingsNickname(user.displayName || "AlphaTrader");
       setSettingsOriginalNickname(user.displayName || "AlphaTrader");
-      setSettingsAvatarPreview(user.avatar || null);
     }
     if (!settingsEditingEmail) {
       setSettingsEmail(user.email || "alpha@example.com");
@@ -1036,6 +777,7 @@ export default function Landing() {
   const agentInstallCommand = selectedAgentInstallIde.command(agentInstallApiKey);
   const agentVisibleProviderMode = agentGlobalConnectMode ?? agentConnectMode;
   const agentVisibleProviders = agentConnectableProviders.filter((provider) =>
+    provider.id !== "openrouter" &&
     provider.modes.includes(agentVisibleProviderMode)
   );
   const shouldShowAgentAuthPreviewTrigger = agentInlineStep === "manage" && agentVisibleProviderMode === "agent";
@@ -1150,6 +892,14 @@ export default function Landing() {
     });
   }, [deletedInventoryItemIds, factorFilter, factorQuery, inventoryGradeFilter, starredInventoryItems]);
 
+  const displayedInventoryFactors =
+    inventoryScenarioMode === "empty"
+      ? []
+      : inventoryScenarioMode === "single"
+        ? filteredFactors.slice(0, 1)
+        : filteredFactors;
+  const displayedInventorySpecialCards = inventoryScenarioMode === "multiple" ? filteredSpecialCards : [];
+
   const leaderboardRows = useMemo(() => {
     const balanceKey = leaderboardPeriod === "week" ? "weekBalance" : "monthBalance";
     const castsKey = leaderboardPeriod === "week" ? "weekCasts" : "monthCasts";
@@ -1204,14 +954,21 @@ export default function Landing() {
         `自动抛竿进行中 ${autoCastProgressLabel} ${autoCastElapsedLabel}`
       )
     : tr(`Cast waiting ${manualCastElapsedLabel}`, `抛竿等待中 ${manualCastElapsedLabel}`);
+  const isAgentDisconnected = Boolean(user) && agentConnectedProviderIds.size === 0;
+  const isClientAgentConnected = agentGlobalConnectMode === "agent" && agentConnectedProviderIds.size > 0;
   const castButtonLabel = tr("Cast", "抛竿");
   const castActionLabel = tr("Cast", "抛竿");
+  const agentRequiredLabel = tr("Connect an agent to use", "连接agent后使用");
+  const clientAgentOnlyLabel = tr("Use the connected local agent", "请到已连接的本地agent上操作");
+  const basketItemCount =
+    basketBadgeMode === "hidden" ? 0 : basketBadgeMode === "one" ? 1 : basketBadgeMode === "ten" ? 10 : 100;
+  const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
   const updateAutoCastCount = (value: number) => {
     setAutoCastDraftCount(clampAutoCastCount(value));
   };
 
   const openAutoCastSettings = () => {
-    if (autoCastRunning || manualCastWaiting) return;
+    if (autoCastRunning || manualCastWaiting || isAgentDisconnected) return;
     setAutoCastDraftCount(autoCastCount);
     setAutoCastSettingsOpen(true);
   };
@@ -1254,14 +1011,247 @@ export default function Landing() {
   };
 
   const handleMainCastClick = () => {
-    if (autoCastRunning || manualCastWaiting) return;
+    if (autoCastRunning || manualCastWaiting || isAgentDisconnected) return;
     setManualCastElapsed(0);
     setManualCastStartedAt(Date.now());
+  };
+
+  const handleBasketClick = () => {
+    if (basketBadgeMode !== "hidden") return;
+    setBasketEmptyToast({
+      id: Date.now(),
+      message: tr("Empty", "空空如也"),
+    });
   };
 
   const handleStopManualCast = () => {
     setManualCastStartedAt(null);
     setManualCastElapsed(0);
+  };
+
+  const openAgentSettingsForScenario = (nextInlineStep: "mode" | "manage" = "manage") => {
+    setSettingsOpen(true);
+    setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
+    setAgentModeSwitchWarning(false);
+    setAgentDisconnectConfirmProviderId(null);
+    setAgentInlineStep(nextInlineStep);
+  };
+
+  const openAgentRequiredSettings = () => {
+    setSettingsOpen(true);
+    setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
+    setAgentGlobalConnectMode(null);
+    setAgentConnectMode("web");
+    setAgentInlineStep("mode");
+    setAgentModeSwitchWarning(false);
+    setAgentDisconnectConfirmProviderId(null);
+  };
+
+  const openClientAgentSettings = () => {
+    setSettingsOpen(true);
+    setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
+    setAgentGlobalConnectMode("agent");
+    setAgentConnectMode("agent");
+    setAgentInlineStep("manage");
+    setAgentModeSwitchWarning(false);
+    setAgentDisconnectConfirmProviderId(null);
+  };
+
+  const setDisconnectedAgentScenario = () => {
+    setAutoCastRunning(false);
+    setAutoCastSingleStartedAt(null);
+    setManualCastStartedAt(null);
+    setManualCastElapsed(0);
+    setAgentConnectedProviderIds(new Set<AgentProviderId>());
+    setAgentConnectedDeviceNames({});
+    setAgentProviderAvailabilityById({});
+    setAgentGlobalConnectMode(null);
+    setAgentConnectMode("web");
+    setAgentInlineStep("mode");
+    setSettingsOpen(false);
+  };
+
+  const applyTestScenario = (scenario: "logged-out" | "agent-disconnected" | "web-agent-connected" | "client-agent-connected") => {
+    setInventoryToast(null);
+    setAgentStatusTestingProviderId(null);
+    setAgentAuthPreviewOpen(false);
+    setAgentTimeoutPreviewOpen(false);
+
+    if (scenario === "logged-out") {
+      logout();
+      setDisconnectedAgentScenario();
+      setSettingsOpen(false);
+      navigateWithTransition("/auth");
+      return;
+    }
+
+    if (!user) {
+      login("alpha@example.com");
+    }
+
+    if (scenario === "agent-disconnected") {
+      setDisconnectedAgentScenario();
+      setSettingsOpen(false);
+      return;
+    }
+
+    if (scenario === "web-agent-connected") {
+      setAgentConnectedProviderIds(new Set<AgentProviderId>(["codex"]));
+      setAgentConnectedDeviceNames({ codex: "Web" });
+      setAgentProviderAvailabilityById({});
+      setAgentGlobalConnectMode("web");
+      setAgentConnectMode("web");
+      setSettingsOpen(false);
+      setSettingsActiveTab("agent");
+      setSettingsAgentSection("web");
+      setAgentModeSwitchWarning(false);
+      setAgentDisconnectConfirmProviderId(null);
+      setAgentInlineStep("manage");
+      return;
+    }
+
+    setAgentConnectedProviderIds(new Set<AgentProviderId>(["codex"]));
+    setAgentConnectedDeviceNames({ codex: "MacBook Pro" });
+    setAgentProviderAvailabilityById({ ...initialAgentProviderAvailabilityById });
+    setAgentGlobalConnectMode("agent");
+    setAgentConnectMode("agent");
+    setSettingsOpen(false);
+    setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
+    setAgentModeSwitchWarning(false);
+    setAgentDisconnectConfirmProviderId(null);
+    setAgentInlineStep("mode");
+  };
+
+  const toggleBasketBadgeScenario = () => {
+    setBasketBadgeMode((current) => {
+      if (current === "hidden") return "one";
+      if (current === "one") return "ten";
+      if (current === "ten") return "overflow";
+      return "hidden";
+    });
+  };
+
+  const toggleInventoryScenario = () => {
+    const nextMode: InventoryScenarioMode =
+      inventoryScenarioMode === "multiple"
+        ? "empty"
+        : inventoryScenarioMode === "empty"
+          ? "single"
+          : "multiple";
+
+    setInventoryScenarioMode(nextMode);
+    setFactorQuery("");
+    setFactorFilter("all");
+    setInventoryGradeFilter("all");
+    setOpenInventoryMenuId(null);
+    setSelectedInventoryFactor(null);
+    setPendingInventoryDelete(null);
+    setInventoryControlsHidden(false);
+    inventoryScrollTopRef.current = 0;
+    setInventoryOpen(true);
+  };
+
+  const clampTestScenarioPanelPosition = (
+    position: TestScenarioPanelPosition,
+    panelWidth: number,
+    panelHeight: number
+  ): TestScenarioPanelPosition => ({
+    left: Math.max(0, Math.min(GAME_STAGE_WIDTH - panelWidth, position.left)),
+    top: Math.max(0, Math.min(GAME_STAGE_HEIGHT - panelHeight, position.top)),
+  });
+
+  const beginTestScenarioPanelDrag = (
+    element: HTMLDivElement,
+    pointerId: number,
+    clientX: number,
+    clientY: number
+  ) => {
+    const rect = element.getBoundingClientRect();
+    const panelWidth = rect.width / stageScale;
+    const panelHeight = rect.height / stageScale;
+    const startPosition = clampTestScenarioPanelPosition(testScenarioPanelPosition, panelWidth, panelHeight);
+
+    testScenarioPanelDragRef.current = {
+      ...startPosition,
+      pointerId,
+      startClientX: clientX,
+      startClientY: clientY,
+      panelWidth,
+      panelHeight,
+    };
+    setTestScenarioPanelPosition(startPosition);
+  };
+
+  const moveTestScenarioPanelDrag = (pointerId: number, clientX: number, clientY: number) => {
+    const dragState = testScenarioPanelDragRef.current;
+    if (!dragState || dragState.pointerId !== pointerId) return;
+
+    const scale = stageScale || 1;
+    setTestScenarioPanelPosition(
+      clampTestScenarioPanelPosition(
+        {
+          left: dragState.left + (clientX - dragState.startClientX) / scale,
+          top: dragState.top + (clientY - dragState.startClientY) / scale,
+        },
+        dragState.panelWidth,
+        dragState.panelHeight
+      )
+    );
+  };
+
+  const endTestScenarioPanelDrag = (pointerId: number) => {
+    const dragState = testScenarioPanelDragRef.current;
+    if (!dragState || dragState.pointerId !== pointerId) return;
+
+    testScenarioPanelDragRef.current = null;
+    testScenarioPanelDragCleanupRef.current?.();
+    testScenarioPanelDragCleanupRef.current = null;
+  };
+
+  const handleTestScenarioPanelPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    if ((event.target as HTMLElement).closest("button")) return;
+
+    beginTestScenarioPanelDrag(event.currentTarget, event.pointerId, event.clientX, event.clientY);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleTestScenarioPanelPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    moveTestScenarioPanelDrag(event.pointerId, event.clientX, event.clientY);
+  };
+
+  const handleTestScenarioPanelPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const dragState = testScenarioPanelDragRef.current;
+    if (!dragState || dragState.pointerId !== event.pointerId) return;
+
+    endTestScenarioPanelDrag(event.pointerId);
+    event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  const handleTestScenarioPanelMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    if ((event.target as HTMLElement).closest("button")) return;
+
+    const mousePointerId = -1;
+    beginTestScenarioPanelDrag(event.currentTarget, mousePointerId, event.clientX, event.clientY);
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      moveTestScenarioPanelDrag(mousePointerId, moveEvent.clientX, moveEvent.clientY);
+    };
+    const handleMouseUp = () => {
+      endTestScenarioPanelDrag(mousePointerId);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp, { once: true });
+    testScenarioPanelDragCleanupRef.current = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
   };
 
   const toggleFactorStar = (id: string) => {
@@ -1530,7 +1520,7 @@ export default function Landing() {
     setWithdrawNetworkOpen(false);
   };
 
-  const openWalletModal = (accountKind: WalletAccountKind = walletAccountKind) => {
+  const openWalletModal = (accountKind: GameWalletAccountKind = walletAccountKind) => {
     setWalletAccountKind(accountKind);
     setWalletWithdrawOpen(false);
     setWithdrawNetworkOpen(false);
@@ -1562,16 +1552,32 @@ export default function Landing() {
     return agentConnectableProviders.find((provider) => provider.id === providerId)?.name || "Agent";
   };
 
-  const clearAgentProviderWarningTimer = () => {
-    if (agentProviderWarningTimerRef.current !== null) {
-      window.clearTimeout(agentProviderWarningTimerRef.current);
-      agentProviderWarningTimerRef.current = null;
-    }
+  const getNextAgentAuthPreviewProviderId = (currentProviderId: AgentAuthPreviewProviderId) => {
+    const currentIndex = agentAuthPreviewProviderIds.indexOf(currentProviderId);
+    return agentAuthPreviewProviderIds[(currentIndex + 1) % agentAuthPreviewProviderIds.length];
+  };
+
+  const openNextAgentAuthPreview = () => {
+    const nextProviderId = getNextAgentAuthPreviewProviderId(agentAuthPreviewProviderId);
+    setAgentAuthPreviewProviderId(nextProviderId);
+    setAgentAuthPreviewSuccessOpen(false);
+    setAgentAuthPreviewOpen(true);
+  };
+
+  const openNextAgentTimeoutPreview = () => {
+    const nextProviderId = getNextAgentAuthPreviewProviderId(agentTimeoutPreviewProviderId);
+    setAgentTimeoutPreviewProviderId(nextProviderId);
+    setAgentTimeoutPreviewOpen(true);
+  };
+
+  const renderAgentAuthPreviewIcon = (providerId: AgentAuthPreviewProviderId) => {
+    if (providerId === "codex") return <Codex.Avatar size={64} />;
+    if (providerId === "openclaw") return <OpenClaw.Avatar size={64} />;
+    return <Claude.Avatar size={64} />;
   };
 
   // Enter the inline connect config view for a specific provider (from manage view)
   const openAgentConnectModal = (providerId: AgentProviderId) => {
-    clearAgentProviderWarningTimer();
     setAgentSelectedProviderId(providerId);
     setAgentDisconnectConfirmProviderId(null);
     setAgentAuthMethod("code");
@@ -1592,9 +1598,14 @@ export default function Landing() {
 
   // Request switching the global connection mode (from manage view)
   const requestSwitchConnectMode = () => {
-    clearAgentProviderWarningTimer();
     setAgentModeSwitchWarning(false);
     setAgentConnectionWarningType("mode");
+    const connectedWebAgentCount = agentGlobalConnectMode === "web" ? agentConnectedProviderIds.size : 0;
+    const connectedClientAgentCount = agentGlobalConnectMode === "agent" ? agentConnectedProviderIds.size : 0;
+    if (connectedWebAgentCount > 0 || connectedClientAgentCount > 0) {
+      setAgentModeSwitchWarning(true);
+      return;
+    }
     setAgentGlobalConnectMode(null);
     setAgentInlineStep("mode");
   };
@@ -1603,20 +1614,37 @@ export default function Landing() {
     setAgentDisconnectConfirmProviderId(providerId);
   };
 
+  const resetUnavailableAgentProvider = (providerId: AgentProviderId) => {
+    setAgentProviderAvailabilityById((current) => {
+      const next = { ...current };
+      delete next[providerId];
+      return next;
+    });
+    setAgentConnectedProviderIds((current) => {
+      const next = new Set(current);
+      next.delete(providerId);
+      return next;
+    });
+    showSettingsFeedback(
+      tr("Disconnected", "已断连"),
+      tr(`${getAgentProviderName(providerId)} reset to disconnected.`, `${getAgentProviderName(providerId)} 已恢复为未连接状态。`)
+    );
+  };
+
   const showAgentProviderBlockedWarning = () => {
     setAgentConnectionWarningType("provider");
     setAgentModeSwitchWarning(true);
-    clearAgentProviderWarningTimer();
-    agentProviderWarningTimerRef.current = window.setTimeout(() => {
-      setAgentModeSwitchWarning(false);
-      agentProviderWarningTimerRef.current = null;
-    }, 2000);
   };
 
   const disconnectAgentProvider = (providerId: AgentProviderId) => {
     setAgentConnectedProviderIds((current) => {
       const next = new Set(current);
       next.delete(providerId);
+      return next;
+    });
+    setAgentProviderAvailabilityById((current) => {
+      const next = { ...current };
+      delete next[providerId];
       return next;
     });
     setAgentDisconnectConfirmProviderId(null);
@@ -1629,6 +1657,7 @@ export default function Landing() {
   const disconnectAllAgentProviders = () => {
     setAgentConnectedProviderIds(new Set<AgentProviderId>());
     setAgentConnectedDeviceNames({});
+    setAgentProviderAvailabilityById({});
     setAgentGlobalConnectMode(null);
     setAgentInlineStep("mode");
     showSettingsFeedback(tr("All disconnected", "已全部断连"), tr("All agents disconnected.", "所有 Agent 已断开连接。"));
@@ -1641,10 +1670,28 @@ export default function Landing() {
 
     window.setTimeout(() => {
       setAgentStatusTestingProviderId(null);
-      showSettingsFeedback(
-        tr("Status available", "状态正常"),
-        tr(`${getAgentProviderName(providerId)} is connected.`, `${getAgentProviderName(providerId)} 已连接。`)
-      );
+      const nextAvailability: AgentProviderAvailability =
+        providerId === "claude-code" ? "outdated" : "available";
+      const nextConnected = providerId === "codex";
+
+      setAgentProviderAvailabilityById((current) => {
+        const next = { ...current };
+        if (nextAvailability === "available") {
+          delete next[providerId];
+        } else {
+          next[providerId] = nextAvailability;
+        }
+        return next;
+      });
+      setAgentConnectedProviderIds((current) => {
+        const next = new Set(current);
+        if (nextConnected) {
+          next.add(providerId);
+        } else {
+          next.delete(providerId);
+        }
+        return next;
+      });
     }, 900);
   };
 
@@ -1676,7 +1723,11 @@ export default function Landing() {
 
   const allowAgentAuthPreviewAccess = () => {
     setAgentAuthPreviewOpen(false);
-    confirmAgentProviderConnection();
+    setAgentSelectedProviderId(agentAuthPreviewProviderId);
+    setAgentConnectedProviderIds((current) => new Set(current).add(agentAuthPreviewProviderId));
+    setAgentConnectedDeviceNames((prev) => ({ ...prev, [agentAuthPreviewProviderId]: "MacBook Pro" }));
+    setAgentGlobalConnectMode("agent");
+    setAgentAuthPreviewSuccessOpen(true);
   };
 
   const testAgentByok = () => {
@@ -1756,6 +1807,27 @@ export default function Landing() {
       showSettingsFeedback(successTitle, successMessage);
     }).catch(() => {
       showSettingsFeedback(tr("Copy failed", "复制失败"), tr("Please copy it manually.", "请手动复制。"));
+    });
+  };
+
+  const copyAgentManualField = (text: string, label: string) => {
+    copyAgentText(text, tr("Copied", "已复制"), tr(`${label} copied.`, `${label} 已复制。`));
+  };
+
+  const openAgentGuidePreview = (src: string) => {
+    setAgentGuidePreviewImageSrc(src);
+    setAgentGuidePreviewScale(1);
+  };
+
+  const closeAgentGuidePreview = () => {
+    setAgentGuidePreviewImageSrc(null);
+    setAgentGuidePreviewScale(1);
+  };
+
+  const zoomAgentGuidePreview = (direction: "in" | "out") => {
+    setAgentGuidePreviewScale((current) => {
+      const next = direction === "in" ? current + 0.25 : current - 0.25;
+      return Math.min(3, Math.max(0.5, Number(next.toFixed(2))));
     });
   };
 
@@ -1861,10 +1933,19 @@ export default function Landing() {
     );
   };
 
+  const getAgentDefaultInlineStep = () => (agentConnectedProviderIds.size > 0 ? "manage" : "mode");
+
+  const openAgentSettingsTab = () => {
+    setSettingsActiveTab("agent");
+    setSettingsAgentSection("web");
+    setAgentInlineStep(getAgentDefaultInlineStep());
+    setAgentModeSwitchWarning(false);
+  };
+
   const openSettingsModal = () => {
     setSettingsActiveTab("general");
     setSettingsAgentSection("web");
-    setAgentInlineStep(agentConnectedProviderIds.size > 0 ? "manage" : "mode");
+    setAgentInlineStep(getAgentDefaultInlineStep());
     setAgentModeSwitchWarning(false);
     setSettingsOpen(true);
   };
@@ -1873,7 +1954,7 @@ export default function Landing() {
     setSettingsOpen(false);
     setSettingsActiveTab("general");
     setSettingsAgentSection("web");
-    setAgentInlineStep(agentConnectedProviderIds.size > 0 ? "manage" : "mode");
+    setAgentInlineStep(getAgentDefaultInlineStep());
     setAgentModeSwitchWarning(false);
     setSettingsEditingProfile(false);
     setSettingsEditingEmail(false);
@@ -1889,7 +1970,6 @@ export default function Landing() {
 
   const handleCancelSettingsProfile = () => {
     setSettingsNickname(settingsOriginalNickname);
-    setSettingsAvatarPreview(user?.avatar || null);
     setSettingsEditingProfile(false);
   };
 
@@ -1902,28 +1982,11 @@ export default function Landing() {
     const trimmedNickname = settingsNickname.trim();
     updateUser({
       displayName: trimmedNickname,
-      ...(settingsAvatarPreview ? { avatar: settingsAvatarPreview } : {}),
     });
     setSettingsNickname(trimmedNickname);
     setSettingsOriginalNickname(trimmedNickname);
     setSettingsEditingProfile(false);
-    showSettingsFeedback(tr("Profile updated", "资料已更新"), tr("Nickname and avatar saved.", "昵称与头像信息已保存。"));
-  };
-
-  const handleSettingsAvatarChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      showSettingsFeedback(tr("Upload failed", "上传失败"), tr("Image size must be under 2 MB.", "图片大小必须小于 2MB。"));
-      event.target.value = "";
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
-      setSettingsAvatarPreview(loadEvent.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    showSettingsFeedback(tr("Profile updated", "资料已更新"), tr("Nickname saved.", "昵称已保存。"));
   };
 
   const handleCancelSettingsEmail = () => {
@@ -2059,24 +2122,6 @@ export default function Landing() {
     void handleSubmitWithdraw();
   };
 
-  const activeWalletConfig = walletAccountKind === "coin"
-    ? {
-        title: tr("Game Coins", "游戏币"),
-        balance: formatBalance(SYSTEM_BALANCE_AMOUNT),
-        icon: HUD_ASSETS.coin,
-        activities: coinActivities,
-        formatActivityAmount: formatBalance,
-        allowWithdraw: false,
-      }
-    : {
-        title: tr("Cash", "现金"),
-        balance: `$${HUD_CASH_AMOUNT.toFixed(1)}`,
-        icon: HUD_ASSETS.cash,
-        activities: cashActivities,
-        formatActivityAmount: (amount: number) => `$${amount.toFixed(2)}`,
-        allowWithdraw: true,
-      };
-
   const openStrategyDetail = (strategy: (typeof strategies)[number]) => {
     setSelectedStrategy(strategy);
     setCurveRange("365D");
@@ -2144,6 +2189,175 @@ export default function Landing() {
       ],
     };
   }, [curveRange, selectedStrategy, tr]);
+
+  const walletWithdrawContent = (
+    <section className="wallet-withdraw wallet-withdraw--modal">
+      {withdrawWalletFormOpen ? (
+        <div className="wallet-withdraw__steps">
+          <section className="wallet-step">
+            <div className="wallet-step__body">
+              <div className="wallet-step__head">
+                <h3 className="wallet-step__title">{withdrawAccountBound ? tr("Change bound wallet", "更改绑定钱包") : tr("Bind wallet", "绑定钱包")}</h3>
+              </div>
+              <div className="wallet-field">
+                <span>{tr("Network", "选择网络")}</span>
+                <div
+                  className={`wallet-select${withdrawNetworkOpen ? " is-open" : ""}`}
+                  ref={withdrawNetworkSelectRef}
+                >
+                  <button
+                    className="wallet-select__button"
+                    type="button"
+                    aria-haspopup="listbox"
+                    aria-expanded={withdrawNetworkOpen}
+                    onClick={() => setWithdrawNetworkOpen((open) => !open)}
+                  >
+                    <span className="wallet-select__value">{withdrawNetwork}</span>
+                    <span className="wallet-select__chevron" aria-hidden="true" />
+                  </button>
+                  {withdrawNetworkOpen ? (
+                    <div
+                      className="wallet-select__menu"
+                      role="listbox"
+                      aria-label={tr("Network", "选择网络")}
+                    >
+                      {WITHDRAWAL_NETWORKS.map((network) => (
+                        <button
+                          key={network}
+                          className={`wallet-select__option${network === withdrawNetwork ? " is-selected" : ""}`}
+                          type="button"
+                          role="option"
+                          aria-selected={network === withdrawNetwork}
+                          onClick={() => handleWithdrawNetworkChange(network)}
+                        >
+                          {network}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+              <label className="wallet-field">
+                <span>{tr("Wallet address", "钱包地址")}</span>
+                <input
+                  className="wallet-input"
+                  value={withdrawAddress}
+                  onChange={(event) => {
+                    setWithdrawAddress(event.target.value);
+                    setWithdrawAccountBound(false);
+                    setWithdrawAddressError("");
+                    resetWithdrawFeedback();
+                  }}
+                  placeholder={tr("Enter wallet address", "输入钱包地址")}
+                />
+                {withdrawAddressError && (
+                  <span className="wallet-field__hint is-error">
+                    {withdrawAddressError}
+                  </span>
+                )}
+              </label>
+            </div>
+          </section>
+
+          <div className="wallet-withdraw__actions">
+            <button
+              className="wallet-submit"
+              type="button"
+              disabled={withdrawPrimaryDisabled}
+              onClick={handleBindWithdrawWallet}
+            >
+              {withdrawPrimaryLabel}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="wallet-withdraw__steps">
+          <section className="wallet-step">
+            <div className="wallet-step__body">
+              <div className="wallet-step__head">
+                <h3 className="wallet-step__title">{tr("Enter withdrawal amount", "输入提现金额")}</h3>
+              </div>
+              <label className="wallet-field">
+                <span className="wallet-input-unit-wrap">
+                  <input
+                    className="wallet-input wallet-input--with-unit"
+                    inputMode="decimal"
+                    aria-label={tr("Withdrawal amount", "提现金额")}
+                    value={withdrawAmount ? formatUsdInputValue(withdrawAmount) : ""}
+                    onChange={(event) => {
+                      const clean = event.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+                      setWithdrawAmount(clean === "" ? 0 : usdToBalance(Number(clean)));
+                      resetWithdrawFeedback();
+                    }}
+                    placeholder={tr("Enter USD amount", "输入 USD 金额")}
+                  />
+                  <span className="wallet-input-unit" aria-hidden="true">USD</span>
+                </span>
+              </label>
+              <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
+                <span>
+                  {tr("Minimum", "最低")} {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · {tr("Available", "可提现")} {formatUsd(WALLET_BALANCE_USD)}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <section className="wallet-step">
+            <div className="wallet-step__body">
+              <div className="wallet-bound-summary">
+                <div className="wallet-bound-summary__main">
+                  <span className="wallet-bound-summary__label">{tr("Withdraw to", "提现至")}</span>
+                  <span className="wallet-bound-summary__target">
+                    <span className="wallet-bound-summary__address" title={withdrawAddressValue}>
+                      {withdrawAddressValue}
+                    </span>
+                    <span className="wallet-bound-summary__network">{withdrawNetwork}</span>
+                  </span>
+                </div>
+                <button
+                  className="wallet-bound-summary__edit"
+                  type="button"
+                  onClick={() => {
+                    setWithdrawWalletEditing(true);
+                    resetWithdrawFeedback();
+                  }}
+                >
+                  {tr("Change", "更改")}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <div className="wallet-withdraw__actions">
+            {withdrawStatus === "error" && (
+              <div className="wallet-status is-error">
+                {tr(
+                  "Withdrawal preview failed. Try 10.00 USD, 20.00 USD, or 50.00 USD to view the success state.",
+                  "提现预览失败。请尝试 10.00 USD、20.00 USD 或 50.00 USD 查看成功状态。"
+                )}
+              </div>
+            )}
+            {withdrawStatus === "success" && (
+              <div className="wallet-status">
+                {tr(
+                  `${formatUsd(balanceToUsd(withdrawAmount))} withdrawal request submitted.`,
+                  `${formatUsd(balanceToUsd(withdrawAmount))} 提现申请已提交。`
+                )}
+              </div>
+            )}
+            <button
+              className="wallet-submit wallet-submit--withdraw"
+              type="button"
+              disabled={withdrawPrimaryDisabled}
+              onClick={handleWithdrawPrimaryAction}
+            >
+              {withdrawPrimaryLabel}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 
   return (
     <main className="game-landing" aria-label="Pixel lakeside game landing">
@@ -2234,66 +2448,183 @@ export default function Landing() {
           transform-origin: center center;
         }
 
-        .hud-top-stats {
+        .test-scenario-panel {
           position: absolute;
-          left: 40px;
-          top: 40px;
+          left: 34px;
+          top: 124px;
+          z-index: 8;
           display: flex;
-          align-items: center;
-          gap: 16px;
-          z-index: 2;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+          padding: 10px;
+          background: rgba(255, 253, 244, .6);
+          border: 0;
+          border-radius: 10px;
+          box-shadow: 0 4px 0 rgba(189, 174, 160, .35);
+          image-rendering: auto;
+          touch-action: none;
+          user-select: none;
         }
 
-        .hud-stat-card {
-          appearance: none;
-          position: relative;
+        .test-scenario-panel__header {
           display: flex;
           align-items: center;
-          justify-content: flex-end;
+          justify-content: space-between;
           gap: 8px;
-          height: 65px;
-          padding: 12px;
-          overflow: hidden;
-          background: #fff3d3;
-          border: 3px solid #c4b89e;
-          border-radius: 16px;
-          font: inherit;
-          transition: background-color .14s cubic-bezier(.22, 1, .36, 1);
+          padding: 0 2px;
+          cursor: grab;
         }
 
-        .hud-stat-card--button {
+        .test-scenario-panel__header:active {
+          cursor: grabbing;
+        }
+
+        .test-scenario-panel__title {
+          color: var(--ac-text);
+          font-size: 16px;
+          font-weight: 1000;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .test-scenario-panel__toggle {
+          appearance: none;
+          min-width: 0;
+          height: 28px;
+          padding: 0 10px;
+          color: #7c5a2b;
+          background: rgba(255, 255, 255, .72);
+          border: 1px solid rgba(196, 184, 158, .88);
+          border-radius: 999px;
           cursor: pointer;
+          font: inherit;
+          font-size: 13px;
+          font-weight: 900;
+          line-height: 1;
+          white-space: nowrap;
         }
 
-        .hud-stat-icon {
-          flex: 0 0 auto;
-          object-fit: contain;
-          image-rendering: pixelated;
+        .test-scenario-panel__toggle:hover,
+        .test-scenario-panel__toggle:focus-visible {
+          color: var(--ac-text);
+          background: #fff;
+          outline: none;
         }
 
-        .hud-stat-value {
-          color: #4e433c;
-          font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-          font-size: 26px;
-          font-style: normal;
-          font-weight: 700;
-          font-stretch: 100%;
-          font-synthesis: none;
-          font-optical-sizing: auto;
-          font-variation-settings: "wght" 700, "BEVL" 1;
-          line-height: 100%;
-          text-align: right;
+        .test-scenario-panel__body {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 16px;
+        }
+
+        .test-scenario-group {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 8px;
+        }
+
+        .test-scenario-group + .test-scenario-group {
+          padding-top: 12px;
+          border-top: 1.5px dashed rgba(196, 184, 158, .54);
+        }
+
+        .test-scenario-group__title {
+          color: rgba(121, 79, 39, .42);
+          font-size: 12px;
+          font-weight: 900;
+          line-height: 1;
           letter-spacing: 0;
           white-space: nowrap;
         }
 
-        .hud-stat-value--balance {
-          width: 130px;
+        .test-version-segmented {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 4px;
+          padding: 4px;
+          background: rgba(255, 247, 227, .82);
+          border-radius: 8px;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .62);
         }
 
-        .hud-stat-value--cash,
-        .hud-stat-value--fish {
-          width: 90px;
+        .test-version-segment {
+          appearance: none;
+          min-width: 0;
+          height: 40px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 12px;
+          color: rgba(121, 79, 39, .66);
+          background: transparent;
+          border: 0;
+          border-radius: 6px;
+          cursor: pointer;
+          font: inherit;
+          font-size: 16px;
+          font-weight: 1000;
+          line-height: 1;
+          white-space: nowrap;
+          transition: background .15s ease, color .15s ease, transform .15s ease;
+        }
+
+        .test-version-segment:hover,
+        .test-version-segment:focus-visible {
+          color: var(--ac-text);
+          background: rgba(255, 213, 87, .2);
+          outline: none;
+        }
+
+        .test-version-segment.is-active {
+          color: #5a3e00;
+          background: #ffd557;
+          box-shadow: 0 2px 0 rgba(189, 174, 160, .4);
+        }
+
+        .test-scenario-button {
+          appearance: none;
+          min-width: 182px;
+          height: 48px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 18px;
+          color: rgba(121, 79, 39, .68);
+          background: rgba(255, 253, 244, .72);
+          border: 3px dashed rgba(196, 184, 158, .74);
+          border-radius: 6px;
+          box-shadow: none;
+          cursor: pointer;
+          font: inherit;
+          font-size: 18px;
+          font-weight: 900;
+          line-height: 1;
+          white-space: nowrap;
+          transition: background .15s ease, border-color .15s ease, color .15s ease, transform .15s ease;
+        }
+
+        .test-scenario-button:hover,
+        .test-scenario-button:focus-visible {
+          color: var(--ac-text);
+          background: rgba(255, 213, 87, .12);
+          border-color: rgba(168, 152, 120, .9);
+          outline: none;
+          transform: translateY(-1px);
+        }
+
+        .test-scenario-button-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .test-scenario-button--preview {
+          height: 44px;
+          font-size: 16px;
+          border-style: solid;
         }
 
         .top-actions {
@@ -2367,43 +2698,291 @@ export default function Landing() {
           text-shadow: none;
         }
 
-	        .hud-bottom-bar {
-	          position: absolute;
-	          left: 50%;
-	          bottom: 40px;
-	          transform: translateX(-50%);
+        .hud-bottom-bar {
+          position: absolute;
+          left: 50%;
+          bottom: 40px;
+          transform: translateX(-50%);
           display: flex;
           align-items: flex-end;
           gap: 30px;
-	          z-index: 2;
-	        }
+          z-index: 2;
+        }
 
-	        .hud-cast-stack {
-	          display: flex;
-	          flex-direction: column;
-	          align-items: stretch;
-	          gap: 0;
-	        }
+        .hud-cast-stack {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0;
+        }
 
-	        .cast-auto-inline {
-	          display: flex;
-	          align-items: flex-end;
-	          gap: 8px;
-	          justify-content: center;
-	          margin-bottom: -6px;
-	          position: relative;
-	          z-index: 1;
-	          transition: transform 80ms ease;
-	        }
+        .cast-auto-inline {
+          display: flex;
+          align-items: flex-end;
+          gap: 8px;
+          justify-content: center;
+          margin-bottom: -6px;
+          position: relative;
+          z-index: 1;
+          transition: transform 80ms ease;
+        }
 
-	        .hud-cast-stack:has(.hud-main-action:active) .cast-auto-inline {
-	          transform: translateY(8px);
-	        }
+        .hud-cast-stack:has(.hud-main-action:active) .cast-auto-inline {
+          transform: translateY(8px);
+        }
 
-	        .cast-auto-button,
-	        .cast-auto-stop {
-	          appearance: none;
-	          border: 0;
+        .hud-disconnected-actions {
+          position: relative;
+          width: 451px;
+          height: 232px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 20px;
+        }
+
+        .hud-disconnected-actions__tip {
+          position: relative;
+          width: 451px;
+          height: 92px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 22px;
+          padding: 16px 12px;
+          color: #fd5f5a;
+          background: #ffedb7;
+          border: 0;
+          border-radius: 16px;
+          box-shadow: 0 8px 0 #4e433c;
+          cursor: pointer;
+          font: inherit;
+          font-size: 30px;
+          font-weight: 700;
+          line-height: normal;
+          white-space: nowrap;
+          transition: transform 80ms ease, filter 120ms ease, box-shadow 80ms ease;
+        }
+
+        .hud-disconnected-actions__tip:hover {
+          filter: brightness(1.02);
+        }
+
+        .hud-disconnected-actions__tip:active {
+          transform: translateY(6px);
+          box-shadow: none;
+        }
+
+        .hud-disconnected-actions__tip:active::after {
+          opacity: 0;
+        }
+
+        .hud-disconnected-actions__tip::before,
+        .hud-disconnected-actions__tip::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+
+        .hud-disconnected-actions__tip::after {
+          bottom: -17px;
+          width: 34px;
+          height: 17px;
+          background: #4e433c;
+          clip-path: path("M 0 0 H 34 L 19.828 14.172 Q 17 17 14.172 14.172 Z");
+        }
+
+        .hud-disconnected-actions__tip::before {
+          bottom: -9px;
+          z-index: 1;
+          width: 26px;
+          height: 13px;
+          background: #ffedb7;
+          clip-path: path("M 0 0 H 26 L 15.828 10.172 Q 13 13 10.172 10.172 Z");
+        }
+
+        .hud-disconnected-actions__tip-icon {
+          flex: 0 0 auto;
+          width: 60px;
+          height: 60px;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .hud-disconnected-actions__tip-label {
+          position: relative;
+          z-index: 2;
+        }
+
+        .hud-disconnected-actions__main {
+          position: relative;
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 30px;
+          transition: transform 80ms ease;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .hud-disconnected-actions__tip,
+          .hud-disconnected-actions__main {
+            transition: none;
+          }
+        }
+
+        .hud-disconnected-actions__cast {
+          flex: 0 0 auto;
+          width: 301px;
+          height: 120px;
+          display: flex;
+          align-items: center;
+          gap: 36px;
+          padding: 20px 40px;
+          color: inherit;
+          background: #eeece8;
+          border: 0;
+          border-radius: 16px;
+          box-shadow: none;
+          cursor: not-allowed;
+          font: inherit;
+        }
+
+        .hud-disconnected-actions__cast-tool {
+          flex: 0 0 auto;
+          width: 80px;
+          height: 79px;
+          object-fit: contain;
+          image-rendering: pixelated;
+          opacity: .3;
+          filter: grayscale(1) saturate(0);
+        }
+
+        .hud-disconnected-actions__cast-label {
+          position: relative;
+          z-index: 0;
+          display: inline-block;
+          color: #fff;
+          -webkit-text-fill-color: #fff;
+          text-align: center;
+          font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-size: 50px;
+          font-style: normal;
+          font-weight: 700;
+          font-synthesis: none;
+          font-variation-settings: "wght" 700, "BEVL" 1;
+          line-height: 100%;
+          letter-spacing: 5px;
+          opacity: .3;
+          paint-order: stroke fill;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          white-space: nowrap;
+        }
+
+        .hud-disconnected-actions__cast-label::before {
+          content: attr(data-label);
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          color: #fff;
+          text-align: center;
+          -webkit-text-fill-color: #fff;
+          -webkit-text-stroke-width: 10px;
+          -webkit-text-stroke-color: #4e433c;
+          paint-order: stroke fill;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          text-shadow:
+            0 1px 0 #4e433c,
+            1px 0 0 #4e433c,
+            0 -1px 0 #4e433c,
+            -1px 0 0 #4e433c,
+            1px 1px 0 #4e433c,
+            -1px 1px 0 #4e433c,
+            1px -1px 0 #4e433c,
+            -1px -1px 0 #4e433c;
+        }
+
+        .hud-disconnected-actions__basket {
+          position: relative;
+          flex: 0 0 120px;
+          width: 120px;
+          height: 120px;
+          padding: 0;
+          background: transparent;
+          border: 0;
+          border-radius: 16px;
+          box-shadow: none;
+          cursor: not-allowed;
+          font: inherit;
+          overflow: visible;
+        }
+
+        .hud-disconnected-actions__basket-icon {
+          position: absolute;
+          inset: 0;
+          width: 120px;
+          height: 120px;
+          object-fit: fill;
+          pointer-events: none;
+          user-select: none;
+          opacity: 1;
+        }
+
+        .hud-basket-empty-toast {
+          position: absolute;
+          left: 50%;
+          bottom: calc(100% + 12px);
+          transform: translateX(-50%);
+          z-index: 3;
+          min-width: 94px;
+          padding: 8px 14px;
+          color: #6f431f;
+          background: #fff7df;
+          border: 2px solid rgba(196, 184, 158, .92);
+          border-radius: 999px;
+          box-shadow: 0 4px 0 rgba(78, 67, 60, .28), inset 0 2px 0 rgba(255, 255, 255, .72);
+          font-size: 14px;
+          font-weight: 950;
+          line-height: 1.2;
+          text-align: center;
+          white-space: nowrap;
+          pointer-events: none;
+          animation: hud-basket-toast-pop 160ms ease-out;
+        }
+
+        .hud-basket-empty-toast::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          bottom: -8px;
+          width: 12px;
+          height: 12px;
+          background: #fff7df;
+          border-right: 2px solid rgba(196, 184, 158, .92);
+          border-bottom: 2px solid rgba(196, 184, 158, .92);
+          transform: translateX(-50%) rotate(45deg);
+        }
+
+        @keyframes hud-basket-toast-pop {
+          from {
+            opacity: 0;
+            transform: translateX(-50%) translateY(6px) scale(.96);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+        }
+
+        .cast-auto-button,
+        .cast-auto-stop {
+          appearance: none;
+          border: 0;
 	          color: #4e433c;
 	          cursor: pointer;
 	          font: inherit;
@@ -2432,6 +3011,13 @@ export default function Landing() {
 
         button.cast-auto-button:not(:disabled):hover {
           transform: translateY(-2px);
+        }
+
+        .cast-auto-button.is-disabled {
+          color: rgba(78, 67, 60, .46);
+          background: rgba(255, 247, 227, .64);
+          cursor: not-allowed;
+          filter: grayscale(.25);
         }
 
         .cast-auto-button.is-running {
@@ -2638,6 +3224,43 @@ export default function Landing() {
           cursor: default;
         }
 
+        .hud-main-action--notice {
+          width: 415px;
+          min-width: 415px;
+          justify-content: center;
+          gap: 0;
+          padding: 20px 40px;
+          color: #4e433c;
+          background: #ffedb7;
+          box-shadow: none;
+          cursor: default;
+        }
+
+        .hud-main-action--notice .hud-main-action__label {
+          color: #4e433c;
+          -webkit-text-fill-color: #4e433c;
+          font-size: 24px;
+          font-weight: 700;
+          letter-spacing: 0;
+          line-height: normal;
+          white-space: nowrap;
+        }
+
+        .hud-main-action--notice .hud-main-action__label::before {
+          content: none;
+        }
+
+        .hud-main-action__notice-icon {
+          position: absolute;
+          top: -26px;
+          right: -10px;
+          width: 60px;
+          height: 60px;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
+        }
+
         .hud-main-action__tool {
           flex: 0 0 auto;
           width: 80px;
@@ -2780,61 +3403,72 @@ export default function Landing() {
 
         .hud-badge {
           position: absolute;
-          right: -10px;
-          top: -17px;
-          width: 40px;
-          height: 40px;
+          left: 110px;
+          top: 32px;
+          width: 60px;
+          height: 60px;
+          display: grid;
+          place-items: center;
           border-radius: 999px;
+          transform: translate(-50%, -50%);
           background: #fd5f5a;
         }
 
         .hud-badge span {
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -55%);
           color: #fff;
-          font-size: 22px;
+          font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-size: 28px;
           font-weight: 900;
-          line-height: 1;
+          line-height: normal;
           white-space: nowrap;
         }
 
-        .menu-item:hover,
-        .hud-main-action:hover,
-        .hud-basket:hover {
-          filter: brightness(1.02);
+        .hud-badge--compact span {
+          font-size: 22px;
         }
 
-        .hud-top-stats:hover .hud-stat-card,
-        .hud-stat-card:hover {
-          background: #fff7df;
+        .menu-item:hover,
+        .hud-main-action:not(:disabled):hover,
+        .hud-basket:not(:disabled):hover {
+          filter: brightness(1.02);
         }
 
         .menu-item:active {
           transform: translateY(1px);
         }
 
-        .hud-stat-card--button:active {
-          transform: translateY(1px);
-        }
-
-        .hud-main-action:active,
-        .hud-basket:active {
+        .hud-main-action:not(:disabled):active,
+        .hud-basket:not(:disabled):active {
           transform: translateY(6px);
         }
 
-        .hud-main-action:active {
+        .hud-main-action:not(:disabled):active {
           box-shadow: 0 0 0 #4e433c;
         }
 
-        .hud-basket:active .hud-basket__shell {
+        .hud-basket:not(:disabled):active .hud-basket__shell {
           clip-path: inset(0 0 8px 0 round 16px);
+        }
+
+        .hud-main-action--disabled,
+        .hud-main-action--disabled:hover,
+        .hud-main-action--disabled:active {
+          box-shadow: none;
+          filter: none;
+          transform: none;
+        }
+
+        .hud-basket--disabled,
+        .hud-basket--disabled:hover,
+        .hud-basket--disabled:active {
+          filter: grayscale(1);
+          transform: none;
         }
 
 	        .menu-item:focus-visible,
 	        .cast-auto-button:focus-visible,
 	        .cast-auto-stop:focus-visible,
+	        .hud-agent-required:focus-visible,
 	        .cast-count-stepper:focus-visible,
 	        .cast-count-input:focus-visible,
 	        .auto-cast-modal__button:focus-visible,
@@ -4268,7 +4902,7 @@ export default function Landing() {
         .settings-content--agent {
           padding: 0;
           overflow: hidden;
-          background: rgba(255, 253, 244, .86);
+          background: #fffdf4;
         }
 
         .settings-tabs {
@@ -4383,16 +5017,16 @@ export default function Landing() {
         }
         .settings-agent-main__topbar .settings-agent-intro-copy { margin-bottom: 0; }
         .settings-agent-main__footer {
-          display: flex; justify-content: center;
+          display: flex; justify-content: flex-end; align-items: center; gap: 10px;
           margin-top: auto; padding: 8px 0 16px;
         }
         .sac-buddy-banner {
           display: flex; align-items: center; gap: 12px;
           margin-top: auto;
           padding: 14px 16px;
-          background: rgba(255,213,87,.1);
-          border: 1.5px solid rgba(245,200,66,.4);
-          border-radius: var(--radius-xs);
+          background: rgba(255, 213, 87, .08);
+          border: 0;
+          border-radius: var(--radius-sm);
         }
         .settings-agent-main__footer + .sac-buddy-banner {
           margin-top: 0;
@@ -4733,6 +5367,7 @@ export default function Landing() {
         }
 
         .settings-agent-provider-row {
+          position: relative;
           min-height: 0;
           display: flex;
           flex-direction: column;
@@ -4741,8 +5376,8 @@ export default function Landing() {
           gap: 12px;
           padding: 14px 16px;
           color: var(--ac-text);
-          background: rgba(255, 253, 244, .92);
-          border: 2px solid rgba(196, 184, 158, .46);
+          background: rgba(255, 213, 87, .08);
+          border: 0;
           border-radius: 14px;
         }
 
@@ -4755,7 +5390,26 @@ export default function Landing() {
         }
 
         .settings-agent-provider-row.is-connected {
-          border-color: rgba(55, 163, 103, .34);
+          background: rgba(31, 163, 116, .07);
+        }
+
+        .settings-agent-provider-row.is-disconnected {
+          background: rgba(255, 213, 87, .08);
+        }
+
+        .settings-agent-provider-row.is-unavailable {
+          background: rgba(255, 213, 87, .08);
+        }
+
+        .settings-agent-provider-row.is-connected::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 14px;
+          bottom: 14px;
+          width: 3px;
+          border-radius: 0 3px 3px 0;
+          background: rgba(31, 163, 116, .58);
         }
 
         .settings-agent-provider-row.is-disabled {
@@ -4807,8 +5461,31 @@ export default function Landing() {
 
         .settings-agent-provider-mark--openrouter {
           background: rgba(201, 213, 255, .72);
-          color: #fff;
+          color: #fffdf4;
           border: 0;
+          border-radius: 11px;
+        }
+
+        .settings-agent-provider-mark--openrouter .settings-agent-provider-icon,
+        .settings-agent-provider-mark--openrouter .settings-agent-provider-icon > * {
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+          border-radius: inherit !important;
+          overflow: hidden;
+        }
+
+        .settings-agent-provider-mark--openrouter .settings-agent-provider-icon {
+          background: transparent !important;
+          box-shadow: none !important;
+        }
+
+        .settings-agent-provider-mark--openrouter .settings-agent-provider-icon svg {
+          width: 44px !important;
+          height: 44px !important;
+          transform: scale(.76) !important;
+          transform-origin: center;
         }
 
         .settings-agent-provider-icon {
@@ -4837,13 +5514,6 @@ export default function Landing() {
         .settings-agent-provider-icon img,
         .settings-agent-provider-icon canvas {
           transform: none !important;
-        }
-
-        .settings-agent-provider-mark--openrouter .settings-agent-provider-icon {
-          width: 38px !important;
-          height: 38px !important;
-          flex: 0 0 38px;
-          border-radius: 9px !important;
         }
 
         .settings-agent-provider-name {
@@ -4903,6 +5573,29 @@ export default function Landing() {
           background: transparent;
         }
 
+        .settings-agent-provider-badge.is-unavailable {
+          color: #c46a2a;
+          background: transparent;
+        }
+
+        .settings-agent-provider-status-line {
+          min-width: 0;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .settings-agent-provider-hint {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: rgba(121, 79, 39, .46);
+          font-size: 10px;
+          font-weight: 700;
+          line-height: 1.25;
+        }
+
         .settings-agent-provider-actions {
           display: flex;
           align-items: center;
@@ -4921,20 +5614,31 @@ export default function Landing() {
           padding: 0 12px;
           color: var(--ac-text);
           background: rgba(255, 253, 244, .92);
-          border: 1.5px solid rgba(196, 184, 158, .46);
+          border: 0;
           border-radius: 8px;
           cursor: pointer;
           font: inherit;
           font-size: 12px;
           font-weight: 800;
           line-height: 1;
-          box-shadow: 0 1px 0 rgba(121, 79, 39, .08);
+          box-shadow: none;
+        }
+
+        .settings-agent-provider-actions .settings-agent-provider-action-button,
+        .settings-agent-provider-actions .settings-agent-provider-action-button:hover,
+        .settings-agent-provider-actions .settings-agent-provider-action-button:focus,
+        .settings-agent-provider-actions .settings-agent-provider-action-button:focus-visible {
+          border: 0;
+          box-shadow: none;
+          outline: none;
         }
 
         .settings-agent-provider-action-button--compact {
           min-height: 28px;
           padding: 0 10px;
           font-size: 12px;
+          border: 0;
+          box-shadow: none;
         }
 
         .settings-agent-provider-action-button svg {
@@ -4944,8 +5648,8 @@ export default function Landing() {
 
         .settings-agent-provider-action-button:hover,
         .settings-agent-provider-action-button:focus-visible {
-          background: #fffdf4;
-          border-color: rgba(121, 79, 39, .34);
+          border: 0;
+          box-shadow: none;
           outline: none;
         }
 
@@ -4957,7 +5661,7 @@ export default function Landing() {
           cursor: not-allowed;
           color: rgba(121, 79, 39, .58);
           background: rgba(196, 184, 158, .28);
-          border-color: rgba(196, 184, 158, .42);
+          border: 0;
           box-shadow: none;
           opacity: 1;
           filter: grayscale(.18);
@@ -4969,8 +5673,9 @@ export default function Landing() {
 
         .settings-agent-provider-action-button--primary {
           background: #f8c840;
-          border-color: rgba(121, 79, 39, .22);
+          border: 0;
           border-radius: 8px;
+          box-shadow: none;
         }
 
         @media (max-width: 980px) {
@@ -5071,6 +5776,7 @@ export default function Landing() {
         .sac-modal {
           position: relative;
           width: min(600px, 100%);
+          height: fit-content;
           display: flex;
           flex-direction: column;
           gap: 0;
@@ -5081,6 +5787,10 @@ export default function Landing() {
           border-radius: var(--radius-xs);
           box-shadow: 0 0 0 3px rgba(255,253,244,.72), 0 18px 36px rgba(66,48,31,.16);
           animation: sacPopIn 0.18s ease;
+        }
+        .sac-modal:has(.sac-success) {
+          width: fit-content;
+          max-width: 100%;
         }
         @keyframes sacPopIn {
           from { opacity: 0; transform: scale(0.96) translateY(6px); }
@@ -5132,7 +5842,13 @@ export default function Landing() {
         .sac-slabel--done   { color: #b8940a; font-weight: 700; }
 
         /* Body */
-        .sac-body { padding: 16px 18px 20px; display: flex; flex-direction: column; gap: 12px; }
+        .sac-body {
+          height: fit-content;
+          padding: 16px 18px 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
         .sac-sub  { font-size: 12px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
 
         /* Inline step (page-embedded flow) */
@@ -5153,17 +5869,19 @@ export default function Landing() {
         /* Connection mode bar (manage view) */
         .sac-mode-bar {
           display: flex; align-items: center; justify-content: space-between;
-          background: rgba(91,188,214,.08); border: 1px solid rgba(91,188,214,.3);
+          background: #fff2c9; border: 1.5px solid rgba(212, 159, 47, .36);
           border-radius: 10px; padding: 10px 14px; margin-bottom: 12px;
         }
         .sac-mode-bar__label { font-size: 13px; font-weight: 700; color: var(--ac-text); }
         .sac-mode-bar__switch {
           appearance: none; font: inherit; cursor: pointer;
-          background: none; border: 1px solid rgba(121,79,39,.3); border-radius: 8px;
+          display: inline-flex; align-items: center; gap: 6px;
+          background: none; border: 0; border-radius: 8px;
           color: rgba(121,79,39,.85); font-size: 12px; padding: 5px 12px;
-          transition: background 0.15s, border-color 0.15s;
+          box-shadow: none;
+          transition: background 0.15s;
         }
-        .sac-mode-bar__switch:hover { background: rgba(121,79,39,.06); border-color: rgba(121,79,39,.55); }
+        .sac-mode-bar__switch:hover { background: rgba(121,79,39,.06); }
 
 
         /* Mode cards */
@@ -5177,11 +5895,11 @@ export default function Landing() {
           font: inherit; color: inherit;
         }
         .sac-mode-card:hover {
-          border-color: rgba(255, 207, 72, .95); background: rgba(255, 207, 72, .12);
+          border-color: rgba(255, 213, 87, .5); background: rgba(255, 213, 87, .04);
         }
         .sac-mode-card--sel {
-          border-color: #f4bd18; background: #ffec9d;
-          box-shadow: inset 0 0 0 2px rgba(255, 250, 218, .72);
+          border-color: #ffd557; background: rgba(255, 213, 87, .08);
+          box-shadow: inset 0 0 0 2px rgba(255, 213, 87, .12);
         }
         .sac-mode-body { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 8px; }
         .sac-mode-title { font-weight: 800; font-size: 14px; line-height: 1.2; margin-bottom: 0; color: rgba(92, 61, 25, .94); }
@@ -5190,20 +5908,46 @@ export default function Landing() {
         .sac-mode-card--locked:hover { border-color: rgba(196,184,158,.55); background: #fffdf4; }
         .sac-mode-lock { margin-left: auto; font-size: 12px; align-self: center; }
         .sac-mode-warning {
-          display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-          font-size: 12px; color: #b45309; background: rgba(251,191,36,.15);
-          border: 1px solid rgba(251,191,36,.4); border-radius: 6px;
-          padding: 8px 12px; margin-bottom: 10px;
+          position: fixed;
+          inset: 0;
+          z-index: 80;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          background: rgba(78, 67, 60, .24);
+          backdrop-filter: blur(2px);
         }
-        .sac-mode-warning__copy { min-width: 0; flex: 1; }
         .sac-disconnect-all-btn {
           flex: 0 0 auto;
           font-size: 12px; font: inherit; cursor: pointer; appearance: none;
-          color: #b45309; background: none; border: 1px solid rgba(180,83,9,.35);
+          color: #8a4a0b; background: #ffd557; border: 1px solid rgba(180,83,9,.35);
           border-radius: 6px; padding: 5px 12px;
           transition: background 0.15s, border-color 0.15s;
         }
         .sac-disconnect-all-btn:hover { background: rgba(180,83,9,.07); border-color: rgba(180,83,9,.6); }
+
+        .sac-mode-warning .settings-agent-confirm-actions {
+          justify-content: flex-end;
+          align-items: center;
+        }
+
+        .sac-mode-warning .sac-disconnect-all-btn {
+          order: -1;
+          height: 34px;
+          border: 0;
+          padding: 0 14px;
+          font-size: 12px;
+          line-height: 34px;
+          box-shadow: none;
+        }
+
+        .sac-mode-warning .settings-action--primary {
+          height: 28px;
+          padding: 0 14px;
+          background: #ffedb7;
+          box-shadow: none;
+        }
 
         /* Radio dot */
         .sac-radio {
@@ -5212,8 +5956,8 @@ export default function Landing() {
           display: flex; align-items: center; justify-content: center;
           transition: border-color 0.15s, background 0.15s; margin-top: 1px;
         }
-        .sac-radio--checked { border-color: #5bbcd6; background: #5bbcd6; }
-        .sac-radio--checked::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #fff; }
+        .sac-radio--checked { border-color: #ffd557; background: #ffd557; }
+        .sac-radio--checked::after { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #794f27; }
 
         /* Option cards */
         .sac-opt-card {
@@ -5226,7 +5970,7 @@ export default function Landing() {
           position: relative;
         }
         .sac-opt-card--auth-code.sac-opt-card--sel {
-          padding-right: 62px;
+          padding-right: 17px;
         }
         .sac-opt-card--auth-code.sac-opt-card--sel .settings-agent-refresh-icon {
           position: absolute;
@@ -5291,10 +6035,40 @@ export default function Landing() {
         /* Code box */
         .sac-code-box {
           display: flex; align-items: center; gap: 10px;
-          background: #2d2d2d; border-radius: var(--radius-xs);
-          padding: 10px 12px;
+          background: rgba(255, 253, 244, .82);
+          border: 1.5px solid rgba(196,184,158,.52);
+          border-radius: var(--radius-xs);
+          padding: 8px 10px 8px 12px;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
         }
-        .sac-code-box code { flex: 1; font-size: 12px; color: #7dd3b0; font-family: monospace; word-break: break-all; }
+        .sac-code-box code { flex: 1; font-size: 12px; color: rgb(121,79,39); font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; }
+
+        .sac-code-copy {
+          appearance: none;
+          width: 28px;
+          height: 28px;
+          display: inline-grid;
+          place-items: center;
+          flex: 0 0 auto;
+          color: var(--ac-text);
+          background: rgba(255,213,87,.28);
+          border: 1.5px solid rgba(121,79,39,.16);
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+          transition: background .15s ease, border-color .15s ease, transform .15s ease;
+        }
+
+        .sac-code-copy:hover,
+        .sac-code-copy:focus-visible {
+          color: var(--ac-text);
+          background: rgba(255,213,87,.72);
+          border-color: rgba(121,79,39,.28);
+          outline: none;
+        }
+
+        .sac-code-copy:active {
+          transform: translateY(1px);
+        }
 
         .sac-link { color: #3a9bbf; font-size: 13px; font-weight: 600; text-decoration: none; }
         .sac-link:hover { text-decoration: underline; }
@@ -5305,12 +6079,151 @@ export default function Landing() {
         .sac-guide-step-title { font-size: 12px; font-weight: 700; color: var(--ac-text); }
         .sac-guide-step-title::before { content: counter(guide-step) ". "; }
         .sac-guide-fields { list-style: disc; padding-left: 16px; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: rgba(121,79,39,.8); }
+        .sac-guide-field-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
         .sac-guide-fields code { background: rgba(196,184,158,.2); border-radius: 3px; padding: 0 4px; font-family: monospace; font-size: 11px; }
+        .sac-guide-copy {
+          appearance: none;
+          width: 22px;
+          height: 22px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          flex: 0 0 auto;
+          color: rgba(121,79,39,.68);
+          background: rgba(255,253,244,.76);
+          border: 1px solid rgba(196,184,158,.52);
+          border-radius: 5px;
+          cursor: pointer;
+        }
+        .sac-guide-copy:hover,
+        .sac-guide-copy:focus-visible { color: var(--ac-text); background: #fffdf4; outline: none; }
+        .sac-guide-hint-wrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; }
         .sac-guide-hint { font-size: 11px; color: rgba(121,79,39,.65); line-height: 1.5; margin: 0; }
-        .sac-guide-img { width: 100%; border-radius: 6px; border: 1px solid rgba(196,184,158,.4); display: block; }
+        .sac-guide-img-button {
+          appearance: none;
+          display: block;
+          width: 100%;
+          padding: 0;
+          background: transparent;
+          border: 0;
+          border-radius: 6px;
+          cursor: zoom-in;
+        }
+        .sac-guide-img-button:focus-visible {
+          outline: 2px solid #ffd557;
+          outline-offset: 2px;
+        }
+        .sac-guide-img { width: 100%; border-radius: 6px; border: 1px solid rgba(196,184,158,.4); display: block; transition: border-color .15s ease, box-shadow .15s ease; }
+        .sac-guide-img-button:hover .sac-guide-img,
+        .sac-guide-img-button:focus-visible .sac-guide-img {
+          border-color: rgba(121,79,39,.36);
+          box-shadow: 0 8px 18px rgba(66,48,31,.14);
+        }
+
+        .sac-image-preview-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 90;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 42px;
+          background: rgba(25, 31, 37, .52);
+          backdrop-filter: blur(5px);
+        }
+        .sac-image-preview-modal {
+          position: relative;
+          width: min(1180px, 94vw);
+          height: min(820px, 88vh);
+          display: grid;
+          place-items: center;
+          overflow: auto;
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          box-shadow: none;
+        }
+        .sac-image-preview-close {
+          appearance: none;
+          position: fixed;
+          top: 26px;
+          right: 30px;
+          z-index: 2;
+          width: 34px;
+          height: 34px;
+          display: inline-grid;
+          place-items: center;
+          color: #fffdf4;
+          background: rgba(25, 31, 37, .5);
+          border: 0;
+          border-radius: 999px;
+          cursor: pointer;
+        }
+        .sac-image-preview-close:hover,
+        .sac-image-preview-close:focus-visible {
+          color: #5a3e00;
+          background: #ffd557;
+          outline: none;
+        }
+        .sac-image-preview-toolbar {
+          position: fixed;
+          top: 26px;
+          left: 50%;
+          z-index: 2;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px;
+          background: rgba(25, 31, 37, .5);
+          border-radius: 999px;
+          transform: translateX(-50%);
+        }
+        .sac-image-preview-tool {
+          appearance: none;
+          min-width: 34px;
+          height: 34px;
+          display: inline-grid;
+          place-items: center;
+          padding: 0 10px;
+          color: #fffdf4;
+          background: transparent;
+          border: 0;
+          border-radius: 999px;
+          cursor: pointer;
+          font: inherit;
+          font-size: 12px;
+          font-weight: 900;
+          white-space: nowrap;
+        }
+        .sac-image-preview-tool:hover,
+        .sac-image-preview-tool:focus-visible {
+          color: #5a3e00;
+          background: #ffd557;
+          outline: none;
+        }
+        .sac-image-preview-tool:disabled {
+          opacity: .38;
+          cursor: not-allowed;
+        }
+        .sac-image-preview-body {
+          width: max-content;
+          height: max-content;
+          display: block;
+        }
+        .sac-image-preview-body img {
+          display: block;
+          max-width: min(1120px, calc(94vw - 84px));
+          max-height: calc(88vh - 84px);
+          width: auto;
+          height: auto;
+          border: 0;
+          border-radius: 0;
+          box-shadow: 0 18px 44px rgba(25, 31, 37, .36);
+          transform-origin: center;
+        }
 
         /* Nav */
-        .sac-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+        .sac-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
         .sac-btn-prev {
           appearance: none; background: transparent; color: rgba(121,79,39,.72);
           border: 1.5px solid rgba(196,184,158,.7); border-radius: var(--radius-xs);
@@ -5325,7 +6238,14 @@ export default function Landing() {
         .sac-btn-next:hover, .sac-btn-sm:hover { background: #f5c030; }
 
         /* Success */
-        .sac-success { text-align: center; padding: 28px 18px 24px !important; }
+        .sac-success {
+          box-sizing: border-box;
+          width: 450px;
+          max-width: 100%;
+          margin-inline: auto;
+          text-align: center;
+          padding: 28px 18px 24px !important;
+        }
         .sac-success-icon  { font-size: 48px; margin-bottom: 10px; }
         .sac-success-title { font-size: 17px; font-weight: 800; color: #2a7a4a; margin-bottom: 6px; }
         .sac-success-msg   { font-size: 13px; color: #4a9a6a; margin-bottom: 16px; }
@@ -5363,10 +6283,10 @@ export default function Landing() {
 
         /* Auth preview modal */
         .sac-auth-preview {
-          width: min(360px, 96vw);
+          width: min(450px, 96vw);
           display: flex; flex-direction: column; align-items: center;
           gap: 0;
-          padding: 32px 28px 24px;
+          padding: 32px 28px 16px;
           background: #fffdf4;
           border: 1.5px solid rgba(121,79,39,.22);
           border-radius: var(--radius-xs);
@@ -5376,7 +6296,7 @@ export default function Landing() {
         }
         .sac-auth-preview__icon { margin-bottom: 20px; border-radius: 16px; overflow: hidden; }
         .sac-auth-preview__heading { font-size: 17px; font-weight: 700; color: var(--ac-text); line-height: 1.5; margin: 0 0 12px; }
-        .sac-auth-preview__body { font-size: 13px; color: rgba(121,79,39,.75); line-height: 1.6; margin: 0 0 24px; }
+        .sac-auth-preview__body { font-size: 13px; font-weight: 200; color: rgba(121,79,39,.75); line-height: 1.6; margin: 0 0 24px; }
         .sac-auth-preview__title { font-size: 17px; font-weight: 700; color: var(--ac-text); line-height: 1.5; margin: 0 0 20px; }
         .sac-auth-preview__perms {
           width: 100%; list-style: none; padding: 0; margin: 0 0 24px;
@@ -5891,21 +6811,24 @@ export default function Landing() {
         }
 
         .settings-agent-auth-options {
+          width: 100%;
           display: grid;
-          grid-template-columns: minmax(152px, .8fr) minmax(0, 1fr);
-          column-gap: 22px;
+          grid-template-columns: minmax(136px, .74fr) minmax(0, 1fr);
+          column-gap: 18px;
           overflow: visible;
-          background: transparent;
-          padding: 10px 2px 2px;
-          border-radius: 0;
+          background: rgba(255, 253, 244, .82);
+          border: 0;
+          border-radius: var(--radius-xs);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+          padding: 12px;
         }
 
         .settings-agent-auth-option {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 12px;
-          align-content: start;
-          align-items: start;
+          gap: 10px;
+          align-content: center;
+          align-items: center;
           padding: 0;
           margin: 0;
           background: transparent;
@@ -5918,9 +6841,9 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option--code {
-          gap: 16px;
-          padding-left: 22px;
-          border-left: 1px solid rgba(196, 184, 158, .42);
+          gap: 14px;
+          padding-left: 18px;
+          border-left: 1.5px solid rgba(196, 184, 158, .1);
         }
 
         .settings-agent-auth-option > div:first-child,
@@ -5938,9 +6861,9 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option span {
-          color: rgba(121, 79, 39, .72);
-          font-size: 11px;
-          font-weight: 850;
+          color: rgba(121, 79, 39, .66);
+          font-size: 10px;
+          font-weight: 750;
           line-height: 1.45;
         }
 
@@ -5950,13 +6873,15 @@ export default function Landing() {
         }
 
         .settings-agent-auth-option__head strong {
-          font-size: 15px;
+          font-size: 13px;
           line-height: 1.2;
         }
 
         .settings-agent-code-copy strong {
-          font-size: 24px;
-          letter-spacing: .08em;
+          color: rgb(121,79,39);
+          font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-size: 20px;
+          letter-spacing: .06em;
           line-height: 1;
         }
 
@@ -5982,18 +6907,34 @@ export default function Landing() {
 
         .settings-agent-auth-option--code .settings-action {
           width: min(100%, 240px);
-          min-height: 38px;
+          min-height: 36px;
+          border-radius: var(--radius-xs);
+          font-size: 12px;
+          font-weight: 900;
+        }
+
+        .settings-agent-auth-option--code .settings-action--primary {
+          color: #5a3e00;
+          background: #ffd557;
+          border: 0;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,.42);
+        }
+
+        .settings-agent-auth-option--code .settings-action--primary:hover,
+        .settings-agent-auth-option--code .settings-action--primary:focus-visible {
+          background: #f5c030;
         }
 
         .settings-agent-qr {
-          width: 126px;
-          height: 126px;
+          width: 116px;
+          height: 116px;
           display: block;
           justify-self: start;
           overflow: hidden;
           background: #fff;
-          border: 0;
-          border-radius: 4px;
+          border: 1.5px solid rgba(196,184,158,.42);
+          border-radius: 6px;
+          padding: 5px;
         }
 
         .settings-agent-qr img {
@@ -6264,15 +7205,15 @@ export default function Landing() {
 
           .settings-agent-auth-options {
             grid-template-columns: 1fr;
-            gap: 16px;
-            padding: 10px 0 0;
+            gap: 14px;
+            padding: 12px;
           }
 
           .settings-agent-auth-option--code {
             padding-left: 0;
             border-left: 0;
-            border-top: 1px solid rgba(196, 184, 158, .42);
-            padding-top: 16px;
+            border-top: 1.5px solid rgba(196, 184, 158, .46);
+            padding-top: 14px;
           }
 
           .settings-agent-auth-option {
@@ -6312,7 +7253,7 @@ export default function Landing() {
           background: rgba(255, 253, 244, .86);
           border: 2px solid rgba(196, 184, 158, .7);
           border-radius: var(--radius-sm);
-          box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
+          box-shadow: none;
         }
 
         .settings-section + .settings-section {
@@ -6380,43 +7321,9 @@ export default function Landing() {
 
         .settings-profile {
           display: grid;
-          grid-template-columns: auto minmax(0, 1fr);
-          gap: 18px;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 0;
           align-items: start;
-        }
-
-        .settings-avatar {
-          width: 86px;
-          height: 86px;
-          display: grid;
-          place-items: center;
-          overflow: hidden;
-          color: #794f27;
-          background: #fff7e3;
-          border: 2px dashed rgba(121, 79, 39, .48);
-          border-radius: 18px;
-          font-size: 34px;
-          font-weight: 1000;
-        }
-
-        .settings-avatar.is-editing {
-          cursor: pointer;
-          border-color: #19c8b9;
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .45);
-        }
-
-        .settings-avatar img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .settings-avatar__hint {
-          margin-top: 8px;
-          color: rgba(121, 79, 39, .72);
-          font-size: 11px;
-          font-weight: 900;
-          text-align: center;
         }
 
         .settings-grid {
@@ -6437,6 +7344,10 @@ export default function Landing() {
           grid-column: 1 / -1;
         }
 
+        .settings-profile .settings-input {
+          width: min(520px, 100%);
+        }
+
         .settings-input {
           width: 100%;
           height: 42px;
@@ -6445,7 +7356,7 @@ export default function Landing() {
           background: #fffdf4;
           border: 2px solid rgba(196, 184, 158, .78);
           border-radius: var(--radius-xs);
-          box-shadow: inset 0 2px 0 rgba(189, 174, 160, .22);
+          box-shadow: none;
           font: inherit;
           font-size: 13px;
           font-weight: 850;
@@ -6517,7 +7428,7 @@ export default function Landing() {
           background: var(--ac-cream-light);
           border: 0;
           border-radius: var(--radius-xs);
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .42);
+          box-shadow: none;
           cursor: pointer;
           font: inherit;
           font-size: 12px;
@@ -6542,631 +7453,6 @@ export default function Landing() {
           opacity: .48;
           cursor: not-allowed;
           box-shadow: none;
-        }
-
-        .wallet-modal {
-          width: min(1080px, 94vw);
-          background: linear-gradient(180deg, #fffdf4 0%, var(--ac-cream) 100%);
-          border: 2px solid color-mix(in srgb, var(--ac-border) 82%, var(--ac-text));
-          border-radius: var(--radius-xs);
-          box-shadow:
-            0 0 0 2px rgba(255, 253, 244, .88),
-            5px 5px 0 rgba(189, 174, 160, .72),
-            0 20px 48px rgba(66, 48, 31, .18);
-          image-rendering: pixelated;
-        }
-
-        .wallet-modal .shop-modal__header {
-          align-items: center;
-          padding-top: 16px;
-          background: rgba(255, 249, 232, .88);
-          border-bottom: 2px solid rgba(196, 184, 158, .62);
-        }
-
-        .wallet-modal__heading {
-          min-width: 0;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .wallet-modal .shop-modal__title {
-          font-family: var(--modal-title-font);
-          font-size: 30px;
-          line-height: 1;
-          font-weight: 900;
-          letter-spacing: .02em;
-          color: var(--ac-text);
-          text-shadow: none;
-        }
-
-        .wallet-modal__back {
-          appearance: none;
-          width: 38px;
-          height: 38px;
-          display: inline-grid;
-          place-items: center;
-          flex: 0 0 auto;
-          color: var(--ac-text);
-          background: var(--ac-cream-light);
-          border: 1.5px solid rgba(196, 184, 158, .86);
-          border-radius: var(--radius-xs);
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
-          cursor: pointer;
-          transition: transform .18s ease, box-shadow .18s ease;
-        }
-
-        .wallet-modal__back:hover {
-          transform: translate(-1px, -1px);
-          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
-        }
-
-        .wallet-modal .shop-modal__close {
-          width: 38px;
-          height: 38px;
-          background: var(--ac-cream-light);
-          border: 1.5px solid rgba(196, 184, 158, .86);
-          border-radius: var(--radius-xs);
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
-        }
-
-        .wallet-modal .shop-modal__close:hover {
-          transform: translate(-1px, -1px);
-          box-shadow: 3px 3px 0 rgba(189, 174, 160, .58);
-        }
-
-        .wallet-content {
-          min-height: 0;
-          overflow: hidden;
-        }
-
-        .wallet-panel {
-          min-height: 0;
-          overflow: auto;
-          padding: 18px clamp(18px, 2.6vw, 34px) 24px;
-        }
-
-        .wallet-summary-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 14px;
-        }
-
-        .wallet-card {
-          min-width: 0;
-          padding: 18px;
-          background: rgba(255, 253, 244, .86);
-          border: 2px solid rgba(196, 184, 158, .7);
-          border-radius: var(--radius-sm);
-          box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
-        }
-
-        .wallet-card--balance {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 18px;
-          align-items: center;
-        }
-
-        .wallet-card__value {
-          margin-top: 0;
-          color: var(--ac-text);
-          font-size: 32px;
-          font-weight: 950;
-          line-height: 1;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .wallet-balance-value {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .wallet-balance-value__icon {
-          width: 40px;
-          height: 41px;
-          flex: 0 0 auto;
-          object-fit: contain;
-          image-rendering: pixelated;
-        }
-
-        .wallet-card__hint {
-          margin: 10px 0 0;
-          color: var(--ac-text-body);
-          font-size: 12px;
-          font-weight: 700;
-          line-height: 1.5;
-        }
-
-        .wallet-action-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin-top: 16px;
-        }
-
-        .wallet-card--balance .wallet-action-row {
-          justify-content: flex-end;
-          margin-top: 0;
-        }
-
-        .wallet-action,
-        .wallet-submit {
-          appearance: none;
-          min-height: 40px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 0 14px;
-          color: var(--ac-text);
-          background: #9bdc5c;
-          border-width: 0;
-          border-style: solid;
-          border-color: #101010;
-          border-radius: var(--radius-xs);
-          box-shadow: 2px 2px 0 rgba(80, 63, 40, .42);
-          font: inherit;
-          font-size: 13px;
-          font-weight: 950;
-        }
-
-        .wallet-action {
-          background: #9bdc5c;
-          border-width: 0;
-        }
-
-        .wallet-action:hover,
-        .wallet-submit:hover:not(:disabled) {
-          transform: translate(-1px, -1px);
-          box-shadow: 3px 3px 0 rgba(80, 63, 40, .48);
-        }
-
-        .wallet-action--secondary {
-          background: var(--ac-cream-light);
-          border-color: rgba(196, 184, 158, .86);
-        }
-
-        .wallet-submit {
-          width: 100%;
-          border-width: 0;
-          margin-top: 14px;
-        }
-
-        .wallet-submit--withdraw {
-          border-width: 0;
-        }
-
-        .wallet-submit:disabled {
-          opacity: .56;
-          cursor: not-allowed;
-          filter: grayscale(.3);
-        }
-
-        .wallet-section {
-          margin-top: 16px;
-          overflow: hidden;
-          background: rgba(255, 253, 244, .86);
-          border: 2px solid rgba(196, 184, 158, .7);
-          border-radius: var(--radius-sm);
-          box-shadow: 3px 3px 0 rgba(189, 174, 160, .35);
-        }
-
-        .wallet-table {
-          min-width: 720px;
-        }
-
-        .wallet-table__row {
-          display: grid;
-          grid-template-columns: 1.2fr 1fr 1fr .75fr;
-          gap: 12px;
-          align-items: center;
-          padding: 12px 16px;
-          color: var(--ac-text);
-          font-size: 13px;
-          font-weight: 800;
-          border-bottom: 1px solid rgba(196, 184, 158, .45);
-        }
-
-        .wallet-table__row:last-child {
-          border-bottom: 0;
-        }
-
-        .wallet-table__row--head {
-          color: var(--ac-text-body);
-          background: rgba(255, 249, 232, .65);
-          font-size: 12px;
-          font-weight: 950;
-        }
-
-        .wallet-table__mono {
-          font-variant-numeric: tabular-nums;
-          font-size: 12px;
-        }
-
-        .wallet-table__amount {
-          text-align: right;
-          font-variant-numeric: tabular-nums;
-          font-weight: 950;
-        }
-
-        .wallet-table__amount--plus { color: rgb(121, 79, 39); }
-        .wallet-table__amount--minus { color: rgb(121, 79, 39); }
-
-        .wallet-table__balance {
-          display: inline-flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 5px;
-        }
-
-        .wallet-table__balance-icon {
-          width: 18px;
-          height: 18px;
-          object-fit: contain;
-          image-rendering: pixelated;
-        }
-
-        .wallet-withdraw {
-          margin-top: 0;
-          display: block;
-        }
-
-        .wallet-withdraw--modal {
-          margin-top: 0;
-        }
-
-        .wallet-withdraw__steps {
-          width: min(720px, 100%);
-          margin: 0 auto;
-          display: grid;
-          gap: 18px;
-        }
-
-        .wallet-step {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr);
-          padding: 0;
-        }
-
-        .wallet-step__body {
-          min-width: 0;
-          display: grid;
-          gap: 12px;
-        }
-
-        .wallet-step__head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-          min-width: 0;
-        }
-
-        .wallet-step__title {
-          margin: 1px 0 0;
-          color: var(--ac-text);
-          font-size: 17px;
-          font-weight: 950;
-          line-height: 1.15;
-        }
-
-        .wallet-step__note {
-          margin: 0;
-          color: var(--ac-text-body);
-          font-size: 12px;
-          font-weight: 800;
-          line-height: 1.45;
-        }
-
-        .wallet-form {
-          display: grid;
-          gap: 10px;
-        }
-
-	        .wallet-field {
-	          display: grid;
-	          gap: 6px;
-	        }
-
-	        .wallet-input-unit-wrap {
-	          position: relative;
-	          display: block;
-	        }
-
-	        .wallet-field span {
-	          color: var(--ac-text-body);
-	          font-size: 12px;
-          font-weight: 900;
-        }
-
-        .wallet-input,
-        .wallet-select__button {
-          width: 100%;
-          height: 40px;
-          color: var(--ac-text);
-          background: var(--ac-cream-light);
-          border: 1.5px solid rgba(196, 184, 158, .86);
-          border-radius: var(--radius-xs);
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .35);
-          padding: 0 12px;
-          font: inherit;
-          font-size: 13px;
-          font-weight: 850;
-	          outline: none;
-	        }
-
-	        .wallet-select {
-	          position: relative;
-	          width: 100%;
-	          cursor: none;
-	        }
-
-	        .wallet-select__button {
-	          appearance: none;
-	          position: relative;
-	          display: flex;
-	          align-items: center;
-	          justify-content: space-between;
-	          gap: 10px;
-	          padding-right: 44px;
-	          text-align: left;
-	          cursor: none;
-	        }
-
-	        .wallet-select__value {
-	          min-width: 0;
-	          overflow: hidden;
-	          color: var(--ac-text);
-	          font-size: 13px;
-	          font-weight: 850;
-	          line-height: 1.2;
-	          text-overflow: ellipsis;
-	          white-space: nowrap;
-	        }
-
-	        .wallet-select__chevron {
-	          position: absolute;
-	          right: 16px;
-	          top: 50%;
-	          width: 14px;
-	          height: 14px;
-	          transform: translateY(-50%) rotate(0deg);
-	          transform-origin: center;
-	          transition: transform 140ms cubic-bezier(.22, 1, .36, 1);
-	        }
-
-	        .wallet-select__chevron::before {
-	          content: "";
-	          position: absolute;
-	          left: 3px;
-	          top: 4px;
-	          width: 8px;
-	          height: 8px;
-	          border-right: 2px solid #794f27;
-	          border-bottom: 2px solid #794f27;
-	          border-radius: 1px;
-	          transform: rotate(45deg);
-	        }
-
-	        .wallet-select.is-open .wallet-select__chevron {
-	          transform: translateY(-50%) rotate(180deg);
-	        }
-
-	        .wallet-select__menu {
-	          position: absolute;
-	          left: 0;
-	          right: 0;
-	          top: calc(100% + 6px);
-	          z-index: 12;
-	          display: grid;
-	          gap: 4px;
-	          padding: 6px;
-	          background: #fffdf4;
-	          border: 1.5px solid rgba(196, 184, 158, .92);
-	          border-radius: var(--radius-sm);
-	          box-shadow: 0 10px 0 rgba(121, 79, 39, .12), 0 16px 28px rgba(78, 67, 60, .18);
-	          cursor: none;
-	        }
-
-	        .wallet-select__option {
-	          appearance: none;
-	          display: flex;
-	          align-items: center;
-	          width: 100%;
-	          min-height: 34px;
-	          padding: 0 10px;
-	          color: var(--ac-text);
-	          background: transparent;
-	          border: 0;
-	          border-radius: var(--radius-xs);
-	          font: inherit;
-	          font-size: 12px;
-	          font-weight: 850;
-	          text-align: left;
-	          cursor: none;
-	        }
-
-	        .wallet-select__option:hover,
-	        .wallet-select__option:focus-visible {
-	          background: #fff3d3;
-	          outline: none;
-	        }
-
-	        .wallet-select__option.is-selected {
-	          color: #5f3b1e;
-	          background: linear-gradient(90deg, rgba(255, 236, 68, .42), rgba(255, 158, 61, .22));
-	        }
-
-	        .wallet-input--with-unit {
-	          height: 52px;
-	          padding: 0 68px 0 16px;
-	          font-size: 16px;
-	          font-weight: 950;
-	        }
-
-	        .wallet-field .wallet-input-unit {
-	          position: absolute;
-	          right: 16px;
-	          top: 50%;
-	          transform: translateY(-50%);
-	          color: var(--ac-text-body);
-	          font-size: 13px;
-	          font-weight: 950;
-	          line-height: 1;
-	          pointer-events: none;
-	        }
-
-	        .wallet-input:focus,
-	        .wallet-select__button:focus-visible {
-          border-color: var(--ac-primary);
-          outline: 2px solid rgba(25, 200, 185, .22);
-          outline-offset: 2px;
-        }
-
-        .wallet-field__hint {
-          color: var(--ac-text-body);
-          font-size: 11px;
-          font-weight: 700;
-          line-height: 1.45;
-        }
-
-        .wallet-field__hint.is-error {
-          color: #c53434;
-          font-weight: 900;
-        }
-
-        .wallet-conversion {
-          display: flex;
-          flex-wrap: wrap;
-          align-items: baseline;
-          gap: 8px 12px;
-          color: var(--ac-text-body);
-          font-size: 12px;
-          font-weight: 800;
-          line-height: 1.45;
-        }
-
-        .wallet-conversion__value {
-          color: var(--ac-text);
-          font-size: 16px;
-          font-weight: 950;
-        }
-
-        .wallet-conversion.is-error,
-        .wallet-conversion.is-error .wallet-conversion__value {
-          color: #c53434;
-        }
-
-        .wallet-bind-state {
-          color: #18855c;
-          font-size: 12px;
-          font-weight: 900;
-          line-height: 1.45;
-        }
-
-        .wallet-bound-summary {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 14px;
-          min-height: 62px;
-          padding: 12px 14px;
-          color: var(--ac-text);
-          background: rgba(255, 253, 244, .58);
-          border: 1px solid rgba(196, 184, 158, .46);
-          border-radius: var(--radius-xs);
-          box-shadow: none;
-        }
-
-        .wallet-bound-summary__main {
-          min-width: 0;
-          display: grid;
-          gap: 4px;
-        }
-
-        .wallet-bound-summary__label {
-          color: #18855c;
-          font-size: 12px;
-          font-weight: 950;
-          line-height: 1;
-        }
-
-        .wallet-bound-summary__target {
-          min-width: 0;
-          display: inline-flex;
-          align-items: baseline;
-          gap: 8px;
-          line-height: 1.15;
-        }
-
-        .wallet-bound-summary__network {
-          flex: 0 0 auto;
-          overflow: hidden;
-          color: rgba(121, 79, 39, .62);
-          font-size: 11px;
-          font-weight: 850;
-          line-height: 1.15;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .wallet-bound-summary__address {
-          overflow: hidden;
-          color: var(--ac-text);
-          font-size: 13px;
-          font-weight: 950;
-          line-height: 1.15;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-variant-numeric: tabular-nums;
-        }
-
-        .wallet-bound-summary__edit {
-          appearance: none;
-          flex: 0 0 auto;
-          min-height: 28px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0 4px;
-          color: rgba(121, 79, 39, .68);
-          background: transparent;
-          border: 0;
-          border-radius: 0;
-          box-shadow: none;
-          font: inherit;
-          font-size: 12px;
-          font-weight: 900;
-          cursor: pointer;
-        }
-
-        .wallet-bound-summary__edit:hover {
-          color: var(--ac-text);
-        }
-
-        .wallet-withdraw__actions {
-          display: grid;
-          gap: 10px;
-          padding-top: 16px;
-        }
-
-        .wallet-status {
-          margin-top: 12px;
-          padding: 10px 12px;
-          color: var(--ac-text);
-          background: rgba(155, 220, 92, .24);
-          border: 1.5px solid rgba(79, 136, 50, .34);
-          border-radius: var(--radius-xs);
-          font-size: 12px;
-          font-weight: 850;
-          line-height: 1.5;
-        }
-
-        .wallet-status.is-error {
-          background: rgba(226, 59, 59, .12);
-          border-color: rgba(226, 59, 59, .28);
         }
 
 	        .leaderboard-modal {
@@ -9001,10 +9287,6 @@ export default function Landing() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .hud-stat-card {
-            transition: none;
-          }
-
           .inventory-grid { perspective: none; }
           .inventory-card,
           .inventory-card:hover,
@@ -9455,6 +9737,19 @@ export default function Landing() {
 
         .inventory-empty {
           grid-column: 1 / -1;
+          align-self: stretch;
+          min-height: 100%;
+          display: grid;
+          place-items: center;
+          padding: 0;
+          color: rgba(121, 79, 39, .38);
+          background: transparent;
+          border: 0;
+          border-radius: 0;
+          font-size: 18px;
+          font-weight: 900;
+          line-height: 1;
+          text-align: center;
         }
 
         .inventory-detail-modal {
@@ -9508,13 +9803,17 @@ export default function Landing() {
         .inventory-detail-title-wrap .shop-modal__title {
           margin: 0;
           font-size: 26px;
+          line-height: 30px;
+          min-height: 30px;
         }
 
         .inventory-detail-subtitle {
           margin-top: 0;
           color: var(--ac-text-body);
+          font-family: "SemiBold-Round", "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "PingFang SC", "Microsoft YaHei", sans-serif;
           font-size: 12px;
-          font-weight: 500;
+          font-weight: 600;
+          font-synthesis: none;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -9932,9 +10231,6 @@ export default function Landing() {
             grid-template-columns: 1fr;
           }
 
-          .wallet-withdraw {
-            grid-template-columns: 1fr;
-          }
         }
 
         @media (max-width: 680px) {
@@ -9948,18 +10244,6 @@ export default function Landing() {
 
           .inventory-summary {
             grid-template-columns: 1fr;
-          }
-
-          .wallet-summary-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .wallet-card--balance {
-            grid-template-columns: 1fr;
-          }
-
-          .wallet-card--balance .wallet-action-row {
-            justify-content: flex-start;
           }
 
           .leaderboard-layout .leaderboard-list-row {
@@ -9990,146 +10274,107 @@ export default function Landing() {
           aria-hidden="true"
         />
 
-        <div className="hud-top-stats" aria-label={tr("Stats", "数值统计")}>
-          <button
-            className="hud-stat-card hud-stat-card--button"
-            type="button"
-            aria-label={tr("Open game coins", "打开游戏币")}
-            onClick={() => openWalletModal("coin")}
-          >
-            <img
-              className="hud-stat-icon"
-              src={HUD_ASSETS.coin}
-              alt=""
-              width="36"
-              height="37"
-            />
-            <div className="hud-stat-value hud-stat-value--balance">
-              <CountUp to={SYSTEM_BALANCE_AMOUNT} duration={0.5}>
-                {formatBalance(SYSTEM_BALANCE_AMOUNT)}
-              </CountUp>
-            </div>
-          </button>
-
-          <button
-            className="hud-stat-card hud-stat-card--button"
-            type="button"
-            aria-label={tr("Open cash", "打开现金")}
-            onClick={() => openWalletModal("cash")}
-          >
-            <img
-              className="hud-stat-icon"
-              src={HUD_ASSETS.cash}
-              alt=""
-              width="44"
-              height="28"
-            />
-            <div className="hud-stat-value hud-stat-value--cash">
-              <CountUp to={HUD_CASH_AMOUNT} duration={0.5} prefix="$" decimals={1}>
-                {`$${HUD_CASH_AMOUNT.toFixed(1)}`}
-              </CountUp>
-            </div>
-          </button>
-
-          <div className="hud-stat-card" aria-label={tr("Fish balance", "鱼额")}>
-            <img
-              className="hud-stat-icon"
-              src={HUD_ASSETS.fish}
-              alt=""
-              width="40"
-              height="27"
-            />
-            <div className="hud-stat-value hud-stat-value--fish">
-              <CountUp to={FISH_BALANCE_AMOUNT} duration={0.5}>
-                {formatBalance(FISH_BALANCE_AMOUNT)}
-              </CountUp>
-            </div>
-          </div>
-        </div>
+        {gameVersionMode === "normal" && (
+          <GameHudStats
+            coinBalance={SYSTEM_BALANCE_AMOUNT}
+            cashBalance={HUD_CASH_AMOUNT}
+            fishBalance={FISH_BALANCE_AMOUNT}
+            tr={tr}
+            onOpenWallet={openWalletModal}
+          />
+        )}
 
         <div className={`top-actions${uiLang === "en" ? " top-actions--en" : ""}`} aria-label={tr("Navigation", "功能入口")}>
-          <button className="menu-item" type="button" aria-label={tr("Pond", "鱼塘")}>
-            <img
-              className="menu-icon"
-              src={HUD_ASSETS.pond}
-              alt=""
-              width="62"
-              height="52"
-              style={{ top: 12, width: 62, height: 52 }}
-            />
-            <span className="menu-label" data-label={tr("Pond", "鱼塘")}>{tr("Pond", "鱼塘")}</span>
-          </button>
+          {gameVersionMode === "normal" && (
+            <>
+              <button className="menu-item" type="button" aria-label={tr("Pond", "鱼塘")}>
+                <img
+                  className="menu-icon"
+                  src={HUD_ASSETS.pond}
+                  alt=""
+                  width="62"
+                  height="52"
+                  style={{ top: 12, width: 62, height: 52 }}
+                />
+                <span className="menu-label" data-label={tr("Pond", "鱼塘")}>{tr("Pond", "鱼塘")}</span>
+              </button>
 
-          <button
-            className="menu-item"
-            type="button"
-            aria-label={tr("Fish Market", "鱼市场")}
-          >
-            <img
-              className="menu-icon"
-              src={HUD_ASSETS.market}
-              alt=""
-              width="56"
-              height="52"
-              style={{ top: 16, width: 56, height: 52 }}
-            />
-            <span className="menu-label" data-label={tr("Fish Market", "鱼市场")}>{tr("Fish Market", "鱼市场")}</span>
-          </button>
+              <button
+                className="menu-item"
+                type="button"
+                aria-label={tr("Fish Market", "鱼市场")}
+              >
+                <img
+                  className="menu-icon"
+                  src={HUD_ASSETS.market}
+                  alt=""
+                  width="56"
+                  height="52"
+                  style={{ top: 16, width: 56, height: 52 }}
+                />
+                <span className="menu-label" data-label={tr("Fish Market", "鱼市场")}>{tr("Fish Market", "鱼市场")}</span>
+              </button>
+            </>
+          )}
 
-          <button
-            className="menu-item"
-            type="button"
-            aria-label={tr("Inventory", "图鉴")}
-            onClick={() => {
-              setInventoryControlsHidden(false);
-              inventoryScrollTopRef.current = 0;
-              setInventoryOpen(true);
-            }}
-          >
-            <img
-              className="menu-icon"
-              src={HUD_ASSETS.guide}
-              alt=""
-              width="48"
-              height="57"
-              style={{ top: 16, width: 48, height: 57 }}
-            />
-            <span className="menu-label" data-label={tr("Inventory", "图鉴")}>{tr("Inventory", "图鉴")}</span>
-          </button>
+              <button
+                className="menu-item"
+                type="button"
+                aria-label={tr("Inventory", "图鉴")}
+                onClick={() => {
+                  setInventoryControlsHidden(false);
+                  inventoryScrollTopRef.current = 0;
+                  setInventoryOpen(true);
+                }}
+              >
+                <img
+                  className="menu-icon"
+                  src={HUD_ASSETS.guide}
+                  alt=""
+                  width="48"
+                  height="57"
+                  style={{ top: 16, width: 48, height: 57 }}
+                />
+                <span className="menu-label" data-label={tr("Inventory", "图鉴")}>{tr("Inventory", "图鉴")}</span>
+              </button>
 
-          <button
-            className="menu-item"
-            type="button"
-            aria-label={tr("Scratch", "刮刮乐")}
-            onClick={() => navigateWithTransition("/scratch-card")}
-          >
-            <img
-              className="menu-icon"
-              src={HUD_ASSETS.scratchCard}
-              alt=""
-              width="56"
-              height="57"
-              style={{ top: 12, width: 56, height: 57 }}
-            />
-            <span className="menu-label" data-label={tr("Scratch", "刮刮乐")}>{tr("Scratch", "刮刮乐")}</span>
-          </button>
+          {gameVersionMode === "normal" && (
+            <>
+              <button
+                className="menu-item"
+                type="button"
+                aria-label={tr("Scratch", "刮刮乐")}
+                onClick={() => navigateWithTransition("/scratch-card")}
+              >
+                <img
+                  className="menu-icon"
+                  src={HUD_ASSETS.scratchCard}
+                  alt=""
+                  width="56"
+                  height="57"
+                  style={{ top: 12, width: 56, height: 57 }}
+                />
+                <span className="menu-label" data-label={tr("Scratch", "刮刮乐")}>{tr("Scratch", "刮刮乐")}</span>
+              </button>
 
-          <button
-            className="menu-item"
-            type="button"
-            aria-label={tr("Leaderboard", "排行榜")}
-            onClick={() => setLeaderboardOpen(true)}
-          >
-            <img
-              className="menu-icon"
-              src={HUD_ASSETS.leaderboard}
-              alt=""
-              width="66"
-              height="62"
-              style={{ top: 6, width: 66, height: 62 }}
-            />
-            <span className="menu-label" data-label={tr("Leaderboard", "排行榜")}>{tr("Leaderboard", "排行榜")}</span>
-          </button>
+              <button
+                className="menu-item"
+                type="button"
+                aria-label={tr("Leaderboard", "排行榜")}
+                onClick={() => setLeaderboardOpen(true)}
+              >
+                <img
+                  className="menu-icon"
+                  src={HUD_ASSETS.leaderboard}
+                  alt=""
+                  width="66"
+                  height="62"
+                  style={{ top: 6, width: 66, height: 62 }}
+                />
+                <span className="menu-label" data-label={tr("Leaderboard", "排行榜")}>{tr("Leaderboard", "排行榜")}</span>
+              </button>
+            </>
+          )}
 
           <button
             className="menu-item"
@@ -10149,68 +10394,329 @@ export default function Landing() {
           </button>
         </div>
 
-	        <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
-	          <div className="hud-cast-stack">
-	            {showAutoCastControl && (
-	              <div className="cast-auto-inline" aria-label={tr("Auto cast settings", "自动抛竿设置")}>
-	                <button
-	                  className="cast-auto-button"
-	                  type="button"
-		                  aria-label={tr("Enable auto cast", "开启自动抛竿")}
-		                  onClick={openAutoCastSettings}
-		                >
-		                  <span className="cast-auto-title">{tr("Enable auto cast", "开启自动抛竿")}</span>
-		                </button>
-	              </div>
-	            )}
+        {shouldShowTestScenarioPanel && (
+          <div
+            className="test-scenario-panel"
+            aria-label={tr("Test scenarios", "测试场景")}
+            style={{
+              left: testScenarioPanelPosition.left,
+              top: testScenarioPanelPosition.top,
+            } satisfies CSSProperties}
+            onPointerDown={handleTestScenarioPanelPointerDown}
+            onPointerMove={handleTestScenarioPanelPointerMove}
+            onPointerUp={handleTestScenarioPanelPointerUp}
+            onPointerCancel={handleTestScenarioPanelPointerUp}
+            onMouseDown={handleTestScenarioPanelMouseDown}
+          >
+            <div className="test-scenario-panel__header">
+              <span className="test-scenario-panel__title">{tr("Demo scenarios", "演示场景")}</span>
+              <button
+                className="test-scenario-panel__toggle"
+                type="button"
+                aria-expanded={testScenarioPanelState === "expanded"}
+                aria-label={
+                  testScenarioPanelState === "expanded"
+                    ? tr("Collapse demo scenarios", "收起演示场景")
+                    : tr("Expand demo scenarios", "展开演示场景")
+                }
+                onClick={() =>
+                  setTestScenarioPanelState((current) => (current === "expanded" ? "collapsed" : "expanded"))
+                }
+              >
+                {testScenarioPanelState === "expanded" ? tr("Collapse", "收起") : tr("Expand", "展开")}
+              </button>
+            </div>
+            {testScenarioPanelState === "expanded" && (
+              <div className="test-scenario-panel__body">
+                <section className="test-scenario-group" aria-labelledby="test-version-group-title">
+                  <span id="test-version-group-title" className="test-scenario-group__title">{tr("Version", "版本选择")}</span>
+                  <div className="test-version-segmented" role="tablist" aria-label={tr("Game version mode", "游戏版本")}>
+                    <button
+                      className={`test-version-segment${gameVersionMode === "normal" ? " is-active" : ""}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={gameVersionMode === "normal"}
+                      onClick={() => setGameVersionMode("normal")}
+                    >
+                      {tr("Normal version", "正常版本")}
+                    </button>
+                    <button
+                      className={`test-version-segment${gameVersionMode === "mvp" ? " is-active" : ""}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={gameVersionMode === "mvp"}
+                      onClick={() => setGameVersionMode("mvp")}
+                    >
+                      {tr("MVP version", "MVP版")}
+                    </button>
+                  </div>
+                </section>
 
-            {mainCastActive ? (
-	              <div className="hud-main-action hud-main-action--waiting" role="group" aria-label={mainCastAriaLabel}>
-	                <img
-	                  className="hud-main-action__tool"
-	                  src={HUD_ASSETS.rod}
-	                  alt=""
-	                />
-	                <span className="hud-main-action__waiting">
-	                  <span className="hud-main-action__waiting-title">{mainCastStatusTitle}</span>
-	                  <span className="hud-main-action__timer">{mainCastElapsedLabel}</span>
-	                </span>
-	                <button
-	                  className="hud-main-action__stop"
-	                  type="button"
-	                  aria-label={autoCastRunning ? tr("Stop auto cast", "停止自动抛竿") : tr("Stop casting", "停止抛竿")}
-	                  onClick={autoCastRunning ? handleStopAutoCast : handleStopManualCast}
-	                >
-	                  {tr("Stop", "停止")}
-	                </button>
-	              </div>
-	            ) : (
-	              <button className="hud-main-action" type="button" aria-label={castActionLabel} onClick={handleMainCastClick}>
-	                <img
-	                  className="hud-main-action__tool"
-	                  src={HUD_ASSETS.rod}
-	                  alt=""
-	                />
-	                <span
-	                  className="hud-main-action__label"
-	                  data-label={castButtonLabel}
-	                >
-	                  {castButtonLabel}
-	                </span>
-	              </button>
-	            )}
-	          </div>
+                <section className="test-scenario-group" aria-labelledby="test-data-group-title">
+                  <span id="test-data-group-title" className="test-scenario-group__title">{tr("Data state", "数据状态")}</span>
+                  <div className="test-scenario-button-group">
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={toggleBasketBadgeScenario}
+                      aria-label={tr("Toggle basket badge", "切换鱼篓角标")}
+                    >
+                      <span>
+                        {tr(
+                          `Basket badge: ${basketBadgeMode === "hidden" ? "hidden" : basketBadgeMode === "one" ? "1" : basketBadgeMode === "ten" ? "10" : "99+"}`,
+                          `鱼篓角标：${basketBadgeMode === "hidden" ? "隐藏" : basketBadgeMode === "one" ? "1" : basketBadgeMode === "ten" ? "10" : "99+"}`
+                        )}
+                      </span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={toggleInventoryScenario}
+                      aria-label={tr("Toggle inventory state", "切换图鉴状态")}
+                    >
+                      <span>
+                        {tr(
+                          `Inventory: ${inventoryScenarioMode === "empty" ? "empty" : inventoryScenarioMode === "single" ? "1 item" : "multiple"}`,
+                          `图鉴状态：${inventoryScenarioMode === "empty" ? "无数据" : inventoryScenarioMode === "single" ? "1个数据" : "多个数据"}`
+                        )}
+                      </span>
+                    </button>
+                  </div>
+                </section>
 
-          <button className="hud-basket" type="button" aria-label={tr("Basket", "鱼篓")}>
-            <span className="hud-basket__shell" aria-hidden="true">
-              <img
-                className="hud-basket__icon"
-                src={HUD_ASSETS.basket}
-                alt=""
-              />
-            </span>
-            <span className="hud-badge"><span>10</span></span>
-          </button>
+                <section className="test-scenario-group" aria-labelledby="test-agent-group-title">
+                  <span id="test-agent-group-title" className="test-scenario-group__title">{tr("Agent connection", "agent连接")}</span>
+                  <div className="test-scenario-button-group">
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={() => applyTestScenario("logged-out")}
+                    >
+                      <span>{tr("Logged out", "未登录")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={() => applyTestScenario("agent-disconnected")}
+                    >
+                      <span>{tr("Agent disconnected", "未连接agent")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={() => applyTestScenario("web-agent-connected")}
+                    >
+                      <span>{tr("Web agent", "连接网页agent")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={() => applyTestScenario("client-agent-connected")}
+                    >
+                      <span>{tr("Client agent", "连接客户端agent")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button test-scenario-button--preview"
+                      type="button"
+                      onClick={openNextAgentAuthPreview}
+                    >
+                      <span>{tr("Authorization popup preview", "授权弹窗示意")}</span>
+                  </button>
+                  <button
+                    className="test-scenario-button test-scenario-button--preview"
+                    type="button"
+                    onClick={openNextAgentTimeoutPreview}
+                  >
+                    <span>{tr("Timeout popup preview", "请求超时弹窗示意")}</span>
+                  </button>
+                  </div>
+                </section>
+              </div>
+            )}
+          </div>
+        )}
+
+        {agentAuthPreviewOpen && (
+          <div className="settings-agent-connect-overlay" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setAgentAuthPreviewOpen(false); }}>
+            <section className="sac-auth-preview" role="dialog" aria-modal="true">
+              <div className="sac-auth-preview__icon" aria-hidden="true">
+                {renderAgentAuthPreviewIcon(agentAuthPreviewProviderId)}
+              </div>
+              <p className="sac-auth-preview__heading">
+                <strong>{getAgentProviderName(agentAuthPreviewProviderId)}</strong> {tr("would like to access your account and be able to:", "希望访问您的账号并能够：")}
+              </p>
+              <p className="sac-auth-preview__body">
+                {tr(
+                  `Allow ${getAgentProviderName(agentAuthPreviewProviderId)} to write, upload, and backtest plugin.py, then retrieve factor details and summarize the results.`,
+                  `授权 ${getAgentProviderName(agentAuthPreviewProviderId)} 编写、上传并回测 plugin.py，随后获取因子信息并生成结果摘要。`
+                )}
+              </p>
+              <button className="sac-auth-preview__allow" type="button" onClick={allowAgentAuthPreviewAccess}>
+                {tr("Allow access", "允许访问")}
+              </button>
+            </section>
+          </div>
+        )}
+
+        {agentAuthPreviewSuccessOpen && (
+          <div className="settings-agent-connect-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setAgentAuthPreviewSuccessOpen(false); }}>
+            <section className="sac-modal" role="dialog" aria-modal="true" aria-label={tr("Connected", "连接成功")}>
+              <div className="sac-body sac-success">
+                <div className="sac-success-icon">🎉</div>
+                <div className="sac-success-title">{tr("Connected!", "连接成功！")}</div>
+                <div className="sac-success-msg">
+                  {getAgentProviderName(agentAuthPreviewProviderId)} {tr("has been connected. You can start using it now.", "已成功接入，可以开始使用了。")}
+                </div>
+                <div className="sac-buddy-card">
+                  <div className="sac-buddy-card__icon">🐾</div>
+                  <div className="sac-buddy-card__body">
+                    <div className="sac-buddy-card__title">{tr("Download Buddy", "下载 Buddy")}</div>
+                    <div className="sac-buddy-card__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                  </div>
+                  <a href="#" className="sac-buddy-card__btn" onClick={(event) => event.preventDefault()}>
+                    {tr("Download", "下载")}
+                  </a>
+                </div>
+                <button className="sac-btn-next" type="button" onClick={() => setAgentAuthPreviewSuccessOpen(false)}>
+                  {tr("Done", "完成")}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {agentTimeoutPreviewOpen && (
+          <div
+            className="settings-agent-connect-overlay"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setAgentTimeoutPreviewOpen(false);
+            }}
+          >
+            <section className="sac-auth-preview sac-auth-preview--timeout" role="dialog" aria-modal="true" aria-label={tr("Connection request expired", "连接请求已过期")}>
+              <div className="sac-auth-preview__icon" aria-hidden="true">
+                {renderAgentAuthPreviewIcon(agentTimeoutPreviewProviderId)}
+              </div>
+              <p className="sac-auth-preview__heading">
+                {tr("Connection request expired", "连接请求已过期")}
+              </p>
+              <p className="sac-auth-preview__body">
+                {tr(
+                  `This connection request has expired. Return to ${getAgentProviderName(agentTimeoutPreviewProviderId)} and start a new connection request.`,
+                  `本次连接请求已过期，需回到 ${getAgentProviderName(agentTimeoutPreviewProviderId)} 重新发起连接。`
+                )}
+              </p>
+              <button
+                className="sac-auth-preview__allow"
+                type="button"
+                onClick={() => setAgentTimeoutPreviewOpen(false)}
+              >
+                {tr("Confirm", "确认")}
+              </button>
+            </section>
+          </div>
+        )}
+
+        <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
+          {isAgentDisconnected && !mainCastActive ? (
+            <div className="hud-disconnected-actions">
+              <button className="hud-disconnected-actions__tip" type="button" onClick={openAgentRequiredSettings}>
+                <img className="hud-disconnected-actions__tip-icon" src={noticeIconUrl} alt="" aria-hidden="true" />
+                <span className="hud-disconnected-actions__tip-label">{agentRequiredLabel}</span>
+              </button>
+              <div className="hud-disconnected-actions__main">
+                <button
+                  className="hud-disconnected-actions__cast"
+                  type="button"
+                  aria-label={agentRequiredLabel}
+                  aria-disabled="true"
+                  disabled
+                >
+                  <img className="hud-disconnected-actions__cast-tool" src={HUD_ASSETS.rod} alt="" />
+                  <span className="hud-disconnected-actions__cast-label" data-label={castButtonLabel}>{castButtonLabel}</span>
+                </button>
+                <button
+                  className="hud-disconnected-actions__basket"
+                  type="button"
+                  aria-label={tr("Basket", "鱼篓")}
+                  aria-disabled="true"
+                  disabled
+                >
+                  <img className="hud-disconnected-actions__basket-icon" src={disconnectedBasketUrl} alt="" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="hud-cast-stack">
+                {showAutoCastControl && !isClientAgentConnected && (
+                  <div className="cast-auto-inline" aria-label={tr("Auto cast settings", "自动抛竿设置")}>
+                    <button
+                      className="cast-auto-button"
+                      type="button"
+                      aria-label={tr("Enable auto cast", "开启自动抛竿")}
+                      onClick={openAutoCastSettings}
+                    >
+                      <span className="cast-auto-title">{tr("Enable auto cast", "开启自动抛竿")}</span>
+                    </button>
+                  </div>
+                )}
+
+                {mainCastActive ? (
+                  <div className="hud-main-action hud-main-action--waiting" role="group" aria-label={mainCastAriaLabel}>
+                    <img className="hud-main-action__tool" src={HUD_ASSETS.rod} alt="" />
+                    <span className="hud-main-action__waiting">
+                      <span className="hud-main-action__waiting-title">{mainCastStatusTitle}</span>
+                      <span className="hud-main-action__timer">{mainCastElapsedLabel}</span>
+                    </span>
+                    <button
+                      className="hud-main-action__stop"
+                      type="button"
+                      aria-label={autoCastRunning ? tr("Stop auto cast", "停止自动抛竿") : tr("Stop casting", "停止抛竿")}
+                      onClick={autoCastRunning ? handleStopAutoCast : handleStopManualCast}
+                    >
+                      {tr("Stop", "停止")}
+                    </button>
+                  </div>
+                ) : isClientAgentConnected ? (
+                  <button
+                    className="hud-main-action hud-main-action--notice"
+                    type="button"
+                    aria-label={clientAgentOnlyLabel}
+                    onClick={openClientAgentSettings}
+                  >
+                    <span className="hud-main-action__label" data-label={clientAgentOnlyLabel}>
+                      {clientAgentOnlyLabel}
+                    </span>
+                    <img className="hud-main-action__notice-icon" src={noticeIconUrl} alt="" aria-hidden="true" />
+                  </button>
+                ) : (
+                  <button className="hud-main-action" type="button" aria-label={castActionLabel} onClick={handleMainCastClick}>
+                    <img className="hud-main-action__tool" src={HUD_ASSETS.rod} alt="" />
+                    <span className="hud-main-action__label" data-label={castButtonLabel}>
+                      {castButtonLabel}
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              <button className="hud-basket" type="button" aria-label={tr("Basket", "鱼篓")} onClick={handleBasketClick}>
+                <span className="hud-basket__shell" aria-hidden="true">
+                  <img className="hud-basket__icon" src={HUD_ASSETS.basket} alt="" />
+                </span>
+                {basketBadgeLabel && (
+                  <span className={`hud-badge${basketBadgeLabel === "99+" ? " hud-badge--compact" : ""}`}>
+                    <span>{basketBadgeLabel}</span>
+                  </span>
+                )}
+                {basketEmptyToast && (
+                  <span key={basketEmptyToast.id} className="hud-basket-empty-toast" role="status" aria-live="polite">
+                    {basketEmptyToast.message}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -10235,7 +10741,7 @@ export default function Landing() {
                   type="button"
                   role="tab"
                   aria-selected={settingsActiveTab === "agent"}
-                  onClick={() => setSettingsActiveTab("agent")}
+                  onClick={openAgentSettingsTab}
                 >
                   {tr("Agent settings", "agent设置")}
                 </button>
@@ -10312,30 +10818,6 @@ export default function Landing() {
                 </div>
 
                 <div className="settings-profile">
-                  <div>
-                    <button
-                      className={`settings-avatar${settingsEditingProfile ? " is-editing" : ""}`}
-                      type="button"
-                      disabled={!settingsEditingProfile}
-                      onClick={() => settingsEditingProfile && settingsAvatarInputRef.current?.click()}
-                      aria-label={tr("Upload avatar", "上传头像")}
-                    >
-                      {settingsAvatarPreview ? (
-                        <img src={settingsAvatarPreview} alt="" />
-                      ) : (
-                        <span>{settingsNickname.trim().charAt(0).toUpperCase() || "A"}</span>
-                      )}
-                    </button>
-                    <input
-                      ref={settingsAvatarInputRef}
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      onChange={handleSettingsAvatarChange}
-                    />
-                    {settingsEditingProfile && <div className="settings-avatar__hint">{tr("Click to upload · under 2 MB", "点击上传 · 小于 2MB")}</div>}
-                  </div>
-
                   <div>
                     <label className="settings-field">
                       <span>{tr("Nickname", "昵称")}</span>
@@ -10619,13 +11101,13 @@ export default function Landing() {
                                   <div className="sac-mode-body">
                                     {mode === "web" ? (
                                       <>
-                                        <div className="sac-mode-title">🌐 {tr("Use on web", "我要在网页上用")}</div>
+                                        <div className="sac-mode-title">{tr("Use on web", "在网页上用")}</div>
                                         <div className="sac-mode-desc">{tr("Get an auth code or API Key to connect quickly.", "获取授权码或 API Key 即可快速接入。")}</div>
                                       </>
                                     ) : (
                                       <>
-                                        <div className="sac-mode-title">🖥️ {tr("Use on local Agent", "我要在自己的 Agent 上用")}</div>
-                                        <div className="sac-mode-desc">{tr("Install the plugin on your local Agent client.", "在本地 Agent 客户端安装插件完成配置。")}</div>
+                                        <div className="sac-mode-title">{tr("Use on Agent client", "在 Agent 客户端上用")}</div>
+                                        <div className="sac-mode-desc">{tr("Install the plugin on your local Agent client. Supports Codex, ClaudeCodex, and OpenClaw.", "在本地 Agent 客户端安装插件完成配置，支持 Codex，ClaudeCodex，Openclaw。")}</div>
                                       </>
                                     )}
                                   </div>
@@ -10646,37 +11128,84 @@ export default function Landing() {
                         <div className="sac-mode-bar">
                           <span className="sac-mode-bar__label">
                             {agentGlobalConnectMode === "agent"
-                              ? `🖥️ ${tr("Using on local Agent", "在自己的 Agent 上用")}`
-                              : `🌐 ${tr("Using on web", "在网页上用")}`}
+                              ? tr("Use on Agent client", "在 Agent 客户端上用")
+                              : tr("Use on web", "在网页上用")}
                           </span>
                           <button className="sac-mode-bar__switch" type="button" onClick={requestSwitchConnectMode}>
+                            <RefreshCw size={13} strokeWidth={3} />
                             {tr("Switch method", "切换连接方式")}
                           </button>
                         </div>
                         {agentModeSwitchWarning && (
-                          <div className="sac-mode-warning">
-                            <span className="sac-mode-warning__copy">
-                              ⚠️ {agentConnectionWarningType === "provider"
-                                ? tr("Disconnect the connected agent before starting a new connection.", "请先断开已连接的 agent，再进行新的连接。")
-                                : tr("Please disconnect the current connection before switching methods.", "请先断开当前连接，再切换连接方式。")}
-                            </span>
-                            {agentConnectionWarningType === "mode" && (
-                              <button className="sac-disconnect-all-btn" type="button" onClick={disconnectAllAgentProviders}>
-                                {tr("Disconnect all", "一键断开全部")}
-                              </button>
-                            )}
+                          <div className="sac-mode-warning" role="presentation">
+                            <section className="settings-agent-confirm-modal" role="alertdialog" aria-modal="true" aria-live="assertive" aria-label={tr("Connection notice", "连接提示")}>
+                              <header className="settings-agent-connect-modal__header">
+                                <div className="settings-agent-card__title">
+                                  <strong>{tr("Connection notice", "连接提示")}</strong>
+                                </div>
+                                <button
+                                  className="settings-agent-connect-modal__close"
+                                  type="button"
+                                  aria-label={tr("Close connection notice", "关闭连接提示")}
+                                  onClick={() => setAgentModeSwitchWarning(false)}
+                                >
+                                  <X size={18} strokeWidth={3} />
+                                </button>
+                              </header>
+                              <p className="settings-agent-confirm-copy">
+                                {agentConnectionWarningType === "provider"
+                                  ? tr("Disconnect the connected agent before starting a new connection.", "请先断开已连接的 agent，再进行新的连接。")
+                                  : tr("Disconnect the connected agent before switching methods.", "需断开已连接的agent，再切换连接方式。")}
+                              </p>
+                              <div className="settings-agent-confirm-actions">
+                                {agentConnectionWarningType === "mode" && (
+                                  <button className="sac-disconnect-all-btn" type="button" onClick={disconnectAllAgentProviders}>
+                                    {tr("Disconnect all", "一键断开全部")}
+                                  </button>
+                                )}
+                                <button
+                                  className="settings-action settings-action--primary"
+                                  type="button"
+                                  onClick={() => setAgentModeSwitchWarning(false)}
+                                >
+                                  {tr("Cancel", "取消")}
+                                </button>
+                              </div>
+                            </section>
                           </div>
                         )}
                         <div className="settings-agent-provider-list" aria-label={tr("Connectable providers", "可连接服务")}>
                           {agentVisibleProviders.map((provider) => {
                             const isConnected = agentConnectedProviderIds.has(provider.id);
+                            const availability = agentProviderAvailabilityById[provider.id] ?? "available";
+                            const isUnavailable = availability !== "available";
                             const isTestingStatus = agentStatusTestingProviderId === provider.id;
                             // Web mode: only the connect button is blocked if another provider is already connected.
-                            const isBlockedByWebLimit = !isConnected && agentGlobalConnectMode === "web" && agentConnectedProviderIds.size > 0;
+                            const isBlockedByWebLimit = !isConnected && agentVisibleProviderMode === "web" && agentConnectedProviderIds.size > 0;
+                            const providerStateClass = isUnavailable
+                              ? " is-unavailable"
+                              : isConnected
+                                ? " is-connected"
+                                : " is-disconnected";
+                            const providerBadgeClass = isUnavailable
+                              ? " is-unavailable"
+                              : isConnected
+                                ? " is-connected"
+                                : " is-disconnected";
+                            const providerBadgeLabel = isUnavailable
+                              ? tr("Unavailable", "无法使用")
+                              : isConnected
+                                ? tr("Connected", "已连接")
+                                : tr("Disconnected", "未连接");
+                            const providerHint = availability === "outdated"
+                              ? tr("Plugin version is outdated. Follow the connection guide to update the plugin.", "版本过旧，请参考连接流程更新 Plugin。")
+                              : availability === "unavailable"
+                                ? tr("Disconnect and reconnect is recommended.", "建议断开后重新连接。")
+                                : "";
 
                             return (
                               <div
-                                className={`settings-agent-provider-row${isConnected ? " is-connected" : " is-disconnected"}`}
+                                className={`settings-agent-provider-row${providerStateClass}`}
                                 key={provider.id}
                               >
                                 <div className="settings-agent-provider-head">
@@ -10695,13 +11224,20 @@ export default function Landing() {
                                   </span>
                                   <span className="settings-agent-provider-name">
                                     <span>{provider.name}</span>
-                                    <span className={`settings-agent-provider-badge${isConnected ? " is-connected" : " is-disconnected"}`}>
-                                      {isConnected ? tr("Connected", "已连接") : tr("Disconnected", "未连接")}
+                                    <span className="settings-agent-provider-status-line">
+                                      <span className={`settings-agent-provider-badge${providerBadgeClass}`}>
+                                        {providerBadgeLabel}
+                                      </span>
+                                      {providerHint && (
+                                        <span className="settings-agent-provider-hint">
+                                          {providerHint}
+                                        </span>
+                                      )}
                                     </span>
                                   </span>
                                 </div>
                                 <div className="settings-agent-provider-actions">
-                                  {isConnected ? (
+                                  {isConnected || isUnavailable ? (
                                     <>
                                       <button
                                         className={`settings-agent-provider-action-button settings-agent-provider-action-button--compact${isTestingStatus ? " is-loading" : ""}`}
@@ -10722,7 +11258,13 @@ export default function Landing() {
                                         className="settings-agent-provider-action-button settings-agent-provider-action-button--compact"
                                         type="button"
                                         aria-label={tr("Disconnect", "断连")}
-                                        onClick={() => requestDisconnectAgentProvider(provider.id)}
+                                        onClick={() => {
+                                          if (isUnavailable && !isConnected) {
+                                            resetUnavailableAgentProvider(provider.id);
+                                            return;
+                                          }
+                                          requestDisconnectAgentProvider(provider.id);
+                                        }}
                                       >
                                         <span>{tr("Disconnect", "断开")}</span>
                                       </button>
@@ -10754,7 +11296,7 @@ export default function Landing() {
                                       }}
                                     >
                                       <Plus size={18} strokeWidth={2.6} aria-hidden="true" />
-                                      {agentGlobalConnectMode === "web" ? tr("Connect", "连接") : tr("Connect guide", "连接教程")}
+                                      {agentVisibleProviderMode === "web" ? tr("Connect", "连接") : tr("Connect guide", "连接教程")}
                                     </button>
                                   )}
                                 </div>
@@ -10835,7 +11377,7 @@ export default function Landing() {
                                         </div>
                                       )}
                                       {!isSelectedOpenRouter && (
-                                        <div className="sac-opt-desc">{tr("Call directly with API Key, ideal for developers.", "使用 API Key 直接调用，适合开发者。")}</div>
+                                        <div className="sac-opt-desc">{tr("Call directly with API Key.", "使用 API Key 直接调用。")}</div>
                                       )}
                                         {agentConnectOpt === "api" && (
                                           <div className="sac-opt-detail" onClick={(e) => e.stopPropagation()}>
@@ -10908,7 +11450,14 @@ export default function Landing() {
                                           <div className="sac-opt-detail" onClick={(e) => e.stopPropagation()}>
                                             <div className="sac-code-box">
                                               <code>npx @codex/buddy install --token=YOUR_TOKEN</code>
-                                              <button className="sac-btn-sm" type="button" onClick={() => navigator.clipboard.writeText("npx @codex/buddy install --token=YOUR_TOKEN").catch(() => {})}>{tr("Copy", "复制")}</button>
+                                              <button
+                                                className="sac-code-copy"
+                                                type="button"
+                                                aria-label={tr("Copy", "复制")}
+                                                onClick={() => navigator.clipboard.writeText("npx @codex/buddy install --token=YOUR_TOKEN").catch(() => {})}
+                                              >
+                                                <Copy size={15} strokeWidth={3} />
+                                              </button>
                                             </div>
                                           </div>
                                         )}
@@ -10924,20 +11473,60 @@ export default function Landing() {
                                             <ol className="sac-guide-steps">
                                               <li>
                                                 <span className="sac-guide-step-title">{tr('In Codex, click "Plugins → OpenAI Bundled → Add more"', '在Codex应用程序中点击"插件–OpenAI Bundled–添加更多"')}</span>
-                                                <img className="sac-guide-img" src="/assets/manual-step1.png" alt="step 1" />
+                                                <button className="sac-guide-img-button" type="button" aria-label={tr("Preview step 1 image", "预览步骤 1 图片")} onClick={() => openAgentGuidePreview("/assets/manual-step1.png")}>
+                                                  <img className="sac-guide-img" src="/assets/manual-step1.png" alt="step 1" />
+                                                </button>
                                               </li>
                                               <li>
                                                 <span className="sac-guide-step-title">{tr("Fill in the following info", "填入以下信息")}</span>
                                                 <ul className="sac-guide-fields">
-                                                  <li>{tr("Source", "来源")}：<code>varsity-tech-product/factor-mining-demo</code></li>
-                                                  <li>{tr("Git ref", "Git 引用")}：<code>main</code></li>
+                                                  <li>
+                                                    <span className="sac-guide-field-line">
+                                                      <span>{tr("Source", "来源")}：<code>{AGENT_MANUAL_SOURCE}</code></span>
+                                                      <button
+                                                        className="sac-guide-copy"
+                                                        type="button"
+                                                        aria-label={tr("Copy source", "复制来源")}
+                                                        onClick={() => copyAgentManualField(AGENT_MANUAL_SOURCE, tr("Source", "来源"))}
+                                                      >
+                                                        <Copy size={11} strokeWidth={3} />
+                                                      </button>
+                                                    </span>
+                                                  </li>
+                                                  <li>
+                                                    <span className="sac-guide-field-line">
+                                                      <span>{tr("Git ref", "Git 引用")}：<code>{AGENT_MANUAL_GIT_REF}</code></span>
+                                                      <button
+                                                        className="sac-guide-copy"
+                                                        type="button"
+                                                        aria-label={tr("Copy git ref", "复制 Git 引用")}
+                                                        onClick={() => copyAgentManualField(AGENT_MANUAL_GIT_REF, tr("Git ref", "Git 引用"))}
+                                                      >
+                                                        <Copy size={11} strokeWidth={3} />
+                                                      </button>
+                                                    </span>
+                                                  </li>
                                                 </ul>
-                                                <img className="sac-guide-img" src="/assets/manual-step2.png" alt="step 2" />
+                                                <button className="sac-guide-img-button" type="button" aria-label={tr("Preview step 2 image", "预览步骤 2 图片")} onClick={() => openAgentGuidePreview("/assets/manual-step2.png")}>
+                                                  <img className="sac-guide-img" src="/assets/manual-step2.png" alt="step 2" />
+                                                </button>
                                               </li>
                                               <li>
                                                 <span className="sac-guide-step-title">{tr("Start a new chat session", "开始一个新的聊天会话")}</span>
-                                                <p className="sac-guide-hint">Use the Factor Mining Demo plugin. Verify Factor Mining status, then show me the Factor Mining public task list…</p>
-                                                <img className="sac-guide-img" src="/assets/manual-step3.png" alt="step 3" />
+                                                <div className="sac-guide-hint-wrap">
+                                                  <p className="sac-guide-hint">{AGENT_MANUAL_PROMPT}</p>
+                                                  <button
+                                                    className="sac-guide-copy"
+                                                    type="button"
+                                                    aria-label={tr("Copy prompt", "复制提示词")}
+                                                    onClick={() => copyAgentManualField(AGENT_MANUAL_PROMPT, tr("Prompt", "提示词"))}
+                                                  >
+                                                    <Copy size={11} strokeWidth={3} />
+                                                  </button>
+                                                </div>
+                                                <button className="sac-guide-img-button" type="button" aria-label={tr("Preview step 3 image", "预览步骤 3 图片")} onClick={() => openAgentGuidePreview("/assets/manual-step3.png")}>
+                                                  <img className="sac-guide-img" src="/assets/manual-step3.png" alt="step 3" />
+                                                </button>
                                               </li>
                                               <li>
                                                 <span className="sac-guide-step-title">{tr("Log in to Quandora and authorize", "登录Quandora，并同意授权")}</span>
@@ -10946,16 +11535,43 @@ export default function Landing() {
                                           </div>
                                         )}
                                       </div>
+                                      {agentGuidePreviewImageSrc && (
+                                        <div className="sac-image-preview-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeAgentGuidePreview(); }}>
+                                          <section className="sac-image-preview-modal" role="dialog" aria-modal="true" aria-label={tr("Image preview", "图片预览")}>
+                                            <div className="sac-image-preview-toolbar" role="group" aria-label={tr("Image zoom controls", "图片缩放控制")}>
+                                              <button className="sac-image-preview-tool" type="button" aria-label={tr("Zoom out", "缩小")} disabled={agentGuidePreviewScale <= 0.5} onClick={() => zoomAgentGuidePreview("out")}>
+                                                <ZoomOut size={16} strokeWidth={3} />
+                                              </button>
+                                              <button className="sac-image-preview-tool" type="button" onClick={() => setAgentGuidePreviewScale(1)}>
+                                                {tr("Original size", "原尺寸")}
+                                              </button>
+                                              <button className="sac-image-preview-tool" type="button" aria-label={tr("Zoom in", "放大")} disabled={agentGuidePreviewScale >= 3} onClick={() => zoomAgentGuidePreview("in")}>
+                                                <ZoomIn size={16} strokeWidth={3} />
+                                              </button>
+                                            </div>
+                                            <button className="sac-image-preview-close" type="button" aria-label={tr("Close image preview", "关闭图片预览")} onClick={closeAgentGuidePreview}>
+                                              <X size={20} strokeWidth={3} />
+                                            </button>
+                                            <div className="sac-image-preview-body">
+                                              <img
+                                                src={agentGuidePreviewImageSrc}
+                                                alt={tr("Manual install guide preview", "手动安装教程预览")}
+                                                style={{ transform: `scale(${agentGuidePreviewScale})` }}
+                                              />
+                                            </div>
+                                          </section>
+                                        </div>
+                                      )}
                                     </>
                                   )}
-                                  <div className="sac-nav">
-                                    <span />
-                                    {agentConnectMode === "agent" && (
+                                  {agentConnectMode === "agent" && (
+                                    <div className="sac-nav">
+                                      <span />
                                       <button className="sac-btn-next" type="button" onClick={confirmAgentProviderConnectionAndClose}>
                                         {tr("OK", "确定")} ✓
                                       </button>
-                                    )}
-                                  </div>
+                                    </div>
+                                  )}
                                 </div>
                             {/* close sac-body */}
                             </section>
@@ -11033,42 +11649,16 @@ export default function Landing() {
                             </section>
                           </div>
                         )}
-                        {agentAuthPreviewOpen && (
-                          <div className="settings-agent-connect-overlay" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setAgentAuthPreviewOpen(false); }}>
-                            <section className="sac-auth-preview" role="dialog" aria-modal="true">
-                              <div className="sac-auth-preview__icon">
-                                <Claude.Avatar size={64} />
-                              </div>
-                              <p className="sac-auth-preview__heading">
-                                <strong>Claude Code</strong> {tr("would like to access your account and be able to:", "希望访问您的账号并能够：")}
-                              </p>
-                              <p className="sac-auth-preview__body">
-                                {tr(
-                                  "Click \"Allow access\" to let Claude Code handle writing, uploading, and backtesting plugin.py, then fetch factor info and summarize the results.",
-                                  "点击「允许访问」，同意让 Claude Code 来处理 plugin.py 的编写、上传、回测操作，然后获取因子信息，并总结结果"
-                                )}
-                              </p>
-                              <button className="sac-auth-preview__allow" type="button" onClick={allowAgentAuthPreviewAccess}>
-                                {tr("Allow access", "允许访问")}
-                              </button>
-                            </section>
+                        {agentInlineStep !== "mode" && (
+                          <div className="sac-buddy-banner">
+                            <div className="sac-buddy-banner__icon">🐾</div>
+                            <div className="sac-buddy-banner__body">
+                              <div className="sac-buddy-banner__title">{tr("Download Buddy", "下载 Buddy")}</div>
+                              <div className="sac-buddy-banner__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
+                            </div>
+                            <a href="#" className="sac-buddy-banner__btn" onClick={(e) => e.preventDefault()}>{tr("Download", "下载")}</a>
                           </div>
                         )}
-                        {shouldShowAgentAuthPreviewTrigger && (
-                          <div className="settings-agent-main__footer">
-                            <button className="sac-auth-preview-trigger" type="button" onClick={() => setAgentAuthPreviewOpen(true)}>
-                              🔍 {tr("Authorization popup preview", "授权弹窗示意")}
-                            </button>
-                          </div>
-                        )}
-                        <div className="sac-buddy-banner">
-                          <div className="sac-buddy-banner__icon">🐾</div>
-                          <div className="sac-buddy-banner__body">
-                            <div className="sac-buddy-banner__title">{tr("Download Buddy", "下载 Buddy")}</div>
-                            <div className="sac-buddy-banner__desc">{tr("Desktop companion that syncs your fishing status in real time.", "桌面伴侣，实时同步主界面的钓鱼状态。")}</div>
-                          </div>
-                          <a href="#" className="sac-buddy-banner__btn" onClick={(e) => e.preventDefault()}>{tr("Download", "下载")}</a>
-                        </div>
                       </>
                     ) : (
                       <>
@@ -11366,264 +11956,22 @@ export default function Landing() {
       )}
 
       {walletOpen && (
-        <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
-          if (event.target === event.currentTarget) closeWalletModal();
-        }}>
-          <section className="shop-modal wallet-modal" role="dialog" aria-modal="true" aria-labelledby="wallet-modal-title">
-            <header className="shop-modal__header">
-              <div className="wallet-modal__heading">
-                {walletWithdrawOpen && (
-                  <button
-                    className="wallet-modal__back"
-                    type="button"
-                    aria-label={tr("Back to wallet", "返回钱包")}
-                    onClick={() => openWalletModal("cash")}
-                  >
-                    <ArrowLeft size={20} strokeWidth={3} />
-                  </button>
-                )}
-                <h2 className="shop-modal__title" id="wallet-modal-title">{walletWithdrawOpen ? tr("Withdraw", "提现") : activeWalletConfig.title}</h2>
-              </div>
-              <button
-                className="shop-modal__close"
-                type="button"
-                aria-label={walletWithdrawOpen ? tr("Close withdraw", "关闭提现") : tr("Close wallet", "关闭钱包")}
-                onClick={closeWalletModal}
-              >
-                <X size={22} strokeWidth={3} />
-              </button>
-            </header>
-
-            <div className="wallet-content">
-              <div className="wallet-panel">
-                {walletWithdrawOpen ? (
-                  <section className="wallet-withdraw wallet-withdraw--modal">
-                    {withdrawWalletFormOpen ? (
-                      <div className="wallet-withdraw__steps">
-                        <section className="wallet-step">
-                          <div className="wallet-step__body">
-                            <div className="wallet-step__head">
-                              <h3 className="wallet-step__title">{withdrawAccountBound ? tr("Change bound wallet", "更改绑定钱包") : tr("Bind wallet", "绑定钱包")}</h3>
-                            </div>
-                            <div className="wallet-field">
-                              <span>{tr("Network", "选择网络")}</span>
-                              <div
-                                className={`wallet-select${withdrawNetworkOpen ? " is-open" : ""}`}
-                                ref={withdrawNetworkSelectRef}
-                              >
-                                <button
-                                  className="wallet-select__button"
-                                  type="button"
-                                  aria-haspopup="listbox"
-                                  aria-expanded={withdrawNetworkOpen}
-                                  onClick={() => setWithdrawNetworkOpen((open) => !open)}
-                                >
-                                  <span className="wallet-select__value">{withdrawNetwork}</span>
-                                  <span className="wallet-select__chevron" aria-hidden="true" />
-                                </button>
-                                {withdrawNetworkOpen ? (
-                                  <div
-                                    className="wallet-select__menu"
-                                    role="listbox"
-                                    aria-label={tr("Network", "选择网络")}
-                                  >
-                                    {WITHDRAWAL_NETWORKS.map((network) => (
-                                      <button
-                                        key={network}
-                                        className={`wallet-select__option${network === withdrawNetwork ? " is-selected" : ""}`}
-                                        type="button"
-                                        role="option"
-                                        aria-selected={network === withdrawNetwork}
-                                        onClick={() => handleWithdrawNetworkChange(network)}
-                                      >
-                                        {network}
-                                      </button>
-                                    ))}
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                            <label className="wallet-field">
-                              <span>{tr("Wallet address", "钱包地址")}</span>
-                              <input
-                                className="wallet-input"
-                                value={withdrawAddress}
-                                onChange={(event) => {
-                                  setWithdrawAddress(event.target.value);
-                                  setWithdrawAccountBound(false);
-                                  setWithdrawAddressError("");
-                                  resetWithdrawFeedback();
-                                }}
-                                placeholder={tr("Enter wallet address", "输入钱包地址")}
-                              />
-                              {withdrawAddressError && (
-                                <span className="wallet-field__hint is-error">
-                                  {withdrawAddressError}
-                                </span>
-                              )}
-                            </label>
-                          </div>
-                        </section>
-
-                        <div className="wallet-withdraw__actions">
-                          <button
-                            className="wallet-submit"
-                            type="button"
-                            disabled={withdrawPrimaryDisabled}
-                            onClick={handleBindWithdrawWallet}
-                          >
-                            {withdrawPrimaryLabel}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="wallet-withdraw__steps">
-                        <section className="wallet-step">
-                          <div className="wallet-step__body">
-                            <div className="wallet-step__head">
-                              <h3 className="wallet-step__title">{tr("Enter withdrawal amount", "输入提现金额")}</h3>
-                            </div>
-                            <label className="wallet-field">
-                              <span className="wallet-input-unit-wrap">
-                                <input
-                                  className="wallet-input wallet-input--with-unit"
-                                  inputMode="decimal"
-                                  aria-label={tr("Withdrawal amount", "提现金额")}
-                                  value={withdrawAmount ? formatUsdInputValue(withdrawAmount) : ""}
-                                  onChange={(event) => {
-                                    const clean = event.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-                                    setWithdrawAmount(clean === "" ? 0 : usdToBalance(Number(clean)));
-                                    resetWithdrawFeedback();
-                                  }}
-                                  placeholder={tr("Enter USD amount", "输入 USD 金额")}
-                                />
-                                <span className="wallet-input-unit" aria-hidden="true">USD</span>
-                              </span>
-                            </label>
-                            <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
-                              <span>
-                                {tr("Minimum", "最低")} {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · {tr("Available", "可提现")} {formatUsd(WALLET_BALANCE_USD)}
-                              </span>
-                            </div>
-                          </div>
-                        </section>
-
-                        <section className="wallet-step">
-                          <div className="wallet-step__body">
-                            <div className="wallet-bound-summary">
-                              <div className="wallet-bound-summary__main">
-                                <span className="wallet-bound-summary__label">{tr("Withdraw to", "提现至")}</span>
-                                <span className="wallet-bound-summary__target">
-                                  <span className="wallet-bound-summary__address" title={withdrawAddressValue}>
-                                    {withdrawAddressValue}
-                                  </span>
-                                  <span className="wallet-bound-summary__network">{withdrawNetwork}</span>
-                                </span>
-                              </div>
-                              <button
-                                className="wallet-bound-summary__edit"
-                                type="button"
-                                onClick={() => {
-                                  setWithdrawWalletEditing(true);
-                                  resetWithdrawFeedback();
-                                }}
-                              >
-                                {tr("Change", "更改")}
-                              </button>
-                            </div>
-                          </div>
-                        </section>
-
-                        <div className="wallet-withdraw__actions">
-                          {withdrawStatus === "error" && (
-                            <div className="wallet-status is-error">
-                              {tr(
-                                "Withdrawal preview failed. Try 10.00 USD, 20.00 USD, or 50.00 USD to view the success state.",
-                                "提现预览失败。请尝试 10.00 USD、20.00 USD 或 50.00 USD 查看成功状态。"
-                              )}
-                            </div>
-                          )}
-                          {withdrawStatus === "success" && (
-                            <div className="wallet-status">
-                              {tr(
-                                `${formatUsd(balanceToUsd(withdrawAmount))} withdrawal request submitted.`,
-                                `${formatUsd(balanceToUsd(withdrawAmount))} 提现申请已提交。`
-                              )}
-                            </div>
-                          )}
-                          <button
-                            className="wallet-submit wallet-submit--withdraw"
-                            type="button"
-                            disabled={withdrawPrimaryDisabled}
-                            onClick={handleWithdrawPrimaryAction}
-                          >
-                            {withdrawPrimaryLabel}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </section>
-                ) : (
-                  <>
-                    <div className="wallet-summary-grid">
-                      <section className="wallet-card wallet-card--balance">
-                        <div>
-                          <div className="wallet-card__value wallet-balance-value">
-                            <img className="wallet-balance-value__icon" src={activeWalletConfig.icon} alt="" />
-                            <span>{activeWalletConfig.balance}</span>
-                          </div>
-                        </div>
-                        {activeWalletConfig.allowWithdraw && (
-                          <div className="wallet-action-row">
-                            <button
-                              className="wallet-action"
-                              type="button"
-                              onClick={openWithdrawModal}
-                            >
-                              <CreditCard size={16} strokeWidth={3} />
-                              {tr("Withdraw", "提现")}
-                            </button>
-                          </div>
-                        )}
-                      </section>
-                    </div>
-
-                    <section className="wallet-section">
-                      <div className="wallet-table">
-                        <div className="wallet-table__row wallet-table__row--head">
-                          <span>{tr("Activity", "变更记录")}</span>
-                          <span>{tr("Order No.", "单号")}</span>
-                          <span>{tr("Time", "变更时间")}</span>
-                          <span className="wallet-table__amount">
-                            <span className="wallet-table__balance">
-                              <img className="wallet-table__balance-icon" src={activeWalletConfig.icon} alt="" />
-                              <span>{tr("Balance", "余额")}</span>
-                            </span>
-                          </span>
-                        </div>
-                        {activeWalletConfig.activities.map((item) => {
-                          const isIncrease = item.direction === "increase";
-                          return (
-                            <div className="wallet-table__row" key={item.id}>
-                              <span>{tr(item.reasonEn, item.reasonZh)}</span>
-                              <span className="wallet-table__mono">{item.orderNo}</span>
-                              <span>{formatWalletDateTime(item.occurredAt)}</span>
-                              <span className={`wallet-table__amount ${isIncrease ? "wallet-table__amount--plus" : "wallet-table__amount--minus"}`}>
-                                <span className="wallet-table__balance">
-                                  <span>{isIncrease ? "+" : "-"}{activeWalletConfig.formatActivityAmount(item.amount)}</span>
-                                </span>
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  </>
-                )}
-              </div>
-            </div>
-          </section>
-        </div>
+        <GameWalletModal
+          accountKind={walletAccountKind}
+          cashBalance={`$${HUD_CASH_AMOUNT.toFixed(1)}`}
+          coinBalance={formatBalance(SYSTEM_BALANCE_AMOUNT)}
+          closeLabel={tr("Close wallet", "关闭钱包")}
+          closeWithdrawLabel={tr("Close withdraw", "关闭提现")}
+          backLabel={tr("Back to wallet", "返回钱包")}
+          isWithdrawOpen={walletWithdrawOpen}
+          onClose={closeWalletModal}
+          onBackdropClose={closeWalletModal}
+          onOpenCashWallet={() => openWalletModal("cash")}
+          onWithdraw={openWithdrawModal}
+          withdrawContent={walletWithdrawContent}
+          tr={tr}
+          formatWalletDateTime={formatWalletDateTime}
+        />
       )}
 
       {leaderboardOpen && (
@@ -11758,7 +12106,7 @@ export default function Landing() {
                   <div className="inventory-detail-title-wrap">
                     <h2 className="shop-modal__title" id="inventory-detail-title">{selectedInventoryFactor.name}</h2>
                     <div className="inventory-detail-subtitle">
-                      NO.{inventoryFactorNoById.get(selectedInventoryFactor.id) ?? 1} ｜ {tr("Created", "创建于")}{selectedInventoryFactor.createdAt}
+                      NO. {inventoryFactorNoById.get(selectedInventoryFactor.id) ?? 1}｜{tr("Created", "创建于")} {selectedInventoryFactor.createdAt}｜{selectedInventoryFactor.agentSource ?? "Codex"}
                     </div>
                   </div>
                 </div>
@@ -11904,7 +12252,7 @@ export default function Landing() {
             </div>
 
             <div className="inventory-grid" ref={inventoryGridRef} onScroll={handleInventoryGridScroll}>
-              {filteredFactors.map((factor) => {
+              {displayedInventoryFactors.map((factor) => {
                 const isStarred = starredFactors.has(factor.id);
                 const returns = parseMetricValue(factor.returns);
                 const visualGrade = getInventoryVisualGrade(factor);
@@ -12035,7 +12383,7 @@ export default function Landing() {
                 );
               })}
 
-              {filteredSpecialCards.map((item) => {
+              {displayedInventorySpecialCards.map((item) => {
                 const cardClassName = `inventory-card inventory-card--${item.type}`;
                 const menuId = `item-${item.id}`;
                 const inventoryNo = inventorySpecialNoById.get(item.id) ?? factorRows.length + 1;
@@ -12147,8 +12495,8 @@ export default function Landing() {
                 );
               })}
 
-              {filteredFactors.length === 0 && filteredSpecialCards.length === 0 && (
-                <div className="shop-empty inventory-empty">{tr("No factors match your filters.", "没有符合当前筛选条件的因子。")}</div>
+              {displayedInventoryFactors.length === 0 && displayedInventorySpecialCards.length === 0 && (
+                <div className="shop-empty inventory-empty">{tr("Nothing here", "空空如也")}</div>
               )}
             </div>
           </section>
