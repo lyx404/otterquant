@@ -905,6 +905,14 @@ export default function Landing() {
         ? filteredFactors.slice(0, 1)
         : filteredFactors;
   const displayedInventorySpecialCards = inventoryScenarioMode === "multiple" ? filteredSpecialCards : [];
+  const inventoryTotalCount = useMemo(() => {
+    if (inventoryScenarioMode === "empty") return 0;
+    const factorCount = factorRows.filter((factor) => !deletedFactorIds.has(factor.id)).length;
+    if (inventoryScenarioMode === "single") return Math.min(1, factorCount);
+    const specialCount = inventorySpecialCards.filter((item) => !deletedInventoryItemIds.has(item.id)).length;
+    return factorCount + specialCount;
+  }, [deletedFactorIds, deletedInventoryItemIds, factorRows, inventoryScenarioMode]);
+  const shouldShowInventoryGradeFilter = inventoryTotalCount > 0;
 
   const leaderboardRows = useMemo(() => {
     const balanceKey = leaderboardPeriod === "week" ? "weekBalance" : "monthBalance";
@@ -5829,6 +5837,11 @@ export default function Landing() {
           flex-direction: column;
           gap: 12px;
           overflow-y: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .sac-body::-webkit-scrollbar {
+          display: none;
         }
         .sac-sub  { font-size: 12px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
 
@@ -6081,7 +6094,12 @@ export default function Landing() {
         .sac-link { color: #3a9bbf; font-size: 13px; font-weight: 600; text-decoration: none; }
         .sac-link:hover { text-decoration: underline; }
 
-        .sac-manual-guide { max-height: min(280px, 42vh); overflow-y: auto; }
+        .sac-manual-guide {
+          max-height: min(280px, 42vh);
+          overflow-y: auto;
+          margin-right: -10px;
+          padding-right: 10px;
+        }
         .sac-guide-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: guide-step; }
         .sac-guide-steps > li { counter-increment: guide-step; display: flex; flex-direction: column; gap: 6px; }
         .sac-guide-step-title { font-size: 12px; font-weight: 700; color: var(--ac-text); }
@@ -12186,25 +12204,27 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="inventory-grade-filter" aria-label={tr("Grade filter", "等级筛选")}>
-              {inventoryGradeFilterOptions.map((grade) => (
-                <button
-                  className={`inventory-grade-filter__chip inventory-grade-filter__chip--${grade}${inventoryGradeFilter === grade ? " is-active" : ""}`}
-                  type="button"
-                  key={grade}
-                  aria-pressed={inventoryGradeFilter === grade}
-                  onClick={() => setInventoryGradeFilter(grade)}
-                >
-                  {grade === "all"
-                    ? tr("All", "全部")
-                    : grade === "prop"
-                      ? tr("Props", "道具")
-                      : grade === "misc"
-                        ? tr("Misc", "杂物")
-                        : grade}
-                </button>
-              ))}
-            </div>
+            {shouldShowInventoryGradeFilter && (
+              <div className="inventory-grade-filter" aria-label={tr("Grade filter", "等级筛选")}>
+                {inventoryGradeFilterOptions.map((grade) => (
+                  <button
+                    className={`inventory-grade-filter__chip inventory-grade-filter__chip--${grade}${inventoryGradeFilter === grade ? " is-active" : ""}`}
+                    type="button"
+                    key={grade}
+                    aria-pressed={inventoryGradeFilter === grade}
+                    onClick={() => setInventoryGradeFilter(grade)}
+                  >
+                    {grade === "all"
+                      ? tr("All", "全部")
+                      : grade === "prop"
+                        ? tr("Props", "道具")
+                        : grade === "misc"
+                          ? tr("Misc", "杂物")
+                          : grade}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="inventory-grid" ref={inventoryGridRef} onScroll={handleInventoryGridScroll}>
               {displayedInventoryFactors.map((factor) => {
