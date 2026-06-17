@@ -131,7 +131,61 @@ type LeaderboardEntry = {
 };
 type FundsStatus = "idle" | "processing" | "success" | "error";
 type GameVersionMode = "normal" | "mvp";
-type BasketBadgeMode = "hidden" | "one" | "ten" | "overflow";
+type BasketBadgeMode = "hidden" | "one" | "five" | "eight" | "ten" | "thirteen" | "overflow";
+const BASKET_BADGE_MODES: BasketBadgeMode[] = ["hidden", "one", "five", "eight", "ten", "thirteen", "overflow"];
+const BASKET_BADGE_VALUES: Record<BasketBadgeMode, number> = {
+  hidden: 0,
+  one: 1,
+  five: 5,
+  eight: 8,
+  ten: 10,
+  thirteen: 13,
+  overflow: 100,
+};
+const BASKET_BADGE_LABELS: Record<BasketBadgeMode, string> = {
+  hidden: "hidden",
+  one: "1",
+  five: "5",
+  eight: "8",
+  ten: "10",
+  thirteen: "13",
+  overflow: "99+",
+};
+const BASKET_BADGE_LABELS_ZH: Record<BasketBadgeMode, string> = {
+  ...BASKET_BADGE_LABELS,
+  hidden: "隐藏",
+};
+type BasketRewardModalPage = "first" | "last";
+type BasketRewardCardKind = "sss" | "a" | "b";
+const BASKET_REWARD_ASSETS = {
+  titleStarLeft: "/assets/basket-reward/title-star-left.svg",
+  titleStarRight: "/assets/basket-reward/title-star-right.svg",
+  cardArtBg: "/assets/basket-reward/sss-card-shape.svg",
+  cardArtMask: "/assets/basket-reward/sss-card-mask.svg",
+  cardRays: "/assets/basket-reward/sss-card-rays.svg",
+  seahorse: "/assets/basket-reward/sss-seahorse.svg",
+  backgroundOneRow: "/assets/basket-reward/background-one-row.svg",
+  backgroundTwoRow: "/assets/basket-reward/background-two-row.svg",
+  pagePrev: "/assets/basket-reward/page-prev.svg",
+  pageNext: "/assets/basket-reward/page-next.svg",
+};
+const BASKET_REWARD_CARD_COPY: Record<
+  BasketRewardCardKind,
+  { tier: string; serial: string; name: string; sharp: string; roi: string }
+> = {
+  sss: { tier: "SSS", serial: "NO.3789", name: "粉色海马", sharp: "1.78", roi: "+22.9%" },
+  a: { tier: "A", serial: "NO.2716", name: "鎏金鱼", sharp: "1.42", roi: "+16.8%" },
+  b: { tier: "B", serial: "NO.1035", name: "七彩神仙鱼", sharp: "1.16", roi: "+8.6%" },
+};
+
+function getBasketRewardCards(count: number, page: BasketRewardModalPage): BasketRewardCardKind[] {
+  if (count <= 1) return ["sss"];
+  if (count === 5) return ["sss", "a", "b", "b", "b"];
+  if (count === 8) return ["sss", "a", "a", "a", "a", "b", "b", "b"];
+  if (count === 10 || page === "first") return ["sss", "a", "a", "a", "a", "a", "a", "b", "b", "b"];
+  return ["a", "b", "b"];
+}
+
 type TestScenarioPanelState = "expanded" | "collapsed";
 type InventoryScenarioMode = "multiple" | "empty" | "single";
 type TestScenarioPanelPosition = {
@@ -547,6 +601,8 @@ export default function Landing() {
   const [stageScale, setStageScale] = useState(1);
   const [gameVersionMode, setGameVersionMode] = useState<GameVersionMode>("normal");
   const [basketBadgeMode, setBasketBadgeMode] = useState<BasketBadgeMode>("hidden");
+  const [basketRewardModalOpen, setBasketRewardModalOpen] = useState(false);
+  const [basketRewardModalPage, setBasketRewardModalPage] = useState<BasketRewardModalPage>("first");
   const [testScenarioPanelState, setTestScenarioPanelState] = useState<TestScenarioPanelState>("expanded");
   const [inventoryScenarioMode, setInventoryScenarioMode] = useState<InventoryScenarioMode>("multiple");
   const [testScenarioPanelPosition, setTestScenarioPanelPosition] = useState<TestScenarioPanelPosition>(TEST_SCENARIO_PANEL_DEFAULT_POSITION);
@@ -974,9 +1030,18 @@ export default function Landing() {
   const castActionLabel = tr("Cast", "抛竿");
   const agentRequiredLabel = tr("Connect an agent to use", "连接agent后使用");
   const clientAgentOnlyLabel = tr("Use the connected local agent", "请到已连接的本地agent上操作");
-  const basketItemCount =
-    basketBadgeMode === "hidden" ? 0 : basketBadgeMode === "one" ? 1 : basketBadgeMode === "ten" ? 10 : 100;
+  const basketItemCount = BASKET_BADGE_VALUES[basketBadgeMode];
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
+  const isBasketRewardMultiPage = basketItemCount > 10;
+  const basketRewardCards = getBasketRewardCards(basketItemCount, basketRewardModalPage);
+  const basketRewardBackgroundImage = basketRewardCards.length <= 5
+    ? BASKET_REWARD_ASSETS.backgroundOneRow
+    : BASKET_REWARD_ASSETS.backgroundTwoRow;
+  const basketRewardStageClass = [
+    "basket-reward-modal__stage",
+    basketItemCount <= 5 ? "is-compact" : "",
+    basketRewardCards.length === 1 ? "is-single" : basketRewardModalPage === "last" ? "is-last-page" : basketRewardCards.length <= 5 ? "is-row" : "is-grid",
+  ].filter(Boolean).join(" ");
   const updateAutoCastCount = (value: number) => {
     setAutoCastDraftCount(clampAutoCastCount(value));
   };
@@ -1030,12 +1095,26 @@ export default function Landing() {
     setManualCastStartedAt(Date.now());
   };
 
+  const closeBasketRewardModal = () => {
+    setBasketRewardModalOpen(false);
+  };
+
+  const openInventoryFromBasketReward = () => {
+    setBasketRewardModalOpen(false);
+    setInventoryOpen(true);
+  };
+
   const handleBasketClick = () => {
-    if (basketBadgeMode !== "hidden") return;
-    setBasketEmptyToast({
-      id: Date.now(),
-      message: tr("Empty", "空空如也"),
-    });
+    if (basketBadgeMode === "hidden") {
+      setBasketEmptyToast({
+        id: Date.now(),
+        message: tr("Empty", "空空如也"),
+      });
+      return;
+    }
+
+    setBasketRewardModalPage("first");
+    setBasketRewardModalOpen(true);
   };
 
   const handleStopManualCast = () => {
@@ -1142,10 +1221,8 @@ export default function Landing() {
 
   const toggleBasketBadgeScenario = () => {
     setBasketBadgeMode((current) => {
-      if (current === "hidden") return "one";
-      if (current === "one") return "ten";
-      if (current === "ten") return "overflow";
-      return "hidden";
+      const currentIndex = BASKET_BADGE_MODES.indexOf(current);
+      return BASKET_BADGE_MODES[(currentIndex + 1) % BASKET_BADGE_MODES.length];
     });
   };
 
@@ -2717,7 +2794,7 @@ export default function Landing() {
 
         .hud-disconnected-actions {
           position: relative;
-          width: 451px;
+          width: 456px;
           height: 232px;
           display: flex;
           flex-direction: column;
@@ -2728,7 +2805,7 @@ export default function Landing() {
 
         .hud-disconnected-actions__tip {
           position: relative;
-          width: 451px;
+          width: 456px;
           height: 92px;
           display: flex;
           align-items: center;
@@ -2824,7 +2901,6 @@ export default function Landing() {
 
         .hud-disconnected-actions__cast {
           flex: 0 0 auto;
-          width: 301px;
           height: 120px;
           display: flex;
           align-items: center;
@@ -3187,7 +3263,438 @@ export default function Landing() {
 	          background: #9bdc5c;
         }
 
-	        .hud-main-action {
+        .basket-reward-modal {
+          position: fixed;
+          inset: 0;
+          z-index: 40;
+          display: grid;
+          place-items: center;
+          background: rgba(0, 0, 0, .65);
+          backdrop-filter: blur(40px);
+        }
+
+        .basket-reward-modal__stage {
+          position: relative;
+          width: min(100vw, calc(100vh * 16 / 9));
+          aspect-ratio: 16 / 9;
+          overflow: hidden;
+          container-type: size;
+          isolation: isolate;
+        }
+
+        .basket-reward-modal__band {
+          position: absolute;
+          z-index: 1;
+          top: 22.716%;
+          left: 0;
+          width: 100%;
+          height: 49.383%;
+          overflow: hidden;
+        }
+
+        .basket-reward-modal__stage:not(.is-compact) .basket-reward-modal__band {
+          top: 10.833%;
+          height: 74.074%;
+        }
+
+        .basket-reward-modal__background {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-modal__title {
+          position: absolute;
+          z-index: 3;
+          top: 17.222%;
+          left: 50%;
+          display: flex;
+          align-items: flex-start;
+          gap: .868cqw;
+          height: 8.889%;
+          transform: translateX(-50%);
+          color: #fff;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-modal__stage:not(.is-compact) .basket-reward-modal__title {
+          top: 5.031%;
+        }
+
+        .basket-reward-modal__title img {
+          width: 2.674cqw;
+          height: 1.771cqw;
+          margin-top: .24cqw;
+          display: block;
+          object-fit: contain;
+          clip-path: inset(0);
+        }
+
+        .basket-reward-modal__title span {
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-size: 3.472cqw;
+          font-weight: 800;
+          line-height: 1.02;
+          white-space: nowrap;
+          -webkit-text-stroke: .145cqw #f5a400;
+          paint-order: stroke fill;
+          text-shadow: 0 .055cqw 0 rgba(255, 198, 72, .9);
+        }
+
+        .basket-reward-modal__cards {
+          position: absolute;
+          z-index: 3;
+          left: 50%;
+          top: 31.574%;
+          height: 31.667%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .basket-reward-modal__stage.is-single .basket-reward-modal__cards {
+          width: 14.771%;
+        }
+
+        .basket-reward-modal__stage.is-row .basket-reward-modal__cards {
+          width: 77.326%;
+          gap: .75cqw;
+        }
+
+        .basket-reward-modal__stage.is-grid .basket-reward-modal__cards {
+          width: 77.326%;
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-rows: repeat(2, minmax(0, 1fr));
+          gap: 1.95cqh .75cqw;
+        }
+
+        .basket-reward-modal__stage.is-last-page .basket-reward-modal__cards {
+          top: 31.574%;
+          width: 45.2%;
+          height: 31.667%;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-rows: 1fr;
+          gap: .75cqw;
+        }
+
+        .basket-reward-card {
+          position: relative;
+          height: 100%;
+          aspect-ratio: 850.8 / 1026;
+          overflow: hidden;
+          container-type: size;
+          border-bottom: max(1px, .353cqw) solid rgba(255, 255, 255, .06);
+          border-radius: 20px;
+          background: linear-gradient(26.469deg, #ffe16d 5.541%, #fff6e8 49.433%, #ff9135 96.837%);
+          box-shadow: 0 0 2.35cqw rgba(0, 0, 0, .25);
+        }
+
+        .basket-reward-card--a {
+          background: linear-gradient(26.469deg, #9fd8ff 5.541%, #f4fbff 49.433%, #5aa7ff 96.837%);
+        }
+
+        .basket-reward-card--b {
+          background: linear-gradient(26.469deg, #9ae7bf 5.541%, #f4fff7 49.433%, #41bc78 96.837%);
+        }
+
+        .basket-reward-card__content {
+          position: relative;
+          width: 98.731%;
+          height: 100%;
+          margin: 0 auto;
+        }
+
+        .basket-reward-card__serial {
+          position: absolute;
+          top: 5.848%;
+          right: 6.905%;
+          z-index: 5;
+          font-family: Cousine, ui-monospace, SFMono-Regular, monospace;
+          font-size: 4cqw;
+          line-height: 1.176;
+          color: #ffebd4;
+          white-space: nowrap;
+        }
+
+        .basket-reward-card__figure {
+          position: absolute;
+          top: 10.721%;
+          left: 0;
+          width: 100%;
+          height: 71.345%;
+        }
+
+        .basket-reward-card__art {
+          position: absolute;
+          top: .376%;
+          left: 5.966%;
+          width: 88.095%;
+          height: 98.907%;
+          filter: drop-shadow(0 0 2.35cqw rgba(214, 193, 117, .95));
+        }
+
+        .basket-reward-card__art-bg,
+        .basket-reward-card__rays-mask,
+        .basket-reward-card__rays {
+          position: absolute;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-card__art-bg,
+        .basket-reward-card__rays-mask {
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        .basket-reward-card__art-bg {
+          z-index: 0;
+        }
+
+        .basket-reward-card__rays-mask {
+          z-index: 1;
+          overflow: hidden;
+          -webkit-mask: url("/assets/basket-reward/sss-card-mask.svg") center / 100% 100% no-repeat;
+          mask: url("/assets/basket-reward/sss-card-mask.svg") center / 100% 100% no-repeat;
+        }
+
+        .basket-reward-card__rays {
+          top: -36.67%;
+          right: -37.16%;
+          bottom: -38.35%;
+          left: -34.08%;
+          width: 171.24%;
+          height: 175.02%;
+          object-fit: cover;
+        }
+
+        .basket-reward-card__fish {
+          position: absolute;
+          z-index: 3;
+          top: 25%;
+          left: 28%;
+          width: 37.48%;
+          height: 63.03%;
+          transform: rotate(-23.09deg);
+          transform-origin: center;
+          filter: drop-shadow(.34cqw .46cqw 0 rgba(33, 51, 78, .28));
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-card__spark {
+          position: absolute;
+          z-index: 2;
+          font-family: Inter, Arial, sans-serif;
+          font-size: 4.865cqw;
+          line-height: 1;
+          color: #fcebc0;
+        }
+
+        .basket-reward-card__spark--one {
+          top: 9.89%;
+          left: 41.41%;
+        }
+
+        .basket-reward-card__spark--two {
+          top: 22.2%;
+          left: 75.54%;
+        }
+
+        .basket-reward-card__spark--three {
+          top: 41.7%;
+          left: 10.97%;
+        }
+
+        .basket-reward-card__spark--four {
+          top: 76.09%;
+          left: 19.51%;
+        }
+
+        .basket-reward-card__spark--five {
+          top: 84.58%;
+          left: 87.82%;
+        }
+
+        .basket-reward-card__rank {
+          position: absolute;
+          z-index: 4;
+          top: -1.05%;
+          left: 6.15%;
+          width: 23.69%;
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-size: 12.694cqw;
+          font-weight: 800;
+          line-height: 1.074;
+          letter-spacing: 0;
+          background: linear-gradient(180deg, #ff8528 0%, #ff6f00 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          white-space: nowrap;
+        }
+
+        .basket-reward-card--a .basket-reward-card__rank {
+          background-image: linear-gradient(180deg, #2b92ff 0%, #006ed7 100%);
+        }
+
+        .basket-reward-card--b .basket-reward-card__rank {
+          background-image: linear-gradient(180deg, #16a765 0%, #027546 100%);
+        }
+
+        .basket-reward-card__meta {
+          position: absolute;
+          left: 5.25%;
+          right: 5.25%;
+          top: 84.8%;
+          z-index: 5;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.5cqw;
+          height: 9.552%;
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+        }
+
+        .basket-reward-card__name {
+          display: inline-block;
+          font-size: 9.167cqw;
+          font-weight: 800;
+          line-height: 1.1;
+          white-space: nowrap;
+          background: linear-gradient(180deg, #f26a02 0%, #ffa100 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+
+        .basket-reward-card--a .basket-reward-card__name {
+          background-image: linear-gradient(180deg, #2b92ff 0%, #006ed7 100%);
+        }
+
+        .basket-reward-card--b .basket-reward-card__name {
+          background-image: linear-gradient(180deg, #16a765 0%, #027546 100%);
+        }
+
+        .basket-reward-card__stats {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", Arial, sans-serif;
+          font-size: 3.808cqw;
+          font-weight: 700;
+          line-height: 1.5;
+          color: #000;
+          white-space: nowrap;
+        }
+
+        .basket-reward-card__stat-row {
+          display: flex;
+          align-items: center;
+          gap: 1.975cqw;
+        }
+
+        .basket-reward-card__stats b {
+          color: #555;
+          font-weight: 600;
+        }
+
+        .basket-reward-card__stats strong {
+          font-weight: 800;
+        }
+
+        .basket-reward-card__roi {
+          color: #10b981;
+        }
+
+        .basket-reward-modal__actions {
+          position: absolute;
+          z-index: 4;
+          top: 87.377%;
+          left: 50%;
+          display: flex;
+          gap: 1.736cqw;
+          transform: translateX(-50%);
+        }
+
+        .basket-reward-modal__stage.is-compact .basket-reward-modal__actions {
+          top: 75.185%;
+        }
+
+        .basket-reward-modal__action,
+        .basket-reward-modal__page {
+          appearance: none;
+          padding: 0;
+          border: 0;
+          cursor: pointer;
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-weight: 800;
+        }
+
+        .basket-reward-modal__action {
+          width: 11.806cqw;
+          height: 7.623cqh;
+          border-radius: .833cqw;
+          font-size: 1.667cqw;
+          line-height: 1;
+          letter-spacing: 0;
+          white-space: nowrap;
+          box-shadow: inset 0 -.16cqw 0 rgba(0, 0, 0, .08);
+        }
+
+        .basket-reward-modal__action--accept {
+          color: rgba(0, 0, 0, .65);
+          background: #9bdc5c;
+        }
+
+        .basket-reward-modal__action--inventory {
+          color: #5a3e00;
+          background: #ffdc75;
+        }
+
+        .basket-reward-modal__page {
+          position: absolute;
+          z-index: 5;
+          top: 45.4%;
+          display: grid;
+          place-items: center;
+          width: 2.78cqw;
+          height: 4.94cqh;
+          background: transparent;
+        }
+
+        .basket-reward-modal__page img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-modal__page--prev {
+          left: 4.74%;
+        }
+
+        .basket-reward-modal__page--next {
+          right: 1.96%;
+        }
+
+        .basket-reward-modal__action:focus-visible,
+        .basket-reward-modal__page:focus-visible {
+          outline: 3px solid rgba(255, 255, 255, .82);
+          outline-offset: 3px;
+        }
+
+        .hud-main-action {
 	          position: relative;
 	          z-index: 2;
 	          display: flex;
@@ -3392,7 +3899,7 @@ export default function Landing() {
         .hud-badge {
           position: absolute;
           left: 110px;
-          top: 32px;
+          top: 4px;
           width: 60px;
           height: 60px;
           display: grid;
@@ -10489,8 +10996,8 @@ export default function Landing() {
                     >
                       <span>
                         {tr(
-                          `Basket badge: ${basketBadgeMode === "hidden" ? "hidden" : basketBadgeMode === "one" ? "1" : basketBadgeMode === "ten" ? "10" : "99+"}`,
-                          `鱼篓角标：${basketBadgeMode === "hidden" ? "隐藏" : basketBadgeMode === "one" ? "1" : basketBadgeMode === "ten" ? "10" : "99+"}`
+                          `Basket badge: ${BASKET_BADGE_LABELS[basketBadgeMode]}`,
+                          `鱼篓角标：${BASKET_BADGE_LABELS_ZH[basketBadgeMode]}`
                         )}
                       </span>
                     </button>
@@ -11928,7 +12435,118 @@ export default function Landing() {
         </div>
       )}
 
+      {basketRewardModalOpen && basketItemCount > 0 && (
+        <div
+          className="basket-reward-modal"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeBasketRewardModal();
+          }}
+        >
+          <section
+            className={basketRewardStageClass}
+            role="dialog"
+            aria-modal="true"
+            aria-label={tr("Basket rewards", "鱼篓奖励")}
+          >
+            <div className="basket-reward-modal__band" aria-hidden="true">
+              <img className="basket-reward-modal__background" src={basketRewardBackgroundImage} alt="" />
+            </div>
+
+            <div className="basket-reward-modal__title" aria-hidden="true">
+              <img src={BASKET_REWARD_ASSETS.titleStarLeft} alt="" />
+              <span>{tr("Congratulations", "恭喜获得")}</span>
+              <img src={BASKET_REWARD_ASSETS.titleStarRight} alt="" />
+            </div>
+
+            <div className="basket-reward-modal__cards" aria-label={tr("Reward cards", "奖励卡片")}>
+              {basketRewardCards.map((cardKind, index) => {
+                const card = BASKET_REWARD_CARD_COPY[cardKind];
+                return (
+                  <article
+                    className={`basket-reward-card basket-reward-card--${cardKind}`}
+                    key={`${cardKind}-${index}`}
+                    aria-label={`${card.tier} ${card.name}`}
+                  >
+                    <div className="basket-reward-card__content">
+                      <div className="basket-reward-card__serial">{card.serial}</div>
+                      <div className="basket-reward-card__figure" aria-hidden="true">
+                        <div className="basket-reward-card__art">
+                          <img className="basket-reward-card__art-bg" src={BASKET_REWARD_ASSETS.cardArtBg} alt="" />
+                          <div className="basket-reward-card__rays-mask">
+                            <img className="basket-reward-card__rays" src={BASKET_REWARD_ASSETS.cardRays} alt="" />
+                          </div>
+                          <img className="basket-reward-card__fish" src={BASKET_REWARD_ASSETS.seahorse} alt="" />
+                          <span className="basket-reward-card__spark basket-reward-card__spark--one">✦</span>
+                          <span className="basket-reward-card__spark basket-reward-card__spark--two">✦</span>
+                          <span className="basket-reward-card__spark basket-reward-card__spark--three">✦</span>
+                          <span className="basket-reward-card__spark basket-reward-card__spark--four">✦</span>
+                          <span className="basket-reward-card__spark basket-reward-card__spark--five">✦</span>
+                        </div>
+                        <div className="basket-reward-card__rank">{card.tier}</div>
+                      </div>
+                      <div className="basket-reward-card__meta">
+                        <span className="basket-reward-card__name">{card.name}</span>
+                        <span className="basket-reward-card__stats">
+                          <span className="basket-reward-card__stat-row">
+                            <b>Sharp</b> <strong>{card.sharp}</strong>
+                          </span>
+                          <span className="basket-reward-card__stat-row">
+                            <b>Roi</b> <strong className="basket-reward-card__roi">{card.roi}</strong>
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <footer className="basket-reward-modal__actions">
+              <button
+                className="basket-reward-modal__action basket-reward-modal__action--accept"
+                type="button"
+                aria-label={tr("Collect directly", "直接收下")}
+                onClick={closeBasketRewardModal}
+              >
+                {tr("Collect", "直接收下")}
+              </button>
+              <button
+                className="basket-reward-modal__action basket-reward-modal__action--inventory"
+                type="button"
+                aria-label={tr("View in inventory", "去图鉴查看")}
+                onClick={openInventoryFromBasketReward}
+              >
+                {tr("View collection", "去图鉴查看")}
+              </button>
+            </footer>
+
+            {isBasketRewardMultiPage && (
+              <>
+                <button
+                  className="basket-reward-modal__page basket-reward-modal__page--prev"
+                  type="button"
+                  aria-label={tr("Previous reward page", "上一页奖励")}
+                  onClick={() => setBasketRewardModalPage("first")}
+                >
+                  <img src={BASKET_REWARD_ASSETS.pagePrev} alt="" />
+                </button>
+                <button
+                  className="basket-reward-modal__page basket-reward-modal__page--next"
+                  type="button"
+                  aria-label={tr("Next reward page", "下一页奖励")}
+                  onClick={() => setBasketRewardModalPage("last")}
+                >
+                  <img src={BASKET_REWARD_ASSETS.pageNext} alt="" />
+                </button>
+              </>
+            )}
+          </section>
+        </div>
+      )}
+
       {walletOpen && (
+
         <GameWalletModal
           accountKind={walletAccountKind}
           cashBalance={`$${HUD_CASH_AMOUNT.toFixed(1)}`}
