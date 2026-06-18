@@ -131,7 +131,107 @@ type LeaderboardEntry = {
 };
 type FundsStatus = "idle" | "processing" | "success" | "error";
 type GameVersionMode = "normal" | "mvp";
-type BasketBadgeMode = "hidden" | "one" | "ten" | "overflow";
+type BasketBadgeMode = "hidden" | "one" | "five" | "eight" | "ten" | "thirteen" | "overflow";
+const BASKET_BADGE_MODES: BasketBadgeMode[] = ["hidden", "one", "five", "eight", "ten", "thirteen", "overflow"];
+const BASKET_BADGE_VALUES: Record<BasketBadgeMode, number> = {
+  hidden: 0,
+  one: 1,
+  five: 5,
+  eight: 8,
+  ten: 10,
+  thirteen: 13,
+  overflow: 100,
+};
+const BASKET_BADGE_LABELS: Record<BasketBadgeMode, string> = {
+  hidden: "hidden",
+  one: "1",
+  five: "5",
+  eight: "8",
+  ten: "10",
+  thirteen: "13",
+  overflow: "99+",
+};
+const BASKET_BADGE_LABELS_ZH: Record<BasketBadgeMode, string> = {
+  ...BASKET_BADGE_LABELS,
+  hidden: "隐藏",
+};
+type BasketRewardModalPage = "first" | "last";
+type BasketRewardCardKind = "sss" | "a" | "b";
+type BasketRewardCard = {
+  kind: BasketRewardCardKind;
+  image: string;
+};
+const BASKET_REWARD_ASSETS = {
+  titleStarLeft: "/assets/basket-reward/title-star-left.svg",
+  titleStarRight: "/assets/basket-reward/title-star-right.svg",
+  cardArtBg: "/assets/basket-reward/sss-card-shape.svg",
+  cardArtMask: "/assets/basket-reward/sss-card-mask.svg",
+  cardRays: "/assets/basket-reward/sss-card-rays.svg",
+  seahorse: "/assets/basket-reward/sss-seahorse.svg",
+  backgroundOneRow: "/assets/basket-reward/background-one-row.svg",
+  backgroundTwoRow: "/assets/basket-reward/background-two-row.svg",
+  pagePrev: "/assets/basket-reward/page-prev.svg",
+  pageNext: "/assets/basket-reward/page-next.svg",
+};
+const BASKET_REWARD_CARD_IMAGES: Record<BasketRewardCardKind, string[]> = {
+  sss: ["/assets/basket-reward/card-sss.svg"],
+  a: [
+    "/assets/basket-reward/card-a.svg",
+    "/assets/basket-reward/card-a-1.svg",
+    "/assets/basket-reward/card-a-2.svg",
+    "/assets/basket-reward/card-a-3.svg",
+    "/assets/basket-reward/card-a-4.svg",
+    "/assets/basket-reward/card-a-5.svg",
+  ],
+  b: [
+    "/assets/basket-reward/card-b.svg",
+    "/assets/basket-reward/card-b-1.svg",
+    "/assets/basket-reward/card-b-2.svg",
+    "/assets/basket-reward/card-b-3.svg",
+    "/assets/basket-reward/card-b-4.svg",
+    "/assets/basket-reward/card-b-5.svg",
+  ],
+};
+const BASKET_REWARD_CARD_COPY: Record<
+  BasketRewardCardKind,
+  { tier: string; serial: string; name: string; sharp: string; roi: string }
+> = {
+  sss: { tier: "SSS", serial: "NO.3789", name: "粉色海马", sharp: "1.78", roi: "+22.9%" },
+  a: { tier: "A", serial: "NO.2716", name: "鎏金鱼", sharp: "1.42", roi: "+16.8%" },
+  b: { tier: "B", serial: "NO.1035", name: "七彩神仙鱼", sharp: "1.16", roi: "+8.6%" },
+};
+
+function getBasketRewardCardImage(kind: BasketRewardCardKind, occurrence: number) {
+  const images = BASKET_REWARD_CARD_IMAGES[kind];
+  return images[occurrence % images.length];
+}
+
+function makeBasketRewardCards(
+  kinds: BasketRewardCardKind[],
+  startOccurrences: Partial<Record<BasketRewardCardKind, number>> = {}
+) {
+  const occurrences: Record<BasketRewardCardKind, number> = {
+    sss: startOccurrences.sss ?? 0,
+    a: startOccurrences.a ?? 0,
+    b: startOccurrences.b ?? 0,
+  };
+  return kinds.map((kind) => {
+    const image = getBasketRewardCardImage(kind, occurrences[kind]);
+    occurrences[kind] += 1;
+    return { kind, image };
+  });
+}
+
+function getBasketRewardCards(count: number, page: BasketRewardModalPage): BasketRewardCard[] {
+  if (count <= 1) return makeBasketRewardCards(["sss"]);
+  if (count === 5) return makeBasketRewardCards(["sss", "a", "b", "b", "b"]);
+  if (count === 8) return makeBasketRewardCards(["sss", "a", "a", "a", "a", "b", "b", "b"]);
+  if (count === 10 || page === "first") {
+    return makeBasketRewardCards(["sss", "a", "a", "a", "a", "a", "a", "b", "b", "b"]);
+  }
+  return makeBasketRewardCards(["b", "b", "b"], { b: 3 });
+}
+
 type TestScenarioPanelState = "expanded" | "collapsed";
 type InventoryScenarioMode = "multiple" | "empty" | "single";
 type TestScenarioPanelPosition = {
@@ -547,6 +647,9 @@ export default function Landing() {
   const [stageScale, setStageScale] = useState(1);
   const [gameVersionMode, setGameVersionMode] = useState<GameVersionMode>("normal");
   const [basketBadgeMode, setBasketBadgeMode] = useState<BasketBadgeMode>("hidden");
+  const [basketRewardModalOpen, setBasketRewardModalOpen] = useState(false);
+  const [basketRewardModalPage, setBasketRewardModalPage] = useState<BasketRewardModalPage>("first");
+  const [basketRewardHaloVisible, setBasketRewardHaloVisible] = useState(false);
   const [testScenarioPanelState, setTestScenarioPanelState] = useState<TestScenarioPanelState>("expanded");
   const [inventoryScenarioMode, setInventoryScenarioMode] = useState<InventoryScenarioMode>("multiple");
   const [testScenarioPanelPosition, setTestScenarioPanelPosition] = useState<TestScenarioPanelPosition>(TEST_SCENARIO_PANEL_DEFAULT_POSITION);
@@ -905,6 +1008,14 @@ export default function Landing() {
         ? filteredFactors.slice(0, 1)
         : filteredFactors;
   const displayedInventorySpecialCards = inventoryScenarioMode === "multiple" ? filteredSpecialCards : [];
+  const inventoryTotalCount = useMemo(() => {
+    if (inventoryScenarioMode === "empty") return 0;
+    const factorCount = factorRows.filter((factor) => !deletedFactorIds.has(factor.id)).length;
+    if (inventoryScenarioMode === "single") return Math.min(1, factorCount);
+    const specialCount = inventorySpecialCards.filter((item) => !deletedInventoryItemIds.has(item.id)).length;
+    return factorCount + specialCount;
+  }, [deletedFactorIds, deletedInventoryItemIds, factorRows, inventoryScenarioMode]);
+  const shouldShowInventoryGradeFilter = inventoryTotalCount > 0;
 
   const leaderboardRows = useMemo(() => {
     const balanceKey = leaderboardPeriod === "week" ? "weekBalance" : "monthBalance";
@@ -966,9 +1077,19 @@ export default function Landing() {
   const castActionLabel = tr("Cast", "抛竿");
   const agentRequiredLabel = tr("Connect an agent to use", "连接agent后使用");
   const clientAgentOnlyLabel = tr("Use the connected local agent", "请到已连接的本地agent上操作");
-  const basketItemCount =
-    basketBadgeMode === "hidden" ? 0 : basketBadgeMode === "one" ? 1 : basketBadgeMode === "ten" ? 10 : 100;
+  const basketItemCount = BASKET_BADGE_VALUES[basketBadgeMode];
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
+  const isBasketRewardMultiPage = basketItemCount > 10;
+  const basketRewardCards = getBasketRewardCards(basketItemCount, basketRewardModalPage);
+  const basketRewardBackgroundImage = basketItemCount <= 5
+    ? BASKET_REWARD_ASSETS.backgroundOneRow
+    : BASKET_REWARD_ASSETS.backgroundTwoRow;
+  const basketRewardStageClass = [
+    "basket-reward-modal__stage",
+    basketItemCount <= 5 ? "is-compact" : "",
+    `is-count-${basketRewardCards.length}`,
+    basketRewardCards.length === 1 ? "is-single" : basketRewardModalPage === "last" ? "is-last-page" : basketRewardCards.length <= 5 ? "is-row" : "is-grid",
+  ].filter(Boolean).join(" ");
   const updateAutoCastCount = (value: number) => {
     setAutoCastDraftCount(clampAutoCastCount(value));
   };
@@ -1022,12 +1143,23 @@ export default function Landing() {
     setManualCastStartedAt(Date.now());
   };
 
+  const closeBasketRewardModal = () => {
+    setBasketRewardHaloVisible(false);
+    setBasketRewardModalOpen(false);
+  };
+
   const handleBasketClick = () => {
-    if (basketBadgeMode !== "hidden") return;
-    setBasketEmptyToast({
-      id: Date.now(),
-      message: tr("Empty", "空空如也"),
-    });
+    if (basketBadgeMode === "hidden") {
+      setBasketEmptyToast({
+        id: Date.now(),
+        message: tr("Empty", "空空如也"),
+      });
+      return;
+    }
+
+    setBasketRewardModalPage("first");
+    setBasketRewardHaloVisible(true);
+    setBasketRewardModalOpen(true);
   };
 
   const handleStopManualCast = () => {
@@ -1134,10 +1266,8 @@ export default function Landing() {
 
   const toggleBasketBadgeScenario = () => {
     setBasketBadgeMode((current) => {
-      if (current === "hidden") return "one";
-      if (current === "one") return "ten";
-      if (current === "ten") return "overflow";
-      return "hidden";
+      const currentIndex = BASKET_BADGE_MODES.indexOf(current);
+      return BASKET_BADGE_MODES[(currentIndex + 1) % BASKET_BADGE_MODES.length];
     });
   };
 
@@ -2709,7 +2839,7 @@ export default function Landing() {
 
         .hud-disconnected-actions {
           position: relative;
-          width: 451px;
+          width: 456px;
           height: 232px;
           display: flex;
           flex-direction: column;
@@ -2720,7 +2850,7 @@ export default function Landing() {
 
         .hud-disconnected-actions__tip {
           position: relative;
-          width: 451px;
+          width: 456px;
           height: 92px;
           display: flex;
           align-items: center;
@@ -2816,7 +2946,6 @@ export default function Landing() {
 
         .hud-disconnected-actions__cast {
           flex: 0 0 auto;
-          width: 301px;
           height: 120px;
           display: flex;
           align-items: center;
@@ -3179,7 +3308,727 @@ export default function Landing() {
 	          background: #9bdc5c;
         }
 
-	        .hud-main-action {
+        .basket-reward-modal {
+          position: fixed;
+          inset: 0;
+          z-index: 40;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          background: rgba(0, 0, 0, .65);
+          backdrop-filter: blur(40px);
+          isolation: isolate;
+          animation: basketRewardOverlayIn 320ms cubic-bezier(.22, 1, .36, 1) both;
+        }
+
+        .basket-reward-modal__coin-halo {
+          position: fixed;
+          z-index: 0;
+          top: 50%;
+          left: 50%;
+          width: 115vmax;
+          height: 115vmax;
+          pointer-events: none;
+          user-select: none;
+          background:
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 236, .95) 0 7%, rgba(255, 221, 94, .74) 12%, rgba(255, 177, 26, .28) 25%, transparent 45%),
+            repeating-conic-gradient(from -8deg at 50% 50%, rgba(255, 246, 171, .58) 0deg 6deg, rgba(255, 199, 47, .22) 6deg 11deg, transparent 11deg 23deg),
+            radial-gradient(circle at 50% 50%, rgba(255, 197, 54, .32) 0 32%, transparent 70%);
+          mix-blend-mode: screen;
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(.54);
+          will-change: opacity, transform;
+          -webkit-mask: radial-gradient(circle at 50% 50%, #000 0 63%, transparent 75%);
+          mask: radial-gradient(circle at 50% 50%, #000 0 63%, transparent 75%);
+          animation: basketRewardCoinHaloIn 760ms cubic-bezier(.25, 1, .5, 1) 80ms both;
+        }
+
+        .basket-reward-modal__stage {
+          position: relative;
+          z-index: 1;
+          --basket-reward-band-top: 22.716%;
+          --basket-reward-band-height: 49.383%;
+          width: min(100vw, calc(100vh * 16 / 9));
+          aspect-ratio: 16 / 9;
+          overflow: hidden;
+          container-type: size;
+          isolation: isolate;
+          transform-origin: 50% 56%;
+          animation: basketRewardStageIn 680ms cubic-bezier(.16, 1, .3, 1) both;
+        }
+
+        .basket-reward-modal__stage::after {
+          content: "";
+          position: absolute;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-modal__stage::after {
+          z-index: 7;
+          top: var(--basket-reward-band-top);
+          right: -18%;
+          left: -18%;
+          height: var(--basket-reward-band-height);
+          background: linear-gradient(112deg, transparent 31%, rgba(255, 255, 255, .46) 47%, rgba(255, 223, 122, .28) 51%, transparent 67%);
+          opacity: 0;
+          transform: translateX(-32%);
+          mix-blend-mode: screen;
+          animation: basketRewardShineSweep 860ms cubic-bezier(.25, 1, .5, 1) 130ms both;
+        }
+
+        .basket-reward-modal__stage:not(.is-compact) {
+          --basket-reward-band-top: 10.833%;
+          --basket-reward-band-height: 74.074%;
+        }
+
+        .basket-reward-modal__band {
+          position: absolute;
+          z-index: 1;
+          top: var(--basket-reward-band-top);
+          left: 0;
+          width: 100%;
+          height: var(--basket-reward-band-height);
+          overflow: hidden;
+          transform-origin: 50% 50%;
+          animation: basketRewardBandIn 620ms cubic-bezier(.22, 1, .36, 1) 70ms both;
+        }
+
+        .basket-reward-modal__stage:not(.is-compact) .basket-reward-modal__band {
+          top: var(--basket-reward-band-top);
+          height: var(--basket-reward-band-height);
+        }
+
+        .basket-reward-modal__background {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-modal__title {
+          position: absolute;
+          z-index: 6;
+          top: 17.222%;
+          left: 50%;
+          display: flex;
+          align-items: flex-start;
+          gap: .868cqw;
+          height: auto;
+          margin-top: 20px;
+          transform: translateX(-50%);
+          color: #fff;
+          pointer-events: auto;
+          user-select: none;
+          animation: basketRewardTitleIn 620ms cubic-bezier(.16, 1, .3, 1) 160ms both;
+        }
+
+        .basket-reward-modal__stage:not(.is-compact) .basket-reward-modal__title {
+          top: 5.031%;
+        }
+
+        .basket-reward-modal__title img {
+          width: 2.674cqw;
+          height: 1.771cqw;
+          margin-top: -10px;
+          display: block;
+          object-fit: contain;
+          clip-path: inset(0);
+        }
+
+        .basket-reward-modal__title span {
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-size: 3.472cqw;
+          font-weight: 800;
+          line-height: 1.02;
+          white-space: nowrap;
+          -webkit-text-stroke-width: 8px;
+          -webkit-text-stroke-color: #FFAE0B;
+          paint-order: stroke fill;
+          text-shadow: 0 .055cqw 0 rgba(255, 198, 72, .9);
+        }
+
+        .basket-reward-modal__cards {
+          position: absolute;
+          z-index: 3;
+          left: 50%;
+          top: 31.574%;
+          height: 31.667%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .basket-reward-modal__stage.is-single .basket-reward-modal__cards {
+          width: 14.771%;
+        }
+
+        .basket-reward-modal__stage.is-row .basket-reward-modal__cards {
+          width: 77.326%;
+          gap: .75cqw;
+        }
+
+        .basket-reward-modal__stage.is-grid .basket-reward-modal__cards {
+          top: 15.432%;
+          width: 77.326%;
+          height: 64.877%;
+          display: grid;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          grid-template-rows: repeat(2, minmax(0, 1fr));
+          gap: 1.543cqh .868cqw;
+        }
+
+        .basket-reward-modal__stage.is-grid.is-count-8 .basket-reward-card:nth-child(6) {
+          grid-column: 2;
+          grid-row: 2;
+        }
+
+        .basket-reward-modal__stage.is-grid.is-count-8 .basket-reward-card:nth-child(7) {
+          grid-column: 3;
+          grid-row: 2;
+        }
+
+        .basket-reward-modal__stage.is-grid.is-count-8 .basket-reward-card:nth-child(8) {
+          grid-column: 4;
+          grid-row: 2;
+        }
+
+        .basket-reward-modal__stage.is-last-page .basket-reward-modal__cards {
+          top: 31.574%;
+          width: 45.2%;
+          height: 31.667%;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-rows: 1fr;
+          gap: .75cqw;
+        }
+
+        .basket-reward-card {
+          position: relative;
+          height: 100%;
+          aspect-ratio: 880 / 1066;
+          overflow: visible;
+          container-type: size;
+          border-bottom: 0;
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+          transform-origin: 50% 58%;
+          animation: basketRewardCardIn 520ms cubic-bezier(.16, 1, .3, 1) both;
+        }
+
+        .basket-reward-card:nth-child(1) {
+          animation-delay: 180ms;
+        }
+
+        .basket-reward-card:nth-child(2) {
+          animation-delay: 230ms;
+        }
+
+        .basket-reward-card:nth-child(3) {
+          animation-delay: 280ms;
+        }
+
+        .basket-reward-card:nth-child(4) {
+          animation-delay: 330ms;
+        }
+
+        .basket-reward-card:nth-child(5) {
+          animation-delay: 380ms;
+        }
+
+        .basket-reward-card:nth-child(6) {
+          animation-delay: 270ms;
+        }
+
+        .basket-reward-card:nth-child(7) {
+          animation-delay: 320ms;
+        }
+
+        .basket-reward-card:nth-child(8) {
+          animation-delay: 370ms;
+        }
+
+        .basket-reward-card:nth-child(9) {
+          animation-delay: 420ms;
+        }
+
+        .basket-reward-card:nth-child(10) {
+          animation-delay: 470ms;
+        }
+
+        .basket-reward-card--a {
+          background: transparent;
+        }
+
+        .basket-reward-card--b {
+          background: transparent;
+        }
+
+        .basket-reward-card__image {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-card__content {
+          position: relative;
+          width: 98.731%;
+          height: 100%;
+          margin: 0 auto;
+        }
+
+        .basket-reward-card__serial {
+          position: absolute;
+          top: 5.848%;
+          right: 6.905%;
+          z-index: 5;
+          font-family: Cousine, ui-monospace, SFMono-Regular, monospace;
+          font-size: 4cqw;
+          line-height: 1.176;
+          color: #ffebd4;
+          white-space: nowrap;
+        }
+
+        .basket-reward-card__figure {
+          position: absolute;
+          top: 10.721%;
+          left: 0;
+          width: 100%;
+          height: 71.345%;
+        }
+
+        .basket-reward-card__art {
+          position: absolute;
+          top: .376%;
+          left: 5.966%;
+          width: 88.095%;
+          height: 98.907%;
+          filter: drop-shadow(0 0 2.35cqw rgba(214, 193, 117, .95));
+        }
+
+        .basket-reward-card__art-bg,
+        .basket-reward-card__rays-mask,
+        .basket-reward-card__rays {
+          position: absolute;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-card__art-bg,
+        .basket-reward-card__rays-mask {
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        .basket-reward-card__art-bg {
+          z-index: 0;
+        }
+
+        .basket-reward-card__rays-mask {
+          z-index: 1;
+          overflow: hidden;
+          -webkit-mask: url("/assets/basket-reward/sss-card-mask.svg") center / 100% 100% no-repeat;
+          mask: url("/assets/basket-reward/sss-card-mask.svg") center / 100% 100% no-repeat;
+        }
+
+        .basket-reward-card__rays {
+          top: -36.67%;
+          right: -37.16%;
+          bottom: -38.35%;
+          left: -34.08%;
+          width: 171.24%;
+          height: 175.02%;
+          object-fit: cover;
+        }
+
+        .basket-reward-card__fish {
+          position: absolute;
+          z-index: 3;
+          top: 25%;
+          left: 28%;
+          width: 37.48%;
+          height: 63.03%;
+          transform: rotate(-23.09deg);
+          transform-origin: center;
+          filter: drop-shadow(.34cqw .46cqw 0 rgba(33, 51, 78, .28));
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-card__spark {
+          position: absolute;
+          z-index: 2;
+          font-family: Inter, Arial, sans-serif;
+          font-size: 4.865cqw;
+          line-height: 1;
+          color: #fcebc0;
+        }
+
+        .basket-reward-card__spark--one {
+          top: 9.89%;
+          left: 41.41%;
+        }
+
+        .basket-reward-card__spark--two {
+          top: 22.2%;
+          left: 75.54%;
+        }
+
+        .basket-reward-card__spark--three {
+          top: 41.7%;
+          left: 10.97%;
+        }
+
+        .basket-reward-card__spark--four {
+          top: 76.09%;
+          left: 19.51%;
+        }
+
+        .basket-reward-card__spark--five {
+          top: 84.58%;
+          left: 87.82%;
+        }
+
+        .basket-reward-card__rank {
+          position: absolute;
+          z-index: 4;
+          top: -1.05%;
+          left: 6.15%;
+          width: 23.69%;
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-size: 12.694cqw;
+          font-weight: 800;
+          line-height: 1.074;
+          letter-spacing: 0;
+          background: linear-gradient(180deg, #ff8528 0%, #ff6f00 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          white-space: nowrap;
+        }
+
+        .basket-reward-card--a .basket-reward-card__rank {
+          background-image: linear-gradient(180deg, #2b92ff 0%, #006ed7 100%);
+        }
+
+        .basket-reward-card--b .basket-reward-card__rank {
+          background-image: linear-gradient(180deg, #16a765 0%, #027546 100%);
+        }
+
+        .basket-reward-card__meta {
+          position: absolute;
+          left: 5.25%;
+          right: 5.25%;
+          top: auto;
+          bottom: 1.6%;
+          margin-bottom: 8px;
+          z-index: 5;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.5cqw;
+          height: 9.552%;
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+        }
+
+        .basket-reward-card__name {
+          display: inline-block;
+          font-size: 9.167cqw;
+          font-weight: 800;
+          line-height: 1.1;
+          white-space: nowrap;
+          background: linear-gradient(180deg, #f26a02 0%, #ffa100 100%);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+        }
+
+        .basket-reward-card--a .basket-reward-card__name {
+          background-image: linear-gradient(180deg, #2b92ff 0%, #006ed7 100%);
+        }
+
+        .basket-reward-card--b .basket-reward-card__name {
+          background-image: linear-gradient(180deg, #16a765 0%, #027546 100%);
+        }
+
+        .basket-reward-card__stats {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", Arial, sans-serif;
+          font-size: 3.808cqw;
+          font-weight: 700;
+          line-height: 1.5;
+          color: #000;
+          white-space: nowrap;
+        }
+
+        .basket-reward-card__stat-row {
+          display: flex;
+          align-items: center;
+          gap: 1.975cqw;
+        }
+
+        .basket-reward-card__stats b {
+          color: #555;
+          font-weight: 600;
+        }
+
+        .basket-reward-card__stats strong {
+          font-weight: 800;
+        }
+
+        .basket-reward-card__roi {
+          color: #10b981;
+        }
+
+        .basket-reward-modal__actions {
+          position: absolute;
+          z-index: 4;
+          top: 87.377%;
+          left: 50%;
+          display: flex;
+          gap: 1.736cqw;
+          transform: translateX(-50%);
+          animation: basketRewardActionsIn 460ms cubic-bezier(.16, 1, .3, 1) 430ms both;
+        }
+
+        .basket-reward-modal__stage.is-compact .basket-reward-modal__actions {
+          top: 75.185%;
+        }
+
+        .basket-reward-modal__action,
+        .basket-reward-modal__page {
+          appearance: none;
+          padding: 0;
+          border: 0;
+          cursor: pointer;
+          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-weight: 800;
+        }
+
+        .basket-reward-modal__action {
+          width: 11.806cqw;
+          height: 7.623cqh;
+          border-radius: .833cqw;
+          font-size: 1.667cqw;
+          line-height: 1;
+          letter-spacing: 0;
+          white-space: nowrap;
+          box-shadow: inset 0 -.16cqw 0 rgba(0, 0, 0, .08);
+          transition:
+            transform 200ms ease,
+            box-shadow 200ms ease,
+            filter 200ms ease;
+        }
+
+        .basket-reward-modal__action--accept {
+          color: rgba(0, 0, 0, .65);
+          background: #9bdc5c;
+        }
+
+        .basket-reward-modal__action:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.04) saturate(1.04);
+          box-shadow:
+            inset 0 -.16cqw 0 rgba(0, 0, 0, .08),
+            0 .72cqw 1.2cqw rgba(0, 0, 0, .18);
+        }
+
+        .basket-reward-modal__action:active {
+          transform: translateY(0);
+          filter: brightness(.98);
+        }
+
+        .basket-reward-modal__action--inventory {
+          color: #5a3e00;
+          background: #ffdc75;
+        }
+
+        .basket-reward-modal__page {
+          position: absolute;
+          z-index: 5;
+          top: 45.4%;
+          display: grid;
+          place-items: center;
+          width: 2.78cqw;
+          height: 4.94cqh;
+          background: transparent;
+          transition: filter 160ms ease;
+        }
+
+        .basket-reward-modal__page img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-modal__page--prev {
+          left: 4.74%;
+        }
+
+        .basket-reward-modal__page--next {
+          right: 1.96%;
+        }
+
+        .basket-reward-modal__page:hover {
+          filter: brightness(1.08) saturate(1.04);
+        }
+
+        .basket-reward-modal__page:active {
+          filter: brightness(1.02) saturate(1.02);
+        }
+
+        .basket-reward-modal__action:focus-visible,
+        .basket-reward-modal__page:focus-visible {
+          outline: 3px solid rgba(255, 255, 255, .82);
+          outline-offset: 3px;
+        }
+
+        @keyframes basketRewardOverlayIn {
+          from {
+            opacity: 0;
+            backdrop-filter: blur(18px);
+          }
+          to {
+            opacity: 1;
+            backdrop-filter: blur(40px);
+          }
+        }
+
+        @keyframes basketRewardStageIn {
+          0% {
+            opacity: 0;
+            transform: translateY(2.2cqh) scale(.94);
+          }
+          62% {
+            opacity: 1;
+            transform: translateY(-.32cqh) scale(1.012);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes basketRewardCoinHaloIn {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(.36);
+          }
+          32% {
+            opacity: .82;
+            transform: translate(-50%, -50%) scale(.94);
+          }
+          58% {
+            opacity: .62;
+            transform: translate(-50%, -50%) scale(1.02);
+          }
+          78% {
+            opacity: .22;
+            transform: translate(-50%, -50%) scale(1.08);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(1.12);
+          }
+        }
+
+        @keyframes basketRewardShineSweep {
+          0% {
+            opacity: 0;
+            transform: translateX(-42%);
+          }
+          32% {
+            opacity: .88;
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(42%);
+          }
+        }
+
+        @keyframes basketRewardBandIn {
+          0% {
+            opacity: 0;
+            transform: scaleX(.78) scaleY(.94);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes basketRewardTitleIn {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-1.8cqh) scale(.88);
+          }
+          72% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(.18cqh) scale(1.035);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+        }
+
+        @keyframes basketRewardCardIn {
+          0% {
+            opacity: 0;
+            transform: translateY(2.8cqh) scale(.82) rotate(-1.4deg);
+          }
+          68% {
+            opacity: 1;
+            transform: translateY(-.35cqh) scale(1.035) rotate(.24deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1) rotate(0);
+          }
+        }
+
+        @keyframes basketRewardActionsIn {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(1.8cqh) scale(.92);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .basket-reward-modal,
+          .basket-reward-modal__coin-halo,
+          .basket-reward-modal__stage,
+          .basket-reward-modal__stage::after,
+          .basket-reward-modal__band,
+          .basket-reward-modal__title,
+          .basket-reward-card,
+          .basket-reward-modal__actions {
+            animation: none;
+          }
+
+          .basket-reward-modal__coin-halo {
+            display: none;
+          }
+        }
+
+        .hud-main-action {
 	          position: relative;
 	          z-index: 2;
 	          display: flex;
@@ -3384,7 +4233,7 @@ export default function Landing() {
         .hud-badge {
           position: absolute;
           left: 110px;
-          top: 32px;
+          top: 4px;
           width: 60px;
           height: 60px;
           display: grid;
@@ -4325,7 +5174,7 @@ export default function Landing() {
         .sort-direction-select__menu {
           position: absolute;
           top: calc(100% + 6px);
-          left: 0;
+          right: 0;
           z-index: 20;
           min-width: 100%;
           width: max-content;
@@ -5829,6 +6678,11 @@ export default function Landing() {
           flex-direction: column;
           gap: 12px;
           overflow-y: auto;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .sac-body::-webkit-scrollbar {
+          display: none;
         }
         .sac-sub  { font-size: 12px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
 
@@ -6081,7 +6935,12 @@ export default function Landing() {
         .sac-link { color: #3a9bbf; font-size: 13px; font-weight: 600; text-decoration: none; }
         .sac-link:hover { text-decoration: underline; }
 
-        .sac-manual-guide { max-height: min(280px, 42vh); overflow-y: auto; }
+        .sac-manual-guide {
+          max-height: min(280px, 42vh);
+          overflow-y: auto;
+          margin-right: -10px;
+          padding-right: 10px;
+        }
         .sac-guide-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 14px; counter-reset: guide-step; }
         .sac-guide-steps > li { counter-increment: guide-step; display: flex; flex-direction: column; gap: 6px; }
         .sac-guide-step-title { font-size: 12px; font-weight: 700; color: var(--ac-text); }
@@ -10282,15 +11141,14 @@ export default function Landing() {
           aria-hidden="true"
         />
 
-        {gameVersionMode === "normal" && (
-          <GameHudStats
-            coinBalance={SYSTEM_BALANCE_AMOUNT}
-            cashBalance={HUD_CASH_AMOUNT}
-            fishBalance={FISH_BALANCE_AMOUNT}
-            tr={tr}
-            onOpenWallet={openWalletModal}
-          />
-        )}
+        <GameHudStats
+          coinBalance={SYSTEM_BALANCE_AMOUNT}
+          cashBalance={HUD_CASH_AMOUNT}
+          fishBalance={FISH_BALANCE_AMOUNT}
+          variant={gameVersionMode}
+          tr={tr}
+          onOpenWallet={openWalletModal}
+        />
 
         <div className={`top-actions${uiLang === "en" ? " top-actions--en" : ""}`} aria-label={tr("Navigation", "功能入口")}>
           {gameVersionMode === "normal" && (
@@ -10471,8 +11329,8 @@ export default function Landing() {
                     >
                       <span>
                         {tr(
-                          `Basket badge: ${basketBadgeMode === "hidden" ? "hidden" : basketBadgeMode === "one" ? "1" : basketBadgeMode === "ten" ? "10" : "99+"}`,
-                          `鱼篓角标：${basketBadgeMode === "hidden" ? "隐藏" : basketBadgeMode === "one" ? "1" : basketBadgeMode === "ten" ? "10" : "99+"}`
+                          `Basket badge: ${BASKET_BADGE_LABELS[basketBadgeMode]}`,
+                          `鱼篓角标：${BASKET_BADGE_LABELS_ZH[basketBadgeMode]}`
                         )}
                       </span>
                     </button>
@@ -11910,7 +12768,93 @@ export default function Landing() {
         </div>
       )}
 
+      {basketRewardModalOpen && basketItemCount > 0 && (
+        <div
+          className="basket-reward-modal"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeBasketRewardModal();
+          }}
+        >
+          {basketRewardHaloVisible && (
+            <div
+              className="basket-reward-modal__coin-halo"
+              aria-hidden="true"
+              onAnimationEnd={() => setBasketRewardHaloVisible(false)}
+            />
+          )}
+          <section
+            className={basketRewardStageClass}
+            role="dialog"
+            aria-modal="true"
+            aria-label={tr("Basket rewards", "鱼篓奖励")}
+          >
+            <div className="basket-reward-modal__band" aria-hidden="true">
+              <img className="basket-reward-modal__background" src={basketRewardBackgroundImage} alt="" />
+            </div>
+
+            <div className="basket-reward-modal__title">
+              <img src={BASKET_REWARD_ASSETS.titleStarLeft} alt="" />
+              <span>{tr("Congratulations", "恭喜获得")}</span>
+              <img src={BASKET_REWARD_ASSETS.titleStarRight} alt="" />
+            </div>
+
+            <div className="basket-reward-modal__cards" aria-label={tr("Reward cards", "奖励卡片")}>
+              {basketRewardCards.map((rewardCard, index) => {
+                const card = BASKET_REWARD_CARD_COPY[rewardCard.kind];
+                return (
+                  <article
+                    className={`basket-reward-card basket-reward-card--${rewardCard.kind}`}
+                    key={`${rewardCard.kind}-${index}`}
+                    aria-label={`${card.tier} ${card.name}`}
+                  >
+                    <img className="basket-reward-card__image" src={rewardCard.image} alt="" aria-hidden="true" />
+                  </article>
+                );
+              })}
+            </div>
+
+            <footer className="basket-reward-modal__actions">
+              <button
+                className="basket-reward-modal__action basket-reward-modal__action--accept"
+                type="button"
+                aria-label={tr("Collect", "收下")}
+                onClick={closeBasketRewardModal}
+              >
+                {tr("Collect", "收下")}
+              </button>
+            </footer>
+
+            {isBasketRewardMultiPage && (
+              <>
+                {basketRewardModalPage !== "first" && (
+                  <button
+                    className="basket-reward-modal__page basket-reward-modal__page--prev"
+                    type="button"
+                    aria-label={tr("Previous reward page", "上一页奖励")}
+                    onClick={() => setBasketRewardModalPage("first")}
+                  >
+                    <img src={BASKET_REWARD_ASSETS.pagePrev} alt="" />
+                  </button>
+                )}
+                {basketRewardModalPage !== "last" && (
+                  <button
+                    className="basket-reward-modal__page basket-reward-modal__page--next"
+                    type="button"
+                    aria-label={tr("Next reward page", "下一页奖励")}
+                    onClick={() => setBasketRewardModalPage("last")}
+                  >
+                    <img src={BASKET_REWARD_ASSETS.pageNext} alt="" />
+                  </button>
+                )}
+              </>
+            )}
+          </section>
+        </div>
+      )}
+
       {walletOpen && (
+
         <GameWalletModal
           accountKind={walletAccountKind}
           cashBalance={`$${HUD_CASH_AMOUNT.toFixed(1)}`}
@@ -12186,25 +13130,27 @@ export default function Landing() {
               </div>
             </div>
 
-            <div className="inventory-grade-filter" aria-label={tr("Grade filter", "等级筛选")}>
-              {inventoryGradeFilterOptions.map((grade) => (
-                <button
-                  className={`inventory-grade-filter__chip inventory-grade-filter__chip--${grade}${inventoryGradeFilter === grade ? " is-active" : ""}`}
-                  type="button"
-                  key={grade}
-                  aria-pressed={inventoryGradeFilter === grade}
-                  onClick={() => setInventoryGradeFilter(grade)}
-                >
-                  {grade === "all"
-                    ? tr("All", "全部")
-                    : grade === "prop"
-                      ? tr("Props", "道具")
-                      : grade === "misc"
-                        ? tr("Misc", "杂物")
-                        : grade}
-                </button>
-              ))}
-            </div>
+            {shouldShowInventoryGradeFilter && (
+              <div className="inventory-grade-filter" aria-label={tr("Grade filter", "等级筛选")}>
+                {inventoryGradeFilterOptions.map((grade) => (
+                  <button
+                    className={`inventory-grade-filter__chip inventory-grade-filter__chip--${grade}${inventoryGradeFilter === grade ? " is-active" : ""}`}
+                    type="button"
+                    key={grade}
+                    aria-pressed={inventoryGradeFilter === grade}
+                    onClick={() => setInventoryGradeFilter(grade)}
+                  >
+                    {grade === "all"
+                      ? tr("All", "全部")
+                      : grade === "prop"
+                        ? tr("Props", "道具")
+                        : grade === "misc"
+                          ? tr("Misc", "杂物")
+                          : grade}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <div className="inventory-grid" ref={inventoryGridRef} onScroll={handleInventoryGridScroll}>
               {displayedInventoryFactors.map((factor) => {
