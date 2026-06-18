@@ -157,6 +157,10 @@ const BASKET_BADGE_LABELS_ZH: Record<BasketBadgeMode, string> = {
 };
 type BasketRewardModalPage = "first" | "last";
 type BasketRewardCardKind = "sss" | "a" | "b";
+type BasketRewardCard = {
+  kind: BasketRewardCardKind;
+  image: string;
+};
 const BASKET_REWARD_ASSETS = {
   titleStarLeft: "/assets/basket-reward/title-star-left.svg",
   titleStarRight: "/assets/basket-reward/title-star-right.svg",
@@ -169,6 +173,25 @@ const BASKET_REWARD_ASSETS = {
   pagePrev: "/assets/basket-reward/page-prev.svg",
   pageNext: "/assets/basket-reward/page-next.svg",
 };
+const BASKET_REWARD_CARD_IMAGES: Record<BasketRewardCardKind, string[]> = {
+  sss: ["/assets/basket-reward/card-sss.svg"],
+  a: [
+    "/assets/basket-reward/card-a.svg",
+    "/assets/basket-reward/card-a-1.svg",
+    "/assets/basket-reward/card-a-2.svg",
+    "/assets/basket-reward/card-a-3.svg",
+    "/assets/basket-reward/card-a-4.svg",
+    "/assets/basket-reward/card-a-5.svg",
+  ],
+  b: [
+    "/assets/basket-reward/card-b.svg",
+    "/assets/basket-reward/card-b-1.svg",
+    "/assets/basket-reward/card-b-2.svg",
+    "/assets/basket-reward/card-b-3.svg",
+    "/assets/basket-reward/card-b-4.svg",
+    "/assets/basket-reward/card-b-5.svg",
+  ],
+};
 const BASKET_REWARD_CARD_COPY: Record<
   BasketRewardCardKind,
   { tier: string; serial: string; name: string; sharp: string; roi: string }
@@ -178,12 +201,35 @@ const BASKET_REWARD_CARD_COPY: Record<
   b: { tier: "B", serial: "NO.1035", name: "七彩神仙鱼", sharp: "1.16", roi: "+8.6%" },
 };
 
-function getBasketRewardCards(count: number, page: BasketRewardModalPage): BasketRewardCardKind[] {
-  if (count <= 1) return ["sss"];
-  if (count === 5) return ["sss", "a", "b", "b", "b"];
-  if (count === 8) return ["sss", "a", "a", "a", "a", "b", "b", "b"];
-  if (count === 10 || page === "first") return ["sss", "a", "a", "a", "a", "a", "a", "b", "b", "b"];
-  return ["a", "b", "b"];
+function getBasketRewardCardImage(kind: BasketRewardCardKind, occurrence: number) {
+  const images = BASKET_REWARD_CARD_IMAGES[kind];
+  return images[occurrence % images.length];
+}
+
+function makeBasketRewardCards(
+  kinds: BasketRewardCardKind[],
+  startOccurrences: Partial<Record<BasketRewardCardKind, number>> = {}
+) {
+  const occurrences: Record<BasketRewardCardKind, number> = {
+    sss: startOccurrences.sss ?? 0,
+    a: startOccurrences.a ?? 0,
+    b: startOccurrences.b ?? 0,
+  };
+  return kinds.map((kind) => {
+    const image = getBasketRewardCardImage(kind, occurrences[kind]);
+    occurrences[kind] += 1;
+    return { kind, image };
+  });
+}
+
+function getBasketRewardCards(count: number, page: BasketRewardModalPage): BasketRewardCard[] {
+  if (count <= 1) return makeBasketRewardCards(["sss"]);
+  if (count === 5) return makeBasketRewardCards(["sss", "a", "b", "b", "b"]);
+  if (count === 8) return makeBasketRewardCards(["sss", "a", "a", "a", "a", "b", "b", "b"]);
+  if (count === 10 || page === "first") {
+    return makeBasketRewardCards(["sss", "a", "a", "a", "a", "a", "a", "b", "b", "b"]);
+  }
+  return makeBasketRewardCards(["b", "b", "b"], { b: 3 });
 }
 
 type TestScenarioPanelState = "expanded" | "collapsed";
@@ -603,6 +649,7 @@ export default function Landing() {
   const [basketBadgeMode, setBasketBadgeMode] = useState<BasketBadgeMode>("hidden");
   const [basketRewardModalOpen, setBasketRewardModalOpen] = useState(false);
   const [basketRewardModalPage, setBasketRewardModalPage] = useState<BasketRewardModalPage>("first");
+  const [basketRewardHaloVisible, setBasketRewardHaloVisible] = useState(false);
   const [testScenarioPanelState, setTestScenarioPanelState] = useState<TestScenarioPanelState>("expanded");
   const [inventoryScenarioMode, setInventoryScenarioMode] = useState<InventoryScenarioMode>("multiple");
   const [testScenarioPanelPosition, setTestScenarioPanelPosition] = useState<TestScenarioPanelPosition>(TEST_SCENARIO_PANEL_DEFAULT_POSITION);
@@ -1040,6 +1087,7 @@ export default function Landing() {
   const basketRewardStageClass = [
     "basket-reward-modal__stage",
     basketItemCount <= 5 ? "is-compact" : "",
+    `is-count-${basketRewardCards.length}`,
     basketRewardCards.length === 1 ? "is-single" : basketRewardModalPage === "last" ? "is-last-page" : basketRewardCards.length <= 5 ? "is-row" : "is-grid",
   ].filter(Boolean).join(" ");
   const updateAutoCastCount = (value: number) => {
@@ -1096,6 +1144,7 @@ export default function Landing() {
   };
 
   const closeBasketRewardModal = () => {
+    setBasketRewardHaloVisible(false);
     setBasketRewardModalOpen(false);
   };
 
@@ -1109,6 +1158,7 @@ export default function Landing() {
     }
 
     setBasketRewardModalPage("first");
+    setBasketRewardHaloVisible(true);
     setBasketRewardModalOpen(true);
   };
 
@@ -3264,32 +3314,89 @@ export default function Landing() {
           z-index: 40;
           display: grid;
           place-items: center;
+          overflow: hidden;
           background: rgba(0, 0, 0, .65);
           backdrop-filter: blur(40px);
+          isolation: isolate;
+          animation: basketRewardOverlayIn 320ms cubic-bezier(.22, 1, .36, 1) both;
+        }
+
+        .basket-reward-modal__coin-halo {
+          position: fixed;
+          z-index: 0;
+          top: 50%;
+          left: 50%;
+          width: 115vmax;
+          height: 115vmax;
+          pointer-events: none;
+          user-select: none;
+          background:
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 236, .95) 0 7%, rgba(255, 221, 94, .74) 12%, rgba(255, 177, 26, .28) 25%, transparent 45%),
+            repeating-conic-gradient(from -8deg at 50% 50%, rgba(255, 246, 171, .58) 0deg 6deg, rgba(255, 199, 47, .22) 6deg 11deg, transparent 11deg 23deg),
+            radial-gradient(circle at 50% 50%, rgba(255, 197, 54, .32) 0 32%, transparent 70%);
+          mix-blend-mode: screen;
+          opacity: 0;
+          transform: translate(-50%, -50%) scale(.54);
+          will-change: opacity, transform;
+          -webkit-mask: radial-gradient(circle at 50% 50%, #000 0 63%, transparent 75%);
+          mask: radial-gradient(circle at 50% 50%, #000 0 63%, transparent 75%);
+          animation: basketRewardCoinHaloIn 760ms cubic-bezier(.25, 1, .5, 1) 80ms both;
         }
 
         .basket-reward-modal__stage {
           position: relative;
+          z-index: 1;
+          --basket-reward-band-top: 22.716%;
+          --basket-reward-band-height: 49.383%;
           width: min(100vw, calc(100vh * 16 / 9));
           aspect-ratio: 16 / 9;
           overflow: hidden;
           container-type: size;
           isolation: isolate;
+          transform-origin: 50% 56%;
+          animation: basketRewardStageIn 680ms cubic-bezier(.16, 1, .3, 1) both;
+        }
+
+        .basket-reward-modal__stage::after {
+          content: "";
+          position: absolute;
+          pointer-events: none;
+          user-select: none;
+        }
+
+        .basket-reward-modal__stage::after {
+          z-index: 7;
+          top: var(--basket-reward-band-top);
+          right: -18%;
+          left: -18%;
+          height: var(--basket-reward-band-height);
+          background: linear-gradient(112deg, transparent 31%, rgba(255, 255, 255, .46) 47%, rgba(255, 223, 122, .28) 51%, transparent 67%);
+          opacity: 0;
+          transform: translateX(-32%);
+          mix-blend-mode: screen;
+          animation: basketRewardShineSweep 860ms cubic-bezier(.25, 1, .5, 1) 130ms both;
+        }
+
+        .basket-reward-modal__stage:not(.is-compact) {
+          --basket-reward-band-top: 10.833%;
+          --basket-reward-band-height: 74.074%;
         }
 
         .basket-reward-modal__band {
           position: absolute;
           z-index: 1;
-          top: 22.716%;
+          top: var(--basket-reward-band-top);
           left: 0;
           width: 100%;
-          height: 49.383%;
+          height: var(--basket-reward-band-height);
           overflow: hidden;
+          transform-origin: 50% 50%;
+          animation: basketRewardBandIn 620ms cubic-bezier(.22, 1, .36, 1) 70ms both;
         }
 
         .basket-reward-modal__stage:not(.is-compact) .basket-reward-modal__band {
-          top: 10.833%;
-          height: 74.074%;
+          top: var(--basket-reward-band-top);
+          height: var(--basket-reward-band-height);
         }
 
         .basket-reward-modal__background {
@@ -3315,6 +3422,7 @@ export default function Landing() {
           color: #fff;
           pointer-events: auto;
           user-select: none;
+          animation: basketRewardTitleIn 620ms cubic-bezier(.16, 1, .3, 1) 160ms both;
         }
 
         .basket-reward-modal__stage:not(.is-compact) .basket-reward-modal__title {
@@ -3373,17 +3481,17 @@ export default function Landing() {
           gap: 1.543cqh .868cqw;
         }
 
-        .basket-reward-modal__stage.is-grid .basket-reward-card:nth-child(6) {
+        .basket-reward-modal__stage.is-grid.is-count-8 .basket-reward-card:nth-child(6) {
           grid-column: 2;
           grid-row: 2;
         }
 
-        .basket-reward-modal__stage.is-grid .basket-reward-card:nth-child(7) {
+        .basket-reward-modal__stage.is-grid.is-count-8 .basket-reward-card:nth-child(7) {
           grid-column: 3;
           grid-row: 2;
         }
 
-        .basket-reward-modal__stage.is-grid .basket-reward-card:nth-child(8) {
+        .basket-reward-modal__stage.is-grid.is-count-8 .basket-reward-card:nth-child(8) {
           grid-column: 4;
           grid-row: 2;
         }
@@ -3401,21 +3509,72 @@ export default function Landing() {
         .basket-reward-card {
           position: relative;
           height: 100%;
-          aspect-ratio: 850.8 / 1026;
-          overflow: hidden;
+          aspect-ratio: 880 / 1066;
+          overflow: visible;
           container-type: size;
           border-bottom: 0;
-          border-radius: 7.052%;
-          background: linear-gradient(26.469deg, #ffe16d 5.541%, #fff6e8 49.433%, #ff9135 96.837%);
-          box-shadow: 0 0 20px rgba(0, 0, 0, .25);
+          border-radius: 0;
+          background: transparent;
+          box-shadow: none;
+          transform-origin: 50% 58%;
+          animation: basketRewardCardIn 520ms cubic-bezier(.16, 1, .3, 1) both;
+        }
+
+        .basket-reward-card:nth-child(1) {
+          animation-delay: 180ms;
+        }
+
+        .basket-reward-card:nth-child(2) {
+          animation-delay: 230ms;
+        }
+
+        .basket-reward-card:nth-child(3) {
+          animation-delay: 280ms;
+        }
+
+        .basket-reward-card:nth-child(4) {
+          animation-delay: 330ms;
+        }
+
+        .basket-reward-card:nth-child(5) {
+          animation-delay: 380ms;
+        }
+
+        .basket-reward-card:nth-child(6) {
+          animation-delay: 270ms;
+        }
+
+        .basket-reward-card:nth-child(7) {
+          animation-delay: 320ms;
+        }
+
+        .basket-reward-card:nth-child(8) {
+          animation-delay: 370ms;
+        }
+
+        .basket-reward-card:nth-child(9) {
+          animation-delay: 420ms;
+        }
+
+        .basket-reward-card:nth-child(10) {
+          animation-delay: 470ms;
         }
 
         .basket-reward-card--a {
-          background: linear-gradient(26.469deg, #9fd8ff 5.541%, #f4fbff 49.433%, #5aa7ff 96.837%);
+          background: transparent;
         }
 
         .basket-reward-card--b {
-          background: linear-gradient(26.469deg, #9ae7bf 5.541%, #f4fff7 49.433%, #41bc78 96.837%);
+          background: transparent;
+        }
+
+        .basket-reward-card__image {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          pointer-events: none;
+          user-select: none;
         }
 
         .basket-reward-card__content {
@@ -3639,6 +3798,7 @@ export default function Landing() {
           display: flex;
           gap: 1.736cqw;
           transform: translateX(-50%);
+          animation: basketRewardActionsIn 460ms cubic-bezier(.16, 1, .3, 1) 430ms both;
         }
 
         .basket-reward-modal__stage.is-compact .basket-reward-modal__actions {
@@ -3702,6 +3862,7 @@ export default function Landing() {
           width: 2.78cqw;
           height: 4.94cqh;
           background: transparent;
+          transition: filter 160ms ease;
         }
 
         .basket-reward-modal__page img {
@@ -3721,10 +3882,150 @@ export default function Landing() {
           right: 1.96%;
         }
 
+        .basket-reward-modal__page:hover {
+          filter: brightness(1.08) saturate(1.04);
+        }
+
+        .basket-reward-modal__page:active {
+          filter: brightness(1.02) saturate(1.02);
+        }
+
         .basket-reward-modal__action:focus-visible,
         .basket-reward-modal__page:focus-visible {
           outline: 3px solid rgba(255, 255, 255, .82);
           outline-offset: 3px;
+        }
+
+        @keyframes basketRewardOverlayIn {
+          from {
+            opacity: 0;
+            backdrop-filter: blur(18px);
+          }
+          to {
+            opacity: 1;
+            backdrop-filter: blur(40px);
+          }
+        }
+
+        @keyframes basketRewardStageIn {
+          0% {
+            opacity: 0;
+            transform: translateY(2.2cqh) scale(.94);
+          }
+          62% {
+            opacity: 1;
+            transform: translateY(-.32cqh) scale(1.012);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes basketRewardCoinHaloIn {
+          0% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(.36);
+          }
+          32% {
+            opacity: .82;
+            transform: translate(-50%, -50%) scale(.94);
+          }
+          58% {
+            opacity: .62;
+            transform: translate(-50%, -50%) scale(1.02);
+          }
+          78% {
+            opacity: .22;
+            transform: translate(-50%, -50%) scale(1.08);
+          }
+          100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(1.12);
+          }
+        }
+
+        @keyframes basketRewardShineSweep {
+          0% {
+            opacity: 0;
+            transform: translateX(-42%);
+          }
+          32% {
+            opacity: .88;
+          }
+          100% {
+            opacity: 0;
+            transform: translateX(42%);
+          }
+        }
+
+        @keyframes basketRewardBandIn {
+          0% {
+            opacity: 0;
+            transform: scaleX(.78) scaleY(.94);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes basketRewardTitleIn {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(-1.8cqh) scale(.88);
+          }
+          72% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(.18cqh) scale(1.035);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+        }
+
+        @keyframes basketRewardCardIn {
+          0% {
+            opacity: 0;
+            transform: translateY(2.8cqh) scale(.82) rotate(-1.4deg);
+          }
+          68% {
+            opacity: 1;
+            transform: translateY(-.35cqh) scale(1.035) rotate(.24deg);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1) rotate(0);
+          }
+        }
+
+        @keyframes basketRewardActionsIn {
+          0% {
+            opacity: 0;
+            transform: translateX(-50%) translateY(1.8cqh) scale(.92);
+          }
+          100% {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .basket-reward-modal,
+          .basket-reward-modal__coin-halo,
+          .basket-reward-modal__stage,
+          .basket-reward-modal__stage::after,
+          .basket-reward-modal__band,
+          .basket-reward-modal__title,
+          .basket-reward-card,
+          .basket-reward-modal__actions {
+            animation: none;
+          }
+
+          .basket-reward-modal__coin-halo {
+            display: none;
+          }
         }
 
         .hud-main-action {
@@ -4873,7 +5174,7 @@ export default function Landing() {
         .sort-direction-select__menu {
           position: absolute;
           top: calc(100% + 6px);
-          left: 0;
+          right: 0;
           z-index: 20;
           min-width: 100%;
           width: max-content;
@@ -12475,6 +12776,13 @@ export default function Landing() {
             if (event.target === event.currentTarget) closeBasketRewardModal();
           }}
         >
+          {basketRewardHaloVisible && (
+            <div
+              className="basket-reward-modal__coin-halo"
+              aria-hidden="true"
+              onAnimationEnd={() => setBasketRewardHaloVisible(false)}
+            />
+          )}
           <section
             className={basketRewardStageClass}
             role="dialog"
@@ -12492,43 +12800,15 @@ export default function Landing() {
             </div>
 
             <div className="basket-reward-modal__cards" aria-label={tr("Reward cards", "奖励卡片")}>
-              {basketRewardCards.map((cardKind, index) => {
-                const card = BASKET_REWARD_CARD_COPY[cardKind];
+              {basketRewardCards.map((rewardCard, index) => {
+                const card = BASKET_REWARD_CARD_COPY[rewardCard.kind];
                 return (
                   <article
-                    className={`basket-reward-card basket-reward-card--${cardKind}`}
-                    key={`${cardKind}-${index}`}
+                    className={`basket-reward-card basket-reward-card--${rewardCard.kind}`}
+                    key={`${rewardCard.kind}-${index}`}
                     aria-label={`${card.tier} ${card.name}`}
                   >
-                    <div className="basket-reward-card__content">
-                      <div className="basket-reward-card__serial">{card.serial}</div>
-                      <div className="basket-reward-card__figure" aria-hidden="true">
-                        <div className="basket-reward-card__art">
-                          <img className="basket-reward-card__art-bg" src={BASKET_REWARD_ASSETS.cardArtBg} alt="" />
-                          <div className="basket-reward-card__rays-mask">
-                            <img className="basket-reward-card__rays" src={BASKET_REWARD_ASSETS.cardRays} alt="" />
-                          </div>
-                          <img className="basket-reward-card__fish" src={BASKET_REWARD_ASSETS.seahorse} alt="" />
-                          <span className="basket-reward-card__spark basket-reward-card__spark--one">✦</span>
-                          <span className="basket-reward-card__spark basket-reward-card__spark--two">✦</span>
-                          <span className="basket-reward-card__spark basket-reward-card__spark--three">✦</span>
-                          <span className="basket-reward-card__spark basket-reward-card__spark--four">✦</span>
-                          <span className="basket-reward-card__spark basket-reward-card__spark--five">✦</span>
-                        </div>
-                        <div className="basket-reward-card__rank">{card.tier}</div>
-                      </div>
-                      <div className="basket-reward-card__meta">
-                        <span className="basket-reward-card__name">{card.name}</span>
-                        <span className="basket-reward-card__stats">
-                          <span className="basket-reward-card__stat-row">
-                            <b>Sharp</b> <strong>{card.sharp}</strong>
-                          </span>
-                          <span className="basket-reward-card__stat-row">
-                            <b>Roi</b> <strong className="basket-reward-card__roi">{card.roi}</strong>
-                          </span>
-                        </span>
-                      </div>
-                    </div>
+                    <img className="basket-reward-card__image" src={rewardCard.image} alt="" aria-hidden="true" />
                   </article>
                 );
               })}
