@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
-import { useInView, useReducedMotion } from "motion/react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useReducedMotion } from "motion/react";
 import { formatBalance, HUD_ASSETS } from "@/lib/gameWallet";
 import "./GameHudStats.css";
 
@@ -24,6 +24,7 @@ type GameHudStatsProps = {
   cashBalance: number;
   fishBalance?: number;
   showFish?: boolean;
+  variant?: "normal" | "mvp";
   tr: (en: string, zh: string) => string;
   onOpenWallet: (accountKind: "coin" | "cash") => void;
 };
@@ -43,10 +44,16 @@ function CountUp({
   onStart,
   onEnd,
 }: CountUpProps) {
-  const ref = useRef<HTMLSpanElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const onStartRef = useRef(onStart);
+  const onEndRef = useRef(onEnd);
   const shouldReduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    onStartRef.current = onStart;
+    onEndRef.current = onEnd;
+  }, [onEnd, onStart]);
 
   const parseNumber = useCallback((value: unknown) => {
     if (typeof value === "number") return value;
@@ -62,7 +69,7 @@ function CountUp({
   );
   const startValue = direction === "down" ? targetValue : from;
   const endValue = direction === "down" ? from : targetValue;
-  const isInView = useInView(ref, { once: true, margin: "0px" });
+  const [displayValue, setDisplayValue] = useState(startValue);
 
   const getDecimalPlaces = useCallback((num: number) => {
     const str = num.toString();
@@ -89,10 +96,6 @@ function CountUp({
   );
 
   useEffect(() => {
-    if (ref.current) ref.current.textContent = formatValue(startValue);
-  }, [formatValue, startValue]);
-
-  useEffect(() => {
     if (frameRef.current !== null) {
       window.cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
@@ -102,12 +105,14 @@ function CountUp({
       timeoutRef.current = null;
     }
 
-    if (!isInView || !startWhen) return undefined;
-    onStart?.();
+    setDisplayValue(startValue);
+
+    if (!startWhen) return undefined;
+    onStartRef.current?.();
 
     if (shouldReduceMotion) {
-      if (ref.current) ref.current.textContent = formatValue(endValue);
-      onEnd?.();
+      setDisplayValue(endValue);
+      onEndRef.current?.();
       return undefined;
     }
 
@@ -119,7 +124,7 @@ function CountUp({
         const progress = Math.min((now - animationStart) / durationMs, 1);
         const latest = startValue + (endValue - startValue) * progress;
 
-        if (ref.current) ref.current.textContent = formatValue(latest);
+        setDisplayValue(latest);
 
         if (progress < 1) {
           frameRef.current = window.requestAnimationFrame(tick);
@@ -127,7 +132,7 @@ function CountUp({
         }
 
         frameRef.current = null;
-        onEnd?.();
+        onEndRef.current?.();
       };
 
       frameRef.current = window.requestAnimationFrame(tick);
@@ -145,11 +150,11 @@ function CountUp({
         timeoutRef.current = null;
       }
     };
-  }, [delay, duration, endValue, formatValue, isInView, onEnd, onStart, shouldReduceMotion, startWhen, startValue]);
+  }, [delay, duration, endValue, formatValue, shouldReduceMotion, startWhen, startValue]);
 
   return (
-    <span className={className} ref={ref}>
-      {children}
+    <span className={className}>
+      {formatValue(displayValue)}
     </span>
   );
 }
@@ -159,50 +164,57 @@ export function GameHudStats({
   cashBalance,
   fishBalance,
   showFish = true,
+  variant = "normal",
   tr,
   onOpenWallet,
 }: GameHudStatsProps) {
+  const shouldShowWalletStats = variant === "normal";
+
   return (
     <div className="hud-top-stats" aria-label={tr("Stats", "数值统计")}>
-      <button
-        className="hud-stat-card hud-stat-card--button"
-        type="button"
-        aria-label={tr("Open game coins", "打开游戏币")}
-        onClick={() => onOpenWallet("coin")}
-      >
-        <img
-          className="hud-stat-icon"
-          src={HUD_ASSETS.coin}
-          alt=""
-          width="36"
-          height="37"
-        />
-        <div className="hud-stat-value hud-stat-value--balance">
-          <CountUp to={coinBalance} duration={0.5}>
-            {formatBalance(coinBalance)}
-          </CountUp>
-        </div>
-      </button>
+      {shouldShowWalletStats && (
+        <>
+          <button
+            className="hud-stat-card hud-stat-card--button"
+            type="button"
+            aria-label={tr("Open game coins", "打开游戏币")}
+            onClick={() => onOpenWallet("coin")}
+          >
+            <img
+              className="hud-stat-icon"
+              src={HUD_ASSETS.coin}
+              alt=""
+              width="36"
+              height="37"
+            />
+            <div className="hud-stat-value hud-stat-value--balance">
+              <CountUp to={coinBalance} duration={0.5}>
+                {formatBalance(coinBalance)}
+              </CountUp>
+            </div>
+          </button>
 
-      <button
-        className="hud-stat-card hud-stat-card--button"
-        type="button"
-        aria-label={tr("Open cash", "打开现金")}
-        onClick={() => onOpenWallet("cash")}
-      >
-        <img
-          className="hud-stat-icon"
-          src={HUD_ASSETS.cash}
-          alt=""
-          width="44"
-          height="28"
-        />
-        <div className="hud-stat-value hud-stat-value--cash">
-          <CountUp to={cashBalance} duration={0.5} prefix="$" decimals={1}>
-            {`$${cashBalance.toFixed(1)}`}
-          </CountUp>
-        </div>
-      </button>
+          <button
+            className="hud-stat-card hud-stat-card--button"
+            type="button"
+            aria-label={tr("Open cash", "打开现金")}
+            onClick={() => onOpenWallet("cash")}
+          >
+            <img
+              className="hud-stat-icon"
+              src={HUD_ASSETS.cash}
+              alt=""
+              width="44"
+              height="28"
+            />
+            <div className="hud-stat-value hud-stat-value--cash">
+              <CountUp to={cashBalance} duration={0.5} prefix="$" decimals={1}>
+                {`$${cashBalance.toFixed(1)}`}
+              </CountUp>
+            </div>
+          </button>
+        </>
+      )}
 
       {showFish && typeof fishBalance === "number" && (
         <div className="hud-stat-card" aria-label={tr("Fish balance", "鱼额")}>
@@ -214,7 +226,7 @@ export function GameHudStats({
             height="27"
           />
           <div className="hud-stat-value hud-stat-value--fish">
-            <CountUp to={fishBalance} duration={0.5}>
+            <CountUp key={`fish-${variant}-${fishBalance}`} to={fishBalance} duration={0.5}>
               {formatBalance(fishBalance)}
             </CountUp>
           </div>

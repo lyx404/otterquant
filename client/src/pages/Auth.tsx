@@ -14,13 +14,14 @@ import {
 } from "lucide-react";
 
 type AuthMode = "login" | "register" | "forgot";
-type AuthFieldErrors = Partial<Record<"email" | "nickname" | "password" | "terms", string>>;
+type AuthFieldErrors = Partial<Record<"email" | "verificationCode" | "nickname" | "password" | "terms", string>>;
 
 export default function Auth() {
   const { uiLang, setUiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -82,34 +83,38 @@ export default function Auth() {
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
+      const nextErrors: AuthFieldErrors = {};
+
       if (!email || !email.includes("@")) {
-        setFieldErrors({
-          email: tr("Please enter a valid email address", "请输入有效邮箱地址"),
-        });
+        nextErrors.email = tr("Please enter a valid email address", "请输入有效邮箱地址");
+      }
+
+      if (mode === "register" && !nickname.trim()) {
+        nextErrors.nickname = tr("Please set a nickname", "请设置昵称");
+      }
+
+      if (mode === "register" && !verificationCode.trim()) {
+        nextErrors.verificationCode = tr("Please enter the verification code", "请输入验证码");
+      }
+
+      if (mode !== "forgot" && (!password || password.length < 6)) {
+        nextErrors.password = tr("Password must be at least 6 characters", "密码至少需要 6 位");
+      }
+
+      if (mode === "register" && !termsAccepted) {
+        nextErrors.terms = tr("Please agree to the terms and privacy policy", "请先同意服务条款和隐私政策");
+      }
+
+      if (Object.keys(nextErrors).length > 0) {
+        setFieldErrors(nextErrors);
         return;
       }
+
       if (mode === "forgot") {
         await handleSendCode();
         return;
       }
-      if (mode === "register" && !nickname.trim()) {
-        setFieldErrors({
-          nickname: tr("Please set a nickname", "请设置昵称"),
-        });
-        return;
-      }
-      if (!password || password.length < 6) {
-        setFieldErrors({
-          password: tr("Password must be at least 6 characters", "密码至少需要 6 位"),
-        });
-        return;
-      }
-      if (mode === "register" && !termsAccepted) {
-        setFieldErrors({
-          terms: tr("Please agree to the terms and privacy policy", "请先同意服务条款和隐私政策"),
-        });
-        return;
-      }
+
       setFieldErrors({});
 
       setSubmitting(true);
@@ -126,13 +131,14 @@ export default function Auth() {
       );
       navigate("/");
     },
-    [email, nickname, password, mode, termsAccepted, handleSendCode, login, navigate, tr]
+    [email, verificationCode, nickname, password, mode, termsAccepted, handleSendCode, login, navigate, tr]
   );
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode);
     if (nextMode !== "register") {
       setNickname("");
+      setVerificationCode("");
     }
     setTermsAccepted(false);
     setCodeSent(false);
@@ -593,6 +599,7 @@ export default function Auth() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 6px;
           color: rgba(90, 50, 29, .9);
           background: #fff8e8;
           border: 2px solid rgba(196, 184, 158, .9);
@@ -829,6 +836,48 @@ export default function Auth() {
 
               {mode === "register" && (
                 <div className="auth-field">
+                  <label htmlFor="auth-verification-code">{tr("Verification code", "验证码")}</label>
+                  <div className="auth-code-row">
+                    <input
+                      id="auth-verification-code"
+                      className="auth-input"
+                      type="text"
+                      inputMode="numeric"
+                      value={verificationCode}
+                      aria-invalid={Boolean(fieldErrors.verificationCode)}
+                      aria-describedby="auth-verification-code-feedback"
+                      onChange={(event) => {
+                        setVerificationCode(event.target.value);
+                        setFieldErrors((current) => ({ ...current, verificationCode: undefined }));
+                      }}
+                      placeholder={tr("Enter code", "输入验证码")}
+                      autoComplete="one-time-code"
+                    />
+                    <button
+                      className="auth-send"
+                      type="button"
+                      disabled={sending || countdown > 0}
+                      onClick={handleSendCode}
+                    >
+                      {sending ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : countdown > 0 ? (
+                        `${countdown}s`
+                      ) : codeSent ? (
+                        tr("Resend", "重新发送")
+                      ) : (
+                        tr("Send", "发送")
+                      )}
+                    </button>
+                  </div>
+                  <span id="auth-verification-code-feedback" className={`auth-field-feedback${codeSent && !fieldErrors.verificationCode ? " is-success" : ""}`}>
+                    {fieldErrors.verificationCode || (codeSent ? tr("Verification code sent", "验证码已发送") : " ")}
+                  </span>
+                </div>
+              )}
+
+              {mode === "register" && (
+                <div className="auth-field">
                   <label htmlFor="auth-nickname">{tr("Nickname", "设置昵称")}</label>
                   <div className="auth-input-wrap">
                     <input
@@ -906,7 +955,7 @@ export default function Auth() {
                 </div>
               )}
 
-              <button className="auth-submit" type="submit" disabled={submitting || sending || countdown > 0}>
+              <button className="auth-submit" type="submit" disabled={submitting || (mode === "forgot" && (sending || countdown > 0))}>
                 {submitting || sending ? <Loader2 size={16} className="animate-spin" /> : null}
                 <span>{mode === "forgot" && countdown > 0 ? `${countdown}s` : submitLabel}</span>
                 {!submitting && mode !== "forgot" && <ArrowRight size={16} strokeWidth={3} />}

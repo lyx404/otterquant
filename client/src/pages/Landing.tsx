@@ -1034,7 +1034,7 @@ export default function Landing() {
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
   const isBasketRewardMultiPage = basketItemCount > 10;
   const basketRewardCards = getBasketRewardCards(basketItemCount, basketRewardModalPage);
-  const basketRewardBackgroundImage = basketRewardCards.length <= 5
+  const basketRewardBackgroundImage = basketItemCount <= 5
     ? BASKET_REWARD_ASSETS.backgroundOneRow
     : BASKET_REWARD_ASSETS.backgroundTwoRow;
   const basketRewardStageClass = [
@@ -1097,11 +1097,6 @@ export default function Landing() {
 
   const closeBasketRewardModal = () => {
     setBasketRewardModalOpen(false);
-  };
-
-  const openInventoryFromBasketReward = () => {
-    setBasketRewardModalOpen(false);
-    setInventoryOpen(true);
   };
 
   const handleBasketClick = () => {
@@ -3308,16 +3303,17 @@ export default function Landing() {
 
         .basket-reward-modal__title {
           position: absolute;
-          z-index: 3;
+          z-index: 6;
           top: 17.222%;
           left: 50%;
           display: flex;
           align-items: flex-start;
           gap: .868cqw;
-          height: 8.889%;
+          height: auto;
+          margin-top: 20px;
           transform: translateX(-50%);
           color: #fff;
-          pointer-events: none;
+          pointer-events: auto;
           user-select: none;
         }
 
@@ -3328,7 +3324,7 @@ export default function Landing() {
         .basket-reward-modal__title img {
           width: 2.674cqw;
           height: 1.771cqw;
-          margin-top: .24cqw;
+          margin-top: -10px;
           display: block;
           object-fit: contain;
           clip-path: inset(0);
@@ -3340,7 +3336,8 @@ export default function Landing() {
           font-weight: 800;
           line-height: 1.02;
           white-space: nowrap;
-          -webkit-text-stroke: .145cqw #f5a400;
+          -webkit-text-stroke-width: 8px;
+          -webkit-text-stroke-color: #FFAE0B;
           paint-order: stroke fill;
           text-shadow: 0 .055cqw 0 rgba(255, 198, 72, .9);
         }
@@ -3367,11 +3364,28 @@ export default function Landing() {
         }
 
         .basket-reward-modal__stage.is-grid .basket-reward-modal__cards {
+          top: 15.432%;
           width: 77.326%;
+          height: 64.877%;
           display: grid;
           grid-template-columns: repeat(5, minmax(0, 1fr));
           grid-template-rows: repeat(2, minmax(0, 1fr));
-          gap: 1.95cqh .75cqw;
+          gap: 1.543cqh .868cqw;
+        }
+
+        .basket-reward-modal__stage.is-grid .basket-reward-card:nth-child(6) {
+          grid-column: 2;
+          grid-row: 2;
+        }
+
+        .basket-reward-modal__stage.is-grid .basket-reward-card:nth-child(7) {
+          grid-column: 3;
+          grid-row: 2;
+        }
+
+        .basket-reward-modal__stage.is-grid .basket-reward-card:nth-child(8) {
+          grid-column: 4;
+          grid-row: 2;
         }
 
         .basket-reward-modal__stage.is-last-page .basket-reward-modal__cards {
@@ -3390,10 +3404,10 @@ export default function Landing() {
           aspect-ratio: 850.8 / 1026;
           overflow: hidden;
           container-type: size;
-          border-bottom: max(1px, .353cqw) solid rgba(255, 255, 255, .06);
-          border-radius: 20px;
+          border-bottom: 0;
+          border-radius: 7.052%;
           background: linear-gradient(26.469deg, #ffe16d 5.541%, #fff6e8 49.433%, #ff9135 96.837%);
-          box-shadow: 0 0 2.35cqw rgba(0, 0, 0, .25);
+          box-shadow: 0 0 20px rgba(0, 0, 0, .25);
         }
 
         .basket-reward-card--a {
@@ -3554,7 +3568,9 @@ export default function Landing() {
           position: absolute;
           left: 5.25%;
           right: 5.25%;
-          top: 84.8%;
+          top: auto;
+          bottom: 1.6%;
+          margin-bottom: 8px;
           z-index: 5;
           display: flex;
           align-items: center;
@@ -3648,11 +3664,28 @@ export default function Landing() {
           letter-spacing: 0;
           white-space: nowrap;
           box-shadow: inset 0 -.16cqw 0 rgba(0, 0, 0, .08);
+          transition:
+            transform 200ms ease,
+            box-shadow 200ms ease,
+            filter 200ms ease;
         }
 
         .basket-reward-modal__action--accept {
           color: rgba(0, 0, 0, .65);
           background: #9bdc5c;
+        }
+
+        .basket-reward-modal__action:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.04) saturate(1.04);
+          box-shadow:
+            inset 0 -.16cqw 0 rgba(0, 0, 0, .08),
+            0 .72cqw 1.2cqw rgba(0, 0, 0, .18);
+        }
+
+        .basket-reward-modal__action:active {
+          transform: translateY(0);
+          filter: brightness(.98);
         }
 
         .basket-reward-modal__action--inventory {
@@ -10807,15 +10840,14 @@ export default function Landing() {
           aria-hidden="true"
         />
 
-        {gameVersionMode === "normal" && (
-          <GameHudStats
-            coinBalance={SYSTEM_BALANCE_AMOUNT}
-            cashBalance={HUD_CASH_AMOUNT}
-            fishBalance={FISH_BALANCE_AMOUNT}
-            tr={tr}
-            onOpenWallet={openWalletModal}
-          />
-        )}
+        <GameHudStats
+          coinBalance={SYSTEM_BALANCE_AMOUNT}
+          cashBalance={HUD_CASH_AMOUNT}
+          fishBalance={FISH_BALANCE_AMOUNT}
+          variant={gameVersionMode}
+          tr={tr}
+          onOpenWallet={openWalletModal}
+        />
 
         <div className={`top-actions${uiLang === "en" ? " top-actions--en" : ""}`} aria-label={tr("Navigation", "功能入口")}>
           {gameVersionMode === "normal" && (
@@ -12453,7 +12485,7 @@ export default function Landing() {
               <img className="basket-reward-modal__background" src={basketRewardBackgroundImage} alt="" />
             </div>
 
-            <div className="basket-reward-modal__title" aria-hidden="true">
+            <div className="basket-reward-modal__title">
               <img src={BASKET_REWARD_ASSETS.titleStarLeft} alt="" />
               <span>{tr("Congratulations", "恭喜获得")}</span>
               <img src={BASKET_REWARD_ASSETS.titleStarRight} alt="" />
@@ -12506,39 +12538,35 @@ export default function Landing() {
               <button
                 className="basket-reward-modal__action basket-reward-modal__action--accept"
                 type="button"
-                aria-label={tr("Collect directly", "直接收下")}
+                aria-label={tr("Collect", "收下")}
                 onClick={closeBasketRewardModal}
               >
-                {tr("Collect", "直接收下")}
-              </button>
-              <button
-                className="basket-reward-modal__action basket-reward-modal__action--inventory"
-                type="button"
-                aria-label={tr("View in inventory", "去图鉴查看")}
-                onClick={openInventoryFromBasketReward}
-              >
-                {tr("View collection", "去图鉴查看")}
+                {tr("Collect", "收下")}
               </button>
             </footer>
 
             {isBasketRewardMultiPage && (
               <>
-                <button
-                  className="basket-reward-modal__page basket-reward-modal__page--prev"
-                  type="button"
-                  aria-label={tr("Previous reward page", "上一页奖励")}
-                  onClick={() => setBasketRewardModalPage("first")}
-                >
-                  <img src={BASKET_REWARD_ASSETS.pagePrev} alt="" />
-                </button>
-                <button
-                  className="basket-reward-modal__page basket-reward-modal__page--next"
-                  type="button"
-                  aria-label={tr("Next reward page", "下一页奖励")}
-                  onClick={() => setBasketRewardModalPage("last")}
-                >
-                  <img src={BASKET_REWARD_ASSETS.pageNext} alt="" />
-                </button>
+                {basketRewardModalPage !== "first" && (
+                  <button
+                    className="basket-reward-modal__page basket-reward-modal__page--prev"
+                    type="button"
+                    aria-label={tr("Previous reward page", "上一页奖励")}
+                    onClick={() => setBasketRewardModalPage("first")}
+                  >
+                    <img src={BASKET_REWARD_ASSETS.pagePrev} alt="" />
+                  </button>
+                )}
+                {basketRewardModalPage !== "last" && (
+                  <button
+                    className="basket-reward-modal__page basket-reward-modal__page--next"
+                    type="button"
+                    aria-label={tr("Next reward page", "下一页奖励")}
+                    onClick={() => setBasketRewardModalPage("last")}
+                  >
+                    <img src={BASKET_REWARD_ASSETS.pageNext} alt="" />
+                  </button>
+                )}
               </>
             )}
           </section>
