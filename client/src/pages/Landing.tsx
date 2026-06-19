@@ -23,6 +23,7 @@ import {
   Heart,
   Key,
   Languages,
+  LogOut,
   Mail,
   MoreHorizontal,
   Pencil,
@@ -686,6 +687,7 @@ export default function Landing() {
   const [settingsPasswordCodeSent, setSettingsPasswordCodeSent] = useState(false);
   const [settingsNewPassword, setSettingsNewPassword] = useState("");
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
+  const [settingsLogoutConfirmOpen, setSettingsLogoutConfirmOpen] = useState(false);
   const [agentSelectedProviderId, setAgentSelectedProviderId] = useState<AgentProviderId>("codex");
   const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set<AgentProviderId>(["codex"]));
   const [agentConnectedDeviceNames, setAgentConnectedDeviceNames] = useState<Partial<Record<AgentProviderId, string>>>({ codex: "MacBook Pro" });
@@ -2072,6 +2074,7 @@ export default function Landing() {
     setSettingsPasswordCodeSent(false);
     setSettingsNewPassword("");
     setSettingsConfirmPassword("");
+    setSettingsLogoutConfirmOpen(false);
   };
 
   const handleCancelSettingsProfile = () => {
@@ -2154,6 +2157,13 @@ export default function Landing() {
     setSettingsConfirmPassword("");
     setSettingsEditingPassword(false);
     showSettingsFeedback(tr("Password updated", "密码已更新"), tr("Use the new password on your next login.", "下次登录请使用新密码。"));
+  };
+
+  const handleConfirmLogout = () => {
+    setSettingsLogoutConfirmOpen(false);
+    setSettingsOpen(false);
+    logout();
+    navigateWithTransition("/auth");
   };
 
   const formatWalletDateTime = (value: string) => {
@@ -8166,7 +8176,7 @@ export default function Landing() {
           background: #fffdf4;
           border: 2px solid rgba(196, 184, 158, .78);
           border-radius: var(--radius-xs);
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .32);
+          box-shadow: none;
           cursor: pointer;
           font: inherit;
           font-size: 13px;
@@ -8188,8 +8198,8 @@ export default function Landing() {
 
         .settings-profile {
           display: grid;
-          grid-template-columns: minmax(0, 1fr);
-          gap: 0;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
           align-items: start;
         }
 
@@ -8212,7 +8222,7 @@ export default function Landing() {
         }
 
         .settings-profile .settings-input {
-          width: min(520px, 100%);
+          width: 100%;
         }
 
         .settings-input {
@@ -8314,6 +8324,105 @@ export default function Landing() {
         .settings-action--danger {
           color: #9f3934;
           background: #fff0ee;
+        }
+
+        .settings-logout-row {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          margin-top: 36px;
+          margin-bottom: 20px;
+        }
+
+        .settings-action--logout {
+          --settings-warning: #FD5F5A;
+          min-width: 108px;
+          color: #fffdf4;
+          background: var(--settings-warning);
+          border: 0;
+        }
+
+        .settings-action--logout:hover,
+        .settings-action--logout:focus-visible {
+          color: #fffdf4;
+          background: #e84d49;
+          border: 0;
+        }
+
+        .settings-confirm-modal .settings-action--logout {
+          border: 0;
+        }
+
+        .settings-confirm-modal {
+          --settings-warning: #FD5F5A;
+          --settings-warning-soft: #fff0ee;
+          width: min(392px, 100%);
+          display: grid;
+          gap: 18px;
+          padding: 18px;
+          color: var(--ac-text);
+          background: rgba(255, 253, 244, .98);
+          border: 2px solid rgba(196, 184, 158, .7);
+          border-radius: var(--radius-xs);
+          box-shadow:
+            0 0 0 2px rgba(255, 253, 244, .78),
+            4px 4px 0 rgba(189, 174, 160, .5),
+            0 18px 36px rgba(66, 48, 31, .18);
+        }
+
+        .settings-confirm-modal__header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .settings-confirm-modal__title {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          color: var(--settings-warning);
+          font-size: 16px;
+          font-weight: 1000;
+        }
+
+        .settings-confirm-modal__close {
+          width: 30px;
+          height: 30px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: rgba(121, 79, 39, .78);
+          background: transparent;
+          border: 0;
+          border-radius: var(--radius-xs);
+          cursor: pointer;
+        }
+
+        .settings-confirm-modal__close:hover,
+        .settings-confirm-modal__close:focus-visible {
+          color: var(--ac-text);
+          background: rgba(255, 247, 227, .72);
+        }
+
+        .settings-confirm-modal__copy {
+          margin: 0;
+          color: rgba(121, 79, 39, .72);
+          font-size: 13px;
+          font-weight: 850;
+          line-height: 1.5;
+        }
+
+        .settings-confirm-modal__actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        @media (max-width: 640px) {
+          .settings-action--logout {
+            width: 100%;
+          }
         }
 
         .settings-action:disabled {
@@ -11861,6 +11970,17 @@ export default function Landing() {
                   <p className="settings-helper">{tr("Verify your identity with an email code before setting a new login password.", "通过邮箱验证码验证身份后，可设置新的登录密码。")}</p>
                 )}
               </section>
+
+              <div className="settings-logout-row">
+                <button
+                  className="settings-action settings-action--logout"
+                  type="button"
+                  onClick={() => setSettingsLogoutConfirmOpen(true)}
+                >
+                  <LogOut size={14} strokeWidth={3} />
+                  {tr("Sign out", "退出登录")}
+                </button>
+              </div>
                 </>
               ) : (
                 <div className="settings-agent-panel" role="tabpanel" aria-label={tr("Agent settings", "agent设置")}>
@@ -12710,6 +12830,47 @@ export default function Landing() {
                 </div>
               )}
             </div>
+
+            {settingsLogoutConfirmOpen && (
+              <div
+                className="settings-agent-connect-overlay"
+                role="presentation"
+                onMouseDown={(event) => {
+                  if (event.target === event.currentTarget) setSettingsLogoutConfirmOpen(false);
+                }}
+              >
+                <section className="settings-confirm-modal" role="dialog" aria-modal="true" aria-label={tr("Confirm sign out", "确认退出登录")}>
+                  <header className="settings-confirm-modal__header">
+                    <div className="settings-confirm-modal__title">
+                      <LogOut size={18} strokeWidth={3} />
+                      <strong>{tr("Sign out?", "确认退出登录？")}</strong>
+                    </div>
+                    <button
+                      className="settings-confirm-modal__close"
+                      type="button"
+                      aria-label={tr("Close confirmation dialog", "关闭确认弹窗")}
+                      onClick={() => setSettingsLogoutConfirmOpen(false)}
+                    >
+                      <X size={18} strokeWidth={3} />
+                    </button>
+                  </header>
+                  <p className="settings-confirm-modal__copy">
+                    {tr(
+                      "You will leave the current account session and return to the login page.",
+                      "退出后将结束当前账号会话，并返回登录页。"
+                    )}
+                  </p>
+                  <div className="settings-confirm-modal__actions">
+                    <button className="settings-action settings-action--quiet" type="button" onClick={() => setSettingsLogoutConfirmOpen(false)}>
+                      {tr("Cancel", "取消")}
+                    </button>
+                    <button className="settings-action settings-action--logout" type="button" onClick={handleConfirmLogout}>
+                      {tr("Confirm sign out", "确认退出")}
+                    </button>
+                  </div>
+                </section>
+              </div>
+            )}
           </section>
         </div>
       )}
