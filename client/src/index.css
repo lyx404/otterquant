@@ -103,6 +103,11 @@
    ══════════════════════════════════════════════ */
 :root {
   --radius: 0.75rem;
+  --app-viewport-padding: clamp(1rem, 4vw, 1.5rem);
+  --app-content-max: 1100px;
+  --text-fluid-lg: clamp(1.125rem, 1.02rem + 0.52vw, 1.375rem);
+  --text-fluid-xl: clamp(1.375rem, 1.12rem + 1.28vw, 2rem);
+  --text-fluid-2xl: clamp(1.875rem, 1.42rem + 2.28vw, 3rem);
   --background: #F8FAFC;
   --foreground: #0F172A;
   --card: #FFFFFF;
@@ -203,28 +208,74 @@
    BASE LAYER
    ══════════════════════════════════════════════ */
 @layer base {
+  html {
+    width: 100%;
+    min-height: 100%;
+    overflow-x: hidden;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+  body,
+  #root {
+    width: 100%;
+    min-width: 0;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
   * {
     @apply border-border outline-ring/50;
+    box-sizing: border-box;
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+  img,
+  video {
+    height: auto;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+    font: inherit;
+  }
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  a,
+  span,
+  strong {
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
   h1 {
-    font-size: 2.25rem;
-    line-height: 2.5rem;
+    font-size: var(--text-fluid-2xl);
+    line-height: 1.08;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
   h2 {
-    font-size: 1.5rem;
-    line-height: 2rem;
+    font-size: var(--text-fluid-xl);
+    line-height: 1.16;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
   h3 {
-    font-size: 1.25rem;
-    line-height: 1.75rem;
+    font-size: var(--text-fluid-lg);
+    line-height: 1.24;
     font-weight: 500;
   }
   h1, h2, h3, h4, h5, h6 {
@@ -245,8 +296,43 @@
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding-left: var(--app-viewport-padding);
+    padding-right: var(--app-viewport-padding);
+  }
+  .app-shell {
+    min-height: 100dvh;
+    display: flex;
+    background: var(--background);
+  }
+  .app-sidebar {
+    height: 100dvh;
+  }
+  .app-sidebar-mobile {
+    width: min(220px, calc(100vw - 48px));
+    height: 100dvh;
+  }
+  .app-main {
+    container-type: inline-size;
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .app-content {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: var(--app-content-max);
+    margin-inline: auto;
+    padding: 1.25rem var(--app-viewport-padding);
+  }
+  @media (min-width: 1024px) {
+    .app-content {
+      padding-block: 2rem;
+    }
+  }
+  .surface-card,
+  .surface-elevated {
+    min-width: 0;
   }
   .flex {
     min-height: 0;
@@ -390,10 +476,10 @@
 
   /* ── Hero Typography — 36px, bold, tight ── */
   .hero-title {
-    font-size: 2.25rem;
+    font-size: var(--text-fluid-2xl);
     font-weight: 700;
-    letter-spacing: -0.02em;
-    line-height: 2.5rem;
+    letter-spacing: 0;
+    line-height: 1.08;
   }
 
   /* ── Pill / Chip — rounded-full ── */
@@ -530,6 +616,60 @@
   input[type="checkbox"]:not(:disabled),
   input[type="radio"]:not(:disabled) {
     cursor: none;
+  }
+}
+
+/* ── Adaptive layout guardrails: use available width, not device type ── */
+@media (max-width: 767px) {
+  :where(main, section, article, aside, header, footer, nav, form, fieldset, [role="dialog"], [role="tabpanel"]) {
+    min-width: 0;
+  }
+
+  :where([class*="max-w-["]) {
+    max-width: calc(100vw - (var(--app-viewport-padding) * 2));
+  }
+
+  :where([class*="min-w-["]) {
+    min-width: 0;
+  }
+
+  :where([class*="w-["]) {
+    max-width: 100%;
+  }
+
+  :where(.surface-card, .surface-elevated) {
+    border-radius: var(--radius-lg);
+  }
+
+  :where(table) {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :where(input, select, textarea) {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  :where(.grid[class*="grid-cols-2"], .grid[class*="grid-cols-3"], .grid[class*="grid-cols-4"], .grid[class*="grid-cols-5"]) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 767px) {
+  :where(.grid[class*="grid-cols-3"], .grid[class*="grid-cols-4"], .grid[class*="grid-cols-5"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  :where(button, [role="button"], a[href], input, select, textarea) {
+    min-height: 44px;
+    cursor: pointer;
   }
 }
 

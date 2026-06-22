@@ -223,10 +223,16 @@ function makeBasketRewardCards(
   });
 }
 
-function getBasketRewardCards(count: number, page: BasketRewardModalPage): BasketRewardCard[] {
+function getBasketRewardCards(count: number, page: BasketRewardModalPage, isMobileLayout = false): BasketRewardCard[] {
   if (count <= 1) return makeBasketRewardCards(["sss"]);
   if (count === 5) return makeBasketRewardCards(["sss", "a", "b", "b", "b"]);
   if (count === 8) return makeBasketRewardCards(["sss", "a", "a", "a", "a", "b", "b", "b"]);
+  if (isMobileLayout && count > 9) {
+    if (page === "first") return makeBasketRewardCards(["sss", "a", "a", "a", "a", "a", "a", "b", "b"]);
+
+    const remainingCount = Math.min(9, count - 9);
+    return makeBasketRewardCards(Array.from({ length: remainingCount }, () => "b"), { b: 2 });
+  }
   if (count === 10 || page === "first") {
     return makeBasketRewardCards(["sss", "a", "a", "a", "a", "a", "a", "b", "b", "b"]);
   }
@@ -253,6 +259,7 @@ const MIN_AMOUNT = 1000;
 const MAX_AMOUNT = 500000;
 const GAME_STAGE_WIDTH = 1902;
 const GAME_STAGE_HEIGHT = 1080;
+const GAME_STAGE_ASPECT = GAME_STAGE_WIDTH / GAME_STAGE_HEIGHT;
 const TEST_SCENARIO_PANEL_DEFAULT_POSITION: TestScenarioPanelPosition = { left: 34, top: 124 };
 const AUTO_CAST_SINGLE_MIN_SECONDS = 10;
 const AUTO_CAST_SINGLE_MAX_SECONDS = 30;
@@ -335,6 +342,16 @@ type AgentApiKeyItem = {
   createdAt: string;
   updatedAt: string;
 };
+type GameStageLayout = {
+  scale: number;
+  mode: "contain" | "cover";
+  safeLeft: number;
+  safeTop: number;
+  visibleWidth: number;
+  visibleHeight: number;
+};
+const isMobileViewport = () =>
+  typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
 const AGENT_SKILL_LATEST = "v2.4.1";
 const AGENT_MANUAL_SOURCE = "varsity-tech-product/factor-mining-demo";
 const AGENT_MANUAL_GIT_REF = "main";
@@ -645,7 +662,14 @@ export default function Landing() {
     (window.location.hostname === "localhost" ||
       window.location.hostname === "127.0.0.1" ||
       Boolean((window as Window & { __MANUS_HOST_DEV__?: boolean }).__MANUS_HOST_DEV__)));
-  const [stageScale, setStageScale] = useState(1);
+  const [stageLayout, setStageLayout] = useState<GameStageLayout>({
+    scale: 1,
+    mode: "contain",
+    safeLeft: 0,
+    safeTop: 0,
+    visibleWidth: GAME_STAGE_WIDTH,
+    visibleHeight: GAME_STAGE_HEIGHT,
+  });
   const [gameVersionMode, setGameVersionMode] = useState<GameVersionMode>("normal");
   const [basketBadgeMode, setBasketBadgeMode] = useState<BasketBadgeMode>("hidden");
   const [basketRewardModalOpen, setBasketRewardModalOpen] = useState(false);
@@ -654,6 +678,7 @@ export default function Landing() {
   const [testScenarioPanelState, setTestScenarioPanelState] = useState<TestScenarioPanelState>("expanded");
   const [inventoryScenarioMode, setInventoryScenarioMode] = useState<InventoryScenarioMode>("multiple");
   const [testScenarioPanelPosition, setTestScenarioPanelPosition] = useState<TestScenarioPanelPosition>(TEST_SCENARIO_PANEL_DEFAULT_POSITION);
+  const [testScenarioPanelMoved, setTestScenarioPanelMoved] = useState(false);
   const testScenarioPanelDragRef = useRef<TestScenarioPanelDragState | null>(null);
   const testScenarioPanelDragCleanupRef = useRef<(() => void) | null>(null);
   const [autoCastCount, setAutoCastCount] = useState(10);
@@ -767,18 +792,55 @@ export default function Landing() {
 
   useEffect(() => {
     const fitGameStage = () => {
+      const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+      const widthScale = viewportWidth / GAME_STAGE_WIDTH;
+      const heightScale = viewportHeight / GAME_STAGE_HEIGHT;
+      const viewportAspect = viewportWidth / Math.max(1, viewportHeight);
+      const shouldCoverMobile =
+        viewportWidth < 700 && viewportAspect < GAME_STAGE_ASPECT * 0.52;
       const nextScale = Math.min(
         1,
-        window.innerWidth / GAME_STAGE_WIDTH,
-        window.innerHeight / GAME_STAGE_HEIGHT
+        shouldCoverMobile
+          ? Math.max(widthScale, heightScale)
+          : Math.min(widthScale, heightScale)
       );
-      setStageScale(nextScale);
+      const visibleWidth = viewportWidth / Math.max(nextScale, 0.001);
+      const visibleHeight = viewportHeight / Math.max(nextScale, 0.001);
+
+      setStageLayout({
+        scale: nextScale,
+        mode: shouldCoverMobile ? "cover" : "contain",
+        safeLeft: Math.max(0, (GAME_STAGE_WIDTH - visibleWidth) / 2),
+        safeTop: Math.max(0, (GAME_STAGE_HEIGHT - visibleHeight) / 2),
+        visibleWidth: Math.min(GAME_STAGE_WIDTH, visibleWidth),
+        visibleHeight: Math.min(GAME_STAGE_HEIGHT, visibleHeight),
+      });
     };
 
     fitGameStage();
     window.addEventListener("resize", fitGameStage, { passive: true });
-    return () => window.removeEventListener("resize", fitGameStage);
+    window.visualViewport?.addEventListener("resize", fitGameStage, { passive: true });
+    return () => {
+      window.removeEventListener("resize", fitGameStage);
+      window.visualViewport?.removeEventListener("resize", fitGameStage);
+    };
   }, []);
+
+  const getDefaultTestScenarioPanelPosition = useCallback((): TestScenarioPanelPosition => {
+    if (stageLayout.mode !== "cover") return TEST_SCENARIO_PANEL_DEFAULT_POSITION;
+
+    return {
+      left: stageLayout.safeLeft + 12,
+      top: stageLayout.safeTop + 142,
+    };
+  }, [stageLayout.mode, stageLayout.safeLeft, stageLayout.safeTop]);
+
+  useEffect(() => {
+    if (testScenarioPanelMoved) return;
+
+    setTestScenarioPanelPosition(getDefaultTestScenarioPanelPosition());
+  }, [getDefaultTestScenarioPanelPosition, testScenarioPanelMoved]);
 
   useEffect(() => {
     return () => {
@@ -1081,16 +1143,25 @@ export default function Landing() {
   const clientAgentOnlyLabel = tr("Use the connected local agent", "请到已连接的本地agent上操作");
   const basketItemCount = BASKET_BADGE_VALUES[basketBadgeMode];
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
-  const isBasketRewardMultiPage = basketItemCount > 10;
-  const basketRewardCards = getBasketRewardCards(basketItemCount, basketRewardModalPage);
+  const isBasketRewardMobileLayout = stageLayout.mode === "cover";
+  const isBasketRewardMultiPage = basketItemCount > (isBasketRewardMobileLayout ? 9 : 10);
+  const basketRewardCards = getBasketRewardCards(basketItemCount, basketRewardModalPage, isBasketRewardMobileLayout);
+  const basketRewardDisplayCount = basketRewardCards.length;
+  const basketRewardMobileRowClass =
+    basketRewardDisplayCount <= 3
+      ? "is-mobile-one-row"
+      : basketRewardDisplayCount <= 6
+        ? "is-mobile-two-row"
+        : "is-mobile-three-row";
   const basketRewardBackgroundImage = basketItemCount <= 5
     ? BASKET_REWARD_ASSETS.backgroundOneRow
     : BASKET_REWARD_ASSETS.backgroundTwoRow;
   const basketRewardStageClass = [
     "basket-reward-modal__stage",
     basketItemCount <= 5 ? "is-compact" : "",
-    `is-count-${basketRewardCards.length}`,
-    basketRewardCards.length === 1 ? "is-single" : basketRewardModalPage === "last" ? "is-last-page" : basketRewardCards.length <= 5 ? "is-row" : "is-grid",
+    `is-count-${basketRewardDisplayCount}`,
+    basketRewardMobileRowClass,
+    basketRewardDisplayCount === 1 ? "is-single" : basketRewardModalPage === "last" ? "is-last-page" : basketRewardDisplayCount <= 5 ? "is-row" : "is-grid",
   ].filter(Boolean).join(" ");
   const updateAutoCastCount = (value: number) => {
     setAutoCastDraftCount(clampAutoCastCount(value));
@@ -1288,7 +1359,7 @@ export default function Landing() {
     setOpenInventoryMenuId(null);
     setSelectedInventoryFactor(null);
     setPendingInventoryDelete(null);
-    setInventoryControlsHidden(false);
+    setInventoryControlsHidden(isMobileViewport());
     inventoryScrollTopRef.current = 0;
     setInventoryOpen(true);
   };
@@ -1297,10 +1368,23 @@ export default function Landing() {
     position: TestScenarioPanelPosition,
     panelWidth: number,
     panelHeight: number
-  ): TestScenarioPanelPosition => ({
-    left: Math.max(0, Math.min(GAME_STAGE_WIDTH - panelWidth, position.left)),
-    top: Math.max(0, Math.min(GAME_STAGE_HEIGHT - panelHeight, position.top)),
-  });
+  ): TestScenarioPanelPosition => {
+    const isMobileCover = stageLayout.mode === "cover";
+    const edgeGap = isMobileCover ? 8 : 0;
+    const minLeft = isMobileCover ? stageLayout.safeLeft + edgeGap : 0;
+    const minTop = isMobileCover ? stageLayout.safeTop + edgeGap : 0;
+    const maxLeft = isMobileCover
+      ? stageLayout.safeLeft + stageLayout.visibleWidth - panelWidth - edgeGap
+      : GAME_STAGE_WIDTH - panelWidth;
+    const maxTop = isMobileCover
+      ? stageLayout.safeTop + stageLayout.visibleHeight - panelHeight - edgeGap
+      : GAME_STAGE_HEIGHT - panelHeight;
+
+    return {
+      left: Math.max(minLeft, Math.min(Math.max(minLeft, maxLeft), position.left)),
+      top: Math.max(minTop, Math.min(Math.max(minTop, maxTop), position.top)),
+    };
+  };
 
   const beginTestScenarioPanelDrag = (
     element: HTMLDivElement,
@@ -1309,8 +1393,8 @@ export default function Landing() {
     clientY: number
   ) => {
     const rect = element.getBoundingClientRect();
-    const panelWidth = rect.width / stageScale;
-    const panelHeight = rect.height / stageScale;
+    const panelWidth = rect.width / stageLayout.scale;
+    const panelHeight = rect.height / stageLayout.scale;
     const startPosition = clampTestScenarioPanelPosition(testScenarioPanelPosition, panelWidth, panelHeight);
 
     testScenarioPanelDragRef.current = {
@@ -1321,6 +1405,7 @@ export default function Landing() {
       panelWidth,
       panelHeight,
     };
+    setTestScenarioPanelMoved(true);
     setTestScenarioPanelPosition(startPosition);
   };
 
@@ -1328,7 +1413,7 @@ export default function Landing() {
     const dragState = testScenarioPanelDragRef.current;
     if (!dragState || dragState.pointerId !== pointerId) return;
 
-    const scale = stageScale || 1;
+    const scale = stageLayout.scale || 1;
     setTestScenarioPanelPosition(
       clampTestScenarioPanelPosition(
         {
@@ -1482,6 +1567,10 @@ export default function Landing() {
     const delta = nextTop - previousTop;
 
     inventoryScrollTopRef.current = nextTop;
+
+    if (window.matchMedia("(max-width: 700px)").matches) {
+      return;
+    }
 
     if (Math.abs(delta) > 4) {
       setInventoryControlsHidden(delta > 0);
@@ -2530,8 +2619,9 @@ export default function Landing() {
           --modal-title-font: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
           position: relative;
           min-height: 100svh;
+          height: 100dvh;
           overflow: hidden;
-          background: #55baf3;
+          background: #5DBFF6;
           font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
           font-variation-settings: "BEVL" var(--BEVL);
           image-rendering: pixelated;
@@ -2564,6 +2654,201 @@ export default function Landing() {
           transform-origin: center center;
         }
 
+        .game-stage--mobile-cover .hud-top-stats {
+          left: calc(var(--mobile-safe-left) + 14px);
+          top: calc(var(--mobile-safe-top) + 12px);
+          --hud-stats-gap: calc(6px / var(--stage-scale));
+          --hud-stat-height: calc(50px / var(--stage-scale));
+          --hud-stat-padding: calc(8px / var(--stage-scale));
+          --hud-stat-border-width: 2px;
+          --hud-stat-radius: calc(10px / var(--stage-scale));
+          --hud-stat-font-size: calc(17px / var(--stage-scale));
+          --hud-stat-balance-width: calc(76px / var(--stage-scale));
+          --hud-stat-compact-width: calc(52px / var(--stage-scale));
+          --hud-stat-icon-scale: calc(.72 / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .top-actions {
+          left: calc(var(--mobile-safe-left) + var(--mobile-visible-width) - ((54px + 10px) / var(--stage-scale)));
+          right: auto;
+          top: calc(var(--mobile-safe-top) + 88px);
+          width: calc(54px / var(--stage-scale));
+          flex-direction: column;
+          justify-content: flex-start;
+          align-items: center;
+          align-content: center;
+          flex-wrap: nowrap;
+          gap: calc(10px / var(--stage-scale));
+          max-height: none;
+          transform: none;
+          transform-origin: top right;
+        }
+
+        .game-stage--mobile-cover .menu-item {
+          width: calc(54px / var(--stage-scale));
+          height: calc(64px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .menu-label {
+          bottom: 0;
+          font-size: calc(14px / var(--stage-scale));
+          letter-spacing: 0;
+        }
+
+        .game-stage--mobile-cover .top-actions--en .menu-label {
+          font-size: calc(12px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel {
+          width: min(calc(260px / var(--stage-scale)), calc(var(--mobile-visible-width) - 116px));
+          max-height: min(calc(420px / var(--stage-scale)), calc(var(--mobile-visible-height) - 330px));
+          overflow: hidden;
+          touch-action: auto;
+          gap: calc(10px / var(--stage-scale));
+          padding: calc(12px / var(--stage-scale));
+          background: rgba(255, 253, 244, .68);
+          border: 2px solid rgba(196, 184, 158, .48);
+          border-radius: calc(10px / var(--stage-scale));
+          box-shadow: 0 calc(5px / var(--stage-scale)) 0 rgba(78, 67, 60, .18);
+          overscroll-behavior: contain;
+          transform: none;
+          transform-origin: top left;
+          backdrop-filter: blur(8px);
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel__body {
+          flex: 1 1 auto;
+          min-height: 0;
+          max-height: calc(340px / var(--stage-scale));
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+          gap: calc(12px / var(--stage-scale));
+          touch-action: pan-y;
+        }
+
+        .game-stage--mobile-cover .test-scenario-group {
+          gap: calc(8px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-group + .test-scenario-group {
+          padding-top: calc(10px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel__header {
+          min-height: calc(48px / var(--stage-scale));
+          cursor: grab;
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel__title {
+          font-size: calc(16px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel__toggle {
+          min-width: calc(64px / var(--stage-scale));
+          height: calc(44px / var(--stage-scale));
+          padding-inline: calc(14px / var(--stage-scale));
+          font-size: calc(13px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-version-segment {
+          height: calc(44px / var(--stage-scale));
+          font-size: calc(14px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-button {
+          min-width: 0;
+          width: 100%;
+          min-height: calc(50px / var(--stage-scale));
+          height: auto;
+          padding: 0 calc(14px / var(--stage-scale));
+          font-size: calc(15px / var(--stage-scale));
+          line-height: 1.2;
+          white-space: normal;
+        }
+
+        .game-stage--mobile-cover .test-scenario-button-group {
+          gap: calc(8px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel.is-collapsed {
+          width: calc(196px / var(--stage-scale));
+          max-height: none;
+          overflow: visible;
+          padding: calc(8px / var(--stage-scale)) calc(10px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .hud-bottom-bar {
+          bottom: calc(20px / var(--stage-scale));
+          gap: calc(12px / var(--stage-scale));
+          transform: translateX(-50%);
+          transform-origin: bottom center;
+          overscroll-behavior: none;
+          touch-action: manipulation;
+        }
+
+        .game-stage--mobile-cover .cast-auto-button {
+          width: calc(248px / var(--stage-scale));
+          height: calc(44px / var(--stage-scale));
+          margin-bottom: calc(2px / var(--stage-scale));
+          padding-inline: calc(18px / var(--stage-scale));
+          border-radius: calc(18px / var(--stage-scale)) calc(18px / var(--stage-scale)) 0 0;
+          touch-action: manipulation;
+        }
+
+        .game-stage--mobile-cover .hud-main-action {
+          width: calc(248px / var(--stage-scale));
+          touch-action: manipulation;
+        }
+
+        .game-stage--mobile-cover .hud-basket {
+          width: calc(80px / var(--stage-scale));
+          height: calc(88px / var(--stage-scale));
+          flex-basis: calc(80px / var(--stage-scale));
+          border-radius: calc(12px / var(--stage-scale));
+          touch-action: manipulation;
+        }
+
+        .game-stage--mobile-cover .hud-basket__shell {
+          inset: 0 0 calc(-8px / var(--stage-scale));
+          border-radius: calc(12px / var(--stage-scale));
+          overflow: hidden;
+          clip-path: inset(0 0 0 0 round calc(12px / var(--stage-scale)));
+          backface-visibility: hidden;
+        }
+
+        .game-stage--mobile-cover .hud-basket__icon {
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          image-rendering: auto;
+        }
+
+        .game-stage--mobile-cover .hud-basket:not(:disabled):active .hud-basket__shell {
+          clip-path: inset(0 0 calc(8px / var(--stage-scale)) 0 round calc(12px / var(--stage-scale)));
+        }
+
+        .game-stage--mobile-cover .cast-auto-title {
+          font-size: calc(15px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .cast-auto-status,
+        .game-stage--mobile-cover .cast-auto-stop {
+          font-size: calc(13px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .cast-auto-stop {
+          min-width: calc(64px / var(--stage-scale));
+          height: calc(44px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .hud-basket-empty-toast {
+          min-width: calc(112px / var(--stage-scale));
+          padding: calc(10px / var(--stage-scale)) calc(16px / var(--stage-scale));
+          font-size: calc(16px / var(--stage-scale));
+        }
+
         .test-scenario-panel {
           position: absolute;
           left: 34px;
@@ -2579,7 +2864,7 @@ export default function Landing() {
           border-radius: 10px;
           box-shadow: 0 4px 0 rgba(189, 174, 160, .35);
           image-rendering: auto;
-          touch-action: none;
+          touch-action: auto;
           user-select: none;
         }
 
@@ -2590,6 +2875,7 @@ export default function Landing() {
           gap: 8px;
           padding: 0 2px;
           cursor: grab;
+          touch-action: none;
         }
 
         .test-scenario-panel__header:active {
@@ -3904,6 +4190,186 @@ export default function Landing() {
         .basket-reward-modal__page:focus-visible {
           outline: 3px solid rgba(255, 255, 255, .82);
           outline-offset: 3px;
+        }
+
+        @media (max-width: 700px) and (orientation: portrait) {
+          .basket-reward-modal {
+            place-items: stretch;
+            overflow: hidden;
+          }
+
+          .basket-reward-modal__coin-halo {
+            width: 145vmax;
+            height: 145vmax;
+          }
+
+          .basket-reward-modal__stage {
+            width: 100vw;
+            height: 100dvh;
+            min-height: 100svh;
+            aspect-ratio: auto;
+            --basket-reward-band-top: 31%;
+            --basket-reward-band-height: 35%;
+          }
+
+          .basket-reward-modal__stage:not(.is-compact) {
+            --basket-reward-band-top: 19%;
+            --basket-reward-band-height: 59%;
+          }
+
+          .basket-reward-modal__band {
+            left: 0;
+            width: 100%;
+          }
+
+          .basket-reward-modal__background {
+            object-fit: cover;
+          }
+
+          .basket-reward-modal__title {
+            top: calc(var(--basket-reward-band-top) - 3.2dvh);
+            gap: 6px;
+            margin-top: 0;
+          }
+
+          .basket-reward-modal__stage:not(.is-compact) .basket-reward-modal__title {
+            top: calc(var(--basket-reward-band-top) - 3dvh);
+          }
+
+          .basket-reward-modal__title img {
+            width: 22px;
+            height: 15px;
+            margin-top: -4px;
+          }
+
+          .basket-reward-modal__title span {
+            font-size: clamp(24px, 7.1vw, 32px);
+            -webkit-text-stroke-width: 5px;
+            text-shadow: 0 1px 0 rgba(255, 198, 72, .9);
+          }
+
+          .basket-reward-modal__cards {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) / 2);
+            width: calc(100vw - 24px);
+            height: auto;
+            transform: translate(-50%, -50%);
+          }
+
+          .basket-reward-modal__stage.is-single .basket-reward-modal__cards {
+            width: clamp(118px, 38vw, 160px);
+          }
+
+          .basket-reward-modal__stage.is-mobile-two-row .basket-reward-modal__cards {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) / 2);
+            width: min(calc(100vw - 24px), 390px);
+            height: auto;
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-template-rows: repeat(2, auto);
+            gap: 8px 6px;
+          }
+
+          .basket-reward-modal__stage.is-mobile-two-row .basket-reward-card {
+            grid-column: span 2;
+          }
+
+          .basket-reward-modal__stage.is-mobile-two-row.is-count-4 .basket-reward-card:nth-child(4) {
+            grid-column: 3 / span 2;
+          }
+
+          .basket-reward-modal__stage.is-mobile-two-row.is-count-5 .basket-reward-card:nth-child(4) {
+            grid-column: 2 / span 2;
+          }
+
+          .basket-reward-modal__stage.is-mobile-two-row.is-count-5 .basket-reward-card:nth-child(5) {
+            grid-column: 4 / span 2;
+          }
+
+          .basket-reward-modal__stage.is-mobile-three-row .basket-reward-modal__cards {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) / 2);
+            width: min(calc(100vw - 72px), 330px);
+            height: auto;
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-template-rows: repeat(3, auto);
+            gap: 8px 6px;
+          }
+
+          .basket-reward-modal__stage.is-mobile-three-row .basket-reward-card {
+            grid-column: span 2;
+            grid-row: auto;
+          }
+
+          .basket-reward-modal__stage.is-mobile-three-row.is-count-7 .basket-reward-card:nth-child(7) {
+            grid-column: 3 / span 2;
+          }
+
+          .basket-reward-modal__stage.is-mobile-three-row.is-count-8 .basket-reward-card:nth-child(6) {
+            grid-column: span 2;
+            grid-row: auto;
+          }
+
+          .basket-reward-modal__stage.is-mobile-three-row.is-count-8 .basket-reward-card:nth-child(7) {
+            grid-column: 2 / span 2;
+            grid-row: auto;
+          }
+
+          .basket-reward-modal__stage.is-mobile-three-row.is-count-8 .basket-reward-card:nth-child(8) {
+            grid-column: 4 / span 2;
+            grid-row: auto;
+          }
+
+          .basket-reward-modal__stage.is-last-page.is-mobile-one-row .basket-reward-modal__cards {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) / 2);
+            width: min(76vw, 330px);
+            height: auto;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 7px;
+          }
+
+          .basket-reward-card {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 880 / 1066;
+          }
+
+          .basket-reward-modal__actions {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) + 2.4dvh);
+            gap: 12px;
+          }
+
+          .basket-reward-modal__stage.is-compact .basket-reward-modal__actions {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) + 2.2dvh);
+          }
+
+          .basket-reward-modal__action {
+            width: clamp(86px, 24vw, 112px);
+            height: 44px;
+            border-radius: 8px;
+            font-size: 16px;
+            box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .08);
+          }
+
+          .basket-reward-modal__page {
+            left: 50%;
+            right: auto;
+            width: 44px;
+            height: 44px;
+            transform: translate(-50%, -50%);
+          }
+
+          .basket-reward-modal__page--prev {
+            top: calc(var(--basket-reward-band-top) + 3.8dvh);
+          }
+
+          .basket-reward-modal__page--next {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) - 3.8dvh);
+          }
+
+          .basket-reward-modal__page--prev img,
+          .basket-reward-modal__page--next img {
+            transform: rotate(90deg);
+          }
         }
 
         @keyframes basketRewardOverlayIn {
@@ -5500,9 +5966,19 @@ export default function Landing() {
           color: var(--ac-text);
         }
 
+        .inventory-title-wrap {
+          min-width: 0;
+          order: 1;
+        }
+
+        .inventory-filter-toggle {
+          display: none;
+        }
+
         .inventory-modal .shop-modal__close {
           width: 38px;
           height: 38px;
+          order: 2;
         }
 
         .inventory-modal .shop-modal__toolbar {
@@ -8419,6 +8895,455 @@ export default function Landing() {
           gap: 10px;
         }
 
+        .settings-modal-backdrop {
+          container-type: inline-size;
+          container-name: settings-modal-shell;
+        }
+
+        @media (max-width: 700px) {
+          .settings-modal-backdrop {
+            place-items: center;
+            overflow: hidden;
+            padding-block: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-bottom));
+            padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right));
+          }
+
+          .settings-modal {
+            box-sizing: border-box;
+            inline-size: min(100%, 560px);
+            block-size: min(760px, calc(100dvh - 20px));
+            max-block-size: calc(100dvh - 20px);
+            min-block-size: 0;
+            min-inline-size: 0;
+            transform: none;
+            border-radius: var(--radius-xs);
+          }
+
+          @supports (height: 100svh) {
+            .settings-modal {
+              block-size: min(760px, calc(100svh - 20px));
+              max-block-size: calc(100svh - 20px);
+            }
+          }
+
+          .settings-modal .shop-modal__header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 48px;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 12px 10px;
+          }
+
+          .settings-tabs {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 6px;
+          }
+
+          .settings-tab {
+            min-width: 0;
+            min-height: 44px;
+            padding: 0 8px;
+            font-size: 13px;
+            line-height: 1.15;
+          }
+
+          .settings-modal .shop-modal__close {
+            inline-size: 48px;
+            block-size: 48px;
+            justify-self: end;
+            flex: 0 0 48px;
+          }
+
+          .settings-content {
+            padding: 12px;
+            overscroll-behavior: contain;
+          }
+
+          .settings-content--agent {
+            overflow: auto;
+          }
+
+          .settings-section {
+            padding: 14px;
+          }
+
+          .settings-section + .settings-section {
+            margin-top: 12px;
+          }
+
+          .settings-section__head {
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 12px;
+          }
+
+          .settings-section__title {
+            min-width: 0;
+            font-size: 15px;
+            line-height: 1.25;
+          }
+
+          .settings-language-options,
+          .settings-profile,
+          .settings-grid {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .settings-field--full {
+            grid-column: auto;
+          }
+
+          .settings-input {
+            min-width: 0;
+            height: 44px;
+            font-size: 13px;
+          }
+
+          .settings-code-field {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: stretch;
+            gap: 8px;
+          }
+
+          .settings-code-field .settings-input {
+            padding-right: 12px;
+          }
+
+          .settings-action.settings-code-send {
+            position: static;
+            min-height: 44px;
+            padding: 0 12px;
+            transform: none;
+          }
+
+          .settings-actions,
+          .settings-confirm-modal__actions,
+          .settings-agent-confirm-actions,
+          .settings-agent-actions,
+          .settings-agent-byok-actions {
+            justify-content: stretch;
+          }
+
+          .settings-actions .settings-action,
+          .settings-confirm-modal__actions .settings-action,
+          .settings-agent-confirm-actions .settings-action,
+          .settings-agent-actions .settings-action,
+          .settings-agent-byok-actions .settings-action {
+            flex: 1 1 0;
+            min-height: 44px;
+          }
+
+          .settings-action {
+            min-height: 44px;
+          }
+
+          .settings-logout-row {
+            margin-top: 18px;
+            margin-bottom: 6px;
+          }
+
+          .settings-action--logout {
+            width: 100%;
+          }
+
+          .settings-agent-panel {
+            height: auto;
+            min-height: 100%;
+          }
+
+          .settings-agent-main {
+            height: auto;
+            min-height: 100%;
+            overflow: visible;
+            padding: 14px 12px 18px;
+          }
+
+          .settings-agent-main__topbar,
+          .settings-agent-card__head,
+          .settings-agent-api-row,
+          .settings-agent-api-name-edit,
+          .settings-agent-auth-note,
+          .sac-buddy-banner {
+            align-items: stretch;
+            flex-direction: column;
+          }
+
+          .settings-agent-install {
+            gap: 16px;
+          }
+
+          .settings-agent-install__title {
+            font-size: 22px;
+          }
+
+          .settings-agent-install__subtitle,
+          .settings-agent-install-step__body p,
+          .settings-agent-install-check {
+            font-size: 13px;
+          }
+
+          .settings-agent-install-tabs {
+            gap: 8px;
+            margin: 6px 0 -1px;
+            padding-left: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+          }
+
+          .settings-agent-install-tabs::-webkit-scrollbar {
+            display: none;
+          }
+
+          .settings-agent-install-tab {
+            min-height: 44px;
+            padding: 0 12px;
+            flex: 0 0 auto;
+            font-size: 13px;
+          }
+
+          .settings-agent-install-card {
+            gap: 20px;
+            padding: 16px;
+          }
+
+          .settings-agent-install-step {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 10px;
+          }
+
+          .settings-agent-install-step__num {
+            width: 44px;
+            height: 44px;
+          }
+
+          .settings-agent-install-step__body h3 {
+            font-size: 18px;
+          }
+
+          .settings-agent-install-command {
+            grid-template-columns: minmax(0, 1fr) 44px;
+            padding: 10px;
+          }
+
+          .settings-agent-install-command code {
+            font-size: 12px;
+          }
+
+          .settings-agent-install-copy {
+            width: 44px;
+            height: 44px;
+          }
+
+          .settings-agent-provider-list {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .settings-agent-provider-row {
+            padding: 12px;
+            border-radius: var(--radius-xs);
+          }
+
+          .settings-agent-provider-row:first-child,
+          .settings-agent-provider-row:last-child {
+            border-radius: var(--radius-xs);
+          }
+
+          .settings-agent-provider-actions {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+            gap: 8px;
+          }
+
+          .settings-agent-provider-action-button,
+          .settings-agent-provider-action-button--compact,
+          .settings-agent-provider-add,
+          .settings-agent-icon-button,
+          .settings-agent-refresh-icon,
+          .sac-mode-bar__switch,
+          .sac-disconnect-all-btn,
+          .sac-mode-warning .settings-agent-confirm-actions .settings-action--primary,
+          .sac-code-copy,
+          .sac-guide-copy,
+          .sac-btn-prev,
+          .sac-btn-next,
+          .sac-btn-sm {
+            min-height: 44px;
+          }
+
+          .settings-agent-icon-button,
+          .settings-agent-refresh-icon,
+          .sac-code-copy,
+          .sac-guide-copy {
+            width: 44px;
+            height: 44px;
+          }
+
+          .sac-mode-bar {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .sac-mode-bar__switch {
+            justify-content: center;
+          }
+
+          .sac-mode-grid {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          .sac-nav {
+            gap: 10px;
+          }
+
+          .sac-nav > * {
+            flex: 1 1 0;
+          }
+
+          .sac-opt-detail,
+          .sac-opt-card--inline-form .sac-opt-detail,
+          .sac-opt-card--api-web .sac-opt-detail,
+          .sac-opt-card--api-web:hover .sac-opt-detail {
+            margin-left: 0;
+          }
+
+          .sac-api-panel__actions {
+            justify-content: stretch;
+          }
+
+          .sac-api-panel__actions .sac-btn-next {
+            width: 100%;
+          }
+
+          .sac-code-box {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 44px;
+          }
+
+          .sac-mode-warning {
+            padding: 12px;
+          }
+
+          .settings-agent-connect-overlay {
+            padding: 12px;
+          }
+
+          .settings-agent-connect-modal,
+          .settings-agent-confirm-modal,
+          .settings-confirm-modal {
+            inline-size: min(100%, 520px);
+            max-inline-size: 100%;
+            max-height: calc(100dvh - 56px);
+            overflow: auto;
+            padding: 14px;
+          }
+
+          @supports (height: 100svh) {
+            .settings-agent-connect-modal,
+            .settings-agent-confirm-modal,
+            .settings-confirm-modal {
+              max-height: calc(100svh - 56px);
+            }
+          }
+
+          .settings-agent-connect-modal__header,
+          .settings-confirm-modal__header {
+            gap: 10px;
+          }
+
+          .settings-agent-connect-modal__close,
+          .settings-confirm-modal__close {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+          }
+
+          .settings-agent-method-tab {
+            min-height: 44px;
+            padding: 0 8px;
+            font-size: 12px;
+          }
+
+          .settings-agent-card,
+          .settings-agent-connect-modal .settings-agent-card {
+            min-height: 0;
+            overflow: visible;
+          }
+
+          .settings-agent-card__title strong {
+            font-size: 16px;
+          }
+
+          .settings-agent-status {
+            white-space: normal;
+          }
+
+          .settings-agent-api-name-edit .settings-input {
+            max-width: none;
+          }
+
+          .settings-agent-api-actions {
+            width: 100%;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+          }
+
+          .settings-agent-api-secret {
+            grid-template-columns: minmax(0, 1fr) 44px 44px;
+            padding: 6px;
+          }
+
+          .settings-agent-api-menu button {
+            min-height: 44px;
+          }
+
+          .settings-agent-api-steps {
+            grid-template-columns: minmax(0, 1fr);
+            align-items: stretch;
+          }
+
+          .settings-agent-api-step-line {
+            display: none;
+          }
+
+          .settings-agent-auth-options {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 14px;
+          }
+
+          .settings-agent-auth-option--code {
+            padding-left: 0;
+            padding-top: 14px;
+            border-left: 0;
+            border-top: 1.5px solid rgba(196, 184, 158, .44);
+          }
+
+          .settings-agent-auth-option--code .settings-action {
+            width: 100%;
+            min-height: 44px;
+          }
+
+          .settings-agent-meta__row {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 4px;
+          }
+
+          .settings-agent-qr {
+            width: 128px;
+            height: 128px;
+          }
+
+          .settings-agent-prompt-preview,
+          .settings-agent-snippet {
+            max-height: 220px;
+          }
+        }
+
         @media (max-width: 640px) {
           .settings-action--logout {
             width: 100%;
@@ -11237,11 +12162,492 @@ export default function Landing() {
             padding-top: 12px;
           }
         }
+
+        .inventory-modal-backdrop {
+          container-type: inline-size;
+          container-name: inventory-modal-shell;
+        }
+
+        @media (max-width: 700px) {
+          .inventory-modal-backdrop {
+            place-items: stretch;
+            overflow: hidden;
+            padding: 0;
+            background: #d8edf7;
+          }
+
+          .inventory-modal {
+            --inventory-toolbar-height: auto;
+            --inventory-filter-height: auto;
+            box-sizing: border-box;
+            inline-size: 100vw;
+            block-size: 100dvh;
+            max-block-size: 100dvh;
+            min-inline-size: 0;
+            min-block-size: 0;
+            display: flex;
+            flex-direction: column;
+            border-radius: 0;
+            border-inline: 0;
+            border-block: 0;
+            box-shadow: none;
+          }
+
+          @supports (height: 100svh) {
+            .inventory-modal {
+              block-size: 100svh;
+              max-block-size: 100svh;
+            }
+          }
+
+          .inventory-modal .shop-modal__header {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 8px;
+            min-block-size: 64px;
+            padding-block: max(10px, env(safe-area-inset-top)) 8px;
+            padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+            background: rgba(255, 249, 232, .88);
+            border-bottom: 2px solid rgba(196, 184, 158, .62);
+          }
+
+          .inventory-title-wrap {
+            min-inline-size: 0;
+            order: initial;
+          }
+
+          .inventory-modal .shop-modal__title {
+            font-size: clamp(28px, 8cqi, 34px);
+            line-height: 1;
+          }
+
+          .inventory-modal .shop-modal__close,
+          .inventory-detail-modal .shop-modal__close,
+          .inventory-detail-back {
+            inline-size: 44px;
+            block-size: 44px;
+            justify-self: start;
+            flex: 0 0 44px;
+            box-shadow: none;
+            order: initial;
+          }
+
+          .inventory-modal .inventory-filter-toggle {
+            appearance: none;
+            min-inline-size: 44px;
+            min-block-size: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            justify-self: end;
+            padding-inline: 12px;
+            color: var(--ac-text);
+            background: var(--ac-cream-light);
+            border: 2px solid var(--ac-border);
+            border-radius: var(--radius-xs);
+            box-shadow: none;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 1000;
+            line-height: 1;
+          }
+
+          .inventory-modal .inventory-filter-toggle span {
+            white-space: nowrap;
+          }
+
+          .inventory-modal .shop-modal__close:hover,
+          .inventory-modal .shop-modal__close:focus-visible,
+          .inventory-modal .inventory-filter-toggle:hover,
+          .inventory-modal .inventory-filter-toggle:focus-visible {
+            transform: none;
+            border-color: var(--ac-border);
+            box-shadow: none;
+            outline: none;
+          }
+
+          .inventory-modal .shop-modal__toolbar {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            align-content: start;
+            gap: 10px;
+            padding: 10px 16px 8px;
+            background: rgba(255, 249, 232, .88);
+          }
+
+          .inventory-modal .shop-search,
+          .inventory-modal .shop-controls {
+            inline-size: 100%;
+          }
+
+          .inventory-modal .shop-controls {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            justify-content: stretch;
+          }
+
+          .inventory-modal .shop-select-aisland,
+          .inventory-modal .shop-select-aisland--sort {
+            inline-size: 100%;
+            min-inline-size: 0;
+            block-size: 44px;
+          }
+
+          .inventory-modal .shop-input,
+          .inventory-modal .shop-select-aisland [class*="animal-trigger-"],
+          .inventory-modal .sort-direction-select,
+          .inventory-modal .sort-direction-select__trigger {
+            block-size: 44px;
+            min-block-size: 44px;
+          }
+
+          .inventory-modal .sort-direction-select__menu {
+            right: auto;
+            left: 0;
+            inline-size: 100%;
+            min-inline-size: 100%;
+            max-inline-size: 100%;
+          }
+
+          .inventory-modal .sort-direction-select__option {
+            min-inline-size: 0;
+            min-block-size: 44px;
+            inline-size: 100%;
+          }
+
+          .inventory-modal .inventory-grade-filter {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 8px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-inline: contain;
+            padding: 8px 16px 12px;
+            scroll-padding-inline: 16px;
+            scrollbar-width: none;
+            background: rgba(255, 249, 232, .88);
+            border-bottom: 2px solid rgba(127, 151, 164, .28);
+          }
+
+          .inventory-modal .inventory-grade-filter::-webkit-scrollbar {
+            display: none;
+          }
+
+          .inventory-modal .inventory-grade-filter__chip {
+            flex: 0 0 auto;
+            min-inline-size: 58px;
+            block-size: 44px;
+            padding-inline: 12px;
+            font-size: 12px;
+          }
+
+          .inventory-modal.inventory-modal--controls-hidden .shop-modal__toolbar,
+          .inventory-modal.inventory-modal--controls-hidden .inventory-grade-filter {
+            padding-block: 0;
+          }
+
+          .inventory-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+            perspective: none;
+            overscroll-behavior: contain;
+          }
+
+          .inventory-card,
+          .inventory-card:hover {
+            min-block-size: 0;
+            flex: 0 0 auto;
+            padding: clamp(12px, 3.6cqi, 15px);
+            border-radius: 16px;
+            transform: none;
+            box-shadow: none;
+          }
+
+          .inventory-card:hover .inv-head,
+          .inventory-card:hover .inv-art,
+          .inventory-card:hover .inv-stats,
+          .inventory-card:hover .inv-actions,
+          .inventory-card:hover .inv-medal,
+          .inventory-card:hover .inv-art__img,
+          .inventory-card:hover .inv-art__rays,
+          .inventory-card:hover .inv-art__star {
+            transform: none;
+          }
+
+          .inventory-card::before,
+          .inventory-card::after {
+            display: none;
+          }
+
+          .inv-head {
+            min-block-size: 32px;
+            padding-block-end: 8px;
+          }
+
+          .inv-no {
+            font-size: clamp(19px, 6.2cqi, 25px);
+          }
+
+          .inv-medal {
+            min-block-size: 32px;
+            min-inline-size: 54px;
+            font-size: 13px;
+            transform: none;
+          }
+
+          .inv-art,
+          .inventory-card--prop .inv-item-art,
+          .inventory-card--misc .inv-item-art {
+            block-size: clamp(146px, 42cqi, 188px);
+          }
+
+          .inv-art__img,
+          .inv-item-art__image {
+            max-inline-size: min(72%, 176px);
+          }
+
+          .inv-art__tag {
+            right: 0;
+            bottom: 0;
+            min-block-size: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 10px;
+            font-size: 13px;
+          }
+
+          .inv-stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            padding: 10px 14px;
+          }
+
+          .inv-stat {
+            inline-size: auto;
+            min-inline-size: 0;
+            block-size: auto;
+            min-block-size: 42px;
+          }
+
+          .inv-stat__label {
+            font-size: 12px;
+          }
+
+          .inv-stat__value {
+            font-size: clamp(17px, 5.2cqi, 22px);
+          }
+
+          .inv-actions {
+            grid-template-columns: 64px 64px minmax(0, 1fr);
+            gap: 10px;
+            margin-block-start: 12px;
+          }
+
+          .inv-btn,
+          .inv-more-menu__item {
+            min-block-size: 48px;
+          }
+
+          .inv-more-menu {
+            min-inline-size: 118px;
+          }
+
+          .inventory-card--prop .inv-actions,
+          .inventory-card--misc .inv-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .inventory-empty {
+            padding: 34px 16px;
+          }
+
+          .inventory-detail-modal .shop-modal__header {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 44px;
+            align-items: start;
+            gap: 8px;
+            min-block-size: 78px;
+            padding: 10px;
+          }
+
+          .inventory-detail-heading {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr);
+            align-items: start;
+            min-inline-size: 0;
+            gap: 8px;
+          }
+
+          .inventory-detail-title-wrap .shop-modal__title {
+            display: -webkit-box;
+            overflow: hidden;
+            font-size: clamp(21px, 6cqi, 25px);
+            line-height: 1.08;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+          }
+
+          .inventory-detail-subtitle {
+            margin-top: 3px;
+            white-space: normal;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 1;
+            font-size: 11px;
+            line-height: 1.25;
+          }
+
+          .inventory-detail-content {
+            padding: 10px;
+            overscroll-behavior: contain;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail > .space-y-6,
+          .inventory-detail-modal .inventory-factor-detail .space-y-6 {
+            gap: 12px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .surface-card {
+            border-radius: 12px;
+            box-shadow: 0 2px 0 rgba(189, 174, 160, .42);
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .surface-card > .px-6 {
+            padding-inline: 14px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .surface-card > .py-4 {
+            padding-block-start: 12px;
+            padding-block-end: 8px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .surface-card > .pb-6 {
+            padding-block-end: 14px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .text-base {
+            font-size: 15px;
+            line-height: 1.2;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .text-sm {
+            font-size: 13px;
+            line-height: 1.65;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .rounded-\[8px\] {
+            border-radius: 10px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail code {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .font-mono {
+            font-family: inherit !important;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .grid-cols-4,
+          .inventory-detail-modal .inventory-factor-detail .grid-cols-3 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .gap-3 {
+            gap: 10px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .min-h-\[60px\] {
+            min-height: 72px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .h-\[400px\],
+          .inventory-detail-modal .inventory-factor-detail .h-\[300px\] {
+            height: 260px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail [aria-label="Chart selector"],
+          .inventory-detail-modal .inventory-factor-detail [aria-label="图表选择器"] {
+            display: flex;
+            flex-wrap: nowrap;
+            inline-size: 100%;
+            overflow-x: auto;
+            overscroll-behavior-inline: contain;
+            padding-block-end: 2px;
+            scrollbar-width: none;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail [aria-label="Chart selector"]::-webkit-scrollbar,
+          .inventory-detail-modal .inventory-factor-detail [aria-label="图表选择器"]::-webkit-scrollbar {
+            display: none;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .surface-card .flex.flex-wrap.items-center.justify-between {
+            align-items: stretch;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .surface-card [class*="gap-1.5"][class*="flex-wrap"] {
+            flex-wrap: nowrap;
+            max-inline-size: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-inline: contain;
+            scrollbar-width: none;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .surface-card [class*="gap-1.5"][class*="flex-wrap"]::-webkit-scrollbar {
+            display: none;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail [aria-label="Chart selector"] button,
+          .inventory-detail-modal .inventory-factor-detail [aria-label="图表选择器"] button {
+            flex: 0 0 auto;
+            min-block-size: 44px;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail button {
+            min-block-size: 44px;
+          }
+
+          .delete-confirm-modal {
+            inline-size: min(100%, 420px);
+            max-inline-size: 100%;
+          }
+
+          .delete-confirm-modal__body {
+            padding: 16px;
+          }
+
+          .delete-confirm-modal__actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .delete-confirm-modal__btn {
+            min-block-size: 44px;
+            min-inline-size: 0;
+          }
+        }
       `}</style>
 
       <div
-        className="game-stage"
-        style={{ transform: `translate(-50%, -50%) scale(${stageScale})` }}
+        className={`game-stage${stageLayout.mode === "cover" ? " game-stage--mobile-cover" : ""}`}
+        style={{
+          transform: `translate(-50%, -50%) scale(${stageLayout.scale})`,
+          "--stage-scale": stageLayout.scale,
+          "--mobile-safe-left": `${stageLayout.safeLeft}px`,
+          "--mobile-safe-top": `${stageLayout.safeTop}px`,
+          "--mobile-visible-width": `${stageLayout.visibleWidth}px`,
+          "--mobile-visible-height": `${stageLayout.visibleHeight}px`,
+        } as CSSProperties}
       >
         <img
           className="game-bg"
@@ -11297,7 +12703,7 @@ export default function Landing() {
                 type="button"
                 aria-label={tr("Inventory", "图鉴")}
                 onClick={() => {
-                  setInventoryControlsHidden(false);
+                  setInventoryControlsHidden(isMobileViewport());
                   inventoryScrollTopRef.current = 0;
                   setInventoryOpen(true);
                 }}
@@ -11371,19 +12777,21 @@ export default function Landing() {
 
         {shouldShowTestScenarioPanel && (
           <div
-            className="test-scenario-panel"
+            className={`test-scenario-panel${testScenarioPanelState === "collapsed" ? " is-collapsed" : ""}`}
             aria-label={tr("Test scenarios", "测试场景")}
             style={{
               left: testScenarioPanelPosition.left,
               top: testScenarioPanelPosition.top,
             } satisfies CSSProperties}
-            onPointerDown={handleTestScenarioPanelPointerDown}
-            onPointerMove={handleTestScenarioPanelPointerMove}
-            onPointerUp={handleTestScenarioPanelPointerUp}
-            onPointerCancel={handleTestScenarioPanelPointerUp}
-            onMouseDown={handleTestScenarioPanelMouseDown}
           >
-            <div className="test-scenario-panel__header">
+            <div
+              className="test-scenario-panel__header"
+              onPointerDown={handleTestScenarioPanelPointerDown}
+              onPointerMove={handleTestScenarioPanelPointerMove}
+              onPointerUp={handleTestScenarioPanelPointerUp}
+              onPointerCancel={handleTestScenarioPanelPointerUp}
+              onMouseDown={handleTestScenarioPanelMouseDown}
+            >
               <span className="test-scenario-panel__title">{tr("Demo scenarios", "演示场景")}</span>
               <button
                 className="test-scenario-panel__toggle"
@@ -11698,7 +13106,7 @@ export default function Landing() {
       </div>
 
       {settingsOpen && (
-        <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
+        <div className="shop-modal-backdrop settings-modal-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) closeSettingsModal();
         }}>
           <section className="shop-modal settings-modal" role="dialog" aria-modal="true" aria-label={tr("Settings", "设置")}>
@@ -13142,7 +14550,7 @@ export default function Landing() {
       )}
 
       {inventoryOpen && (
-        <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
+        <div className="shop-modal-backdrop inventory-modal-backdrop" role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) {
             setInventoryOpen(false);
             setSelectedInventoryFactor(null);
@@ -13205,9 +14613,6 @@ export default function Landing() {
             aria-labelledby="inventory-modal-title"
           >
             <header className="shop-modal__header">
-              <div>
-                <h2 className="shop-modal__title" id="inventory-modal-title">{tr("Inventory", "图鉴")}</h2>
-              </div>
               <button
                 className="shop-modal__close"
                 type="button"
@@ -13220,9 +14625,22 @@ export default function Landing() {
               >
                 <X size={22} strokeWidth={3} />
               </button>
+              <div className="inventory-title-wrap">
+                <h2 className="shop-modal__title" id="inventory-modal-title">{tr("Inventory", "图鉴")}</h2>
+              </div>
+              <button
+                className="inventory-filter-toggle"
+                type="button"
+                aria-label={inventoryControlsHidden ? tr("Show search and filters", "显示搜索和筛选") : tr("Hide search and filters", "隐藏搜索和筛选")}
+                aria-controls="inventory-search-filters"
+                aria-expanded={!inventoryControlsHidden}
+                onClick={() => setInventoryControlsHidden((hidden) => !hidden)}
+              >
+                <span>{tr("Search / Filter", "搜索/筛选")}</span>
+              </button>
             </header>
 
-            <div className="shop-modal__toolbar">
+            <div className="shop-modal__toolbar" id="inventory-search-filters">
               <label className="shop-search">
                 <Search aria-hidden="true" />
                 <input
@@ -13568,7 +14986,7 @@ export default function Landing() {
 
       {pendingInventoryDelete && (
         <div
-          className="shop-modal-backdrop"
+          className="shop-modal-backdrop inventory-modal-backdrop"
           role="presentation"
           style={{ zIndex: 70 }}
           onMouseDown={(event) => {

@@ -323,8 +323,8 @@ export default function Dashboard() {
       ref={bannerRef}
       className="surface-card overflow-hidden border-primary/20 dark:border-primary/30"
     >
-      <div className="flex items-center justify-between px-6 py-5 gap-6 flex-wrap">
-        <div className="flex items-center gap-4">
+      <div className="flex items-start justify-between px-4 py-4 gap-4 flex-wrap sm:items-center sm:px-6 sm:py-5 sm:gap-6">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-primary/10 border border-primary/20">
             <Trophy className="w-5 h-5 text-primary" />
           </div>
@@ -342,15 +342,15 @@ export default function Dashboard() {
             <span className="text-xs text-muted-foreground">{currentEpoch.startDate} — {currentEpoch.endDate}</span>
           </div>
         </div>
-        <div className="flex items-center gap-6 flex-wrap">
-          <div className="text-center">
+        <div className="grid w-full grid-cols-1 gap-3 min-[420px]:grid-cols-3 sm:flex sm:w-auto sm:items-center sm:gap-6 sm:flex-wrap">
+          <div className="text-left sm:text-center">
             <div className="label-upper mb-0.5">{tr("Prize Pool", "奖池")}</div>
             <div className={`stat-value text-base font-bold ${goldGradient}`}>
               {stripUSDT(currentEpoch.totalPool)} <span className="text-xs font-medium">USDT</span>
             </div>
           </div>
-          <div className="w-px h-8 bg-border" />
-          <div className="text-center">
+          <div className="hidden w-px h-8 bg-border sm:block" />
+          <div className="text-left sm:text-center">
             <div className="label-upper mb-0.5 flex items-center justify-center gap-1">
               <Clock className="w-3 h-3" />
               {tr("Time Remaining", "剩余时间")}
@@ -359,8 +359,8 @@ export default function Dashboard() {
               {countdown.display}
             </div>
           </div>
-          <div className="w-px h-8 bg-border" />
-          <div className="text-center">
+          <div className="hidden w-px h-8 bg-border sm:block" />
+          <div className="text-left sm:text-center">
             <div className="label-upper mb-0.5">{tr("Qualified", "通过数")}</div>
             <div className="stat-value text-base font-bold text-foreground">
               {currentEpoch.qualifiedFactors}<span className="text-xs font-normal text-muted-foreground"> / {currentEpoch.totalSubmissions}</span>
@@ -368,7 +368,7 @@ export default function Dashboard() {
           </div>
         </div>
         <Link href="/leaderboard">
-          <Button className="gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce">
+          <Button className="w-full gap-1.5 rounded-full text-sm bg-primary text-primary-foreground hover:brightness-110 btn-bounce sm:w-auto">
             {tr("Factor Arena", "因子竞技场")}
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Button>
@@ -382,7 +382,7 @@ export default function Dashboard() {
       ref={statsRef}
       className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40"
     >
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 py-4 border-b border-border sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FlaskConical className="w-3.5 h-3.5 text-muted-foreground" />
@@ -400,7 +400,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 p-4 min-[420px]:grid-cols-2 md:grid-cols-4 sm:gap-6 sm:p-6">
         {statCards.map((stat) => (
           <div key={stat.label} className="fade-item min-w-0">
             <span className="label-upper truncate block mb-2">
@@ -423,7 +423,7 @@ export default function Dashboard() {
 
   const renderAgentApi = () => (
     <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 py-4 border-b border-border sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Key className="w-3.5 h-3.5 text-muted-foreground" />
@@ -458,7 +458,7 @@ export default function Dashboard() {
             {apiKeys.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-2.5 py-2 px-2 rounded-xl transition-all duration-200 ease-in-out hover:bg-accent"
+                className="flex flex-col items-start gap-2.5 py-3 px-2 rounded-xl transition-all duration-200 ease-in-out hover:bg-accent sm:flex-row sm:items-center sm:py-2"
               >
                 <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-accent">
                   <Key className="w-3 h-3 text-primary" />
@@ -493,7 +493,7 @@ export default function Dashboard() {
 
   const renderMyStrategies = () => (
     <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 py-4 border-b border-border sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Rocket className="w-3.5 h-3.5 text-muted-foreground" />
@@ -511,7 +511,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 p-4 min-[420px]:grid-cols-2 md:grid-cols-4 sm:gap-6 sm:p-6">
         {strategySummaryCards.map((stat) => (
           <div key={stat.key} className="min-w-0">
             <span className="label-upper truncate block mb-2">{stat.label}</span>
@@ -526,7 +526,7 @@ export default function Dashboard() {
 
   const renderMyTrades = () => (
     <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 py-4 border-b border-border sm:px-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CandlestickChart className="w-3.5 h-3.5 text-muted-foreground" />
@@ -544,7 +544,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 p-4 min-[420px]:grid-cols-2 md:grid-cols-4 sm:gap-6 sm:p-6">
         <div className="min-w-0">
           <span className="label-upper truncate block mb-2">{tr("RUNNING STRATEGIES", "进行中的策略")}</span>
           <div className="text-2xl stat-value font-bold truncate text-foreground">{tradeSummary.active}</div>
@@ -569,13 +569,13 @@ export default function Dashboard() {
 
   const renderQuickActions = () => (
     <div className="surface-card group transition-all duration-200 ease-in-out hover:border-primary/30 dark:hover:border-primary/40">
-      <div className="px-6 py-4 border-b border-border">
+      <div className="px-4 py-4 border-b border-border sm:px-6">
         <div className="flex items-center gap-2">
           <Zap className="w-3.5 h-3.5 text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">{tr("Quick Actions", "快捷操作")}</span>
         </div>
       </div>
-      <div className="p-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-3 sm:p-6">
         <Link href="/account?tab=api">
           <Button className="h-11 w-full justify-between rounded-xl bg-primary/10 text-primary hover:bg-primary/15 border border-primary/20">
             <span className="flex items-center gap-2">
@@ -620,17 +620,17 @@ export default function Dashboard() {
     .filter((id) => Boolean(sectionRenderers[id]));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       {/* ═══════════════════════════════════════════
           PAGE HEADER + Customize button
           ═══════════════════════════════════════════ */}
-      <div className="flex items-start justify-between">
-        <div ref={headerRef} className="reveal-clip">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
+        <div ref={headerRef} className="reveal-clip min-w-0">
           <div className="reveal-line">
             <h1 className="text-foreground">{tr("Dashboard", "仪表盘")}</h1>
           </div>
           <div className="reveal-line mt-2">
-            <p className="text-base text-muted-foreground">
+            <p className="max-w-3xl text-sm text-muted-foreground sm:text-base">
               {tr("AI-powered factor mining platform — monitor your agents, track performance, compete for rewards.", "AI 驱动的因子挖掘平台：监控你的 Agent，跟踪表现，并参与奖励竞争。")}
             </p>
           </div>
@@ -652,7 +652,7 @@ export default function Dashboard() {
 
           {/* Customize dropdown panel */}
           {showCustomize && (
-            <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-[calc(100vw_-_2rem)] rounded-2xl border border-border bg-card shadow-xl z-50 overflow-hidden sm:w-72">
               <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                 <span className="text-sm font-semibold text-foreground">{tr("Customize Dashboard", "自定义仪表盘")}</span>
                 <button

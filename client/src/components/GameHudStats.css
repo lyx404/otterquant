@@ -4,7 +4,7 @@
   top: var(--game-hud-stats-top, 40px);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--hud-stats-gap, 16px);
   z-index: 2;
 }
 
@@ -15,12 +15,12 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-  height: 65px;
-  padding: 12px;
+  height: var(--hud-stat-height, 65px);
+  padding: var(--hud-stat-padding, 12px);
   overflow: hidden;
   background: #fff3d3;
-  border: 3px solid #c4b89e;
-  border-radius: 16px;
+  border: var(--hud-stat-border-width, 3px) solid #c4b89e;
+  border-radius: var(--hud-stat-radius, 16px);
   font: inherit;
   transition: background-color .14s cubic-bezier(.22, 1, .36, 1);
 }
@@ -33,12 +33,14 @@
   flex: 0 0 auto;
   object-fit: contain;
   image-rendering: pixelated;
+  transform: scale(var(--hud-stat-icon-scale, 1));
+  transform-origin: center;
 }
 
 .hud-stat-value {
   color: #4e433c;
   font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 26px;
+  font-size: var(--hud-stat-font-size, 26px);
   font-style: normal;
   font-weight: 700;
   font-stretch: 100%;
@@ -52,12 +54,12 @@
 }
 
 .hud-stat-value--balance {
-  width: 130px;
+  width: var(--hud-stat-balance-width, 130px);
 }
 
 .hud-stat-value--cash,
 .hud-stat-value--fish {
-  width: 90px;
+  width: var(--hud-stat-compact-width, 90px);
 }
 
 .hud-top-stats:hover .hud-stat-card,
