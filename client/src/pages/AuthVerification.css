@@ -1,0 +1,79 @@
+.auth-form--reset .auth-reset-email {
+  display: grid;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.auth-reset-email .auth-input[readonly] {
+  color: rgba(121, 79, 39, .78);
+  background: #f7f1df;
+}
+
+.auth-code-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.auth-code-slot {
+  height: 46px;
+  padding: 0;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.auth-verify-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.auth-verify-meta .auth-field-feedback {
+  margin-right: auto;
+}
+
+.auth-verify-resend {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0;
+  color: rgba(90, 50, 29, .9);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.auth-verify-resend:disabled {
+  cursor: wait;
+  opacity: .68;
+}
+
+.auth-verify-resend:hover,
+.auth-verify-resend:focus-visible {
+  color: var(--auth-text);
+  outline: none;
+}
+
+@media (max-width: 560px) {
+  .auth-code-grid {
+    gap: 6px;
+  }
+
+  .auth-code-slot {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .auth-verify-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

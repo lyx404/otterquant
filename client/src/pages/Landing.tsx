@@ -650,6 +650,62 @@ function buildLinePath(values: number[], width: number, height: number, padding 
     .join(" ");
 }
 
+type MobilePageTransitionPhase = "opening" | "open" | "closing";
+
+function useLocalPrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    updatePreference();
+    mediaQuery.addEventListener("change", updatePreference);
+    return () => mediaQuery.removeEventListener("change", updatePreference);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+function useMobilePageTransition(isOpen: boolean, exitDurationMs = 220) {
+  const prefersReducedMotion = useLocalPrefersReducedMotion();
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [phase, setPhase] = useState<MobilePageTransitionPhase>(isOpen ? "open" : "closing");
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setShouldRender(isOpen);
+      setPhase(isOpen ? "open" : "closing");
+      return undefined;
+    }
+
+    let rafId = 0;
+    let timeoutId = 0;
+
+    if (isOpen) {
+      setShouldRender(true);
+      setPhase("opening");
+      rafId = window.requestAnimationFrame(() => {
+        setPhase("open");
+      });
+    } else if (shouldRender) {
+      setPhase("closing");
+      timeoutId = window.setTimeout(() => {
+        setShouldRender(false);
+      }, exitDurationMs);
+    }
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [exitDurationMs, isOpen, prefersReducedMotion, shouldRender]);
+
+  return { shouldRender, phase };
+}
+
 export default function Landing() {
   const { uiLang, setUiLang } = useAppLanguage();
   const { user, login, logout, updateUser } = useAuth();
@@ -692,6 +748,8 @@ export default function Landing() {
   const [manualCastStartedAt, setManualCastStartedAt] = useState<number | null>(null);
   const [manualCastElapsed, setManualCastElapsed] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const inventoryPageTransition = useMobilePageTransition(inventoryOpen, 260);
+  const inventoryClosingFactorRef = useRef<FactorRow | null>(null);
   const [walletOpen, setWalletOpen] = useState(false);
   const [walletAccountKind, setWalletAccountKind] = useState<GameWalletAccountKind>("coin");
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
@@ -713,6 +771,7 @@ export default function Landing() {
   const [settingsNewPassword, setSettingsNewPassword] = useState("");
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
   const [settingsLogoutConfirmOpen, setSettingsLogoutConfirmOpen] = useState(false);
+  const settingsPageTransition = useMobilePageTransition(settingsOpen, 260);
   const [agentSelectedProviderId, setAgentSelectedProviderId] = useState<AgentProviderId>("codex");
   const [agentConnectedProviderIds, setAgentConnectedProviderIds] = useState<Set<AgentProviderId>>(() => new Set<AgentProviderId>(["codex"]));
   const [agentConnectedDeviceNames, setAgentConnectedDeviceNames] = useState<Partial<Record<AgentProviderId, string>>>({ codex: "MacBook Pro" });
@@ -789,6 +848,23 @@ export default function Landing() {
   const [starredStrategies, setStarredStrategies] = useState<Set<string>>(() => new Set());
   const [selectedStrategy, setSelectedStrategy] = useState<(typeof strategies)[number] | null>(null);
   const [curveRange, setCurveRange] = useState<CurveRange>("365D");
+
+  useEffect(() => {
+    if (inventoryOpen) {
+      inventoryClosingFactorRef.current = selectedInventoryFactor;
+      return;
+    }
+
+    if (!inventoryPageTransition.shouldRender) {
+      inventoryClosingFactorRef.current = null;
+    }
+  }, [inventoryOpen, inventoryPageTransition.shouldRender, selectedInventoryFactor]);
+
+  const activeInventoryFactor = inventoryOpen
+    ? selectedInventoryFactor
+    : inventoryPageTransition.shouldRender
+      ? inventoryClosingFactorRef.current
+      : null;
 
   useEffect(() => {
     const fitGameStage = () => {
@@ -2678,10 +2754,14 @@ export default function Landing() {
           align-items: center;
           align-content: center;
           flex-wrap: nowrap;
-          gap: calc(10px / var(--stage-scale));
+          gap: 10px;
           max-height: none;
           transform: none;
           transform-origin: top right;
+        }
+
+        .game-stage--mobile-cover .top-actions--mvp {
+          top: calc(var(--mobile-safe-top) + 12px);
         }
 
         .game-stage--mobile-cover .menu-item {
@@ -2695,8 +2775,10 @@ export default function Landing() {
           letter-spacing: 0;
         }
 
+        .game-stage--mobile-cover.top-actions--en .menu-label,
         .game-stage--mobile-cover .top-actions--en .menu-label {
-          font-size: calc(12px / var(--stage-scale));
+          --menu-label-font-size: 14px;
+          font-size: 14px;
         }
 
         .game-stage--mobile-cover .test-scenario-panel {
@@ -2772,10 +2854,36 @@ export default function Landing() {
         }
 
         .game-stage--mobile-cover .test-scenario-panel.is-collapsed {
-          width: calc(196px / var(--stage-scale));
+          width: calc(184px / var(--stage-scale));
+          height: calc(56px / var(--stage-scale));
           max-height: none;
+          justify-content: center;
           overflow: visible;
-          padding: calc(8px / var(--stage-scale)) calc(10px / var(--stage-scale));
+          gap: 0;
+          padding: calc(6px / var(--stage-scale)) calc(9px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel.is-collapsed .test-scenario-panel__header {
+          width: calc(166px / var(--stage-scale));
+          min-height: calc(43px / var(--stage-scale));
+          margin: 0 auto;
+          gap: calc(6px / var(--stage-scale));
+          padding: 0;
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel.is-collapsed .test-scenario-panel__title {
+          font-size: calc(14px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-panel.is-collapsed .test-scenario-panel__toggle {
+          width: calc(56px / var(--stage-scale));
+          min-width: calc(56px / var(--stage-scale));
+          height: calc(43px / var(--stage-scale));
+          padding-inline: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: calc(14px / var(--stage-scale));
         }
 
         .game-stage--mobile-cover .hud-bottom-bar {
@@ -2789,16 +2897,48 @@ export default function Landing() {
 
         .game-stage--mobile-cover .cast-auto-button {
           width: calc(248px / var(--stage-scale));
-          height: calc(44px / var(--stage-scale));
-          margin-bottom: calc(2px / var(--stage-scale));
+          height: calc(60px / var(--stage-scale));
+          margin-bottom: calc(-14px / var(--stage-scale));
           padding-inline: calc(18px / var(--stage-scale));
           border-radius: calc(18px / var(--stage-scale)) calc(18px / var(--stage-scale)) 0 0;
           touch-action: manipulation;
+          transform: translateY(calc(10px / var(--stage-scale)));
         }
 
         .game-stage--mobile-cover .hud-main-action {
           width: calc(248px / var(--stage-scale));
           touch-action: manipulation;
+        }
+
+        .game-stage--mobile-cover .hud-main-action--waiting {
+          padding: calc(14px / var(--stage-scale)) calc(16px / var(--stage-scale));
+          column-gap: calc(8px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .hud-main-action--waiting .hud-main-action__tool {
+          width: calc(56px / var(--stage-scale));
+          height: calc(56px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .hud-main-action__waiting {
+          gap: calc(7px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .hud-main-action--waiting .hud-main-action__waiting-title {
+          font-size: calc(20px / var(--stage-scale));
+          line-height: 1.12;
+          padding-bottom: 0;
+        }
+
+        .game-stage--mobile-cover .hud-main-action--waiting .hud-main-action__timer {
+          font-size: calc(30px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .hud-main-action--waiting .hud-main-action__stop {
+          height: calc(44px / var(--stage-scale));
+          min-width: calc(64px / var(--stage-scale));
+          padding-inline: calc(12px / var(--stage-scale));
+          font-size: calc(20px / var(--stage-scale));
         }
 
         .game-stage--mobile-cover .hud-basket {
@@ -2831,6 +2971,7 @@ export default function Landing() {
 
         .game-stage--mobile-cover .cast-auto-title {
           font-size: calc(15px / var(--stage-scale));
+          transform: translateY(calc(-12px / var(--stage-scale)));
         }
 
         .game-stage--mobile-cover .cast-auto-status,
@@ -2841,6 +2982,21 @@ export default function Landing() {
         .game-stage--mobile-cover .cast-auto-stop {
           min-width: calc(64px / var(--stage-scale));
           height: calc(44px / var(--stage-scale));
+        }
+
+        .game-landing:has(.game-stage--mobile-cover) .cast-count-stepper,
+        .game-landing:has(.game-stage--mobile-cover) .auto-cast-modal__button {
+          box-shadow: none;
+          transform: none;
+        }
+
+        .game-landing:has(.game-stage--mobile-cover) .cast-count-stepper:hover,
+        .game-landing:has(.game-stage--mobile-cover) .cast-count-stepper:active,
+        .game-landing:has(.game-stage--mobile-cover) .auto-cast-modal__button:hover,
+        .game-landing:has(.game-stage--mobile-cover) .auto-cast-modal__button:active {
+          box-shadow: none;
+          transform: none;
+          filter: none;
         }
 
         .game-stage--mobile-cover .hud-basket-empty-toast {
@@ -4508,6 +4664,7 @@ export default function Landing() {
 	          position: relative;
 	          z-index: 2;
 	          display: flex;
+          box-sizing: border-box;
           align-items: center;
           gap: 36px;
           height: 120px;
@@ -4523,7 +4680,11 @@ export default function Landing() {
         }
 
         .hud-main-action--waiting {
-          justify-content: space-between;
+          width: 415px;
+          min-width: 415px;
+          display: grid;
+          grid-template-columns: 80px 1fr auto;
+          justify-content: stretch;
           gap: 18px;
           background: #d9e6d3;
           cursor: default;
@@ -4625,8 +4786,10 @@ export default function Landing() {
         }
 
         .hud-main-action__waiting {
-          min-width: 138px;
+          width: 132px;
+          min-width: 0;
           display: grid;
+          justify-items: start;
           gap: 7px;
           color: #4e433c;
           font-weight: 1000;
@@ -4634,8 +4797,14 @@ export default function Landing() {
         }
 
         .hud-main-action__waiting-title {
+          max-width: 100%;
           font-size: 24px;
+          line-height: 26px;
           letter-spacing: 0;
+          overflow: hidden;
+          text-align: left;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .hud-main-action__timer {
@@ -4649,6 +4818,8 @@ export default function Landing() {
           flex: 0 0 auto;
           height: 44px;
           min-width: 76px;
+          max-width: 100%;
+          padding: 0 14px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -6205,6 +6376,22 @@ export default function Landing() {
           border: 1.5px solid rgba(196, 184, 158, .86);
           border-radius: var(--radius-xs);
           box-shadow: 2px 2px 0 rgba(189, 174, 160, .48);
+        }
+
+        .mobile-page-surface {
+          will-change: transform, opacity;
+        }
+
+        .settings-mobile-controls {
+          display: flex;
+          flex: 1 1 auto;
+          align-items: center;
+          gap: 14px;
+          min-width: 0;
+        }
+
+        .settings-mobile-controls .shop-modal__close {
+          display: none;
         }
 
         .settings-content {
@@ -8900,66 +9087,180 @@ export default function Landing() {
           container-name: settings-modal-shell;
         }
 
+        .game-landing:has(.game-stage--mobile-cover) .inventory-modal-backdrop.mobile-page-shell {
+          --mobile-page-enter-duration: 320ms;
+          --mobile-page-exit-duration: 260ms;
+          --mobile-page-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+          --mobile-page-exit-ease: cubic-bezier(0.4, 0, 1, 1);
+          --mobile-page-surface-enter-x: 40px;
+          --mobile-page-surface-exit-x: 28px;
+        }
+
+        .game-landing:has(.game-stage--mobile-cover) .settings-modal-backdrop.mobile-page-shell {
+          --mobile-page-enter-duration: 320ms;
+          --mobile-page-exit-duration: 260ms;
+          --mobile-page-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+          --mobile-page-exit-ease: cubic-bezier(0.4, 0, 1, 1);
+          --mobile-page-surface-enter-x: 40px;
+          --mobile-page-surface-exit-x: 28px;
+        }
+
+        .game-landing:has(.game-stage--mobile-cover) .settings-modal-backdrop {
+          place-items: stretch;
+          overflow: hidden;
+          padding: 0;
+          background: rgba(216, 237, 247, .98);
+        }
+
+        .game-landing:has(.game-stage--mobile-cover) .settings-modal {
+          box-sizing: border-box;
+          width: 100vw;
+          max-width: none;
+          inline-size: 100vw;
+          max-inline-size: none;
+          height: 100dvh;
+          block-size: 100dvh;
+          max-height: 100dvh;
+          max-block-size: 100dvh;
+          min-block-size: 0;
+          min-inline-size: 0;
+          transform: none;
+          border-radius: 0;
+          border: 0;
+          box-shadow: none;
+        }
+
+        @supports (height: 100svh) {
+          .game-landing:has(.game-stage--mobile-cover) .settings-modal {
+            block-size: 100svh;
+            max-block-size: 100svh;
+          }
+        }
+
         @media (max-width: 700px) {
+          .mobile-page-shell {
+            --mobile-page-enter-duration: 280ms;
+            --mobile-page-exit-duration: 220ms;
+            --mobile-page-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --mobile-page-exit-ease: cubic-bezier(0.4, 0, 1, 1);
+            --mobile-page-surface-enter-x: 18px;
+            --mobile-page-surface-exit-x: 14px;
+          }
+
+          .mobile-page-shell[data-mobile-page-transition="opening"] {
+            animation: mobile-page-backdrop-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
+          }
+
+          .mobile-page-shell[data-mobile-page-transition="closing"] {
+            animation: mobile-page-backdrop-out var(--mobile-page-exit-duration) var(--mobile-page-exit-ease) both;
+            pointer-events: none;
+          }
+
+          .mobile-page-shell[data-mobile-page-transition="opening"] .mobile-page-surface {
+            animation: mobile-page-surface-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
+          }
+
+          .mobile-page-shell[data-mobile-page-transition="closing"] .mobile-page-surface {
+            animation: mobile-page-surface-out var(--mobile-page-exit-duration) var(--mobile-page-exit-ease) both;
+          }
+
           .settings-modal-backdrop {
-            place-items: center;
+            place-items: stretch;
             overflow: hidden;
-            padding-block: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-bottom));
-            padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right));
+            padding: 0;
+            background: rgba(216, 237, 247, .98);
           }
 
           .settings-modal {
             box-sizing: border-box;
-            inline-size: min(100%, 560px);
-            block-size: min(760px, calc(100dvh - 20px));
-            max-block-size: calc(100dvh - 20px);
+            width: 100%;
+            max-width: none;
+            inline-size: 100vw;
+            max-inline-size: none;
+            height: 100dvh;
+            block-size: 100dvh;
+            max-height: 100dvh;
+            max-block-size: 100dvh;
             min-block-size: 0;
             min-inline-size: 0;
             transform: none;
-            border-radius: var(--radius-xs);
+            border-radius: 0;
+            border: 0;
+            box-shadow: none;
           }
 
           @supports (height: 100svh) {
             .settings-modal {
-              block-size: min(760px, calc(100svh - 20px));
-              max-block-size: calc(100svh - 20px);
+              block-size: 100svh;
+              max-block-size: 100svh;
             }
           }
 
           .settings-modal .shop-modal__header {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 48px;
-            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
             gap: 10px;
-            padding: 12px 12px 10px;
+            padding:
+              max(12px, env(safe-area-inset-top))
+              max(16px, env(safe-area-inset-right))
+              12px
+              max(16px, env(safe-area-inset-left));
+            background: rgba(255, 249, 232, .88);
+            border-bottom: 1.5px solid rgba(196, 184, 158, .56);
+            backdrop-filter: blur(10px);
+          }
+
+          .settings-modal .shop-modal__header > .shop-modal__close {
+            display: none;
+          }
+
+          .settings-mobile-controls {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: stretch;
+            gap: 8px;
+          }
+
+          .settings-mobile-controls .shop-modal__close {
+            display: inline-grid;
           }
 
           .settings-tabs {
-            flex: 1 1 auto;
             min-width: 0;
+            width: 100%;
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 6px;
+            gap: 8px;
           }
 
           .settings-tab {
             min-width: 0;
             min-height: 44px;
-            padding: 0 8px;
+            padding: 0 10px;
             font-size: 13px;
             line-height: 1.15;
-          }
-
-          .settings-modal .shop-modal__close {
-            inline-size: 48px;
-            block-size: 48px;
-            justify-self: end;
-            flex: 0 0 48px;
+            border: 1.5px solid rgba(196, 184, 158, .68);
+            background: rgba(255, 253, 244, .84);
           }
 
           .settings-content {
-            padding: 12px;
+            padding:
+              16px
+              max(16px, env(safe-area-inset-right))
+              calc(28px + env(safe-area-inset-bottom))
+              max(16px, env(safe-area-inset-left));
             overscroll-behavior: contain;
+            background: rgba(255, 249, 232, .46);
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+
+          .settings-content::-webkit-scrollbar {
+            display: none;
           }
 
           .settings-content--agent {
@@ -8967,23 +9268,27 @@ export default function Landing() {
           }
 
           .settings-section {
-            padding: 14px;
+            padding: 16px;
+            border-width: 1.5px;
+            border-radius: 14px;
           }
 
           .settings-section + .settings-section {
-            margin-top: 12px;
+            margin-top: 14px;
           }
 
           .settings-section__head {
-            align-items: flex-start;
-            gap: 10px;
-            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
           }
 
           .settings-section__title {
             min-width: 0;
-            font-size: 15px;
-            line-height: 1.25;
+            font-size: 16px;
+            line-height: 1.2;
           }
 
           .settings-language-options,
@@ -8996,15 +9301,30 @@ export default function Landing() {
             grid-column: auto;
           }
 
+          .settings-language-option {
+            min-height: 52px;
+            padding: 0 16px;
+            font-size: 15px;
+          }
+
+          .settings-language-option__code {
+            font-size: 12px;
+          }
+
+          .settings-field {
+            gap: 8px;
+            font-size: 13px;
+          }
+
           .settings-input {
             min-width: 0;
-            height: 44px;
-            font-size: 13px;
+            height: 48px;
+            font-size: 14px;
           }
 
           .settings-code-field {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, 1fr) 108px;
             align-items: stretch;
             gap: 8px;
           }
@@ -9015,7 +9335,8 @@ export default function Landing() {
 
           .settings-action.settings-code-send {
             position: static;
-            min-height: 44px;
+            min-height: 48px;
+            min-width: 108px;
             padding: 0 12px;
             transform: none;
           }
@@ -9034,16 +9355,17 @@ export default function Landing() {
           .settings-agent-actions .settings-action,
           .settings-agent-byok-actions .settings-action {
             flex: 1 1 0;
-            min-height: 44px;
+            min-height: 48px;
           }
 
           .settings-action {
-            min-height: 44px;
+            min-height: 48px;
+            font-size: 13px;
           }
 
           .settings-logout-row {
-            margin-top: 18px;
-            margin-bottom: 6px;
+            margin-top: 20px;
+            margin-bottom: 8px;
           }
 
           .settings-action--logout {
@@ -9059,7 +9381,7 @@ export default function Landing() {
             height: auto;
             min-height: 100%;
             overflow: visible;
-            padding: 14px 12px 18px;
+            padding: 0;
           }
 
           .settings-agent-main__topbar,
@@ -9155,7 +9477,7 @@ export default function Landing() {
           .settings-agent-provider-actions {
             width: 100%;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
           }
 
@@ -9341,6 +9663,54 @@ export default function Landing() {
           .settings-agent-prompt-preview,
           .settings-agent-snippet {
             max-height: 220px;
+          }
+        }
+
+        @keyframes mobile-page-backdrop-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes mobile-page-backdrop-out {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+
+        @keyframes mobile-page-surface-in {
+          from {
+            opacity: .01;
+            transform: translate3d(var(--mobile-page-surface-enter-x, 18px), 0, 0);
+          }
+          to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+          }
+        }
+
+        @keyframes mobile-page-surface-out {
+          from {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+          }
+          to {
+            opacity: .01;
+            transform: translate3d(var(--mobile-page-surface-exit-x, 14px), 0, 0);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .mobile-page-shell,
+          .mobile-page-surface {
+            animation: none !important;
+            transition: none !important;
           }
         }
 
@@ -11699,6 +12069,14 @@ export default function Landing() {
 
         .inventory-detail-title-wrap {
           min-width: 0;
+          flex: 1 1 auto;
+          align-self: stretch;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 2px;
+          position: relative;
+          z-index: 0;
         }
 
         .inventory-detail-title-wrap .shop-modal__title {
@@ -11706,6 +12084,8 @@ export default function Landing() {
           font-size: 26px;
           line-height: 30px;
           min-height: 30px;
+          position: relative;
+          z-index: 0;
         }
 
         .inventory-detail-subtitle {
@@ -11718,6 +12098,8 @@ export default function Landing() {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          position: relative;
+          z-index: 1;
         }
 
         .inventory-detail-content {
@@ -12202,7 +12584,7 @@ export default function Landing() {
 
           .inventory-modal .shop-modal__header {
             display: grid;
-            grid-template-columns: 44px minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, 1fr) auto 44px;
             align-items: center;
             gap: 8px;
             min-block-size: 64px;
@@ -12215,19 +12597,25 @@ export default function Landing() {
           .inventory-title-wrap {
             min-inline-size: 0;
             order: initial;
+            grid-column: 1;
+            grid-row: 1;
           }
 
           .inventory-modal .shop-modal__title {
-            font-size: clamp(28px, 8cqi, 34px);
+            font-size: 24px;
             line-height: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
 
           .inventory-modal .shop-modal__close,
           .inventory-detail-modal .shop-modal__close,
-          .inventory-detail-back {
+          .inventory-detail-back,
+          .settings-mobile-controls .shop-modal__close {
             inline-size: 44px;
             block-size: 44px;
-            justify-self: start;
+            justify-self: end;
             flex: 0 0 44px;
             box-shadow: none;
             order: initial;
@@ -12245,13 +12633,24 @@ export default function Landing() {
             padding-inline: 12px;
             color: var(--ac-text);
             background: var(--ac-cream-light);
-            border: 2px solid var(--ac-border);
+            border: 1.5px solid var(--ac-border);
             border-radius: var(--radius-xs);
             box-shadow: none;
             font: inherit;
             font-size: 13px;
             font-weight: 1000;
             line-height: 1;
+            grid-column: 2;
+            grid-row: 1;
+          }
+
+          .inventory-modal .shop-modal__close {
+            grid-column: 3;
+            grid-row: 1;
+          }
+
+          .inventory-detail-back {
+            justify-self: start;
           }
 
           .inventory-modal .inventory-filter-toggle span {
@@ -12260,6 +12659,8 @@ export default function Landing() {
 
           .inventory-modal .shop-modal__close:hover,
           .inventory-modal .shop-modal__close:focus-visible,
+          .settings-mobile-controls .shop-modal__close:hover,
+          .settings-mobile-controls .shop-modal__close:focus-visible,
           .inventory-modal .inventory-filter-toggle:hover,
           .inventory-modal .inventory-filter-toggle:focus-visible {
             transform: none;
@@ -12302,6 +12703,18 @@ export default function Landing() {
           .inventory-modal .sort-direction-select__trigger {
             block-size: 44px;
             min-block-size: 44px;
+            box-shadow: none;
+            transform: none;
+          }
+
+          .inventory-modal .shop-select-aisland [class*="animal-trigger-"]:hover,
+          .inventory-modal .shop-select-aisland [class*="animal-trigger-"]:focus-visible,
+          .inventory-modal .sort-direction-select__trigger:hover,
+          .inventory-modal .sort-direction-select__trigger:focus-visible {
+            box-shadow: none;
+            transform: none;
+            border-color: rgba(196, 184, 158, .86);
+            outline: none;
           }
 
           .inventory-modal .sort-direction-select__menu {
@@ -12343,6 +12756,16 @@ export default function Landing() {
             block-size: 44px;
             padding-inline: 12px;
             font-size: 12px;
+            box-shadow: none;
+            transform: none;
+          }
+
+          .inventory-modal .inventory-grade-filter__chip:hover,
+          .inventory-modal .inventory-grade-filter__chip:focus-visible,
+          .inventory-modal .inventory-grade-filter__chip.is-active {
+            box-shadow: none;
+            transform: none;
+            filter: none;
           }
 
           .inventory-modal.inventory-modal--controls-hidden .shop-modal__toolbar,
@@ -12472,27 +12895,36 @@ export default function Landing() {
           .inventory-detail-modal .shop-modal__header {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 44px;
-            align-items: start;
+            align-items: center;
             gap: 8px;
-            min-block-size: 78px;
+            min-block-size: 64px;
             padding: 10px;
           }
 
           .inventory-detail-heading {
             display: grid;
             grid-template-columns: 44px minmax(0, 1fr);
-            align-items: start;
+            align-items: center;
             min-inline-size: 0;
+            inline-size: 100%;
+            justify-self: stretch;
             gap: 8px;
           }
 
+          .inventory-detail-title-wrap {
+            inline-size: 100%;
+            max-inline-size: 270px;
+            min-block-size: 44px;
+            justify-self: stretch;
+            gap: 0;
+            transform: translateY(-4px);
+          }
+
           .inventory-detail-title-wrap .shop-modal__title {
-            display: -webkit-box;
-            overflow: hidden;
-            font-size: clamp(21px, 6cqi, 25px);
+            display: block;
+            font-size: 16px;
             line-height: 1.08;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2;
+            padding-top: 8px;
           }
 
           .inventory-detail-subtitle {
@@ -12665,7 +13097,10 @@ export default function Landing() {
           onOpenWallet={openWalletModal}
         />
 
-        <div className={`top-actions${uiLang === "en" ? " top-actions--en" : ""}`} aria-label={tr("Navigation", "功能入口")}>
+        <div
+          className={`top-actions${uiLang === "en" ? " top-actions--en" : ""}${gameVersionMode === "mvp" ? " top-actions--mvp" : ""}`}
+          aria-label={tr("Navigation", "功能入口")}
+        >
           {gameVersionMode === "normal" && (
             <>
               <button className="menu-item" type="button" aria-label={tr("Pond", "鱼塘")}>
@@ -13105,30 +13540,45 @@ export default function Landing() {
         </div>
       </div>
 
-      {settingsOpen && (
-        <div className="shop-modal-backdrop settings-modal-backdrop" role="presentation" onMouseDown={(event) => {
+      {settingsPageTransition.shouldRender && (
+        <div
+          className="shop-modal-backdrop settings-modal-backdrop mobile-page-shell"
+          data-mobile-page-transition={settingsPageTransition.phase}
+          role="presentation"
+          onMouseDown={(event) => {
           if (event.target === event.currentTarget) closeSettingsModal();
-        }}>
-          <section className="shop-modal settings-modal" role="dialog" aria-modal="true" aria-label={tr("Settings", "设置")}>
+        }}
+        >
+          <section className="shop-modal settings-modal mobile-page-surface" role="dialog" aria-modal="true" aria-label={tr("Settings", "设置")}>
             <header className="shop-modal__header">
-              <div className="settings-tabs" role="tablist" aria-label={tr("Settings categories", "设置分类")}>
+              <div className="settings-mobile-controls">
+                <div className="settings-tabs" role="tablist" aria-label={tr("Settings categories", "设置分类")}>
+                  <button
+                    className={`settings-tab${settingsActiveTab === "general" ? " is-active" : ""}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={settingsActiveTab === "general"}
+                    onClick={() => setSettingsActiveTab("general")}
+                  >
+                    {tr("General", "通用设置")}
+                  </button>
+                  <button
+                    className={`settings-tab${settingsActiveTab === "agent" ? " is-active" : ""}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={settingsActiveTab === "agent"}
+                    onClick={openAgentSettingsTab}
+                  >
+                    {tr("Agent settings", "agent设置")}
+                  </button>
+                </div>
                 <button
-                  className={`settings-tab${settingsActiveTab === "general" ? " is-active" : ""}`}
+                  className="shop-modal__close"
                   type="button"
-                  role="tab"
-                  aria-selected={settingsActiveTab === "general"}
-                  onClick={() => setSettingsActiveTab("general")}
+                  aria-label={tr("Close settings", "关闭设置")}
+                  onClick={closeSettingsModal}
                 >
-                  {tr("General", "通用设置")}
-                </button>
-                <button
-                  className={`settings-tab${settingsActiveTab === "agent" ? " is-active" : ""}`}
-                  type="button"
-                  role="tab"
-                  aria-selected={settingsActiveTab === "agent"}
-                  onClick={openAgentSettingsTab}
-                >
-                  {tr("Agent settings", "agent设置")}
+                  <X size={22} strokeWidth={3} />
                 </button>
               </div>
               <button
@@ -14549,15 +14999,20 @@ export default function Landing() {
         </div>
       )}
 
-      {inventoryOpen && (
-        <div className="shop-modal-backdrop inventory-modal-backdrop" role="presentation" onMouseDown={(event) => {
+      {inventoryPageTransition.shouldRender && (
+        <div
+          className="shop-modal-backdrop inventory-modal-backdrop mobile-page-shell"
+          data-mobile-page-transition={inventoryPageTransition.phase}
+          role="presentation"
+          onMouseDown={(event) => {
           if (event.target === event.currentTarget) {
             setInventoryOpen(false);
             setSelectedInventoryFactor(null);
           }
-        }}>
-          {selectedInventoryFactor ? (
-            <section className="shop-modal inventory-modal inventory-detail-modal" role="dialog" aria-modal="true" aria-labelledby="inventory-detail-title">
+        }}
+        >
+          {activeInventoryFactor ? (
+            <section className="shop-modal inventory-modal inventory-detail-modal mobile-page-surface" role="dialog" aria-modal="true" aria-labelledby="inventory-detail-title">
               <header className="shop-modal__header">
                 <div className="inventory-detail-heading">
                   <button
@@ -14572,9 +15027,9 @@ export default function Landing() {
                     <ArrowLeft size={20} strokeWidth={3} />
                   </button>
                   <div className="inventory-detail-title-wrap">
-                    <h2 className="shop-modal__title" id="inventory-detail-title">{selectedInventoryFactor.name}</h2>
+                    <h2 className="shop-modal__title" id="inventory-detail-title">{activeInventoryFactor.name}</h2>
                     <div className="inventory-detail-subtitle">
-                      NO. {inventoryFactorNoById.get(selectedInventoryFactor.id) ?? 1}｜{tr("Created", "创建于")} {selectedInventoryFactor.createdAt}｜{selectedInventoryFactor.agentSource ?? "Codex"}
+                      NO. {inventoryFactorNoById.get(activeInventoryFactor.id) ?? 1}｜{tr("Created", "创建于")} {activeInventoryFactor.createdAt}｜{activeInventoryFactor.agentSource ?? "Codex"}
                     </div>
                   </div>
                 </div>
@@ -14598,8 +15053,8 @@ export default function Landing() {
                     <AlphaDetail
                       embedded
                       hideHeader
-                      factorIdOverride={selectedInventoryFactor.id}
-                      factorOverride={selectedInventoryFactor}
+                      factorIdOverride={activeInventoryFactor.id}
+                      factorOverride={activeInventoryFactor}
                     />
                   </AlphaViewModeProvider>
                 </div>
@@ -14607,7 +15062,7 @@ export default function Landing() {
             </section>
           ) : (
           <section
-            className={`shop-modal inventory-modal${inventoryControlsHidden ? " inventory-modal--controls-hidden" : ""}`}
+            className={`shop-modal inventory-modal mobile-page-surface${inventoryControlsHidden ? " inventory-modal--controls-hidden" : ""}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="inventory-modal-title"
