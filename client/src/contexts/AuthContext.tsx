@@ -14,7 +14,7 @@ export interface User {
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (email: string) => void;
+  login: (email: string, displayName?: string) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
   isLoading: boolean;
@@ -53,10 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback((email: string) => {
+  const login = useCallback((email: string, displayName?: string) => {
     const name = email.split("@")[0];
-    const displayName = name.charAt(0).toUpperCase() + name.slice(1);
-    const newUser: User = { email, displayName };
+    const resolvedDisplayName = displayName?.trim() || (name.charAt(0).toUpperCase() + name.slice(1));
+    const newUser: User = { email, displayName: resolvedDisplayName };
     setUser(newUser);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
   }, []);

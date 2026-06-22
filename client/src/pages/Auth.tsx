@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import AuthVerificationCodeInput from "@/components/auth/AuthVerificationCodeInput";
+import "./AuthVerification.css";
 import { toast } from "sonner";
 import gsap from "gsap";
 import {
@@ -24,6 +26,7 @@ export default function Auth() {
   const [verificationCode, setVerificationCode] = useState("");
   const [nickname, setNickname] = useState("");
   const [password, setPassword] = useState("");
+  const [registerStep, setRegisterStep] = useState<"form" | "verify">("form");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [sending, setSending] = useState(false);
@@ -53,7 +56,7 @@ export default function Auth() {
       { opacity: 0, y: 10 },
       { opacity: 1, y: 0, duration: 0.22, ease: "power2.out" }
     );
-  }, [mode]);
+  }, [mode, registerStep]);
 
   useEffect(() => {
     if (countdown <= 0) return undefined;
@@ -80,6 +83,9 @@ export default function Auth() {
     toast.success(tr("Verification code sent", "验证码已发送"));
   }, [email, tr]);
 
+  const isRegisterVerify = mode === "register" && registerStep === "verify";
+  const isResetLikeMode = mode === "forgot" || isRegisterVerify;
+
   const handleSubmit = useCallback(
     async (event: React.FormEvent) => {
       event.preventDefault();
@@ -89,19 +95,19 @@ export default function Auth() {
         nextErrors.email = tr("Please enter a valid email address", "请输入有效邮箱地址");
       }
 
-      if (mode === "register" && !nickname.trim()) {
+      if (mode === "register" && registerStep === "form" && !nickname.trim()) {
         nextErrors.nickname = tr("Please set a nickname", "请设置昵称");
       }
 
-      if (mode === "register" && !verificationCode.trim()) {
-        nextErrors.verificationCode = tr("Please enter the verification code", "请输入验证码");
+      if (isRegisterVerify && verificationCode.trim().length !== 6) {
+        nextErrors.verificationCode = tr("Please enter the 6-digit verification code", "请输入 6 位验证码");
       }
 
-      if (mode !== "forgot" && (!password || password.length < 6)) {
+      if (!isResetLikeMode && (!password || password.length < 6)) {
         nextErrors.password = tr("Password must be at least 6 characters", "密码至少需要 6 位");
       }
 
-      if (mode === "register" && !termsAccepted) {
+      if (mode === "register" && registerStep === "form" && !termsAccepted) {
         nextErrors.terms = tr("Please agree to the terms and privacy policy", "请先同意服务条款和隐私政策");
       }
 
@@ -115,13 +121,21 @@ export default function Auth() {
         return;
       }
 
+      if (mode === "register" && registerStep === "form") {
+        setFieldErrors({});
+        setRegisterStep("verify");
+        setVerificationCode("");
+        await handleSendCode();
+        return;
+      }
+
       setFieldErrors({});
 
       setSubmitting(true);
       await new Promise((resolve) => window.setTimeout(resolve, 700));
       setSubmitting(false);
 
-      login(email);
+      login(email, mode === "register" ? nickname.trim() : undefined);
       toast.success(
         mode === "login"
           ? tr("Welcome back!", "欢迎回来")
@@ -131,22 +145,27 @@ export default function Auth() {
       );
       navigate("/");
     },
-    [email, verificationCode, nickname, password, mode, termsAccepted, handleSendCode, login, navigate, tr]
+    [email, verificationCode, nickname, password, mode, registerStep, termsAccepted, handleSendCode, isResetLikeMode, login, navigate, tr]
   );
 
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode);
-    if (nextMode !== "register") {
-      setNickname("");
-      setVerificationCode("");
-    }
+    setRegisterStep("form");
+    if (nextMode !== "register") setNickname("");
+    setVerificationCode("");
     setTermsAccepted(false);
     setCodeSent(false);
     setCountdown(0);
     setFieldErrors({});
   };
 
-  const submitLabel = mode === "login" ? tr("Log in", "登录") : mode === "register" ? tr("Create account", "注册") : tr("Send code", "发送验证码");
+  const submitLabel = mode === "login"
+    ? tr("Log in", "登录")
+    : isRegisterVerify
+      ? tr("Verify email", "验证邮箱")
+      : mode === "register"
+        ? tr("Create account", "注册")
+        : tr("Send code", "发送验证码");
 
   return (
     <main className="game-auth" aria-label={tr("Login and registration", "登录注册")}>
@@ -323,6 +342,12 @@ export default function Auth() {
           min-width: 0;
         }
 
+        .auth-brand > div {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
         .auth-brand__logo {
           width: 200px;
           height: auto;
@@ -443,12 +468,6 @@ export default function Auth() {
           display: none;
         }
 
-        .auth-form--reset .auth-reset-email {
-          display: grid;
-          gap: 6px;
-          padding-top: 8px;
-        }
-
         .auth-field {
           display: grid;
           gap: 6px;
@@ -534,11 +553,12 @@ export default function Auth() {
           display: grid;
           gap: 4px;
           margin: -4px 0 6px;
+          align-content: start;
         }
 
         .auth-agreement__control {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           gap: 7px;
           color: rgba(114, 93, 66, .58);
           font-size: 10px;
@@ -551,16 +571,21 @@ export default function Auth() {
           width: 13px;
           height: 13px;
           flex: 0 0 auto;
-          margin: 1px 0 0;
+          margin: 0;
           accent-color: #d6b645;
         }
 
         .auth-agreement__error {
-          min-height: 14px;
+          display: none;
+          min-height: 0;
           color: #b42318;
           font-size: 10px;
           font-weight: 900;
           line-height: 1.4;
+        }
+
+        .auth-agreement__error:not(:empty) {
+          display: block;
         }
 
         .auth-password-toggle {
@@ -579,44 +604,12 @@ export default function Auth() {
           cursor: pointer;
         }
 
-        .auth-code-row {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) 104px;
-          gap: 8px;
-        }
-
-        .auth-send,
         .auth-submit {
           appearance: none;
           border: 0;
           cursor: pointer;
           font: inherit;
           font-weight: 950;
-        }
-
-        .auth-send {
-          height: 42px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          color: rgba(90, 50, 29, .9);
-          background: #fff8e8;
-          border: 2px solid rgba(196, 184, 158, .9);
-          border-radius: 6px;
-          box-shadow: none;
-          font-size: 12px;
-        }
-
-        .auth-send:disabled {
-          cursor: wait;
-          opacity: .68;
-        }
-
-        .auth-send:hover,
-        .auth-send:focus-visible {
-          background: #fff3cf;
-          outline: none;
         }
 
         .auth-submit {
@@ -730,9 +723,6 @@ export default function Auth() {
             padding: 14px;
           }
 
-          .auth-code-row {
-            grid-template-columns: 1fr;
-          }
         }
       `}</style>
 
@@ -757,18 +747,30 @@ export default function Auth() {
           </header>
 
           <div className="auth-panel" ref={panelRef}>
-            {mode === "forgot" ? (
+            {isResetLikeMode ? (
               <div className="auth-reset-copy">
                 <button
                   className="auth-reset-back"
                   type="button"
-                  aria-label={tr("Back to log in", "返回登录")}
-                  onClick={() => switchMode("login")}
+                  aria-label={isRegisterVerify ? tr("Back to sign up", "返回注册") : tr("Back to log in", "返回登录")}
+                  onClick={() => {
+                    if (isRegisterVerify) {
+                      setRegisterStep("form");
+                      setVerificationCode("");
+                      setFieldErrors((current) => ({ ...current, verificationCode: undefined }));
+                      return;
+                    }
+                    switchMode("login");
+                  }}
                 >
                   <ArrowLeft size={18} strokeWidth={3} />
                 </button>
-                <h2>{tr("Reset password", "重置密码")}</h2>
-                <p>{tr("Enter your registered email. We will send a verification code to your inbox.", "输入注册邮箱，我们会向你的邮箱发送验证码。")}</p>
+                <h2>{isRegisterVerify ? tr("Verify email", "验证邮箱") : tr("Reset password", "重置密码")}</h2>
+                <p>
+                  {isRegisterVerify
+                    ? tr("Enter the 6-digit code from your inbox.", "输入邮箱中的 6 位验证码。")
+                    : tr("Enter your registered email. We will send a verification code to your inbox.", "输入注册邮箱，我们会向你的邮箱发送验证码。")}
+                </p>
               </div>
             ) : (
               <div className="auth-tabs" role="tablist" aria-label={tr("Auth mode", "登录注册方式")}>
@@ -788,7 +790,7 @@ export default function Auth() {
             )}
 
             <form onSubmit={handleSubmit} noValidate>
-              <div className={`auth-form${mode === "forgot" ? " auth-form--reset" : ""}`} ref={formRef}>
+              <div className={`auth-form${isResetLikeMode ? " auth-form--reset" : ""}`} ref={formRef}>
               {mode === "forgot" && (
                 <div className="auth-field auth-reset-email">
                   <label htmlFor="auth-reset-email">{tr("Email", "邮箱")}</label>
@@ -813,7 +815,7 @@ export default function Auth() {
                   </span>
                 </div>
               )}
-              <div className={`auth-field${mode === "forgot" ? " auth-field--hidden" : ""}`}>
+              <div className={`auth-field${isResetLikeMode ? " auth-field--hidden" : ""}`}>
                 <label htmlFor="auth-email">{tr("Email", "邮箱")}</label>
                 <div className="auth-input-wrap">
                   <input
@@ -834,49 +836,38 @@ export default function Auth() {
                 <span id="auth-email-feedback" className="auth-field-feedback">{fieldErrors.email || " "}</span>
               </div>
 
-              {mode === "register" && (
+              {isRegisterVerify && (
                 <div className="auth-field">
                   <label htmlFor="auth-verification-code">{tr("Verification code", "验证码")}</label>
-                  <div className="auth-code-row">
-                    <input
-                      id="auth-verification-code"
-                      className="auth-input"
-                      type="text"
-                      inputMode="numeric"
-                      value={verificationCode}
-                      aria-invalid={Boolean(fieldErrors.verificationCode)}
-                      aria-describedby="auth-verification-code-feedback"
-                      onChange={(event) => {
-                        setVerificationCode(event.target.value);
-                        setFieldErrors((current) => ({ ...current, verificationCode: undefined }));
-                      }}
-                      placeholder={tr("Enter code", "输入验证码")}
-                      autoComplete="one-time-code"
-                    />
+                  <AuthVerificationCodeInput
+                    value={verificationCode}
+                    onChange={(nextValue) => {
+                      setVerificationCode(nextValue);
+                      setFieldErrors((current) => ({ ...current, verificationCode: undefined }));
+                    }}
+                    disabled={submitting}
+                    inputClassName="auth-input auth-code-slot"
+                    tr={tr}
+                  />
+                  <div className="auth-verify-meta">
+                    {fieldErrors.verificationCode ? (
+                      <span id="auth-verification-code-feedback" className="auth-field-feedback">
+                        {fieldErrors.verificationCode}
+                      </span>
+                    ) : null}
                     <button
-                      className="auth-send"
+                      className="auth-verify-resend"
                       type="button"
                       disabled={sending || countdown > 0}
                       onClick={handleSendCode}
                     >
-                      {sending ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : countdown > 0 ? (
-                        `${countdown}s`
-                      ) : codeSent ? (
-                        tr("Resend", "重新发送")
-                      ) : (
-                        tr("Send", "发送")
-                      )}
+                      {sending ? <Loader2 size={14} className="animate-spin" /> : countdown > 0 ? `${countdown}s` : codeSent ? tr("Resend", "重新发送") : tr("Send code", "发送验证码")}
                     </button>
                   </div>
-                  <span id="auth-verification-code-feedback" className={`auth-field-feedback${codeSent && !fieldErrors.verificationCode ? " is-success" : ""}`}>
-                    {fieldErrors.verificationCode || (codeSent ? tr("Verification code sent", "验证码已发送") : " ")}
-                  </span>
                 </div>
               )}
 
-              {mode === "register" && (
+              {mode === "register" && !isRegisterVerify && (
                 <div className="auth-field">
                   <label htmlFor="auth-nickname">{tr("Nickname", "设置昵称")}</label>
                   <div className="auth-input-wrap">
@@ -899,7 +890,7 @@ export default function Auth() {
                 </div>
               )}
 
-              {mode !== "forgot" && (
+              {!isResetLikeMode && (
               <div className="auth-field">
                 <label htmlFor="auth-password">{tr("Password", "密码")}</label>
                 <div className="auth-input-wrap">
@@ -935,7 +926,7 @@ export default function Auth() {
               </div>
               )}
 
-              {mode === "register" && (
+              {mode === "register" && !isRegisterVerify && (
                 <div className="auth-agreement">
                   <label className="auth-agreement__control">
                     <input
@@ -951,19 +942,19 @@ export default function Auth() {
                       "创建账户即表示我同意 Quandora 的服务条款和隐私政策。"
                     )}</span>
                   </label>
-                  <span className="auth-agreement__error">{fieldErrors.terms || " "}</span>
+                  <span className="auth-agreement__error">{fieldErrors.terms || ""}</span>
                 </div>
               )}
 
-              <button className="auth-submit" type="submit" disabled={submitting || (mode === "forgot" && (sending || countdown > 0))}>
-                {submitting || sending ? <Loader2 size={16} className="animate-spin" /> : null}
+              <button className="auth-submit" type="submit" disabled={submitting || (mode === "forgot" && (sending || countdown > 0)) || (isRegisterVerify && sending)}>
+                {submitting || (isRegisterVerify && sending) ? <Loader2 size={16} className="animate-spin" /> : null}
                 <span>{mode === "forgot" && countdown > 0 ? `${countdown}s` : submitLabel}</span>
                 {!submitting && mode !== "forgot" && <ArrowRight size={16} strokeWidth={3} />}
               </button>
               </div>
             </form>
           </div>
-          {mode !== "forgot" && (
+          {!isResetLikeMode && (
           <p className="auth-footer">
             {mode === "login" ? (
               <>

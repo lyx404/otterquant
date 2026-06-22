@@ -2707,7 +2707,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
             <div className="px-6 pb-6 space-y-4">
               {/* Top row: Aggregate metric cards */}
               {summaryPeriod !== "DIFF" && (
-              <div className={`grid grid-cols-4 gap-3 ${isOfficialLibraryView ? "md:grid-cols-7" : "md:grid-cols-8"}`}>
+              <div className={`grid grid-cols-2 gap-3 sm:grid-cols-4 ${isOfficialLibraryView ? "md:grid-cols-7" : "md:grid-cols-8"}`}>
                 {/* Sharpe card — color follows list view osSharpe rule */}
                 {withPlainExplanation(
                   proMetricExplanations.sharpe,
