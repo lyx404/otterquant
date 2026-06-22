@@ -411,10 +411,10 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="app-shell">
       {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex flex-col shrink-0 bg-card border-r border-border h-screen sticky top-0 z-10 transition-all duration-300 ease-in-out overflow-hidden"
+        className="app-sidebar hidden md:flex flex-col shrink-0 bg-card border-r border-border sticky top-0 z-10 transition-all duration-300 ease-in-out overflow-hidden"
         style={{ width: sidebarWidth }}
       >
         <SidebarContent />
@@ -430,18 +430,17 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`md:hidden fixed top-0 left-0 z-50 h-full bg-card border-r border-border transition-transform duration-300 ease-in-out ${
+        className={`app-sidebar-mobile md:hidden fixed top-0 left-0 z-50 bg-card border-r border-border transition-transform duration-300 ease-in-out ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ width: SIDEBAR_W }}
       >
         <SidebarContent isMobile />
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="app-main">
         {/* Mobile Top Bar */}
-        <header className="md:hidden sticky top-0 z-30 h-12 bg-card/80 backdrop-blur-xl border-b border-border flex items-center px-4 gap-3">
+        <header className="md:hidden sticky top-0 z-30 min-h-12 bg-card/80 backdrop-blur-xl border-b border-border flex items-center px-3 sm:px-4 gap-3">
           <button
             onClick={() => setMobileOpen(true)}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
@@ -461,7 +460,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 mx-auto w-full max-w-[1100px] px-0 py-6 lg:py-8">
+        <main className="app-content">
           {children}
         </main>
       </div>
