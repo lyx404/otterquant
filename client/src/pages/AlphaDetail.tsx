@@ -11,7 +11,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useParams, useSearch } from "wouter";
-import { useState, useMemo, useEffect, useId, useRef, type ReactNode, type CSSProperties } from "react";
+import { useState, useMemo, useEffect, useId, useRef, type ReactNode, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 import gsap from "gsap";
 import {
@@ -298,6 +298,64 @@ function useMeasuredChartSize(initialHeight = 300) {
   return { chartRef, chartSize };
 }
 
+function isCompactChart(width: number) {
+  return width <= 520;
+}
+
+function pickEvenlySpacedIndexes(count: number, maxTicks: number) {
+  if (count <= 0) return [];
+  if (count <= maxTicks) return Array.from({ length: count }, (_, index) => index);
+
+  return Array.from(
+    new Set(
+      Array.from({ length: maxTicks }, (_, index) =>
+        Math.round((index * (count - 1)) / Math.max(1, maxTicks - 1))
+      )
+    )
+  );
+}
+
+function pickChartXTickIndexes(count: number, width: number, desktopTicks = 6) {
+  const maxTicks = isCompactChart(width) ? 3 : desktopTicks;
+  return pickEvenlySpacedIndexes(count, maxTicks);
+}
+
+function pickChartYTicks<T>(ticks: T[], width: number, mobileTicks = 4) {
+  if (!isCompactChart(width) || ticks.length <= mobileTicks) return ticks;
+  return pickEvenlySpacedIndexes(ticks.length, mobileTicks).map((index) => ticks[index]).filter((tick): tick is T => tick !== undefined);
+}
+
+function pickLagTicks<T extends { lag: number }>(points: T[], width: number) {
+  if (!isCompactChart(width)) return points;
+  const preferred = new Set([points[0]?.lag, 10, points[points.length - 1]?.lag]);
+  const selected = points.filter((point) => preferred.has(point.lag));
+  return selected.length >= 3 ? selected : pickEvenlySpacedIndexes(points.length, 3).map((index) => points[index]).filter((point): point is T => Boolean(point));
+}
+
+function getLinearHoverIndex(clientX: number, bounds: DOMRect, pointCount: number) {
+  const ratio = Math.max(0, Math.min(1, (clientX - bounds.left) / Math.max(1, bounds.width)));
+  return Math.round(ratio * (pointCount - 1));
+}
+
+function createLinearPointerHandler(pointCount: number, setHoverIndex: (updater: (current: number | null) => number) => void) {
+  return (event: ReactPointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const nextIndex = getLinearHoverIndex(event.clientX, bounds, pointCount);
+    setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
+  };
+}
+
+function renderBottomAxisTitle(label: string, compact: boolean) {
+  if (compact) return null;
+  return <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>{label}</div>;
+}
+
+function getChartLegendClassName(compact: boolean) {
+  return compact
+    ? "pointer-events-auto absolute left-0 top-0 z-40 flex w-full max-w-full items-center gap-3 overflow-x-auto whitespace-nowrap bg-transparent px-0 py-0 text-xs font-semibold text-[#2c2117] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    : CHART_LEGEND_CLASS_NAME;
+}
+
 function PnlLineChart({
   data,
   upColor,
@@ -317,7 +375,10 @@ function PnlLineChart({
   const { chartRef, chartSize } = useMeasuredChartSize(300);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(220, chartSize.height);
-  const padding = { top: 14, right: 28, bottom: 36, left: 88 };
+  const compact = isCompactChart(width);
+  const padding = compact
+    ? { top: 14, right: 18, bottom: 38, left: 76 }
+    : { top: 14, right: 28, bottom: 36, left: 88 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -334,13 +395,8 @@ function PnlLineChart({
   for (let tick = domainMin; tick <= domainMax + tickStep / 2; tick += tickStep) {
     yTicks.push(Number(tick.toFixed(6)));
   }
-  const xTicks = Array.from(
-    new Set(
-      Array.from({ length: Math.min(6, data.length) }, (_, index) =>
-        Math.round((index * (data.length - 1)) / Math.max(1, Math.min(6, data.length) - 1))
-      )
-    )
-  );
+  const visibleYTicks = pickChartYTicks(yTicks, width, 4);
+  const xTicks = pickChartXTickIndexes(data.length, width, 6);
 
   const points = data.map((point, index) => {
     const x = padding.left + (index / Math.max(1, data.length - 1)) * plotWidth;
@@ -359,12 +415,8 @@ function PnlLineChart({
       ref={chartRef}
       className="relative h-full w-full overflow-visible rounded-lg"
       onMouseLeave={() => setHoverIndex(null)}
-      onMouseMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-        const nextIndex = Math.round(ratio * (data.length - 1));
-        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
-      }}
+      onPointerDown={createLinearPointerHandler(data.length, setHoverIndex)}
+      onPointerMove={createLinearPointerHandler(data.length, setHoverIndex)}
     >
       <svg
         viewBox={`0 0 ${width} ${height}`}
@@ -373,7 +425,7 @@ function PnlLineChart({
         role="img"
         aria-label="PNL line chart"
       >
-        {yTicks.map((tick) => {
+        {visibleYTicks.map((tick) => {
           const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
           return (
             <g key={tick}>
@@ -441,10 +493,8 @@ function PnlLineChart({
       <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
         {axisLabels.y}
       </div>
-      <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-        {axisLabels.x}
-      </div>
-      {yTicks.map((tick) => {
+      {renderBottomAxisTitle(axisLabels.x, compact)}
+      {visibleYTicks.map((tick) => {
         const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
         return (
           <div
@@ -508,7 +558,10 @@ function MultiLineReturnChart({ series, axisLabels }: { series: MultiLineChartSe
   const { chartRef, chartSize } = useMeasuredChartSize(300);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(220, chartSize.height);
-  const padding = { top: 40, right: 28, bottom: 56, left: 92 };
+  const compact = isCompactChart(width);
+  const padding = compact
+    ? { top: 58, right: 18, bottom: 42, left: 68 }
+    : { top: 40, right: 28, bottom: 56, left: 92 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -517,13 +570,8 @@ function MultiLineReturnChart({ series, axisLabels }: { series: MultiLineChartSe
   const domainRange = domainMax - domainMin;
   const yTicks = [-1, -0.5, 0, 0.5, 1, 1.5];
   const pointCount = Math.max(...series.map((item) => item.points.length), 1);
-  const xTicks = Array.from(
-    new Set(
-      Array.from({ length: 6 }, (_, index) =>
-        Math.round((index * (pointCount - 1)) / 5)
-      )
-    )
-  );
+  const visibleYTicks = pickChartYTicks(yTicks, width, 4);
+  const xTicks = pickChartXTickIndexes(pointCount, width, 6);
   const chartGridColor = "rgba(100,116,139,0.22)";
   const chartZeroColor = "rgba(100,116,139,0.36)";
   const chartTickColor = "rgba(100,116,139,0.84)";
@@ -549,17 +597,13 @@ function MultiLineReturnChart({ series, axisLabels }: { series: MultiLineChartSe
       className="relative isolate h-full w-full overflow-visible rounded-lg"
       data-chart-layer="container"
       onMouseLeave={() => setHoverIndex(null)}
-      onMouseMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-        const nextIndex = Math.round(ratio * (pointCount - 1));
-        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
-      }}
+      onPointerDown={createLinearPointerHandler(pointCount, setHoverIndex)}
+      onPointerMove={createLinearPointerHandler(pointCount, setHoverIndex)}
     >
       <div className="pointer-events-none absolute inset-0 z-0 rounded-lg" aria-hidden="true" />
 
       <div
-        className={CHART_LEGEND_CLASS_NAME}
+        className={getChartLegendClassName(compact)}
         data-chart-layer="legend"
         aria-label="Chart legend layer"
       >
@@ -578,7 +622,7 @@ function MultiLineReturnChart({ series, axisLabels }: { series: MultiLineChartSe
           preserveAspectRatio="xMidYMid meet"
           aria-hidden="true"
         >
-          {yTicks.map((tick) => {
+          {visibleYTicks.map((tick) => {
             const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
             return (
               <line
@@ -598,10 +642,8 @@ function MultiLineReturnChart({ series, axisLabels }: { series: MultiLineChartSe
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
           {axisLabels.y}
         </div>
-        <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          {axisLabels.x}
-        </div>
-        {yTicks.map((tick) => {
+        {renderBottomAxisTitle(axisLabels.x, compact)}
+        {visibleYTicks.map((tick) => {
           const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
           return (
             <div
@@ -706,7 +748,10 @@ function GroupCumReturnChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
   const { chartRef, chartSize } = useMeasuredChartSize(320);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(220, chartSize.height);
-  const padding = { top: 40, right: 28, bottom: 56, left: 92 };
+  const compact = isCompactChart(width);
+  const padding = compact
+    ? { top: 58, right: 18, bottom: 42, left: 68 }
+    : { top: 40, right: 28, bottom: 56, left: 92 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -716,7 +761,10 @@ function GroupCumReturnChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
   const domainMax = 0.75;
   const domainRange = domainMax - domainMin;
   const yTicks = [0.5, 0, -0.5, -1, -1.5, -2];
-  const xTicks = [0, 3, 6, 9, 12, 15, 18, 21, 24].filter((index) => index < pointCount);
+  const visibleYTicks = pickChartYTicks(yTicks, width, 4);
+  const xTicks = compact
+    ? pickChartXTickIndexes(pointCount, width, 9)
+    : [0, 3, 6, 9, 12, 15, 18, 21, 24].filter((index) => index < pointCount);
   const chartGridColor = "rgba(100,116,139,0.18)";
   const chartZeroColor = "rgba(17,24,39,0.8)";
   const chartTickColor = "rgba(82, 64, 37, 0.82)";
@@ -742,17 +790,13 @@ function GroupCumReturnChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
       className="relative isolate h-full w-full overflow-visible rounded-lg"
       data-chart-layer="container"
       onMouseLeave={() => setHoverIndex(null)}
-      onMouseMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-        const nextIndex = Math.round(ratio * (pointCount - 1));
-        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
-      }}
+      onPointerDown={createLinearPointerHandler(pointCount, setHoverIndex)}
+      onPointerMove={createLinearPointerHandler(pointCount, setHoverIndex)}
     >
       <div className="pointer-events-none absolute inset-0 z-0 rounded-lg" aria-hidden="true" />
 
       <div
-        className={CHART_LEGEND_CLASS_NAME}
+        className={getChartLegendClassName(compact)}
         data-chart-layer="legend"
         aria-label="Group cumulative return chart legend layer"
       >
@@ -775,7 +819,7 @@ function GroupCumReturnChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
 
       <div className="pointer-events-auto absolute inset-0 z-20" data-chart-layer="axes" aria-label="Group cumulative return chart axis layer">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          {yTicks.map((tick) => {
+          {visibleYTicks.map((tick) => {
             const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
             return (
               <line
@@ -795,10 +839,8 @@ function GroupCumReturnChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
           {axisLabels.y}
         </div>
-        <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          {axisLabels.x}
-        </div>
-        {yTicks.map((tick) => {
+        {renderBottomAxisTitle(axisLabels.x, compact)}
+        {visibleYTicks.map((tick) => {
           const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
           return (
             <div
@@ -920,7 +962,10 @@ function CumIcComparisonChart({ data, axisLabels }: { data: PnlChartPoint[]; axi
   const { chartRef, chartSize } = useMeasuredChartSize(320);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(240, chartSize.height);
-  const padding = { top: 40, right: 72, bottom: 56, left: 92 };
+  const compact = isCompactChart(width);
+  const padding = compact
+    ? { top: 70, right: 46, bottom: 42, left: 68 }
+    : { top: 40, right: 72, bottom: 56, left: 92 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -940,6 +985,8 @@ function CumIcComparisonChart({ data, axisLabels }: { data: PnlChartPoint[]; axi
     )
   );
   const rightTicks = [0, 0.02, 0.04, 0.06, 0.08, 0.10, 0.12];
+  const visibleLeftTicks = pickChartYTicks(leftTicks, width, 4);
+  const visibleRightTicks = pickChartYTicks(rightTicks, width, 4);
 
   const screenPoints = points.map((point, index) => {
     const x = padding.left + (index / lastIndex) * plotWidth;
@@ -978,15 +1025,11 @@ function CumIcComparisonChart({ data, axisLabels }: { data: PnlChartPoint[]; axi
       className="relative h-full w-full overflow-visible"
       data-chart-layer="container"
       onMouseLeave={() => setHoverIndex(null)}
-      onMouseMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-        const nextIndex = Math.round(ratio * (points.length - 1));
-        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
-      }}
+      onPointerDown={createLinearPointerHandler(points.length, setHoverIndex)}
+      onPointerMove={createLinearPointerHandler(points.length, setHoverIndex)}
     >
       <div
-        className={CHART_LEGEND_CLASS_NAME}
+        className={getChartLegendClassName(compact)}
         data-chart-layer="legend"
         aria-label="Cumulative IC chart legend layer"
       >
@@ -1006,7 +1049,7 @@ function CumIcComparisonChart({ data, axisLabels }: { data: PnlChartPoint[]; axi
 
       <div className="pointer-events-auto absolute inset-0 z-20" data-chart-layer="axes" aria-label="Cumulative IC chart axis layer">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          {leftTicks.map((tick) => {
+          {visibleLeftTicks.map((tick) => {
             const y = padding.top + ((leftMax - tick) / leftRange) * plotHeight;
             return (
               <line
@@ -1022,7 +1065,7 @@ function CumIcComparisonChart({ data, axisLabels }: { data: PnlChartPoint[]; axi
               />
             );
           })}
-          {rightTicks.map((tick) => {
+          {visibleRightTicks.map((tick) => {
             const y = padding.top + ((rightMax - tick) / rightRange) * plotHeight;
             return (
               <line
@@ -1046,11 +1089,9 @@ function CumIcComparisonChart({ data, axisLabels }: { data: PnlChartPoint[]; axi
         <div className={CHART_RIGHT_AXIS_TITLE_CLASS_NAME}>
           {axisLabels.rightY ?? "IC"}
         </div>
-        <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          {axisLabels.x}
-        </div>
+        {renderBottomAxisTitle(axisLabels.x, compact)}
 
-        {leftTicks.map((tick) => {
+        {visibleLeftTicks.map((tick) => {
           const y = padding.top + ((leftMax - tick) / leftRange) * plotHeight;
           return (
             <div
@@ -1068,7 +1109,7 @@ function CumIcComparisonChart({ data, axisLabels }: { data: PnlChartPoint[]; axi
           );
         })}
 
-        {rightTicks.map((tick) => {
+        {visibleRightTicks.map((tick) => {
           const y = padding.top + ((rightMax - tick) / rightRange) * plotHeight;
           return (
             <div
@@ -1195,7 +1236,10 @@ function IcDecayChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels:
   const { chartRef, chartSize } = useMeasuredChartSize(320);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(240, chartSize.height);
-  const padding = { top: 40, right: 28, bottom: 56, left: 92 };
+  const compact = isCompactChart(width);
+  const padding = compact
+    ? { top: 28, right: 18, bottom: 42, left: 68 }
+    : { top: 40, right: 28, bottom: 56, left: 92 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -1204,17 +1248,17 @@ function IcDecayChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels:
   const domainMax = 0.005;
   const domainRange = 0.035;
   const yTicks = [0.005, 0, -0.005, -0.01, -0.015, -0.02, -0.025];
+  const visibleYTicks = pickChartYTicks(yTicks, width, 4);
   const minLog = Math.log(series[0]?.lag ?? 1);
   const maxLog = Math.log(series[series.length - 1]?.lag ?? 50);
   const logRange = maxLog - minLog || 1;
-  const xTicks = series.map((item) => item.lag);
-
   const points = series.map((item) => {
     const progress = (Math.log(item.lag) - minLog) / logRange;
     const x = padding.left + progress * plotWidth;
     const y = padding.top + ((domainMax - item.value) / domainRange) * plotHeight;
     return { ...item, x, y };
   });
+  const visibleXTicks = pickLagTicks(points, width);
   const zeroY = padding.top + ((domainMax - 0) / domainRange) * plotHeight;
   const hoveredPoint = hoverIndex === null ? null : points[hoverIndex];
   const chartGridColor = "rgba(100,116,139,0.20)";
@@ -1230,16 +1274,12 @@ function IcDecayChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels:
       className="relative h-full w-full overflow-visible"
       data-chart-layer="container"
       onMouseLeave={() => setHoverIndex(null)}
-      onMouseMove={(event) => {
-        const bounds = event.currentTarget.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
-        const nextIndex = Math.round(ratio * (points.length - 1));
-        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
-      }}
+      onPointerDown={createLinearPointerHandler(points.length, setHoverIndex)}
+      onPointerMove={createLinearPointerHandler(points.length, setHoverIndex)}
     >
       <div className="pointer-events-auto absolute inset-0 z-20" data-chart-layer="axes" aria-label="IC decay chart axis layer">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          {yTicks.map((tick) => {
+          {visibleYTicks.map((tick) => {
             const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
             return (
               <line
@@ -1261,11 +1301,9 @@ function IcDecayChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels:
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
           {axisLabels.y}
         </div>
-        <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          {axisLabels.x}
-        </div>
+        {renderBottomAxisTitle(axisLabels.x, compact)}
 
-        {yTicks.map((tick) => {
+        {visibleYTicks.map((tick) => {
           const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
           return (
             <div
@@ -1283,14 +1321,13 @@ function IcDecayChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels:
           );
         })}
 
-        {xTicks.map((lag, index) => {
-          const point = points[index];
+        {visibleXTicks.map((point) => {
           if (!point) return null;
-          const isFirstTick = index === 0;
-          const isLastTick = index === points.length - 1;
+          const isFirstTick = point.lag === points[0]?.lag;
+          const isLastTick = point.lag === points[points.length - 1]?.lag;
           return (
             <div
-              key={`ic-decay-x-${lag}`}
+              key={`ic-decay-x-${point.lag}`}
               className="absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
               style={{
                 left: `${(point.x / width) * 100}%`,
@@ -1299,7 +1336,7 @@ function IcDecayChart({ data, axisLabels }: { data: PnlChartPoint[]; axisLabels:
                 color: chartTickColor,
               }}
             >
-              {lag}
+              {point.lag}
             </div>
           );
         })}
@@ -1387,7 +1424,10 @@ function FactorAutocorrChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
   const { chartRef, chartSize } = useMeasuredChartSize(320);
   const width = Math.max(320, chartSize.width);
   const height = Math.max(240, chartSize.height);
-  const padding = { top: 40, right: 28, bottom: 56, left: 92 };
+  const compact = isCompactChart(width);
+  const padding = compact
+    ? { top: 28, right: 18, bottom: 42, left: 68 }
+    : { top: 40, right: 28, bottom: 56, left: 92 };
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
@@ -1396,17 +1436,17 @@ function FactorAutocorrChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
   const domainMax = 0.018;
   const domainRange = 0.038;
   const yTicks = [0.015, 0.01, 0.005, 0, -0.005, -0.01, -0.015];
+  const visibleYTicks = pickChartYTicks(yTicks, width, 4);
   const minLog = Math.log(1);
   const maxLog = Math.log(50);
   const logRange = maxLog - minLog || 1;
-  const xTicks = series.map((item) => item.lag);
-
   const points = series.map((item) => {
     const progress = (Math.log(item.lag) - minLog) / logRange;
     const x = padding.left + progress * plotWidth;
     const y = padding.top + ((domainMax - item.value) / domainRange) * plotHeight;
     return { ...item, x, y };
   });
+  const visibleXTicks = pickLagTicks(points, width);
   const zeroY = padding.top + ((domainMax - 0) / domainRange) * plotHeight;
   const hoveredPoint = hoverIndex === null ? null : points[hoverIndex];
   const chartGridColor = "rgba(100,116,139,0.20)";
@@ -1422,9 +1462,22 @@ function FactorAutocorrChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
       className="relative h-full w-full overflow-visible rounded-lg"
       data-chart-layer="container"
       onMouseLeave={() => setHoverIndex(null)}
-      onMouseMove={(event) => {
+      onPointerDown={(event) => {
         const bounds = event.currentTarget.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / Math.max(1, bounds.width)));
+        const targetLog = minLog + ratio * logRange;
+        const nextIndex = points.reduce((bestIndex, point, index) => {
+          if (bestIndex < 0) return index;
+          const bestPoint = points[bestIndex];
+          const bestDistance = Math.abs(Math.log(bestPoint.lag) - targetLog);
+          const currentDistance = Math.abs(Math.log(point.lag) - targetLog);
+          return currentDistance < bestDistance ? index : bestIndex;
+        }, -1);
+        setHoverIndex((current) => (current === nextIndex ? current : nextIndex));
+      }}
+      onPointerMove={(event) => {
+        const bounds = event.currentTarget.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (event.clientX - bounds.left) / Math.max(1, bounds.width)));
         const targetLog = minLog + ratio * logRange;
         const nextIndex = points.reduce((bestIndex, point, index) => {
           if (bestIndex < 0) return index;
@@ -1438,7 +1491,7 @@ function FactorAutocorrChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
     >
       <div className="pointer-events-auto absolute inset-0 z-20" data-chart-layer="axes" aria-label="Factor autocorrelation chart axis layer">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          {yTicks.map((tick) => {
+          {visibleYTicks.map((tick) => {
             const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
             return (
               <line
@@ -1460,11 +1513,9 @@ function FactorAutocorrChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
         <div className={CHART_LEFT_AXIS_TITLE_CLASS_NAME}>
           {axisLabels.y}
         </div>
-        <div className={CHART_BOTTOM_AXIS_TITLE_CLASS_NAME}>
-          {axisLabels.x}
-        </div>
+        {renderBottomAxisTitle(axisLabels.x, compact)}
 
-        {yTicks.map((tick) => {
+        {visibleYTicks.map((tick) => {
           const y = padding.top + ((domainMax - tick) / domainRange) * plotHeight;
           return (
             <div
@@ -1482,14 +1533,13 @@ function FactorAutocorrChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
           );
         })}
 
-        {xTicks.map((lag, index) => {
-          const point = points[index];
+        {visibleXTicks.map((point) => {
           if (!point) return null;
-          const isFirstTick = index === 0;
-          const isLastTick = index === points.length - 1;
+          const isFirstTick = point.lag === points[0]?.lag;
+          const isLastTick = point.lag === points[points.length - 1]?.lag;
           return (
             <div
-              key={`autocorr-x-${lag}`}
+              key={`autocorr-x-${point.lag}`}
               className="absolute -translate-y-1/2 text-[10px] font-bold leading-none tabular-nums"
               style={{
                 left: `${(point.x / width) * 100}%`,
@@ -1498,7 +1548,7 @@ function FactorAutocorrChart({ data, axisLabels }: { data: PnlChartPoint[]; axis
                 color: chartTickColor,
               }}
             >
-              {lag}
+              {point.lag}
             </div>
           );
         })}
@@ -2354,11 +2404,11 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
     </div>
   );
   const beginnerMetricCards = (
-    <div className={`grid gap-3 ${isOfficialLibraryView ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-5"}`}>
+    <div className={`alpha-metric-grid grid gap-3 ${isOfficialLibraryView ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3 sm:grid-cols-5"}`}>
       {beginnerMetrics.map((m) => (
         withPlainExplanation(
           m.explanation,
-          <div key={m.label} className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+          <div key={m.label} className="alpha-metric-card text-center p-4 rounded-2xl bg-accent border border-border/60">
             <div className="label-upper mb-1 text-[9px]">{m.label}</div>
             <div className="text-lg font-bold font-mono tabular-nums" style={{ color: m.color }}>
               {m.value}
@@ -2369,7 +2419,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
       ))}
       {!isOfficialLibraryView && withPlainExplanation(
         proMetricExplanations.grade,
-        <div className="text-center p-4 rounded-2xl bg-accent border border-border/60">
+        <div className="alpha-metric-card text-center p-4 rounded-2xl bg-accent border border-border/60">
           <div className="label-upper mb-1 text-[9px]">{tr("GRADE", "等级")}</div>
           <div className="text-lg font-bold font-mono tabular-nums" style={{ color: "rgb(44, 33, 23)" }}>
             {displayGrade}
@@ -2413,7 +2463,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
     valueStyle?: CSSProperties;
   }) {
     return (
-      <div className="relative isolate flex min-h-[60px] items-center justify-center overflow-hidden rounded-md bg-[rgb(255,247,227)] text-center">
+      <div className="alpha-metric-card relative isolate flex min-h-[60px] items-center justify-center overflow-hidden rounded-md bg-[rgb(255,247,227)] text-center">
         <div className="pointer-events-none absolute inset-0 rounded-md" aria-hidden="true" />
         <div className="relative z-10 flex w-full flex-col items-center justify-center px-4 py-0">
           <div className="relative z-10 mb-1 text-[9px] text-muted-foreground">{label}</div>
@@ -2707,7 +2757,7 @@ export default function AlphaDetail({ embedded = false, hideHeader = false, fact
             <div className="px-6 pb-6 space-y-4">
               {/* Top row: Aggregate metric cards */}
               {summaryPeriod !== "DIFF" && (
-              <div className={`grid grid-cols-2 gap-3 sm:grid-cols-4 ${isOfficialLibraryView ? "md:grid-cols-7" : "md:grid-cols-8"}`}>
+              <div className={`alpha-metric-grid grid grid-cols-2 gap-3 sm:grid-cols-4 ${isOfficialLibraryView ? "md:grid-cols-7" : "md:grid-cols-8"}`}>
                 {/* Sharpe card — color follows list view osSharpe rule */}
                 {withPlainExplanation(
                   proMetricExplanations.sharpe,

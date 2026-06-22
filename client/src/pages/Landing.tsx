@@ -1235,6 +1235,7 @@ export default function Landing() {
   const basketRewardStageClass = [
     "basket-reward-modal__stage",
     basketItemCount <= 5 ? "is-compact" : "",
+    isBasketRewardMultiPage ? "is-paged" : "",
     `is-count-${basketRewardDisplayCount}`,
     basketRewardMobileRowClass,
     basketRewardDisplayCount === 1 ? "is-single" : basketRewardModalPage === "last" ? "is-last-page" : basketRewardDisplayCount <= 5 ? "is-row" : "is-grid",
@@ -2855,17 +2856,19 @@ export default function Landing() {
 
         .game-stage--mobile-cover .test-scenario-panel.is-collapsed {
           width: calc(184px / var(--stage-scale));
-          height: calc(56px / var(--stage-scale));
+          height: 36px;
           max-height: none;
           justify-content: center;
           overflow: visible;
           gap: 0;
-          padding: calc(6px / var(--stage-scale)) calc(9px / var(--stage-scale));
+          padding: 0 calc(9px / var(--stage-scale));
+          border-radius: 8px;
         }
 
         .game-stage--mobile-cover .test-scenario-panel.is-collapsed .test-scenario-panel__header {
           width: calc(166px / var(--stage-scale));
-          min-height: calc(43px / var(--stage-scale));
+          min-height: 36px;
+          height: 36px;
           margin: 0 auto;
           gap: calc(6px / var(--stage-scale));
           padding: 0;
@@ -2878,7 +2881,7 @@ export default function Landing() {
         .game-stage--mobile-cover .test-scenario-panel.is-collapsed .test-scenario-panel__toggle {
           width: calc(56px / var(--stage-scale));
           min-width: calc(56px / var(--stage-scale));
-          height: calc(43px / var(--stage-scale));
+          height: 30px;
           padding-inline: 0;
           display: inline-flex;
           align-items: center;
@@ -4334,8 +4337,29 @@ export default function Landing() {
           right: 1.96%;
         }
 
+        .basket-reward-modal__pager {
+          position: absolute;
+          inset: 0;
+          z-index: 5;
+          pointer-events: none;
+        }
+
+        .basket-reward-modal__pager .basket-reward-modal__page {
+          pointer-events: auto;
+        }
+
+        .basket-reward-modal__page:disabled {
+          cursor: default;
+          opacity: .42;
+          filter: saturate(.6);
+        }
+
         .basket-reward-modal__page:hover {
           filter: brightness(1.08) saturate(1.04);
+        }
+
+        .basket-reward-modal__page:disabled:hover {
+          filter: saturate(.6);
         }
 
         .basket-reward-modal__page:active {
@@ -4373,6 +4397,16 @@ export default function Landing() {
             --basket-reward-band-height: 59%;
           }
 
+          .basket-reward-modal__stage:is(.is-count-2, .is-count-3, .is-count-4, .is-count-5, .is-count-6) {
+            --basket-reward-band-top: 25%;
+            --basket-reward-band-height: 50%;
+          }
+
+          .basket-reward-modal__stage.is-paged {
+            --basket-reward-band-top: 19%;
+            --basket-reward-band-height: 59%;
+          }
+
           .basket-reward-modal__band {
             left: 0;
             width: 100%;
@@ -4385,7 +4419,10 @@ export default function Landing() {
           .basket-reward-modal__title {
             top: calc(var(--basket-reward-band-top) - 3.2dvh);
             gap: 6px;
-            margin-top: 0;
+            margin-top: 10px;
+            width: max-content;
+            max-width: none;
+            justify-content: center;
           }
 
           .basket-reward-modal__stage:not(.is-compact) .basket-reward-modal__title {
@@ -4400,6 +4437,7 @@ export default function Landing() {
 
           .basket-reward-modal__title span {
             font-size: clamp(24px, 7.1vw, 32px);
+            text-align: center;
             -webkit-text-stroke-width: 5px;
             text-shadow: 0 1px 0 rgba(255, 198, 72, .9);
           }
@@ -4411,12 +4449,15 @@ export default function Landing() {
             transform: translate(-50%, -50%);
           }
 
+          .basket-reward-modal__stage:is(.is-count-2, .is-count-3, .is-count-4, .is-count-5, .is-count-6) .basket-reward-modal__cards {
+            top: 50%;
+          }
+
           .basket-reward-modal__stage.is-single .basket-reward-modal__cards {
             width: clamp(118px, 38vw, 160px);
           }
 
           .basket-reward-modal__stage.is-mobile-two-row .basket-reward-modal__cards {
-            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) / 2);
             width: min(calc(100vw - 24px), 390px);
             height: auto;
             display: grid;
@@ -4490,12 +4531,24 @@ export default function Landing() {
           }
 
           .basket-reward-modal__actions {
-            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) + 2.4dvh);
+            top: auto;
+            bottom: calc(max(20px, env(safe-area-inset-bottom)) + 8px);
             gap: 12px;
           }
 
           .basket-reward-modal__stage.is-compact .basket-reward-modal__actions {
-            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) + 2.2dvh);
+            top: auto;
+            bottom: calc(max(20px, env(safe-area-inset-bottom)) + 8px);
+          }
+
+          .basket-reward-modal__stage:is(.is-count-1, .is-count-2, .is-count-3, .is-count-4, .is-count-5, .is-count-6, .is-count-8) .basket-reward-modal__actions {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) + 40px);
+            bottom: auto;
+          }
+
+          .basket-reward-modal__stage.is-paged .basket-reward-modal__actions {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) + 76px);
+            bottom: auto;
           }
 
           .basket-reward-modal__action {
@@ -4506,25 +4559,46 @@ export default function Landing() {
             box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .08);
           }
 
+          .basket-reward-modal__pager {
+            position: absolute;
+            z-index: 5;
+            inset: auto 0 calc(max(20px, env(safe-area-inset-bottom)) + 64px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            pointer-events: none;
+          }
+
+          .basket-reward-modal__stage.is-paged .basket-reward-modal__pager {
+            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) + 10px);
+            bottom: auto;
+          }
+
+          .basket-reward-modal__pager:empty {
+            display: none;
+          }
+
           .basket-reward-modal__page {
-            left: 50%;
+            position: static;
+            left: auto;
             right: auto;
-            width: 44px;
-            height: 44px;
-            transform: translate(-50%, -50%);
-          }
-
-          .basket-reward-modal__page--prev {
-            top: calc(var(--basket-reward-band-top) + 3.8dvh);
-          }
-
-          .basket-reward-modal__page--next {
-            top: calc(var(--basket-reward-band-top) + var(--basket-reward-band-height) - 3.8dvh);
+            top: auto;
+            display: grid;
+            place-items: center;
+            width: 56px;
+            height: 56px;
+            border-radius: 0;
+            background: transparent;
+            transform: none;
+            pointer-events: auto;
           }
 
           .basket-reward-modal__page--prev img,
           .basket-reward-modal__page--next img {
-            transform: rotate(90deg);
+            width: 30px;
+            height: auto;
+            transform: none;
           }
         }
 
@@ -9506,13 +9580,20 @@ export default function Landing() {
           }
 
           .sac-mode-bar {
-            align-items: stretch;
-            flex-direction: column;
-            gap: 8px;
+            align-items: center;
+            flex-direction: row;
+            gap: 10px;
           }
 
           .sac-mode-bar__switch {
+            flex: 0 0 auto;
             justify-content: center;
+            white-space: nowrap;
+          }
+
+          .sac-mode-bar__label {
+            min-width: 0;
+            flex: 1 1 auto;
           }
 
           .sac-mode-grid {
@@ -12988,9 +13069,13 @@ export default function Landing() {
             font-family: inherit !important;
           }
 
-          .inventory-detail-modal .inventory-factor-detail .grid-cols-4,
-          .inventory-detail-modal .inventory-factor-detail .grid-cols-3 {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+          .inventory-detail-modal .inventory-factor-detail .alpha-metric-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+
+          .inventory-detail-modal .inventory-factor-detail .alpha-metric-card {
+            width: 100%;
+            min-width: 0;
           }
 
           .inventory-detail-modal .inventory-factor-detail .gap-3 {
@@ -13003,7 +13088,7 @@ export default function Landing() {
 
           .inventory-detail-modal .inventory-factor-detail .h-\[400px\],
           .inventory-detail-modal .inventory-factor-detail .h-\[300px\] {
-            height: 260px;
+            height: 340px;
           }
 
           .inventory-detail-modal .inventory-factor-detail [aria-label="Chart selector"],
@@ -14824,13 +14909,38 @@ export default function Landing() {
                 return (
                   <article
                     className={`basket-reward-card basket-reward-card--${rewardCard.kind}`}
-                    key={`${rewardCard.kind}-${index}`}
+                    key={`${basketRewardModalPage}-${rewardCard.kind}-${rewardCard.image}-${index}`}
                     aria-label={`${card.tier} ${card.name}`}
                   >
                     <img className="basket-reward-card__image" src={rewardCard.image} alt="" aria-hidden="true" />
                   </article>
                 );
               })}
+            </div>
+
+            <div className="basket-reward-modal__pager" aria-label={tr("Reward pages", "奖励分页")}>
+              {isBasketRewardMultiPage && (
+                <>
+                  <button
+                    className="basket-reward-modal__page basket-reward-modal__page--prev"
+                    type="button"
+                    aria-label={tr("Previous reward page", "上一页奖励")}
+                    disabled={basketRewardModalPage === "first"}
+                    onClick={() => setBasketRewardModalPage("first")}
+                  >
+                    <img src={BASKET_REWARD_ASSETS.pagePrev} alt="" />
+                  </button>
+                  <button
+                    className="basket-reward-modal__page basket-reward-modal__page--next"
+                    type="button"
+                    aria-label={tr("Next reward page", "下一页奖励")}
+                    disabled={basketRewardModalPage === "last"}
+                    onClick={() => setBasketRewardModalPage("last")}
+                  >
+                    <img src={BASKET_REWARD_ASSETS.pageNext} alt="" />
+                  </button>
+                </>
+              )}
             </div>
 
             <footer className="basket-reward-modal__actions">
@@ -14843,31 +14953,6 @@ export default function Landing() {
                 {tr("Collect", "收下")}
               </button>
             </footer>
-
-            {isBasketRewardMultiPage && (
-              <>
-                {basketRewardModalPage !== "first" && (
-                  <button
-                    className="basket-reward-modal__page basket-reward-modal__page--prev"
-                    type="button"
-                    aria-label={tr("Previous reward page", "上一页奖励")}
-                    onClick={() => setBasketRewardModalPage("first")}
-                  >
-                    <img src={BASKET_REWARD_ASSETS.pagePrev} alt="" />
-                  </button>
-                )}
-                {basketRewardModalPage !== "last" && (
-                  <button
-                    className="basket-reward-modal__page basket-reward-modal__page--next"
-                    type="button"
-                    aria-label={tr("Next reward page", "下一页奖励")}
-                    onClick={() => setBasketRewardModalPage("last")}
-                  >
-                    <img src={BASKET_REWARD_ASSETS.pageNext} alt="" />
-                  </button>
-                )}
-              </>
-            )}
           </section>
         </div>
       )}
