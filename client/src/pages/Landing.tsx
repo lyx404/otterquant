@@ -2925,20 +2925,20 @@ export default function Landing() {
         }
 
         .game-stage--mobile-cover .hud-main-action--waiting .hud-main-action__waiting-title {
-          font-size: calc(20px / var(--stage-scale));
+          font-size: 20px;
           line-height: 1.12;
           padding-bottom: 0;
         }
 
         .game-stage--mobile-cover .hud-main-action--waiting .hud-main-action__timer {
-          font-size: calc(30px / var(--stage-scale));
+          font-size: 30px;
         }
 
         .game-stage--mobile-cover .hud-main-action--waiting .hud-main-action__stop {
           height: calc(44px / var(--stage-scale));
           min-width: calc(64px / var(--stage-scale));
           padding-inline: calc(12px / var(--stage-scale));
-          font-size: calc(20px / var(--stage-scale));
+          font-size: 20px;
         }
 
         .game-stage--mobile-cover .hud-basket {
