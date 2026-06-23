@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Claude, Codex, OpenAI, OpenClaw, OpenRouter } from "@lobehub/icons";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
 import type { SelectOption } from "animal-island-ui";
@@ -669,7 +669,7 @@ function useLocalPrefersReducedMotion() {
   return prefersReducedMotion;
 }
 
-function useMobilePageTransition(isOpen: boolean, exitDurationMs = 220) {
+function useMobilePageTransition(isOpen: boolean, exitDurationMs = 220, enterDurationMs = 320) {
   const prefersReducedMotion = useLocalPrefersReducedMotion();
   const [shouldRender, setShouldRender] = useState(isOpen);
   const [phase, setPhase] = useState<MobilePageTransitionPhase>(isOpen ? "open" : "closing");
@@ -681,15 +681,14 @@ function useMobilePageTransition(isOpen: boolean, exitDurationMs = 220) {
       return undefined;
     }
 
-    let rafId = 0;
     let timeoutId = 0;
 
     if (isOpen) {
       setShouldRender(true);
       setPhase("opening");
-      rafId = window.requestAnimationFrame(() => {
+      timeoutId = window.setTimeout(() => {
         setPhase("open");
-      });
+      }, enterDurationMs);
     } else if (shouldRender) {
       setPhase("closing");
       timeoutId = window.setTimeout(() => {
@@ -698,15 +697,15 @@ function useMobilePageTransition(isOpen: boolean, exitDurationMs = 220) {
     }
 
     return () => {
-      if (rafId) window.cancelAnimationFrame(rafId);
       if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, [exitDurationMs, isOpen, prefersReducedMotion, shouldRender]);
+  }, [enterDurationMs, exitDurationMs, isOpen, prefersReducedMotion, shouldRender]);
 
   return { shouldRender, phase };
 }
 
 export default function Landing() {
+  const [, setLocation] = useLocation();
   const { uiLang, setUiLang } = useAppLanguage();
   const { user, login, logout, updateUser } = useAuth();
   const { navigateWithTransition } = usePageTransition();
@@ -748,9 +747,12 @@ export default function Landing() {
   const [manualCastStartedAt, setManualCastStartedAt] = useState<number | null>(null);
   const [manualCastElapsed, setManualCastElapsed] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [inventoryDetailOpen, setInventoryDetailOpen] = useState(false);
   const inventoryPageTransition = useMobilePageTransition(inventoryOpen, 260);
+  const inventoryDetailPageTransition = useMobilePageTransition(inventoryDetailOpen, 260);
   const inventoryClosingFactorRef = useRef<FactorRow | null>(null);
   const [walletOpen, setWalletOpen] = useState(false);
+  const walletPageTransition = useMobilePageTransition(walletOpen, 260);
   const [walletAccountKind, setWalletAccountKind] = useState<GameWalletAccountKind>("coin");
   const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -808,6 +810,7 @@ export default function Landing() {
   const [agentApiNewName, setAgentApiNewName] = useState("");
   const [agentApiCreatedSecret, setAgentApiCreatedSecret] = useState("");
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const leaderboardPageTransition = useMobilePageTransition(leaderboardOpen, 260);
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>("week");
   const [leaderboardScrolling, setLeaderboardScrolling] = useState(false);
   const leaderboardScrollTimerRef = useRef<number | null>(null);
@@ -838,6 +841,7 @@ export default function Landing() {
   const [inventoryToast, setInventoryToast] = useState<InventoryToast>(null);
   const [basketEmptyToast, setBasketEmptyToast] = useState<BasketEmptyToast>(null);
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
+  const inventoryDetailClosingFactorRef = useRef<FactorRow | null>(null);
   const withdrawNetworkSelectRef = useRef<HTMLDivElement | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -864,6 +868,23 @@ export default function Landing() {
     ? selectedInventoryFactor
     : inventoryPageTransition.shouldRender
       ? inventoryClosingFactorRef.current
+      : null;
+
+  useEffect(() => {
+    if (inventoryDetailOpen) {
+      inventoryDetailClosingFactorRef.current = selectedInventoryFactor;
+      return;
+    }
+
+    if (!inventoryDetailPageTransition.shouldRender) {
+      inventoryDetailClosingFactorRef.current = null;
+    }
+  }, [inventoryDetailOpen, inventoryDetailPageTransition.shouldRender, selectedInventoryFactor]);
+
+  const visibleInventoryDetailFactor = inventoryDetailOpen
+    ? selectedInventoryFactor
+    : inventoryDetailPageTransition.shouldRender
+      ? inventoryDetailClosingFactorRef.current
       : null;
 
   useEffect(() => {
@@ -1196,6 +1217,13 @@ export default function Landing() {
     }
     return undefined;
   }, [leaderboardOpen]);
+  useEffect(() => {
+    if (walletOpen || walletPageTransition.shouldRender) return;
+    setWalletWithdrawOpen(false);
+    setWithdrawNetworkOpen(false);
+    setWithdrawWalletEditing(false);
+    resetWithdrawFeedback();
+  }, [walletOpen, walletPageTransition.shouldRender]);
   const manualCastWaiting = manualCastStartedAt !== null;
   const mainCastActive = autoCastRunning || manualCastWaiting;
   const showAutoCastControl = !mainCastActive;
@@ -1441,6 +1469,27 @@ export default function Landing() {
     setInventoryOpen(true);
   };
 
+  const openInventoryFactorDetail = useCallback((factor: FactorRow) => {
+    inventoryScrollTopRef.current = inventoryGridRef.current?.scrollTop ?? inventoryScrollTopRef.current;
+    setSelectedInventoryFactor(factor);
+    setInventoryDetailOpen(true);
+  }, []);
+
+  const closeInventoryFactorDetail = useCallback(() => {
+    setInventoryControlsHidden(false);
+    setInventoryDetailOpen(false);
+    if (!isMobileViewport()) {
+      setSelectedInventoryFactor(null);
+    }
+  }, []);
+
+  const closeInventoryModal = useCallback(() => {
+    setInventoryControlsHidden(false);
+    setInventoryOpen(false);
+    setInventoryDetailOpen(false);
+    setSelectedInventoryFactor(null);
+  }, []);
+
   const clampTestScenarioPanelPosition = (
     position: TestScenarioPanelPosition,
     panelWidth: number,
@@ -1581,17 +1630,18 @@ export default function Landing() {
     if (!pendingInventoryDelete) return;
     const deletedItem = pendingInventoryDelete;
 
-    if (deletedItem.kind === "factor") {
-      setDeletedFactorIds((current) => new Set(current).add(deletedItem.id));
-      setStarredFactors((current) => {
-        const next = new Set(current);
-        next.delete(deletedItem.id);
-        return next;
-      });
-      if (selectedInventoryFactor?.id === deletedItem.id) {
-        setSelectedInventoryFactor(null);
-      }
-    } else {
+      if (deletedItem.kind === "factor") {
+        setDeletedFactorIds((current) => new Set(current).add(deletedItem.id));
+        setStarredFactors((current) => {
+          const next = new Set(current);
+          next.delete(deletedItem.id);
+          return next;
+        });
+        if (selectedInventoryFactor?.id === deletedItem.id) {
+          setInventoryDetailOpen(false);
+          setSelectedInventoryFactor(null);
+        }
+      } else {
       setDeletedInventoryItemIds((current) => new Set(current).add(deletedItem.id));
       setStarredInventoryItems((current) => {
         const next = new Set(current);
@@ -1675,6 +1725,12 @@ export default function Landing() {
 
     return () => window.cancelAnimationFrame(frameId);
   }, [inventoryOpen, selectedInventoryFactor]);
+
+  useEffect(() => {
+    if (inventoryDetailOpen || inventoryDetailPageTransition.shouldRender) return;
+    if (!isMobileViewport()) return;
+    setSelectedInventoryFactor(null);
+  }, [inventoryDetailOpen, inventoryDetailPageTransition.shouldRender]);
 
   useEffect(() => {
     if (!autoCastRunning || autoCastProgress >= autoCastCount) return undefined;
@@ -1842,10 +1898,7 @@ export default function Landing() {
 
   const closeWalletModal = () => {
     setWalletOpen(false);
-    setWalletWithdrawOpen(false);
     setWithdrawNetworkOpen(false);
-    setWithdrawWalletEditing(false);
-    resetWithdrawFeedback();
   };
 
   const showSettingsFeedback = (title: string, message: string) => {
@@ -2734,15 +2787,15 @@ export default function Landing() {
         .game-stage--mobile-cover .hud-top-stats {
           left: calc(var(--mobile-safe-left) + 14px);
           top: calc(var(--mobile-safe-top) + 12px);
-          --hud-stats-gap: calc(6px / var(--stage-scale));
-          --hud-stat-height: calc(50px / var(--stage-scale));
-          --hud-stat-padding: calc(8px / var(--stage-scale));
+          --hud-stats-gap: calc(4.8px / var(--stage-scale));
+          --hud-stat-height: calc(40px / var(--stage-scale));
+          --hud-stat-padding: calc(6px / var(--stage-scale));
           --hud-stat-border-width: 2px;
-          --hud-stat-radius: calc(10px / var(--stage-scale));
-          --hud-stat-font-size: calc(17px / var(--stage-scale));
-          --hud-stat-balance-width: calc(76px / var(--stage-scale));
-          --hud-stat-compact-width: calc(52px / var(--stage-scale));
-          --hud-stat-icon-scale: calc(.72 / var(--stage-scale));
+          --hud-stat-radius: calc(8px / var(--stage-scale));
+          --hud-stat-font-size: calc(13.6px / var(--stage-scale));
+          --hud-stat-balance-width: calc(60.8px / var(--stage-scale));
+          --hud-stat-compact-width: calc(41.6px / var(--stage-scale));
+          --hud-stat-icon-scale: calc(.576 / var(--stage-scale));
         }
 
         .game-stage--mobile-cover .top-actions {
@@ -9179,6 +9232,15 @@ export default function Landing() {
           --mobile-page-surface-exit-x: 28px;
         }
 
+        .game-landing:has(.game-stage--mobile-cover) .leaderboard-modal-backdrop.mobile-page-shell {
+          --mobile-page-enter-duration: 320ms;
+          --mobile-page-exit-duration: 260ms;
+          --mobile-page-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+          --mobile-page-exit-ease: cubic-bezier(0.4, 0, 1, 1);
+          --mobile-page-surface-enter-x: 40px;
+          --mobile-page-surface-exit-x: 28px;
+        }
+
         .game-landing:has(.game-stage--mobile-cover) .settings-modal-backdrop {
           place-items: stretch;
           overflow: hidden;
@@ -10621,6 +10683,7 @@ export default function Landing() {
         .leaderboard-rank-icon {
           width: 50px;
           height: 36px;
+          max-width: 100%;
           display: block;
           object-fit: contain;
           image-rendering: pixelated;
@@ -10635,10 +10698,27 @@ export default function Landing() {
           text-align: left;
         }
 
+        .leaderboard-list__name,
+        .leaderboard-list__name-text {
+          min-width: 0;
+        }
+
         .leaderboard-list__name {
+          display: block;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+        }
+
+        .leaderboard-list__name-text {
+          display: block;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .leaderboard-list__mobile-casts {
+          display: none;
         }
 
         .leaderboard-list__metric {
@@ -10693,30 +10773,297 @@ export default function Landing() {
         }
 
         @media (max-width: 760px) {
+          .leaderboard-modal-backdrop {
+            place-items: stretch;
+            overflow: hidden;
+            padding: 0;
+            background: rgba(216, 237, 247, .96);
+          }
+
           .leaderboard-modal {
-            width: calc(100vw - 24px);
+            box-sizing: border-box;
+            width: 100vw;
+            max-width: none;
+            inline-size: 100vw;
+            max-inline-size: none;
+            height: 100svh;
+            max-height: 100svh;
+            overflow: hidden;
+            border-radius: 0;
           }
 
           .leaderboard-modal .shop-modal__header {
-            padding-inline: 18px;
+            position: sticky;
+            top: 0;
+            z-index: 30;
+            min-height: 0;
+            align-items: center;
+            gap: 8px;
+            padding:
+              max(12px, env(safe-area-inset-top))
+              max(16px, env(safe-area-inset-right))
+              12px
+              max(16px, env(safe-area-inset-left));
+            background: rgba(255, 249, 232, .88);
+            border-bottom: 1.5px solid rgba(196, 184, 158, .56);
+            border-radius: 0;
+            backdrop-filter: blur(10px);
+          }
+
+          .leaderboard-modal .shop-modal__close {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 auto;
+            color: #794f27;
+            border-width: 1.5px;
+            border-radius: 4px;
+            box-shadow: none;
+          }
+
+          .leaderboard-modal .shop-modal__close svg {
+            width: 22px;
+            height: 22px;
+          }
+
+          .leaderboard-tabs {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
+          }
+
+          .leaderboard-modal__heading {
+            min-width: 0;
+            flex: 1 1 auto;
+            align-items: center;
+          }
+
+          .leaderboard-tab {
+            min-width: 0;
+            min-height: 44px;
+            height: 44px;
+            padding: 0 10px;
+            color: rgba(121, 79, 39, .62);
+            background: rgba(255, 253, 244, .84);
+            border: 1.5px solid rgba(196, 184, 158, .68);
+            border-radius: 6px;
+            font-size: 15px;
+            line-height: 1.15;
+          }
+
+          .leaderboard-tab.is-active {
+            color: #794f27;
+            background: #ffd557;
+            border-color: rgba(205, 165, 57, .82);
           }
 
           .leaderboard-panel {
-            height: auto;
+            flex: 1 1 auto;
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
             min-height: 0;
+            display: flex;
+            border-radius: 0;
           }
 
           .leaderboard-figma-content {
-            padding-inline: 18px;
-            overflow-x: auto;
+            flex: 1 1 auto;
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 50px 14px max(18px, env(safe-area-inset-bottom));
+          }
+
+          .leaderboard-list {
+            --leaderboard-scrollbar-outset: 0px;
+            --leaderboard-row-width: 100%;
+            flex: 1 1 auto;
+            width: 100%;
+            min-width: 0;
+            min-height: 0;
+          }
+
+          .leaderboard-list-row {
+            grid-template-columns: minmax(58px, .62fr) minmax(0, 1.18fr) minmax(78px, .82fr);
+            gap: 8px;
+            min-height: 64px;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.18;
+          }
+
+          .leaderboard-list-row--head {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: -42px;
+            min-height: 42px;
+            padding: 0 14px;
+            color: #ffffff;
+            background: transparent;
+            border-radius: 0;
+            box-shadow: none;
+            font-size: 15px;
+          }
+
+          .leaderboard-list-row--head .leaderboard-list__balance {
+            color: #ffffff;
+            text-align: right;
+            white-space: normal;
+          }
+
+          .leaderboard-list__scroll {
+            width: 100%;
+            height: auto;
+            flex: 1 1 auto;
+            min-height: 0;
+            gap: 6px;
+            margin-right: 0;
+            padding-right: 0;
+            overflow-x: hidden;
+            scrollbar-gutter: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+          }
+
+          .leaderboard-list__scroll::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
+          }
+
+          .leaderboard-list__scroll > .leaderboard-list-row {
+            width: 100%;
+            height: 64px;
+            min-height: 64px;
+          }
+
+          .leaderboard-list__scroll > .leaderboard-list-row--rank-1,
+          .leaderboard-list__scroll > .leaderboard-list-row--rank-2,
+          .leaderboard-list__scroll > .leaderboard-list-row--rank-3 {
+            height: 76px;
+            min-height: 76px;
+          }
+
+          .leaderboard-list-row.leaderboard-current-row--sticky {
+            height: 72px;
+            min-height: 72px;
+            margin: 10px 0 -8px;
+            padding: 10px 14px;
+            border-radius: 16px;
+          }
+
+          .leaderboard-list-row.leaderboard-current-row--sticky.is-unranked {
+            grid-template-columns: 76px minmax(0, 1fr) minmax(76px, .78fr);
+          }
+
+          .leaderboard-list__rank {
+            overflow-wrap: anywhere;
+            font-size: 15px;
+            line-height: 1.15;
+          }
+
+          .leaderboard-list-row.leaderboard-current-row--sticky.is-unranked .leaderboard-list__rank {
+            overflow-wrap: normal;
+            white-space: nowrap;
+            font-size: 13px;
+          }
+
+          .leaderboard-rank-icon {
+            width: 46px;
+            height: 38px;
+          }
+
+          .leaderboard-list__name {
+            display: grid;
+            gap: 3px;
+            white-space: normal;
+          }
+
+          .leaderboard-list__name-text {
+            font-size: 16px;
+            line-height: 1.2;
+          }
+
+          .leaderboard-list__mobile-casts {
+            display: block;
+            overflow: hidden;
+            color: rgba(121, 79, 39, .58);
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1.15;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+
+          .leaderboard-list__metric {
+            justify-content: flex-end;
+            gap: 5px;
+            min-width: 0;
+            font-size: 15px;
+            white-space: nowrap;
+          }
+
+          .leaderboard-balance__icon,
+          .leaderboard-list__metric .leaderboard-balance__icon {
+            width: 22px;
+            height: 22px;
+          }
+
+          .leaderboard-list__casts--desktop {
+            display: none;
           }
 
           .leaderboard-refresh-note {
-            right: 18px;
+            position: static;
+            align-self: center;
+            max-width: 100%;
+            margin: 10px 0 -16px;
+            padding: 4px 8px;
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.2;
+            white-space: normal;
           }
 
           .leaderboard-hero-art {
-            opacity: .24;
+            display: none;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .leaderboard-figma-content {
+            padding-inline: 10px;
+          }
+
+          .leaderboard-list-row {
+            grid-template-columns: 52px minmax(0, 1fr) 74px;
+            gap: 6px;
+            padding-inline: 10px;
+            font-size: 14px;
+          }
+
+          .leaderboard-list-row.leaderboard-current-row--sticky.is-unranked {
+            grid-template-columns: 70px minmax(0, 1fr) 70px;
+          }
+
+          .leaderboard-list-row--head {
+            padding-inline: 10px;
+            font-size: 14px;
+          }
+
+          .leaderboard-tab {
+            min-width: 76px;
+            padding-inline: 10px;
+            font-size: 17px;
           }
         }
 
@@ -12191,6 +12538,10 @@ export default function Landing() {
             transparent;
         }
 
+        .inventory-detail-mobile-layer {
+          display: none;
+        }
+
         .inventory-factor-detail {
           color: #2c2117;
           font-family: inherit;
@@ -12602,6 +12953,32 @@ export default function Landing() {
             width: 96vw;
           }
 
+          .wallet-modal-backdrop {
+            place-items: stretch;
+            overflow: hidden;
+            padding: 0;
+            background: rgba(216, 237, 247, .96);
+          }
+
+          .shop-modal.leaderboard-modal {
+            width: 100%;
+            max-width: none;
+            inline-size: 100%;
+            max-inline-size: none;
+          }
+
+          .shop-modal.wallet-modal {
+            width: 100%;
+            max-width: none;
+            inline-size: 100%;
+            max-inline-size: none;
+            height: 100svh;
+            max-height: 100svh;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+          }
+
           .shop-grid {
             grid-template-columns: 1fr;
           }
@@ -12654,6 +13031,42 @@ export default function Landing() {
             border-inline: 0;
             border-block: 0;
             box-shadow: none;
+          }
+
+          .inventory-detail-mobile-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            display: block;
+            pointer-events: auto;
+          }
+
+          .inventory-detail-mobile-layer[data-mobile-detail-transition="opening"] {
+            animation: mobile-page-backdrop-in var(--mobile-page-enter-duration, 280ms) var(--mobile-page-enter-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+          }
+
+          .inventory-detail-mobile-layer[data-mobile-detail-transition="closing"] {
+            animation: mobile-page-backdrop-out var(--mobile-page-exit-duration, 220ms) var(--mobile-page-exit-ease, cubic-bezier(0.4, 0, 1, 1)) both;
+            pointer-events: none;
+          }
+
+          .inventory-detail-mobile-page {
+            inline-size: 100%;
+            block-size: 100%;
+            max-inline-size: none;
+            max-block-size: none;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            will-change: transform, opacity;
+          }
+
+          .inventory-detail-mobile-layer[data-mobile-detail-transition="opening"] .inventory-detail-mobile-page {
+            animation: mobile-page-surface-in var(--mobile-page-enter-duration, 280ms) var(--mobile-page-enter-ease, cubic-bezier(0.22, 1, 0.36, 1)) both;
+          }
+
+          .inventory-detail-mobile-layer[data-mobile-detail-transition="closing"] .inventory-detail-mobile-page {
+            animation: mobile-page-surface-out var(--mobile-page-exit-duration, 220ms) var(--mobile-page-exit-ease, cubic-bezier(0.4, 0, 1, 1)) both;
           }
 
           @supports (height: 100svh) {
@@ -13245,7 +13658,13 @@ export default function Landing() {
                 className="menu-item"
                 type="button"
                 aria-label={tr("Scratch", "刮刮乐")}
-                onClick={() => navigateWithTransition("/scratch-card")}
+                onClick={() => {
+                  if (typeof window !== "undefined" && window.innerWidth <= 700) {
+                    setLocation("/scratch-card");
+                    return;
+                  }
+                  void navigateWithTransition("/scratch-card");
+                }}
               >
                 <img
                   className="menu-icon"
@@ -14957,7 +15376,7 @@ export default function Landing() {
         </div>
       )}
 
-      {walletOpen && (
+      {walletPageTransition.shouldRender && (
 
         <GameWalletModal
           accountKind={walletAccountKind}
@@ -14966,6 +15385,7 @@ export default function Landing() {
           closeLabel={tr("Close wallet", "关闭钱包")}
           closeWithdrawLabel={tr("Close withdraw", "关闭提现")}
           backLabel={tr("Back to wallet", "返回钱包")}
+          pageTransitionPhase={walletPageTransition.phase}
           isWithdrawOpen={walletWithdrawOpen}
           onClose={closeWalletModal}
           onBackdropClose={closeWalletModal}
@@ -14977,11 +15397,11 @@ export default function Landing() {
         />
       )}
 
-      {leaderboardOpen && (
-        <div className="shop-modal-backdrop" role="presentation" onMouseDown={(event) => {
+      {leaderboardPageTransition.shouldRender && (
+        <div className="shop-modal-backdrop leaderboard-modal-backdrop mobile-page-shell" data-mobile-page-transition={leaderboardPageTransition.phase} role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setLeaderboardOpen(false);
         }}>
-          <section className="shop-modal leaderboard-modal" role="dialog" aria-modal="true" aria-label={tr("Leaderboard", "排行榜")}>
+          <section className="shop-modal leaderboard-modal mobile-page-surface" role="dialog" aria-modal="true" aria-label={tr("Leaderboard", "排行榜")}>
             <header className="shop-modal__header">
               <div className="leaderboard-modal__heading">
                 <div className="leaderboard-tabs" role="tablist" aria-label={tr("Leaderboard period", "排行榜周期")}>
@@ -15016,7 +15436,7 @@ export default function Landing() {
                     <span>{tr("Rank", "排名")}</span>
                     <span>{tr("Nickname", "用户")}</span>
                     <span className="leaderboard-list__balance">{leaderboardBalanceLabel}</span>
-                    <span className="leaderboard-list__casts">{leaderboardCastsLabel}</span>
+                    <span className="leaderboard-list__casts leaderboard-list__casts--desktop">{leaderboardCastsLabel}</span>
                   </div>
                   <div
                     className={`leaderboard-list__scroll${leaderboardScrolling ? " is-scrolling" : ""}`}
@@ -15036,12 +15456,15 @@ export default function Landing() {
                               `NO.${row.rank}`
                             )}
                           </span>
-                          <span className="leaderboard-list__name">{row.nickname}</span>
+                          <span className="leaderboard-list__name">
+                            <span className="leaderboard-list__name-text">{row.nickname}</span>
+                            <span className="leaderboard-list__mobile-casts">{leaderboardCastsLabel} {row.casts}</span>
+                          </span>
                           <span className="leaderboard-list__metric">
                             <img className="leaderboard-balance__icon" src={RANKING_MODAL_ASSETS.coin} alt="" />
                             <span>{formatLeaderboardBalance(row.balance)}</span>
                           </span>
-                          <span className="leaderboard-list__casts">{row.casts}</span>
+                          <span className="leaderboard-list__casts leaderboard-list__casts--desktop">{row.casts}</span>
                         </div>
                       );
                     })}
@@ -15057,12 +15480,15 @@ export default function Landing() {
                           tr("Unranked", "未上榜")
                         )}
                       </span>
-                      <span className="leaderboard-list__name">{currentLeaderboardRow.nickname}</span>
+                      <span className="leaderboard-list__name">
+                        <span className="leaderboard-list__name-text">{currentLeaderboardRow.nickname}</span>
+                        <span className="leaderboard-list__mobile-casts">{leaderboardCastsLabel} {currentLeaderboardRow.casts}</span>
+                      </span>
                       <span className="leaderboard-list__metric">
                         <img className="leaderboard-balance__icon" src={RANKING_MODAL_ASSETS.coin} alt="" />
                         <span>{formatLeaderboardBalance(currentLeaderboardRow.balance)}</span>
                       </span>
-                      <span className="leaderboard-list__casts">{currentLeaderboardRow.casts}</span>
+                      <span className="leaderboard-list__casts leaderboard-list__casts--desktop">{currentLeaderboardRow.casts}</span>
                     </div>
                   )}
                 </section>
@@ -15091,12 +15517,11 @@ export default function Landing() {
           role="presentation"
           onMouseDown={(event) => {
           if (event.target === event.currentTarget) {
-            setInventoryOpen(false);
-            setSelectedInventoryFactor(null);
+            closeInventoryModal();
           }
         }}
         >
-          {activeInventoryFactor ? (
+          {activeInventoryFactor && !isMobileViewport() ? (
             <section className="shop-modal inventory-modal inventory-detail-modal mobile-page-surface" role="dialog" aria-modal="true" aria-labelledby="inventory-detail-title">
               <header className="shop-modal__header">
                 <div className="inventory-detail-heading">
@@ -15104,10 +15529,7 @@ export default function Landing() {
                     className="inventory-detail-back"
                     type="button"
                     aria-label={tr("Back to inventory", "返回图鉴")}
-                    onClick={() => {
-                      setInventoryControlsHidden(false);
-                      setSelectedInventoryFactor(null);
-                    }}
+                    onClick={closeInventoryFactorDetail}
                   >
                     <ArrowLeft size={20} strokeWidth={3} />
                   </button>
@@ -15122,11 +15544,7 @@ export default function Landing() {
                   className="shop-modal__close"
                   type="button"
                   aria-label={tr("Close factor detail", "关闭图鉴详情")}
-                  onClick={() => {
-                    setInventoryControlsHidden(false);
-                    setInventoryOpen(false);
-                    setSelectedInventoryFactor(null);
-                  }}
+                  onClick={closeInventoryModal}
                 >
                   <X size={22} strokeWidth={3} />
                 </button>
@@ -15157,11 +15575,7 @@ export default function Landing() {
                 className="shop-modal__close"
                 type="button"
                 aria-label={tr("Close inventory", "关闭图鉴")}
-                onClick={() => {
-                  setInventoryControlsHidden(false);
-                  setInventoryOpen(false);
-                  setSelectedInventoryFactor(null);
-                }}
+                onClick={closeInventoryModal}
               >
                 <X size={22} strokeWidth={3} />
               </button>
@@ -15358,10 +15772,7 @@ export default function Landing() {
 	                      <button
 	                        className="inv-btn inv-btn--cta"
 	                        type="button"
-	                        onClick={() => {
-	                          inventoryScrollTopRef.current = inventoryGridRef.current?.scrollTop ?? inventoryScrollTopRef.current;
-	                          setSelectedInventoryFactor(factor);
-	                        }}
+	                        onClick={() => openInventoryFactorDetail(factor)}
 	                      >
                         {tr("View", "查看")}
                       </button>
@@ -15520,6 +15931,55 @@ export default function Landing() {
               )}
             </div>
           </section>
+          )}
+          {isMobileViewport() && visibleInventoryDetailFactor && (
+            <section
+              className="inventory-detail-mobile-layer"
+              data-mobile-detail-transition={inventoryDetailPageTransition.phase}
+              aria-hidden={!inventoryDetailPageTransition.shouldRender}
+            >
+              <section className="shop-modal inventory-modal inventory-detail-modal inventory-detail-mobile-page" role="dialog" aria-modal="true" aria-labelledby="inventory-detail-title">
+                <header className="shop-modal__header">
+                  <div className="inventory-detail-heading">
+                    <button
+                      className="inventory-detail-back"
+                      type="button"
+                      aria-label={tr("Back to inventory", "返回图鉴")}
+                      onClick={closeInventoryFactorDetail}
+                    >
+                      <ArrowLeft size={20} strokeWidth={3} />
+                    </button>
+                    <div className="inventory-detail-title-wrap">
+                      <h2 className="shop-modal__title" id="inventory-detail-title">{visibleInventoryDetailFactor.name}</h2>
+                      <div className="inventory-detail-subtitle">
+                        NO. {inventoryFactorNoById.get(visibleInventoryDetailFactor.id) ?? 1}｜{tr("Created", "创建于")} {visibleInventoryDetailFactor.createdAt}｜{visibleInventoryDetailFactor.agentSource ?? "Codex"}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    className="shop-modal__close"
+                    type="button"
+                    aria-label={tr("Close factor detail", "关闭图鉴详情")}
+                    onClick={closeInventoryModal}
+                  >
+                    <X size={22} strokeWidth={3} />
+                  </button>
+                </header>
+
+                <div className="inventory-detail-content">
+                  <div className="inventory-factor-detail">
+                    <AlphaViewModeProvider>
+                      <AlphaDetail
+                        embedded
+                        hideHeader
+                        factorIdOverride={visibleInventoryDetailFactor.id}
+                        factorOverride={visibleInventoryDetailFactor}
+                      />
+                    </AlphaViewModeProvider>
+                  </div>
+                </div>
+              </section>
+            </section>
           )}
         </div>
       )}

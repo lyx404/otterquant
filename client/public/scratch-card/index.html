@@ -2,11 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>幸运刮刮乐</title>
   <style>
     :root {
       --scale: 1;
+      --stage-width: 1920px;
+      --stage-height: 1080px;
       --ink: #4e433c;
       --button-text: #5a3e00;
       --panel: #fdfaec;
@@ -51,8 +53,8 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 1920px;
-      height: 1080px;
+      width: var(--stage-width);
+      height: var(--stage-height);
       overflow: hidden;
       background: #c6d1f6;
       transform: translate(-50%, -50%) scale(var(--scale));
@@ -1115,6 +1117,413 @@
       animation: pop 420ms cubic-bezier(.18, .9, .22, 1.2);
     }
 
+    .stage[data-layout="mobile"] {
+      top: 0;
+      transform: translate(-50%, 0) scale(var(--scale));
+      transform-origin: top center;
+    }
+
+    .stage[data-layout="mobile"] .top-ribbon,
+    .stage[data-layout="mobile"] .side-coin,
+    .stage[data-layout="mobile"] .coin-front {
+      display: none !important;
+    }
+
+    .stage[data-layout="mobile"] .sky {
+      width: 560px;
+      height: var(--stage-height);
+    }
+
+    .stage[data-layout="mobile"] .hud {
+      top: 26px;
+      left: 50%;
+      width: 514px;
+      justify-content: flex-start;
+      gap: 12px;
+      transform: translateX(-50%);
+    }
+
+    .stage[data-layout="mobile"] .back-button {
+      width: 60px;
+      height: 60px;
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      border-width: 2px;
+      border-radius: 4px;
+      background: #fff3d3;
+      box-shadow: none;
+      color: #794f27;
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1;
+      order: 2;
+      margin-left: auto;
+    }
+
+    .stage[data-layout="mobile"] .back-button img {
+      display: none;
+    }
+
+    .stage[data-layout="mobile"] .back-button::before {
+      content: "×";
+      width: 26px;
+      height: 26px;
+    }
+
+    .stage[data-layout="mobile"] .stats {
+      gap: 8px;
+      order: 1;
+    }
+
+    .stage[data-layout="mobile"] .stat {
+      height: 56px;
+      padding: 10px 12px;
+      border-width: 2px;
+      border-radius: 14px;
+      font-size: 22px;
+    }
+
+    .stage[data-layout="mobile"] .stat.balance {
+      width: 168px;
+    }
+
+    .stage[data-layout="mobile"] .stat.cash,
+    .stage[data-layout="mobile"] .stat.fish {
+      width: 133px;
+    }
+
+    .stage[data-layout="mobile"] .stat.balance img {
+      width: 30px;
+      height: 31px;
+    }
+
+    .stage[data-layout="mobile"] .stat.cash img {
+      width: 34px;
+      height: 22px;
+    }
+
+    .stage[data-layout="mobile"] .stat.fish img {
+      width: 32px;
+      height: 22px;
+    }
+
+    .stage[data-layout="mobile"] .stat span {
+      font-size: 20px;
+    }
+
+    .stage[data-layout="mobile"] .stat.balance span {
+      width: 104px;
+    }
+
+    .stage[data-layout="mobile"] .stat.cash span,
+    .stage[data-layout="mobile"] .stat.fish span {
+      width: 75px;
+    }
+
+    .stage[data-layout="mobile"] .ticket {
+      top: 178px;
+      left: 50%;
+      width: 492px;
+      height: 594px;
+      border-radius: 28px;
+      transform: translateX(-50%);
+    }
+
+    .stage[data-layout="mobile"] .ticket-stars {
+      left: -36px;
+      top: 104px;
+      width: 564px;
+      height: 390px;
+      object-fit: contain;
+    }
+
+    .stage[data-layout="mobile"] .banner {
+      top: -44px;
+      width: 438px;
+      height: 114px;
+    }
+
+    .stage[data-layout="mobile"] .banner img {
+      left: 12px;
+      width: 414px;
+      height: 106px;
+    }
+
+    .stage[data-layout="mobile"] .banner-title {
+      top: 10px;
+      padding-top: 4px;
+      font-size: 38px;
+      text-shadow: 0 2px 0 #c25e65;
+    }
+
+    .stage[data-layout="mobile"] .banner-subtitle {
+      top: 58px;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .stage[data-layout="mobile"] .banner-subtitle img {
+      width: 16px;
+      height: 18px;
+    }
+
+    .stage[data-layout="mobile"] .panel {
+      left: 34px;
+      width: 424px;
+    }
+
+    .stage[data-layout="mobile"] .winning {
+      top: 88px;
+      min-height: 160px;
+      gap: 18px;
+      padding: 18px 22px 22px;
+      border-radius: 18px;
+    }
+
+    .stage[data-layout="mobile"] .section-title {
+      gap: 10px;
+      height: auto;
+      font-size: 24px;
+    }
+
+    .stage[data-layout="mobile"] .section-title img {
+      width: 26px;
+      height: 28px;
+    }
+
+    .stage[data-layout="mobile"] .winning-slots {
+      gap: 16px;
+    }
+
+    .stage[data-layout="mobile"] .winning-slot {
+      width: 112px;
+      height: 64px;
+      border-radius: 16px;
+      font-size: 28px;
+    }
+
+    .stage[data-layout="mobile"] .scratch-panel {
+      top: 274px;
+      height: 278px;
+      border-radius: 22px;
+    }
+
+    .stage[data-layout="mobile"] .scratch-grid {
+      top: 24px;
+      left: 38px;
+      width: 348px;
+      height: 226px;
+      grid-template-columns: repeat(3, 104px);
+      grid-template-rows: repeat(2, 104px);
+      column-gap: 18px;
+      row-gap: 18px;
+    }
+
+    .stage[data-layout="mobile"] .prize-tile {
+      width: 104px;
+      height: 104px;
+    }
+
+    .stage[data-layout="mobile"] .number-canvas {
+      width: 112px;
+      height: 64px;
+      border-radius: 16px;
+    }
+
+    .stage[data-layout="mobile"] .tile-canvas {
+      width: 104px;
+      height: 104px;
+    }
+
+    .stage[data-layout="mobile"] .result .num {
+      font-size: 30px;
+    }
+
+    .stage[data-layout="mobile"] .result .cash {
+      font-size: 18px;
+    }
+
+    .stage[data-layout="mobile"] .action {
+      top: auto;
+      bottom: calc(20px / var(--scale));
+      left: 50%;
+      z-index: 24;
+      width: 492px;
+      height: 268px;
+      transform: translateX(-50%);
+    }
+
+    .stage[data-layout="mobile"] .settlement {
+      top: 0;
+      width: 294px;
+      padding: 14px 22px;
+      gap: 8px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, .42);
+    }
+
+    .stage[data-layout="mobile"] .settlement img {
+      width: 46px;
+      height: 29px;
+    }
+
+    .stage[data-layout="mobile"] .settlement-text {
+      gap: 6px;
+    }
+
+    .stage[data-layout="mobile"] .settlement-label {
+      font-size: 15px;
+    }
+
+    .stage[data-layout="mobile"] .settlement-amount {
+      font-size: 26px;
+    }
+
+    .stage[data-layout="mobile"] .settlement-extra {
+      font-size: 12px;
+    }
+
+    .stage[data-layout="mobile"] .action-controls {
+      top: 100px;
+      width: 492px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: 12px;
+      row-gap: 12px;
+    }
+
+    .stage[data-layout="mobile"][data-state="purchase"] .action-controls {
+      top: 60px;
+      row-gap: 10px;
+    }
+
+    .stage[data-layout="mobile"] .primary-button,
+    .stage[data-layout="mobile"] .batch-all-button {
+      width: 100%;
+      min-height: 72px;
+      height: 72px;
+      padding: 12px 16px;
+      border-radius: 16px;
+    }
+
+    .stage[data-layout="mobile"] .primary-button {
+      box-shadow: 0 5px 0 rgba(196, 148, 45, 0.24), inset 0 2px 0 rgba(255, 255, 255, 0.24);
+    }
+
+    .stage[data-layout="mobile"] .batch-all-button {
+      box-shadow: 0 4px 0 rgba(189, 174, 160, .2), inset 0 2px 0 rgba(255, 255, 255, .28);
+    }
+
+    .stage[data-layout="mobile"][data-can-reveal-all="true"] .primary-button,
+    .stage[data-layout="mobile"][data-can-reveal-all="true"] .batch-all-button {
+      min-height: 72px;
+      height: 72px;
+      padding: 12px 16px;
+      font-size: 20px;
+    }
+
+    .stage[data-layout="mobile"][data-state="purchase"]:not([data-can-reveal-all="true"]) .primary-button {
+      width: 294px;
+      justify-self: center;
+    }
+
+    .stage[data-layout="mobile"][data-state="ready"]:not([data-can-reveal-all="true"]) .primary-button,
+    .stage[data-layout="mobile"][data-state="scratching"]:not([data-can-reveal-all="true"]) .primary-button {
+      width: 294px;
+      justify-self: center;
+    }
+
+    .stage[data-layout="mobile"][data-state="done"] .primary-button {
+      width: 294px;
+      justify-self: center;
+    }
+
+    .stage[data-layout="mobile"] .primary-button[data-action-kind="next"] {
+      width: 240px;
+    }
+
+    .stage[data-layout="mobile"] .action-label {
+      font-size: 24px;
+    }
+
+    .stage[data-layout="mobile"] .action-price {
+      gap: 4px;
+      font-size: 15px;
+    }
+
+    .stage[data-layout="mobile"] .action-price img {
+      width: 16px;
+      height: 16px;
+    }
+
+    .stage[data-layout="mobile"] .batch-all-button {
+      font-size: 24px;
+    }
+
+    .stage[data-layout="mobile"] .purchase-meta {
+      width: 100%;
+    }
+
+    .stage[data-layout="mobile"] .quantity-picker {
+      width: 188px;
+      height: 40px;
+      gap: 4px;
+      padding: 3px 6px;
+      border-radius: 12px;
+      font-size: 20px;
+    }
+
+    .stage[data-layout="mobile"] .quantity-button {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      font-size: 20px;
+    }
+
+    .stage[data-layout="mobile"] .quantity-value {
+      width: 54px;
+      min-width: 54px;
+      font-size: 20px;
+    }
+
+    .stage[data-layout="mobile"] .quantity-unit {
+      margin-left: 0;
+      font-size: 18px;
+    }
+
+    .stage[data-layout="mobile"] .balance-warning {
+      min-height: 24px;
+      padding-top: 0;
+      font-size: 16px;
+    }
+
+    .stage[data-layout="mobile"] .batch-progress {
+      min-width: 132px;
+      height: 30px;
+      font-size: 15px;
+    }
+
+    html[lang="en"] .stage[data-layout="mobile"] .banner-title {
+      font-size: 34px;
+    }
+
+    html[lang="en"] .stage[data-layout="mobile"] .banner-subtitle {
+      font-size: 13px;
+      gap: 6px;
+    }
+
+    html[lang="en"] .stage[data-layout="mobile"] .section-title {
+      font-size: 22px;
+    }
+
+    html[lang="en"] .stage[data-layout="mobile"] .action-label,
+    html[lang="en"] .stage[data-layout="mobile"] .batch-all-button {
+      font-size: 20px;
+    }
+
+    html[lang="en"] .stage[data-layout="mobile"] .stat span {
+      font-size: 18px;
+    }
+
     @keyframes spark {
       from {
         opacity: .95;
@@ -1155,7 +1564,7 @@
     <img class="top-ribbon right" src="./assets/top-right.svg" alt="">
 
     <header class="hud" aria-label="数值统计" data-i18n-aria="stats">
-      <button class="back-button" type="button" aria-label="返回钱包" data-i18n-aria="back">
+      <button class="back-button" type="button" aria-label="关闭刮刮乐" data-i18n-aria="closeScratchCard">
         <img src="./assets/back.svg" alt="">
       </button>
       <div class="stats">
@@ -1206,7 +1615,7 @@
       </div>
       <div class="action-controls">
         <div class="batch-progress" id="batchProgress">第 1/1 张</div>
-        <button class="primary-button" type="button" id="actionButton">
+        <button class="primary-button" type="button" id="actionButton" data-action-kind="start">
           <span class="action-label">开始刮奖</span>
           <span class="action-price" aria-hidden="true">
             <img src="./assets/balance.svg" alt="">
@@ -1301,11 +1710,14 @@
     const numberCanvases = [...document.querySelectorAll(".number-canvas")];
     const tileCanvases = [...document.querySelectorAll(".tile-canvas")];
     const tiles = [...document.querySelectorAll(".prize-tile")];
-    const STAGE_W = 1920;
-    const STAGE_H = 1080;
-    const TILE = 150;
-    const NUMBER_W = 150;
-    const NUMBER_H = 80;
+    const DESKTOP_STAGE_W = 1920;
+    const DESKTOP_STAGE_H = 1080;
+    const MOBILE_STAGE_W = 560;
+    const MOBILE_STAGE_H = 1040;
+    const MOBILE_BREAKPOINT = 767;
+    const BASE_TILE = 150;
+    const BASE_NUMBER_W = 150;
+    const BASE_NUMBER_H = 80;
     const INITIAL_COIN_BALANCE = 10000;
     const INITIAL_CASH_CENTS = 9900;
     const FISH_BALANCE = 10000;
@@ -1336,6 +1748,7 @@
         subtitle: "刮开好运，现金惊喜即刻到手",
         stats: "数值统计",
         back: "返回钱包",
+        closeScratchCard: "关闭刮刮乐",
         scratchAction: "刮奖操作",
         purchaseInfo: "购买信息",
         openGameCoins: "打开游戏币",
@@ -1374,6 +1787,7 @@
         subtitle: "Scratch for luck. Cash surprises land instantly.",
         stats: "Stats",
         back: "Back to wallet",
+        closeScratchCard: "Close scratch card",
         scratchAction: "Scratch action",
         purchaseInfo: "Purchase info",
         openGameCoins: "Open game coins",
@@ -1433,40 +1847,11 @@
       updateSettlement();
       setState(state);
     }
-    const coinReady = { x: 580, y: 420 };
-    const winningOrigin = { x: 830, y: 276 };
-    const scratchOrigin = { x: 830, y: 499 };
-    const numberPositions = [
-      { x: 55, y: 93 },
-      { x: 265, y: 93 },
-      { x: 475, y: 93 }
-    ];
-    const tilePositions = [
-      { x: 55, y: 36 },
-      { x: 265, y: 36 },
-      { x: 475, y: 36 },
-      { x: 55, y: 226 },
-      { x: 265, y: 226 },
-      { x: 475, y: 226 }
-    ];
-    const scratchAreas = [
-      ...numberCanvases.map((canvas, index) => ({
-        canvas,
-        type: "number",
-        x: winningOrigin.x + numberPositions[index].x,
-        y: winningOrigin.y + numberPositions[index].y,
-        width: NUMBER_W,
-        height: NUMBER_H
-      })),
-      ...tileCanvases.map((canvas, index) => ({
-        canvas,
-        type: "tile",
-        x: scratchOrigin.x + tilePositions[index].x,
-        y: scratchOrigin.y + tilePositions[index].y,
-        width: TILE,
-        height: TILE
-      }))
-    ];
+    let currentLayout = "desktop";
+    let currentStageWidth = DESKTOP_STAGE_W;
+    let currentStageHeight = DESKTOP_STAGE_H;
+    let scratchAreas = [];
+    let hasInitializedLayout = false;
     const TICKET_POOL = [
       {
         winning: [1, 6, 20],
@@ -1559,9 +1944,75 @@
       stage.dataset.balanceWarning = "true";
     }
 
-    function resizeStage() {
-      const scale = Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
+    function getCoinReadyPoint() {
+      return currentLayout === "mobile"
+        ? { x: currentStageWidth / 2, y: MOBILE_STAGE_H - 170 }
+        : { x: 580, y: 420 };
+    }
+
+    function getMobileStageMetrics() {
+      const scale = window.innerWidth / MOBILE_STAGE_W;
+      return {
+        scale,
+        height: Math.max(MOBILE_STAGE_H, Math.ceil(window.innerHeight / scale)),
+      };
+    }
+
+    function buildScratchAreas() {
+      const stageRect = stage.getBoundingClientRect();
+      if (!stageRect.width || !stageRect.height) {
+        scratchAreas = [];
+        return;
+      }
+
+      const createArea = (canvas, type) => {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          canvas,
+          type,
+          x: ((rect.left - stageRect.left) / stageRect.width) * currentStageWidth,
+          y: ((rect.top - stageRect.top) / stageRect.height) * currentStageHeight,
+          width: (rect.width / stageRect.width) * currentStageWidth,
+          height: (rect.height / stageRect.height) * currentStageHeight,
+        };
+      };
+
+      scratchAreas = [
+        ...numberCanvases.map((canvas) => createArea(canvas, "number")),
+        ...tileCanvases.map((canvas) => createArea(canvas, "tile")),
+      ];
+    }
+
+    function syncStageLayout() {
+      const nextLayout = window.innerWidth <= MOBILE_BREAKPOINT ? "mobile" : "desktop";
+      const layoutChanged = currentLayout !== nextLayout;
+      currentLayout = nextLayout;
+      const mobileMetrics = currentLayout === "mobile" ? getMobileStageMetrics() : null;
+      currentStageWidth = currentLayout === "mobile" ? MOBILE_STAGE_W : DESKTOP_STAGE_W;
+      currentStageHeight = currentLayout === "mobile" ? mobileMetrics.height : DESKTOP_STAGE_H;
+      stage.dataset.layout = currentLayout;
+      document.documentElement.style.setProperty("--stage-width", `${currentStageWidth}px`);
+      document.documentElement.style.setProperty("--stage-height", `${currentStageHeight}px`);
+      const scale = currentLayout === "mobile"
+        ? mobileMetrics.scale
+        : Math.min(window.innerWidth / currentStageWidth, window.innerHeight / currentStageHeight);
       document.documentElement.style.setProperty("--scale", scale);
+
+      if (layoutChanged || !hasInitializedLayout) {
+        numberCanvases.forEach(drawNumberCover);
+        tileCanvases.forEach(drawTileCover);
+      }
+
+      buildScratchAreas();
+      if ((layoutChanged || !hasInitializedLayout) && state === "done") {
+        showRevealedTicket();
+      }
+      alignFloatingStateAfterLayout();
+      hasInitializedLayout = true;
+    }
+
+    function resizeStage() {
+      syncStageLayout();
     }
 
     function formatCash(cents) {
@@ -1763,16 +2214,23 @@
       actionLabel.textContent = text;
     }
 
+    function setActionKind(kind) {
+      actionButton.dataset.actionKind = kind;
+    }
+
     function setState(next) {
       state = next;
       stage.dataset.state = next;
       if (next === "purchase") {
+        setActionKind("start");
         setActionLabel(t("start"));
       }
       if (next === "ready" || next === "scratching") {
+        setActionKind("reveal");
         setActionLabel(t("reveal"));
       }
       if (next === "done") {
+        setActionKind(hasMoreTickets() ? "next" : "confirm");
         setActionLabel(hasMoreTickets() ? t("next") : t("confirm"));
         updateSettlement();
       }
@@ -1783,6 +2241,26 @@
       sideCoin.style.left = `${x}px`;
       sideCoin.style.top = `${y}px`;
       sideCoin.style.setProperty("--coin-tilt", `${tilt}deg`);
+    }
+
+    function getCanvasLogicalSize(canvas, fallbackWidth, fallbackHeight = fallbackWidth) {
+      return {
+        width: Math.max(1, Math.round(canvas.offsetWidth || fallbackWidth)),
+        height: Math.max(1, Math.round(canvas.offsetHeight || fallbackHeight)),
+      };
+    }
+
+    function getAreaMetrics(area) {
+      const centerX = area.width / 2;
+      const centerY = area.height / 2;
+      const radius = Math.min(area.width, area.height) / 2;
+      return {
+        centerX,
+        centerY,
+        radius,
+        numberInsetX: Math.max(24, area.width * 0.22),
+        numberInsetY: Math.max(24, area.height * 0.4),
+      };
     }
 
     function roundedRect(ctx, x, y, width, height, radius) {
@@ -1802,42 +2280,47 @@
 
     function drawNumberCover(canvas) {
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = NUMBER_W * dpr;
-      canvas.height = NUMBER_H * dpr;
-      canvas.style.width = `${NUMBER_W}px`;
-      canvas.style.height = `${NUMBER_H}px`;
+      const { width, height } = getCanvasLogicalSize(canvas, BASE_NUMBER_W, BASE_NUMBER_H);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, NUMBER_W, NUMBER_H);
-      roundedRect(ctx, 0, 0, NUMBER_W, NUMBER_H, 20);
+      ctx.clearRect(0, 0, width, height);
+      roundedRect(ctx, 0, 0, width, height, Math.round(height * 0.25));
       ctx.fillStyle = "#d2d2d1";
       ctx.fill();
       ctx.fillStyle = "rgba(255, 255, 255, .42)";
-      ctx.font = "900 40px 'Alimama FangYuanTi VF', 'PingFang SC', sans-serif";
+      ctx.font = `900 ${Math.round(height * 0.5)}px 'Alimama FangYuanTi VF', 'PingFang SC', sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("?", NUMBER_W / 2, NUMBER_H / 2 + 1);
+      ctx.fillText("?", width / 2, height / 2 + 1);
       ctx.globalCompositeOperation = "source-over";
       canvas.style.opacity = "1";
     }
 
     function drawTileCover(canvas) {
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = TILE * dpr;
-      canvas.height = TILE * dpr;
-      canvas.style.width = `${TILE}px`;
-      canvas.style.height = `${TILE}px`;
+      const { width, height } = getCanvasLogicalSize(canvas, BASE_TILE, BASE_TILE);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
       const ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, TILE, TILE);
+      ctx.clearRect(0, 0, width, height);
       ctx.save();
       ctx.beginPath();
-      ctx.arc(75, 75, 75, 0, Math.PI * 2);
+      ctx.arc(width / 2, height / 2, Math.min(width, height) / 2, 0, Math.PI * 2);
       ctx.clip();
       ctx.fillStyle = "#d2d2d1";
-      ctx.fillRect(0, 0, TILE, TILE);
+      ctx.fillRect(0, 0, width, height);
       ctx.fillStyle = "rgba(255, 255, 255, .3)";
+      ctx.save();
+      ctx.scale(width / BASE_TILE, height / BASE_TILE);
       drawClover(ctx);
+      ctx.restore();
       ctx.restore();
       ctx.globalCompositeOperation = "source-over";
       canvas.style.opacity = "1";
@@ -1859,8 +2342,10 @@
       updateTicketFace();
       numberCanvases.forEach(drawNumberCover);
       tileCanvases.forEach(drawTileCover);
+      buildScratchAreas();
       tiles.forEach(tile => tile.classList.remove("win-pop"));
-      moveCoin(coinReady.x, coinReady.y, 0);
+      const readyPoint = getCoinReadyPoint();
+      moveCoin(readyPoint.x, readyPoint.y, 0);
       lastScratchPoint = null;
       lastProgressCheck = 0;
     }
@@ -1868,8 +2353,8 @@
     function scenePoint(event) {
       const rect = stage.getBoundingClientRect();
       return {
-        x: (event.clientX - rect.left) / rect.width * STAGE_W,
-        y: (event.clientY - rect.top) / rect.height * STAGE_H
+        x: (event.clientX - rect.left) / rect.width * currentStageWidth,
+        y: (event.clientY - rect.top) / rect.height * currentStageHeight
       };
     }
 
@@ -1896,22 +2381,25 @@
       scratchAreas.forEach(area => {
         const localX = sceneX - area.x;
         const localY = sceneY - area.y;
-        const inTileReach = area.type === "tile" && Math.hypot(localX - 75, localY - 75) <= 112;
+        const metrics = getAreaMetrics(area);
+        const inTileReach = area.type === "tile" && Math.hypot(localX - metrics.centerX, localY - metrics.centerY) <= metrics.radius * 1.5;
         const inNumberReach = area.type === "number" &&
-          localX >= -34 && localX <= area.width + 34 &&
-          localY >= -34 && localY <= area.height + 34;
+          localX >= -metrics.numberInsetX && localX <= area.width + metrics.numberInsetX &&
+          localY >= -metrics.numberInsetY && localY <= area.height + metrics.numberInsetY;
         if (!inTileReach && !inNumberReach) return;
 
         const ctx = area.canvas.getContext("2d", { willReadFrequently: true });
         const dpr = window.devicePixelRatio || 1;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const eraseRadius = area.type === "number" ? 25 : 30;
+        const eraseRadius = area.type === "number"
+          ? Math.max(18, Math.min(area.width, area.height) * 0.31)
+          : Math.max(24, Math.min(area.width, area.height) * 0.2);
 
         if (lastScratchPoint) {
           const prevX = lastScratchPoint.x - area.x;
           const prevY = lastScratchPoint.y - area.y;
           const distance = Math.hypot(localX - prevX, localY - prevY);
-          const steps = Math.max(1, Math.ceil(distance / 14));
+          const steps = Math.max(1, Math.ceil(distance / Math.max(8, eraseRadius * 0.45)));
           for (let i = 0; i <= steps; i += 1) {
             const t = i / steps;
             eraseCircle(ctx, prevX + (localX - prevX) * t, prevY + (localY - prevY) * t, eraseRadius);
@@ -1947,11 +2435,12 @@
         const ctx = area.canvas.getContext("2d", { willReadFrequently: true });
         const data = ctx.getImageData(0, 0, area.canvas.width, area.canvas.height).data;
         const step = Math.max(4, Math.floor(dpr * 5));
+        const metrics = getAreaMetrics(area);
         for (let y = 0; y < area.canvas.height; y += step) {
           for (let x = 0; x < area.canvas.width; x += step) {
-            const lx = x / dpr - 75;
-            const ly = y / dpr - (area.type === "number" ? NUMBER_H / 2 : 75);
-            if (area.type === "tile" && lx * lx + ly * ly > 75 * 75) continue;
+            const lx = x / dpr - metrics.centerX;
+            const ly = y / dpr - metrics.centerY;
+            if (area.type === "tile" && lx * lx + ly * ly > metrics.radius * metrics.radius) continue;
             total += 1;
             if (area.type === "number") {
               numberTotal += 1;
@@ -1993,6 +2482,23 @@
       });
       scratchingActive = false;
       lastScratchPoint = null;
+    }
+
+    function alignFloatingStateAfterLayout() {
+      const readyPoint = getCoinReadyPoint();
+      if (state === "purchase") {
+        moveCoin(readyPoint.x, readyPoint.y, 0);
+        return;
+      }
+
+      if (lastScratchPoint) {
+        moveCoin(lastScratchPoint.x, lastScratchPoint.y, scratchingActive ? 8 : 0);
+        return;
+      }
+
+      if (state === "ready" || state === "scratching") {
+        moveCoin(readyPoint.x, readyPoint.y, 0);
+      }
     }
 
     function revealAll() {
