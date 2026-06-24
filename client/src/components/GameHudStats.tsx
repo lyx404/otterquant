@@ -25,6 +25,13 @@ type GameHudStatsProps = {
   fishBalance?: number;
   showFish?: boolean;
   variant?: "normal" | "mvp";
+  className?: string;
+  cashDecimals?: number;
+  animatedDirections?: {
+    coin?: "up" | "down" | "idle";
+    cash?: "up" | "down" | "idle";
+    fish?: "up" | "down" | "idle";
+  };
   tr: (en: string, zh: string) => string;
   onOpenWallet: (accountKind: "coin" | "cash") => void;
 };
@@ -165,13 +172,20 @@ export function GameHudStats({
   fishBalance,
   showFish = true,
   variant = "normal",
+  className,
+  cashDecimals = 1,
+  animatedDirections,
   tr,
   onOpenWallet,
 }: GameHudStatsProps) {
   const shouldShowWalletStats = variant === "normal";
+  const rootClassName = ["hud-top-stats", className].filter(Boolean).join(" ");
+  const coinValueClassName = ["hud-stat-value", "hud-stat-value--balance", animatedDirections?.coin ? `hud-stat-value--${animatedDirections.coin}` : ""].filter(Boolean).join(" ");
+  const cashValueClassName = ["hud-stat-value", "hud-stat-value--cash", animatedDirections?.cash ? `hud-stat-value--${animatedDirections.cash}` : ""].filter(Boolean).join(" ");
+  const fishValueClassName = ["hud-stat-value", "hud-stat-value--fish", animatedDirections?.fish ? `hud-stat-value--${animatedDirections.fish}` : ""].filter(Boolean).join(" ");
 
   return (
-    <div className="hud-top-stats" aria-label={tr("Stats", "数值统计")}>
+    <div className={rootClassName} aria-label={tr("Stats", "数值统计")}>
       {shouldShowWalletStats && (
         <>
           <button
@@ -187,7 +201,7 @@ export function GameHudStats({
               width="36"
               height="37"
             />
-            <div className="hud-stat-value hud-stat-value--balance">
+            <div className={coinValueClassName}>
               <CountUp to={coinBalance} duration={0.5}>
                 {formatBalance(coinBalance)}
               </CountUp>
@@ -207,9 +221,9 @@ export function GameHudStats({
               width="44"
               height="28"
             />
-            <div className="hud-stat-value hud-stat-value--cash">
-              <CountUp to={cashBalance} duration={0.5} prefix="$" decimals={1}>
-                {`$${cashBalance.toFixed(1)}`}
+            <div className={cashValueClassName}>
+              <CountUp to={cashBalance} duration={0.5} prefix="$" decimals={cashDecimals}>
+                {`$${cashBalance.toFixed(cashDecimals)}`}
               </CountUp>
             </div>
           </button>
@@ -225,7 +239,7 @@ export function GameHudStats({
             width="40"
             height="27"
           />
-          <div className="hud-stat-value hud-stat-value--fish">
+          <div className={fishValueClassName}>
             <CountUp key={`fish-${variant}-${fishBalance}`} to={fishBalance} duration={0.5}>
               {formatBalance(fishBalance)}
             </CountUp>

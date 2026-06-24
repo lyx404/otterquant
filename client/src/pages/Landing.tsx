@@ -7,7 +7,7 @@ import type { SelectOption } from "animal-island-ui";
 import AlphaDetail from "@/pages/AlphaDetail";
 import BorderGlow from "@/components/ui/border-glow-card";
 import { GameHudStats } from "@/components/GameHudStats";
-import { GameWalletModal } from "@/components/GameWalletModal";
+import { useGameWalletModal } from "@/components/GameWalletModalHost";
 import {
   Activity,
   ArrowLeft,
@@ -45,21 +45,13 @@ import { factors, getAlphaGrade, strategies, type AlphaGrade, type Factor } from
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { AlphaViewModeProvider } from "@/contexts/AlphaViewModeContext";
+import { useGameEconomy } from "@/contexts/GameEconomyContext";
 import { usePageTransition } from "@/contexts/PageTransitionContext";
 import disconnectedBasketUrl from "@/assets/disconnected-basket.svg";
 import noticeIconUrl from "@/assets/notice.svg";
 import {
   BALANCE_PER_USD,
-  FISH_BALANCE_AMOUNT,
-  formatBalance,
   HUD_ASSETS,
-  HUD_CASH_AMOUNT,
-  SYSTEM_BALANCE_AMOUNT,
-  WALLET_BALANCE_AMOUNT,
-  WALLET_BALANCE_USD,
-  balanceToUsd,
-  usdToBalance,
-  type GameWalletAccountKind,
 } from "@/lib/gameWallet";
 
 const filterOptions = ["all", "starred"] as const;
@@ -130,7 +122,6 @@ type LeaderboardEntry = {
   weekCasts: number;
   monthCasts: number;
 };
-type FundsStatus = "idle" | "processing" | "success" | "error";
 type GameVersionMode = "normal" | "mvp";
 type BasketBadgeMode = "hidden" | "one" | "five" | "eight" | "ten" | "thirteen" | "overflow";
 const BASKET_BADGE_MODES: BasketBadgeMode[] = ["hidden", "one", "five", "eight", "ten", "thirteen", "overflow"];
@@ -255,8 +246,6 @@ type TestScenarioPanelDragState = TestScenarioPanelPosition & {
 
 const MIN_AUTO_CAST_COUNT = 1;
 const MAX_AUTO_CAST_COUNT = 100;
-const MIN_AMOUNT = 1000;
-const MAX_AMOUNT = 500000;
 const GAME_STAGE_WIDTH = 1902;
 const GAME_STAGE_HEIGHT = 1080;
 const GAME_STAGE_ASPECT = GAME_STAGE_WIDTH / GAME_STAGE_HEIGHT;
@@ -273,13 +262,6 @@ const RANKING_MODAL_ASSETS = {
   rank2: "/assets/ranking-modal/rank-2.svg",
   rank3: "/assets/ranking-modal/rank-3.svg",
 } as const;
-const WITHDRAWAL_NETWORKS = [
-  "Ethereum (ERC20)",
-  "BNB Smart Chain (BEP20)",
-  "Arbitrum One (ARB)",
-  "Solana (SOL)",
-];
-const DEFAULT_WITHDRAWAL_NETWORK = WITHDRAWAL_NETWORKS[0];
 
 const CURRENT_LEADERBOARD_USER_ID = "current-user";
 const leaderboardSeedEntries: LeaderboardEntry[] = [
@@ -532,15 +514,6 @@ function getFactorSubmissionStatus(factor: Factor): FactorRow["submissionStatus"
   return factor.status === "archived" ? "failed" : "passed";
 }
 
-function formatUsd(amount: number) {
-  return `${(Number(amount) || 0).toFixed(2)} USD`;
-}
-
-function formatUsdInputValue(amount: number) {
-  return balanceToUsd(amount).toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-  });
-}
 
 function clampAutoCastCount(value: number) {
   if (!Number.isFinite(value)) return MIN_AUTO_CAST_COUNT;
@@ -549,39 +522,6 @@ function clampAutoCastCount(value: number) {
 
 function formatLeaderboardBalance(amount: number) {
   return `+${Math.round(Number(amount) || 0).toLocaleString()}`;
-}
-
-function isValidAmount(amount: number) {
-  const value = Number(amount);
-  return Number.isFinite(value) && value >= MIN_AMOUNT && value <= MAX_AMOUNT;
-}
-
-function walletBalanceAfterWithdraw(amount: number, balance = WALLET_BALANCE_AMOUNT) {
-  return Math.max(0, Number(balance || 0) - Number(amount || 0));
-}
-
-function isValidWithdrawalAddress(network: string, address: string) {
-  const value = String(address || "").trim();
-  if (!value) return false;
-  if (value.length < 8 || value.length > 128) return false;
-  if (network === "Solana (SOL)") return /^[1-9A-HJ-NP-Za-km-z]{8,128}$/.test(value);
-  return /^0x[a-fA-F0-9]{6,126}$/.test(value);
-}
-
-function getWithdrawalAddressHint(network: string, lang: "en" | "zh") {
-  return network === "Solana (SOL)"
-    ? lang === "zh"
-      ? "请输入 8-128 字符的 Solana 钱包地址。"
-      : "Enter an 8-128 character Solana wallet address."
-    : lang === "zh"
-      ? "请输入以 0x 开头的 EVM 钱包地址，长度为 8-128 字符。"
-      : "Enter an EVM wallet address starting with 0x, 8-128 characters.";
-}
-
-function formatWalletAddressPreview(address: string) {
-  const value = address.trim();
-  if (value.length <= 18) return value;
-  return `${value.slice(0, 8)}...${value.slice(-6)}`;
 }
 
 function getFactorDefaultSortDir(key: FactorSortKey): Exclude<SortDir, null> {
@@ -709,8 +649,10 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const { uiLang, setUiLang } = useAppLanguage();
   const { user, login, logout, updateUser } = useAuth();
+  const { coinBalance, cashCents, fishBalance } = useGameEconomy();
   const { navigateWithTransition } = usePageTransition();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const cashBalanceUsd = cashCents / BALANCE_PER_USD;
   const shouldForceShowTestScenarioPanel = true;
   const shouldShowTestScenarioPanel =
     shouldForceShowTestScenarioPanel ||
@@ -753,10 +695,7 @@ export default function Landing() {
   const inventoryPageTransition = useMobilePageTransition(inventoryOpen, 260);
   const inventoryDetailPageTransition = useMobilePageTransition(inventoryDetailOpen, 260);
   const inventoryClosingFactorRef = useRef<FactorRow | null>(null);
-  const [walletOpen, setWalletOpen] = useState(false);
-  const walletPageTransition = useMobilePageTransition(walletOpen, 260);
-  const [walletAccountKind, setWalletAccountKind] = useState<GameWalletAccountKind>("coin");
-  const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
+  const walletController = useGameWalletModal();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
   const [settingsAgentSection, setSettingsAgentSection] = useState<"web" | "client">("web");
@@ -816,15 +755,6 @@ export default function Landing() {
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>("week");
   const [leaderboardScrolling, setLeaderboardScrolling] = useState(false);
   const leaderboardScrollTimerRef = useRef<number | null>(null);
-  const [withdrawAmount, setWithdrawAmount] = useState(MIN_AMOUNT);
-  const [withdrawNetwork, setWithdrawNetwork] = useState(DEFAULT_WITHDRAWAL_NETWORK);
-  const [withdrawNetworkOpen, setWithdrawNetworkOpen] = useState(false);
-  const [withdrawAddress, setWithdrawAddress] = useState("");
-  const [withdrawAddressError, setWithdrawAddressError] = useState("");
-  const [withdrawAccountBound, setWithdrawAccountBound] = useState(false);
-  const [withdrawWalletEditing, setWithdrawWalletEditing] = useState(false);
-  const [withdrawStatus, setWithdrawStatus] = useState<FundsStatus>("idle");
-  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [factorQuery, setFactorQuery] = useState("");
   const [factorFilter, setFactorFilter] = useState<FactorFilterKey>("all");
   const [inventoryGradeFilter, setInventoryGradeFilter] = useState<InventoryGradeFilter>("all");
@@ -844,7 +774,6 @@ export default function Landing() {
   const [basketEmptyToast, setBasketEmptyToast] = useState<BasketEmptyToast>(null);
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
   const inventoryDetailClosingFactorRef = useRef<FactorRow | null>(null);
-  const withdrawNetworkSelectRef = useRef<HTMLDivElement | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -981,27 +910,6 @@ export default function Landing() {
     return () => document.removeEventListener("mousedown", closeAgentApiMenu);
   }, [agentApiMoreMenuId]);
 
-  useEffect(() => {
-    if (!withdrawNetworkOpen) return undefined;
-
-    const closeWithdrawNetwork = (event: PointerEvent) => {
-      if (withdrawNetworkSelectRef.current && !withdrawNetworkSelectRef.current.contains(event.target as Node)) {
-        setWithdrawNetworkOpen(false);
-      }
-    };
-    const handleWithdrawNetworkKeydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setWithdrawNetworkOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", closeWithdrawNetwork);
-    document.addEventListener("keydown", handleWithdrawNetworkKeydown);
-    return () => {
-      document.removeEventListener("pointerdown", closeWithdrawNetwork);
-      document.removeEventListener("keydown", handleWithdrawNetworkKeydown);
-    };
-  }, [withdrawNetworkOpen]);
 
   const filterLabels: Record<FilterKey, string> = {
     all: tr("All", "全部"),
@@ -1219,13 +1127,6 @@ export default function Landing() {
     }
     return undefined;
   }, [leaderboardOpen]);
-  useEffect(() => {
-    if (walletOpen || walletPageTransition.shouldRender) return;
-    setWalletWithdrawOpen(false);
-    setWithdrawNetworkOpen(false);
-    setWithdrawWalletEditing(false);
-    resetWithdrawFeedback();
-  }, [walletOpen, walletPageTransition.shouldRender]);
   const manualCastWaiting = manualCastStartedAt !== null;
   const mainCastActive = autoCastRunning || manualCastWaiting;
   const isFreeTrialAvailable = Boolean(user) && agentConnectedProviderIds.size === 0 && freeTrialRemaining > 0;
@@ -1889,39 +1790,6 @@ export default function Landing() {
     setStrategySortOpen(false);
   };
 
-  const resetWithdrawFeedback = () => {
-    setWithdrawStatus("idle");
-  };
-
-  const handleWithdrawNetworkChange = (network: string) => {
-    setWithdrawNetwork(network);
-    setWithdrawAccountBound(false);
-    setWithdrawAddressError("");
-    resetWithdrawFeedback();
-    setWithdrawNetworkOpen(false);
-  };
-
-  const openWalletModal = (accountKind: GameWalletAccountKind = walletAccountKind) => {
-    setWalletAccountKind(accountKind);
-    setWalletWithdrawOpen(false);
-    setWithdrawNetworkOpen(false);
-    setWalletOpen(true);
-    setWithdrawWalletEditing(false);
-    resetWithdrawFeedback();
-  };
-
-  const openWithdrawModal = () => {
-    setWalletWithdrawOpen(true);
-    setWithdrawNetworkOpen(false);
-    setWithdrawWalletEditing(false);
-    resetWithdrawFeedback();
-  };
-
-  const closeWalletModal = () => {
-    setWalletOpen(false);
-    setWithdrawNetworkOpen(false);
-  };
-
   const showSettingsFeedback = (title: string, message: string) => {
     setInventoryToast({ id: Date.now(), title, message });
   };
@@ -2406,78 +2274,6 @@ export default function Landing() {
     navigateWithTransition("/auth");
   };
 
-  const formatWalletDateTime = (value: string) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return uiLang === "zh"
-      ? new Intl.DateTimeFormat("zh-CN", {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(date)
-      : new Intl.DateTimeFormat("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }).format(date);
-  };
-
-  const handleBindWithdrawWallet = () => {
-    if (!isValidWithdrawalAddress(withdrawNetwork, withdrawAddress)) {
-      setWithdrawAddressError(getWithdrawalAddressHint(withdrawNetwork, uiLang));
-      setWithdrawAccountBound(false);
-      setWithdrawWalletEditing(true);
-      return;
-    }
-    setWithdrawAccountBound(true);
-    setWithdrawWalletEditing(false);
-    setWithdrawAddressError("");
-    resetWithdrawFeedback();
-  };
-
-  const handleSubmitWithdraw = async () => {
-    const validAmount = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_AMOUNT;
-    const validAddress = withdrawAccountBound && isValidWithdrawalAddress(withdrawNetwork, withdrawAddress);
-    if (!validAmount || !validAddress || withdrawSubmitting || withdrawStatus === "success") return;
-    setWithdrawSubmitting(true);
-    setWithdrawStatus("processing");
-    await new Promise((resolve) => window.setTimeout(resolve, 850));
-    setWithdrawStatus(withdrawAmount === 3000 ? "error" : "success");
-    setWithdrawSubmitting(false);
-  };
-
-  const withdrawAmountValid = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_AMOUNT;
-  const withdrawAddressValue = withdrawAddress.trim();
-  const withdrawWalletFormOpen = !withdrawAccountBound || withdrawWalletEditing;
-  const withdrawAddressValid = isValidWithdrawalAddress(withdrawNetwork, withdrawAddress);
-  const withdrawPrimaryDisabled =
-    withdrawStatus === "success"
-      ? false
-      : withdrawWalletFormOpen
-        ? !withdrawAddressValue
-        : withdrawSubmitting || !withdrawAmountValid || !withdrawAccountBound || !withdrawAddressValid;
-  const withdrawPrimaryLabel = withdrawSubmitting
-    ? tr("Submitting...", "提交中...")
-    : withdrawStatus === "success"
-      ? tr("Back", "返回")
-      : withdrawWalletFormOpen
-        ? withdrawAccountBound
-          ? tr("Save wallet", "保存钱包")
-          : tr("Bind wallet", "绑定钱包")
-        : withdrawAccountBound
-        ? tr("Confirm withdrawal", "确认提现")
-        : tr("Bind wallet", "绑定钱包");
-  const handleWithdrawPrimaryAction = () => {
-    if (withdrawStatus === "success") {
-      openWalletModal("cash");
-      return;
-    }
-
-    void handleSubmitWithdraw();
-  };
-
   const openStrategyDetail = (strategy: (typeof strategies)[number]) => {
     setSelectedStrategy(strategy);
     setCurveRange("365D");
@@ -2545,175 +2341,6 @@ export default function Landing() {
       ],
     };
   }, [curveRange, selectedStrategy, tr]);
-
-  const walletWithdrawContent = (
-    <section className="wallet-withdraw wallet-withdraw--modal">
-      {withdrawWalletFormOpen ? (
-        <div className="wallet-withdraw__steps">
-          <section className="wallet-step">
-            <div className="wallet-step__body">
-              <div className="wallet-step__head">
-                <h3 className="wallet-step__title">{withdrawAccountBound ? tr("Change bound wallet", "更改绑定钱包") : tr("Bind wallet", "绑定钱包")}</h3>
-              </div>
-              <div className="wallet-field">
-                <span>{tr("Network", "选择网络")}</span>
-                <div
-                  className={`wallet-select${withdrawNetworkOpen ? " is-open" : ""}`}
-                  ref={withdrawNetworkSelectRef}
-                >
-                  <button
-                    className="wallet-select__button"
-                    type="button"
-                    aria-haspopup="listbox"
-                    aria-expanded={withdrawNetworkOpen}
-                    onClick={() => setWithdrawNetworkOpen((open) => !open)}
-                  >
-                    <span className="wallet-select__value">{withdrawNetwork}</span>
-                    <span className="wallet-select__chevron" aria-hidden="true" />
-                  </button>
-                  {withdrawNetworkOpen ? (
-                    <div
-                      className="wallet-select__menu"
-                      role="listbox"
-                      aria-label={tr("Network", "选择网络")}
-                    >
-                      {WITHDRAWAL_NETWORKS.map((network) => (
-                        <button
-                          key={network}
-                          className={`wallet-select__option${network === withdrawNetwork ? " is-selected" : ""}`}
-                          type="button"
-                          role="option"
-                          aria-selected={network === withdrawNetwork}
-                          onClick={() => handleWithdrawNetworkChange(network)}
-                        >
-                          {network}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              <label className="wallet-field">
-                <span>{tr("Wallet address", "钱包地址")}</span>
-                <input
-                  className="wallet-input"
-                  value={withdrawAddress}
-                  onChange={(event) => {
-                    setWithdrawAddress(event.target.value);
-                    setWithdrawAccountBound(false);
-                    setWithdrawAddressError("");
-                    resetWithdrawFeedback();
-                  }}
-                  placeholder={tr("Enter wallet address", "输入钱包地址")}
-                />
-                {withdrawAddressError && (
-                  <span className="wallet-field__hint is-error">
-                    {withdrawAddressError}
-                  </span>
-                )}
-              </label>
-            </div>
-          </section>
-
-          <div className="wallet-withdraw__actions">
-            <button
-              className="wallet-submit"
-              type="button"
-              disabled={withdrawPrimaryDisabled}
-              onClick={handleBindWithdrawWallet}
-            >
-              {withdrawPrimaryLabel}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="wallet-withdraw__steps">
-          <section className="wallet-step">
-            <div className="wallet-step__body">
-              <div className="wallet-step__head">
-                <h3 className="wallet-step__title">{tr("Enter withdrawal amount", "输入提现金额")}</h3>
-              </div>
-              <label className="wallet-field">
-                <span className="wallet-input-unit-wrap">
-                  <input
-                    className="wallet-input wallet-input--with-unit"
-                    inputMode="decimal"
-                    aria-label={tr("Withdrawal amount", "提现金额")}
-                    value={withdrawAmount ? formatUsdInputValue(withdrawAmount) : ""}
-                    onChange={(event) => {
-                      const clean = event.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-                      setWithdrawAmount(clean === "" ? 0 : usdToBalance(Number(clean)));
-                      resetWithdrawFeedback();
-                    }}
-                    placeholder={tr("Enter USD amount", "输入 USD 金额")}
-                  />
-                  <span className="wallet-input-unit" aria-hidden="true">USD</span>
-                </span>
-              </label>
-              <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
-                <span>
-                  {tr("Minimum", "最低")} {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · {tr("Available", "可提现")} {formatUsd(WALLET_BALANCE_USD)}
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <section className="wallet-step">
-            <div className="wallet-step__body">
-              <div className="wallet-bound-summary">
-                <div className="wallet-bound-summary__main">
-                  <span className="wallet-bound-summary__label">{tr("Withdraw to", "提现至")}</span>
-                  <span className="wallet-bound-summary__target">
-                    <span className="wallet-bound-summary__address" title={withdrawAddressValue}>
-                      {withdrawAddressValue}
-                    </span>
-                    <span className="wallet-bound-summary__network">{withdrawNetwork}</span>
-                  </span>
-                </div>
-                <button
-                  className="wallet-bound-summary__edit"
-                  type="button"
-                  onClick={() => {
-                    setWithdrawWalletEditing(true);
-                    resetWithdrawFeedback();
-                  }}
-                >
-                  {tr("Change", "更改")}
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <div className="wallet-withdraw__actions">
-            {withdrawStatus === "error" && (
-              <div className="wallet-status is-error">
-                {tr(
-                  "Withdrawal preview failed. Try 10.00 USD, 20.00 USD, or 50.00 USD to view the success state.",
-                  "提现预览失败。请尝试 10.00 USD、20.00 USD 或 50.00 USD 查看成功状态。"
-                )}
-              </div>
-            )}
-            {withdrawStatus === "success" && (
-              <div className="wallet-status">
-                {tr(
-                  `${formatUsd(balanceToUsd(withdrawAmount))} withdrawal request submitted.`,
-                  `${formatUsd(balanceToUsd(withdrawAmount))} 提现申请已提交。`
-                )}
-              </div>
-            )}
-            <button
-              className="wallet-submit wallet-submit--withdraw"
-              type="button"
-              disabled={withdrawPrimaryDisabled}
-              onClick={handleWithdrawPrimaryAction}
-            >
-              {withdrawPrimaryLabel}
-            </button>
-          </div>
-        </div>
-      )}
-    </section>
-  );
 
   return (
     <main className="game-landing" aria-label="Pixel lakeside game landing">
@@ -7546,7 +7173,7 @@ export default function Landing() {
           padding: 4px 0 0; margin-top: 4px;
         }
         .sac-inline-step__head { margin-bottom: 18px; position: relative; }
-        .sac-inline-step__title { font-size: 18px; font-weight: 800; color: var(--ac-text); margin: 0 0 6px; }
+        .sac-inline-step__title { font-family: var(--modal-title-font); font-size: 18px; font-weight: 800; color: var(--ac-text); margin: 0 0 6px; }
         .sac-inline-step__sub { font-size: 13px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
         .sac-inline-back {
           appearance: none; font: inherit; cursor: pointer; background: none; border: none;
@@ -13642,12 +13269,12 @@ export default function Landing() {
         />
 
         <GameHudStats
-          coinBalance={SYSTEM_BALANCE_AMOUNT}
-          cashBalance={HUD_CASH_AMOUNT}
-          fishBalance={FISH_BALANCE_AMOUNT}
+          coinBalance={coinBalance}
+          cashBalance={cashBalanceUsd}
+          fishBalance={fishBalance}
           variant={gameVersionMode}
           tr={tr}
-          onOpenWallet={openWalletModal}
+          onOpenWallet={walletController.openWalletModal}
         />
 
         <div
@@ -15449,27 +15076,6 @@ export default function Landing() {
             </footer>
           </section>
         </div>
-      )}
-
-      {walletPageTransition.shouldRender && (
-
-        <GameWalletModal
-          accountKind={walletAccountKind}
-          cashBalance={`$${HUD_CASH_AMOUNT.toFixed(1)}`}
-          coinBalance={formatBalance(SYSTEM_BALANCE_AMOUNT)}
-          closeLabel={tr("Close wallet", "关闭钱包")}
-          closeWithdrawLabel={tr("Close withdraw", "关闭提现")}
-          backLabel={tr("Back to wallet", "返回钱包")}
-          pageTransitionPhase={walletPageTransition.phase}
-          isWithdrawOpen={walletWithdrawOpen}
-          onClose={closeWalletModal}
-          onBackdropClose={closeWalletModal}
-          onOpenCashWallet={() => openWalletModal("cash")}
-          onWithdraw={openWithdrawModal}
-          withdrawContent={walletWithdrawContent}
-          tr={tr}
-          formatWalletDateTime={formatWalletDateTime}
-        />
       )}
 
       {leaderboardPageTransition.shouldRender && (
