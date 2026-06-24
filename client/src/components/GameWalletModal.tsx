@@ -24,6 +24,7 @@ type GameWalletModalProps = {
   cashBalance: string;
   coinBalance: string;
   closeLabel: string;
+  pageTransitionPhase?: "opening" | "open" | "closing";
   isWithdrawOpen?: boolean;
   titleOverride?: string;
   closeWithdrawLabel?: string;
@@ -42,6 +43,7 @@ export function GameWalletModal({
   cashBalance,
   coinBalance,
   closeLabel,
+  pageTransitionPhase,
   isWithdrawOpen = false,
   titleOverride,
   closeWithdrawLabel,
@@ -75,7 +77,8 @@ export function GameWalletModal({
 
   return (
     <div
-      className="shop-modal-backdrop"
+      className="shop-modal-backdrop wallet-modal-backdrop mobile-page-shell"
+      data-mobile-page-transition={pageTransitionPhase}
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) {
@@ -83,7 +86,7 @@ export function GameWalletModal({
         }
       }}
     >
-      <section className="shop-modal wallet-modal" role="dialog" aria-modal="true" aria-labelledby="wallet-modal-title">
+      <section className="shop-modal wallet-modal mobile-page-surface" role="dialog" aria-modal="true" aria-labelledby="wallet-modal-title">
         <header className="shop-modal__header">
           <div className="wallet-modal__heading">
             {isWithdrawOpen && onOpenCashWallet && (
@@ -109,13 +112,13 @@ export function GameWalletModal({
         </header>
 
         <div className="wallet-content">
-          <div className="wallet-panel">
+          <div className={`wallet-panel${isWithdrawOpen ? " wallet-panel--withdraw-flow" : " wallet-panel--overview"}`}>
             {isWithdrawOpen && withdrawContent ? (
               withdrawContent
             ) : (
               <>
                 <div className="wallet-summary-grid">
-                  <section className="wallet-card wallet-card--balance">
+                  <section className={`wallet-card wallet-card--balance${activeWalletConfig.allowWithdraw ? " wallet-card--withdrawable" : ""}`}>
                     <div className="wallet-card__balance-main">
                       <div className="wallet-card__value wallet-balance-value">
                         <img className="wallet-balance-value__icon" src={activeWalletConfig.icon} alt="" />
@@ -140,9 +143,9 @@ export function GameWalletModal({
                 <section className="wallet-section">
                   <div className="wallet-table">
                     <div className="wallet-table__row wallet-table__row--head">
-                      <span>{tr("Activity", "变更记录")}</span>
-                      <span>{tr("Order No.", "单号")}</span>
-                      <span>{tr("Time", "变更时间")}</span>
+                      <span className="wallet-table__activity">{tr("Activity", "变更记录")}</span>
+                      <span className="wallet-table__order">{tr("Order No.", "单号")}</span>
+                      <span className="wallet-table__time">{tr("Time", "变更时间")}</span>
                       <span className="wallet-table__amount">
                         <span className="wallet-table__balance">
                           <img className="wallet-table__balance-icon" src={activeWalletConfig.icon} alt="" />
@@ -153,10 +156,16 @@ export function GameWalletModal({
                     {activeWalletConfig.activities.map((item) => {
                       const isIncrease = item.direction === "increase";
                       return (
-                        <div className="wallet-table__row" key={item.id}>
-                          <span>{tr(item.reasonEn, item.reasonZh)}</span>
-                          <span className="wallet-table__mono">{item.orderNo}</span>
-                          <span>{formatWalletDateTime(item.occurredAt)}</span>
+                        <div className="wallet-table__row wallet-table__row--item" key={item.id}>
+                          <span className="wallet-table__activity">{tr(item.reasonEn, item.reasonZh)}</span>
+                          <span className="wallet-table__mono wallet-table__order">
+                            <span className="wallet-table__mobile-label">{tr("Order No.", "单号")}</span>
+                            <span className="wallet-table__mobile-value">{item.orderNo}</span>
+                          </span>
+                          <span className="wallet-table__time">
+                            <span className="wallet-table__mobile-label">{tr("Time", "变更时间")}</span>
+                            <span className="wallet-table__mobile-value">{formatWalletDateTime(item.occurredAt)}</span>
+                          </span>
                           <span className={`wallet-table__amount ${isIncrease ? "wallet-table__amount--plus" : "wallet-table__amount--minus"}`}>
                             <span className="wallet-table__balance">
                               <span>{isIncrease ? "+" : "-"}{activeWalletConfig.formatActivityAmount(item.amount)}</span>

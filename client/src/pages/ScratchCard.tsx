@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+import { useLocation } from "wouter";
 import { usePageTransition } from "@/contexts/PageTransitionContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 
@@ -21,6 +22,60 @@ const HUD_ASSETS = {
   coin: "/assets/hud-coin.svg",
   cash: "/assets/hud-cash.svg",
 } as const;
+
+type MobilePageTransitionPhase = "opening" | "open" | "closing";
+
+function useLocalPrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return undefined;
+
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setPrefersReducedMotion(mediaQuery.matches);
+
+    updatePreference();
+    mediaQuery.addEventListener("change", updatePreference);
+    return () => mediaQuery.removeEventListener("change", updatePreference);
+  }, []);
+
+  return prefersReducedMotion;
+}
+
+function useMobilePageTransition(isOpen: boolean, exitDurationMs = 220, enterDurationMs = 320) {
+  const prefersReducedMotion = useLocalPrefersReducedMotion();
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [phase, setPhase] = useState<MobilePageTransitionPhase>(isOpen ? "open" : "closing");
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setShouldRender(isOpen);
+      setPhase(isOpen ? "open" : "closing");
+      return undefined;
+    }
+
+    let timeoutId = 0;
+
+    if (isOpen) {
+      setShouldRender(true);
+      setPhase("opening");
+      timeoutId = window.setTimeout(() => {
+        setPhase("open");
+      }, enterDurationMs);
+    } else if (shouldRender) {
+      setPhase("closing");
+      timeoutId = window.setTimeout(() => {
+        setShouldRender(false);
+      }, exitDurationMs);
+    }
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [enterDurationMs, exitDurationMs, isOpen, prefersReducedMotion, shouldRender]);
+
+  return { shouldRender, phase, prefersReducedMotion, exitDurationMs };
+}
 
 const coinActivities: WalletActivityItem[] = [
   {
@@ -123,10 +178,13 @@ function formatBalance(amount: number) {
 }
 
 export default function ScratchCard() {
+  const [, setLocation] = useLocation();
   const { navigateWithTransition } = usePageTransition();
   const { uiLang } = useAppLanguage();
+  const [mobilePageOpen, setMobilePageOpen] = useState(true);
   const [walletOpen, setWalletOpen] = useState(false);
   const [walletAccountKind, setWalletAccountKind] = useState<ScratchCardWalletKind>("coin");
+  const scratchCardPageTransition = useMobilePageTransition(mobilePageOpen, 260);
   const scratchCardTitle = uiLang === "zh" ? "幸运刮刮乐" : "Lucky Scratch Card";
   const scratchCardSrc = `${SCRATCH_CARD_SRC}?lang=${uiLang}`;
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -158,6 +216,10 @@ export default function ScratchCard() {
   ).format(new Date(value));
 
   useEffect(() => {
+    setMobilePageOpen(true);
+  }, []);
+
+  useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type === "scratch-card:back") {
@@ -169,6 +231,13 @@ export default function ScratchCard() {
           origin.x <= 1 &&
           origin.y >= 0 &&
           origin.y <= 1;
+        if (typeof window !== "undefined" && window.innerWidth <= 700 && !scratchCardPageTransition.prefersReducedMotion) {
+          setMobilePageOpen(false);
+          window.setTimeout(() => {
+            setLocation("/");
+          }, scratchCardPageTransition.exitDurationMs);
+          return;
+        }
         void navigateWithTransition("/", hasOrigin ? origin : undefined);
       }
       if (event.data?.type === "scratch-card:wallet") {
@@ -181,28 +250,26 @@ export default function ScratchCard() {
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, [navigateWithTransition]);
+  }, [navigateWithTransition, scratchCardPageTransition.exitDurationMs, scratchCardPageTransition.prefersReducedMotion]);
 
   return (
     <main
-      style={{
-        position: "fixed",
-        inset: 0,
-        overflow: "hidden",
-        background: "#c6d1f6",
-      }}
+      className="scratch-card-route"
+      data-mobile-page-transition={scratchCardPageTransition.phase}
       aria-label={scratchCardTitle}
     >
-      <iframe
-        title={scratchCardTitle}
-        src={scratchCardSrc}
-        style={{
-          width: "100%",
-          height: "100%",
-          border: 0,
-          display: "block",
-        }}
-      />
+      <section className="scratch-card-route__surface">
+        <iframe
+          title={scratchCardTitle}
+          src={scratchCardSrc}
+          style={{
+            width: "100%",
+            height: "100%",
+            border: 0,
+            display: "block",
+          }}
+        />
+      </section>
       {walletOpen && (
         <div
           className="scratch-wallet-backdrop"
@@ -272,6 +339,19 @@ export default function ScratchCard() {
         </div>
       )}
       <style>{`
+        .scratch-card-route {
+          position: fixed;
+          inset: 0;
+          overflow: hidden;
+          background: #c6d1f6;
+        }
+
+        .scratch-card-route__surface {
+          width: 100%;
+          height: 100%;
+          will-change: transform, opacity;
+        }
+
         .scratch-wallet-backdrop {
           position: absolute;
           inset: 0;
@@ -437,7 +517,33 @@ export default function ScratchCard() {
           image-rendering: pixelated;
         }
 
-        @media (max-width: 760px) {
+        @media (max-width: 700px) {
+          .scratch-card-route {
+            --mobile-page-enter-duration: 320ms;
+            --mobile-page-exit-duration: 260ms;
+            --mobile-page-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --mobile-page-exit-ease: cubic-bezier(0.4, 0, 1, 1);
+            --mobile-page-surface-enter-x: 40px;
+            --mobile-page-surface-exit-x: 28px;
+          }
+
+          .scratch-card-route[data-mobile-page-transition="opening"] {
+            animation: scratch-mobile-page-backdrop-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
+          }
+
+          .scratch-card-route[data-mobile-page-transition="closing"] {
+            animation: scratch-mobile-page-backdrop-out var(--mobile-page-exit-duration) var(--mobile-page-exit-ease) both;
+            pointer-events: none;
+          }
+
+          .scratch-card-route[data-mobile-page-transition="opening"] .scratch-card-route__surface {
+            animation: scratch-mobile-page-surface-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
+          }
+
+          .scratch-card-route[data-mobile-page-transition="closing"] .scratch-card-route__surface {
+            animation: scratch-mobile-page-surface-out var(--mobile-page-exit-duration) var(--mobile-page-exit-ease) both;
+          }
+
           .scratch-wallet-backdrop {
             align-items: stretch;
             padding: 14px;
@@ -450,6 +556,46 @@ export default function ScratchCard() {
 
           .scratch-wallet-title {
             font-size: 24px;
+          }
+        }
+
+        @keyframes scratch-mobile-page-backdrop-in {
+          from { opacity: .01; }
+          to { opacity: 1; }
+        }
+
+        @keyframes scratch-mobile-page-backdrop-out {
+          from { opacity: 1; }
+          to { opacity: .01; }
+        }
+
+        @keyframes scratch-mobile-page-surface-in {
+          from {
+            opacity: .01;
+            transform: translate3d(var(--mobile-page-surface-enter-x, 18px), 0, 0);
+          }
+          to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+          }
+        }
+
+        @keyframes scratch-mobile-page-surface-out {
+          from {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+          }
+          to {
+            opacity: .01;
+            transform: translate3d(var(--mobile-page-surface-exit-x, 14px), 0, 0);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .scratch-card-route,
+          .scratch-card-route__surface {
+            animation: none !important;
+            transition: none !important;
           }
         }
       `}</style>
