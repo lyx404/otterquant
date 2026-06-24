@@ -1118,6 +1118,10 @@
     }
 
     .stage[data-layout="mobile"] {
+      --mobile-ticket-top: 178px;
+      --mobile-ticket-height: 594px;
+      --mobile-action-gap: 18px;
+      --mobile-action-controls-top: 100px;
       top: 0;
       transform: translate(-50%, 0) scale(var(--scale));
       transform-origin: top center;
@@ -1222,10 +1226,10 @@
     }
 
     .stage[data-layout="mobile"] .ticket {
-      top: 178px;
+      top: var(--mobile-ticket-top);
       left: 50%;
       width: 492px;
-      height: 594px;
+      height: var(--mobile-ticket-height);
       border-radius: 28px;
       transform: translateX(-50%);
     }
@@ -1345,13 +1349,17 @@
     }
 
     .stage[data-layout="mobile"] .action {
-      top: auto;
-      bottom: calc(20px / var(--scale));
+      top: calc(var(--mobile-ticket-top) + var(--mobile-ticket-height) + var(--mobile-action-gap));
+      bottom: auto;
       left: 50%;
       z-index: 24;
       width: 492px;
       height: 268px;
       transform: translateX(-50%);
+    }
+
+    .stage[data-layout="mobile"][data-state="purchase"] .action {
+      top: calc(var(--mobile-ticket-top) + var(--mobile-ticket-height) + var(--mobile-action-gap));
     }
 
     .stage[data-layout="mobile"] .settlement {
@@ -1384,7 +1392,7 @@
     }
 
     .stage[data-layout="mobile"] .action-controls {
-      top: 100px;
+      top: var(--mobile-action-controls-top);
       width: 492px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       column-gap: 12px;
@@ -1392,8 +1400,20 @@
     }
 
     .stage[data-layout="mobile"][data-state="purchase"] .action-controls {
-      top: 60px;
+      top: var(--mobile-action-controls-top);
       row-gap: 10px;
+    }
+
+    .stage[data-layout="mobile"][data-state="done"] .action-controls {
+      top: var(--mobile-action-controls-top);
+    }
+
+    .stage[data-layout="mobile"][data-can-reveal-all="true"] .action-controls {
+      top: var(--mobile-action-controls-top);
+    }
+
+    .stage[data-layout="mobile"][data-state="done"][data-can-reveal-all="true"] .action-controls {
+      top: var(--mobile-action-controls-top);
     }
 
     .stage[data-layout="mobile"] .primary-button,
@@ -1419,6 +1439,10 @@
       height: 72px;
       padding: 12px 16px;
       font-size: 20px;
+    }
+
+    .stage[data-layout="mobile"][data-can-reveal-all="true"] .batch-all-button {
+      font-size: 24px;
     }
 
     .stage[data-layout="mobile"][data-state="purchase"]:not([data-can-reveal-all="true"]) .primary-button {

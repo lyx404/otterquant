@@ -261,6 +261,7 @@ const GAME_STAGE_WIDTH = 1902;
 const GAME_STAGE_HEIGHT = 1080;
 const GAME_STAGE_ASPECT = GAME_STAGE_WIDTH / GAME_STAGE_HEIGHT;
 const TEST_SCENARIO_PANEL_DEFAULT_POSITION: TestScenarioPanelPosition = { left: 34, top: 124 };
+const FREE_TRIAL_CAST_LIMIT = 5;
 const AUTO_CAST_SINGLE_MIN_SECONDS = 10;
 const AUTO_CAST_SINGLE_MAX_SECONDS = 30;
 const RANKING_MODAL_ASSETS = {
@@ -746,6 +747,7 @@ export default function Landing() {
   const [autoCastElapsed, setAutoCastElapsed] = useState(0);
   const [manualCastStartedAt, setManualCastStartedAt] = useState<number | null>(null);
   const [manualCastElapsed, setManualCastElapsed] = useState(0);
+  const [freeTrialRemaining, setFreeTrialRemaining] = useState(0);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [inventoryDetailOpen, setInventoryDetailOpen] = useState(false);
   const inventoryPageTransition = useMobilePageTransition(inventoryOpen, 260);
@@ -1226,7 +1228,8 @@ export default function Landing() {
   }, [walletOpen, walletPageTransition.shouldRender]);
   const manualCastWaiting = manualCastStartedAt !== null;
   const mainCastActive = autoCastRunning || manualCastWaiting;
-  const showAutoCastControl = !mainCastActive;
+  const isFreeTrialAvailable = Boolean(user) && agentConnectedProviderIds.size === 0 && freeTrialRemaining > 0;
+  const showAutoCastControl = !mainCastActive && !isFreeTrialAvailable;
   const manualCastElapsedLabel = formatElapsedTime(manualCastElapsed);
   const autoCastElapsedLabel = formatElapsedTime(autoCastElapsed);
   const autoCastCurrentStep = autoCastRunning ? Math.min(autoCastProgress + 1, autoCastCount) : autoCastProgress;
@@ -1240,11 +1243,16 @@ export default function Landing() {
       )
     : tr(`Cast waiting ${manualCastElapsedLabel}`, `抛竿等待中 ${manualCastElapsedLabel}`);
   const isAgentDisconnected = Boolean(user) && agentConnectedProviderIds.size === 0;
+  const shouldBlockCastForAgent = isAgentDisconnected && !isFreeTrialAvailable;
   const isClientAgentConnected = agentGlobalConnectMode === "agent" && agentConnectedProviderIds.size > 0;
   const castButtonLabel = tr("Cast", "抛竿");
   const castActionLabel = tr("Cast", "抛竿");
   const agentRequiredLabel = tr("Connect an agent to use", "连接agent后使用");
   const clientAgentOnlyLabel = tr("Use the connected local agent", "请到已连接的本地agent上操作");
+  const freeTrialRemainingLabel = tr(
+    `Free trials remaining: ${freeTrialRemaining}`,
+    `剩余试用次数：${freeTrialRemaining}`
+  );
   const basketItemCount = BASKET_BADGE_VALUES[basketBadgeMode];
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
   const isBasketRewardMobileLayout = stageLayout.mode === "cover";
@@ -1273,7 +1281,7 @@ export default function Landing() {
   };
 
   const openAutoCastSettings = () => {
-    if (autoCastRunning || manualCastWaiting || isAgentDisconnected) return;
+    if (autoCastRunning || manualCastWaiting || shouldBlockCastForAgent) return;
     setAutoCastDraftCount(autoCastCount);
     setAutoCastSettingsOpen(true);
   };
@@ -1316,7 +1324,10 @@ export default function Landing() {
   };
 
   const handleMainCastClick = () => {
-    if (autoCastRunning || manualCastWaiting || isAgentDisconnected) return;
+    if (autoCastRunning || manualCastWaiting || shouldBlockCastForAgent) return;
+    if (isFreeTrialAvailable) {
+      setFreeTrialRemaining((current) => Math.max(0, current - 1));
+    }
     setManualCastElapsed(0);
     setManualCastStartedAt(Date.now());
   };
@@ -1381,6 +1392,7 @@ export default function Landing() {
     setAutoCastSingleStartedAt(null);
     setManualCastStartedAt(null);
     setManualCastElapsed(0);
+    setFreeTrialRemaining(0);
     setAgentConnectedProviderIds(new Set<AgentProviderId>());
     setAgentConnectedDeviceNames({});
     setAgentProviderAvailabilityById({});
@@ -1390,7 +1402,7 @@ export default function Landing() {
     setSettingsOpen(false);
   };
 
-  const applyTestScenario = (scenario: "logged-out" | "agent-disconnected" | "web-agent-connected" | "client-agent-connected") => {
+  const applyTestScenario = (scenario: "logged-out" | "free-trial" | "agent-disconnected" | "web-agent-connected" | "client-agent-connected") => {
     setInventoryToast(null);
     setAgentStatusTestingProviderId(null);
     setAgentAuthPreviewOpen(false);
@@ -1414,7 +1426,15 @@ export default function Landing() {
       return;
     }
 
+    if (scenario === "free-trial") {
+      setDisconnectedAgentScenario();
+      setFreeTrialRemaining(FREE_TRIAL_CAST_LIMIT);
+      setSettingsOpen(false);
+      return;
+    }
+
     if (scenario === "web-agent-connected") {
+      setFreeTrialRemaining(0);
       setAgentConnectedProviderIds(new Set<AgentProviderId>(["codex"]));
       setAgentConnectedDeviceNames({ codex: "Web" });
       setAgentProviderAvailabilityById({});
@@ -1429,6 +1449,7 @@ export default function Landing() {
       return;
     }
 
+    setFreeTrialRemaining(0);
     setAgentConnectedProviderIds(new Set<AgentProviderId>(["codex"]));
     setAgentConnectedDeviceNames({ codex: "MacBook Pro" });
     setAgentProviderAvailabilityById({ ...initialAgentProviderAvailabilityById });
@@ -4806,6 +4827,27 @@ export default function Landing() {
           transition: transform 80ms ease, box-shadow 80ms ease, filter 80ms ease;
         }
 
+        .hud-main-action__free-trial-count {
+          position: absolute;
+          left: 50%;
+          top: calc(100% + 2px);
+          z-index: 12;
+          transform: translateX(-50%);
+          padding: 0;
+          color: rgba(78, 67, 60, .72);
+          -webkit-text-fill-color: rgba(78, 67, 60, .72);
+          -webkit-text-stroke-width: 0;
+          font-size: 13px;
+          font-weight: 950;
+          line-height: 1.1;
+          letter-spacing: 0;
+          paint-order: normal;
+          text-align: center;
+          text-shadow: none;
+          white-space: nowrap;
+          pointer-events: auto;
+        }
+
         .hud-main-action--waiting {
           width: 415px;
           min-width: 415px;
@@ -4881,6 +4923,19 @@ export default function Landing() {
           stroke-linecap: round;
           stroke-linejoin: round;
           white-space: nowrap;
+        }
+
+        .hud-main-action__label-text {
+          display: inline-block;
+        }
+
+        .hud-main-action__label--free-trial .hud-main-action__label-text {
+          opacity: 0;
+          pointer-events: none;
+        }
+
+        .hud-main-action__label--free-trial::before {
+          transform: translateY(-10px);
         }
 
         .hud-main-action__label::before {
@@ -13819,6 +13874,13 @@ export default function Landing() {
                     <button
                       className="test-scenario-button"
                       type="button"
+                      onClick={() => applyTestScenario("free-trial")}
+                    >
+                      <span>{tr("Free trial", "免费试用")}</span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
                       onClick={() => applyTestScenario("agent-disconnected")}
                     >
                       <span>{tr("Agent disconnected", "未连接agent")}</span>
@@ -13942,7 +14004,7 @@ export default function Landing() {
         )}
 
         <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
-          {isAgentDisconnected && !mainCastActive ? (
+          {shouldBlockCastForAgent && !mainCastActive ? (
             <div className="hud-disconnected-actions">
               <button className={`hud-disconnected-actions__tip${uiLang === "en" ? " is-en" : ""}`} type="button" onClick={openAgentRequiredSettings}>
                 <img className="hud-disconnected-actions__tip-icon" src={noticeIconUrl} alt="" aria-hidden="true" />
@@ -14017,8 +14079,21 @@ export default function Landing() {
                 ) : (
                   <button className="hud-main-action" type="button" aria-label={castActionLabel} onClick={handleMainCastClick}>
                     <img className="hud-main-action__tool" src={HUD_ASSETS.rod} alt="" />
-                    <span className="hud-main-action__label" data-label={castButtonLabel}>
-                      {castButtonLabel}
+                    <span
+                      className={`hud-main-action__label${isFreeTrialAvailable ? " hud-main-action__label--free-trial" : ""}`}
+                      data-label={castButtonLabel}
+                    >
+                      <span className="hud-main-action__label-text">{castButtonLabel}</span>
+                      {isFreeTrialAvailable && (
+                        <span
+                          className="hud-main-action__free-trial-count"
+                          role="status"
+                          aria-live="polite"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {freeTrialRemainingLabel}
+                        </span>
+                      )}
                     </span>
                   </button>
                 )}
