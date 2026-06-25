@@ -826,7 +826,7 @@
 
 .scratch-card-stage .ticket-stars {
       position: absolute;
-      left: -84px;
+      left: -39px;
       top: 132px;
       z-index: 0;
       width: 1021px;
@@ -1101,16 +1101,16 @@
     }
 
 .scratch-card-stage[data-layout="mobile"] .back-button {
-      width: calc(44px / var(--scale));
-      height: calc(44px / var(--scale));
+      width: calc(38px / var(--scale));
+      height: calc(38px / var(--scale));
       flex: 0 0 auto;
       display: inline-grid;
       place-items: center;
       border-width: 1.5px;
       border-color: rgba(196, 184, 158, 0.86);
-      border-radius: 4px;
+      border-radius: var(--radius-xs);
       background: var(--ac-cream-light, #fff8e7);
-      box-shadow: none;
+      box-shadow: 2px 2px 0 rgba(189, 174, 160, 0.48);
       order: 2;
       margin-left: auto;
     }
@@ -1125,15 +1125,15 @@
     }
 
 .scratch-card-stage[data-layout="mobile"] .scratch-card-hud-stats {
-      gap: 8px;
-      --hud-stat-height: 56px;
-      --hud-stat-padding: 10px 12px;
+      gap: calc(4.8px / var(--scale));
+      --hud-stat-height: calc(40px / var(--scale));
+      --hud-stat-padding: calc(6px / var(--scale));
       --hud-stat-border-width: 2px;
-      --hud-stat-radius: 14px;
-      --hud-stat-font-size: 20px;
-      --hud-stat-balance-width: 104px;
-      --hud-stat-compact-width: 75px;
-      --hud-stat-icon-scale: .8;
+      --hud-stat-radius: calc(8px / var(--scale));
+      --hud-stat-font-size: calc(13.6px / var(--scale));
+      --hud-stat-balance-width: calc(60.8px / var(--scale));
+      --hud-stat-compact-width: calc(41.6px / var(--scale));
+      --hud-stat-icon-scale: calc(.576 / var(--scale));
     }
 
 .scratch-card-stage[data-layout="mobile"] .stats {
@@ -1196,7 +1196,7 @@
     }
 
 .scratch-card-stage[data-layout="mobile"] .ticket-stars {
-      left: -36px;
+      left: -22px;
       top: 104px;
       width: 564px;
       height: 390px;

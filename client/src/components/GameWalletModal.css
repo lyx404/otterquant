@@ -126,12 +126,14 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  background: inherit;
 }
 
 .wallet-panel {
   min-height: 0;
   overflow: auto;
   padding: 18px clamp(18px, 2.6vw, 34px) 24px;
+  background: inherit;
 }
 
 .wallet-summary-grid {
@@ -744,6 +746,8 @@
     --mobile-page-exit-ease: cubic-bezier(0.4, 0, 1, 1);
     --mobile-page-surface-enter-x: 18px;
     --mobile-page-surface-exit-x: 14px;
+    --wallet-mobile-page-bg: rgba(216, 237, 247, .96);
+    --wallet-mobile-content-bg: linear-gradient(180deg, #fffdf4 0%, #f7f3df 100%);
   }
 
   .wallet-modal-backdrop.mobile-page-shell[data-mobile-page-transition="opening"] {
@@ -767,7 +771,7 @@
     place-items: stretch;
     overflow: hidden;
     padding: 0;
-    background: rgba(216, 237, 247, .96);
+    background: var(--wallet-mobile-page-bg);
   }
 
   .wallet-modal {
@@ -782,7 +786,7 @@
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    background: rgba(216, 237, 247, .96);
+    background: var(--wallet-mobile-page-bg);
   }
 
   .wallet-modal .shop-modal__header {
@@ -841,6 +845,7 @@
 
   .wallet-content {
     overflow: hidden;
+    background: var(--wallet-mobile-content-bg);
   }
 
   .wallet-panel {
@@ -855,6 +860,7 @@
       max(16px, env(safe-area-inset-right))
       max(20px, env(safe-area-inset-bottom))
       max(16px, env(safe-area-inset-left));
+    background: var(--wallet-mobile-content-bg);
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -869,6 +875,15 @@
       - max(20px, env(safe-area-inset-bottom))
     );
     overflow: hidden;
+  }
+
+  .wallet-panel--overview,
+  .wallet-panel--withdraw-flow {
+    background: var(--wallet-mobile-content-bg);
+  }
+
+  .wallet-panel--withdraw-flow > .wallet-withdraw {
+    background: var(--wallet-mobile-content-bg);
   }
 
   .wallet-panel::-webkit-scrollbar {

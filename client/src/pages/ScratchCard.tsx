@@ -140,6 +140,10 @@ export default function ScratchCard() {
             --mobile-page-surface-exit-x: 28px;
           }
 
+          .scratch-card-route .wallet-modal-backdrop {
+            background: rgba(216, 237, 247, .96);
+          }
+
           .scratch-card-route[data-mobile-page-transition="opening"] {
             animation: scratch-mobile-page-backdrop-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
           }
