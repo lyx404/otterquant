@@ -37,28 +37,45 @@
   transform-origin: center;
 }
 
-.hud-stat-value {
+.hud-top-stats .hud-stat-value {
   color: #4e433c;
-  font-family: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: var(
+    --font-rounded-numeric,
+    "Alimama FangYuanTi",
+    "Alimama FangYuanTi VF",
+    "Alimama Fang YuanTi VF",
+    "阿里妈妈方圆体 VF Regular",
+    "PingFang SC",
+    "Microsoft YaHei UI",
+    sans-serif
+  );
   font-size: var(--hud-stat-font-size, 26px);
   font-style: normal;
-  font-weight: 700;
+  font-weight: var(--font-rounded-numeric-weight, 500);
   font-stretch: 100%;
   font-synthesis: none;
   font-optical-sizing: auto;
-  font-variation-settings: "wght" 700, "BEVL" 1;
+  font-variation-settings: "wght" var(--font-rounded-numeric-wght, 480), "BEVL" 1;
   line-height: 100%;
   text-align: right;
   letter-spacing: 0;
   white-space: nowrap;
 }
 
-.hud-stat-value--balance {
+.hud-top-stats .hud-stat-value * {
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  font-variation-settings: inherit;
+  font-variant-numeric: inherit;
+}
+
+.hud-top-stats .hud-stat-value--balance {
   width: var(--hud-stat-balance-width, 130px);
 }
 
-.hud-stat-value--cash,
-.hud-stat-value--fish {
+.hud-top-stats .hud-stat-value--cash,
+.hud-top-stats .hud-stat-value--fish {
   width: var(--hud-stat-compact-width, 90px);
 }
 

@@ -107,6 +107,9 @@
   --font-rounded-ja: "M PLUS Rounded 1c", "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
   --font-rounded-ko: "NanumSquareRound", "NanumSquare Neo", "Nanum Gothic", "Apple SD Gothic Neo", sans-serif;
   --font-rounded-current: var(--font-rounded-latin);
+  --font-rounded-numeric: "Alimama FangYuanTi", "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --font-rounded-numeric-weight: 500;
+  --font-rounded-numeric-wght: 480;
   --radius: 0.75rem;
   --app-viewport-padding: clamp(1rem, 4vw, 1.5rem);
   --app-content-max: 1100px;
@@ -394,13 +397,21 @@
 
   /* ── Data Display — Roboto Mono tabular-nums ── */
   .data-value {
-    @apply font-mono;
+    font-family: var(--font-rounded-numeric);
+    font-style: normal;
+    font-weight: var(--font-rounded-numeric-weight);
+    font-synthesis: none;
+    font-variation-settings: "wght" var(--font-rounded-numeric-wght), "BEVL" 1;
     font-variant-numeric: tabular-nums;
   }
   .stat-value {
-    @apply font-mono;
+    font-family: var(--font-rounded-numeric);
+    font-style: normal;
+    font-weight: var(--font-rounded-numeric-weight);
+    font-synthesis: none;
+    font-variation-settings: "wght" var(--font-rounded-numeric-wght), "BEVL" 1;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 
   /* ── Labels: small, uppercase, wide tracking ── */

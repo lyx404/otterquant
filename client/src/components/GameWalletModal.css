@@ -15,7 +15,7 @@
   --radius-md: 8px;
   --radius-lg: 10px;
   --BEVL: 1;
-  --wallet-ui-font: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --wallet-ui-font: var(--font-rounded-current);
   --modal-title-font: var(--wallet-ui-font);
   position: fixed;
   inset: 0;
@@ -78,6 +78,12 @@
   letter-spacing: .02em;
   color: var(--ac-text);
   text-shadow: none;
+}
+
+:is(:lang(en), :lang(es), :lang(fr)) .wallet-modal .shop-modal__title {
+  font-weight: 780;
+  font-variation-settings: "wght" 680, "BEVL" var(--BEVL);
+  letter-spacing: .01em;
 }
 
 .wallet-modal__back {
@@ -165,17 +171,26 @@
   align-items: center;
 }
 
-.wallet-card__value {
+.wallet-modal .wallet-card__value {
   margin-top: 0;
   color: var(--ac-text);
-  font-family: var(--wallet-ui-font);
+  font-family: var(--font-rounded-numeric);
   font-size: 32px;
-  font-weight: 950;
+  font-style: normal;
+  font-weight: var(--font-rounded-numeric-weight, 500);
   font-synthesis: none;
   font-optical-sizing: auto;
-  font-variation-settings: "wght" 700, "BEVL" var(--BEVL);
+  font-variation-settings: "wght" var(--font-rounded-numeric-wght, 480), "BEVL" var(--BEVL);
   line-height: 1;
   font-variant-numeric: tabular-nums;
+}
+
+.wallet-modal .wallet-card__value * {
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  font-variation-settings: inherit;
+  font-variant-numeric: inherit;
 }
 
 .wallet-balance-value {
@@ -198,6 +213,10 @@
   font-size: 12px;
   font-weight: 700;
   line-height: 1.5;
+}
+
+:is(:lang(en), :lang(es), :lang(fr)) .wallet-card__hint {
+  font-weight: 620;
 }
 
 .wallet-action-row {
@@ -294,6 +313,11 @@
   border-bottom: 1px solid rgba(196, 184, 158, .45);
 }
 
+:is(:lang(en), :lang(es), :lang(fr)) .wallet-table__row {
+  font-weight: 650;
+  font-variation-settings: normal;
+}
+
 .wallet-table__activity,
 .wallet-table__order,
 .wallet-table__time,
@@ -312,6 +336,10 @@
   font-weight: 950;
 }
 
+:is(:lang(en), :lang(es), :lang(fr)) .wallet-table__row--head {
+  font-weight: 720;
+}
+
 .wallet-table__mono {
   font-variant-numeric: tabular-nums;
   font-size: 12px;
@@ -323,7 +351,22 @@
 .wallet-table__amount {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-weight: 950;
+}
+
+.wallet-table__row:not(.wallet-table__row--head) .wallet-table__amount {
+  font-family: var(--font-rounded-numeric);
+  font-style: normal;
+  font-weight: var(--font-rounded-numeric-weight, 500);
+  font-synthesis: none;
+  font-variation-settings: "wght" var(--font-rounded-numeric-wght, 480), "BEVL" var(--BEVL);
+}
+
+.wallet-table__row:not(.wallet-table__row--head) .wallet-table__amount * {
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  font-variation-settings: inherit;
+  font-variant-numeric: inherit;
 }
 
 .wallet-table__amount--plus,
