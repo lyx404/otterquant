@@ -91,9 +91,9 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-rounded-current);
   --font-mono: 'Roboto Mono', ui-monospace, monospace;
-  --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-rounded-current);
 
   --animate-star-btn: star-btn calc(var(--duration)*1s) linear infinite;
 }
@@ -102,6 +102,11 @@
    LIGHT THEME (default) — Slate-50 base
    ══════════════════════════════════════════════ */
 :root {
+  --font-rounded-latin: "Nunito", "Varela Round", sans-serif;
+  --font-rounded-zh: "Alimama FangYuanTi", "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --font-rounded-ja: "M PLUS Rounded 1c", "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+  --font-rounded-ko: "NanumSquareRound", "NanumSquare Neo", "Nanum Gothic", "Apple SD Gothic Neo", sans-serif;
+  --font-rounded-current: var(--font-rounded-latin);
   --radius: 0.75rem;
   --app-viewport-padding: clamp(1rem, 4vw, 1.5rem);
   --app-content-max: 1100px;
@@ -152,6 +157,28 @@
   --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.08);
+}
+
+:lang(zh) {
+  --font-rounded-current: var(--font-rounded-zh);
+  font-family: var(--font-rounded-zh);
+}
+
+:lang(ja) {
+  --font-rounded-current: var(--font-rounded-ja);
+  font-family: var(--font-rounded-ja);
+}
+
+:lang(ko) {
+  --font-rounded-current: var(--font-rounded-ko);
+  font-family: var(--font-rounded-ko);
+}
+
+:lang(en),
+:lang(es),
+:lang(fr) {
+  --font-rounded-current: var(--font-rounded-latin);
+  font-family: var(--font-rounded-latin);
 }
 
 /* ══════════════════════════════════════════════
@@ -228,6 +255,7 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-family: var(--font-rounded-current);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
   img,
@@ -390,7 +418,7 @@
     border-radius: 12px;
     padding: 10px 12px;
     box-shadow: 3px 3px 0 rgba(16, 16, 16, .14);
-    font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-family: var(--font-rounded-current);
     font-size: 12px;
     line-height: 1.6;
     animation: none !important;
@@ -432,7 +460,7 @@
     border: 2px solid #cdbb9f;
     border-radius: 12px;
     box-shadow: 3px 3px 0 rgba(16, 16, 16, .14);
-    font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-family: var(--font-rounded-current);
     image-rendering: pixelated;
   }
 

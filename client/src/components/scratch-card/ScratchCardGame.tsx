@@ -203,7 +203,7 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
   const { uiLang } = useAppLanguage();
   const { coinBalance, cashCents, fishBalance, spendCoins, addCashCents } = useGameEconomy();
   const tr = useCallback((en: string, zh: string) => (uiLang === "zh" ? zh : en), [uiLang]);
-  const copy = SCRATCH_CARD_COPY[uiLang];
+  const copy = SCRATCH_CARD_COPY[uiLang === "zh" ? "zh" : "en"];
   const walletController = useGameWalletModal();
   const [viewState, setViewState] = useState<ScratchViewState>("purchase");
   const [selectedQuantity, setSelectedQuantity] = useState(1);

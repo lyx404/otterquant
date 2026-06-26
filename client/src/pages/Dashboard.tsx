@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { dashboardStats, currentEpoch, submissionStats, strategies } from "@/lib/mockData";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import { tradeBots } from "@/lib/tradeData";
 
 const statCards = [
@@ -66,7 +66,7 @@ function buildPrompt(apiKey: string, skillVersion: string): string {
 }
 
 /* ── Dashboard Copy Prompt button ── */
-function DashCopyPromptBtn({ apiKey, skillVersion, itemSkillVersion, uiLang }: { apiKey: string; skillVersion: string; itemSkillVersion: string; uiLang: "en" | "zh" }) {
+function DashCopyPromptBtn({ apiKey, skillVersion, itemSkillVersion, uiLang }: { apiKey: string; skillVersion: string; itemSkillVersion: string; uiLang: UiLang }) {
   const [copied, setCopied] = useState(false);
   const needsUpdate = itemSkillVersion !== skillVersion;
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);

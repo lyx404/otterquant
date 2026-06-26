@@ -8,7 +8,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useOnboarding } from "@/App";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import {
   ChevronRight,
   ChevronDown,
@@ -92,13 +92,13 @@ const AI_RESPONSES_ZH: Record<string, string> = {
   backtest: "回测已启动。初步结果如下：\n\n| 指标 | 样本内 | 样本外 |\n|--------|-----------|---------------|\n| 夏普比率 | 1.42 | 1.15 |\n| 收益率 | 18.5% | 14.2% |\n| 回撤 | 6.8% | 8.2% |\n| 换手率 | 38.2% | 41.5% |\n\n该因子样本内表现较强，样本外衰减处于合理范围。样本内夏普 1.42，高于 1.25 阈值。\n\n是否提交到因子竞技场？",
 };
 
-function getInitialAssistantMessage(uiLang: "en" | "zh") {
+function getInitialAssistantMessage(uiLang: UiLang) {
   return uiLang === "zh"
     ? "欢迎来到 Quandora AI Mining！我是你的量化助手。告诉我你想创建什么样的 Alpha 因子，我会帮你完成设计、回测与优化。\n\n你可以从这些方向开始：\n- 动量策略\n- 成交量背离信号\n- 资金费率套利\n- 跨交易所价差分析"
     : "Welcome to Quandora AI Mining! I'm your personal quant assistant. Tell me what kind of alpha factor you'd like to create, and I'll help you design, backtest, and optimize it.\n\nHere are some ideas to get started:\n- Momentum-based strategies\n- Volume divergence signals\n- Funding rate arbitrage\n- Cross-exchange spread analysis";
 }
 
-function getAIResponse(input: string, uiLang: "en" | "zh"): string {
+function getAIResponse(input: string, uiLang: UiLang): string {
   const responses = uiLang === "zh" ? AI_RESPONSES_ZH : AI_RESPONSES;
   const lower = input.toLowerCase();
   if (lower.includes("momentum") || lower.includes("动量") || lower.includes("rsi") || lower.includes("btc")) return responses.momentum;
