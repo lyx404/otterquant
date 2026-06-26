@@ -8827,10 +8827,15 @@ export default function Landing() {
           background: #fffdf4;
           border: 2px solid rgba(196, 184, 158, .78);
           border-radius: var(--radius-xs);
-          box-shadow: 2px 2px 0 rgba(189, 174, 160, .42);
+          box-shadow: none !important;
           font: inherit;
           font-size: 14px;
           font-weight: 1000;
+        }
+
+        .settings-language-select [class*="animal-trigger-"]:hover,
+        .settings-language-select [class*="animal-trigger-"]:focus-visible {
+          box-shadow: none !important;
         }
 
         .settings-language-select [class*="animal-value-"],
