@@ -1,3 +1,32 @@
+.wallet-modal-backdrop {
+  --ac-primary: #19c8b9;
+  --ac-primary-bg: #e6f9f6;
+  --ac-text: #794f27;
+  --ac-text-body: #725d42;
+  --ac-border: #c4b89e;
+  --ac-border-hover: #a89878;
+  --ac-cream: rgb(247, 243, 223);
+  --ac-cream-light: #f8f8f0;
+  --ac-shadow: #bdaea0;
+  --ac-shadow-input: #d4c9b4;
+  --ac-focus-yellow: #ffcc00;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --BEVL: 1;
+  --wallet-ui-font: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --modal-title-font: var(--wallet-ui-font);
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: clamp(18px, 3vw, 44px);
+  background: rgba(52, 119, 166, .34);
+  backdrop-filter: blur(5px);
+}
+
 .wallet-modal {
   width: min(1080px, 94vw);
   max-height: min(720px, 88vh);
@@ -13,6 +42,10 @@
     5px 5px 0 rgba(189, 174, 160, .72),
     0 20px 48px rgba(66, 48, 31, .18);
   image-rendering: pixelated;
+  font-family: var(--wallet-ui-font);
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  font-variation-settings: "BEVL" var(--BEVL);
 }
 
 .wallet-modal .shop-modal__header {
@@ -39,6 +72,9 @@
   font-size: 30px;
   line-height: 1;
   font-weight: 900;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  font-variation-settings: "wght" 700, "BEVL" var(--BEVL);
   letter-spacing: .02em;
   color: var(--ac-text);
   text-shadow: none;
@@ -90,12 +126,14 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
+  background: inherit;
 }
 
 .wallet-panel {
   min-height: 0;
   overflow: auto;
   padding: 18px clamp(18px, 2.6vw, 34px) 24px;
+  background: inherit;
 }
 
 .wallet-summary-grid {
@@ -130,8 +168,12 @@
 .wallet-card__value {
   margin-top: 0;
   color: var(--ac-text);
+  font-family: var(--wallet-ui-font);
   font-size: 32px;
   font-weight: 950;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  font-variation-settings: "wght" 700, "BEVL" var(--BEVL);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
@@ -243,8 +285,12 @@
   align-items: center;
   padding: 12px 16px;
   color: var(--ac-text);
+  font-family: var(--wallet-ui-font);
   font-size: 13px;
   font-weight: 800;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  font-variation-settings: "wght" 700, "BEVL" var(--BEVL);
   border-bottom: 1px solid rgba(196, 184, 158, .45);
 }
 
@@ -342,8 +388,12 @@
 .wallet-step__title {
   margin: 1px 0 0;
   color: var(--ac-text);
+  font-family: var(--modal-title-font);
   font-size: 17px;
   font-weight: 950;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  font-variation-settings: "wght" 700, "BEVL" var(--BEVL);
   line-height: 1.15;
 }
 
@@ -689,11 +739,39 @@
 }
 
 @media (max-width: 760px) {
+  .wallet-modal-backdrop.mobile-page-shell {
+    --mobile-page-enter-duration: 320ms;
+    --mobile-page-exit-duration: 260ms;
+    --mobile-page-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --mobile-page-exit-ease: cubic-bezier(0.4, 0, 1, 1);
+    --mobile-page-surface-enter-x: 18px;
+    --mobile-page-surface-exit-x: 14px;
+    --wallet-mobile-page-bg: rgba(216, 237, 247, .96);
+    --wallet-mobile-content-bg: linear-gradient(180deg, #fffdf4 0%, #f7f3df 100%);
+  }
+
+  .wallet-modal-backdrop.mobile-page-shell[data-mobile-page-transition="opening"] {
+    animation: wallet-mobile-page-backdrop-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
+  }
+
+  .wallet-modal-backdrop.mobile-page-shell[data-mobile-page-transition="closing"] {
+    animation: wallet-mobile-page-backdrop-out var(--mobile-page-exit-duration) var(--mobile-page-exit-ease) both;
+    pointer-events: none;
+  }
+
+  .wallet-modal-backdrop.mobile-page-shell[data-mobile-page-transition="opening"] .mobile-page-surface {
+    animation: wallet-mobile-page-surface-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
+  }
+
+  .wallet-modal-backdrop.mobile-page-shell[data-mobile-page-transition="closing"] .mobile-page-surface {
+    animation: wallet-mobile-page-surface-out var(--mobile-page-exit-duration) var(--mobile-page-exit-ease) both;
+  }
+
   .wallet-modal-backdrop {
     place-items: stretch;
     overflow: hidden;
     padding: 0;
-    background: rgba(216, 237, 247, .96);
+    background: var(--wallet-mobile-page-bg);
   }
 
   .wallet-modal {
@@ -708,7 +786,7 @@
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    background: rgba(216, 237, 247, .96);
+    background: var(--wallet-mobile-page-bg);
   }
 
   .wallet-modal .shop-modal__header {
@@ -767,6 +845,7 @@
 
   .wallet-content {
     overflow: hidden;
+    background: var(--wallet-mobile-content-bg);
   }
 
   .wallet-panel {
@@ -781,6 +860,7 @@
       max(16px, env(safe-area-inset-right))
       max(20px, env(safe-area-inset-bottom))
       max(16px, env(safe-area-inset-left));
+    background: var(--wallet-mobile-content-bg);
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -795,6 +875,15 @@
       - max(20px, env(safe-area-inset-bottom))
     );
     overflow: hidden;
+  }
+
+  .wallet-panel--overview,
+  .wallet-panel--withdraw-flow {
+    background: var(--wallet-mobile-content-bg);
+  }
+
+  .wallet-panel--withdraw-flow > .wallet-withdraw {
+    background: var(--wallet-mobile-content-bg);
   }
 
   .wallet-panel::-webkit-scrollbar {
@@ -1098,6 +1187,38 @@
     min-width: 44px;
     min-height: 44px;
     justify-content: flex-end;
+  }
+}
+
+@keyframes wallet-mobile-page-backdrop-in {
+  from { opacity: .01; }
+  to { opacity: 1; }
+}
+
+@keyframes wallet-mobile-page-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: .01; }
+}
+
+@keyframes wallet-mobile-page-surface-in {
+  from {
+    opacity: .01;
+    transform: translate3d(var(--mobile-page-surface-enter-x, 18px), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes wallet-mobile-page-surface-out {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: .01;
+    transform: translate3d(var(--mobile-page-surface-exit-x, 14px), 0, 0);
   }
 }
 

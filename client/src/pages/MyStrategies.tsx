@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { strategies } from "@/lib/mockData";
 import { buildSeries, parsePercent } from "@/lib/strategyUtils";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import {
   ArrowUpDown,
   ArrowUpRight,
@@ -525,7 +525,7 @@ function StrategyCard({
   onRequestDelete: () => void;
   visibleItems: Record<DisplayItemKey, boolean>;
   plainExplainEnabled: boolean;
-  uiLang: "en" | "zh";
+  uiLang: UiLang;
   chartColors: ChartColorTokens;
 }) {
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);

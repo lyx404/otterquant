@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import AlphaDetail from "@/pages/AlphaDetail";
 import { factors as detailFactors, getAlphaGrade, type AlphaGrade } from "@/lib/mockData";
 import ShinyTag from "@/components/ui/shiny-tag";
@@ -229,7 +229,7 @@ function formatStrategyLabel(value: StrategyType) {
   return value === "time-series" ? "Time-Series" : "Cross-Sectional";
 }
 
-function formatMinutesAgo(timestamp: string, uiLang: "en" | "zh") {
+function formatMinutesAgo(timestamp: string, uiLang: UiLang) {
   const delta = Math.max(1, Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000));
   if (uiLang === "zh") return `${delta} 分钟前`;
   return `${delta} minute${delta === 1 ? "" : "s"} ago`;

@@ -5,6 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>幸运刮刮乐</title>
   <style>
+    @font-face {
+      font-family: "阿里妈妈方圆体 VF Regular";
+      src:
+        url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff2") format("woff2"),
+        url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff") format("woff");
+      font-display: swap;
+      font-weight: 100 900;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: "Alimama FangYuanTi VF";
+      src:
+        url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff2") format("woff2"),
+        url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff") format("woff");
+      font-display: swap;
+      font-weight: 100 900;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: "Alimama Fang YuanTi VF";
+      src:
+        url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff2") format("woff2"),
+        url("https://lzcdn.dianpusoft.cn/fonts/AlimamaFangYuanTiVF/AlimamaFangYuanTiVF-Thin.woff") format("woff");
+      font-display: swap;
+      font-weight: 100 900;
+      font-style: normal;
+    }
+
     :root {
       --scale: 1;
       --stage-width: 1920px;
@@ -14,6 +44,9 @@
       --panel: #fdfaec;
       --gold: #ffdc75;
       --board: #8c9ee3;
+      --app-font: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --app-title-font: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --app-title-font-settings: "wght" 700, "BEVL" 1;
     }
 
     * {
@@ -29,8 +62,29 @@
       margin: 0;
       overflow: hidden;
       background: #c6d1f6;
-      font-family: "Alimama FangYuanTi VF", "Alimama FangYuanTi", "Alibaba PuHuiTi", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--app-font);
+      font-synthesis: none;
       color: var(--ink);
+    }
+
+    .stat span,
+    .banner-title,
+    .banner-subtitle,
+    .section-title,
+    .winning-slot,
+    .winning-slot span,
+    .result,
+    .action-label,
+    .action-price,
+    .batch-all-button,
+    .quantity-picker,
+    .quantity-button,
+    .quantity-value,
+    .quantity-unit {
+      font-family: var(--app-title-font);
+      font-synthesis: none;
+      font-optical-sizing: auto;
+      font-variation-settings: var(--app-title-font-settings);
     }
 
     button {
@@ -226,7 +280,7 @@
     .stat span {
       display: block;
       color: #4e433c;
-      font-family: "Bold-Round", "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--app-title-font);
       font-size: 26px;
       font-style: normal;
       font-weight: 700;
@@ -1148,17 +1202,17 @@
     }
 
     .stage[data-layout="mobile"] .back-button {
-      width: 60px;
-      height: 60px;
+      width: calc(44px / var(--scale));
+      height: calc(44px / var(--scale));
       flex: 0 0 auto;
       display: inline-grid;
       place-items: center;
-      border-width: 2px;
-      border-radius: 4px;
-      background: #fff3d3;
+      border-width: 1.5px;
+      border-radius: 8px;
+      background: #fff8e7;
       box-shadow: none;
-      color: #794f27;
-      font-size: 28px;
+      color: #4e433c;
+      font-size: 24px;
       font-weight: 900;
       line-height: 1;
       order: 2;
@@ -1171,8 +1225,11 @@
 
     .stage[data-layout="mobile"] .back-button::before {
       content: "×";
-      width: 26px;
-      height: 26px;
+      width: calc(24px / var(--scale));
+      height: calc(24px / var(--scale));
+      display: inline-grid;
+      place-items: center;
+      line-height: 1;
     }
 
     .stage[data-layout="mobile"] .stats {
@@ -1257,6 +1314,7 @@
     .stage[data-layout="mobile"] .banner-title {
       top: 10px;
       padding-top: 4px;
+      font-family: var(--app-title-font);
       font-size: 38px;
       text-shadow: 0 2px 0 #c25e65;
     }
@@ -1264,6 +1322,7 @@
     .stage[data-layout="mobile"] .banner-subtitle {
       top: 58px;
       gap: 8px;
+      font-family: var(--app-title-font);
       font-size: 14px;
     }
 
@@ -1288,6 +1347,7 @@
     .stage[data-layout="mobile"] .section-title {
       gap: 10px;
       height: auto;
+      font-family: var(--app-title-font);
       font-size: 24px;
     }
 
@@ -1304,7 +1364,12 @@
       width: 112px;
       height: 64px;
       border-radius: 16px;
+      font-family: var(--app-title-font);
       font-size: 28px;
+    }
+
+    .stage[data-layout="mobile"] .winning-slot span {
+      font-family: var(--app-title-font);
     }
 
     .stage[data-layout="mobile"] .scratch-panel {
@@ -1341,10 +1406,12 @@
     }
 
     .stage[data-layout="mobile"] .result .num {
+      font-family: var(--app-title-font);
       font-size: 30px;
     }
 
     .stage[data-layout="mobile"] .result .cash {
+      font-family: var(--app-title-font);
       font-size: 18px;
     }
 
@@ -1466,10 +1533,12 @@
     }
 
     .stage[data-layout="mobile"] .action-label {
+      font-family: var(--app-title-font);
       font-size: 24px;
     }
 
     .stage[data-layout="mobile"] .action-price {
+      font-family: var(--app-title-font);
       gap: 4px;
       font-size: 15px;
     }
@@ -1480,6 +1549,7 @@
     }
 
     .stage[data-layout="mobile"] .batch-all-button {
+      font-family: var(--app-title-font);
       font-size: 24px;
     }
 
@@ -1493,6 +1563,7 @@
       gap: 4px;
       padding: 3px 6px;
       border-radius: 12px;
+      font-family: var(--app-title-font);
       font-size: 20px;
     }
 
@@ -1500,16 +1571,19 @@
       width: 34px;
       height: 34px;
       border-radius: 9px;
+      font-family: var(--app-title-font);
       font-size: 20px;
     }
 
     .stage[data-layout="mobile"] .quantity-value {
+      font-family: var(--app-title-font);
       width: 54px;
       min-width: 54px;
       font-size: 20px;
     }
 
     .stage[data-layout="mobile"] .quantity-unit {
+      font-family: var(--app-title-font);
       margin-left: 0;
       font-size: 18px;
     }

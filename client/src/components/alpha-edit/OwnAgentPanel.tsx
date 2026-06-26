@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Check, ChevronDown, ChevronUp, Copy, Key, Rocket, Zap } from "lucide-react";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 
 type OwnStep = "api" | "first-run";
@@ -39,7 +39,7 @@ function generateApiKey() {
   return key;
 }
 
-function buildGuidePrompt(key: string, uiLang: "en" | "zh") {
+function buildGuidePrompt(key: string, uiLang: UiLang) {
   if (uiLang === "zh") {
     return `# Quandora 因子技能配置
 

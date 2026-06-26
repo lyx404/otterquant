@@ -7,7 +7,7 @@ import type { SelectOption } from "animal-island-ui";
 import AlphaDetail from "@/pages/AlphaDetail";
 import BorderGlow from "@/components/ui/border-glow-card";
 import { GameHudStats } from "@/components/GameHudStats";
-import { GameWalletModal } from "@/components/GameWalletModal";
+import { useGameWalletModal } from "@/components/GameWalletModalHost";
 import {
   Activity,
   ArrowLeft,
@@ -45,21 +45,13 @@ import { factors, getAlphaGrade, strategies, type AlphaGrade, type Factor } from
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { AlphaViewModeProvider } from "@/contexts/AlphaViewModeContext";
+import { useGameEconomy } from "@/contexts/GameEconomyContext";
 import { usePageTransition } from "@/contexts/PageTransitionContext";
 import disconnectedBasketUrl from "@/assets/disconnected-basket.svg";
 import noticeIconUrl from "@/assets/notice.svg";
 import {
   BALANCE_PER_USD,
-  FISH_BALANCE_AMOUNT,
-  formatBalance,
   HUD_ASSETS,
-  HUD_CASH_AMOUNT,
-  SYSTEM_BALANCE_AMOUNT,
-  WALLET_BALANCE_AMOUNT,
-  WALLET_BALANCE_USD,
-  balanceToUsd,
-  usdToBalance,
-  type GameWalletAccountKind,
 } from "@/lib/gameWallet";
 
 const filterOptions = ["all", "starred"] as const;
@@ -130,8 +122,15 @@ type LeaderboardEntry = {
   weekCasts: number;
   monthCasts: number;
 };
-type FundsStatus = "idle" | "processing" | "success" | "error";
 type GameVersionMode = "normal" | "mvp";
+const LANGUAGE_OPTIONS = [
+  { value: "en", label: "English" },
+  { value: "zh", label: "中文" },
+  { value: "ja", label: "日本語" },
+  { value: "ko", label: "한국어" },
+  { value: "es", label: "Español" },
+  { value: "fr", label: "Français" },
+] as const;
 type BasketBadgeMode = "hidden" | "one" | "five" | "eight" | "ten" | "thirteen" | "overflow";
 const BASKET_BADGE_MODES: BasketBadgeMode[] = ["hidden", "one", "five", "eight", "ten", "thirteen", "overflow"];
 const BASKET_BADGE_VALUES: Record<BasketBadgeMode, number> = {
@@ -241,6 +240,7 @@ function getBasketRewardCards(count: number, page: BasketRewardModalPage, isMobi
 
 type TestScenarioPanelState = "expanded" | "collapsed";
 type InventoryScenarioMode = "multiple" | "empty" | "single";
+type WalletDataScenarioMode = "empty" | "filled";
 type TestScenarioPanelPosition = {
   left: number;
   top: number;
@@ -255,8 +255,6 @@ type TestScenarioPanelDragState = TestScenarioPanelPosition & {
 
 const MIN_AUTO_CAST_COUNT = 1;
 const MAX_AUTO_CAST_COUNT = 100;
-const MIN_AMOUNT = 1000;
-const MAX_AMOUNT = 500000;
 const GAME_STAGE_WIDTH = 1902;
 const GAME_STAGE_HEIGHT = 1080;
 const GAME_STAGE_ASPECT = GAME_STAGE_WIDTH / GAME_STAGE_HEIGHT;
@@ -273,13 +271,6 @@ const RANKING_MODAL_ASSETS = {
   rank2: "/assets/ranking-modal/rank-2.svg",
   rank3: "/assets/ranking-modal/rank-3.svg",
 } as const;
-const WITHDRAWAL_NETWORKS = [
-  "Ethereum (ERC20)",
-  "BNB Smart Chain (BEP20)",
-  "Arbitrum One (ARB)",
-  "Solana (SOL)",
-];
-const DEFAULT_WITHDRAWAL_NETWORK = WITHDRAWAL_NETWORKS[0];
 
 const CURRENT_LEADERBOARD_USER_ID = "current-user";
 const leaderboardSeedEntries: LeaderboardEntry[] = [
@@ -532,15 +523,6 @@ function getFactorSubmissionStatus(factor: Factor): FactorRow["submissionStatus"
   return factor.status === "archived" ? "failed" : "passed";
 }
 
-function formatUsd(amount: number) {
-  return `${(Number(amount) || 0).toFixed(2)} USD`;
-}
-
-function formatUsdInputValue(amount: number) {
-  return balanceToUsd(amount).toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-  });
-}
 
 function clampAutoCastCount(value: number) {
   if (!Number.isFinite(value)) return MIN_AUTO_CAST_COUNT;
@@ -549,39 +531,6 @@ function clampAutoCastCount(value: number) {
 
 function formatLeaderboardBalance(amount: number) {
   return `+${Math.round(Number(amount) || 0).toLocaleString()}`;
-}
-
-function isValidAmount(amount: number) {
-  const value = Number(amount);
-  return Number.isFinite(value) && value >= MIN_AMOUNT && value <= MAX_AMOUNT;
-}
-
-function walletBalanceAfterWithdraw(amount: number, balance = WALLET_BALANCE_AMOUNT) {
-  return Math.max(0, Number(balance || 0) - Number(amount || 0));
-}
-
-function isValidWithdrawalAddress(network: string, address: string) {
-  const value = String(address || "").trim();
-  if (!value) return false;
-  if (value.length < 8 || value.length > 128) return false;
-  if (network === "Solana (SOL)") return /^[1-9A-HJ-NP-Za-km-z]{8,128}$/.test(value);
-  return /^0x[a-fA-F0-9]{6,126}$/.test(value);
-}
-
-function getWithdrawalAddressHint(network: string, lang: "en" | "zh") {
-  return network === "Solana (SOL)"
-    ? lang === "zh"
-      ? "请输入 8-128 字符的 Solana 钱包地址。"
-      : "Enter an 8-128 character Solana wallet address."
-    : lang === "zh"
-      ? "请输入以 0x 开头的 EVM 钱包地址，长度为 8-128 字符。"
-      : "Enter an EVM wallet address starting with 0x, 8-128 characters.";
-}
-
-function formatWalletAddressPreview(address: string) {
-  const value = address.trim();
-  if (value.length <= 18) return value;
-  return `${value.slice(0, 8)}...${value.slice(-6)}`;
 }
 
 function getFactorDefaultSortDir(key: FactorSortKey): Exclude<SortDir, null> {
@@ -707,10 +656,12 @@ function useMobilePageTransition(isOpen: boolean, exitDurationMs = 220, enterDur
 
 export default function Landing() {
   const [, setLocation] = useLocation();
-  const { uiLang, setUiLang } = useAppLanguage();
+  const { uiLang, setUiLang, t } = useAppLanguage();
   const { user, login, logout, updateUser } = useAuth();
+  const { coinBalance, cashCents, fishBalance } = useGameEconomy();
   const { navigateWithTransition } = usePageTransition();
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const tr = (en: string, zh: string) => t(en, zh);
+  const cashBalanceUsd = cashCents / BALANCE_PER_USD;
   const shouldForceShowTestScenarioPanel = true;
   const shouldShowTestScenarioPanel =
     shouldForceShowTestScenarioPanel ||
@@ -733,6 +684,8 @@ export default function Landing() {
   const [basketRewardHaloVisible, setBasketRewardHaloVisible] = useState(false);
   const [testScenarioPanelState, setTestScenarioPanelState] = useState<TestScenarioPanelState>("expanded");
   const [inventoryScenarioMode, setInventoryScenarioMode] = useState<InventoryScenarioMode>("multiple");
+  const [coinDataScenarioMode, setCoinDataScenarioMode] = useState<WalletDataScenarioMode>("filled");
+  const [cashDataScenarioMode, setCashDataScenarioMode] = useState<WalletDataScenarioMode>("filled");
   const [testScenarioPanelPosition, setTestScenarioPanelPosition] = useState<TestScenarioPanelPosition>(TEST_SCENARIO_PANEL_DEFAULT_POSITION);
   const [testScenarioPanelMoved, setTestScenarioPanelMoved] = useState(false);
   const testScenarioPanelDragRef = useRef<TestScenarioPanelDragState | null>(null);
@@ -753,10 +706,7 @@ export default function Landing() {
   const inventoryPageTransition = useMobilePageTransition(inventoryOpen, 260);
   const inventoryDetailPageTransition = useMobilePageTransition(inventoryDetailOpen, 260);
   const inventoryClosingFactorRef = useRef<FactorRow | null>(null);
-  const [walletOpen, setWalletOpen] = useState(false);
-  const walletPageTransition = useMobilePageTransition(walletOpen, 260);
-  const [walletAccountKind, setWalletAccountKind] = useState<GameWalletAccountKind>("coin");
-  const [walletWithdrawOpen, setWalletWithdrawOpen] = useState(false);
+  const walletController = useGameWalletModal();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
   const [settingsAgentSection, setSettingsAgentSection] = useState<"web" | "client">("web");
@@ -816,15 +766,8 @@ export default function Landing() {
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>("week");
   const [leaderboardScrolling, setLeaderboardScrolling] = useState(false);
   const leaderboardScrollTimerRef = useRef<number | null>(null);
-  const [withdrawAmount, setWithdrawAmount] = useState(MIN_AMOUNT);
-  const [withdrawNetwork, setWithdrawNetwork] = useState(DEFAULT_WITHDRAWAL_NETWORK);
-  const [withdrawNetworkOpen, setWithdrawNetworkOpen] = useState(false);
-  const [withdrawAddress, setWithdrawAddress] = useState("");
-  const [withdrawAddressError, setWithdrawAddressError] = useState("");
-  const [withdrawAccountBound, setWithdrawAccountBound] = useState(false);
-  const [withdrawWalletEditing, setWithdrawWalletEditing] = useState(false);
-  const [withdrawStatus, setWithdrawStatus] = useState<FundsStatus>("idle");
-  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const topActionsRef = useRef<HTMLDivElement | null>(null);
+  const hudBottomBarRef = useRef<HTMLDivElement | null>(null);
   const [factorQuery, setFactorQuery] = useState("");
   const [factorFilter, setFactorFilter] = useState<FactorFilterKey>("all");
   const [inventoryGradeFilter, setInventoryGradeFilter] = useState<InventoryGradeFilter>("all");
@@ -844,7 +787,6 @@ export default function Landing() {
   const [basketEmptyToast, setBasketEmptyToast] = useState<BasketEmptyToast>(null);
   const [selectedInventoryFactor, setSelectedInventoryFactor] = useState<FactorRow | null>(null);
   const inventoryDetailClosingFactorRef = useRef<FactorRow | null>(null);
-  const withdrawNetworkSelectRef = useRef<HTMLDivElement | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -935,11 +877,92 @@ export default function Landing() {
     };
   }, [stageLayout.mode, stageLayout.safeLeft, stageLayout.safeTop]);
 
+  const fitNavigationLabels = useCallback(() => {
+    const container = topActionsRef.current;
+    if (!container) return;
+
+    const labels = Array.from(container.querySelectorAll<HTMLElement>(".menu-label"));
+    const baseSize = container.classList.contains("top-actions--en") ? 16 : 20;
+    const minSize = 12;
+    const fitsAll = (fontSize: number) =>
+      labels.every((label) => {
+        label.style.setProperty("--menu-label-font-size", `${fontSize}px`);
+        return label.scrollWidth <= (label.parentElement?.clientWidth ?? 0);
+      });
+
+    let nextSize = baseSize;
+    while (nextSize > minSize && !fitsAll(nextSize)) {
+      nextSize -= 1;
+    }
+
+    container.style.setProperty("--menu-label-font-size", `${Math.max(minSize, nextSize)}px`);
+  }, []);
+
+  const fitTextToWidth = useCallback((label: HTMLElement | null, maxWidth: number, baseSize: number, minSize = 12) => {
+    if (!label || maxWidth <= 0) return;
+
+    let nextSize = baseSize;
+    label.style.fontSize = `${nextSize}px`;
+    while (nextSize > minSize && label.scrollWidth > maxWidth) {
+      nextSize -= 1;
+      label.style.fontSize = `${nextSize}px`;
+    }
+    if (label.scrollWidth > maxWidth) label.style.fontSize = `${minSize}px`;
+  }, []);
+
+  const fitBottomActionLabels = useCallback(() => {
+    const root = hudBottomBarRef.current;
+    if (!root) return;
+
+    const tip = root.querySelector<HTMLElement>(".hud-disconnected-actions__tip");
+    const tipLabel = tip?.querySelector<HTMLElement>(".hud-disconnected-actions__tip-label") ?? null;
+    const tipIconWidth = tip?.querySelector<HTMLElement>(".hud-disconnected-actions__tip-icon")?.offsetWidth ?? 0;
+    if (tip && tipLabel) {
+      const tipStyle = window.getComputedStyle(tip);
+      const tipPadding =
+        parseFloat(tipStyle.paddingLeft) +
+        parseFloat(tipStyle.paddingRight) +
+        parseFloat(tipStyle.columnGap || tipStyle.gap || "0");
+      const baseSize = tip.classList.contains("is-en") ? 26 : 30;
+      fitTextToWidth(tipLabel, tip.clientWidth - tipPadding - tipIconWidth, baseSize);
+    }
+
+    root.querySelectorAll<HTMLElement>(".hud-disconnected-actions__cast, .hud-main-action").forEach((button) => {
+      const label = button.querySelector<HTMLElement>(".hud-disconnected-actions__cast-label, .hud-main-action__label");
+      const tool = button.querySelector<HTMLElement>(".hud-disconnected-actions__cast-tool, .hud-main-action__tool");
+      if (!label) return;
+
+      const style = window.getComputedStyle(button);
+      const isNoticeAction = label.classList.contains("hud-main-action__label") && button.classList.contains("hud-main-action--notice");
+      const noticeIconSafeWidth = isNoticeAction
+        ? Math.max(0, (button.querySelector<HTMLElement>(".hud-main-action__notice-icon")?.offsetWidth ?? 0) - parseFloat(style.paddingRight))
+        : 0;
+      const availableWidth =
+        button.clientWidth -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight) -
+        parseFloat(style.columnGap || style.gap || "0") -
+        (tool?.offsetWidth ?? 0) -
+        noticeIconSafeWidth;
+      const baseSize = isNoticeAction ? 24 : 50;
+      if (isNoticeAction) {
+        label.style.setProperty("--hud-notice-label-width", `${Math.max(0, availableWidth)}px`);
+      }
+      fitTextToWidth(label, availableWidth, baseSize);
+    });
+  }, [fitTextToWidth]);
+
   useEffect(() => {
     if (testScenarioPanelMoved) return;
 
     setTestScenarioPanelPosition(getDefaultTestScenarioPanelPosition());
   }, [getDefaultTestScenarioPanelPosition, testScenarioPanelMoved]);
+
+  useEffect(() => {
+    fitNavigationLabels();
+    window.addEventListener("resize", fitNavigationLabels, { passive: true });
+    return () => window.removeEventListener("resize", fitNavigationLabels);
+  }, [fitNavigationLabels, gameVersionMode, stageLayout.scale, uiLang]);
 
   useEffect(() => {
     return () => {
@@ -981,27 +1004,6 @@ export default function Landing() {
     return () => document.removeEventListener("mousedown", closeAgentApiMenu);
   }, [agentApiMoreMenuId]);
 
-  useEffect(() => {
-    if (!withdrawNetworkOpen) return undefined;
-
-    const closeWithdrawNetwork = (event: PointerEvent) => {
-      if (withdrawNetworkSelectRef.current && !withdrawNetworkSelectRef.current.contains(event.target as Node)) {
-        setWithdrawNetworkOpen(false);
-      }
-    };
-    const handleWithdrawNetworkKeydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setWithdrawNetworkOpen(false);
-      }
-    };
-
-    document.addEventListener("pointerdown", closeWithdrawNetwork);
-    document.addEventListener("keydown", handleWithdrawNetworkKeydown);
-    return () => {
-      document.removeEventListener("pointerdown", closeWithdrawNetwork);
-      document.removeEventListener("keydown", handleWithdrawNetworkKeydown);
-    };
-  }, [withdrawNetworkOpen]);
 
   const filterLabels: Record<FilterKey, string> = {
     all: tr("All", "全部"),
@@ -1011,6 +1013,10 @@ export default function Landing() {
   const filterSelectOptions: SelectOption[] = filterOptions.map((option) => ({
     key: option,
     label: filterLabels[option],
+  }));
+  const languageSelectOptions: SelectOption[] = LANGUAGE_OPTIONS.map((option) => ({
+    key: option.value,
+    label: option.label,
   }));
 
   const sortLabels: Record<StrategySortKey, string> = {
@@ -1219,13 +1225,6 @@ export default function Landing() {
     }
     return undefined;
   }, [leaderboardOpen]);
-  useEffect(() => {
-    if (walletOpen || walletPageTransition.shouldRender) return;
-    setWalletWithdrawOpen(false);
-    setWithdrawNetworkOpen(false);
-    setWithdrawWalletEditing(false);
-    resetWithdrawFeedback();
-  }, [walletOpen, walletPageTransition.shouldRender]);
   const manualCastWaiting = manualCastStartedAt !== null;
   const mainCastActive = autoCastRunning || manualCastWaiting;
   const isFreeTrialAvailable = Boolean(user) && agentConnectedProviderIds.size === 0 && freeTrialRemaining > 0;
@@ -1253,6 +1252,71 @@ export default function Landing() {
     `Free trials remaining: ${freeTrialRemaining}`,
     `剩余试用次数：${freeTrialRemaining}`
   );
+  useEffect(() => {
+    const root = hudBottomBarRef.current;
+    let frameIds: number[] = [];
+
+    const scheduleFit = () => {
+      fitBottomActionLabels();
+      frameIds.forEach((frameId) => window.cancelAnimationFrame(frameId));
+      frameIds = [];
+
+      const runFrame = (remainingFrames: number) => {
+        const frameId = window.requestAnimationFrame(() => {
+          fitBottomActionLabels();
+          if (remainingFrames > 1) runFrame(remainingFrames - 1);
+        });
+        frameIds.push(frameId);
+      };
+
+      runFrame(4);
+    };
+
+    scheduleFit();
+    window.addEventListener("resize", scheduleFit, { passive: true });
+    window.visualViewport?.addEventListener("resize", scheduleFit, { passive: true });
+
+    const resizeObserver = typeof ResizeObserver === "undefined" || !root
+      ? null
+      : new ResizeObserver(scheduleFit);
+    if (resizeObserver && root) {
+      resizeObserver.observe(root);
+      root.querySelectorAll<HTMLElement>(".hud-disconnected-actions__tip, .hud-disconnected-actions__cast, .hud-main-action")
+        .forEach((element) => resizeObserver.observe(element));
+    }
+
+    const mutationObserver = typeof MutationObserver === "undefined" || !root
+      ? null
+      : new MutationObserver(scheduleFit);
+    if (mutationObserver && root) {
+      mutationObserver.observe(root, { childList: true, subtree: true, characterData: true });
+    }
+
+    return () => {
+      frameIds.forEach((frameId) => window.cancelAnimationFrame(frameId));
+      window.removeEventListener("resize", scheduleFit);
+      window.visualViewport?.removeEventListener("resize", scheduleFit);
+      resizeObserver?.disconnect();
+      mutationObserver?.disconnect();
+    };
+  }, [
+    agentConnectedProviderIds.size,
+    agentGlobalConnectMode,
+    agentRequiredLabel,
+    castButtonLabel,
+    clientAgentOnlyLabel,
+    fitBottomActionLabels,
+    gameVersionMode,
+    isAgentDisconnected,
+    isClientAgentConnected,
+    mainCastActive,
+    mainCastStatusTitle,
+    shouldBlockCastForAgent,
+    stageLayout.scale,
+    uiLang,
+  ]);
+  const displayedCoinBalance = coinDataScenarioMode === "empty" ? 0 : coinBalance;
+  const displayedCashBalanceUsd = cashDataScenarioMode === "empty" ? 0 : cashBalanceUsd;
   const basketItemCount = BASKET_BADGE_VALUES[basketBadgeMode];
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
   const isBasketRewardMobileLayout = stageLayout.mode === "cover";
@@ -1488,6 +1552,14 @@ export default function Landing() {
     setInventoryControlsHidden(isMobileViewport());
     inventoryScrollTopRef.current = 0;
     setInventoryOpen(true);
+  };
+
+  const toggleCoinDataScenario = () => {
+    setCoinDataScenarioMode((current) => (current === "empty" ? "filled" : "empty"));
+  };
+
+  const toggleCashDataScenario = () => {
+    setCashDataScenarioMode((current) => (current === "empty" ? "filled" : "empty"));
   };
 
   const openInventoryFactorDetail = useCallback((factor: FactorRow) => {
@@ -1887,39 +1959,6 @@ export default function Landing() {
     setSortKey(key);
     setSortDir(getDefaultStrategySortDir(key));
     setStrategySortOpen(false);
-  };
-
-  const resetWithdrawFeedback = () => {
-    setWithdrawStatus("idle");
-  };
-
-  const handleWithdrawNetworkChange = (network: string) => {
-    setWithdrawNetwork(network);
-    setWithdrawAccountBound(false);
-    setWithdrawAddressError("");
-    resetWithdrawFeedback();
-    setWithdrawNetworkOpen(false);
-  };
-
-  const openWalletModal = (accountKind: GameWalletAccountKind = walletAccountKind) => {
-    setWalletAccountKind(accountKind);
-    setWalletWithdrawOpen(false);
-    setWithdrawNetworkOpen(false);
-    setWalletOpen(true);
-    setWithdrawWalletEditing(false);
-    resetWithdrawFeedback();
-  };
-
-  const openWithdrawModal = () => {
-    setWalletWithdrawOpen(true);
-    setWithdrawNetworkOpen(false);
-    setWithdrawWalletEditing(false);
-    resetWithdrawFeedback();
-  };
-
-  const closeWalletModal = () => {
-    setWalletOpen(false);
-    setWithdrawNetworkOpen(false);
   };
 
   const showSettingsFeedback = (title: string, message: string) => {
@@ -2406,78 +2445,6 @@ export default function Landing() {
     navigateWithTransition("/auth");
   };
 
-  const formatWalletDateTime = (value: string) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return uiLang === "zh"
-      ? new Intl.DateTimeFormat("zh-CN", {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(date)
-      : new Intl.DateTimeFormat("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "numeric",
-          minute: "2-digit",
-        }).format(date);
-  };
-
-  const handleBindWithdrawWallet = () => {
-    if (!isValidWithdrawalAddress(withdrawNetwork, withdrawAddress)) {
-      setWithdrawAddressError(getWithdrawalAddressHint(withdrawNetwork, uiLang));
-      setWithdrawAccountBound(false);
-      setWithdrawWalletEditing(true);
-      return;
-    }
-    setWithdrawAccountBound(true);
-    setWithdrawWalletEditing(false);
-    setWithdrawAddressError("");
-    resetWithdrawFeedback();
-  };
-
-  const handleSubmitWithdraw = async () => {
-    const validAmount = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_AMOUNT;
-    const validAddress = withdrawAccountBound && isValidWithdrawalAddress(withdrawNetwork, withdrawAddress);
-    if (!validAmount || !validAddress || withdrawSubmitting || withdrawStatus === "success") return;
-    setWithdrawSubmitting(true);
-    setWithdrawStatus("processing");
-    await new Promise((resolve) => window.setTimeout(resolve, 850));
-    setWithdrawStatus(withdrawAmount === 3000 ? "error" : "success");
-    setWithdrawSubmitting(false);
-  };
-
-  const withdrawAmountValid = isValidAmount(withdrawAmount) && withdrawAmount <= WALLET_BALANCE_AMOUNT;
-  const withdrawAddressValue = withdrawAddress.trim();
-  const withdrawWalletFormOpen = !withdrawAccountBound || withdrawWalletEditing;
-  const withdrawAddressValid = isValidWithdrawalAddress(withdrawNetwork, withdrawAddress);
-  const withdrawPrimaryDisabled =
-    withdrawStatus === "success"
-      ? false
-      : withdrawWalletFormOpen
-        ? !withdrawAddressValue
-        : withdrawSubmitting || !withdrawAmountValid || !withdrawAccountBound || !withdrawAddressValid;
-  const withdrawPrimaryLabel = withdrawSubmitting
-    ? tr("Submitting...", "提交中...")
-    : withdrawStatus === "success"
-      ? tr("Back", "返回")
-      : withdrawWalletFormOpen
-        ? withdrawAccountBound
-          ? tr("Save wallet", "保存钱包")
-          : tr("Bind wallet", "绑定钱包")
-        : withdrawAccountBound
-        ? tr("Confirm withdrawal", "确认提现")
-        : tr("Bind wallet", "绑定钱包");
-  const handleWithdrawPrimaryAction = () => {
-    if (withdrawStatus === "success") {
-      openWalletModal("cash");
-      return;
-    }
-
-    void handleSubmitWithdraw();
-  };
-
   const openStrategyDetail = (strategy: (typeof strategies)[number]) => {
     setSelectedStrategy(strategy);
     setCurveRange("365D");
@@ -2546,175 +2513,6 @@ export default function Landing() {
     };
   }, [curveRange, selectedStrategy, tr]);
 
-  const walletWithdrawContent = (
-    <section className="wallet-withdraw wallet-withdraw--modal">
-      {withdrawWalletFormOpen ? (
-        <div className="wallet-withdraw__steps">
-          <section className="wallet-step">
-            <div className="wallet-step__body">
-              <div className="wallet-step__head">
-                <h3 className="wallet-step__title">{withdrawAccountBound ? tr("Change bound wallet", "更改绑定钱包") : tr("Bind wallet", "绑定钱包")}</h3>
-              </div>
-              <div className="wallet-field">
-                <span>{tr("Network", "选择网络")}</span>
-                <div
-                  className={`wallet-select${withdrawNetworkOpen ? " is-open" : ""}`}
-                  ref={withdrawNetworkSelectRef}
-                >
-                  <button
-                    className="wallet-select__button"
-                    type="button"
-                    aria-haspopup="listbox"
-                    aria-expanded={withdrawNetworkOpen}
-                    onClick={() => setWithdrawNetworkOpen((open) => !open)}
-                  >
-                    <span className="wallet-select__value">{withdrawNetwork}</span>
-                    <span className="wallet-select__chevron" aria-hidden="true" />
-                  </button>
-                  {withdrawNetworkOpen ? (
-                    <div
-                      className="wallet-select__menu"
-                      role="listbox"
-                      aria-label={tr("Network", "选择网络")}
-                    >
-                      {WITHDRAWAL_NETWORKS.map((network) => (
-                        <button
-                          key={network}
-                          className={`wallet-select__option${network === withdrawNetwork ? " is-selected" : ""}`}
-                          type="button"
-                          role="option"
-                          aria-selected={network === withdrawNetwork}
-                          onClick={() => handleWithdrawNetworkChange(network)}
-                        >
-                          {network}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              <label className="wallet-field">
-                <span>{tr("Wallet address", "钱包地址")}</span>
-                <input
-                  className="wallet-input"
-                  value={withdrawAddress}
-                  onChange={(event) => {
-                    setWithdrawAddress(event.target.value);
-                    setWithdrawAccountBound(false);
-                    setWithdrawAddressError("");
-                    resetWithdrawFeedback();
-                  }}
-                  placeholder={tr("Enter wallet address", "输入钱包地址")}
-                />
-                {withdrawAddressError && (
-                  <span className="wallet-field__hint is-error">
-                    {withdrawAddressError}
-                  </span>
-                )}
-              </label>
-            </div>
-          </section>
-
-          <div className="wallet-withdraw__actions">
-            <button
-              className="wallet-submit"
-              type="button"
-              disabled={withdrawPrimaryDisabled}
-              onClick={handleBindWithdrawWallet}
-            >
-              {withdrawPrimaryLabel}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="wallet-withdraw__steps">
-          <section className="wallet-step">
-            <div className="wallet-step__body">
-              <div className="wallet-step__head">
-                <h3 className="wallet-step__title">{tr("Enter withdrawal amount", "输入提现金额")}</h3>
-              </div>
-              <label className="wallet-field">
-                <span className="wallet-input-unit-wrap">
-                  <input
-                    className="wallet-input wallet-input--with-unit"
-                    inputMode="decimal"
-                    aria-label={tr("Withdrawal amount", "提现金额")}
-                    value={withdrawAmount ? formatUsdInputValue(withdrawAmount) : ""}
-                    onChange={(event) => {
-                      const clean = event.target.value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
-                      setWithdrawAmount(clean === "" ? 0 : usdToBalance(Number(clean)));
-                      resetWithdrawFeedback();
-                    }}
-                    placeholder={tr("Enter USD amount", "输入 USD 金额")}
-                  />
-                  <span className="wallet-input-unit" aria-hidden="true">USD</span>
-                </span>
-              </label>
-              <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
-                <span>
-                  {tr("Minimum", "最低")} {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · {tr("Available", "可提现")} {formatUsd(WALLET_BALANCE_USD)}
-                </span>
-              </div>
-            </div>
-          </section>
-
-          <section className="wallet-step">
-            <div className="wallet-step__body">
-              <div className="wallet-bound-summary">
-                <div className="wallet-bound-summary__main">
-                  <span className="wallet-bound-summary__label">{tr("Withdraw to", "提现至")}</span>
-                  <span className="wallet-bound-summary__target">
-                    <span className="wallet-bound-summary__address" title={withdrawAddressValue}>
-                      {withdrawAddressValue}
-                    </span>
-                    <span className="wallet-bound-summary__network">{withdrawNetwork}</span>
-                  </span>
-                </div>
-                <button
-                  className="wallet-bound-summary__edit"
-                  type="button"
-                  onClick={() => {
-                    setWithdrawWalletEditing(true);
-                    resetWithdrawFeedback();
-                  }}
-                >
-                  {tr("Change", "更改")}
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <div className="wallet-withdraw__actions">
-            {withdrawStatus === "error" && (
-              <div className="wallet-status is-error">
-                {tr(
-                  "Withdrawal preview failed. Try 10.00 USD, 20.00 USD, or 50.00 USD to view the success state.",
-                  "提现预览失败。请尝试 10.00 USD、20.00 USD 或 50.00 USD 查看成功状态。"
-                )}
-              </div>
-            )}
-            {withdrawStatus === "success" && (
-              <div className="wallet-status">
-                {tr(
-                  `${formatUsd(balanceToUsd(withdrawAmount))} withdrawal request submitted.`,
-                  `${formatUsd(balanceToUsd(withdrawAmount))} 提现申请已提交。`
-                )}
-              </div>
-            )}
-            <button
-              className="wallet-submit wallet-submit--withdraw"
-              type="button"
-              disabled={withdrawPrimaryDisabled}
-              onClick={handleWithdrawPrimaryAction}
-            >
-              {withdrawPrimaryLabel}
-            </button>
-          </div>
-        </div>
-      )}
-    </section>
-  );
-
   return (
     <main className="game-landing" aria-label="Pixel lakeside game landing">
       <style>{`
@@ -2767,13 +2565,13 @@ export default function Landing() {
           --radius-md: 8px;
           --radius-lg: 10px;
           --BEVL: 1;
-          --modal-title-font: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          --modal-title-font: var(--font-rounded-current);
           position: relative;
           min-height: 100svh;
           height: 100dvh;
           overflow: hidden;
           background: #5DBFF6;
-          font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-family: var(--font-rounded-current);
           font-variation-settings: "BEVL" var(--BEVL);
           image-rendering: pixelated;
           isolation: isolate;
@@ -3275,8 +3073,6 @@ export default function Landing() {
         }
 
         .top-actions--en .menu-label {
-          max-width: 94px;
-          --menu-label-font-size: 16px;
           letter-spacing: 0;
         }
 
@@ -3309,6 +3105,7 @@ export default function Landing() {
           position: absolute;
           left: 50%;
           bottom: 4px;
+          max-width: 100%;
           transform: translateX(-50%);
           color: #FFF;
           text-align: center;
@@ -3454,6 +3251,9 @@ export default function Landing() {
         .hud-disconnected-actions__tip-label {
           position: relative;
           z-index: 2;
+          max-width: 100%;
+          display: inline-block;
+          white-space: nowrap;
         }
 
         .hud-disconnected-actions__main {
@@ -3503,10 +3303,11 @@ export default function Landing() {
           position: relative;
           z-index: 0;
           display: inline-block;
+          max-width: 100%;
           color: #fff;
           -webkit-text-fill-color: #fff;
           text-align: center;
-          font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-family: var(--font-rounded-current);
           font-size: 50px;
           font-style: normal;
           font-weight: 700;
@@ -3968,7 +3769,7 @@ export default function Landing() {
         }
 
         .basket-reward-modal__title span {
-          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-family: var(--font-rounded-current);
           font-size: 3.472cqw;
           font-weight: 800;
           line-height: 1.02;
@@ -4232,7 +4033,7 @@ export default function Landing() {
           top: -1.05%;
           left: 6.15%;
           width: 23.69%;
-          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-family: var(--font-rounded-current);
           font-size: 12.694cqw;
           font-weight: 800;
           line-height: 1.074;
@@ -4265,7 +4066,7 @@ export default function Landing() {
           justify-content: space-between;
           gap: 1.5cqw;
           height: 9.552%;
-          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-family: var(--font-rounded-current);
         }
 
         .basket-reward-card__name {
@@ -4292,7 +4093,7 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           justify-content: center;
-          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", Arial, sans-serif;
+          font-family: var(--font-rounded-current);
           font-size: 3.808cqw;
           font-weight: 700;
           line-height: 1.5;
@@ -4340,7 +4141,7 @@ export default function Landing() {
           padding: 0;
           border: 0;
           cursor: pointer;
-          font-family: "Alimama FangYuanTi VF", "Alimama_FangYuanTi_VF", "Arial Rounded MT Bold", sans-serif;
+          font-family: var(--font-rounded-current);
           font-weight: 800;
         }
 
@@ -4872,6 +4673,7 @@ export default function Landing() {
         }
 
         .hud-main-action--notice .hud-main-action__label {
+          max-width: var(--hud-notice-label-width, 100%);
           color: #4e433c;
           -webkit-text-fill-color: #4e433c;
           font-size: 24px;
@@ -4908,10 +4710,11 @@ export default function Landing() {
           position: relative;
           z-index: 0;
           display: inline-block;
+          max-width: 100%;
           color: #FFF;
           text-align: center;
           -webkit-text-fill-color: #FFF;
-          font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-family: var(--font-rounded-current);
           font-size: 50px;
           font-style: normal;
           font-weight: 700;
@@ -5074,7 +4877,7 @@ export default function Landing() {
 
         .hud-badge span {
           color: #fff;
-          font-family: "Alimama Fang YuanTi VF", "Alimama FangYuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-family: var(--font-rounded-current);
           font-size: 28px;
           font-weight: 900;
           line-height: normal;
@@ -7546,7 +7349,7 @@ export default function Landing() {
           padding: 4px 0 0; margin-top: 4px;
         }
         .sac-inline-step__head { margin-bottom: 18px; position: relative; }
-        .sac-inline-step__title { font-size: 18px; font-weight: 800; color: var(--ac-text); margin: 0 0 6px; }
+        .sac-inline-step__title { font-family: var(--modal-title-font); font-size: 18px; font-weight: 800; color: var(--ac-text); margin: 0 0 6px; }
         .sac-inline-step__sub { font-size: 13px; color: rgba(121,79,39,.72); line-height: 1.6; margin: 0; }
         .sac-inline-back {
           appearance: none; font: inherit; cursor: pointer; background: none; border: none;
@@ -9003,42 +8806,68 @@ export default function Landing() {
           color: #794f27;
         }
 
-        .settings-language-options {
+        .settings-language-select {
+          width: 100%;
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 10px;
+          gap: 12px;
         }
 
-        .settings-language-option {
-          appearance: none;
+        .settings-language-select [class*="animal-wrapper-"] {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .settings-language-select [class*="animal-trigger-"] {
+          box-sizing: border-box;
+          width: 100%;
           min-height: 48px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 0 14px;
-          color: rgba(121, 79, 39, .72);
+          padding: 0 14px 0 18px;
+          color: var(--ac-text);
           background: #fffdf4;
           border: 2px solid rgba(196, 184, 158, .78);
           border-radius: var(--radius-xs);
-          box-shadow: none;
-          cursor: pointer;
+          box-shadow: 2px 2px 0 rgba(189, 174, 160, .42);
           font: inherit;
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 1000;
         }
 
-        .settings-language-option.is-active {
+        .settings-language-select [class*="animal-value-"],
+        .settings-language-select [class*="animal-placeholder-"] {
           color: var(--ac-text);
-          background: #ffd557;
-          border-color: rgba(121, 79, 39, .34);
+          font: inherit;
+          font-size: 14px;
+          font-weight: 1000;
         }
 
-        .settings-language-option__code {
-          color: rgba(121, 79, 39, .58);
-          font-size: 11px;
-          letter-spacing: .08em;
-          text-transform: uppercase;
+        .settings-language-select [class*="animal-dropdown-"] {
+          inset: 100% auto auto 0 !important;
+          left: 0 !important;
+          right: auto !important;
+          top: calc(100% + 6px) !important;
+          bottom: auto !important;
+          margin: 0 !important;
+          transform: none !important;
+          width: 100% !important;
+          min-width: 100% !important;
+          background: #fff3d3;
+          border: 2px solid var(--ac-border);
+          border-radius: var(--radius-md);
+          box-shadow: 0 6px 0 var(--ac-shadow-input), 0 12px 26px rgba(61, 52, 40, .14);
+        }
+
+        .settings-language-select [class*="animal-option-"] {
+          color: var(--ac-text);
+          font: inherit;
+          font-size: 14px;
+          font-weight: 950;
+        }
+
+        .settings-language-select [class*="animal-option-"]::before,
+        .settings-language-select [class*="animal-hovered-"]::before {
+          content: none !important;
+          display: none !important;
         }
 
         .settings-profile {
@@ -9482,24 +9311,18 @@ export default function Landing() {
             line-height: 1.2;
           }
 
-          .settings-language-options,
           .settings-profile,
           .settings-grid {
             grid-template-columns: minmax(0, 1fr);
           }
 
+          .settings-language-select {
+            width: 100%;
+            grid-template-columns: minmax(0, 1fr);
+          }
+
           .settings-field--full {
             grid-column: auto;
-          }
-
-          .settings-language-option {
-            min-height: 52px;
-            padding: 0 16px;
-            font-size: 15px;
-          }
-
-          .settings-language-option__code {
-            font-size: 12px;
           }
 
           .settings-field {
@@ -12574,7 +12397,7 @@ export default function Landing() {
         .inventory-detail-subtitle {
           margin-top: 0;
           color: var(--ac-text-body);
-          font-family: "SemiBold-Round", "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-family: var(--font-rounded-current);
           font-size: 12px;
           font-weight: 600;
           font-synthesis: none;
@@ -13642,15 +13465,16 @@ export default function Landing() {
         />
 
         <GameHudStats
-          coinBalance={SYSTEM_BALANCE_AMOUNT}
-          cashBalance={HUD_CASH_AMOUNT}
-          fishBalance={FISH_BALANCE_AMOUNT}
+          coinBalance={displayedCoinBalance}
+          cashBalance={displayedCashBalanceUsd}
+          fishBalance={fishBalance}
           variant={gameVersionMode}
           tr={tr}
-          onOpenWallet={openWalletModal}
+          onOpenWallet={walletController.openWalletModal}
         />
 
         <div
+          ref={topActionsRef}
           className={`top-actions${uiLang === "en" ? " top-actions--en" : ""}${gameVersionMode === "mvp" ? " top-actions--mvp" : ""}`}
           aria-label={tr("Navigation", "功能入口")}
         >
@@ -13848,6 +13672,32 @@ export default function Landing() {
                     <button
                       className="test-scenario-button"
                       type="button"
+                      onClick={toggleCoinDataScenario}
+                      aria-label={tr("Toggle coin data state", "切换游戏币状态")}
+                    >
+                      <span>
+                        {tr(
+                          `Game coins: ${coinDataScenarioMode === "empty" ? "empty" : "has data"}`,
+                          `游戏币状态：${coinDataScenarioMode === "empty" ? "无数据" : "有数据"}`
+                        )}
+                      </span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
+                      onClick={toggleCashDataScenario}
+                      aria-label={tr("Toggle cash data state", "切换现金状态")}
+                    >
+                      <span>
+                        {tr(
+                          `Cash: ${cashDataScenarioMode === "empty" ? "empty" : "has data"}`,
+                          `现金状态：${cashDataScenarioMode === "empty" ? "无数据" : "有数据"}`
+                        )}
+                      </span>
+                    </button>
+                    <button
+                      className="test-scenario-button"
+                      type="button"
                       onClick={toggleInventoryScenario}
                       aria-label={tr("Toggle inventory state", "切换图鉴状态")}
                     >
@@ -14003,7 +13853,7 @@ export default function Landing() {
           </div>
         )}
 
-        <div className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
+        <div ref={hudBottomBarRef} className="hud-bottom-bar" aria-label={tr("Primary action", "主按钮")}>
           {shouldBlockCastForAgent && !mainCastActive ? (
             <div className="hud-disconnected-actions">
               <button className={`hud-disconnected-actions__tip${uiLang === "en" ? " is-en" : ""}`} type="button" onClick={openAgentRequiredSettings}>
@@ -14181,27 +14031,13 @@ export default function Landing() {
                   </div>
                 </div>
 
-                <div className="settings-language-options" role="radiogroup" aria-label={tr("Language", "语言设置")}>
-                  <button
-                    className={`settings-language-option${uiLang === "zh" ? " is-active" : ""}`}
-                    type="button"
-                    role="radio"
-                    aria-checked={uiLang === "zh"}
-                    onClick={() => setUiLang("zh")}
-                  >
-                    <span>{tr("Chinese", "中文")}</span>
-                    <span className="settings-language-option__code">ZH</span>
-                  </button>
-                  <button
-                    className={`settings-language-option${uiLang === "en" ? " is-active" : ""}`}
-                    type="button"
-                    role="radio"
-                    aria-checked={uiLang === "en"}
-                    onClick={() => setUiLang("en")}
-                  >
-                    <span>English</span>
-                    <span className="settings-language-option__code">EN</span>
-                  </button>
+                <div className="settings-language-select">
+                  <Select
+                    value={uiLang}
+                    onChange={(key) => setUiLang(key as typeof uiLang)}
+                    options={languageSelectOptions}
+                    placeholder={tr("Choose language", "选择语言")}
+                  />
                 </div>
               </section>
 
@@ -15449,27 +15285,6 @@ export default function Landing() {
             </footer>
           </section>
         </div>
-      )}
-
-      {walletPageTransition.shouldRender && (
-
-        <GameWalletModal
-          accountKind={walletAccountKind}
-          cashBalance={`$${HUD_CASH_AMOUNT.toFixed(1)}`}
-          coinBalance={formatBalance(SYSTEM_BALANCE_AMOUNT)}
-          closeLabel={tr("Close wallet", "关闭钱包")}
-          closeWithdrawLabel={tr("Close withdraw", "关闭提现")}
-          backLabel={tr("Back to wallet", "返回钱包")}
-          pageTransitionPhase={walletPageTransition.phase}
-          isWithdrawOpen={walletWithdrawOpen}
-          onClose={closeWalletModal}
-          onBackdropClose={closeWalletModal}
-          onOpenCashWallet={() => openWalletModal("cash")}
-          onWithdraw={openWithdrawModal}
-          withdrawContent={walletWithdrawContent}
-          tr={tr}
-          formatWalletDateTime={formatWalletDateTime}
-        />
       )}
 
       {leaderboardPageTransition.shouldRender && (

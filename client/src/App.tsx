@@ -2,9 +2,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch, Redirect, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { GameWalletModalProvider } from "./components/GameWalletModalHost";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AppLanguageProvider } from "./contexts/AppLanguageContext";
+import { GameEconomyProvider } from "./contexts/GameEconomyContext";
 import { PageTransitionProvider } from "./contexts/PageTransitionContext";
 import SidebarLayout from "./components/SidebarLayout";
 import CustomCursor from "./components/CustomCursor";
@@ -200,11 +202,15 @@ function App() {
             <AuthProvider>
               <OnboardingProvider>
                 <PageTransitionProvider>
-                  <Toaster />
-                  <CustomCursor />
-                  <LayoutWrapper>
-                    <Router />
-                  </LayoutWrapper>
+                  <GameEconomyProvider>
+                    <GameWalletModalProvider>
+                      <Toaster />
+                      <CustomCursor />
+                      <LayoutWrapper>
+                        <Router />
+                      </LayoutWrapper>
+                    </GameWalletModalProvider>
+                  </GameEconomyProvider>
                 </PageTransitionProvider>
               </OnboardingProvider>
             </AuthProvider>

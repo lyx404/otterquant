@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { Select } from "animal-island-ui";
+import "animal-island-ui/style";
+import type { SelectOption } from "animal-island-ui";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import AuthVerificationCodeInput from "@/components/auth/AuthVerificationCodeInput";
 import "./AuthVerification.css";
 import { toast } from "sonner";
@@ -17,10 +20,22 @@ import {
 
 type AuthMode = "login" | "register" | "forgot";
 type AuthFieldErrors = Partial<Record<"email" | "verificationCode" | "nickname" | "password" | "terms", string>>;
+const LANGUAGE_OPTIONS: { value: UiLang; label: string }[] = [
+  { value: "en", label: "English" },
+  { value: "zh", label: "中文" },
+  { value: "ja", label: "日本語" },
+  { value: "ko", label: "한국어" },
+  { value: "es", label: "Español" },
+  { value: "fr", label: "Français" },
+];
 
 export default function Auth() {
-  const { uiLang, setUiLang } = useAppLanguage();
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const { uiLang, setUiLang, t } = useAppLanguage();
+  const tr = (en: string, zh: string) => t(en, zh);
+  const languageSelectOptions: SelectOption[] = LANGUAGE_OPTIONS.map((option) => ({
+    key: option.value,
+    label: option.label,
+  }));
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
@@ -192,7 +207,7 @@ export default function Auth() {
           overflow: hidden;
           color: var(--auth-text);
           background: #5DBFF6;
-          font-family: "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+          font-family: var(--font-rounded-current);
           image-rendering: pixelated;
           isolation: isolate;
         }
@@ -279,35 +294,93 @@ export default function Auth() {
           padding: 156px 24px 56px;
         }
 
-        .auth-language {
-          appearance: none;
+        .auth-language-select {
           position: absolute;
           top: 32px;
           right: 34px;
           z-index: 2;
+          width: 146px;
           height: 42px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          padding: 0 12px;
+          color: var(--auth-text);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .auth-language-select [class*="animal-wrapper-"] {
+          width: 100%;
+          min-width: 0;
+          height: 100%;
+        }
+
+        .auth-language-select [class*="animal-trigger-"] {
+          box-sizing: border-box;
+          width: 100%;
+          height: 100%;
+          min-height: 42px;
+          padding: 0 12px 0 34px;
           color: var(--auth-text);
           background: rgba(255, 253, 244, .92);
           border: 2px solid rgba(196, 184, 158, .88);
           border-radius: 8px;
           box-shadow: none;
-          cursor: pointer;
           font: inherit;
           font-size: 13px;
           font-weight: 950;
-          line-height: 1;
-          white-space: nowrap;
         }
 
-        .auth-language:hover,
-        .auth-language:focus-visible {
+        .auth-language-select [class*="animal-trigger-"]:hover {
           background: #fffdf4;
-          outline: none;
+          border-color: rgba(196, 184, 158, .88);
+          box-shadow: none;
+          transform: none;
+        }
+
+        .auth-language-select [class*="animal-value-"],
+        .auth-language-select [class*="animal-placeholder-"] {
+          color: var(--auth-text);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .auth-language-select [class*="animal-dropdown-"] {
+          inset: 100% auto auto 0 !important;
+          left: 0 !important;
+          right: auto !important;
+          top: calc(100% + 6px) !important;
+          bottom: auto !important;
+          margin: 0 !important;
+          transform: none !important;
+          width: 100% !important;
+          min-width: 100% !important;
+          background: #fff3d3;
+          border: 2px solid var(--auth-border);
+          border-radius: 10px;
+          box-shadow: 0 6px 0 rgba(189, 174, 160, .42), 0 12px 26px rgba(61, 52, 40, .14);
+        }
+
+        .auth-language-select [class*="animal-option-"] {
+          color: var(--auth-text);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 950;
+        }
+
+        .auth-language-select [class*="animal-option-"]::before,
+        .auth-language-select [class*="animal-hovered-"]::before {
+          content: none !important;
+          display: none !important;
+        }
+
+        .auth-language-select__icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          z-index: 3;
+          color: #794f27;
+          pointer-events: none;
+          transform: translateY(-50%);
         }
 
         .auth-shell {
@@ -694,11 +767,18 @@ export default function Auth() {
         }
 
         @media (max-width: 560px) {
-          .auth-language {
+          .auth-language-select {
             top: 18px;
             right: 18px;
+            width: 132px;
             height: 38px;
-            padding: 0 10px;
+            font-size: 12px;
+          }
+
+          .auth-language-select [class*="animal-trigger-"],
+          .auth-language-select [class*="animal-value-"],
+          .auth-language-select [class*="animal-placeholder-"],
+          .auth-language-select [class*="animal-option-"] {
             font-size: 12px;
           }
 
@@ -727,15 +807,15 @@ export default function Auth() {
       `}</style>
 
       <section className="game-auth__scene">
-        <button
-          className="auth-language"
-          type="button"
-          aria-label={uiLang === "zh" ? "Switch to English" : "切换为中文"}
-          onClick={() => setUiLang(uiLang === "zh" ? "en" : "zh")}
-        >
-          <Languages size={17} strokeWidth={2.8} aria-hidden="true" />
-          <span>{uiLang === "zh" ? "中 / EN" : "EN / 中"}</span>
-        </button>
+        <div className="auth-language-select" aria-label={tr("Language", "语言")}>
+          <Languages className="auth-language-select__icon" size={17} strokeWidth={2.8} aria-hidden="true" />
+          <Select
+            value={uiLang}
+            onChange={(key) => setUiLang(key as UiLang)}
+            options={languageSelectOptions}
+            placeholder={tr("Choose language", "选择语言")}
+          />
+        </div>
         <div className="auth-shell">
           <header className="auth-panel__head">
             <div className="auth-brand">
