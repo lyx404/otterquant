@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useReducedMotion } from "motion/react";
-import { formatBalance, HUD_ASSETS } from "@/lib/gameWallet";
+import { formatHudBalance, HUD_ASSETS } from "@/lib/gameWallet";
 import "./GameHudStats.css";
 
 type CountUpProps = {
@@ -15,6 +15,7 @@ type CountUpProps = {
   separator?: string;
   prefix?: string;
   decimals?: number;
+  formatter?: (value: number) => string;
   onStart?: () => void;
   onEnd?: () => void;
 };
@@ -48,6 +49,7 @@ function CountUp({
   separator = ",",
   prefix = "",
   decimals,
+  formatter,
   onStart,
   onEnd,
 }: CountUpProps) {
@@ -90,6 +92,8 @@ function CountUp({
 
   const formatValue = useCallback(
     (latest: number) => {
+      if (formatter) return formatter(latest);
+
       const hasDecimals = maxDecimals > 0;
       const formattedNumber = Intl.NumberFormat("en-US", {
         useGrouping: Boolean(separator),
@@ -99,7 +103,7 @@ function CountUp({
       const normalizedNumber = separator ? formattedNumber.replace(/,/g, separator) : formattedNumber;
       return `${prefix}${normalizedNumber}`;
     },
-    [maxDecimals, prefix, separator],
+    [formatter, maxDecimals, prefix, separator],
   );
 
   useEffect(() => {
@@ -202,8 +206,8 @@ export function GameHudStats({
               height="37"
             />
             <div className={coinValueClassName}>
-              <CountUp to={coinBalance} duration={0.5}>
-                {formatBalance(coinBalance)}
+              <CountUp to={coinBalance} duration={0.5} formatter={formatHudBalance}>
+                {formatHudBalance(coinBalance)}
               </CountUp>
             </div>
           </button>
@@ -240,8 +244,8 @@ export function GameHudStats({
             height="27"
           />
           <div className={fishValueClassName}>
-            <CountUp key={`fish-${variant}-${fishBalance}`} to={fishBalance} duration={0.5}>
-              {formatBalance(fishBalance)}
+            <CountUp key={`fish-${variant}-${fishBalance}`} to={fishBalance} duration={0.5} formatter={formatHudBalance}>
+              {formatHudBalance(fishBalance)}
             </CountUp>
           </div>
         </div>

@@ -241,6 +241,8 @@ function getBasketRewardCards(count: number, page: BasketRewardModalPage, isMobi
 type TestScenarioPanelState = "expanded" | "collapsed";
 type InventoryScenarioMode = "multiple" | "empty" | "single";
 type WalletDataScenarioMode = "empty" | "filled";
+const DEFAULT_TEST_COIN_BALANCE = 100000;
+const MAX_TEST_COIN_BALANCE = 999999999;
 type TestScenarioPanelPosition = {
   left: number;
   top: number;
@@ -658,7 +660,7 @@ export default function Landing() {
   const [, setLocation] = useLocation();
   const { uiLang, setUiLang, t } = useAppLanguage();
   const { user, login, logout, updateUser } = useAuth();
-  const { coinBalance, cashCents, fishBalance } = useGameEconomy();
+  const { cashCents, fishBalance } = useGameEconomy();
   const { navigateWithTransition } = usePageTransition();
   const tr = (en: string, zh: string) => t(en, zh);
   const cashBalanceUsd = cashCents / BALANCE_PER_USD;
@@ -685,6 +687,7 @@ export default function Landing() {
   const [testScenarioPanelState, setTestScenarioPanelState] = useState<TestScenarioPanelState>("expanded");
   const [inventoryScenarioMode, setInventoryScenarioMode] = useState<InventoryScenarioMode>("multiple");
   const [coinDataScenarioMode, setCoinDataScenarioMode] = useState<WalletDataScenarioMode>("filled");
+  const [testCoinBalanceDraft, setTestCoinBalanceDraft] = useState(() => DEFAULT_TEST_COIN_BALANCE.toLocaleString());
   const [cashDataScenarioMode, setCashDataScenarioMode] = useState<WalletDataScenarioMode>("filled");
   const [testScenarioPanelPosition, setTestScenarioPanelPosition] = useState<TestScenarioPanelPosition>(TEST_SCENARIO_PANEL_DEFAULT_POSITION);
   const [testScenarioPanelMoved, setTestScenarioPanelMoved] = useState(false);
@@ -707,6 +710,7 @@ export default function Landing() {
   const inventoryDetailPageTransition = useMobilePageTransition(inventoryDetailOpen, 260);
   const inventoryClosingFactorRef = useRef<FactorRow | null>(null);
   const walletController = useGameWalletModal();
+  const setWalletDisplayOverrides = walletController.setWalletDisplayOverrides;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
   const [settingsAgentSection, setSettingsAgentSection] = useState<"web" | "client">("web");
@@ -1315,8 +1319,21 @@ export default function Landing() {
     stageLayout.scale,
     uiLang,
   ]);
-  const displayedCoinBalance = coinDataScenarioMode === "empty" ? 0 : coinBalance;
+  const customCoinBalance = Math.min(
+    MAX_TEST_COIN_BALANCE,
+    Number(testCoinBalanceDraft.replace(/[^\d]/g, "")) || DEFAULT_TEST_COIN_BALANCE
+  );
+  const displayedCoinBalance = coinDataScenarioMode === "empty" ? 0 : customCoinBalance;
   const displayedCashBalanceUsd = cashDataScenarioMode === "empty" ? 0 : cashBalanceUsd;
+  useEffect(() => {
+    setWalletDisplayOverrides({
+      coinBalance: displayedCoinBalance,
+      cashBalanceUsd: displayedCashBalanceUsd,
+      coinActivities: coinDataScenarioMode === "empty" ? [] : undefined,
+      cashActivities: cashDataScenarioMode === "empty" ? [] : undefined,
+    });
+  }, [cashDataScenarioMode, coinDataScenarioMode, displayedCashBalanceUsd, displayedCoinBalance, setWalletDisplayOverrides]);
+
   const basketItemCount = BASKET_BADGE_VALUES[basketBadgeMode];
   const basketBadgeLabel = basketItemCount > 99 ? "99+" : basketItemCount > 0 ? String(basketItemCount) : "";
   const isBasketRewardMobileLayout = stageLayout.mode === "cover";
@@ -1556,6 +1573,17 @@ export default function Landing() {
 
   const toggleCoinDataScenario = () => {
     setCoinDataScenarioMode((current) => (current === "empty" ? "filled" : "empty"));
+  };
+
+  const updateTestCoinBalanceDraft = (value: string) => {
+    const nextDigits = value.replace(/[^\d]/g, "");
+    if (!nextDigits) {
+      setTestCoinBalanceDraft("");
+      return;
+    }
+
+    const nextValue = Math.min(MAX_TEST_COIN_BALANCE, Number(nextDigits));
+    setTestCoinBalanceDraft(nextValue.toLocaleString());
   };
 
   const toggleCashDataScenario = () => {
@@ -2726,6 +2754,24 @@ export default function Landing() {
           gap: calc(8px / var(--stage-scale));
         }
 
+        .game-stage--mobile-cover .test-scenario-field {
+          min-width: 0;
+          padding: calc(8px / var(--stage-scale)) calc(10px / var(--stage-scale)) calc(10px / var(--stage-scale));
+          gap: calc(6px / var(--stage-scale));
+          border-radius: calc(6px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-field__label {
+          font-size: calc(12px / var(--stage-scale));
+        }
+
+        .game-stage--mobile-cover .test-scenario-field__input {
+          height: calc(36px / var(--stage-scale));
+          padding-inline: calc(10px / var(--stage-scale));
+          font-size: calc(14px / var(--stage-scale));
+          border-radius: calc(6px / var(--stage-scale));
+        }
+
         .game-stage--mobile-cover .test-scenario-panel.is-collapsed {
           width: calc(184px / var(--stage-scale));
           height: 36px;
@@ -3052,6 +3098,51 @@ export default function Landing() {
           display: flex;
           flex-direction: column;
           gap: 8px;
+        }
+
+        .test-scenario-field {
+          min-width: 182px;
+          display: grid;
+          gap: 6px;
+          padding: 8px 10px 10px;
+          color: rgba(121, 79, 39, .72);
+          background: rgba(255, 253, 244, .72);
+          border: 2px solid rgba(196, 184, 158, .58);
+          border-radius: 6px;
+        }
+
+        .test-scenario-field__label {
+          font-size: 12px;
+          font-weight: 950;
+          line-height: 1;
+          white-space: nowrap;
+        }
+
+        .test-scenario-field__input {
+          width: 100%;
+          min-width: 0;
+          height: 34px;
+          padding: 0 10px;
+          color: var(--ac-text);
+          background: rgba(255, 255, 255, .76);
+          border: 1.5px solid rgba(196, 184, 158, .86);
+          border-radius: 6px;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, .72);
+          font: inherit;
+          font-family: var(--font-rounded-numeric);
+          font-size: 15px;
+          font-weight: var(--font-rounded-numeric-weight, 500);
+          font-variant-numeric: tabular-nums;
+          line-height: 1;
+          outline: none;
+        }
+
+        .test-scenario-field__input:focus {
+          border-color: rgba(255, 213, 87, .96);
+          background: #fff;
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, .9),
+            0 0 0 2px rgba(255, 213, 87, .3);
         }
 
         .test-scenario-button--preview {
@@ -12322,7 +12413,9 @@ export default function Landing() {
           align-self: stretch;
           min-height: 100%;
           display: grid;
+          align-content: center;
           place-items: center;
+          gap: 16px;
           padding: 0;
           color: rgba(121, 79, 39, .38);
           background: transparent;
@@ -12332,6 +12425,16 @@ export default function Landing() {
           font-weight: 900;
           line-height: 1;
           text-align: center;
+        }
+
+        .inventory-empty__icon {
+          position: relative;
+          z-index: 1;
+          width: min(120px, 34vw);
+          max-width: 120px;
+          height: auto;
+          opacity: .5;
+          user-select: none;
         }
 
         .inventory-detail-modal {
@@ -13474,6 +13577,7 @@ export default function Landing() {
           cashBalance={displayedCashBalanceUsd}
           fishBalance={fishBalance}
           variant={gameVersionMode}
+          cashDecimals={cashDataScenarioMode === "empty" ? 0 : 1}
           tr={tr}
           onOpenWallet={walletController.openWalletModal}
         />
@@ -13687,6 +13791,19 @@ export default function Landing() {
                         )}
                       </span>
                     </button>
+                    <label className="test-scenario-field">
+                      <span className="test-scenario-field__label">{tr("Game coin value", "游戏币值设定")}</span>
+                      <input
+                        className="test-scenario-field__input"
+                        type="text"
+                        inputMode="numeric"
+                        value={testCoinBalanceDraft}
+                        aria-label={tr("Set game coin value", "设定游戏币值")}
+                        onChange={(event) => updateTestCoinBalanceDraft(event.target.value)}
+                        onFocus={() => setCoinDataScenarioMode("filled")}
+                        placeholder={DEFAULT_TEST_COIN_BALANCE.toLocaleString()}
+                      />
+                    </label>
                     <button
                       className="test-scenario-button"
                       type="button"
@@ -15822,7 +15939,10 @@ export default function Landing() {
               })}
 
               {displayedInventoryFactors.length === 0 && displayedInventorySpecialCards.length === 0 && (
-                <div className="shop-empty inventory-empty">{tr("Nothing here", "空空如也")}</div>
+                <div className="shop-empty inventory-empty">
+                  <img className="inventory-empty__icon" src="/assets/wallet-empty-state.svg" alt="" aria-hidden="true" />
+                  <span>{tr("Nothing here", "空空如也")}</span>
+                </div>
               )}
             </div>
           </section>

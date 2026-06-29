@@ -131,12 +131,17 @@
 .wallet-content {
   flex: 1 1 auto;
   min-height: 0;
+  display: flex;
   overflow: hidden;
   background: inherit;
 }
 
 .wallet-panel {
+  flex: 1 1 auto;
+  min-width: 0;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow: auto;
   padding: 18px clamp(18px, 2.6vw, 34px) 24px;
   background: inherit;
@@ -264,8 +269,14 @@
 }
 
 .wallet-action--secondary {
-  background: var(--ac-cream-light);
+  color: rgba(121, 79, 39, .78);
+  background: rgb(255, 247, 227);
   border-color: rgba(196, 184, 158, .86);
+  box-shadow: none;
+}
+
+.wallet-action--secondary:hover {
+  box-shadow: none;
 }
 
 .wallet-submit {
@@ -285,6 +296,10 @@
 }
 
 .wallet-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   margin-top: 16px;
   overflow: hidden;
   background: rgba(255, 253, 244, .86);
@@ -295,6 +310,10 @@
 
 .wallet-table {
   min-width: 720px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .wallet-table__row {
@@ -390,6 +409,42 @@
 
 .wallet-table__mobile-label {
   display: none;
+}
+
+.wallet-table__empty {
+  flex: 1 1 auto;
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 30px 16px 34px;
+  color: rgba(114, 93, 66, .38);
+  font-family: var(--wallet-ui-font);
+  font-size: 14px;
+  font-weight: 900;
+  font-synthesis: none;
+  font-optical-sizing: auto;
+  font-variation-settings: "wght" 720, "BEVL" var(--BEVL);
+  text-align: center;
+  border-top: 1px solid rgba(196, 184, 158, .45);
+}
+
+.wallet-table__empty-icon {
+  position: relative;
+  z-index: 1;
+  width: min(120px, 34vw);
+  max-width: 120px;
+  height: auto;
+  margin-bottom: 0;
+  opacity: .5;
+  user-select: none;
+}
+
+.wallet-table__empty > span {
+  display: block;
+  margin-top: 2px;
 }
 
 .wallet-withdraw {
@@ -920,6 +975,14 @@
     overflow: hidden;
   }
 
+  .wallet-panel--overview > .wallet-section {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: var(--wallet-overview-section-max-height);
+    max-height: var(--wallet-overview-section-max-height);
+    margin-top: 0;
+  }
+
   .wallet-panel--overview,
   .wallet-panel--withdraw-flow {
     background: var(--wallet-mobile-content-bg);
@@ -1051,13 +1114,16 @@
   }
 
   .wallet-panel--overview .wallet-section {
-    flex: 0 1 auto;
-    height: auto;
+    flex: 1 1 0;
+    height: var(--wallet-overview-section-max-height);
+    min-height: 0;
     max-height: var(--wallet-overview-section-max-height);
   }
 
   .wallet-table {
     min-width: 0;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: visible;
