@@ -23,6 +23,8 @@ type GameWalletModalProps = {
   accountKind: GameWalletAccountKind;
   cashBalance: string;
   coinBalance: string;
+  coinActivitiesOverride?: GameWalletActivityItem[];
+  cashActivitiesOverride?: GameWalletActivityItem[];
   closeLabel: string;
   pageTransitionPhase?: "opening" | "open" | "closing";
   isWithdrawOpen?: boolean;
@@ -33,6 +35,7 @@ type GameWalletModalProps = {
   onBackdropClose?: () => void;
   onOpenCashWallet?: () => void;
   onWithdraw?: () => void;
+  onEarnCash?: () => void;
   withdrawContent?: ReactNode;
   tr: (en: string, zh: string) => string;
   formatWalletDateTime: (value: string) => string;
@@ -42,6 +45,8 @@ export function GameWalletModal({
   accountKind,
   cashBalance,
   coinBalance,
+  coinActivitiesOverride,
+  cashActivitiesOverride,
   closeLabel,
   pageTransitionPhase,
   isWithdrawOpen = false,
@@ -52,6 +57,7 @@ export function GameWalletModal({
   onBackdropClose,
   onOpenCashWallet,
   onWithdraw,
+  onEarnCash,
   withdrawContent,
   tr,
   formatWalletDateTime,
@@ -61,7 +67,7 @@ export function GameWalletModal({
         title: tr("Game Coins", "游戏币"),
         balance: coinBalance,
         icon: HUD_ASSETS.coin,
-        activities: coinActivities,
+        activities: coinActivitiesOverride ?? coinActivities,
         formatActivityAmount: formatBalance,
         allowWithdraw: false,
       }
@@ -69,11 +75,12 @@ export function GameWalletModal({
         title: tr("Cash", "现金"),
         balance: cashBalance,
         icon: HUD_ASSETS.cash,
-        activities: cashActivities,
+        activities: cashActivitiesOverride ?? cashActivities,
         formatActivityAmount: (amount: number) => `$${amount.toFixed(2)}`,
         allowWithdraw: true,
       };
   const title = titleOverride ?? (isWithdrawOpen ? tr("Withdraw", "提现") : activeWalletConfig.title);
+  const isActivityEmpty = activeWalletConfig.activities.length === 0;
 
   return (
     <div
@@ -174,6 +181,21 @@ export function GameWalletModal({
                       </div>
                     );
                   })}
+                    {isActivityEmpty && (
+                      <div className="wallet-table__empty" role="status">
+                        <img className="wallet-table__empty-icon" src="/assets/wallet-empty-state.svg" alt="" aria-hidden="true" />
+                        <span>{tr("Empty", "空空如也")}</span>
+                        {accountKind === "cash" && onEarnCash && (
+                          <button
+                            className="wallet-action wallet-action--secondary"
+                            type="button"
+                            onClick={onEarnCash}
+                          >
+                            {tr("Earn cash", "赚取现金")}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </section>
               </>

@@ -264,8 +264,11 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
       : actionKind === "confirm"
         ? copy.confirm
         : copy.reveal;
-  const animatedCoinBalance = useAnimatedStatValue(coinBalance, (value) => value.toString());
-  const animatedCashBalance = useAnimatedStatValue(cashCents / 1000, (value) => value.toFixed(1));
+  const displayedCoinBalance = walletController.coinBalanceValue;
+  const displayedCashBalance = walletController.cashBalanceValue;
+  const displayedCashDecimals = walletController.cashDecimals;
+  const animatedCoinBalance = useAnimatedStatValue(displayedCoinBalance, (value) => value.toString());
+  const animatedCashBalance = useAnimatedStatValue(displayedCashBalance, (value) => value.toFixed(displayedCashDecimals));
   const animatedFishBalance = useAnimatedStatValue(fishBalance, (value) => value.toString());
 
   const stageStyle = useMemo(() => ({
@@ -903,9 +906,9 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
           </button>
           <GameHudStats
             className="scratch-card-hud-stats"
-            coinBalance={coinBalance}
-            cashBalance={cashCents / 1000}
-            cashDecimals={1}
+            coinBalance={displayedCoinBalance}
+            cashBalance={displayedCashBalance}
+            cashDecimals={displayedCashDecimals}
             fishBalance={fishBalance}
             tr={tr}
             onOpenWallet={walletController.openWalletModal}

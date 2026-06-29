@@ -11,8 +11,8 @@ export type GameWalletActivityItem = {
 };
 
 export const BALANCE_PER_USD = 100;
-export const SYSTEM_BALANCE_AMOUNT = 10000;
-export const HUD_CASH_AMOUNT = 99.0;
+export const SYSTEM_BALANCE_AMOUNT = 100000000;
+export const HUD_CASH_AMOUNT = 99.9;
 export const HUD_CASH_CENTS = Math.round(HUD_CASH_AMOUNT * 100);
 export const FISH_BALANCE_AMOUNT = 10000;
 export const WALLET_BALANCE_USD = HUD_CASH_AMOUNT;
@@ -176,6 +176,23 @@ export const cashActivities: GameWalletActivityItem[] = [
 
 export function formatBalance(amount: number) {
   return `${Math.round(Number(amount) || 0).toLocaleString()}`;
+}
+
+export function formatHudBalance(amount: number) {
+  const value = Math.round(Number(amount) || 0);
+  const absValue = Math.abs(value);
+  if (absValue <= 9999999) return value.toLocaleString();
+
+  const units = [
+    { suffix: "B", value: 1000000000 },
+    { suffix: "M", value: 1000000 },
+    { suffix: "K", value: 1000 },
+  ];
+  const unit = units.find((item) => absValue >= item.value) ?? units[units.length - 1];
+  const compactValue = value / unit.value;
+  const formatted = compactValue.toFixed(1);
+
+  return `${formatted}${unit.suffix}`;
 }
 
 export function balanceToUsd(amount: number) {

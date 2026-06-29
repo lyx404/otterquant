@@ -1075,7 +1075,9 @@
       --mobile-ticket-height: 594px;
       --mobile-action-gap: 18px;
       --mobile-action-controls-top: 100px;
+      --mobile-stage-bottom-safe-space: 10px;
       top: 0;
+      height: calc(var(--stage-height) - var(--mobile-stage-bottom-safe-space));
       transform: translate(-50%, 0) scale(var(--scale));
       transform-origin: top center;
     }
@@ -1320,7 +1322,12 @@
     }
 
 .scratch-card-stage[data-layout="mobile"] .action {
-      top: calc(var(--mobile-ticket-top) + var(--mobile-ticket-height) + var(--mobile-action-gap));
+      top: calc(
+        var(--mobile-ticket-top)
+        + var(--mobile-ticket-height)
+        + var(--mobile-action-gap)
+        - (var(--mobile-stage-bottom-safe-space) / 2)
+      );
       bottom: auto;
       left: 50%;
       z-index: 24;
@@ -1363,7 +1370,7 @@
     }
 
 .scratch-card-stage[data-layout="mobile"] .action-controls {
-      top: var(--mobile-action-controls-top);
+      top: calc(var(--mobile-action-controls-top) - var(--mobile-stage-bottom-safe-space));
       width: 492px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       column-gap: 12px;
@@ -1371,20 +1378,20 @@
     }
 
 .scratch-card-stage[data-layout="mobile"][data-state="purchase"] .action-controls {
-      top: var(--mobile-action-controls-top);
+      top: calc(var(--mobile-action-controls-top) - var(--mobile-stage-bottom-safe-space));
       row-gap: 10px;
     }
 
 .scratch-card-stage[data-layout="mobile"][data-state="done"] .action-controls {
-      top: var(--mobile-action-controls-top);
+      top: calc(var(--mobile-action-controls-top) - var(--mobile-stage-bottom-safe-space));
     }
 
 .scratch-card-stage[data-layout="mobile"][data-can-reveal-all="true"] .action-controls {
-      top: var(--mobile-action-controls-top);
+      top: calc(var(--mobile-action-controls-top) - var(--mobile-stage-bottom-safe-space));
     }
 
 .scratch-card-stage[data-layout="mobile"][data-state="done"][data-can-reveal-all="true"] .action-controls {
-      top: var(--mobile-action-controls-top);
+      top: calc(var(--mobile-action-controls-top) - var(--mobile-stage-bottom-safe-space));
     }
 
 .scratch-card-stage[data-layout="mobile"] .primary-button,

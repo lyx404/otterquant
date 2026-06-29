@@ -11,10 +11,12 @@ import {
 import { GameWalletModal } from "@/components/GameWalletModal";
 import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import { useGameEconomy } from "@/contexts/GameEconomyContext";
+import { usePageTransition } from "@/contexts/PageTransitionContext";
 import {
   BALANCE_PER_USD,
   balanceToUsd,
   formatBalance,
+  type GameWalletActivityItem,
   type GameWalletAccountKind,
 } from "@/lib/gameWallet";
 
@@ -127,12 +129,51 @@ export type GameWalletModalController = {
   closeWalletModal: () => void;
   openCashWallet: () => void;
   openWithdrawModal: () => void;
+  earnCash: () => void;
   withdrawContent: ReactNode;
   tr: (en: string, zh: string) => string;
   formatWalletDateTime: (value: string) => string;
+  coinBalanceValue: number;
+  cashBalanceValue: number;
+  cashDecimals: number;
   coinBalanceText: string;
   cashBalanceText: string;
+  coinActivitiesOverride?: GameWalletActivityItem[];
+  cashActivitiesOverride?: GameWalletActivityItem[];
+  setWalletDisplayOverrides: (overrides: WalletDisplayOverrides | null) => void;
 };
+
+type WalletDisplayOverrides = {
+  coinBalance?: number;
+  cashBalanceUsd?: number;
+  coinActivities?: GameWalletActivityItem[];
+  cashActivities?: GameWalletActivityItem[];
+};
+
+const WALLET_DISPLAY_OVERRIDES_STORAGE_KEY = "otterquant.walletDisplayOverrides";
+
+function isWalletDisplayOverrides(value: unknown): value is WalletDisplayOverrides {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as WalletDisplayOverrides;
+  const validCoinBalance = candidate.coinBalance === undefined || typeof candidate.coinBalance === "number";
+  const validCashBalance = candidate.cashBalanceUsd === undefined || typeof candidate.cashBalanceUsd === "number";
+  const validCoinActivities = candidate.coinActivities === undefined || Array.isArray(candidate.coinActivities);
+  const validCashActivities = candidate.cashActivities === undefined || Array.isArray(candidate.cashActivities);
+  return validCoinBalance && validCashBalance && validCoinActivities && validCashActivities;
+}
+
+function readStoredWalletDisplayOverrides(): WalletDisplayOverrides | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const storedValue = window.sessionStorage.getItem(WALLET_DISPLAY_OVERRIDES_STORAGE_KEY);
+    if (!storedValue) return null;
+    const parsedValue: unknown = JSON.parse(storedValue);
+    return isWalletDisplayOverrides(parsedValue) ? parsedValue : null;
+  } catch {
+    return null;
+  }
+}
 
 const GameWalletModalContext = createContext<GameWalletModalController | null>(null);
 
@@ -140,6 +181,7 @@ export function useGameWalletModalController(
   initialAccountKind: GameWalletAccountKind = "coin",
 ): GameWalletModalController {
   const { uiLang } = useAppLanguage();
+  const { navigateWithTransition } = usePageTransition();
   const { coinBalance, cashCents, spendCashCents } = useGameEconomy();
   const tr = useCallback((en: string, zh: string) => (uiLang === "zh" ? zh : en), [uiLang]);
 
@@ -156,14 +198,32 @@ export function useGameWalletModalController(
   const [withdrawWalletEditing, setWithdrawWalletEditing] = useState(false);
   const [withdrawStatus, setWithdrawStatus] = useState<FundsStatus>("idle");
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [walletDisplayOverrides, setWalletDisplayOverridesState] = useState<WalletDisplayOverrides | null>(
+    readStoredWalletDisplayOverrides
+  );
   const withdrawNetworkSelectRef = useRef<HTMLDivElement | null>(null);
 
   const cashBalanceUsd = cashCents / BALANCE_PER_USD;
+  const displayedCoinBalance = walletDisplayOverrides?.coinBalance ?? coinBalance;
+  const displayedCashBalanceUsd = walletDisplayOverrides?.cashBalanceUsd ?? cashBalanceUsd;
+  const displayedCashDecimals = walletDisplayOverrides?.cashBalanceUsd === 0 ? 0 : 1;
   const walletBalanceAmount = cashCents;
   const walletBalanceUsd = balanceToUsd(walletBalanceAmount);
 
   const resetWithdrawFeedback = useCallback(() => {
     setWithdrawStatus("idle");
+  }, []);
+
+  const setWalletDisplayOverrides = useCallback((overrides: WalletDisplayOverrides | null) => {
+    setWalletDisplayOverridesState(overrides);
+
+    if (typeof window === "undefined") return;
+    if (!overrides) {
+      window.sessionStorage.removeItem(WALLET_DISPLAY_OVERRIDES_STORAGE_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(WALLET_DISPLAY_OVERRIDES_STORAGE_KEY, JSON.stringify(overrides));
   }, []);
 
   useEffect(() => {
@@ -228,6 +288,11 @@ export function useGameWalletModalController(
   const openCashWallet = useCallback(() => {
     openWalletModal("cash");
   }, [openWalletModal]);
+
+  const earnCash = useCallback(() => {
+    closeWalletModal();
+    void navigateWithTransition("/scratch-card");
+  }, [closeWalletModal, navigateWithTransition]);
 
   const formatWalletDateTime = useCallback((value: string) => {
     const date = new Date(value);
@@ -512,11 +577,20 @@ export function useGameWalletModalController(
     closeWalletModal,
     openCashWallet,
     openWithdrawModal,
+    earnCash,
     withdrawContent,
     tr,
     formatWalletDateTime,
-    coinBalanceText: formatBalance(coinBalance),
-    cashBalanceText: `$${cashBalanceUsd.toFixed(1)}`,
+    coinBalanceValue: displayedCoinBalance,
+    cashBalanceValue: displayedCashBalanceUsd,
+    cashDecimals: displayedCashDecimals,
+    coinBalanceText: formatBalance(displayedCoinBalance),
+    cashBalanceText: walletDisplayOverrides?.cashBalanceUsd === 0
+      ? "$0"
+      : `$${displayedCashBalanceUsd.toFixed(1)}`,
+    coinActivitiesOverride: walletDisplayOverrides?.coinActivities,
+    cashActivitiesOverride: walletDisplayOverrides?.cashActivities,
+    setWalletDisplayOverrides,
   };
 }
 
@@ -528,6 +602,8 @@ export function GameWalletModalHost({ controller }: { controller: GameWalletModa
       accountKind={controller.walletAccountKind}
       cashBalance={controller.cashBalanceText}
       coinBalance={controller.coinBalanceText}
+      coinActivitiesOverride={controller.coinActivitiesOverride}
+      cashActivitiesOverride={controller.cashActivitiesOverride}
       closeLabel={controller.tr("Close wallet", "关闭钱包")}
       closeWithdrawLabel={controller.tr("Close withdraw", "关闭提现")}
       backLabel={controller.tr("Back to wallet", "返回钱包")}
@@ -537,6 +613,7 @@ export function GameWalletModalHost({ controller }: { controller: GameWalletModa
       onBackdropClose={controller.closeWalletModal}
       onOpenCashWallet={controller.openCashWallet}
       onWithdraw={controller.openWithdrawModal}
+      onEarnCash={controller.earnCash}
       withdrawContent={controller.withdrawContent}
       tr={controller.tr}
       formatWalletDateTime={controller.formatWalletDateTime}
