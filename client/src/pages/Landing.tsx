@@ -62,7 +62,7 @@ const curveRanges = ["7D", "30D", "90D", "365D"] as const;
 type CurveRange = (typeof curveRanges)[number];
 const factorFilterOptions = ["all", "starred"] as const;
 type FactorFilterKey = (typeof factorFilterOptions)[number];
-const inventoryGradeFilterOptions = ["all", "SSS", "SS", "S", "A", "B", "C", "D", "prop", "misc"] as const;
+const inventoryGradeFilterOptions = ["all", "SSS", "SS", "S", "A", "B", "C", "D", "misc"] as const;
 type InventoryGradeFilter = (typeof inventoryGradeFilterOptions)[number];
 type FactorSortKey =
   | "createdAt"
@@ -243,6 +243,8 @@ type InventoryScenarioMode = "multiple" | "empty" | "single";
 type WalletDataScenarioMode = "empty" | "filled";
 const DEFAULT_TEST_COIN_BALANCE = 100000;
 const MAX_TEST_COIN_BALANCE = 999999999;
+const DEFAULT_TEST_CASH_BALANCE = 99.9;
+const MAX_TEST_CASH_BALANCE = 9999999.9;
 type TestScenarioPanelPosition = {
   left: number;
   top: number;
@@ -436,24 +438,6 @@ https://api.quandora.trade/v1/agent
 Include the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
 
 const inventorySpecialCards: InventorySpecialCard[] = [
-  {
-    id: "ITEM-PROP-001",
-    type: "prop",
-    nameEn: "Lucky Bait",
-    nameZh: "幸运鱼饵",
-    tagEn: "Bitcoin",
-    tagZh: "Bitcoin",
-    metricOneLabelEn: "Limited across all waters; even passing schools stop to look",
-    metricOneLabel: "全海域限量，鱼群路过都要先看一眼",
-    metricOneValueEn: "Average",
-    metricOneValue: "一般",
-    metricTwoLabelEn: "",
-    metricTwoLabel: "",
-    metricTwoValueEn: "",
-    metricTwoValue: "",
-    imageSrc: "/assets/bitcoin.svg",
-    statsLayout: "inline",
-  },
   {
     id: "ITEM-MISC-001",
     type: "misc",
@@ -662,6 +646,8 @@ export default function Landing() {
   const { user, login, logout, updateUser } = useAuth();
   const { cashCents, fishBalance } = useGameEconomy();
   const { navigateWithTransition } = usePageTransition();
+  const walletController = useGameWalletModal();
+  const setWalletDisplayOverrides = walletController.setWalletDisplayOverrides;
   const tr = (en: string, zh: string) => t(en, zh);
   const cashBalanceUsd = cashCents / BALANCE_PER_USD;
   const shouldForceShowTestScenarioPanel = true;
@@ -687,8 +673,17 @@ export default function Landing() {
   const [testScenarioPanelState, setTestScenarioPanelState] = useState<TestScenarioPanelState>("expanded");
   const [inventoryScenarioMode, setInventoryScenarioMode] = useState<InventoryScenarioMode>("multiple");
   const [coinDataScenarioMode, setCoinDataScenarioMode] = useState<WalletDataScenarioMode>("filled");
-  const [testCoinBalanceDraft, setTestCoinBalanceDraft] = useState(() => DEFAULT_TEST_COIN_BALANCE.toLocaleString());
+  const [testCoinBalanceDraft, setTestCoinBalanceDraft] = useState(() => (
+    walletController.hasWalletDisplayOverrides
+      ? walletController.coinBalanceValue.toLocaleString()
+      : DEFAULT_TEST_COIN_BALANCE.toLocaleString()
+  ));
   const [cashDataScenarioMode, setCashDataScenarioMode] = useState<WalletDataScenarioMode>("filled");
+  const [testCashBalanceDraft, setTestCashBalanceDraft] = useState(() => (
+    walletController.hasWalletDisplayOverrides
+      ? walletController.cashBalanceValue.toFixed(walletController.cashDecimals)
+      : DEFAULT_TEST_CASH_BALANCE.toFixed(1)
+  ));
   const [testScenarioPanelPosition, setTestScenarioPanelPosition] = useState<TestScenarioPanelPosition>(TEST_SCENARIO_PANEL_DEFAULT_POSITION);
   const [testScenarioPanelMoved, setTestScenarioPanelMoved] = useState(false);
   const testScenarioPanelDragRef = useRef<TestScenarioPanelDragState | null>(null);
@@ -709,8 +704,6 @@ export default function Landing() {
   const inventoryPageTransition = useMobilePageTransition(inventoryOpen, 260);
   const inventoryDetailPageTransition = useMobilePageTransition(inventoryDetailOpen, 260);
   const inventoryClosingFactorRef = useRef<FactorRow | null>(null);
-  const walletController = useGameWalletModal();
-  const setWalletDisplayOverrides = walletController.setWalletDisplayOverrides;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState<"general" | "agent">("general");
   const [settingsAgentSection, setSettingsAgentSection] = useState<"web" | "client">("web");
@@ -1319,12 +1312,15 @@ export default function Landing() {
     stageLayout.scale,
     uiLang,
   ]);
-  const customCoinBalance = Math.min(
-    MAX_TEST_COIN_BALANCE,
-    Number(testCoinBalanceDraft.replace(/[^\d]/g, "")) || DEFAULT_TEST_COIN_BALANCE
-  );
+  const testCoinBalanceDigits = testCoinBalanceDraft.replace(/[^\d]/g, "");
+  const parsedTestCoinBalance = testCoinBalanceDigits ? Number(testCoinBalanceDigits) : DEFAULT_TEST_COIN_BALANCE;
+  const customCoinBalance = Math.min(MAX_TEST_COIN_BALANCE, parsedTestCoinBalance);
   const displayedCoinBalance = coinDataScenarioMode === "empty" ? 0 : customCoinBalance;
-  const displayedCashBalanceUsd = cashDataScenarioMode === "empty" ? 0 : cashBalanceUsd;
+  const parsedTestCashBalance = Number(testCashBalanceDraft.replace(/[^\d.]/g, ""));
+  const customCashBalanceUsd = Number.isFinite(parsedTestCashBalance)
+    ? Math.min(MAX_TEST_CASH_BALANCE, parsedTestCashBalance)
+    : DEFAULT_TEST_CASH_BALANCE;
+  const displayedCashBalanceUsd = cashDataScenarioMode === "empty" ? 0 : customCashBalanceUsd;
   useEffect(() => {
     setWalletDisplayOverrides({
       coinBalance: displayedCoinBalance,
@@ -1584,6 +1580,20 @@ export default function Landing() {
 
     const nextValue = Math.min(MAX_TEST_COIN_BALANCE, Number(nextDigits));
     setTestCoinBalanceDraft(nextValue.toLocaleString());
+  };
+
+  const updateTestCashBalanceDraft = (value: string) => {
+    const normalizedValue = value.replace(/[^\d.]/g, "").replace(/(\..*)\./g, "$1");
+    if (!normalizedValue) {
+      setTestCashBalanceDraft("");
+      return;
+    }
+
+    const nextValue = Math.min(MAX_TEST_CASH_BALANCE, Number(normalizedValue || 0));
+    const hasTrailingDecimal = normalizedValue.endsWith(".");
+    const decimalPart = normalizedValue.split(".")[1] ?? "";
+    const fractionDigits = Math.min(1, decimalPart.length);
+    setTestCashBalanceDraft(hasTrailingDecimal ? `${Math.floor(nextValue)}.` : nextValue.toFixed(fractionDigits));
   };
 
   const toggleCashDataScenario = () => {
@@ -6529,6 +6539,8 @@ export default function Landing() {
           grid-template-columns: minmax(0, 1fr);
           align-items: start;
           gap: 0;
+          font-family: var(--font-rounded-current);
+          font-variation-settings: "BEVL" var(--BEVL);
         }
 
         .settings-agent-side-nav {
@@ -6868,7 +6880,7 @@ export default function Landing() {
           min-width: 0;
           overflow: hidden;
           color: #6c655e;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-family: var(--font-rounded-current);
           font-size: 17px;
           font-weight: 800;
           line-height: 1.35;
@@ -6924,7 +6936,7 @@ export default function Landing() {
           background: #f1eee9;
           border: 1px solid rgba(196, 184, 158, .44);
           border-radius: 4px;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-family: var(--font-rounded-current);
           font-size: 15px;
           font-weight: 850;
         }
@@ -7652,7 +7664,7 @@ export default function Landing() {
           padding: 8px 10px 8px 12px;
           box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
         }
-        .sac-code-box code { flex: 1; font-size: 12px; color: rgb(121,79,39); font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; word-break: break-all; }
+        .sac-code-box code { flex: 1; font-size: 12px; color: rgb(121,79,39); font-family: var(--font-rounded-current); word-break: break-all; }
 
         .sac-code-copy {
           appearance: none;
@@ -7696,7 +7708,7 @@ export default function Landing() {
         .sac-guide-step-title::before { content: counter(guide-step) ". "; }
         .sac-guide-fields { list-style: disc; padding-left: 16px; margin: 0; display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: rgba(121,79,39,.8); }
         .sac-guide-field-line { display: flex; align-items: center; gap: 6px; min-width: 0; }
-        .sac-guide-fields code { background: rgba(196,184,158,.2); border-radius: 3px; padding: 0 4px; font-family: monospace; font-size: 11px; }
+        .sac-guide-fields code { background: rgba(196,184,158,.2); border-radius: 3px; padding: 0 4px; font-family: var(--font-rounded-current); font-size: 11px; }
         .sac-guide-copy {
           appearance: none;
           width: 22px;
@@ -8375,7 +8387,7 @@ export default function Landing() {
           background: #fff8e8;
           border: 1.5px solid rgba(196, 184, 158, .56);
           border-radius: var(--radius-xs);
-          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-family: var(--font-rounded-current);
           font-size: 11px;
           font-weight: 850;
           line-height: 1.45;
@@ -8495,7 +8507,7 @@ export default function Landing() {
 
         .settings-agent-code-copy strong {
           color: rgb(121,79,39);
-          font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-family: var(--font-rounded-current);
           font-size: 20px;
           letter-spacing: .06em;
           line-height: 1;
@@ -8708,7 +8720,7 @@ export default function Landing() {
           background: #fff7e3;
           border: 1.5px solid rgba(196, 184, 158, .62);
           border-radius: var(--radius-xs);
-          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+          font-family: var(--font-rounded-current);
           font-size: 11px;
           font-weight: 850;
           line-height: 1.45;
@@ -11221,14 +11233,19 @@ export default function Landing() {
 
         .inventory-card--SSS .inv-art,
         .inventory-card--SS .inv-art {
-          border-width: 2px 2px 0;
+          border-width: 0;
           border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--SSS .inv-medal,
+        .inventory-card--SS .inv-medal {
+          border-width: 0;
         }
 
         .inventory-card--SSS .inv-art__tag,
         .inventory-card--SS .inv-art__tag {
           padding: 4px 10px;
-          border-width: 2px;
+          border-width: 0;
           border-radius: 4px 0 0 0;
         }
 
@@ -11238,21 +11255,14 @@ export default function Landing() {
 
         .inventory-card--SSS .inv-stats,
         .inventory-card--SS .inv-stats {
-          border-width: 2px;
+          border-width: 0;
           border-radius: 0 0 4px 4px;
         }
 
         .inventory-card--SSS .inv-btn,
         .inventory-card--SS .inv-btn {
+          border-width: 0;
           border-radius: 4px;
-        }
-
-        .inventory-card--SSS .inv-btn--ghost {
-          border-width: 2px;
-        }
-
-        .inventory-card--SS .inv-btn--ghost {
-          border-width: 2px;
         }
 
         .inventory-card--SS .inv-btn--star.is-on {
@@ -11265,7 +11275,6 @@ export default function Landing() {
 
         .inventory-card--SS .inv-btn--cta {
           background: #ffffff;
-          border: 2px solid #101010;
         }
 
         .inventory-card--SSS .inv-head,
@@ -11314,7 +11323,6 @@ export default function Landing() {
           letter-spacing: .015em;
           line-height: 1;
         }
-
 	        .inv-medal {
 	          position: relative;
 	          top: auto;
@@ -11614,32 +11622,32 @@ export default function Landing() {
         }
 
         .inventory-card--S .inv-art {
-          border-width: 2px 2px 0;
+          border-width: 0;
           border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--S .inv-medal {
+          border-width: 0;
         }
 
         .inventory-card--S .inv-art__tag {
           padding: 4px 10px;
-          border-width: 2px;
+          border-width: 0;
           border-radius: 4px 0 0 0;
         }
 
         .inventory-card--S .inv-stats {
-          border-width: 2px;
+          border-width: 0;
           border-radius: 0 0 4px 4px;
         }
 
         .inventory-card--S .inv-btn {
+          border-width: 0;
           border-radius: 4px;
-        }
-
-        .inventory-card--S .inv-btn--ghost {
-          border-width: 2px;
         }
 
         .inventory-card--S .inv-btn--cta {
           background: #ffffff;
-          border: 2px solid #101010;
         }
 
         .inventory-card--S .inv-head {
@@ -11658,27 +11666,28 @@ export default function Landing() {
         }
 
         .inventory-card--A .inv-art {
-          border-width: 2px 2px 0;
+          border-width: 0;
           border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--A .inv-medal {
+          border-width: 0;
         }
 
         .inventory-card--A .inv-art__tag {
           padding: 4px 10px;
-          border-width: 2px;
+          border-width: 0;
           border-radius: 4px 0 0 0;
         }
 
         .inventory-card--A .inv-stats {
-          border-width: 2px;
+          border-width: 0;
           border-radius: 0 0 4px 4px;
         }
 
         .inventory-card--A .inv-btn {
+          border-width: 0;
           border-radius: 4px;
-        }
-
-        .inventory-card--A .inv-btn--ghost {
-          border-width: 2px;
         }
 
         .inventory-card--A .inv-head {
@@ -11697,27 +11706,28 @@ export default function Landing() {
         }
 
         .inventory-card--B .inv-art {
-          border-width: 2px 2px 0;
+          border-width: 0;
           border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--B .inv-medal {
+          border-width: 0;
         }
 
         .inventory-card--B .inv-art__tag {
           padding: 4px 10px;
-          border-width: 2px;
+          border-width: 0;
           border-radius: 4px 0 0 0;
         }
 
         .inventory-card--B .inv-stats {
-          border-width: 2px;
+          border-width: 0;
           border-radius: 0 0 4px 4px;
         }
 
         .inventory-card--B .inv-btn {
+          border-width: 0;
           border-radius: 4px;
-        }
-
-        .inventory-card--B .inv-btn--ghost {
-          border-width: 2px;
         }
 
         .inventory-card--B .inv-head {
@@ -11736,27 +11746,28 @@ export default function Landing() {
         }
 
         .inventory-card--C .inv-art {
-          border-width: 2px 2px 0;
+          border-width: 0;
           border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--C .inv-medal {
+          border-width: 0;
         }
 
         .inventory-card--C .inv-art__tag {
           padding: 4px 10px;
-          border-width: 2px;
+          border-width: 0;
           border-radius: 4px 0 0 0;
         }
 
         .inventory-card--C .inv-stats {
-          border-width: 2px;
+          border-width: 0;
           border-radius: 0 0 4px 4px;
         }
 
         .inventory-card--C .inv-btn {
+          border-width: 0;
           border-radius: 4px;
-        }
-
-        .inventory-card--C .inv-btn--ghost {
-          border-width: 2px;
         }
 
         .inventory-card--C .inv-head {
@@ -11775,27 +11786,28 @@ export default function Landing() {
         }
 
         .inventory-card--D .inv-art {
-          border-width: 2px 2px 0;
+          border-width: 0;
           border-radius: 4px 4px 0 0;
+        }
+
+        .inventory-card--D .inv-medal {
+          border-width: 0;
         }
 
         .inventory-card--D .inv-art__tag {
           padding: 4px 10px;
-          border-width: 2px;
+          border-width: 0;
           border-radius: 4px 0 0 0;
         }
 
         .inventory-card--D .inv-stats {
-          border-width: 2px;
+          border-width: 0;
           border-radius: 0 0 4px 4px;
         }
 
         .inventory-card--D .inv-btn {
+          border-width: 0;
           border-radius: 4px;
-        }
-
-        .inventory-card--D .inv-btn--ghost {
-          border-width: 2px;
         }
 
         .inventory-card--D .inv-head {
@@ -11870,6 +11882,14 @@ export default function Landing() {
         .inventory-card--prop .inv-btn--ghost,
         .inventory-card--misc .inv-btn--ghost {
           border-width: 2px;
+        }
+
+        .inventory-card--misc .inv-medal,
+        .inventory-card--misc .inv-art,
+        .inventory-card--misc .inv-art__tag,
+        .inventory-card--misc .inv-stats,
+        .inventory-card--misc .inv-btn {
+          border-width: 0;
         }
 
         .inventory-card--prop .inv-head,
@@ -12416,13 +12436,19 @@ export default function Landing() {
           align-content: center;
           place-items: center;
           gap: 16px;
-          padding: 0;
-          color: rgba(121, 79, 39, .38);
+          justify-content: center;
+          padding: 30px 16px 34px;
+          color: rgba(114, 93, 66, .38);
           background: transparent;
           border: 0;
+          border-top: 1px solid rgba(196, 184, 158, .45);
           border-radius: 0;
-          font-size: 18px;
+          font-family: var(--wallet-ui-font);
+          font-size: 14px;
           font-weight: 900;
+          font-synthesis: none;
+          font-optical-sizing: auto;
+          font-variation-settings: "wght" 720, "BEVL" var(--BEVL);
           line-height: 1;
           text-align: center;
         }
@@ -12433,8 +12459,14 @@ export default function Landing() {
           width: min(120px, 34vw);
           max-width: 120px;
           height: auto;
+          margin-bottom: 0;
           opacity: .5;
           user-select: none;
+        }
+
+        .inventory-empty > span {
+          display: block;
+          margin-top: 2px;
         }
 
         .inventory-detail-modal {
@@ -13817,6 +13849,19 @@ export default function Landing() {
                         )}
                       </span>
                     </button>
+                    <label className="test-scenario-field">
+                      <span className="test-scenario-field__label">{tr("Cash value", "现金值设定")}</span>
+                      <input
+                        className="test-scenario-field__input"
+                        type="text"
+                        inputMode="decimal"
+                        value={testCashBalanceDraft}
+                        aria-label={tr("Set cash value", "设定现金值")}
+                        onChange={(event) => updateTestCashBalanceDraft(event.target.value)}
+                        onFocus={() => setCashDataScenarioMode("filled")}
+                        placeholder={DEFAULT_TEST_CASH_BALANCE.toFixed(1)}
+                      />
+                    </label>
                     <button
                       className="test-scenario-button"
                       type="button"
@@ -15687,11 +15732,9 @@ export default function Landing() {
                   >
                     {grade === "all"
                       ? tr("All", "全部")
-                      : grade === "prop"
-                        ? tr("Props", "道具")
-                        : grade === "misc"
-                          ? tr("Misc", "杂物")
-                          : grade}
+                      : grade === "misc"
+                        ? tr("Misc", "杂物")
+                        : grade}
                   </button>
                 ))}
               </div>
@@ -15941,7 +15984,7 @@ export default function Landing() {
               {displayedInventoryFactors.length === 0 && displayedInventorySpecialCards.length === 0 && (
                 <div className="shop-empty inventory-empty">
                   <img className="inventory-empty__icon" src="/assets/wallet-empty-state.svg" alt="" aria-hidden="true" />
-                  <span>{tr("Nothing here", "空空如也")}</span>
+                  <span>{tr("Empty", "空空如也")}</span>
                 </div>
               )}
             </div>
