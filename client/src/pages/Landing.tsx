@@ -649,6 +649,14 @@ export default function Landing() {
   const walletController = useGameWalletModal();
   const setWalletDisplayOverrides = walletController.setWalletDisplayOverrides;
   const tr = (en: string, zh: string) => t(en, zh);
+  const openStandaloneGameRoute = useCallback((route: string) => {
+    if (typeof window !== "undefined" && window.innerWidth <= 700) {
+      setLocation(route);
+      return;
+    }
+
+    void navigateWithTransition(route);
+  }, [navigateWithTransition, setLocation]);
   const cashBalanceUsd = cashCents / BALANCE_PER_USD;
   const shouldForceShowTestScenarioPanel = true;
   const shouldShowTestScenarioPanel =
@@ -13637,6 +13645,7 @@ export default function Landing() {
                 className="menu-item"
                 type="button"
                 aria-label={tr("Fish Market", "鱼市场")}
+                onClick={() => openStandaloneGameRoute("/fish-market")}
               >
                 <img
                   className="menu-icon"
@@ -13678,13 +13687,7 @@ export default function Landing() {
                 className="menu-item"
                 type="button"
                 aria-label={tr("Scratch", "刮刮乐")}
-                onClick={() => {
-                  if (typeof window !== "undefined" && window.innerWidth <= 700) {
-                    setLocation("/scratch-card");
-                    return;
-                  }
-                  void navigateWithTransition("/scratch-card");
-                }}
+                onClick={() => openStandaloneGameRoute("/scratch-card")}
               >
                 <img
                   className="menu-icon"

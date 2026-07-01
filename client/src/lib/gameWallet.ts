@@ -195,6 +195,23 @@ export function formatHudBalance(amount: number) {
   return `${formatted}${unit.suffix}`;
 }
 
+export function formatHudCashBalance(amount: number) {
+  const value = Number(amount) || 0;
+  const absValue = Math.abs(value);
+
+  if (absValue < 1000) {
+    return `$${value.toFixed(1)}`;
+  }
+
+  const units = [
+    { suffix: "B", value: 1000000000 },
+    { suffix: "M", value: 1000000 },
+    { suffix: "K", value: 1000 },
+  ];
+  const unit = units.find((item) => absValue >= item.value) ?? units[units.length - 1];
+  return `$${(value / unit.value).toFixed(1)}${unit.suffix}`;
+}
+
 export function balanceToUsd(amount: number) {
   return (Number(amount) || 0) / BALANCE_PER_USD;
 }
