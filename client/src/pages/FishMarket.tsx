@@ -6,7 +6,7 @@ import {
   type CSSProperties,
   type MouseEvent as ReactMouseEvent,
 } from "react";
-import { ArrowLeft } from "lucide-react";
+import { X } from "lucide-react";
 import { useLocation } from "wouter";
 import { GameHudStats } from "@/components/GameHudStats";
 import { useGameWalletModal } from "@/components/GameWalletModalHost";
@@ -230,10 +230,13 @@ export default function FishMarket() {
     setSelectedCardIds(new Set<string>());
     setSellSuccessToast({
       id: Date.now(),
-      title: "出售成功",
-      message: `获得 ${formatFishMarketPrice(estimatedPrice)} 游戏币`,
+      title: tr("Sold", "出售成功"),
+      message: tr(
+        `Earned ${formatFishMarketPrice(estimatedPrice)} coins`,
+        `获得 ${formatFishMarketPrice(estimatedPrice)} 游戏币`,
+      ),
     });
-  }, [addCoins, canSellSelectedCards, estimatedPrice, selectedCardIds, walletController]);
+  }, [addCoins, canSellSelectedCards, estimatedPrice, selectedCardIds, tr, walletController]);
 
   return (
     <main
@@ -251,11 +254,11 @@ export default function FishMarket() {
           <button
             className="fish-market-back-button"
             type="button"
-            aria-label={tr("Back", "返回")}
+            aria-label={stageLayout.mode === "mobile" ? tr("Close", "关闭") : tr("Back", "返回")}
             onClick={handleBackClick}
           >
             <span className="fish-market-back-button__icon" aria-hidden="true">
-              <ArrowLeft size={22} strokeWidth={3} />
+              <X size={22} strokeWidth={3} />
             </span>
             <img src={SCRATCH_CARD_ASSETS.back} alt="" />
           </button>
@@ -270,24 +273,24 @@ export default function FishMarket() {
           />
         </header>
 
-        <div className="fish-market-scene" data-node-id="1086:95554" data-name="鱼市场">
-          <div className="fish-market-title-block" data-node-id="1086:95555" data-name="标题区">
+        <div className="fish-market-scene" data-node-id="1086:95554" data-name={tr("Fish Market", "鱼市场")}>
+          <div className="fish-market-title-block" data-node-id="1086:95555" data-name={tr("Title", "标题区")}>
             <div className="fish-market-title-block__image" aria-hidden="true">
               <img src={FISH_MARKET_ASSETS.titleBg} alt="" />
             </div>
-            <h1 className="fish-market-title">鱼市场</h1>
+            <h1 className="fish-market-title">{tr("Fish Market", "鱼市场")}</h1>
           </div>
 
-          <section className="fish-market-board" data-node-id="1086:95558" data-name="内容" aria-label="鱼市场">
+          <section className="fish-market-board" data-node-id="1086:95558" data-name={tr("Content", "内容")} aria-label={tr("Fish Market", "鱼市场")}>
             <div
               className={`fish-market-card-grid${availableCards.length === 0 ? " is-empty" : ""}`}
               data-node-id="1086:95559"
-              data-name="选择区"
+              data-name={tr("Selection", "选择区")}
             >
               {availableCards.length === 0 ? (
                 <div className="fish-market-empty" role="status">
                   <img className="fish-market-empty__icon" src="/assets/wallet-empty-state.svg" alt="" aria-hidden="true" />
-                  <span>{tr("Empty", "空空如也")}</span>
+                  <span>{tr("Nothing here", "空空如也")}</span>
                 </div>
               ) : (
                 availableCards.map((card) => {
@@ -301,7 +304,7 @@ export default function FishMarket() {
                       type="button"
                       disabled={selling}
                       aria-pressed={selected}
-                      aria-label={selling ? "鱼卡出售中" : selected ? "取消选择鱼卡" : "选择鱼卡"}
+                      aria-label={selling ? tr("Selling fish card", "鱼卡出售中") : selected ? tr("Unselect fish card", "取消选择鱼卡") : tr("Select fish card", "选择鱼卡")}
                       onClick={() => toggleCard(card.id)}
                     >
                       <img className="fish-market-card-option__image" src={card.image} alt="" />
@@ -314,29 +317,47 @@ export default function FishMarket() {
               )}
             </div>
 
-            <aside className="fish-market-settlement" data-node-id="1086:95593" data-name="结算区">
-              <div className="fish-market-summary" data-node-id="1086:95599" data-name="结算数值">
+            <aside className="fish-market-settlement" data-node-id="1086:95593" data-name={tr("Settlement", "结算区")}>
+              <div className="fish-market-summary" data-node-id="1086:95599" data-name={tr("Settlement values", "结算数值")}>
                 <div className="fish-market-summary__title" data-node-id="1086:95600">
-                  <span>出售卡牌可获得游戏币</span>
+                  <span>{tr("Sell cards for coins", "出售卡牌可获得游戏币")}</span>
                 </div>
                 <div className="fish-market-summary__body" data-node-id="1086:95602">
                   <img className="fish-market-summary__shop" src={FISH_MARKET_ASSETS.shop} alt="" />
                   <div className="fish-market-summary__rows">
                     <div className="fish-market-summary__row">
-                      <span>已选择</span>
-                      <strong>{selectedCardCount} 张</strong>
+                      <span className="fish-market-summary__label fish-market-summary__label--full">{tr("Selected", "已选择")}</span>
+                      <span className="fish-market-summary__label fish-market-summary__label--short">{tr("Selected", "已选")}</span>
+                      <span className="fish-market-summary__value">
+                        <strong>{tr(`${selectedCardCount} cards`, `${selectedCardCount} 张`)}</strong>
+                      </span>
+                      <button
+                        className="fish-market-select-all fish-market-select-all--mobile"
+                        type="button"
+                        disabled={availableCards.length === 0}
+                        aria-pressed={allCardsSelected}
+                        onClick={toggleAllCards}
+                      >
+                        <span className={`fish-market-check${allCardsSelected ? " is-selected" : ""}`} aria-hidden="true">
+                          {allCardsSelected && <img src={FISH_MARKET_ASSETS.check} alt="" />}
+                        </span>
+                        <span>{tr("Select all", "全选")}</span>
+                      </button>
                     </div>
                     <div className="fish-market-summary__row">
-                      <span>预计价格</span>
-                      <img className="fish-market-summary__coin" src={FISH_MARKET_ASSETS.coin} alt="" />
-                      <strong>{formatFishMarketPrice(estimatedPrice)}</strong>
+                      <span className="fish-market-summary__label fish-market-summary__label--full">{tr("Estimated price", "预计价格")}</span>
+                      <span className="fish-market-summary__label fish-market-summary__label--short">{tr("Price", "价格")}</span>
+                      <span className="fish-market-summary__value">
+                        <img className="fish-market-summary__coin" src={FISH_MARKET_ASSETS.coin} alt="" />
+                        <strong>{formatFishMarketPrice(estimatedPrice)}</strong>
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
 
               <button
-                className="fish-market-select-all"
+                className="fish-market-select-all fish-market-select-all--desktop"
                 type="button"
                 disabled={availableCards.length === 0}
                 aria-pressed={allCardsSelected}
@@ -345,7 +366,7 @@ export default function FishMarket() {
                 <span className={`fish-market-check${allCardsSelected ? " is-selected" : ""}`} aria-hidden="true">
                   {allCardsSelected && <img src={FISH_MARKET_ASSETS.check} alt="" />}
                 </span>
-                <span>全选</span>
+                <span>{tr("Select all", "全选")}</span>
               </button>
 
               <button
@@ -354,7 +375,7 @@ export default function FishMarket() {
                 disabled={!canSellSelectedCards}
                 onClick={handleSellSelectedCards}
               >
-                出售
+                {tr("Sell", "出售")}
               </button>
             </aside>
           </section>
@@ -816,14 +837,25 @@ export default function FishMarket() {
           white-space: nowrap;
         }
 
-        .fish-market-summary__row span {
+        .fish-market-summary__label {
           flex: 1 1 0;
           min-width: 0;
           text-align: left;
         }
 
+        .fish-market-summary__label--short {
+          display: none;
+        }
+
+        .fish-market-summary__value {
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          min-width: 0;
+        }
+
         .fish-market-summary__row strong {
-          flex: 0 0 auto;
           font: inherit;
           text-align: right;
         }
@@ -856,6 +888,10 @@ export default function FishMarket() {
           line-height: 1;
           white-space: nowrap;
           cursor: pointer;
+        }
+
+        .fish-market-select-all--mobile {
+          display: none;
         }
 
         .fish-market-select-all:disabled {
@@ -1003,7 +1039,292 @@ export default function FishMarket() {
         }
 
         .fish-market-route__surface[data-layout="mobile"] .fish-market-scene {
-          transform: translate(-50%, -50%) scale(.29);
+          top: 140px;
+          width: 520px;
+          height: 826px;
+          align-items: stretch;
+          gap: 8px;
+          transform: translateX(-50%);
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-title-block {
+          width: 520px;
+          height: 76px;
+          margin-bottom: -4px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-title-block__image {
+          width: 520px;
+          height: 76px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-title {
+          top: 42px;
+          max-width: 360px;
+          font-size: 34px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          text-shadow:
+            0 3px 0 #0f5aa5,
+            -2px 0 0 #0f5aa5,
+            2px 0 0 #0f5aa5,
+            0 -2px 0 #0f5aa5;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-board {
+          display: block;
+          width: 520px;
+          height: 754px;
+          border-width: 8px;
+          border-radius: 24px;
+          background: #f4fbfe;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-card-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-auto-rows: 302px;
+          gap: 12px;
+          width: 100%;
+          height: calc(100% - 152px);
+          padding: 12px;
+          background: #f4fbfe;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-card-grid.is-empty {
+          min-height: 0;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-empty {
+          gap: 12px;
+          padding: 24px 16px;
+          font-size: 28px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-empty__icon {
+          width: 188px;
+          max-width: 46vw;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-card-option {
+          width: 100%;
+          height: 302px;
+          align-items: center;
+          justify-content: flex-start;
+          border-radius: 18px;
+          -webkit-tap-highlight-color: rgba(255, 220, 117, .28);
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-card-option__image {
+          width: min(226px, 100%);
+          height: 274px;
+          margin-bottom: -10px;
+          object-fit: contain;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-check {
+          width: 34px;
+          height: 34px;
+          border-width: 3px;
+          border-radius: 9px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-settlement {
+          position: absolute;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 4;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: 58px 62px;
+          grid-template-areas:
+            "summary"
+            "sell";
+          gap: 8px 12px;
+          width: auto;
+          min-height: 0;
+          height: 152px;
+          padding: 12px 14px;
+          box-sizing: border-box;
+          border-top: 3px solid rgba(100, 168, 248, .72);
+          background: rgba(236, 245, 253, .96);
+          box-shadow: 0 -10px 20px rgba(55, 129, 206, .14);
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary {
+          position: static;
+          grid-area: summary;
+          width: auto;
+          min-width: 0;
+          overflow: visible;
+          border-radius: 0;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__title {
+          display: none;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__body {
+          display: block;
+          height: 100%;
+          padding: 0;
+          background: transparent;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__shop {
+          display: none;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__rows {
+          display: grid;
+          grid-template-columns: 1.12fr .88fr;
+          gap: 10px;
+          height: 100%;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto auto;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-width: 0;
+          padding: 9px 10px;
+          border: 1.5px solid rgba(100, 168, 248, .3);
+          border-radius: 14px;
+          background: rgba(223, 238, 246, .62);
+          font-size: 17px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row:first-child {
+          grid-template-columns: minmax(0, 1fr) auto;
+          grid-template-areas:
+            "label select"
+            "value select";
+          column-gap: 10px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__label--full {
+          display: none;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__label--short {
+          display: block;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__label,
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__value,
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row strong {
+          min-width: 0;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__label {
+          flex: 0 1 auto;
+          width: 100%;
+          color: #725d42;
+          font-size: 13px;
+          line-height: 1;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row:first-child .fish-market-summary__label {
+          grid-area: label;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__value {
+          justify-content: flex-start;
+          gap: 6px;
+          width: 100%;
+          color: #5a3e00;
+          font-size: 18px;
+          line-height: 1;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row:first-child .fish-market-summary__value {
+          grid-area: value;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__coin {
+          width: 22px;
+          height: 22px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-select-all {
+          position: static;
+          justify-self: stretch;
+          align-self: stretch;
+          min-width: 0;
+          min-height: 0;
+          padding: 0 10px;
+          border: 1.5px solid rgba(100, 168, 248, .34);
+          border-radius: 14px;
+          background: rgba(223, 238, 246, .66);
+          color: #5a3e00;
+          font-size: 20px;
+          box-shadow: none;
+          -webkit-tap-highlight-color: rgba(255, 220, 117, .28);
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-select-all--desktop {
+          display: none;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-select-all--mobile {
+          display: inline-flex;
+          grid-area: select;
+          align-self: center;
+          justify-self: end;
+          width: auto;
+          min-height: 42px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+          font-size: 18px;
+          box-shadow: none;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-select-all--mobile .fish-market-check {
+          width: 28px;
+          height: 28px;
+          border-width: 2.5px;
+          border-radius: 8px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-select-all:disabled {
+          background: rgba(238, 236, 232, .72);
+          border-color: rgba(214, 205, 184, .58);
+          box-shadow: none;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-sell-button {
+          position: static;
+          grid-area: sell;
+          align-self: stretch;
+          width: auto;
+          min-height: 0;
+          padding: 16px 22px;
+          border-radius: 16px;
+          font-size: 34px;
+          white-space: normal;
+          box-shadow:
+            inset 0 2px 0 rgba(255, 255, 255, .42),
+            0 5px 0 rgba(151, 111, 30, .34),
+            0 12px 20px rgba(111, 79, 23, .14);
+          -webkit-tap-highlight-color: rgba(255, 220, 117, .28);
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-sell-button:disabled {
+          box-shadow: none;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-toast {
+          right: max(12px, env(safe-area-inset-right));
+          bottom: max(12px, env(safe-area-inset-bottom));
+          width: min(360px, calc(100vw - 24px));
         }
 
         @media (max-width: 700px) {
