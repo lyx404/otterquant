@@ -12449,7 +12449,6 @@ export default function Landing() {
           color: rgba(114, 93, 66, .38);
           background: transparent;
           border: 0;
-          border-top: 1px solid rgba(196, 184, 158, .45);
           border-radius: 0;
           font-family: var(--wallet-ui-font);
           font-size: 14px;
