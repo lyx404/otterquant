@@ -14,6 +14,27 @@ const AppLanguageContext = createContext<AppLanguageContextType | undefined>(und
 const TRANSLATIONS: TranslationTable = {
   "Pond": { zh: "鱼塘", ja: "池", ko: "연못", es: "Estanque", fr: "Étang" },
   "Fish Market": { zh: "鱼市场", ja: "魚市場", ko: "어시장", es: "Mercado", fr: "Marché" },
+  "Title": { zh: "标题区", ja: "タイトル", ko: "제목", es: "Título", fr: "Titre" },
+  "Content": { zh: "内容", ja: "コンテンツ", ko: "콘텐츠", es: "Contenido", fr: "Contenu" },
+  "Selection": { zh: "选择区", ja: "選択エリア", ko: "선택 영역", es: "Selección", fr: "Sélection" },
+  "Settlement": { zh: "结算区", ja: "精算エリア", ko: "정산 영역", es: "Liquidación", fr: "Règlement" },
+  "Settlement values": { zh: "结算数值", ja: "精算値", ko: "정산 값", es: "Valores de liquidación", fr: "Valeurs de règlement" },
+  "Sell cards for coins": { zh: "出售卡牌可获得游戏币", ja: "カードを売ってコインを獲得", ko: "카드를 팔아 코인 받기", es: "Vende cartas por monedas", fr: "Vendre des cartes contre des pièces" },
+  "Selected": { zh: "已选择", ja: "選択済み", ko: "선택됨", es: "Seleccionadas", fr: "Sélectionnées" },
+  "Estimated price": { zh: "预计价格", ja: "予想価格", ko: "예상 가격", es: "Precio estimado", fr: "Prix estimé" },
+  "Price": { zh: "价格", ja: "価格", ko: "가격", es: "Precio", fr: "Prix" },
+  "card": { zh: "张", ja: "枚", ko: "장", es: "carta", fr: "carte" },
+  "cards": { zh: "张", ja: "枚", ko: "장", es: "cartas", fr: "cartes" },
+  "Select all": { zh: "全选", ja: "すべて選択", ko: "전체 선택", es: "Seleccionar todo", fr: "Tout sélectionner" },
+  "Sell": { zh: "出售", ja: "売却", ko: "판매", es: "Vender", fr: "Vendre" },
+  "Sold": { zh: "出售成功", ja: "売却しました", ko: "판매 완료", es: "Vendido", fr: "Vendu" },
+  "Earned": { zh: "获得", ja: "獲得", ko: "획득", es: "Ganadas", fr: "Obtenu" },
+  "coins": { zh: "游戏币", ja: "コイン", ko: "코인", es: "monedas", fr: "pièces" },
+  "Nothing here": { zh: "空空如也", ja: "何もありません", ko: "비어 있음", es: "Nada aquí", fr: "Rien ici" },
+  "Selling fish card": { zh: "鱼卡出售中", ja: "魚カードを売却中", ko: "물고기 카드 판매 중", es: "Vendiendo carta de pez", fr: "Carte poisson en vente" },
+  "Unselect fish card": { zh: "取消选择鱼卡", ja: "魚カードの選択を解除", ko: "물고기 카드 선택 해제", es: "Deseleccionar carta de pez", fr: "Désélectionner la carte poisson" },
+  "Select fish card": { zh: "选择鱼卡", ja: "魚カードを選択", ko: "물고기 카드 선택", es: "Seleccionar carta de pez", fr: "Sélectionner la carte poisson" },
+  "Fish balance": { zh: "鱼额", ja: "魚残高", ko: "물고기 잔액", es: "Saldo de peces", fr: "Solde poisson" },
   "Inventory": { zh: "图鉴", ja: "図鑑", ko: "도감", es: "Inventario", fr: "Inventaire" },
   "Scratch": { zh: "刮刮乐", ja: "スクラッチ", ko: "스크래치", es: "Rasca", fr: "Grattage" },
   "Lucky Scratch": { zh: "幸运刮刮乐", ja: "ラッキースクラッチ", ko: "럭키 스크래치", es: "Rasca de la suerte", fr: "Grattage chanceux" },
@@ -280,6 +301,40 @@ function translateText(lang: UiLang, en: string, zh?: string) {
 }
 
 function translatePattern(lang: Exclude<UiLang, "en" | "zh">, en: string) {
+  if (en === "1 card") {
+    const labels = {
+      ja: "1枚",
+      ko: "1장",
+      es: "1 carta",
+      fr: "1 carte",
+    };
+    return labels[lang];
+  }
+
+  const cardsCountMatch = en.match(/^(.+) cards$/);
+  if (cardsCountMatch) {
+    const count = cardsCountMatch[1];
+    const labels = {
+      ja: `${count}枚`,
+      ko: `${count}장`,
+      es: `${count} cartas`,
+      fr: `${count} cartes`,
+    };
+    return labels[lang];
+  }
+
+  const earnedCoinsMatch = en.match(/^Earned (.+) coins$/);
+  if (earnedCoinsMatch) {
+    const amount = earnedCoinsMatch[1];
+    const labels = {
+      ja: `${amount}コインを獲得`,
+      ko: `${amount} 코인 획득`,
+      es: `${amount} monedas ganadas`,
+      fr: `${amount} pièces gagnées`,
+    };
+    return labels[lang];
+  }
+
   const freeTrialsMatch = en.match(/^Free trials remaining: (.+)$/);
   if (freeTrialsMatch) {
     const labels = {

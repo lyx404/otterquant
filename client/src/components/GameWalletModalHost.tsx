@@ -488,7 +488,7 @@ export function useGameWalletModalController(
               </label>
               <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
                 <span>
-                  {tr("Minimum", "最低")} {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · {tr("Available", "可提现")} {formatUsd(walletBalanceUsd)}
+                  {tr("Minimum", "最低")} <span className="wallet-inline-numeric">{formatUsd(MIN_AMOUNT / BALANCE_PER_USD)}</span> · {tr("Available", "可提现")} <span className="wallet-inline-numeric">{formatUsd(walletBalanceUsd)}</span>
                 </span>
               </div>
             </div>

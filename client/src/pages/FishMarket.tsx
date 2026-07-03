@@ -65,6 +65,7 @@ type FishMarketToast = {
   id: number;
   title: string;
   message: string;
+  coinAmount?: number;
 };
 
 const FISH_MARKET_CARD_UNIT_PRICES: Record<FishMarketCardGrade, number> = {
@@ -235,6 +236,7 @@ export default function FishMarket() {
         `Earned ${formatFishMarketPrice(estimatedPrice)} coins`,
         `获得 ${formatFishMarketPrice(estimatedPrice)} 游戏币`,
       ),
+      coinAmount: estimatedPrice,
     });
   }, [addCoins, canSellSelectedCards, estimatedPrice, selectedCardIds, tr, walletController]);
 
@@ -278,7 +280,7 @@ export default function FishMarket() {
             <div className="fish-market-title-block__image" aria-hidden="true">
               <img src={FISH_MARKET_ASSETS.titleBg} alt="" />
             </div>
-            <h1 className="fish-market-title">{tr("Fish Market", "鱼市场")}</h1>
+            <h1 className="fish-market-title" data-title={tr("Fish Market", "鱼市场")}>{tr("Fish Market", "鱼市场")}</h1>
           </div>
 
           <section className="fish-market-board" data-node-id="1086:95558" data-name={tr("Content", "内容")} aria-label={tr("Fish Market", "鱼市场")}>
@@ -329,7 +331,10 @@ export default function FishMarket() {
                       <span className="fish-market-summary__label fish-market-summary__label--full">{tr("Selected", "已选择")}</span>
                       <span className="fish-market-summary__label fish-market-summary__label--short">{tr("Selected", "已选")}</span>
                       <span className="fish-market-summary__value">
-                        <strong>{tr(`${selectedCardCount} cards`, `${selectedCardCount} 张`)}</strong>
+                        <strong className="fish-market-count-value">
+                          <span className="fish-market-numeric-value">{formatFishMarketPrice(selectedCardCount)}</span>
+                          <span>{tr(selectedCardCount === 1 ? "card" : "cards", "张")}</span>
+                        </strong>
                       </span>
                       <button
                         className="fish-market-select-all fish-market-select-all--mobile"
@@ -349,7 +354,7 @@ export default function FishMarket() {
                       <span className="fish-market-summary__label fish-market-summary__label--short">{tr("Price", "价格")}</span>
                       <span className="fish-market-summary__value">
                         <img className="fish-market-summary__coin" src={FISH_MARKET_ASSETS.coin} alt="" />
-                        <strong>{formatFishMarketPrice(estimatedPrice)}</strong>
+                        <strong className="fish-market-numeric-value">{formatFishMarketPrice(estimatedPrice)}</strong>
                       </span>
                     </div>
                   </div>
@@ -391,7 +396,19 @@ export default function FishMarket() {
           <span className="fish-market-toast__icon" aria-hidden="true">✓</span>
           <div>
             <p className="fish-market-toast__title">{sellSuccessToast.title}</p>
-            <p className="fish-market-toast__message">{sellSuccessToast.message}</p>
+            <p className="fish-market-toast__message">
+              {typeof sellSuccessToast.coinAmount === "number" ? (
+                <>
+                  <span>{tr("Earned", "获得")}</span>
+                  <span className="fish-market-toast__amount fish-market-numeric-value">
+                    {formatFishMarketPrice(sellSuccessToast.coinAmount)}
+                  </span>
+                  <span>{tr("coins", "游戏币")}</span>
+                </>
+              ) : (
+                sellSuccessToast.message
+              )}
+            </p>
           </div>
         </div>
       )}
@@ -401,12 +418,19 @@ export default function FishMarket() {
           inset: 0;
           overflow: hidden;
           background: #90CBF3;
-          --fish-market-font: "Alimama FangYuanTi", "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+          --fish-market-font: var(--font-rounded-current, "Nunito", "Varela Round", "PingFang SC", "Microsoft YaHei UI", sans-serif);
+          --fish-market-text-weight: 700;
+          --fish-market-text-wght: 700;
           --ac-cream-light: #f8f8f0;
           --ac-border: #c4b89e;
           --ac-shadow: #bdaea0;
           --radius-xs: 4px;
           image-rendering: pixelated;
+        }
+
+        :is(:lang(en), :lang(es), :lang(fr)) .fish-market-route {
+          --fish-market-text-weight: 650;
+          --fish-market-text-wght: 620;
         }
 
         .fish-market-route__surface {
@@ -532,18 +556,30 @@ export default function FishMarket() {
           font-family: var(--fish-market-font);
           font-size: 52px;
           font-style: normal;
-          font-weight: var(--font-rounded-numeric-weight, 700);
-          font-variation-settings: "wght" 700, "BEVL" 1;
+          font-weight: var(--fish-market-text-weight);
+          font-variation-settings: "wght" var(--fish-market-text-wght), "BEVL" 1;
+          -webkit-text-fill-color: #ffffff;
+          -webkit-text-stroke-color: #0655B6;
+          -webkit-text-stroke-width: 0;
+          isolation: isolate;
           line-height: 1;
           letter-spacing: 0;
           white-space: nowrap;
           text-align: center;
-          text-shadow:
-            0 4px 0 #0f5aa5,
-            -3px 0 0 #0f5aa5,
-            3px 0 0 #0f5aa5,
-            0 -3px 0 #0f5aa5;
           transform: translate(-50%, -50%);
+          z-index: 1;
+        }
+
+        .fish-market-title::before {
+          content: attr(data-title);
+          position: absolute;
+          inset: 0;
+          z-index: -1;
+          color: #0655B6;
+          -webkit-text-fill-color: #0655B6;
+          -webkit-text-stroke-color: #0655B6;
+          -webkit-text-stroke-width: 12px;
+          pointer-events: none;
         }
 
         .fish-market-board {
@@ -599,9 +635,9 @@ export default function FishMarket() {
           color: rgba(114, 93, 66, .38);
           font-family: var(--fish-market-font);
           font-size: 32px;
-          font-weight: var(--font-rounded-numeric-weight, 700);
+          font-weight: var(--fish-market-text-weight);
           font-synthesis: none;
-          font-variation-settings: "wght" 700, "BEVL" 1;
+          font-variation-settings: "wght" var(--fish-market-text-wght), "BEVL" 1;
           line-height: 1;
           text-align: center;
           pointer-events: none;
@@ -698,8 +734,8 @@ export default function FishMarket() {
           background: #ecf5fd;
           font-family: var(--fish-market-font);
           font-style: normal;
-          font-weight: var(--font-rounded-numeric-weight, 700);
-          font-variation-settings: "wght" 700, "BEVL" 1;
+          font-weight: var(--fish-market-text-weight);
+          font-variation-settings: "wght" var(--fish-market-text-wght), "BEVL" 1;
           color: #5a3e00;
         }
 
@@ -724,8 +760,8 @@ export default function FishMarket() {
             0 16px 34px rgba(77, 51, 28, .18);
           color: #5a3e00;
           font-family: var(--fish-market-font);
-          font-weight: var(--font-rounded-numeric-weight, 700);
-          font-variation-settings: "wght" 700, "BEVL" 1;
+          font-weight: var(--fish-market-text-weight);
+          font-variation-settings: "wght" var(--fish-market-text-wght), "BEVL" 1;
           letter-spacing: 0;
           pointer-events: none;
           animation: fish-market-toast-pop 220ms ease-out;
@@ -750,8 +786,8 @@ export default function FishMarket() {
           margin: 0;
           color: #5a3e00;
           font-size: 14px;
-          font-weight: var(--font-rounded-numeric-weight, 700);
-          font-variation-settings: "wght" 700, "BEVL" 1;
+          font-weight: var(--fish-market-text-weight);
+          font-variation-settings: "wght" var(--fish-market-text-wght), "BEVL" 1;
           line-height: 1.25;
         }
 
@@ -759,9 +795,34 @@ export default function FishMarket() {
           margin: 3px 0 0;
           color: #725d42;
           font-size: 12px;
-          font-weight: var(--font-rounded-numeric-weight, 700);
-          font-variation-settings: "wght" 700, "BEVL" 1;
+          font-weight: var(--fish-market-text-weight);
+          font-variation-settings: "wght" var(--fish-market-text-wght), "BEVL" 1;
           line-height: 1.45;
+        }
+
+        .fish-market-toast__message {
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
+          flex-wrap: wrap;
+        }
+
+        .fish-market-numeric-value {
+          font-family: var(--font-rounded-numeric);
+          font-style: normal;
+          font-weight: var(--font-rounded-numeric-weight);
+          font-synthesis: none;
+          font-variation-settings: "wght" var(--font-rounded-numeric-wght), "BEVL" 1;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: 0;
+        }
+
+        .fish-market-count-value {
+          display: inline-flex;
+          align-items: baseline;
+          justify-content: flex-end;
+          gap: 4px;
+          font-weight: inherit;
         }
 
         @keyframes fish-market-toast-pop {
@@ -856,7 +917,6 @@ export default function FishMarket() {
         }
 
         .fish-market-summary__row strong {
-          font: inherit;
           text-align: right;
         }
 
@@ -870,7 +930,7 @@ export default function FishMarket() {
         .fish-market-select-all {
           appearance: none;
           position: absolute;
-          left: 155px;
+          left: 50%;
           top: 592px;
           display: flex;
           align-items: center;
@@ -883,11 +943,12 @@ export default function FishMarket() {
           color: #5a3e00;
           font-family: var(--fish-market-font);
           font-size: 24px;
-          font-weight: var(--font-rounded-numeric-weight, 700);
-          font-variation-settings: "wght" 700, "BEVL" 1;
+          font-weight: var(--fish-market-text-weight);
+          font-variation-settings: "wght" var(--fish-market-text-wght), "BEVL" 1;
           line-height: 1;
           white-space: nowrap;
           cursor: pointer;
+          transform: translateX(-50%);
         }
 
         .fish-market-select-all--mobile {
@@ -922,8 +983,8 @@ export default function FishMarket() {
           color: #5a3e00;
           font-family: var(--fish-market-font);
           font-size: 32px;
-          font-weight: var(--font-rounded-numeric-weight, 700);
-          font-variation-settings: "wght" 700, "BEVL" 1;
+          font-weight: var(--fish-market-text-weight);
+          font-variation-settings: "wght" var(--fish-market-text-wght), "BEVL" 1;
           line-height: 1;
           letter-spacing: 0;
           white-space: nowrap;
@@ -1051,30 +1112,33 @@ export default function FishMarket() {
           width: 520px;
           height: 76px;
           margin-bottom: -4px;
+          overflow: visible;
         }
 
         .fish-market-route__surface[data-layout="mobile"] .fish-market-title-block__image {
           width: 520px;
           height: 76px;
+          overflow: visible;
         }
 
         .fish-market-route__surface[data-layout="mobile"] .fish-market-title {
           top: 42px;
           max-width: 360px;
           font-size: 34px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          text-shadow:
-            0 3px 0 #0f5aa5,
-            -2px 0 0 #0f5aa5,
-            2px 0 0 #0f5aa5,
-            0 -2px 0 #0f5aa5;
+          -webkit-text-stroke-width: 0;
+          overflow: visible;
+          text-overflow: clip;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-title::before {
+          -webkit-text-stroke-width: 8px;
         }
 
         .fish-market-route__surface[data-layout="mobile"] .fish-market-board {
           display: block;
           width: 520px;
           height: 754px;
+          margin-top: -14px;
           border-width: 8px;
           border-radius: 24px;
           background: #f4fbfe;
@@ -1178,11 +1242,12 @@ export default function FishMarket() {
         .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__rows {
           display: grid;
           grid-template-columns: 1.12fr .88fr;
-          gap: 10px;
+          gap: 0;
           height: 100%;
         }
 
         .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row {
+          position: relative;
           display: grid;
           grid-template-columns: minmax(0, 1fr);
           grid-template-rows: auto auto;
@@ -1191,10 +1256,25 @@ export default function FishMarket() {
           gap: 6px;
           min-width: 0;
           padding: 9px 10px;
-          border: 1.5px solid rgba(100, 168, 248, .3);
-          border-radius: 14px;
-          background: rgba(223, 238, 246, .62);
+          border: 0;
+          border-radius: 0;
+          background: transparent;
           font-size: 17px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row + .fish-market-summary__row {
+          padding-left: 18px;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row + .fish-market-summary__row::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 8px;
+          bottom: 8px;
+          width: 1.5px;
+          border-radius: 999px;
+          background: rgba(90, 137, 178, .28);
         }
 
         .fish-market-route__surface[data-layout="mobile"] .fish-market-summary__row:first-child {
@@ -1266,6 +1346,7 @@ export default function FishMarket() {
           color: #5a3e00;
           font-size: 20px;
           box-shadow: none;
+          transform: none;
           -webkit-tap-highlight-color: rgba(255, 220, 117, .28);
         }
 
@@ -1298,6 +1379,11 @@ export default function FishMarket() {
           background: rgba(238, 236, 232, .72);
           border-color: rgba(214, 205, 184, .58);
           box-shadow: none;
+        }
+
+        .fish-market-route__surface[data-layout="mobile"] .fish-market-select-all--mobile:disabled {
+          background: transparent;
+          border: 0;
         }
 
         .fish-market-route__surface[data-layout="mobile"] .fish-market-sell-button {
