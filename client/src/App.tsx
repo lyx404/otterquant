@@ -11,6 +11,7 @@ import { PageTransitionProvider } from "./contexts/PageTransitionContext";
 import SidebarLayout from "./components/SidebarLayout";
 import CustomCursor from "./components/CustomCursor";
 import ScratchCard from "@/pages/ScratchCard";
+import FishMarket from "@/pages/FishMarket";
 import { Suspense, lazy, useState, useEffect, useCallback, createContext, useContext } from "react";
 
 const NotFound = lazy(() => import("@/pages/NotFound"));
@@ -92,7 +93,7 @@ function Router() {
   if (isLoading) return null;
 
   // Public routes that don't need auth
-  const publicPaths = ["/", "/landing", "/auth", "/launch-guide", "/scratch-card"];
+  const publicPaths = ["/", "/landing", "/auth", "/launch-guide", "/scratch-card", "/fish-market"];
   const isPublicPath = publicPaths.some(
     (p) => location === p || (p !== "/" && location.startsWith(p))
   );
@@ -112,7 +113,8 @@ function Router() {
     location !== "/launch-guide" &&
     location !== "/landing" &&
     location !== "/auth" &&
-    location !== "/scratch-card"
+    location !== "/scratch-card" &&
+    location !== "/fish-market"
   ) {
     return <Redirect to="/launch-guide" />;
   }
@@ -125,6 +127,7 @@ function Router() {
         <Route path="/auth" component={Auth} />
         <Route path="/launch-guide" component={LaunchGuide} />
         <Route path="/scratch-card" component={ScratchCard} />
+        <Route path="/fish-market" component={FishMarket} />
         <Route path="/" component={Landing} />
 
         {/* Protected routes */}
@@ -184,7 +187,7 @@ function Router() {
 /* ── Layout wrapper: Landing/Auth/LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/", "/launch-guide", "/landing", "/auth", "/link-checkout", "/scratch-card"];
+  const noLayoutPaths = ["/", "/launch-guide", "/landing", "/auth", "/link-checkout", "/scratch-card", "/fish-market"];
   const hideLayout = noLayoutPaths.some(
     (p) => location === p || (p !== "/" && location.startsWith(p))
   );

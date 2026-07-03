@@ -37,8 +37,9 @@
       --panel: #fdfaec;
       --gold: #ffdc75;
       --board: #8c9ee3;
-      --app-font: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-      --app-title-font: "Alimama FangYuanTi VF", "Alimama Fang YuanTi VF", "阿里妈妈方圆体 VF Regular", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --app-font: var(--font-rounded-current);
+      --app-title-font: var(--font-rounded-current);
+      --app-numeric-font: var(--font-rounded-numeric);
       --app-title-font-settings: "wght" 700, "BEVL" 1;
     }
 
@@ -59,24 +60,34 @@
       color: var(--ink);
     }
 
-.scratch-card-stage .stat span,
-    .scratch-card-stage .banner-title,
+.scratch-card-stage .banner-title,
     .scratch-card-stage .banner-subtitle,
     .scratch-card-stage .section-title,
-    .scratch-card-stage .winning-slot,
-    .scratch-card-stage .winning-slot span,
     .scratch-card-stage .result,
     .scratch-card-stage .action-label,
-    .scratch-card-stage .action-price,
     .scratch-card-stage .batch-all-button,
     .scratch-card-stage .quantity-picker,
     .scratch-card-stage .quantity-button,
-    .scratch-card-stage .quantity-value,
     .scratch-card-stage .quantity-unit {
       font-family: var(--app-title-font);
       font-synthesis: none;
       font-optical-sizing: auto;
       font-variation-settings: var(--app-title-font-settings);
+    }
+
+.scratch-card-stage .stat span,
+    .scratch-card-stage .winning-slot,
+    .scratch-card-stage .winning-slot span,
+    .scratch-card-stage .action-price,
+    .scratch-card-stage .quantity-value,
+    .scratch-card-stage .result .num,
+    .scratch-card-stage .result .cash,
+    .scratch-card-stage .settlement-amount {
+      font-family: var(--app-numeric-font);
+      font-synthesis: none;
+      font-optical-sizing: auto;
+      font-variation-settings: var(--app-title-font-settings);
+      font-variant-numeric: tabular-nums;
     }
 
 .scratch-card-stage button {
@@ -293,7 +304,7 @@
 .scratch-card-stage .stat span {
       display: block;
       color: #4e433c;
-      font-family: var(--app-title-font);
+      font-family: var(--app-numeric-font);
       font-size: 26px;
       font-style: normal;
       font-weight: 700;
@@ -1312,12 +1323,12 @@
     }
 
 .scratch-card-stage[data-layout="mobile"] .result .num {
-      font-family: var(--app-title-font);
+      font-family: var(--app-numeric-font);
       font-size: 30px;
     }
 
 .scratch-card-stage[data-layout="mobile"] .result .cash {
-      font-family: var(--app-title-font);
+      font-family: var(--app-numeric-font);
       font-size: 18px;
     }
 

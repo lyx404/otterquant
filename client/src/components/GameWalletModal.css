@@ -645,8 +645,14 @@
 .wallet-input--with-unit {
   height: 52px;
   padding: 0 68px 0 16px;
+  font-family: var(--font-rounded-numeric);
   font-size: 16px;
-  font-weight: 950;
+  font-style: normal;
+  font-weight: var(--font-rounded-numeric-weight, 500);
+  font-synthesis: none;
+  font-variation-settings: "wght" var(--font-rounded-numeric-wght, 480), "BEVL" var(--BEVL);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 .wallet-field .wallet-input-unit {
@@ -695,6 +701,16 @@
   color: var(--ac-text);
   font-size: 16px;
   font-weight: 950;
+}
+
+.wallet-inline-numeric {
+  font-family: var(--font-rounded-numeric);
+  font-style: normal;
+  font-weight: var(--font-rounded-numeric-weight, 500);
+  font-synthesis: none;
+  font-variation-settings: "wght" var(--font-rounded-numeric-wght, 480), "BEVL" var(--BEVL);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
 }
 
 .wallet-conversion.is-error,

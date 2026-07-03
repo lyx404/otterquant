@@ -140,6 +140,7 @@ export type GameWalletModalController = {
   cashBalanceText: string;
   coinActivitiesOverride?: GameWalletActivityItem[];
   cashActivitiesOverride?: GameWalletActivityItem[];
+  hasWalletDisplayOverrides: boolean;
   setWalletDisplayOverrides: (overrides: WalletDisplayOverrides | null) => void;
 };
 
@@ -180,10 +181,10 @@ const GameWalletModalContext = createContext<GameWalletModalController | null>(n
 export function useGameWalletModalController(
   initialAccountKind: GameWalletAccountKind = "coin",
 ): GameWalletModalController {
-  const { uiLang } = useAppLanguage();
+  const { uiLang, t } = useAppLanguage();
   const { navigateWithTransition } = usePageTransition();
   const { coinBalance, cashCents, spendCashCents } = useGameEconomy();
-  const tr = useCallback((en: string, zh: string) => (uiLang === "zh" ? zh : en), [uiLang]);
+  const tr = useCallback((en: string, zh: string) => t(en, zh), [t]);
 
   const [walletOpen, setWalletOpen] = useState(false);
   const walletPageTransition = useMobilePageTransition(walletOpen, 260);
@@ -487,7 +488,7 @@ export function useGameWalletModalController(
               </label>
               <div className={`wallet-conversion${withdrawAmountValid ? "" : " is-error"}`}>
                 <span>
-                  {tr("Minimum", "最低")} {formatUsd(MIN_AMOUNT / BALANCE_PER_USD)} · {tr("Available", "可提现")} {formatUsd(walletBalanceUsd)}
+                  {tr("Minimum", "最低")} <span className="wallet-inline-numeric">{formatUsd(MIN_AMOUNT / BALANCE_PER_USD)}</span> · {tr("Available", "可提现")} <span className="wallet-inline-numeric">{formatUsd(walletBalanceUsd)}</span>
                 </span>
               </div>
             </div>
@@ -590,6 +591,7 @@ export function useGameWalletModalController(
       : `$${displayedCashBalanceUsd.toFixed(1)}`,
     coinActivitiesOverride: walletDisplayOverrides?.coinActivities,
     cashActivitiesOverride: walletDisplayOverrides?.cashActivities,
+    hasWalletDisplayOverrides: Boolean(walletDisplayOverrides),
     setWalletDisplayOverrides,
   };
 }

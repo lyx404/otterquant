@@ -1,0 +1,74 @@
+.mobile-page-transition-surface {
+  width: 100%;
+  height: 100%;
+  transform: var(--mobile-page-base-transform, none);
+  will-change: transform, opacity;
+}
+
+@media (max-width: 700px) {
+  .mobile-page-transition-route {
+    --mobile-page-enter-duration: 320ms;
+    --mobile-page-exit-duration: 260ms;
+    --mobile-page-enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --mobile-page-exit-ease: cubic-bezier(0.4, 0, 1, 1);
+    --mobile-page-surface-enter-x: 40px;
+    --mobile-page-surface-exit-x: 28px;
+  }
+
+  .mobile-page-transition-route[data-mobile-page-transition="opening"] {
+    animation: mobile-page-backdrop-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
+  }
+
+  .mobile-page-transition-route[data-mobile-page-transition="closing"] {
+    animation: mobile-page-backdrop-out var(--mobile-page-exit-duration) var(--mobile-page-exit-ease) both;
+    pointer-events: none;
+  }
+
+  .mobile-page-transition-route[data-mobile-page-transition="opening"] .mobile-page-transition-surface {
+    animation: mobile-page-surface-in var(--mobile-page-enter-duration) var(--mobile-page-enter-ease) both;
+  }
+
+  .mobile-page-transition-route[data-mobile-page-transition="closing"] .mobile-page-transition-surface {
+    animation: mobile-page-surface-out var(--mobile-page-exit-duration) var(--mobile-page-exit-ease) both;
+  }
+}
+
+@keyframes mobile-page-backdrop-in {
+  from { opacity: .01; }
+  to { opacity: 1; }
+}
+
+@keyframes mobile-page-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: .01; }
+}
+
+@keyframes mobile-page-surface-in {
+  from {
+    opacity: .01;
+    transform: var(--mobile-page-base-transform, none) translate3d(var(--mobile-page-surface-enter-x, 18px), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: var(--mobile-page-base-transform, none);
+  }
+}
+
+@keyframes mobile-page-surface-out {
+  from {
+    opacity: 1;
+    transform: var(--mobile-page-base-transform, none);
+  }
+  to {
+    opacity: .01;
+    transform: var(--mobile-page-base-transform, none) translate3d(var(--mobile-page-surface-exit-x, 14px), 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-page-transition-route,
+  .mobile-page-transition-surface {
+    animation: none !important;
+    transition: none !important;
+  }
+}

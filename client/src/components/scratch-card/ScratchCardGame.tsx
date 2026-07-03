@@ -30,7 +30,6 @@ import {
   MOBILE_STAGE_W,
   pickScratchTicket,
   SCRATCH_CARD_ASSETS,
-  SCRATCH_CARD_COPY,
   TICKET_POOL,
   TICKET_PRICE,
   ticketWinCents,
@@ -199,16 +198,60 @@ function drawClover(ctx: CanvasRenderingContext2D) {
   });
 }
 
+function getCanvasFontFamily(canvas: HTMLCanvasElement) {
+  return getComputedStyle(canvas).getPropertyValue("--app-numeric-font").trim()
+    || getComputedStyle(canvas).getPropertyValue("--font-rounded-numeric").trim()
+    || "sans-serif";
+}
+
 export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
-  const { uiLang } = useAppLanguage();
+  const { uiLang, t } = useAppLanguage();
   const { coinBalance, cashCents, fishBalance, spendCoins, addCashCents } = useGameEconomy();
-  const tr = useCallback((en: string, zh: string) => (uiLang === "zh" ? zh : en), [uiLang]);
-  const copy = SCRATCH_CARD_COPY[uiLang === "zh" ? "zh" : "en"];
+  const tr = useCallback((en: string, zh: string) => t(en, zh), [t]);
+  const copy = useMemo(() => ({
+    htmlLang:
+      uiLang === "zh" ? "zh-CN" :
+      uiLang === "ja" ? "ja-JP" :
+      uiLang === "ko" ? "ko-KR" :
+      uiLang === "es" ? "es-ES" :
+      uiLang === "fr" ? "fr-FR" :
+      "en",
+    pageTitle: tr("Lucky Scratch", "幸运刮刮乐"),
+    title: tr("Lucky Scratch", "幸运刮刮乐"),
+    subtitle: tr("Scratch for luck. Cash surprises land instantly.", "刮开好运，现金惊喜即刻到手"),
+    stats: tr("Stats", "数值统计"),
+    closeScratchCard: tr("Close scratch card", "关闭刮刮乐"),
+    scratchAction: tr("Scratch action", "刮奖操作"),
+    purchaseInfo: tr("Purchase info", "购买信息"),
+    openGameCoins: tr("Open game coins", "打开游戏币"),
+    openCash: tr("Open cash", "打开现金"),
+    quantity: tr("Qty", "购买张数"),
+    quantityMinus: tr("Decrease qty", "减少购买张数"),
+    quantityPlus: tr("Increase qty", "增加购买张数"),
+    ticket: tr("Scratch card ticket", "刮刮乐彩票"),
+    winningNumbers: tr("Winning Numbers", "中奖号码"),
+    scratchArea: tr("Scratch Area", "待刮区"),
+    ticketUnit: tr("tix", "张"),
+    start: tr("Start", "开始刮奖"),
+    reveal: tr("Reveal", "一键刮开"),
+    revealAll: tr("Reveal All", "一键全开"),
+    next: tr("Next", "下一张"),
+    confirm: tr("Confirm", "确认"),
+    prizeAmount: tr("Prize Amount", "中奖金额"),
+    totalPrizeAmount: tr("Total Prize", "总中奖金额"),
+    noPrize: tr("No Prize", "未中奖"),
+    cumulative: tr("Total", "累计"),
+    closeWallet: tr("Close wallet", "关闭钱包"),
+    insufficientBalance: tr("Insufficient balance", "余额不足"),
+    completedProgress: (total: number) => tr(`Completed ${total}/${total}`, `已完成 ${total}/${total} 张`),
+    currentProgress: (current: number, total: number) => tr(`${current}/${total}`, `第 ${current}/${total} 张`),
+  }), [tr, uiLang]);
   const walletController = useGameWalletModal();
+  const setWalletDisplayOverrides = walletController.setWalletDisplayOverrides;
   const [viewState, setViewState] = useState<ScratchViewState>("purchase");
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [quantityInput, setQuantityInput] = useState("1");
-  const [balanceWarning, setBalanceWarning] = useState(false);
+  const [balanceShortfall, setBalanceShortfall] = useState(0);
   const [batchTickets, setBatchTickets] = useState<ScratchTicket[]>([TICKET_POOL[0]]);
   const [batchWins, setBatchWins] = useState<number[]>([]);
   const [currentTicketIndex, setCurrentTicketIndex] = useState(0);
@@ -270,6 +313,8 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
   const animatedCoinBalance = useAnimatedStatValue(displayedCoinBalance, (value) => value.toString());
   const animatedCashBalance = useAnimatedStatValue(displayedCashBalance, (value) => value.toFixed(displayedCashDecimals));
   const animatedFishBalance = useAnimatedStatValue(fishBalance, (value) => value.toString());
+  const purchaseCost = TICKET_PRICE * selectedQuantity;
+  const balanceWarning = balanceShortfall > 0;
 
   const stageStyle = useMemo(() => ({
     "--scale": String(layout.scale),
@@ -354,7 +399,7 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
     ctx.fillStyle = "#d2d2d1";
     ctx.fill();
     ctx.fillStyle = "rgba(255, 255, 255, .42)";
-    ctx.font = `900 ${Math.round(height * 0.5)}px "Alimama FangYuanTi VF", "PingFang SC", sans-serif`;
+    ctx.font = `900 ${Math.round(height * 0.5)}px ${getCanvasFontFamily(canvas)}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("?", width / 2, height / 2 + 1);
@@ -661,16 +706,30 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
   const addCashAward = useCallback(() => {
     if (cashAwardSettled) return;
     const awardCents = batchWins.length > 0 ? batchTotalWin : ticketWinCents(currentTicket);
+    const nextCashBalance = displayedCashBalance + (awardCents / 100);
     addCashCents(awardCents);
+    setWalletDisplayOverrides({
+      coinBalance: displayedCoinBalance,
+      cashBalanceUsd: nextCashBalance,
+    });
     setCashAwardSettled(true);
-  }, [addCashCents, batchTotalWin, batchWins.length, cashAwardSettled, currentTicket]);
+  }, [
+    addCashCents,
+    batchTotalWin,
+    batchWins.length,
+    cashAwardSettled,
+    currentTicket,
+    displayedCashBalance,
+    displayedCoinBalance,
+    setWalletDisplayOverrides,
+  ]);
 
   const returnToDefault = useCallback(() => {
     clearTimeouts(revealTimeoutsRef.current);
     clearSparks();
     setSelectedQuantity(1);
     setQuantityInput("1");
-    setBalanceWarning(false);
+    setBalanceShortfall(0);
     setBatchTickets([TICKET_POOL[0]]);
     setBatchWins([]);
     setCurrentTicketIndex(0);
@@ -679,21 +738,25 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
   }, [clearSparks]);
 
   const beginBatch = useCallback(() => {
-    const purchaseCost = TICKET_PRICE * selectedQuantity;
-    if (purchaseCost > coinBalance) {
-      setBalanceWarning(true);
+    if (purchaseCost > displayedCoinBalance) {
+      setBalanceShortfall(purchaseCost - displayedCoinBalance);
       return;
     }
 
     const tickets = Array.from({ length: selectedQuantity }, () => pickScratchTicket());
+    const nextCoinBalance = Math.max(0, displayedCoinBalance - purchaseCost);
     spendCoins(purchaseCost);
-    setBalanceWarning(false);
+    setWalletDisplayOverrides({
+      coinBalance: nextCoinBalance,
+      cashBalanceUsd: displayedCashBalance,
+    });
+    setBalanceShortfall(0);
     setBatchTickets(tickets);
     setBatchWins(new Array(tickets.length).fill(0));
     setCurrentTicketIndex(0);
     setCashAwardSettled(false);
     setViewState("ready");
-  }, [coinBalance, selectedQuantity, spendCoins]);
+  }, [displayedCashBalance, displayedCoinBalance, purchaseCost, selectedQuantity, setWalletDisplayOverrides, spendCoins]);
 
   const revealBatchAll = useCallback(() => {
     if (viewState === "purchase" || batchTickets.length <= 1) return;
@@ -738,14 +801,14 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
     const next = clampQuantity(Number(digits));
     setSelectedQuantity(next);
     setQuantityInput(String(next));
-    setBalanceWarning(false);
+    setBalanceShortfall(0);
   }, [quantityInput, selectedQuantity]);
 
   const updateQuantity = useCallback((value: number) => {
     const next = clampQuantity(value);
     setSelectedQuantity(next);
     setQuantityInput(String(next));
-    setBalanceWarning(false);
+    setBalanceShortfall(0);
   }, []);
 
   const handleQuantityKeyDown = useCallback((event: ReactKeyboardEvent<HTMLInputElement>) => {
@@ -996,7 +1059,7 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
                     setQuantityInput(digits);
                     if (!digits) return;
                     setSelectedQuantity(clampQuantity(Number(digits)));
-                    setBalanceWarning(false);
+                    setBalanceShortfall(0);
                   }}
                   onKeyDown={handleQuantityKeyDown}
                 />

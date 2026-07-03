@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useReducedMotion } from "motion/react";
-import { formatHudBalance, HUD_ASSETS } from "@/lib/gameWallet";
+import { formatHudBalance, formatHudCashBalance, HUD_ASSETS } from "@/lib/gameWallet";
 import "./GameHudStats.css";
 
 type CountUpProps = {
@@ -226,8 +226,8 @@ export function GameHudStats({
               height="28"
             />
             <div className={cashValueClassName}>
-              <CountUp to={cashBalance} duration={0.5} prefix="$" decimals={cashDecimals}>
-                {`$${cashBalance.toFixed(cashDecimals)}`}
+              <CountUp to={cashBalance} duration={0.5} formatter={formatHudCashBalance}>
+                {formatHudCashBalance(cashBalance)}
               </CountUp>
             </div>
           </button>
