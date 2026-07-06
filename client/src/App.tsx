@@ -10,6 +10,7 @@ import { GameEconomyProvider } from "./contexts/GameEconomyContext";
 import { PageTransitionProvider } from "./contexts/PageTransitionContext";
 import SidebarLayout from "./components/SidebarLayout";
 import CustomCursor from "./components/CustomCursor";
+import SoundFeedback from "./components/SoundFeedback";
 import ScratchCard from "@/pages/ScratchCard";
 import FishMarket from "@/pages/FishMarket";
 import { Suspense, lazy, useState, useEffect, useCallback, createContext, useContext } from "react";
@@ -209,6 +210,7 @@ function App() {
                     <GameWalletModalProvider>
                       <Toaster />
                       <CustomCursor />
+                      <SoundFeedback />
                       <LayoutWrapper>
                         <Router />
                       </LayoutWrapper>

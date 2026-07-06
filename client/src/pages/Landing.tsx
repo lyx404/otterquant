@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Claude, Codex, OpenAI, OpenClaw, OpenRouter } from "@lobehub/icons";
 import { Link, useLocation } from "wouter";
-import { Select } from "animal-island-ui";
 import "animal-island-ui/style";
 import type { SelectOption } from "animal-island-ui";
+import AnimalSoundSelect from "@/components/AnimalSoundSelect";
 import AlphaDetail from "@/pages/AlphaDetail";
 import BorderGlow from "@/components/ui/border-glow-card";
 import { GameHudStats } from "@/components/GameHudStats";
 import { useGameWalletModal } from "@/components/GameWalletModalHost";
+import SoundSettingsSection from "@/components/SoundSettingsSection";
 import {
   Activity,
   ArrowLeft,
@@ -53,6 +54,7 @@ import {
   BALANCE_PER_USD,
   HUD_ASSETS,
 } from "@/lib/gameWallet";
+import { playGachaReveal, playMenuOpen, playSelect } from "@/lib/sounds";
 
 const filterOptions = ["all", "starred"] as const;
 type FilterKey = (typeof filterOptions)[number];
@@ -1042,6 +1044,20 @@ export default function Landing() {
     key: option,
     label: factorFilterLabels[option],
   }));
+  const playSortMenuToggleSound = () => {
+    try {
+      playMenuOpen();
+    } catch {
+      // Audio feedback should never block the sort menu.
+    }
+  };
+  const playSortOptionSound = () => {
+    try {
+      playSelect();
+    } catch {
+      // Audio feedback should never block sorting.
+    }
+  };
   const selectedAgentInstallIde = agentInstallIdeOptions.find((option) => option.id === agentInstallIde) ?? agentInstallIdeOptions[0];
   const agentInstallApiKey = agentApiKeys[0]?.apiKey ?? "YOUR_API_KEY";
   const agentInstallCommand = selectedAgentInstallIde.command(agentInstallApiKey);
@@ -1434,6 +1450,11 @@ export default function Landing() {
     setBasketRewardModalPage("first");
     setBasketRewardHaloVisible(true);
     setBasketRewardModalOpen(true);
+    try {
+      playGachaReveal();
+    } catch {
+      // Audio feedback should never block the reward reveal.
+    }
   };
 
   const handleStopManualCast = () => {
@@ -14200,15 +14221,16 @@ export default function Landing() {
                   </div>
                 </div>
 
-                <div className="settings-language-select">
-                  <Select
-                    value={uiLang}
-                    onChange={(key) => setUiLang(key as typeof uiLang)}
-                    options={languageSelectOptions}
-                    placeholder={tr("Choose language", "选择语言")}
-                  />
-                </div>
+                <AnimalSoundSelect
+                  className="settings-language-select"
+                  value={uiLang}
+                  onChange={(key) => setUiLang(key as typeof uiLang)}
+                  options={languageSelectOptions}
+                  placeholder={tr("Choose language", "选择语言")}
+                />
               </section>
+
+              <SoundSettingsSection />
 
               <section className="settings-section">
                 <div className="settings-section__head">
@@ -15665,14 +15687,14 @@ export default function Landing() {
               </label>
 
               <div className="shop-controls">
-                <div className="shop-select-aisland" aria-label={tr("Factor filter", "因子筛选")}>
-                  <Select
-                    value={factorFilter}
-                    onChange={(key) => setFactorFilter(key as FactorFilterKey)}
-                    options={factorFilterSelectOptions}
-                    placeholder={tr("Choose filter", "选择筛选")}
-                  />
-                </div>
+                <AnimalSoundSelect
+                  className="shop-select-aisland"
+                  ariaLabel={tr("Factor filter", "因子筛选")}
+                  value={factorFilter}
+                  onChange={(key) => setFactorFilter(key as FactorFilterKey)}
+                  options={factorFilterSelectOptions}
+                  placeholder={tr("Choose filter", "选择筛选")}
+                />
                 <div className="shop-select-aisland shop-select-aisland--sort" aria-label={tr("Factor sort", "因子排序")}>
                   <div
                     className={`sort-direction-select${factorSortOpen ? " is-open" : ""}`}
@@ -15685,7 +15707,11 @@ export default function Landing() {
                       type="button"
                       aria-haspopup="listbox"
                       aria-expanded={factorSortOpen}
-                      onClick={() => setFactorSortOpen((open) => !open)}
+                      data-sound-menu="component"
+                      onClick={() => {
+                        playSortMenuToggleSound();
+                        setFactorSortOpen((open) => !open);
+                      }}
                     >
                       <span>{tr("Sort", "排序")}</span>
                       <span className="sort-direction-select__chevron" aria-hidden="true">
@@ -15705,8 +15731,12 @@ export default function Landing() {
                               role="option"
                               aria-selected={factorSortKey === key}
                               key={key}
+                              data-sound-menu="component"
                               onMouseDown={(event) => event.preventDefault()}
-                              onClick={() => handleFactorSortChange(key)}
+                              onClick={() => {
+                                playSortOptionSound();
+                                handleFactorSortChange(key);
+                              }}
                             >
                               <span>{factorSortLabels[key]}</span>
                               <span className="sort-direction-select__direction">
@@ -16111,14 +16141,14 @@ export default function Landing() {
               </label>
 
               <div className="shop-controls">
-                <div className="shop-select-aisland" aria-label={tr("Category filter", "分类筛选")}>
-                  <Select
-                    value={filter}
-                    onChange={(key) => setFilter(key as FilterKey)}
-                    options={filterSelectOptions}
-                    placeholder={tr("Choose category", "选择分类")}
-                  />
-                </div>
+                <AnimalSoundSelect
+                  className="shop-select-aisland"
+                  ariaLabel={tr("Category filter", "分类筛选")}
+                  value={filter}
+                  onChange={(key) => setFilter(key as FilterKey)}
+                  options={filterSelectOptions}
+                  placeholder={tr("Choose category", "选择分类")}
+                />
                 <div className="shop-select-aisland shop-select-aisland--sort" aria-label={tr("Sort", "排序")}>
                   <div
                     className={`sort-direction-select${strategySortOpen ? " is-open" : ""}`}
@@ -16131,7 +16161,11 @@ export default function Landing() {
                       type="button"
                       aria-haspopup="listbox"
                       aria-expanded={strategySortOpen}
-                      onClick={() => setStrategySortOpen((open) => !open)}
+                      data-sound-menu="component"
+                      onClick={() => {
+                        playSortMenuToggleSound();
+                        setStrategySortOpen((open) => !open);
+                      }}
                     >
                       <span>{tr("Sort", "排序")}</span>
                       <span className="sort-direction-select__chevron" aria-hidden="true">
@@ -16151,8 +16185,12 @@ export default function Landing() {
                               role="option"
                               aria-selected={sortKey === key}
                               key={key}
+                              data-sound-menu="component"
                               onMouseDown={(event) => event.preventDefault()}
-                              onClick={() => handleStrategySortChange(key)}
+                              onClick={() => {
+                                playSortOptionSound();
+                                handleStrategySortChange(key);
+                              }}
                             >
                               <span>{sortLabels[key]}</span>
                               <span className="sort-direction-select__direction">

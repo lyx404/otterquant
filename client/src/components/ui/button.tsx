@@ -2,6 +2,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 
+import { playClick, playHover, playPop, playTap } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -36,23 +37,98 @@ const buttonVariants = cva(
   }
 );
 
+type ButtonActivationSound = "click" | "tap" | "pop" | null;
+
+const BUTTON_HOVER_SOUND_MIN_INTERVAL_MS = 140;
+
+function isButtonSoundDisabled(element: Element, disabled?: boolean) {
+  return (
+    Boolean(disabled) ||
+    element.getAttribute("aria-disabled") === "true" ||
+    element.hasAttribute("data-disabled")
+  );
+}
+
+function resolveButtonActivationSound(
+  element: Element,
+  pointerType: string | null,
+): ButtonActivationSound {
+  const explicitSound = element.getAttribute("data-sound");
+
+  if (explicitSound === "none") return null;
+  if (explicitSound === "pop") return "pop";
+  if (explicitSound === "tap") return "tap";
+  if (explicitSound === "click") return "click";
+
+  return "tap";
+}
+
+function playButtonSound(sound: ButtonActivationSound | "hover") {
+  try {
+    if (sound === "click") playClick();
+    if (sound === "tap") playTap();
+    if (sound === "pop") playPop();
+    if (sound === "hover") playHover();
+  } catch {
+    // Sound feedback should never block the button action.
+  }
+}
+
 function Button({
   className,
   variant,
   size,
   asChild = false,
+  disabled,
+  onClick,
+  onPointerDown,
+  onPointerEnter,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
   }) {
   const Comp = asChild ? Slot : "button";
+  const lastPointerTypeRef = React.useRef<string | null>(null);
+  const lastHoverSoundAtRef = React.useRef(0);
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    lastPointerTypeRef.current = event.pointerType;
+    onPointerDown?.(event);
+  };
+
+  const handlePointerEnter = (event: React.PointerEvent<HTMLButtonElement>) => {
+    onPointerEnter?.(event);
+    if (event.defaultPrevented) return;
+    if (event.pointerType === "touch") return;
+    if (isButtonSoundDisabled(event.currentTarget, disabled)) return;
+
+    const now = window.performance.now();
+    if (now - lastHoverSoundAtRef.current < BUTTON_HOVER_SOUND_MIN_INTERVAL_MS) return;
+    lastHoverSoundAtRef.current = now;
+    playButtonSound("hover");
+  };
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    onClick?.(event);
+    if (event.defaultPrevented) return;
+    if (isButtonSoundDisabled(event.currentTarget, disabled)) return;
+
+    const sound = resolveButtonActivationSound(event.currentTarget, lastPointerTypeRef.current);
+    lastPointerTypeRef.current = null;
+    playButtonSound(sound);
+  };
 
   return (
     <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
       {...props}
+      data-slot="button"
+      data-sound-button="component"
+      disabled={disabled}
+      className={cn(buttonVariants({ variant, size, className }))}
+      onClick={handleClick}
+      onPointerDown={handlePointerDown}
+      onPointerEnter={handlePointerEnter}
     />
   );
 }

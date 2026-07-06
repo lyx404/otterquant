@@ -19,6 +19,7 @@ import {
   type GameWalletActivityItem,
   type GameWalletAccountKind,
 } from "@/lib/gameWallet";
+import { playMenuOpen, playSelect } from "@/lib/sounds";
 
 type MobilePageTransitionPhase = "opening" | "open" | "closing";
 type FundsStatus = "idle" | "processing" | "success" | "error";
@@ -32,6 +33,22 @@ const WITHDRAWAL_NETWORKS = [
   "Solana (SOL)",
 ] as const;
 const DEFAULT_WITHDRAWAL_NETWORK = WITHDRAWAL_NETWORKS[0];
+
+function playWalletMenuOpenSound() {
+  try {
+    playMenuOpen();
+  } catch {
+    // Audio feedback should never block wallet interactions.
+  }
+}
+
+function playWalletSelectSound() {
+  try {
+    playSelect();
+  } catch {
+    // Audio feedback should never block wallet interactions.
+  }
+}
 
 function useLocalPrefersReducedMotion() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -402,7 +419,11 @@ export function useGameWalletModalController(
                     type="button"
                     aria-haspopup="listbox"
                     aria-expanded={withdrawNetworkOpen}
-                    onClick={() => setWithdrawNetworkOpen((open) => !open)}
+                    data-sound-menu="component"
+                    onClick={() => {
+                      playWalletMenuOpenSound();
+                      setWithdrawNetworkOpen((open) => !open);
+                    }}
                   >
                     <span className="wallet-select__value">{withdrawNetwork}</span>
                     <span className="wallet-select__chevron" aria-hidden="true" />
@@ -420,7 +441,11 @@ export function useGameWalletModalController(
                           type="button"
                           role="option"
                           aria-selected={network === withdrawNetwork}
-                          onClick={() => handleWithdrawNetworkChange(network)}
+                          data-sound-menu="component"
+                          onClick={() => {
+                            playWalletSelectSound();
+                            handleWithdrawNetworkChange(network);
+                          }}
                         >
                           {network}
                         </button>

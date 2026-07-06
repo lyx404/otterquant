@@ -17,6 +17,7 @@ import { useGameEconomy } from "@/contexts/GameEconomyContext";
 import {
   HUD_ASSETS,
 } from "@/lib/gameWallet";
+import { playScratchPrizeCoin, playScratchPrizeLevelUp } from "@/lib/sounds";
 import {
   BASE_NUMBER_H,
   BASE_NUMBER_W,
@@ -276,6 +277,9 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
   const lastProgressCheckRef = useRef(0);
   const lastSparkAtRef = useRef(0);
   const revealTimeoutsRef = useRef<number[]>([]);
+  const scratchRoundIdRef = useRef(0);
+  const prizeSoundKeyRef = useRef<string | null>(null);
+  const previousDisplayedCashBalanceRef = useRef<number | null>(null);
 
   const currentTicket = batchTickets[currentTicketIndex] ?? TICKET_POOL[0];
   const hasMoreTickets = currentTicketIndex < batchTickets.length - 1;
@@ -734,6 +738,7 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
     setBatchWins([]);
     setCurrentTicketIndex(0);
     setCashAwardSettled(false);
+    prizeSoundKeyRef.current = null;
     setViewState("purchase");
   }, [clearSparks]);
 
@@ -745,6 +750,8 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
 
     const tickets = Array.from({ length: selectedQuantity }, () => pickScratchTicket());
     const nextCoinBalance = Math.max(0, displayedCoinBalance - purchaseCost);
+    scratchRoundIdRef.current += 1;
+    prizeSoundKeyRef.current = null;
     spendCoins(purchaseCost);
     setWalletDisplayOverrides({
       coinBalance: nextCoinBalance,
@@ -924,6 +931,29 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
     if (viewState !== "done") return;
     showRevealedTicket();
   }, [showRevealedTicket, viewState]);
+
+  useEffect(() => {
+    if (viewState !== "done" || settlementAmount <= 0) return;
+
+    const prizeSoundKey = [
+      scratchRoundIdRef.current,
+      currentTicketIndex,
+      settlementAmount,
+      isBatchFinished ? "batch" : "ticket",
+    ].join(":");
+
+    if (prizeSoundKeyRef.current === prizeSoundKey) return;
+    prizeSoundKeyRef.current = prizeSoundKey;
+    playScratchPrizeCoin();
+  }, [currentTicketIndex, isBatchFinished, settlementAmount, viewState]);
+
+  useEffect(() => {
+    const previousCashBalance = previousDisplayedCashBalanceRef.current;
+    previousDisplayedCashBalanceRef.current = displayedCashBalance;
+
+    if (previousCashBalance === null || displayedCashBalance <= previousCashBalance) return;
+    playScratchPrizeLevelUp();
+  }, [displayedCashBalance]);
 
   useEffect(() => {
     alignFloatingCoin();

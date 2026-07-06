@@ -22,6 +22,7 @@ import {
   SCRATCH_CARD_ASSETS,
 } from "@/components/scratch-card/scratchCardData";
 import { useMobilePageTransition } from "@/hooks/useMobilePageTransition";
+import { playRewardLevelUp } from "@/lib/sounds";
 import "@/styles/mobilePageTransition.css";
 
 type FishMarketStageLayout = {
@@ -104,6 +105,7 @@ export default function FishMarket() {
   const [sellingCardIds, setSellingCardIds] = useState(() => new Set<string>());
   const [sellSuccessToast, setSellSuccessToast] = useState<FishMarketToast | null>(null);
   const sellAnimationTimeoutRef = useRef<number | null>(null);
+  const previousDisplayedCoinBalanceRef = useRef<number | null>(null);
   const pageTransition = useMobilePageTransition(mobilePageOpen, 260);
   const tr = useCallback((en: string, zh: string) => t(en, zh), [t]);
   const selectedCardCount = selectedCardIds.size;
@@ -151,6 +153,14 @@ export default function FishMarket() {
 
     return () => window.clearTimeout(toastTimer);
   }, [sellSuccessToast]);
+
+  useEffect(() => {
+    const previousCoinBalance = previousDisplayedCoinBalanceRef.current;
+    previousDisplayedCoinBalanceRef.current = walletController.coinBalanceValue;
+
+    if (previousCoinBalance === null || walletController.coinBalanceValue <= previousCoinBalance) return;
+    playRewardLevelUp();
+  }, [walletController.coinBalanceValue]);
 
   const handleBackClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
     const origin = typeof window === "undefined"
