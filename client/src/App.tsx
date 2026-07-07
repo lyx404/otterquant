@@ -3,7 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch, Redirect, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { AuthProvider } from "./contexts/AuthContext";
 import { AppLanguageProvider } from "./contexts/AppLanguageContext";
 import SidebarLayout from "./components/SidebarLayout";
 import CustomCursor from "./components/CustomCursor";
@@ -15,8 +15,6 @@ const MyAlphas = lazy(() => import("@/pages/MyAlphas"));
 const AlphaDetail = lazy(() => import("@/pages/AlphaDetail"));
 const Account = lazy(() => import("@/pages/Account"));
 const LaunchGuide = lazy(() => import("@/pages/LaunchGuide"));
-const Landing = lazy(() => import("@/pages/Landing"));
-const Auth = lazy(() => import("@/pages/Auth"));
 const OfficialLibrary = lazy(() => import("@/pages/OfficialLibrary"));
 const AlphaEdit = lazy(() => import("@/pages/AlphaEdit"));
 const MyStrategies = lazy(() => import("@/pages/MyStrategies"));
@@ -66,68 +64,29 @@ function OnboardingProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ── Protected Route — redirects to /auth if not authenticated ── */
+/* ── Route wrapper kept for page wiring after removing auth gates. ── */
 function ProtectedRoute({
   component: Component,
 }: {
   component: React.ComponentType;
 }) {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) return null;
-  if (!isAuthenticated) return <Redirect to="/auth" />;
   return <Component />;
 }
 
 /* ── Router ── */
 function Router() {
-  const { onboarded } = useOnboarding();
-  const { isAuthenticated, isLoading } = useAuth();
-  const [location] = useLocation();
-
-  if (isLoading) return null;
-
-  // Public routes that don't need auth
-  const publicPaths = ["/landing", "/auth", "/launch-guide"];
-  const isPublicPath = publicPaths.some(
-    (p) => location === p || location.startsWith(p)
-  );
-
-  // If not authenticated and trying to access protected route, redirect to auth
-  // Exception: landing and auth pages are always accessible
-  if (!isAuthenticated && !isPublicPath && location !== "/") {
-    return <Redirect to="/auth" />;
-  }
-
-  // If not authenticated and at root, show landing
-  if (!isAuthenticated && location === "/") {
-    return <Redirect to="/landing" />;
-  }
-
-  // If authenticated and not onboarded, redirect to launch guide
-  // (except for landing, auth, and launch-guide itself)
-  if (
-    isAuthenticated &&
-    !onboarded &&
-    location !== "/launch-guide" &&
-    location !== "/landing" &&
-    location !== "/auth"
-  ) {
-    return <Redirect to="/launch-guide" />;
-  }
-
   return (
     <Suspense fallback={null}>
       <Switch>
-        {/* Public routes */}
-        <Route path="/landing" component={Landing} />
-        <Route path="/auth" component={Auth} />
+        {/* Legacy landing URL goes straight to the dashboard entry. */}
+        <Route path="/landing">
+          <Redirect to="/" />
+        </Route>
+        <Route path="/auth">
+          <Redirect to="/" />
+        </Route>
         <Route path="/launch-guide" component={LaunchGuide} />
 
-        {/* Protected routes */}
-        <Route path="/">
-          <ProtectedRoute component={Dashboard} />
-        </Route>
         <Route path="/alphas">
           <ProtectedRoute component={MyAlphas} />
         </Route>
@@ -171,6 +130,9 @@ function Router() {
           <ProtectedRoute component={Account} />
         </Route>
 
+        {/* Dashboard entry */}
+        <Route path="/" component={Dashboard} />
+
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -178,10 +140,10 @@ function Router() {
   );
 }
 
-/* ── Layout wrapper: Landing/Auth/LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
+/* ── Layout wrapper: LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/launch-guide", "/landing", "/auth", "/link-checkout"];
+  const noLayoutPaths = ["/launch-guide", "/link-checkout"];
   const hideLayout = noLayoutPaths.some(
     (p) => location === p || location.startsWith(p)
   );

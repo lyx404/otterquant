@@ -11,15 +11,21 @@ import gsap from "gsap";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
-import { useAlphaViewMode } from "@/contexts/AlphaViewModeContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
-  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut, Sparkles,
+  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { exchanges, type Exchange } from "@/lib/mockData";
 import {
   getExchangeVenueMeta,
@@ -34,8 +40,14 @@ type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementType }[] = [
   { id: "general", labelEn: "General", labelZh: "通用", icon: Shield },
   { id: "profile", labelEn: "Profile", labelZh: "资料", icon: User },
-  { id: "exchangeApi", labelEn: "Exchange API", labelZh: "交易所 API", icon: Link2 },
-  { id: "api", labelEn: "Agent API", labelZh: "Agent API", icon: Key },
+];
+const languageOptions: { value: UiLang; label: string }[] = [
+  { value: "en", label: "English" },
+  { value: "zh", label: "中文" },
+  { value: "ja", label: "日本語" },
+  { value: "ko", label: "한국어" },
+  { value: "es", label: "Español" },
+  { value: "fr", label: "Français" },
 ];
 
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
@@ -167,7 +179,6 @@ function ChartColorPreview({ mode }: { mode: ChartColorMode }) {
 export default function Account() {
   const { user, updateUser, logout } = useAuth();
   const { uiLang, setUiLang } = useAppLanguage();
-  const { alphaViewMode, setAlphaViewMode } = useAlphaViewMode();
   const { themePreference, setThemePreference } = useTheme();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>("general");
@@ -190,13 +201,6 @@ export default function Account() {
     if (typeof window === "undefined") return "greenUpRedDown";
     const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
     return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
-  });
-  const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => {
-    if (typeof window === "undefined") return true;
-    const stored = window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY);
-    if (stored === "true") return true;
-    if (stored === "false") return false;
-    return true;
   });
   const headerRef = useRef<HTMLDivElement>(null);
   const [exchangeApiItems, setExchangeApiItems] = useState<ExchangeApiConnection[]>(() =>
@@ -267,8 +271,8 @@ export default function Account() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, String(plainExplainEnabled));
-  }, [plainExplainEnabled]);
+    window.localStorage.setItem(PLAIN_EXPLANATION_STORAGE_KEY, "true");
+  }, []);
 
   const handleRefreshSkill = useCallback((id: string) => {
     const now = new Date().toISOString().split("T")[0];
@@ -451,8 +455,8 @@ export default function Account() {
         <div className="reveal-line mt-2">
           <p className="text-base text-muted-foreground">
             {tr(
-              "Manage your profile, API keys, and exchange connections",
-              "管理账户资料、Agent API 密钥与交易所连接"
+              "Manage your profile and workspace preferences",
+              "管理账户资料与工作区偏好"
             )}
           </p>
         </div>
@@ -494,122 +498,27 @@ export default function Account() {
             <div className="px-6 pb-6 pt-5 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
                 <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("View Mode", "视角模式")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Choose beginner-friendly or professional views across the app.", "选择全站使用初学者视角或专业视角。")}
-                  </div>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent p-1">
-                  <button
-                    type="button"
-                    onClick={() => setAlphaViewMode("beginner")}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors ${
-                      alphaViewMode === "beginner"
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Eye className="h-3.5 w-3.5" />
-                    {tr("Beginner", "初学者")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAlphaViewMode("pro")}
-                    className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors ${
-                      alphaViewMode === "pro"
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    {tr("Pro", "专业")}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("Plain Explanations", "通俗解释")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Show plain explanations across factor and strategy pages.", "在因子与策略页面显示通俗解释。")}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPlainExplainEnabled((enabled) => !enabled)}
-                  className={`relative h-6 w-11 rounded-full transition-colors duration-200 ease-in-out ${plainExplainEnabled ? "bg-primary" : "bg-muted"}`}
-                  aria-pressed={plainExplainEnabled}
-                  aria-label={tr("Toggle plain explanations", "开启或关闭通俗解释")}
-                >
-                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${plainExplainEnabled ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("Color Configuration", "颜色配置")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Choose how rising and falling values are colored.", "选择上涨与下跌数值的颜色显示。")}
-                  </div>
-                </div>
-                <div className="inline-flex flex-wrap items-center gap-2">
-                  {([
-                    { value: "redUpGreenDown", en: "Red up, green down", zh: "红涨绿跌" },
-                    { value: "greenUpRedDown", en: "Green up, red down", zh: "绿涨红跌" },
-                  ] as const).map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => setChartColorMode(item.value)}
-                      className={`inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors ${
-                        chartColorMode === item.value
-                          ? "border-primary/30 bg-primary/10 text-primary"
-                          : "border-border bg-accent text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <span>{tr(item.en, item.zh)}</span>
-                      <ChartColorPreview mode={item.value} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="surface-card overflow-hidden">
-            <div className="px-6 pt-5 pb-0">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
-                <span className="text-base font-semibold text-foreground">{tr("Appearance", "外观")}</span>
-              </div>
-            </div>
-
-            <div className="px-6 pb-6 pt-5 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
-                <div>
                   <div className="text-sm font-semibold text-foreground">{tr("Language", "语言")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     {tr("Set display language for UI and notifications.", "设置界面与通知的显示语言。")}
                   </div>
                 </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent/35 p-1">
-                  <button
-                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                      uiLang === "en" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    onClick={() => setUiLang("en")}
+                <Select value={uiLang} onValueChange={(value) => setUiLang(value as UiLang)}>
+                  <SelectTrigger
+                    size="sm"
+                    className="h-9 min-w-[148px] rounded-full border-border bg-accent/35 px-3 text-xs"
+                    aria-label={tr("Select language", "选择语言")}
                   >
-                    EN
-                  </button>
-                  <button
-                    className={`h-7 rounded-full px-3 text-xs transition-colors ${
-                      uiLang === "zh" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                    onClick={() => setUiLang("zh")}
-                  >
-                    中文
-                  </button>
-                </div>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end" className="rounded-xl">
+                    {languageOptions.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
@@ -640,6 +549,34 @@ export default function Account() {
                 </div>
               </div>
 
+              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">{tr("Color Configuration", "颜色配置")}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {tr("Choose how rising and falling values are colored.", "选择上涨与下跌数值的颜色显示。")}
+                  </div>
+                </div>
+                <div className="inline-flex flex-wrap items-center gap-2">
+                  {([
+                    { value: "redUpGreenDown", en: "Red up, green down", zh: "红涨绿跌" },
+                    { value: "greenUpRedDown", en: "Green up, red down", zh: "绿涨红跌" },
+                  ] as const).map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setChartColorMode(item.value)}
+                      className={`inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors ${
+                        chartColorMode === item.value
+                          ? "border-primary/30 bg-primary/10 text-primary"
+                          : "border-border bg-accent text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span>{tr(item.en, item.zh)}</span>
+                      <ChartColorPreview mode={item.value} />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 

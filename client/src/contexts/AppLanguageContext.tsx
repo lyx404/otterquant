@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-export type UiLang = "en" | "zh";
+export type UiLang = "en" | "zh" | "ja" | "ko" | "es" | "fr";
 
 interface AppLanguageContextType {
   uiLang: UiLang;
@@ -8,17 +8,27 @@ interface AppLanguageContextType {
 }
 
 const AppLanguageContext = createContext<AppLanguageContextType | undefined>(undefined);
+const supportedLangs: UiLang[] = ["en", "zh", "ja", "ko", "es", "fr"];
+const documentLangMap: Record<UiLang, string> = {
+  en: "en",
+  zh: "zh-CN",
+  ja: "ja",
+  ko: "ko",
+  es: "es",
+  fr: "fr",
+};
 
 export function AppLanguageProvider({ children }: { children: React.ReactNode }) {
   const [uiLang, setUiLang] = useState<UiLang>(() => {
     if (typeof window === "undefined") return "en";
-    return localStorage.getItem("otter_ui_lang") === "zh" ? "zh" : "en";
+    const stored = localStorage.getItem("otter_ui_lang");
+    return supportedLangs.includes(stored as UiLang) ? (stored as UiLang) : "en";
   });
 
   useEffect(() => {
     localStorage.setItem("otter_ui_lang", uiLang);
     if (typeof document !== "undefined") {
-      document.documentElement.lang = uiLang === "zh" ? "zh-CN" : "en";
+      document.documentElement.lang = documentLangMap[uiLang];
     }
   }, [uiLang]);
 

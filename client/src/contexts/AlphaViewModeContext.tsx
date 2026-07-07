@@ -44,9 +44,7 @@ export function useAlphaCopy() {
 }
 
 function getInitialAlphaViewMode(): AlphaViewMode {
-  if (typeof window === "undefined") return "pro";
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  return saved === "beginner" || saved === "pro" ? saved : "pro";
+  return "pro";
 }
 
 export function AlphaViewModeProvider({ children }: { children: ReactNode }) {

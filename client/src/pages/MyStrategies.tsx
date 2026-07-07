@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { strategies } from "@/lib/mockData";
 import { buildSeries, parsePercent } from "@/lib/strategyUtils";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { type UiLang, useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   ArrowUpDown,
   ArrowUpRight,
@@ -41,7 +41,6 @@ import {
   Grid2x2,
   List,
   MoreHorizontal,
-  Plus,
   Search,
   SlidersHorizontal,
   Star,
@@ -525,7 +524,7 @@ function StrategyCard({
   onRequestDelete: () => void;
   visibleItems: Record<DisplayItemKey, boolean>;
   plainExplainEnabled: boolean;
-  uiLang: "en" | "zh";
+  uiLang: UiLang;
   chartColors: ChartColorTokens;
 }) {
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -845,12 +844,6 @@ export default function MyStrategies() {
     <div className="space-y-6 min-w-0">
       <div className="flex items-start justify-between gap-4">
           <h1 className="text-foreground">{tr("My Strategy", "我的策略")}</h1>
-        <Link href="/strategies/new?creationMode=platform&scale=single">
-            <Button className="h-10 rounded-full bg-primary px-4 text-sm text-primary-foreground shadow-sm hover:bg-primary/90">
-            <Plus className="mr-1 h-3.5 w-3.5" />
-            {tr("New Strategy", "新建策略")}
-          </Button>
-        </Link>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">

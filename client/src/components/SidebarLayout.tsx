@@ -82,7 +82,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
 function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
-  const { isAuthenticated, user } = useAuth();
+  const { user } = useAuth();
   const { uiLang } = useAppLanguage();
   const { alphaViewMode } = useAlphaViewMode();
   const [collapsed, setCollapsed] = useState(false);
@@ -137,6 +137,8 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const displayName = user?.displayName || "Quandora";
+  const avatarInitial = displayName.charAt(0).toUpperCase();
 
   const syncAlphaCopy = useCallback((root: ParentNode, mode: AlphaViewMode) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -216,7 +218,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <ChevronRight className="w-4 h-4" />
             </button>
           ) : (
-            <Link href="/landing">
+            <Link href="/">
               <div className="flex items-center justify-center shrink-0">
                 <img
                   src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
@@ -228,7 +230,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           )
         ) : (
           <>
-            <Link href="/landing">
+            <Link href="/">
               <div className="flex items-center gap-2.5 shrink-0">
                 <img
                   src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
@@ -278,10 +280,9 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                 {/* Parent item */}
                 <button
                   onClick={() => {
-                    if (collapsed && !isMobile) {
-                      navigate(item.path);
-                    } else {
-                      setExpandedSections((prev) => ({ ...prev, [item.path]: !prev[item.path] }));
+                    navigate(item.path);
+                    if (!collapsed || isMobile) {
+                      setExpandedSections((prev) => ({ ...prev, [item.path]: true }));
                     }
                   }}
                   className={`w-full flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-200 ease-in-out ${
@@ -359,50 +360,46 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         {collapsed && !isMobile ? (
           /* === Collapsed: vertical stack === */
           <div className="flex flex-col items-center gap-1.5 mb-2">
-            {isAuthenticated && <NotificationPanel />}
-            {isAuthenticated && (
-              <button
-                onClick={() => navigate("/account")}
-                className={`flex items-center justify-center rounded-lg transition-all duration-200 ease-in-out p-1.5 ${
-                  isActive("/account") ? "bg-primary/10" : "hover:bg-accent"
-                }`}
-                title={tr("Settings", "设置")}
-              >
-                <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[11px] font-semibold overflow-hidden shrink-0">
-                  {user?.avatar ? (
-                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    user?.displayName?.charAt(0)?.toUpperCase() || "U"
-                  )}
-                </div>
-              </button>
-            )}
+            <NotificationPanel />
+            <button
+              onClick={() => navigate("/account")}
+              className={`flex items-center justify-center rounded-lg transition-all duration-200 ease-in-out p-1.5 ${
+                isActive("/account") ? "bg-primary/10" : "hover:bg-accent"
+              }`}
+              title={tr("Settings", "设置")}
+            >
+              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[11px] font-semibold overflow-hidden shrink-0">
+                {user?.avatar ? (
+                  <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  avatarInitial
+                )}
+              </div>
+            </button>
           </div>
         ) : (
           /* === Expanded: single row — user avatar, notification, theme (left to right) === */
           <div>
             <div className="flex items-center gap-1.5">
-              {isAuthenticated && (
-                <button
-                  onClick={() => navigate("/account")}
-                  className={`flex items-center gap-2 rounded-lg transition-all duration-200 ease-in-out px-2 py-1.5 ${
-                    isActive("/account") ? "bg-primary/10" : "hover:bg-accent"
-                  }`}
-                >
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[11px] font-semibold overflow-hidden shrink-0">
-                    {user?.avatar ? (
-                      <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      user?.displayName?.charAt(0)?.toUpperCase() || "U"
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-foreground truncate max-w-[100px]">
-                    {user?.displayName || "User"}
-                  </span>
-                </button>
-              )}
+              <button
+                onClick={() => navigate("/account")}
+                className={`flex items-center gap-2 rounded-lg transition-all duration-200 ease-in-out px-2 py-1.5 ${
+                  isActive("/account") ? "bg-primary/10" : "hover:bg-accent"
+                }`}
+              >
+                <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[11px] font-semibold overflow-hidden shrink-0">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    avatarInitial
+                  )}
+                </div>
+                <span className="text-xs font-medium text-foreground truncate max-w-[100px]">
+                  {displayName}
+                </span>
+              </button>
               <div className="flex-1" />
-              {isAuthenticated && <NotificationPanel />}
+              <NotificationPanel />
             </div>
           </div>
         )}
@@ -448,7 +445,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <Link href="/landing">
+          <Link href="/">
             <div className="flex items-center gap-2">
               <img
                 src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
