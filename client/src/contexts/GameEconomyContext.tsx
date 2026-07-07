@@ -16,6 +16,7 @@ type GameEconomyContextValue = {
   coinBalance: number;
   cashCents: number;
   fishBalance: number;
+  setFishBalance: (amount: number) => void;
   addCoins: (amount: number) => void;
   spendCoins: (amount: number) => void;
   addCashCents: (amount: number) => void;
@@ -27,6 +28,7 @@ const GameEconomyContext = createContext<GameEconomyContextValue | undefined>(un
 export function GameEconomyProvider({ children }: { children: ReactNode }) {
   const [coinBalance, setCoinBalance] = useState(SYSTEM_BALANCE_AMOUNT);
   const [cashCents, setCashCents] = useState(HUD_CASH_CENTS);
+  const [fishBalance, setFishBalanceState] = useState(FISH_BALANCE_AMOUNT);
 
   const addCoins = useCallback((amount: number) => {
     setCoinBalance((current) => current + Math.max(0, Math.round(amount || 0)));
@@ -44,15 +46,20 @@ export function GameEconomyProvider({ children }: { children: ReactNode }) {
     setCashCents((current) => Math.max(0, current - Math.max(0, Math.round(amount || 0))));
   }, []);
 
+  const setFishBalance = useCallback((amount: number) => {
+    setFishBalanceState(Math.max(0, Math.round(amount || 0)));
+  }, []);
+
   const value = useMemo<GameEconomyContextValue>(() => ({
     addCoins,
     coinBalance,
     cashCents,
-    fishBalance: FISH_BALANCE_AMOUNT,
+    fishBalance,
+    setFishBalance,
     spendCoins,
     addCashCents,
     spendCashCents,
-  }), [addCashCents, addCoins, cashCents, coinBalance, spendCashCents, spendCoins]);
+  }), [addCashCents, addCoins, cashCents, coinBalance, fishBalance, setFishBalance, spendCashCents, spendCoins]);
 
   return (
     <GameEconomyContext.Provider value={value}>

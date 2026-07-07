@@ -34,6 +34,17 @@ export default function ScratchCard() {
 
             void navigateWithTransition("/", origin);
           }}
+          onOpenFishMarket={() => {
+            if (typeof window !== "undefined" && window.innerWidth <= 700 && !pageTransition.prefersReducedMotion) {
+              setMobilePageOpen(false);
+              window.setTimeout(() => {
+                setLocation("/fish-market");
+              }, pageTransition.exitDurationMs);
+              return;
+            }
+
+            void navigateWithTransition("/fish-market");
+          }}
         />
       </section>
       <style>{`

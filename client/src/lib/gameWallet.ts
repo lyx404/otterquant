@@ -14,7 +14,7 @@ export const BALANCE_PER_USD = 100;
 export const SYSTEM_BALANCE_AMOUNT = 100000000;
 export const HUD_CASH_AMOUNT = 99.9;
 export const HUD_CASH_CENTS = Math.round(HUD_CASH_AMOUNT * 100);
-export const FISH_BALANCE_AMOUNT = 10000;
+export const FISH_BALANCE_AMOUNT = 11;
 export const WALLET_BALANCE_USD = HUD_CASH_AMOUNT;
 export const WALLET_BALANCE_AMOUNT = Math.round(WALLET_BALANCE_USD * BALANCE_PER_USD);
 

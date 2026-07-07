@@ -806,6 +806,18 @@ export default function FishPond() {
     void navigateWithTransition("/", origin);
   }, [navigateWithTransition, pageTransition.exitDurationMs, pageTransition.prefersReducedMotion, setLocation]);
 
+  const handleOpenFishMarket = useCallback(() => {
+    if (typeof window !== "undefined" && window.innerWidth <= 700 && !pageTransition.prefersReducedMotion) {
+      setMobilePageOpen(false);
+      window.setTimeout(() => {
+        setLocation("/fish-market");
+      }, pageTransition.exitDurationMs);
+      return;
+    }
+
+    void navigateWithTransition("/fish-market");
+  }, [navigateWithTransition, pageTransition.exitDurationMs, pageTransition.prefersReducedMotion, setLocation]);
+
   return (
     <main
       className="fish-pond-route mobile-page-transition-route"
@@ -878,6 +890,7 @@ export default function FishPond() {
             fishBalance={fishBalance}
             tr={tr}
             onOpenWallet={walletController.openWalletModal}
+            onOpenFishMarket={handleOpenFishMarket}
           />
         </header>
       </section>

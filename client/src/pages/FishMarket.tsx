@@ -95,12 +95,12 @@ const formatFishMarketPrice = (value: number) => value.toLocaleString("en-US");
 export default function FishMarket() {
   const [, setLocation] = useLocation();
   const { t } = useAppLanguage();
-  const { addCoins, fishBalance } = useGameEconomy();
+  const { addCoins, fishBalance, setFishBalance } = useGameEconomy();
   const walletController = useGameWalletModal();
   const { navigateWithTransition } = usePageTransition();
   const [mobilePageOpen, setMobilePageOpen] = useState(true);
   const [stageLayout, setStageLayout] = useState(getFishMarketStageLayout);
-  const [availableCards, setAvailableCards] = useState(() => [...FISH_MARKET_CARDS]);
+  const [availableCards, setAvailableCards] = useState(() => [...FISH_MARKET_CARDS].slice(0, fishBalance));
   const [selectedCardIds, setSelectedCardIds] = useState(() => new Set<string>());
   const [sellingCardIds, setSellingCardIds] = useState(() => new Set<string>());
   const [sellSuccessToast, setSellSuccessToast] = useState<FishMarketToast | null>(null);
@@ -162,6 +162,10 @@ export default function FishMarket() {
     playRewardLevelUp();
   }, [walletController.coinBalanceValue]);
 
+  useEffect(() => {
+    setFishBalance(availableCards.length);
+  }, [availableCards.length, setFishBalance]);
+
   const handleBackClick = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
     const origin = typeof window === "undefined"
       ? undefined
@@ -180,6 +184,10 @@ export default function FishMarket() {
 
     void navigateWithTransition("/", origin);
   }, [navigateWithTransition, pageTransition.exitDurationMs, pageTransition.prefersReducedMotion, setLocation]);
+
+  const handleOpenFishMarket = useCallback(() => {
+    void navigateWithTransition("/fish-market");
+  }, [navigateWithTransition]);
 
   const toggleCard = useCallback((cardId: string) => {
     setSellSuccessToast(null);
@@ -207,6 +215,7 @@ export default function FishMarket() {
     if (!canSellSelectedCards || estimatedPrice <= 0) return;
 
     const soldCardIds = new Set(selectedCardIds);
+    const nextFishBalance = Math.max(0, availableCards.length - soldCardIds.size);
     const removeSoldCards = () => {
       setAvailableCards((current) => current.filter((card) => !soldCardIds.has(card.id)));
       setSellingCardIds(new Set<string>());
@@ -215,6 +224,7 @@ export default function FishMarket() {
       && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     addCoins(estimatedPrice);
+    setFishBalance(nextFishBalance);
     if (walletController.hasWalletDisplayOverrides) {
       walletController.setWalletDisplayOverrides({
         coinBalance: walletController.coinBalanceValue + estimatedPrice,
@@ -248,7 +258,7 @@ export default function FishMarket() {
       ),
       coinAmount: estimatedPrice,
     });
-  }, [addCoins, canSellSelectedCards, estimatedPrice, selectedCardIds, tr, walletController]);
+  }, [addCoins, availableCards.length, canSellSelectedCards, estimatedPrice, selectedCardIds, setFishBalance, tr, walletController]);
 
   return (
     <main
@@ -279,9 +289,10 @@ export default function FishMarket() {
             coinBalance={walletController.coinBalanceValue}
             cashBalance={walletController.cashBalanceValue}
             cashDecimals={1}
-            fishBalance={fishBalance}
+            fishBalance={availableCards.length}
             tr={tr}
             onOpenWallet={walletController.openWalletModal}
+            onOpenFishMarket={handleOpenFishMarket}
           />
         </header>
 

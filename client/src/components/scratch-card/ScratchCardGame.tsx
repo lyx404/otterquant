@@ -56,6 +56,7 @@ type Point = {
 
 type ScratchCardGameProps = {
   onBack: (origin?: Point) => void;
+  onOpenFishMarket: () => void;
 };
 
 type AnimatedStatDirection = "up" | "down" | "idle";
@@ -205,7 +206,7 @@ function getCanvasFontFamily(canvas: HTMLCanvasElement) {
     || "sans-serif";
 }
 
-export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
+export function ScratchCardGame({ onBack, onOpenFishMarket }: ScratchCardGameProps) {
   const { uiLang, t } = useAppLanguage();
   const { coinBalance, cashCents, fishBalance, spendCoins, addCashCents } = useGameEconomy();
   const tr = useCallback((en: string, zh: string) => t(en, zh), [t]);
@@ -1005,6 +1006,7 @@ export function ScratchCardGame({ onBack }: ScratchCardGameProps) {
             fishBalance={fishBalance}
             tr={tr}
             onOpenWallet={walletController.openWalletModal}
+            onOpenFishMarket={onOpenFishMarket}
             animatedDirections={{
               coin: animatedCoinBalance.direction,
               cash: animatedCashBalance.direction,

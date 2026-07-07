@@ -13640,6 +13640,7 @@ export default function Landing() {
           cashDecimals={cashDataScenarioMode === "empty" ? 0 : 1}
           tr={tr}
           onOpenWallet={walletController.openWalletModal}
+          onOpenFishMarket={() => openStandaloneGameRoute("/fish-market")}
         />
 
         <div

@@ -35,6 +35,7 @@ type GameHudStatsProps = {
   };
   tr: (en: string, zh: string) => string;
   onOpenWallet: (accountKind: "coin" | "cash") => void;
+  onOpenFishMarket?: () => void;
 };
 
 function CountUp({
@@ -181,12 +182,29 @@ export function GameHudStats({
   animatedDirections,
   tr,
   onOpenWallet,
+  onOpenFishMarket,
 }: GameHudStatsProps) {
   const shouldShowWalletStats = variant === "normal";
   const rootClassName = ["hud-top-stats", className].filter(Boolean).join(" ");
   const coinValueClassName = ["hud-stat-value", "hud-stat-value--balance", animatedDirections?.coin ? `hud-stat-value--${animatedDirections.coin}` : ""].filter(Boolean).join(" ");
   const cashValueClassName = ["hud-stat-value", "hud-stat-value--cash", animatedDirections?.cash ? `hud-stat-value--${animatedDirections.cash}` : ""].filter(Boolean).join(" ");
   const fishValueClassName = ["hud-stat-value", "hud-stat-value--fish", animatedDirections?.fish ? `hud-stat-value--${animatedDirections.fish}` : ""].filter(Boolean).join(" ");
+  const fishStatContent = showFish && typeof fishBalance === "number" ? (
+    <>
+      <img
+        className="hud-stat-icon"
+        src={HUD_ASSETS.fish}
+        alt=""
+        width="40"
+        height="27"
+      />
+      <div className={fishValueClassName}>
+        <CountUp key={`fish-${variant}-${fishBalance}`} to={fishBalance} duration={0.5} formatter={formatHudBalance}>
+          {formatHudBalance(fishBalance)}
+        </CountUp>
+      </div>
+    </>
+  ) : null;
 
   return (
     <div className={rootClassName} aria-label={tr("Stats", "数值统计")}>
@@ -234,21 +252,21 @@ export function GameHudStats({
         </>
       )}
 
-      {showFish && typeof fishBalance === "number" && (
-        <div className="hud-stat-card" aria-label={tr("Fish balance", "鱼额")}>
-          <img
-            className="hud-stat-icon"
-            src={HUD_ASSETS.fish}
-            alt=""
-            width="40"
-            height="27"
-          />
-          <div className={fishValueClassName}>
-            <CountUp key={`fish-${variant}-${fishBalance}`} to={fishBalance} duration={0.5} formatter={formatHudBalance}>
-              {formatHudBalance(fishBalance)}
-            </CountUp>
+      {fishStatContent && (
+        onOpenFishMarket ? (
+          <button
+            className="hud-stat-card hud-stat-card--button"
+            type="button"
+            aria-label={tr("Fish balance", "鱼额")}
+            onClick={onOpenFishMarket}
+          >
+            {fishStatContent}
+          </button>
+        ) : (
+          <div className="hud-stat-card" aria-label={tr("Fish balance", "鱼额")}>
+            {fishStatContent}
           </div>
-        </div>
+        )
       )}
     </div>
   );
