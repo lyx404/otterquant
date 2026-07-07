@@ -13649,7 +13649,12 @@ export default function Landing() {
         >
           {gameVersionMode === "normal" && (
             <>
-              <button className="menu-item" type="button" aria-label={tr("Pond", "鱼塘")}>
+              <button
+                className="menu-item"
+                type="button"
+                aria-label={tr("Pond", "鱼塘")}
+                onClick={() => openStandaloneGameRoute("/fish-pond")}
+              >
                 <img
                   className="menu-icon"
                   src={HUD_ASSETS.pond}

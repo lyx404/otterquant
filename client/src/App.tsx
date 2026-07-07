@@ -12,6 +12,7 @@ import SidebarLayout from "./components/SidebarLayout";
 import CustomCursor from "./components/CustomCursor";
 import SoundFeedback from "./components/SoundFeedback";
 import ScratchCard from "@/pages/ScratchCard";
+import FishPond from "@/pages/FishPond";
 import FishMarket from "@/pages/FishMarket";
 import { Suspense, lazy, useState, useEffect, useCallback, createContext, useContext } from "react";
 
@@ -94,7 +95,7 @@ function Router() {
   if (isLoading) return null;
 
   // Public routes that don't need auth
-  const publicPaths = ["/", "/landing", "/auth", "/launch-guide", "/scratch-card", "/fish-market"];
+  const publicPaths = ["/", "/landing", "/auth", "/launch-guide", "/scratch-card", "/fish-pond", "/fish-market"];
   const isPublicPath = publicPaths.some(
     (p) => location === p || (p !== "/" && location.startsWith(p))
   );
@@ -115,6 +116,7 @@ function Router() {
     location !== "/landing" &&
     location !== "/auth" &&
     location !== "/scratch-card" &&
+    location !== "/fish-pond" &&
     location !== "/fish-market"
   ) {
     return <Redirect to="/launch-guide" />;
@@ -128,6 +130,7 @@ function Router() {
         <Route path="/auth" component={Auth} />
         <Route path="/launch-guide" component={LaunchGuide} />
         <Route path="/scratch-card" component={ScratchCard} />
+        <Route path="/fish-pond" component={FishPond} />
         <Route path="/fish-market" component={FishMarket} />
         <Route path="/" component={Landing} />
 
@@ -188,7 +191,7 @@ function Router() {
 /* ── Layout wrapper: Landing/Auth/LaunchGuide = no layout, Dashboard pages = SidebarLayout ── */
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const noLayoutPaths = ["/", "/launch-guide", "/landing", "/auth", "/link-checkout", "/scratch-card", "/fish-market"];
+  const noLayoutPaths = ["/", "/launch-guide", "/landing", "/auth", "/link-checkout", "/scratch-card", "/fish-pond", "/fish-market"];
   const hideLayout = noLayoutPaths.some(
     (p) => location === p || (p !== "/" && location.startsWith(p))
   );
