@@ -1,13 +1,10 @@
 /*
- * Account — Indigo/Sky + Slate Design System
- * Cards: rounded-2xl, p-6 | Buttons: rounded-full | Inputs: rounded-lg
- * Primary: Indigo | Success: Emerald
- * Pure Tailwind classes — zero inline styles
+ * Account — Otter Quant settings surface
+ * Visual language follows the Design Markdown token system.
  */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect, useRef, useCallback } from "react";
-import gsap from "gsap";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
@@ -202,7 +199,6 @@ export default function Account() {
     const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
     return stored === "redUpGreenDown" || stored === "greenUpRedDown" ? stored : "greenUpRedDown";
   });
-  const headerRef = useRef<HTMLDivElement>(null);
   const [exchangeApiItems, setExchangeApiItems] = useState<ExchangeApiConnection[]>(() =>
     readExchangeApiConnections()
   );
@@ -288,16 +284,6 @@ export default function Account() {
       })
     );
   }, [tr]);
-
-  useEffect(() => {
-    if (!headerRef.current) return;
-    const lines = headerRef.current.querySelectorAll(".reveal-line");
-    gsap.set(lines, { y: 100, skewY: 7, opacity: 0 });
-    gsap.to(lines, {
-      y: 0, skewY: 0, opacity: 1,
-      duration: 1, stagger: 0.08, ease: "power4.out", delay: 0.1,
-    });
-  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -442,47 +428,31 @@ export default function Account() {
     });
   }, []);
 
-  const disabledInputCls = "rounded-lg bg-accent border-border opacity-60 cursor-not-allowed";
-  const activeInputCls = "rounded-lg bg-card border-border";
+  const disabledInputCls = "oq-input oq-input-disabled";
+  const activeInputCls = "oq-input";
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div ref={headerRef} className="reveal-clip">
-        <div className="reveal-line">
-          <h1 className="text-foreground">{tr("Account", "账户设置")}</h1>
-        </div>
-        <div className="reveal-line mt-2">
-          <p className="text-base text-muted-foreground">
-            {tr(
-              "Manage your profile and workspace preferences",
-              "管理账户资料与工作区偏好"
-            )}
-          </p>
-        </div>
-      </div>
+    <div className="oq-account">
+      <div className="oq-account-shell">
+        <nav className="oq-account-nav" aria-label={tr("Account settings", "账户设置")}>
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={`oq-account-nav-item ${isActive ? "is-active" : ""}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <Icon className="h-[13px] w-[13px] shrink-0" strokeWidth={1.6} />
+                <span>{tr(tab.labelEn, tab.labelZh)}</span>
+              </button>
+            );
+          })}
+        </nav>
 
-      {/* Tab Navigation */}
-      <div className="flex items-center gap-1 p-1 rounded-2xl w-fit bg-accent border border-border">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              className={`h-8 text-xs px-3 rounded-xl font-medium transition-all duration-200 ease-in-out flex items-center gap-1.5 border ${
-                isActive
-                  ? "bg-primary/10 text-primary border-primary/20"
-                  : "bg-transparent text-muted-foreground border-transparent hover:text-foreground hover:bg-slate-200 dark:hover:bg-slate-800"
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {tr(tab.labelEn, tab.labelZh)}
-            </button>
-          );
-        })}
-      </div>
+        <section className="oq-account-content">
 
       {/* ═══════════════ General Tab ═══════════════ */}
       {activeTab === "general" && (
@@ -1218,6 +1188,8 @@ export default function Account() {
           </div>
         </div>
       )}
+        </section>
+      </div>
 
       {/* ═══════════════ Create Exchange API Modal ═══════════════ */}
       {showCreateExchangeModal && (

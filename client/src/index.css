@@ -59,9 +59,9 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
 
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-body);
   --font-mono: 'Roboto Mono', ui-monospace, monospace;
-  --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: "Outfit", "Noto Sans", sans-serif;
 
   --animate-star-btn: star-btn calc(var(--duration)*1s) linear infinite;
 }
@@ -70,6 +70,10 @@
    LIGHT THEME (default) — Slate-50 base
    ══════════════════════════════════════════════ */
 :root {
+  --font-body: "Hanken Grotesk", "Noto Sans", sans-serif;
+  --font-heading: "Outfit", "Noto Sans", sans-serif;
+  --font-sans: var(--font-body);
+
   --radius: 0.75rem;
   --background: #F8FAFC;
   --foreground: #0F172A;
@@ -115,6 +119,32 @@
   --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.08);
+}
+
+:lang(zh),
+:lang(zh-Hans),
+:lang(zh-CN),
+:lang(zh-SG) {
+  --font-body: "Hanken Grotesk", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+  --font-heading: "Outfit", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+}
+
+:lang(zh-Hant),
+:lang(zh-TW),
+:lang(zh-HK),
+:lang(zh-MO) {
+  --font-body: "Hanken Grotesk", "Noto Sans TC", "Source Han Sans TC", sans-serif;
+  --font-heading: "Outfit", "Noto Sans TC", "Source Han Sans TC", sans-serif;
+}
+
+:lang(ja) {
+  --font-body: "Hanken Grotesk", "Noto Sans JP", "Source Han Sans JP", sans-serif;
+  --font-heading: "Outfit", "Noto Sans JP", "Source Han Sans JP", sans-serif;
+}
+
+:lang(ko) {
+  --font-body: "Hanken Grotesk", "Noto Sans KR", "Source Han Sans KR", sans-serif;
+  --font-heading: "Outfit", "Noto Sans KR", "Source Han Sans KR", sans-serif;
 }
 
 /* ══════════════════════════════════════════════
@@ -176,6 +206,7 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-family: var(--font-body);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
   h1 {
@@ -195,8 +226,8 @@
     line-height: 1.75rem;
     font-weight: 500;
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-heading;
+  h1, h2, h3, .heading {
+    font-family: var(--font-heading);
   }
   code, pre, .font-mono {
     @apply font-mono;
@@ -442,6 +473,340 @@
 
 .animate-shimmer-slide {
   animation: shimmer-slide 2.5s ease-in-out infinite;
+}
+
+/* ── Otter Quant Account Settings — Design Markdown tokens ── */
+.oq-account {
+  --background: #ffffff;
+  --foreground: #0d0d0d;
+  --card: #ffffff;
+  --card-foreground: #0d0d0d;
+  --popover: #ffffff;
+  --popover-foreground: #0d0d0d;
+  --primary: #dc4900;
+  --primary-foreground: #ffffff;
+  --secondary: #1f8a5b;
+  --secondary-foreground: #ffffff;
+  --muted: #f4f1ed;
+  --muted-foreground: #8c8378;
+  --accent: #f4f1ed;
+  --accent-foreground: #2a2622;
+  --destructive: #d64550;
+  --destructive-foreground: #ffffff;
+  --border: #e2dad0;
+  --input: #e2dad0;
+  --ring: #dc4900;
+  width: 100%;
+  color: #0d0d0d;
+  font-family: var(--font-body);
+}
+
+.oq-account-shell {
+  display: grid;
+  width: min(100%, 900px);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  margin: 0 auto;
+}
+
+.oq-account-nav {
+  display: inline-flex;
+  flex-direction: row;
+  justify-self: start;
+  gap: 3px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: auto;
+  border: 1px solid #e2dad0;
+  border-radius: 13.5px;
+  background: #faf8f6;
+  padding: 4px;
+  box-shadow: none;
+}
+
+.oq-account-nav-item {
+  display: flex;
+  min-width: 84px;
+  width: auto;
+  flex: 0 0 auto;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 0 12px;
+  color: #6b635a;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.oq-account-nav-item:hover {
+  border-color: rgba(220, 73, 0, 0.1);
+  background: #fef6ef;
+  color: #dc4900;
+}
+
+.oq-account-nav-item.is-active {
+  border-color: rgba(220, 73, 0, 0.18);
+  background: #fef6ef;
+  color: #dc4900;
+  box-shadow: 0 1px 1.5px rgba(60, 40, 20, 0.06);
+}
+
+.oq-account-content {
+  width: min(100%, 900px);
+  min-width: 0;
+}
+
+.oq-account .surface-card {
+  border: 1px solid #e2dad0;
+  border-radius: 13.5px;
+  background: #ffffff;
+  box-shadow: 0 1.5px 6px rgba(60, 40, 20, 0.06);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.oq-account .surface-card:hover {
+  border-color: #d2c8bc;
+  box-shadow: 0 6px 18px rgba(60, 40, 20, 0.08);
+}
+
+.oq-account .surface-card > div:first-child {
+  padding-top: 18px;
+}
+
+.oq-account .surface-card > div:first-child .text-base,
+.oq-account h3 {
+  color: #0d0d0d;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: 0;
+}
+
+.oq-account .surface-card > div:first-child svg,
+.oq-account .text-primary svg {
+  color: #dc4900;
+}
+
+.oq-account .text-foreground {
+  color: #0d0d0d;
+}
+
+.oq-account .text-muted-foreground {
+  color: #8c8378;
+}
+
+.oq-account .text-primary {
+  color: #dc4900;
+}
+
+.oq-account .text-destructive {
+  color: #d64550;
+}
+
+.oq-account .border-border {
+  border-color: #e2dad0;
+}
+
+.oq-account .bg-primary {
+  background-color: #dc4900;
+}
+
+.oq-account .bg-destructive {
+  background-color: #d64550;
+}
+
+.oq-account .bg-muted {
+  background-color: #ece6df;
+}
+
+.oq-account .bg-accent,
+.oq-account [class*="bg-accent/"] {
+  background-color: #faf8f6;
+}
+
+.oq-account .bg-background,
+.oq-account [class*="bg-background/"] {
+  background-color: #ffffff;
+}
+
+.oq-account [class*="bg-primary/"] {
+  background-color: #fef6ef;
+}
+
+.oq-account [class*="border-primary/"] {
+  border-color: rgba(220, 73, 0, 0.3);
+}
+
+.oq-account [class*="text-primary"] {
+  color: #dc4900;
+}
+
+.oq-account [class*="hover:bg-primary/"]:hover,
+.oq-account [class*="hover:bg-accent"]:hover {
+  background-color: #fff1dc;
+}
+
+.oq-account .rounded-2xl {
+  border-radius: 13.5px;
+}
+
+.oq-account .rounded-xl {
+  border-radius: 12px;
+}
+
+.oq-account .rounded-lg,
+.oq-account .oq-input {
+  border-radius: 7.5px;
+}
+
+.oq-account .label-upper {
+  color: #8c8378;
+  font-family: var(--font-body);
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 12px;
+  letter-spacing: 0;
+}
+
+.oq-account .text-sm {
+  font-size: 13px;
+  line-height: 21px;
+}
+
+.oq-account .text-xs {
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.oq-account code,
+.oq-account pre,
+.oq-account .font-mono {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.oq-account .oq-input {
+  height: 36px;
+  border-color: #e2dad0;
+  background: #ffffff;
+  color: #0d0d0d;
+  font-size: 12px;
+  line-height: 18px;
+  box-shadow: 0 1px 1.5px rgba(60, 40, 20, 0.04);
+}
+
+.oq-account .oq-input-disabled {
+  background: #faf8f6;
+  color: #686868;
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.oq-account input:focus,
+.oq-account [role="combobox"]:focus {
+  border-color: rgba(220, 73, 0, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(220, 73, 0, 0.16);
+}
+
+.oq-account button:focus-visible,
+.oq-account a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(220, 73, 0, 0.24);
+}
+
+.oq-account button {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+
+.oq-account button.bg-primary,
+.oq-account button.bg-destructive {
+  box-shadow: 0 7.5px 21px rgba(221, 90, 12, 0.24);
+}
+
+.oq-account button.relative.w-11.h-6 {
+  width: 44px;
+  min-width: 44px;
+  flex: 0 0 44px;
+  overflow: hidden;
+}
+
+.oq-account button.relative.w-11.h-6 > span {
+  pointer-events: none;
+}
+
+.oq-account .shadow-xl,
+.oq-account .shadow-2xl {
+  box-shadow: 0 6px 18px rgba(60, 40, 20, 0.12);
+}
+
+@media (max-width: 767px) {
+  .oq-account {
+    padding: 0 12px 20px;
+  }
+
+  .oq-account-shell {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .oq-account-nav {
+    overflow-x: auto;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+  }
+
+  .oq-account-nav-item {
+    min-width: 96px;
+    justify-content: center;
+  }
+
+  .oq-account-content {
+    width: 100%;
+  }
+
+  .oq-account .surface-card > div {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .oq-account .surface-card .mx-6 {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .oq-account .surface-card .px-6 {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .oq-account .surface-card .px-5 {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .oq-account .surface-card .flex.items-center.justify-between.gap-5.rounded-2xl {
+    align-items: flex-start;
+  }
+
+  .oq-account .surface-card .flex.items-center.justify-between.gap-5.rounded-2xl > div:first-child {
+    min-width: 0;
+  }
 }
 
 /* ── StarButton animation ── */

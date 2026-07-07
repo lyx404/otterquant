@@ -1,13 +1,13 @@
 /*
  * SidebarLayout — Left sidebar navigation for authenticated dashboard pages
  * Design System: Indigo/Sky + Slate
- * Sidebar: 240px fixed width, collapsible to 64px icon-only mode
- * Logo links to /landing, nav items with icons + labels
+ * Sidebar: Figma-aligned 186px expanded width, collapsible to 64px icon-only mode
+ * Logo links to /, nav items with icons + labels
  * Bottom: account controls + user dropdown
  * Mobile: overlay sidebar with backdrop
  */
 import { Link, useLocation } from "wouter";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
@@ -22,20 +22,16 @@ import {
   Settings2,
   Menu,
   X,
-  LogIn,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   Rocket,
-  Library,
-  FileText,
   CandlestickChart,
   CreditCard,
 } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 
-const SIDEBAR_W = 220;
+const SIDEBAR_W = 186;
 const SIDEBAR_COLLAPSED_W = 64;
+const FIGMA_HEADER_H = 60;
 
 type NavItem = {
   path: string;
@@ -47,29 +43,56 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { path: "/", labelEn: "Dashboard", labelZh: "仪表盘", icon: LayoutDashboard },
-  {
-    path: "/alphas",
-    labelEn: "Factors",
-    labelZh: "因子",
-    icon: FlaskConical,
-    children: [
-      { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FileText },
-      { path: "/alphas/official", labelEn: "Official Library", labelZh: "官方库", icon: Library },
-    ],
-  },
-  {
-    path: "/strategies",
-    labelEn: "Strategy",
-    labelZh: "策略",
-    icon: Rocket,
-    children: [
-      { path: "/strategies", labelEn: "My Strategy", labelZh: "我的策略", icon: FileText },
-      { path: "/strategies/official", labelEn: "Official Library", labelZh: "官方库", icon: Library },
-    ],
-  },
+  { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FlaskConical },
+  { path: "/strategies", labelEn: "Strategy", labelZh: "策略", icon: Rocket },
   { path: "/trade", labelEn: "Trade", labelZh: "交易", icon: CandlestickChart },
-  { path: "/subscription", labelEn: "Wallet & Credit", labelZh: "钱包&额度", icon: CreditCard },
+  { path: "/subscription", labelEn: "Subscription", labelZh: "订阅", icon: CreditCard },
   { path: "/account", labelEn: "Settings", labelZh: "设置", icon: Settings2 },
+];
+
+const pageHeaders = [
+  {
+    match: (path: string) => path === "/",
+    titleEn: "Dashboard",
+    titleZh: "仪表盘",
+    subtitleEn: "Overview of factors, strategies, and account status",
+    subtitleZh: "查看因子、策略与账户状态概览",
+  },
+  {
+    match: (path: string) => path.startsWith("/alphas"),
+    titleEn: "My Factors",
+    titleZh: "我的因子",
+    subtitleEn: "Create, review, and manage factor signals",
+    subtitleZh: "创建、查看与管理因子信号",
+  },
+  {
+    match: (path: string) => path.startsWith("/strategies"),
+    titleEn: "Strategy",
+    titleZh: "策略",
+    subtitleEn: "Build and monitor strategy workflows",
+    subtitleZh: "构建与监控策略工作流",
+  },
+  {
+    match: (path: string) => path.startsWith("/trade"),
+    titleEn: "Trade",
+    titleZh: "交易",
+    subtitleEn: "Monitor executions and trading status",
+    subtitleZh: "监控执行与交易状态",
+  },
+  {
+    match: (path: string) => path.startsWith("/subscription"),
+    titleEn: "Subscription",
+    titleZh: "订阅",
+    subtitleEn: "Plan, wallet, credit usage, and account activity",
+    subtitleZh: "查看套餐、钱包、额度使用与账户活动",
+  },
+  {
+    match: (path: string) => path.startsWith("/account"),
+    titleEn: "Settings",
+    titleZh: "设置",
+    subtitleEn: "Profile, billing, security & API access",
+    subtitleZh: "资料、账单、安全与 API 访问",
+  },
 ];
 
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
@@ -86,7 +109,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const { uiLang } = useAppLanguage();
   const { alphaViewMode } = useAlphaViewMode();
   const [collapsed, setCollapsed] = useState(false);
-  const [sidebarHeaderHovered, setSidebarHeaderHovered] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     "/alphas": false,
@@ -137,8 +159,15 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
-  const displayName = user?.displayName || "Quandora";
-  const avatarInitial = displayName.charAt(0).toUpperCase();
+  const displayName = user?.displayName || "Nicole Ong";
+  const userHandle = user?.email ? `@${user.email.split("@")[0]}` : "@nicoleo";
+  const avatarInitial = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "NO";
+  const pageHeader = pageHeaders.find((item) => item.match(currentPathname)) ?? pageHeaders[0];
 
   const syncAlphaCopy = useCallback((root: ParentNode, mode: AlphaViewMode) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -199,64 +228,39 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   }, [alphaViewMode, syncAlphaCopy]);
 
   const sidebarWidth = collapsed ? SIDEBAR_COLLAPSED_W : SIDEBAR_W;
+  const shellStyle = { "--sidebar-width": `${sidebarWidth}px` } as CSSProperties;
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className="flex flex-col h-full">
+    <div className={`flex flex-col bg-white text-black ${isMobile ? "h-full" : "h-[100dvh]"}`}>
       {/* Logo + Collapse Toggle */}
       <div
-        className={`flex items-center h-14 border-b border-sidebar-border shrink-0 ${collapsed && !isMobile ? "justify-center px-2" : "justify-between px-4"}`}
-        onMouseEnter={() => !isMobile && setSidebarHeaderHovered(true)}
-        onMouseLeave={() => !isMobile && setSidebarHeaderHovered(false)}
+        className={`flex shrink-0 items-center ${
+          collapsed && !isMobile ? "h-[49px] justify-center px-2" : "h-[31px] items-start justify-between px-3 pt-[18px]"
+        }`}
       >
         {collapsed && !isMobile ? (
-          sidebarHeaderHovered ? (
-            <button
-              onClick={() => setCollapsed(false)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
-              title={tr("Expand sidebar", "展开侧边栏")}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <Link href="/">
-              <div className="flex items-center justify-center shrink-0">
-                <img
-                  src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
-                  alt="Quandora"
-                  className="w-7 h-7 rounded-full object-cover shrink-0"
-                />
-              </div>
-            </Link>
-          )
+          <Link href="/">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fef6ef] text-[11px] font-semibold text-[#dc4900]">
+              Q
+            </div>
+          </Link>
         ) : (
           <>
             <Link href="/">
-              <div className="flex items-center gap-2.5 shrink-0">
+              <div className="flex h-[13px] shrink-0 items-center">
                 <img
-                  src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
+                  src="/quandora-wordmark.png"
                   alt="Quandora"
-                  className="w-7 h-7 rounded-full object-cover shrink-0"
+                  className="h-[13px] w-24 shrink-0 object-contain object-left"
                 />
-                <span className="font-semibold text-base tracking-tight text-foreground">
-                  Quandora
-                </span>
               </div>
             </Link>
-            {!isMobile && (
-              <button
-                onClick={() => setCollapsed(true)}
-                className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200"
-                title={tr("Collapse sidebar", "收起侧边栏")}
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-            )}
           </>
         )}
         {isMobile && (
           <button
             onClick={() => setMobileOpen(false)}
-            className="w-6 h-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground"
+            className="flex h-6 w-6 items-center justify-center rounded-md text-black/50 hover:text-black"
           >
             <X className="w-4 h-4" />
           </button>
@@ -266,7 +270,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
 
       {/* Navigation */}
-      <nav className={`flex-1 py-2 space-y-0.5 overflow-y-auto ${collapsed && !isMobile ? "px-2" : "px-3"}`}>
+      <nav className={`min-h-0 flex-1 space-y-3 overflow-y-auto ${collapsed && !isMobile ? "px-2 pt-[27px]" : "px-3 pt-[27px]"}`}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const hasChildren = item.children && item.children.length > 0;
@@ -285,17 +289,17 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                       setExpandedSections((prev) => ({ ...prev, [item.path]: true }));
                     }
                   }}
-                  className={`w-full flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-200 ease-in-out ${
+                  className={`flex w-full items-center rounded-[6px] text-[12px] font-normal transition-all duration-200 ease-in-out ${
                     collapsed && !isMobile
-                      ? "justify-center px-0 py-2.5"
-                      : "px-3 py-2"
+                      ? "justify-center p-1.5"
+                      : "gap-1.5 p-1.5"
                   } ${parentHighlighted
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900]"
+                    : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900]"
                   }`}
                   title={collapsed && !isMobile ? tr(item.labelEn, item.labelZh) : undefined}
                 >
-                  <Icon className="w-4 h-4 shrink-0" />
+                  <Icon className="h-[15px] w-[15px] shrink-0" strokeWidth={1.5} />
                   {(!collapsed || isMobile) && (
                     <>
                       <span className="flex-1 text-left">{tr(item.labelEn, item.labelZh)}</span>
@@ -315,13 +319,13 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                         <button
                           key={child.path}
                           onClick={() => navigate(child.path)}
-                          className={`w-full flex items-center gap-2 rounded-lg text-[12px] font-medium transition-all duration-200 ease-in-out px-2.5 py-1.5 ${
+                          className={`flex w-full items-center gap-1.5 rounded-[6px] px-2 py-1.5 text-[12px] font-normal transition-all duration-200 ease-in-out ${
                             childActive
-                              ? "bg-primary/10 text-primary"
-                              : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                              ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900]"
+                              : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900]"
                           }`}
                         >
-                          <ChildIcon className="w-3.5 h-3.5 shrink-0" />
+                          <ChildIcon className="h-[13px] w-[13px] shrink-0" strokeWidth={1.5} />
                           <span>{tr(child.labelEn, child.labelZh)}</span>
                         </button>
                       );
@@ -337,18 +341,18 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`w-full flex items-center gap-2.5 rounded-lg text-[13px] font-medium transition-all duration-200 ease-in-out ${
+              className={`flex w-full items-center rounded-[6px] text-[12px] font-normal transition-all duration-200 ease-in-out ${
                 collapsed && !isMobile
-                  ? "justify-center px-0 py-2.5"
-                  : "px-3 py-2"
+                  ? "justify-center p-1.5"
+                  : "gap-1.5 p-1.5"
               } ${
                 active
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900]"
+                  : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900]"
               }`}
               title={collapsed && !isMobile ? tr(item.labelEn, item.labelZh) : undefined}
             >
-              <Icon className="w-4 h-4 shrink-0" />
+              <Icon className="h-[15px] w-[15px] shrink-0" strokeWidth={1.5} />
               {(!collapsed || isMobile) && <span>{tr(item.labelEn, item.labelZh)}</span>}
             </button>
           );
@@ -356,19 +360,16 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Bottom Section */}
-      <div className={`border-t border-sidebar-border py-2.5 ${collapsed && !isMobile ? "px-2" : "px-3"}`}>
+      <div className={`shrink-0 border-t border-[#d9d9d9] ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
         {collapsed && !isMobile ? (
           /* === Collapsed: vertical stack === */
-          <div className="flex flex-col items-center gap-1.5 mb-2">
-            <NotificationPanel />
+          <div className="flex flex-col items-center gap-2">
             <button
               onClick={() => navigate("/account")}
-              className={`flex items-center justify-center rounded-lg transition-all duration-200 ease-in-out p-1.5 ${
-                isActive("/account") ? "bg-primary/10" : "hover:bg-accent"
-              }`}
+              className="flex items-center justify-center rounded-full transition-all duration-200 ease-in-out"
               title={tr("Settings", "设置")}
             >
-              <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[11px] font-semibold overflow-hidden shrink-0">
+              <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-[#d99100] to-[#dc4900] text-[9px] font-semibold text-white">
                 {user?.avatar ? (
                   <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
@@ -378,29 +379,37 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         ) : (
-          /* === Expanded: single row — user avatar, notification, theme (left to right) === */
-          <div>
+          /* === Expanded: Figma-aligned user block + plan entry === */
+          <div className="space-y-[9px]">
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => navigate("/account")}
-                className={`flex items-center gap-2 rounded-lg transition-all duration-200 ease-in-out px-2 py-1.5 ${
-                  isActive("/account") ? "bg-primary/10" : "hover:bg-accent"
-                }`}
+                className="flex min-w-0 flex-1 items-center gap-1.5 rounded-[6px] transition-all duration-200 ease-in-out hover:bg-[#fef6ef]"
               >
-                <div className="w-7 h-7 rounded-full flex items-center justify-center bg-primary/15 text-primary text-[11px] font-semibold overflow-hidden shrink-0">
+                <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-[#d99100] to-[#dc4900] text-[9px] font-semibold text-white">
                   {user?.avatar ? (
                     <img src={user.avatar} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
                     avatarInitial
                   )}
                 </div>
-                <span className="text-xs font-medium text-foreground truncate max-w-[100px]">
-                  {displayName}
+                <span className="flex w-[72px] min-w-0 flex-col items-start gap-[3px] text-left leading-none">
+                  <span className="w-full truncate text-[12px] font-medium text-black">{displayName}</span>
+                  <span className="w-full truncate text-[10px] font-normal text-black/60">{userHandle}</span>
                 </span>
               </button>
-              <div className="flex-1" />
-              <NotificationPanel />
+              <div className="shrink-0">
+                <NotificationPanel />
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate("/subscription")}
+              className="flex w-full items-center gap-[7.5px] rounded-[3px] bg-[#fef6ef] px-[7.5px] py-1.5 text-left text-[12px] font-medium text-[#dc4900] transition-colors hover:bg-[#fde9dc]"
+            >
+              <img src="/sidebar-pro-icon.svg" alt="" className="h-[15px] w-[15px] shrink-0" />
+              <span>{tr("Pro plan", "Pro plan")}</span>
+            </button>
           </div>
         )}
       </div>
@@ -408,10 +417,13 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div
+      className="flex min-h-screen bg-[#faf8f6] md:min-h-[1024px] md:min-w-[1440px] md:pl-[var(--sidebar-width)]"
+      style={shellStyle}
+    >
       {/* Desktop Sidebar */}
       <aside
-        className="hidden md:flex flex-col shrink-0 bg-card border-r border-border h-screen sticky top-0 z-10 transition-all duration-300 ease-in-out overflow-hidden"
+        className="fixed bottom-0 left-0 top-0 z-20 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-[#eef0f4] bg-white transition-all duration-300 ease-in-out md:flex"
         style={{ width: sidebarWidth }}
       >
         <SidebarContent />
@@ -427,7 +439,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`md:hidden fixed top-0 left-0 z-50 h-full bg-card border-r border-border transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 z-50 h-full border-r border-[#eef0f4] bg-white transition-transform duration-300 ease-in-out md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{ width: SIDEBAR_W }}
@@ -436,7 +448,38 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#faf8f6]">
+        <header
+          className="fixed left-[var(--sidebar-width)] right-0 top-0 z-10 hidden shrink-0 items-center justify-between border-b border-[#ece6df] bg-[#faf8f6]/85 backdrop-blur-[4.5px] md:flex"
+          style={{ height: FIGMA_HEADER_H }}
+        >
+          <div className="ml-[21px] flex h-[35px] flex-col justify-start">
+            <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d]">
+              {tr(pageHeader.titleEn, pageHeader.titleZh)}
+            </h1>
+            <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378]">
+              {tr(pageHeader.subtitleEn, pageHeader.subtitleZh)}
+            </p>
+          </div>
+          <div className="mr-[21px] flex h-[30px] items-center gap-[9px]">
+            <label className="flex h-[27.75px] w-[180px] items-center rounded-full border border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]">
+              <img src="/header-search.svg" alt="" className="h-[11.25px] w-[10.078px] shrink-0" />
+              <input
+                aria-label={tr("Search", "搜索")}
+                className="ml-[6px] h-[14.25px] min-w-0 flex-1 bg-transparent text-[9.75px] leading-[1.2] text-[#0d0d0d] outline-none placeholder:text-[#b5aba0]"
+                placeholder={tr("Search factors, traders...", "搜索因子、交易员...")}
+              />
+            </label>
+            <NotificationPanel
+              triggerClassName="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]"
+              iconSrc="/header-bell.svg"
+              iconClassName="h-[12.75px] w-[12.75px]"
+              panelStyle={{ position: "fixed", top: "52px", right: "21px", width: "380px" }}
+              showBadge={false}
+            />
+          </div>
+        </header>
+
         {/* Mobile Top Bar */}
         <header className="md:hidden sticky top-0 z-30 h-12 bg-card/80 backdrop-blur-xl border-b border-border flex items-center px-4 gap-3">
           <button
@@ -448,17 +491,16 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           <Link href="/">
             <div className="flex items-center gap-2">
               <img
-                src="https://d2xsxph8kpxj0f.cloudfront.net/310519663325188422/YmxnXmKxyGfXhEgxEBqPXF/otter-logo_ef58ab33.png"
+                src="/quandora-wordmark.png"
                 alt="Quandora"
-                className="w-6 h-6 rounded-full object-cover"
+                className="h-[13px] w-24 object-contain object-left"
               />
-              <span className="font-semibold text-sm text-foreground">Quandora</span>
             </div>
           </Link>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 mx-auto w-full max-w-[1100px] px-0 py-6 lg:py-8">
+        <main className="mx-auto w-full max-w-[1100px] flex-1 px-0 py-6 md:pt-[calc(60px+1.5rem)] lg:pb-8 lg:pt-[calc(60px+2rem)]">
           {children}
         </main>
       </div>

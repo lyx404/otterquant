@@ -842,10 +842,6 @@ export default function MyStrategies() {
 
   return (
     <div className="space-y-6 min-w-0">
-      <div className="flex items-start justify-between gap-4">
-          <h1 className="text-foreground">{tr("My Strategy", "我的策略")}</h1>
-      </div>
-
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
           <div className="relative w-full max-w-[280px]">

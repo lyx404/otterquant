@@ -4,7 +4,7 @@
  * Two tabs: "互动消息" (Interactive Messages) and "公告" (Announcements)
  * Reference: AnyGen-style notification panel
  */
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
@@ -27,6 +27,14 @@ type AnnouncementItem = {
   time: string;
   read: boolean;
   source: "announcement" | "skill_update";
+};
+
+type NotificationPanelProps = {
+  triggerClassName?: string;
+  iconClassName?: string;
+  iconSrc?: string;
+  panelStyle?: CSSProperties;
+  showBadge?: boolean;
 };
 
 /* Mock announcements data */
@@ -54,7 +62,13 @@ const announcements = [
   },
 ];
 
-export default function NotificationPanel() {
+export default function NotificationPanel({
+  triggerClassName,
+  iconClassName,
+  iconSrc,
+  panelStyle,
+  showBadge = true,
+}: NotificationPanelProps = {}) {
   const [, navigate] = useLocation();
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -227,11 +241,15 @@ export default function NotificationPanel() {
       {/* Bell trigger */}
       <button
         onClick={() => setOpen(!open)}
-        className="relative w-8 h-8 rounded-lg flex items-center justify-center border border-border hover:bg-accent transition-all duration-200 ease-in-out"
+        className={triggerClassName ?? "relative w-8 h-8 rounded-lg flex items-center justify-center border border-border hover:bg-accent transition-all duration-200 ease-in-out"}
         title={tr("Notifications", "通知")}
       >
-        <Bell className="w-3.5 h-3.5 text-muted-foreground" />
-        {totalUnread > 0 && (
+        {iconSrc ? (
+          <img src={iconSrc} alt="" className={iconClassName ?? "w-3.5 h-3.5"} />
+        ) : (
+          <Bell className={iconClassName ?? "w-3.5 h-3.5 text-muted-foreground"} />
+        )}
+        {showBadge && totalUnread > 0 && (
           <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[9px] font-bold text-white flex items-center justify-center leading-none">
             {totalUnread > 9 ? "9+" : totalUnread}
           </span>
@@ -241,7 +259,7 @@ export default function NotificationPanel() {
       {/* Popup panel — positioned above the bell, anchored to bottom-left */}
       {open && (
         <div
-          style={{ position: 'fixed', bottom: '60px', left: '16px', width: '380px' }}
+          style={panelStyle ?? { position: 'fixed', bottom: '60px', left: '16px', width: '380px' }}
           className="bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-[9999] animate-in fade-in slide-in-from-bottom-2 duration-200"
         >
           {/* Header */}
