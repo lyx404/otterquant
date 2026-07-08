@@ -1,0 +1,539 @@
+/* Account settings — Quandora Design Markdown adaptation */
+.oq-account {
+  --qa-bg: #ffffff;
+  --qa-bg-soft: #faf8f6;
+  --qa-bg-warm: #fef6ef;
+  --qa-surface: #f4f1ed;
+  --qa-surface-strong: #ece6df;
+  --qa-border: #e2dad0;
+  --qa-border-strong: #d2c8bc;
+  --qa-text: #0d0d0d;
+  --qa-text-soft: #4a443d;
+  --qa-muted: #8c8378;
+  --qa-muted-strong: #6b635a;
+  --qa-accent: #dc4900;
+  --qa-accent-hover: #e8750c;
+  --qa-success: #1f8a5b;
+  --qa-success-bg: #e6f4ec;
+  --qa-risk: #d64550;
+  --qa-risk-bg: #fbeaeb;
+  --qa-warning: #cc7c0a;
+  --qa-warning-bg: #fff1dc;
+  --qa-shadow-1: 0 1px 1.5px rgba(60, 40, 20, 0.06);
+  --qa-shadow-3: 0 1.5px 6px rgba(60, 40, 20, 0.06);
+  --qa-shadow-4: 0 6px 18px rgba(60, 40, 20, 0.08);
+  --background: var(--qa-bg);
+  --foreground: var(--qa-text);
+  --card: var(--qa-bg);
+  --card-foreground: var(--qa-text);
+  --popover: var(--qa-bg);
+  --popover-foreground: var(--qa-text);
+  --primary: var(--qa-accent);
+  --primary-foreground: #ffffff;
+  --muted: var(--qa-surface);
+  --muted-foreground: var(--qa-muted);
+  --accent: var(--qa-bg-soft);
+  --accent-foreground: #2a2622;
+  --destructive: var(--qa-risk);
+  --destructive-foreground: #ffffff;
+  --border: var(--qa-border);
+  --input: var(--qa-border);
+  --ring: var(--qa-accent);
+  width: 100%;
+  color: var(--qa-text);
+  font-family: var(--font-body);
+}
+
+.oq-account-shell {
+  display: grid;
+  width: min(100%, 900px);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  margin: 0 auto;
+}
+
+.oq-account-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 0;
+  padding: 0;
+}
+
+.oq-account-nav-item {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 7.5px;
+  border: 1px solid transparent;
+  border-radius: 7.5px;
+  padding: 6px 7.5px;
+  color: var(--qa-muted-strong);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  transition:
+    background-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    border-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-account-nav-item:hover,
+.oq-account-nav-item.is-active {
+  border-color: rgba(220, 73, 0, 0.18);
+  background: var(--qa-bg-warm);
+  color: var(--qa-accent);
+}
+
+.oq-account-nav-item.is-active {
+  box-shadow: var(--qa-shadow-1);
+}
+
+.oq-account-content {
+  display: grid;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+}
+
+.oq-account-blank-placeholder {
+  min-height: 520px;
+}
+
+.oq-account-content > .space-y-6 {
+  display: grid;
+  gap: 16px;
+}
+
+.oq-account-content > .space-y-6 > :not([hidden]) {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-block-start: 0 !important;
+  margin-block-end: 0 !important;
+}
+
+.oq-account-content > .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-block-start: 0 !important;
+  margin-block-end: 0 !important;
+}
+
+.oq-account .surface-card {
+  border: 1px solid var(--qa-border);
+  border-radius: 13.5px;
+  background: var(--qa-bg);
+  box-shadow: var(--qa-shadow-3);
+  transition:
+    border-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-account .surface-card:hover {
+  border-color: var(--qa-border-strong);
+  box-shadow: var(--qa-shadow-4);
+}
+
+.oq-account-profile {
+  display: grid;
+  gap: 16px;
+}
+
+.oq-profile-card {
+  overflow: hidden;
+  border: 0 !important;
+  background: var(--qa-bg);
+  box-shadow: none !important;
+}
+
+.oq-profile-card:hover {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.oq-profile-card-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 0;
+  background: transparent;
+  padding: 20px 24px 0;
+}
+
+.oq-profile-card-header svg,
+.oq-section-title svg,
+.oq-account .text-primary svg {
+  color: var(--qa-accent);
+}
+
+.oq-profile-card-title,
+.oq-account .surface-card > div:first-child .text-base,
+.oq-account h3 {
+  color: var(--qa-text);
+  font-family: var(--font-heading);
+  font-size: 19.5px;
+  font-weight: 700;
+  line-height: 27px;
+  letter-spacing: 0;
+}
+
+.oq-profile-section {
+  margin: 12px 20px 0;
+  border: 1px solid var(--qa-border);
+  border-radius: 13.5px;
+  background: var(--qa-bg-soft);
+}
+
+.oq-profile-card .oq-profile-section {
+  border: 0;
+}
+
+.oq-profile-section-flat {
+  border: 0;
+  background: var(--qa-bg-soft);
+}
+
+.oq-profile-card .oq-profile-section:last-of-type {
+  border: 0;
+  background: var(--qa-bg-soft);
+}
+
+.oq-profile-section:first-of-type {
+  margin-top: 20px;
+}
+
+.oq-profile-section-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+}
+
+.oq-profile-section-body {
+  padding: 0 18px 18px;
+}
+
+.oq-section-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  color: var(--qa-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 19px;
+}
+
+.oq-field-stack {
+  display: grid;
+  gap: 7.5px;
+}
+
+.oq-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.oq-form-span {
+  grid-column: 1 / -1;
+}
+
+.oq-inline-control {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.oq-profile-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.oq-account .label-upper {
+  color: var(--qa-muted);
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.oq-account .text-foreground {
+  color: var(--qa-text);
+}
+
+.oq-account .text-muted-foreground {
+  color: var(--qa-muted);
+}
+
+.oq-account .text-primary,
+.oq-account [class*="text-primary"] {
+  color: var(--qa-accent);
+}
+
+.oq-account .text-primary-foreground,
+.oq-account [class*="text-primary-foreground"],
+.oq-account .text-destructive-foreground,
+.oq-account [class*="text-destructive-foreground"] {
+  color: #ffffff;
+}
+
+.oq-account .text-destructive {
+  color: var(--qa-risk);
+}
+
+.oq-account .border-border {
+  border-color: var(--qa-border);
+}
+
+.oq-account .bg-primary {
+  background-color: var(--qa-accent);
+}
+
+.oq-account .bg-destructive {
+  background-color: var(--qa-risk);
+}
+
+.oq-account .bg-muted {
+  background-color: var(--qa-surface-strong);
+}
+
+.oq-account .bg-accent,
+.oq-account [class*="bg-accent/"],
+.oq-account .bg-background,
+.oq-account [class*="bg-background/"] {
+  background-color: var(--qa-bg-soft);
+}
+
+.oq-account [class*="bg-primary/"],
+.oq-account [class*="hover:bg-primary/"]:hover,
+.oq-account [class*="hover:bg-accent"]:hover {
+  background-color: var(--qa-bg-warm);
+}
+
+.oq-account [class*="border-primary/"] {
+  border-color: rgba(220, 73, 0, 0.3);
+}
+
+.oq-account .rounded-2xl {
+  border-radius: 13.5px;
+}
+
+.oq-account .rounded-xl {
+  border-radius: 12px;
+}
+
+.oq-account .rounded-lg,
+.oq-account .oq-input {
+  border-radius: 7.5px;
+}
+
+.oq-account .text-sm {
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.oq-account .text-xs {
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.oq-account code,
+.oq-account pre,
+.oq-account .font-mono {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+}
+
+.oq-account .oq-input {
+  height: 36px;
+  border-color: var(--qa-border);
+  background: var(--qa-bg);
+  color: var(--qa-text);
+  font-size: 12px;
+  line-height: 18px;
+  box-shadow: var(--qa-shadow-1);
+}
+
+.oq-account .oq-input-disabled {
+  background: var(--qa-bg-soft);
+  color: #686868;
+  cursor: not-allowed;
+  opacity: 0.76;
+}
+
+.oq-account input:focus,
+.oq-account [role="combobox"]:focus {
+  border-color: rgba(220, 73, 0, 0.5) !important;
+  box-shadow: 0 0 0 2px rgba(220, 73, 0, 0.18);
+}
+
+.oq-account button {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
+
+.oq-account button:focus-visible,
+.oq-account a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(220, 73, 0, 0.28);
+}
+
+.oq-account button.bg-primary,
+.oq-account button.bg-destructive {
+  box-shadow: 0 7.5px 21px rgba(221, 90, 12, 0.24);
+}
+
+.oq-account .btn-bounce {
+  transition:
+    transform 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    filter 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    box-shadow 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-account .btn-bounce:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.oq-account .btn-bounce:active {
+  transform: translateY(0);
+}
+
+.oq-account button.relative.w-11.h-6 {
+  width: 44px;
+  min-width: 44px;
+  flex: 0 0 44px;
+  overflow: hidden;
+}
+
+.oq-account button.relative.w-11.h-6 > span {
+  pointer-events: none;
+}
+
+.oq-account .shadow-xl,
+.oq-account .shadow-2xl {
+  box-shadow: var(--qa-shadow-4);
+}
+
+.oq-logout-card {
+  border-color: #f3dfcb;
+  background: var(--qa-bg);
+}
+
+.oq-logout-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+}
+
+.oq-logout-content button {
+  border: 1px solid rgba(214, 69, 80, 0.18);
+  background: var(--qa-risk) !important;
+  color: #ffffff !important;
+  box-shadow: 0 7.5px 21px rgba(214, 69, 80, 0.2) !important;
+}
+
+.oq-logout-title {
+  color: var(--qa-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.oq-logout-copy {
+  margin-top: 3px;
+  color: var(--qa-muted);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+@media (max-width: 767px) {
+  .oq-account {
+    padding: 0 12px 20px;
+  }
+
+  .oq-account-shell {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .oq-account-nav {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .oq-account-nav-item {
+    min-width: 96px;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .oq-profile-card-header {
+    padding: 18px 16px 0;
+  }
+
+  .oq-profile-section {
+    margin-right: 16px;
+    margin-left: 16px;
+  }
+
+  .oq-profile-section-header {
+    align-items: flex-start;
+    padding: 16px 12px 12px;
+  }
+
+  .oq-profile-section-body {
+    padding: 0 12px 16px;
+  }
+
+  .oq-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-inline-control {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .oq-inline-control > button {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .oq-profile-action-row > button,
+  .oq-profile-section-header > button,
+  .oq-logout-content button {
+    min-height: 44px;
+  }
+
+  .oq-logout-content {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 18px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oq-account *,
+  .oq-account *::before,
+  .oq-account *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

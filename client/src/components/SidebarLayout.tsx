@@ -398,9 +398,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   <span className="w-full truncate text-[10px] font-normal text-black/60">{userHandle}</span>
                 </span>
               </button>
-              <div className="shrink-0">
-                <NotificationPanel />
-              </div>
             </div>
             <button
               type="button"
@@ -418,7 +415,11 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="flex min-h-screen bg-[#faf8f6] md:min-h-[1024px] md:min-w-[1440px] md:pl-[var(--sidebar-width)]"
+      className={`flex min-h-screen bg-[#faf8f6] md:min-h-[1024px] md:pl-[var(--sidebar-width)] ${
+        currentPathname.startsWith("/account") || currentPathname.startsWith("/trade")
+          ? "md:min-w-0"
+          : "md:min-w-[1440px]"
+      }`}
       style={shellStyle}
     >
       {/* Desktop Sidebar */}
@@ -497,6 +498,15 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               />
             </div>
           </Link>
+          <div className="ml-auto">
+            <NotificationPanel
+              triggerClassName="oq-notification-mobile-trigger relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]"
+              iconSrc="/header-bell.svg"
+              iconClassName="h-[13px] w-[13px]"
+              panelStyle={{ position: "fixed", top: "56px", right: "12px", width: "390px" }}
+              showBadge={false}
+            />
+          </div>
         </header>
 
         {/* Page Content */}

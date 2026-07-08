@@ -1,10 +1,8 @@
 /*
- * NotificationPanel — Bottom-left popup notification panel for Sidebar
- * Pops up from the bell icon at the sidebar bottom, expanding upward
- * Two tabs: "互动消息" (Interactive Messages) and "公告" (Announcements)
- * Reference: AnyGen-style notification panel
+ * NotificationPanel — Quandora 2.0 notification center
+ * Keeps notification data, read-state persistence, and routing behavior intact.
  */
-import { useState, useRef, useEffect, useMemo, type CSSProperties } from "react";
+import { useState, useRef, useEffect, useMemo, useId, type CSSProperties } from "react";
 import { useLocation } from "wouter";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
@@ -74,6 +72,7 @@ export default function NotificationPanel({
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabType>("interactive");
+  const panelId = useId();
   const interactiveNotifications = useMemo(
     () => notifications.filter((n) => n.type !== "skill_update" && n.type !== "epoch_reward"),
     []
@@ -210,6 +209,15 @@ export default function NotificationPanel({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [open]);
+
   const markAllRead = () => {
     if (tab === "interactive") {
       const allIds = new Set(interactiveNotifications.map((n) => n.id));
@@ -235,14 +243,18 @@ export default function NotificationPanel({
   };
 
   const currentUnread = tab === "interactive" ? unreadNotifCount : unreadAnnouncementCount;
+  const panelPositionStyle = panelStyle ?? { position: "fixed", top: "52px", right: "21px", width: "390px" };
 
   return (
-    <div ref={panelRef} className="relative">
-      {/* Bell trigger */}
+    <div ref={panelRef} className="relative oq-notification">
       <button
+        type="button"
         onClick={() => setOpen(!open)}
-        className={triggerClassName ?? "relative w-8 h-8 rounded-lg flex items-center justify-center border border-border hover:bg-accent transition-all duration-200 ease-in-out"}
+        className={`${triggerClassName ?? "relative w-8 h-8 rounded-lg flex items-center justify-center border border-border"} oq-notification-trigger ${open ? "is-open" : ""}`}
         title={tr("Notifications", "通知")}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
       >
         {iconSrc ? (
           <img src={iconSrc} alt="" className={iconClassName ?? "w-3.5 h-3.5"} />
@@ -250,171 +262,166 @@ export default function NotificationPanel({
           <Bell className={iconClassName ?? "w-3.5 h-3.5 text-muted-foreground"} />
         )}
         {showBadge && totalUnread > 0 && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-[9px] font-bold text-white flex items-center justify-center leading-none">
+          <span className="oq-notification-trigger-badge" aria-label={tr(`${totalUnread} unread notifications`, `${totalUnread} 条未读通知`)}>
             {totalUnread > 9 ? "9+" : totalUnread}
           </span>
         )}
       </button>
 
-      {/* Popup panel — positioned above the bell, anchored to bottom-left */}
       {open && (
         <div
-          style={panelStyle ?? { position: 'fixed', bottom: '60px', left: '16px', width: '380px' }}
-          className="bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-[9999] animate-in fade-in slide-in-from-bottom-2 duration-200"
+          id={panelId}
+          role="dialog"
+          aria-label={tr("All notifications", "全部通知")}
+          style={panelPositionStyle}
+          className="oq-notification-panel"
         >
-          {/* Header */}
-          <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-            <span className="text-sm font-semibold text-foreground">{tr("All Notifications", "全部通知")}</span>
-            <div className="flex items-center gap-2">
+          <div className="oq-notification-header">
+            <div className="oq-notification-header-main">
+              <span className="oq-notification-header-icon" aria-hidden="true">
+                <Bell className="h-5 w-5" />
+              </span>
+              <div className="oq-notification-heading-group">
+                <h2 className="oq-notification-heading">{tr("Notifications", "全部通知")}</h2>
+              </div>
+            </div>
+            <div className="oq-notification-header-actions">
               {currentUnread > 0 && (
                 <button
+                  type="button"
                   onClick={markAllRead}
-                  className="text-[11px] text-primary hover:text-primary/80 font-medium transition-colors"
+                  className="oq-notification-mark-read"
                 >
                   {tr("Mark all read", "全部标记为已读")}
                 </button>
               )}
               <button
+                type="button"
                 onClick={() => setOpen(false)}
-                className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="oq-notification-close"
+                aria-label={tr("Close notifications", "关闭通知")}
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </div>
           </div>
 
-          {/* Tabs: 互动消息 / 公告 */}
-          <div className="px-3 pt-2 pb-1 flex border-b border-border/50">
+          <div className="oq-notification-tabs" role="tablist" aria-label={tr("Notification categories", "通知分类")}>
             <button
+              id={`${panelId}-interactive-tab`}
+              type="button"
+              role="tab"
+              aria-selected={tab === "interactive"}
+              aria-controls={`${panelId}-interactive-panel`}
               onClick={() => setTab("interactive")}
-              className={`flex-1 py-1.5 text-xs font-medium text-center rounded-md transition-all duration-150 ${
-                tab === "interactive"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              }`}
+              className={`oq-notification-tab ${tab === "interactive" ? "is-active" : ""}`}
             >
-              <span className="flex items-center justify-center gap-1.5">
-                <MessageCircle className="w-3 h-3" />
-                {tr("Interactive", "互动消息")}
-                {unreadNotifCount > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center">
-                    {unreadNotifCount}
-                  </span>
-                )}
-              </span>
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span>{tr("Interactive", "互动消息")}</span>
+              {unreadNotifCount > 0 && (
+                <span className="oq-notification-tab-count">
+                  {unreadNotifCount}
+                </span>
+              )}
             </button>
             <button
+              id={`${panelId}-announcements-tab`}
+              type="button"
+              role="tab"
+              aria-selected={tab === "announcements"}
+              aria-controls={`${panelId}-announcements-panel`}
               onClick={() => setTab("announcements")}
-              className={`flex-1 py-1.5 text-xs font-medium text-center rounded-md transition-all duration-150 ${
-                tab === "announcements"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
-              }`}
+              className={`oq-notification-tab ${tab === "announcements" ? "is-active" : ""}`}
             >
-              <span className="flex items-center justify-center gap-1.5">
-                <Megaphone className="w-3 h-3" />
-                {tr("Announcements", "公告")}
-                {unreadAnnouncementCount > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center">
-                    {unreadAnnouncementCount}
-                  </span>
-                )}
-              </span>
+              <Megaphone className="h-3.5 w-3.5" />
+              <span>{tr("Announcements", "公告")}</span>
+              {unreadAnnouncementCount > 0 && (
+                <span className="oq-notification-tab-count">
+                  {unreadAnnouncementCount}
+                </span>
+              )}
             </button>
           </div>
 
-          {/* Content */}
-          <div className="max-h-[400px] overflow-y-auto">
+          <div
+            id={`${panelId}-${tab}-panel`}
+            role="tabpanel"
+            aria-labelledby={`${panelId}-${tab}-tab`}
+            className="oq-notification-scroll"
+          >
             {tab === "interactive" ? (
-              /* Interactive Messages */
               interactiveNotifications.length === 0 ? (
-                <div className="py-10 text-center text-xs text-muted-foreground">
-                  {tr("No messages yet", "暂无消息")}
+                <div className="oq-notification-empty">
+                  <div className="oq-notification-empty-icon">
+                    <MessageCircle className="h-4 w-4" />
+                  </div>
+                  <p>{tr("No messages yet", "暂无消息")}</p>
                 </div>
               ) : (
-                interactiveNotifications.map(rawNotification => {
-                  const n = translateInteractiveNotification(rawNotification);
-                  const isRead = readIds.has(n.id);
-                  const isPassed = n.testResult === "passed";
+                <div className="oq-notification-list">
+                  {interactiveNotifications.map(rawNotification => {
+                    const n = translateInteractiveNotification(rawNotification);
+                    const isRead = readIds.has(n.id);
+                    const isPassed = n.testResult === "passed";
 
-                  return (
-                    <button
-                      key={n.id}
-                      onClick={() => handleNotifClick(n)}
-                      className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors duration-150 hover:bg-accent/60 border-b border-border/30 last:border-0 ${
-                        !isRead ? "bg-primary/[0.03]" : ""
-                      }`}
-                    >
-                      {/* Icon */}
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                        isPassed
-                          ? "bg-emerald-500/10 text-emerald-500"
-                          : "bg-red-500/10 text-red-500"
-                      }`}>
-                        {isPassed ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          {!isRead && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                          )}
-                          <span className={`text-xs font-semibold truncate ${!isRead ? "text-foreground" : "text-muted-foreground"}`}>
-                            {n.title}
+                    return (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => handleNotifClick(n)}
+                        className={`oq-notification-item ${!isRead ? "is-unread" : ""}`}
+                      >
+                        <span className={`oq-notification-item-icon ${isPassed ? "is-success" : "is-risk"}`}>
+                          {isPassed ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                        </span>
+                        <span className="oq-notification-item-main">
+                          <span className="oq-notification-item-head">
+                            <span className="oq-notification-item-title">{n.title}</span>
+                            {!isRead && <span className="oq-notification-unread-pill">{tr("New", "新")}</span>}
                           </span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2 leading-snug">
-                          {n.message}
-                        </p>
-                        <span className="text-[10px] text-muted-foreground/50 mt-1 block">{translateTimeLabel(n.time)}</span>
-                      </div>
-
-                      <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 mt-2 shrink-0" />
-                    </button>
-                  );
-                })
+                          <span className="oq-notification-item-message">{n.message}</span>
+                          <span className="oq-notification-item-time">{translateTimeLabel(n.time)}</span>
+                        </span>
+                        <ChevronRight className="oq-notification-chevron" />
+                      </button>
+                    );
+                  })}
+                </div>
               )
             ) : (
-              /* Announcements */
               announcementItems.length === 0 ? (
-                <div className="py-10 text-center text-xs text-muted-foreground">
-                  {tr("No announcements", "暂无公告")}
+                <div className="oq-notification-empty">
+                  <div className="oq-notification-empty-icon">
+                    <Megaphone className="h-4 w-4" />
+                  </div>
+                  <p>{tr("No announcements", "暂无公告")}</p>
                 </div>
               ) : (
-                announcementItems.map(rawItem => {
-                  const a = translateAnnouncement(rawItem);
-                  const isRead = readAnnouncementIds.has(a.id);
+                <div className="oq-notification-list">
+                  {announcementItems.map(rawItem => {
+                    const a = translateAnnouncement(rawItem);
+                    const isRead = readAnnouncementIds.has(a.id);
 
-                  return (
-                    <div
-                      key={a.id}
-                      className={`px-4 py-3.5 border-b border-border/30 last:border-0 ${
-                        !isRead ? "bg-primary/[0.03]" : ""
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-primary/10 text-primary mt-0.5">
-                          <Megaphone className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            {!isRead && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                            )}
-                          <span className={`text-xs font-semibold ${!isRead ? "text-foreground" : "text-muted-foreground"}`}>
-                            {a.title}
+                    return (
+                      <div
+                        key={a.id}
+                        className={`oq-notification-item oq-notification-announcement ${!isRead ? "is-unread" : ""}`}
+                      >
+                        <span className="oq-notification-item-icon is-announcement">
+                          <Megaphone className="h-4 w-4" />
+                        </span>
+                        <span className="oq-notification-item-main">
+                          <span className="oq-notification-item-head">
+                            <span className="oq-notification-item-title">{a.title}</span>
+                            {!isRead && <span className="oq-notification-unread-pill">{tr("New", "新")}</span>}
                           </span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-                          {a.message}
-                        </p>
-                          <span className="text-[10px] text-muted-foreground/50 mt-1.5 block">{translateTimeLabel(a.time)}</span>
-                        </div>
+                          <span className="oq-notification-item-message">{a.message}</span>
+                          <span className="oq-notification-item-time">{translateTimeLabel(a.time)}</span>
+                        </span>
                       </div>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )
             )}
           </div>

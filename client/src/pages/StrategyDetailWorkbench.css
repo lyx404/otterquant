@@ -1,0 +1,512 @@
+.oq-strategy-detail-workbench {
+  --sd-bg: #ffffff;
+  --sd-bg-soft: #faf8f6;
+  --sd-bg-warm: #fef6ef;
+  --sd-surface: #f4f1ed;
+  --sd-surface-strong: #ece6df;
+  --sd-border: #e2dad0;
+  --sd-border-strong: #b5aba0;
+  --sd-text: #0d0d0d;
+  --sd-text-warm: #2a2622;
+  --sd-text-soft: #4a443d;
+  --sd-muted: #8c8378;
+  --sd-accent: #dc4900;
+  --sd-accent-hover: #e8750c;
+  --sd-accent-pressed: #c2470d;
+  --sd-positive: #1f8a5b;
+  --sd-positive-soft: #e6f4ec;
+  --sd-risk: #d64550;
+  --sd-risk-soft: #fbeaeb;
+  --sd-info: #2a6fdb;
+  --sd-teal: #41a5a1;
+  --sd-warning: #f2a50c;
+  --sd-shadow-1: 0 1px 1.5px rgba(60, 40, 20, 0.06);
+  --sd-shadow-2: 0 1.5px 6px rgba(60, 40, 20, 0.06);
+  --sd-shadow-3: 0 6px 18px rgba(60, 40, 20, 0.08);
+  --background: var(--sd-bg);
+  --foreground: var(--sd-text);
+  --card: var(--sd-bg);
+  --card-foreground: var(--sd-text);
+  --popover: var(--sd-bg);
+  --popover-foreground: var(--sd-text);
+  --primary: var(--sd-accent);
+  --primary-foreground: #ffffff;
+  --secondary: var(--sd-teal);
+  --secondary-foreground: #ffffff;
+  --muted: var(--sd-bg-soft);
+  --muted-foreground: var(--sd-muted);
+  --accent: var(--sd-bg-warm);
+  --accent-foreground: var(--sd-text);
+  --destructive: var(--sd-risk);
+  --destructive-foreground: #ffffff;
+  --border: var(--sd-border);
+  --input: var(--sd-border);
+  --ring: color-mix(in srgb, var(--sd-accent) 32%, transparent);
+  --success: var(--sd-positive);
+  --warning: var(--sd-warning);
+  --chart-1: var(--sd-accent);
+  --chart-2: var(--sd-positive);
+  --chart-3: var(--sd-teal);
+  --chart-4: var(--sd-warning);
+  --chart-5: var(--sd-risk);
+  display: grid;
+  width: min(900px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  gap: 16px;
+  margin: 0 auto;
+  color: var(--sd-text);
+  font-family: var(--font-body);
+}
+
+.oq-strategy-detail-workbench *,
+.oq-sd-dialog * {
+  letter-spacing: 0 !important;
+}
+
+.oq-strategy-detail-workbench h1,
+.oq-strategy-detail-workbench h2,
+.oq-strategy-detail-workbench h3,
+.oq-sd-dialog h2,
+.oq-sd-dialog h3 {
+  font-family: var(--font-heading);
+}
+
+.oq-sd-hero,
+.oq-strategy-detail-workbench .surface-card,
+.oq-sd-dialog {
+  border: 1px solid var(--sd-surface-strong);
+  border-radius: 12px;
+  background: var(--sd-bg);
+  box-shadow: var(--sd-shadow-2);
+}
+
+.oq-sd-hero {
+  min-height: 89px;
+  align-items: center;
+  padding: 16px 18px;
+}
+
+.oq-sd-hero h1 {
+  max-width: 58ch;
+  margin: 0;
+  color: var(--sd-text);
+  font-size: 1.21875rem;
+  font-weight: 700;
+  line-height: 1.6875rem;
+  overflow-wrap: anywhere;
+}
+
+.oq-sd-hero .font-mono,
+.oq-strategy-detail-workbench .font-mono {
+  font-family: var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-sd-hero .text-sm {
+  color: var(--sd-muted);
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.oq-sd-hero [class*="rounded-full"],
+.oq-sd-actions button,
+.oq-sd-dialog button {
+  border-radius: 749px;
+}
+
+.oq-sd-hero button,
+.oq-sd-actions button,
+.oq-strategy-detail-workbench button,
+.oq-sd-dialog button {
+  min-height: 30px;
+  border-color: var(--sd-border);
+  font-size: 0.75rem;
+  transition:
+    background-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.oq-sd-hero button:hover,
+.oq-sd-actions button:hover,
+.oq-strategy-detail-workbench button:hover,
+.oq-sd-dialog button:hover {
+  border-color: var(--sd-accent);
+  color: var(--sd-accent);
+  transform: translateY(-1px);
+}
+
+.oq-sd-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+.oq-sd-actions button {
+  min-width: 0;
+  white-space: normal;
+}
+
+.oq-sd-actions .bg-primary,
+.oq-sd-dialog .bg-primary {
+  background: var(--sd-accent);
+  color: #ffffff;
+  box-shadow: 0 7.5px 21px rgba(221, 90, 12, 0.22);
+}
+
+.oq-sd-actions .bg-primary:hover,
+.oq-sd-dialog .bg-primary:hover {
+  background: var(--sd-accent-hover);
+  color: #ffffff;
+}
+
+.oq-sd-metrics-shell {
+  padding: 16px !important;
+}
+
+.oq-sd-metrics-shell > .grid:first-child {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 12px;
+}
+
+.oq-sd-top-metric {
+  min-height: 78px;
+  border: 1px solid var(--sd-border);
+  border-radius: 12px;
+  background: var(--sd-bg-soft);
+  padding: 12px !important;
+  box-shadow: var(--sd-shadow-1);
+}
+
+.oq-sd-kicker,
+.oq-sd-panel-title,
+.oq-sd-detail-title,
+.oq-sd-dialog h3,
+.oq-sd-dialog .text-xs.font-medium.uppercase {
+  color: var(--sd-muted) !important;
+  font-size: 0.625rem !important;
+  font-weight: 600 !important;
+  line-height: 0.875rem !important;
+  text-transform: none !important;
+}
+
+.oq-sd-top-metric .text-\[20px\] {
+  margin-top: 9px;
+  color: var(--sd-text);
+  font-family: var(--font-heading);
+  font-size: 1.21875rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-strategy-detail-workbench .text-\[var\(--semantic-up\)\],
+.oq-sd-dialog .text-\[var\(--semantic-up\)\] {
+  color: var(--sd-positive) !important;
+}
+
+.oq-strategy-detail-workbench .text-\[var\(--semantic-down\)\],
+.oq-sd-dialog .text-\[var\(--semantic-down\)\] {
+  color: var(--sd-risk) !important;
+}
+
+.oq-sd-detail-card {
+  border-color: var(--sd-border) !important;
+  border-radius: 12px !important;
+  background: var(--sd-bg-warm) !important;
+  padding: 12px !important;
+  box-shadow: none;
+}
+
+.oq-sd-detail-card .space-y-2 {
+  display: grid;
+  gap: 7px;
+}
+
+.oq-sd-detail-card .text-xs,
+.oq-strategy-detail-workbench .text-xs {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
+.oq-sd-panel {
+  overflow: clip;
+}
+
+.oq-sd-panel-header {
+  min-height: 42px;
+  align-items: center;
+  padding: 12px 16px 6px !important;
+}
+
+.oq-sd-panel-header svg {
+  color: var(--sd-accent);
+}
+
+.oq-sd-panel > div:last-child {
+  padding: 12px 16px 16px;
+}
+
+.oq-sd-panel svg rect[fill="var(--muted)"] {
+  fill: var(--sd-bg-soft);
+  opacity: 1;
+}
+
+.oq-sd-panel svg line {
+  stroke: var(--sd-surface-strong);
+}
+
+.oq-sd-panel svg path,
+.oq-sd-panel svg rect {
+  transition:
+    opacity 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    stroke-width 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.oq-sd-panel [class*="bg-accent"] {
+  background: var(--sd-bg-soft) !important;
+}
+
+.oq-sd-panel [class*="border-border"] {
+  border-color: var(--sd-border) !important;
+}
+
+.oq-sd-panel .rounded-md,
+.oq-sd-panel .rounded-lg,
+.oq-sd-dialog .rounded-md,
+.oq-sd-dialog .rounded-lg {
+  border-radius: 7.5px;
+}
+
+.oq-sd-panel .rounded-xl,
+.oq-sd-dialog .rounded-xl {
+  border-radius: 12px;
+}
+
+.oq-strategy-detail-workbench .bg-primary\/10,
+.oq-strategy-detail-workbench .bg-primary\/15,
+.oq-sd-dialog .bg-primary\/15 {
+  background: color-mix(in srgb, var(--sd-accent) 12%, transparent) !important;
+}
+
+.oq-strategy-detail-workbench .text-primary,
+.oq-sd-dialog .text-primary {
+  color: var(--sd-accent) !important;
+}
+
+.oq-strategy-detail-workbench .border-primary\/45,
+.oq-sd-dialog .border-primary\/45 {
+  border-color: color-mix(in srgb, var(--sd-accent) 45%, var(--sd-border)) !important;
+}
+
+.oq-strategy-detail-workbench [style*="--semantic-up"],
+.oq-strategy-detail-workbench .bg-\[var\(--semantic-up\)\] {
+  background-color: var(--sd-positive) !important;
+}
+
+.oq-strategy-detail-workbench .bg-\[var\(--semantic-down\)\] {
+  background-color: var(--sd-risk) !important;
+}
+
+.oq-strategy-detail-workbench article {
+  border: 1px solid transparent;
+}
+
+.oq-strategy-detail-workbench article:hover {
+  border-color: var(--sd-border);
+  background: var(--sd-bg-warm) !important;
+}
+
+.oq-strategy-detail-workbench .hidden.rounded-lg.bg-accent\/30 {
+  border: 1px solid var(--sd-border);
+  background: var(--sd-bg-soft) !important;
+  color: var(--sd-muted) !important;
+}
+
+.oq-strategy-detail-workbench article h3 {
+  color: var(--sd-text);
+  font-size: 0.75rem;
+  line-height: 1.1875rem;
+}
+
+.oq-strategy-detail-workbench article span {
+  border-color: var(--sd-border);
+}
+
+.oq-strategy-detail-workbench .shadow-xl,
+.oq-sd-dialog .shadow-xl {
+  box-shadow: var(--sd-shadow-3);
+}
+
+.oq-strategy-detail-workbench [class*="bg-background"] {
+  background: var(--sd-bg) !important;
+}
+
+.oq-strategy-detail-workbench [class*="text-muted-foreground"],
+.oq-sd-dialog [class*="text-muted-foreground"] {
+  color: var(--sd-muted) !important;
+}
+
+.oq-strategy-detail-workbench [class*="text-foreground"],
+.oq-sd-dialog [class*="text-foreground"] {
+  color: var(--sd-text) !important;
+}
+
+.oq-strategy-detail-workbench [class*="border-border"],
+.oq-sd-dialog [class*="border-border"] {
+  border-color: var(--sd-border) !important;
+}
+
+.oq-sd-dialog {
+  --background: var(--sd-bg);
+  --foreground: var(--sd-text);
+  --card: var(--sd-bg);
+  --primary: var(--sd-accent);
+  --primary-foreground: #ffffff;
+  --accent: var(--sd-bg-warm);
+  --muted: var(--sd-bg-soft);
+  --muted-foreground: var(--sd-muted);
+  --border: var(--sd-border);
+  --destructive: var(--sd-risk);
+  color: var(--sd-text);
+  font-family: var(--font-body);
+  box-shadow: var(--sd-shadow-3);
+}
+
+.oq-sd-dialog h2 {
+  color: var(--sd-text);
+  font-size: 1.21875rem;
+  font-weight: 700;
+  line-height: 1.6875rem;
+}
+
+.oq-sd-dialog input,
+.oq-sd-dialog [role="combobox"] {
+  border-color: var(--sd-border);
+  border-radius: 9px;
+  background: var(--sd-bg-soft);
+  color: var(--sd-text);
+}
+
+.oq-sd-dialog input:focus,
+.oq-sd-dialog [role="combobox"]:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--sd-accent) 30%, transparent);
+}
+
+.oq-sd-dialog section {
+  border: 1px solid var(--sd-surface-strong);
+  border-radius: 12px;
+  background: var(--sd-bg-soft) !important;
+}
+
+@media (max-width: 960px) {
+  .oq-strategy-detail-workbench {
+    width: min(900px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+  }
+
+  .oq-sd-hero {
+    align-items: flex-start;
+  }
+
+  .oq-sd-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 700px) {
+  .oq-strategy-detail-workbench {
+    gap: 16px;
+    width: min(100%, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+  }
+
+  .oq-sd-hero,
+  .oq-sd-metrics-shell,
+  .oq-strategy-detail-workbench .surface-card {
+    border-radius: 12px;
+  }
+
+  .oq-sd-hero {
+    padding: 12px;
+  }
+
+  .oq-sd-hero > div:first-child {
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .oq-sd-hero h1 {
+    font-size: 1.125rem;
+    line-height: 1.5rem;
+  }
+
+  .oq-sd-actions button,
+  .oq-sd-hero button,
+  .oq-strategy-detail-workbench button {
+    min-height: 44px;
+  }
+
+  .oq-sd-actions {
+    display: grid;
+    grid-template-columns: minmax(44px, auto) minmax(0, 1fr);
+  }
+
+  .oq-sd-actions > button:not(:first-child),
+  .oq-sd-actions > a,
+  .oq-sd-actions > .inline-flex {
+    width: 100%;
+  }
+
+  .oq-sd-metrics-shell {
+    padding: 12px !important;
+  }
+
+  .oq-sd-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 9px;
+  }
+
+  .oq-sd-panel-header > div:last-child {
+    width: 100%;
+  }
+
+  .oq-sd-panel-header > div:last-child > div {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .oq-sd-panel > div:last-child {
+    padding: 12px;
+    overflow-x: auto;
+  }
+
+  .oq-sd-panel svg {
+    min-width: 620px;
+  }
+
+  .oq-sd-panel .grid.grid-cols-1.items-center {
+    gap: 16px;
+  }
+
+  .oq-strategy-detail-workbench article {
+    padding: 12px !important;
+  }
+
+  .oq-strategy-detail-workbench article .grid.grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oq-strategy-detail-workbench *,
+  .oq-sd-dialog * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

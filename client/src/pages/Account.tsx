@@ -12,7 +12,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
-  Bell, Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
+  Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -31,12 +31,14 @@ import {
   type ExchangeApiConnection,
   type ExchangeVenue,
 } from "@/lib/exchangeApiConnections";
+import "./Account.css";
 
-type TabId = "general" | "profile" | "exchangeApi" | "api";
+type TabId = "general" | "profile" | "agent" | "exchangeApi" | "api";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementType }[] = [
   { id: "general", labelEn: "General", labelZh: "通用", icon: Shield },
   { id: "profile", labelEn: "Profile", labelZh: "资料", icon: User },
+  { id: "agent", labelEn: "Agent Settings", labelZh: "Agent设置", icon: Key },
 ];
 const languageOptions: { value: UiLang; label: string }[] = [
   { value: "en", label: "English" },
@@ -183,8 +185,6 @@ export default function Account() {
   const [username, setUsername] = useState(user?.displayName || "");
   const [email, setEmail] = useState(user?.email || "");
   const [nickname, setNickname] = useState(user?.displayName || "AlphaTrader");
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatar || null);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
   const [passwordVerCode, setPasswordVerCode] = useState("");
   const [passwordCodeSent, setPasswordCodeSent] = useState(false);
   const [emailVerCode, setEmailVerCode] = useState("");
@@ -302,7 +302,6 @@ export default function Account() {
 
   const handleCancelProfile = () => {
     setNickname(originalNickname);
-    setAvatarPreview(user?.avatar || null);
     setEditingProfile(false);
   };
 
@@ -460,7 +459,6 @@ export default function Account() {
           <div className="surface-card overflow-hidden">
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
-                <Compass className="w-4 h-4 text-primary" />
                 <span className="text-base font-semibold text-foreground">{tr("General", "常规")}</span>
               </div>
             </div>
@@ -553,7 +551,6 @@ export default function Account() {
           <div className="surface-card overflow-hidden">
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-primary" />
                 <span className="text-base font-semibold text-foreground">{tr("Notifications", "通知")}</span>
               </div>
             </div>
@@ -594,20 +591,19 @@ export default function Account() {
 
       {/* ═══════════════ Profile Tab ═══════════════ */}
       {activeTab === "profile" && (
-        <div className="space-y-8">
+        <div className="oq-account-profile">
           {/* Account Settings */}
-          <div className="surface-card overflow-hidden pb-6">
-              <div className="px-6 pt-5 pb-0">
+          <div className="surface-card oq-profile-card pb-6">
+              <div className="oq-profile-card-header">
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-primary" />
-                  <span className="text-base font-semibold text-foreground">{tr("Account Settings", "账户信息设置")}</span>
+                  <span className="oq-profile-card-title">{tr("Account Settings", "账户信息")}</span>
                 </div>
               </div>
 
             {/* 1. Profile (Nickname & Avatar) */}
-            <div className="mx-6 mt-5 rounded-2xl bg-accent/30 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
+            <div className="oq-profile-section oq-profile-section-flat">
+              <div className="oq-profile-section-header">
+                <div className="oq-section-title">
                   <User className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">{tr("Profile", "个人资料")}</span>
                 </div>
@@ -629,40 +625,8 @@ export default function Account() {
                   </button>
                 )}
               </div>
-              <div className="flex items-start gap-6">
-                <div className="flex flex-col items-center gap-2 shrink-0">
-                  <div
-                    className={`w-20 h-20 rounded-full border-2 border-dashed flex items-center justify-center overflow-hidden transition-colors duration-200 ${
-                      editingProfile ? "border-primary/40 cursor-pointer hover:border-primary/60" : "border-border cursor-default"
-                    }`}
-                    onClick={() => editingProfile && avatarInputRef.current?.click()}
-                  >
-                    {avatarPreview ? (
-                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-primary">{nickname.charAt(0).toUpperCase()}</span>
-                      </div>
-                    )}
-                  </div>
-                  <input
-                    ref={avatarInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 2 * 1024 * 1024) { toast.error(tr("Image must be less than 2MB", "图片大小必须小于 2MB")); return; }
-                        const reader = new FileReader();
-                        reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
-                        reader.readAsDataURL(file);
-                      }
-                    }}
-                  />
-                  {editingProfile && <span className="text-[10px] text-muted-foreground">{tr("Click to upload", "点击上传")}</span>}
-                </div>
-                <div className="flex-1 space-y-2">
+              <div className="oq-profile-section-body">
+                <div className="oq-field-stack">
                   <Label className="label-upper">{tr("Nickname", "昵称")}</Label>
                   <Input
                     placeholder={tr("Enter your nickname", "请输入昵称")}
@@ -672,29 +636,29 @@ export default function Account() {
                     className={`${editingProfile ? activeInputCls : disabledInputCls} md:max-w-md`}
                   />
                   {editingProfile && (
-                    <button
-                      className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce mt-2"
-                      onClick={() => {
-                        if (!nickname.trim()) { toast.error(tr("Nickname cannot be empty", "昵称不能为空")); return; }
-                        const profileUpdates: Partial<{displayName: string; avatar: string}> = { displayName: nickname };
-                        if (avatarPreview) profileUpdates.avatar = avatarPreview;
-                        updateUser(profileUpdates);
-                        setOriginalNickname(nickname);
-                        toast.success(tr("Profile updated successfully", "资料更新成功"));
-                        setEditingProfile(false);
-                      }}
-                    >
-                      {tr("Save Profile", "保存资料")}
-                    </button>
+                    <div className="oq-profile-action-row">
+                      <button
+                        className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                        onClick={() => {
+                          if (!nickname.trim()) { toast.error(tr("Nickname cannot be empty", "昵称不能为空")); return; }
+                          updateUser({ displayName: nickname });
+                          setOriginalNickname(nickname);
+                          toast.success(tr("Profile updated successfully", "资料更新成功"));
+                          setEditingProfile(false);
+                        }}
+                      >
+                        {tr("Save Profile", "保存资料")}
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
             {/* 2. Change Email */}
-            <div className="mx-6 mt-3 rounded-t-2xl bg-accent/30 px-5 pt-5 pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+            <div className="oq-profile-section">
+              <div className="oq-profile-section-header">
+                <div className="oq-section-title">
                   <Mail className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">{tr("Change Email", "修改邮箱")}</span>
                 </div>
@@ -716,17 +680,16 @@ export default function Account() {
                   </button>
                 )}
               </div>
-            </div>
-            <div className="mx-6 rounded-b-2xl bg-accent/30 px-5 pb-5 space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="oq-profile-section-body">
+              <div className="oq-form-grid">
+                <div className="oq-field-stack">
                   <Label className="label-upper">{tr("Current Email", "当前邮箱")}</Label>
                   <Input value={email} disabled className={disabledInputCls} />
                 </div>
                 {editingEmail && (
-                  <div className="space-y-2">
+                  <div className="oq-field-stack">
                     <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
-                    <div className="flex items-center gap-2">
+                    <div className="oq-inline-control">
                       <Input
                         placeholder={tr("Enter verification code", "请输入验证码")}
                         value={emailVerCode}
@@ -744,7 +707,7 @@ export default function Account() {
                   </div>
                 )}
                 {editingEmail && (
-                  <div className="space-y-2 md:col-span-2">
+                  <div className="oq-field-stack oq-form-span">
                     <Label className="label-upper">{tr("New Email", "新邮箱")}</Label>
                     <Input
                       type="email"
@@ -760,27 +723,30 @@ export default function Account() {
                 )}
               </div>
               {editingEmail && (
-                <button
-                  className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                  onClick={() => {
-                    if (!emailVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
-                    if (!newEmail.trim()) { toast.error(tr("Please enter a new email address", "请输入新邮箱地址")); return; }
-                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast.error(tr("Please enter a valid email address", "请输入有效的邮箱地址")); return; }
-                    toast.success(tr("Email updated successfully", "邮箱更新成功"));
-                    setEmail(newEmail);
-                    updateUser({ email: newEmail });
-                    setEmailVerCode(""); setEmailCodeSent(false); setNewEmail(""); setEditingEmail(false);
-                  }}
-                >
-                  {tr("Save Email", "保存邮箱")}
-                </button>
+                <div className="oq-profile-action-row">
+                  <button
+                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                    onClick={() => {
+                      if (!emailVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
+                      if (!newEmail.trim()) { toast.error(tr("Please enter a new email address", "请输入新邮箱地址")); return; }
+                      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast.error(tr("Please enter a valid email address", "请输入有效的邮箱地址")); return; }
+                      toast.success(tr("Email updated successfully", "邮箱更新成功"));
+                      setEmail(newEmail);
+                      updateUser({ email: newEmail });
+                      setEmailVerCode(""); setEmailCodeSent(false); setNewEmail(""); setEditingEmail(false);
+                    }}
+                  >
+                    {tr("Save Email", "保存邮箱")}
+                  </button>
+                </div>
               )}
+            </div>
             </div>
 
             {/* 3. Change Password */}
-            <div className="mx-6 mt-3 rounded-2xl bg-accent/30 px-5 py-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+            <div className="oq-profile-section">
+              <div className="oq-profile-section-header">
+                <div className="oq-section-title">
                   <Key className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">{tr("Change Password", "修改密码")}</span>
                 </div>
@@ -802,17 +768,16 @@ export default function Account() {
                   </button>
                 )}
               </div>
-            </div>
             {editingPassword ? (
-              <div className="mx-6 mt-3 rounded-2xl bg-accent/30 px-5 py-5 space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+              <div className="oq-profile-section-body">
+                <div className="oq-form-grid">
+                  <div className="oq-field-stack">
                     <Label className="label-upper">{tr("Email", "邮箱")}</Label>
                     <Input value={email} disabled className={disabledInputCls} />
                   </div>
-                  <div className="space-y-2">
+                  <div className="oq-field-stack">
                     <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
-                    <div className="flex items-center gap-2">
+                    <div className="oq-inline-control">
                       <Input
                         placeholder={tr("Enter verification code", "请输入验证码")}
                         value={passwordVerCode}
@@ -828,11 +793,11 @@ export default function Account() {
                       </button>
                     </div>
                   </div>
-                  <div className="space-y-2">
+                  <div className="oq-field-stack">
                     <Label className="label-upper">{tr("New Password", "新密码")}</Label>
                     <Input type="password" placeholder={tr("Enter new password", "请输入新密码")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={activeInputCls} />
                   </div>
-                  <div className="space-y-2">
+                  <div className="oq-field-stack">
                     <Label className="label-upper">{tr("Confirm New Password", "确认新密码")}</Label>
                     <Input type="password" placeholder={tr("Re-enter new password", "请再次输入新密码")} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={activeInputCls} />
                     {confirmPassword && newPassword !== confirmPassword && (
@@ -840,23 +805,30 @@ export default function Account() {
                     )}
                   </div>
                 </div>
-                <button
-                  className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
-                  onClick={() => {
-                    if (!passwordVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
-                    if (!newPassword.trim()) { toast.error(tr("Please enter a new password", "请输入新密码")); return; }
-                    if (newPassword.length < 8) { toast.error(tr("Password must be at least 8 characters", "密码至少为 8 位")); return; }
-                    if (newPassword !== confirmPassword) { toast.error(tr("Passwords do not match", "两次输入密码不一致")); return; }
-                    toast.success(tr("Password updated successfully", "密码更新成功"));
-                    setPasswordVerCode(""); setPasswordCodeSent(false); setNewPassword(""); setConfirmPassword(""); setEditingPassword(false);
-                  }}
-                >
-                  {tr("Save Password", "保存密码")}
-                </button>
+                <div className="oq-profile-action-row">
+                  <button
+                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                    onClick={() => {
+                      if (!passwordVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
+                      if (!newPassword.trim()) { toast.error(tr("Please enter a new password", "请输入新密码")); return; }
+                      if (newPassword.length < 8) { toast.error(tr("Password must be at least 8 characters", "密码至少为 8 位")); return; }
+                      if (newPassword !== confirmPassword) { toast.error(tr("Passwords do not match", "两次输入密码不一致")); return; }
+                      toast.success(tr("Password updated successfully", "密码更新成功"));
+                      setPasswordVerCode(""); setPasswordCodeSent(false); setNewPassword(""); setConfirmPassword(""); setEditingPassword(false);
+                    }}
+                  >
+                    {tr("Save Password", "保存密码")}
+                  </button>
+                </div>
               </div>
             ) : null}
+            </div>
           </div>
         </div>
+      )}
+
+      {activeTab === "agent" && (
+        <div className="oq-account-blank-placeholder" aria-hidden="true" />
       )}
 
       {/* ═══════════════ Exchange API Tab ═══════════════ */}
@@ -1170,12 +1142,12 @@ export default function Account() {
 
       {/* ═══════════════ Profile Actions ═══════════════ */}
       {activeTab === "profile" && (
-        <div className="space-y-6">
-          <div className="surface-card">
-            <div className="p-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="oq-account-profile">
+          <div className="surface-card oq-logout-card">
+            <div className="oq-logout-content">
               <div>
-                <div className="text-sm font-medium text-foreground">{tr("Log Out", "退出登录")}</div>
-                <div className="text-xs text-muted-foreground">{tr("Sign out of your current account and return to the landing page.", "退出当前账户并返回落地页。")}</div>
+                <div className="oq-logout-title">{tr("Log Out", "退出登录")}</div>
+                <div className="oq-logout-copy">{tr("Sign out of your current account and return to the landing page.", "退出当前账户并返回落地页。")}</div>
               </div>
               <Button
                 className="rounded-full gap-1.5 self-start sm:self-auto bg-destructive text-destructive-foreground hover:brightness-110"

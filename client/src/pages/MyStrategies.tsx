@@ -38,14 +38,18 @@ import {
   ChevronsRight,
   Circle,
   Columns3,
+  Download,
+  GitCompareArrows,
   Grid2x2,
   List,
   MoreHorizontal,
+  RefreshCw,
   Search,
   SlidersHorizontal,
   Star,
   Trash2,
 } from "lucide-react";
+import "./MyStrategies.css";
 
 type SortKey = "updated" | "name" | "roi" | "winRate" | "sharpe";
 type ViewMode = "grid" | "list";
@@ -373,6 +377,51 @@ function toStrategyViewRow(index: number): StrategyViewRow {
 
 const strategyRows: StrategyViewRow[] = Array.from({ length: 20 }, (_, index) => toStrategyViewRow(index));
 
+const workbenchSamples = [
+  { title: "Smooth Momentum Quality", category: "Momentum", sharpe: "1.64", rankIc: "0.041", maxDd: "-8.2%", turn: "31%", status: "running" },
+  { title: "Funding Crowding Fade", category: "Funding", sharpe: "1.22", rankIc: "0.031", maxDd: "-11.4%", turn: "68%", status: "paused" },
+  { title: "Overnight VRP", category: "Volatility", sharpe: "1.41", rankIc: "0.052", maxDd: "-9.9%", turn: "140%", status: "running" },
+  { title: "Order Imbalance Reversion", category: "Order flow", sharpe: "0.98", rankIc: "0.024", maxDd: "-6.1%", turn: "12%", status: "running" },
+  { title: "Liquidity Fragility Short", category: "Liquidity", sharpe: "1.33", rankIc: "0.040", maxDd: "-10.3%", turn: "96%", status: "running" },
+  { title: "Volume Shock Continuation", category: "Volume", sharpe: "1.07", rankIc: "0.029", maxDd: "-7.7%", turn: "42%", status: "running" },
+  { title: "Overnight VRP", category: "Volatility", sharpe: "0.62", rankIc: "0.014", maxDd: "-14.8%", turn: "24%", status: "running" },
+  { title: "Overnight VRP", category: "Volatility", sharpe: "0.88", rankIc: "0.022", maxDd: "-12.1%", turn: "118%", status: "running" },
+];
+
+function getWorkbenchMeta(index: number) {
+  return workbenchSamples[index % workbenchSamples.length];
+}
+
+function WorkbenchSparkline({
+  values,
+  color = "#ff7a1a",
+}: {
+  values: number[];
+  color?: string;
+}) {
+  const svgId = useId().replace(/:/g, "");
+  const width = 120;
+  const height = 26;
+  const points = buildSparklinePoints(values, width, height, 2);
+  const linePath = points
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(2)} ${point.y.toFixed(2)}`)
+    .join(" ");
+  const areaPath = buildSparklineAreaPath(points, height - 2);
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="oq-strategy-sparkline" fill="none" aria-hidden="true">
+      <path d={areaPath} fill={`url(#${svgId}-workbench-fill)`} />
+      <path d={linePath} stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <defs>
+        <linearGradient id={`${svgId}-workbench-fill`} x1="0" x2="0" y1="0" y2={height} gradientUnits="userSpaceOnUse">
+          <stop stopColor={color} stopOpacity="0.28" />
+          <stop offset="1" stopColor={color} stopOpacity="0.06" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
 function getStatusLabel(label: StrategyViewRow["statusLabel"], tr: (en: string, zh: string) => string) {
   if (label === "Live Trading") return tr("Live Trading", "实盘交易");
   if (label === "Paper Trading") return tr("Paper Trading", "模拟交易");
@@ -649,6 +698,7 @@ export default function MyStrategies() {
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [visibleItems, setVisibleItems] = useState<Record<DisplayItemKey, boolean>>(defaultVisibleItems);
   const [starred, setStarred] = useState<Set<string>>(new Set(["STR-463", "STR-470"]));
+  const [selectedStrategyIds, setSelectedStrategyIds] = useState<Set<string>>(new Set(["STR-463", "STR-465"]));
   const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
   const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
@@ -787,6 +837,15 @@ export default function MyStrategies() {
     setPendingDeleteStrategy(row);
   };
 
+  const toggleSelectedStrategy = (strategyId: string) => {
+    setSelectedStrategyIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(strategyId)) next.delete(strategyId);
+      else next.add(strategyId);
+      return next;
+    });
+  };
+
   const confirmDeleteStrategy = () => {
     if (!pendingDeleteStrategy) return;
     const strategyId = pendingDeleteStrategy.id;
@@ -796,6 +855,12 @@ export default function MyStrategies() {
       return next;
     });
     setStarred((prev) => {
+      if (!prev.has(strategyId)) return prev;
+      const next = new Set(prev);
+      next.delete(strategyId);
+      return next;
+    });
+    setSelectedStrategyIds((prev) => {
       if (!prev.has(strategyId)) return prev;
       const next = new Set(prev);
       next.delete(strategyId);
@@ -839,6 +904,183 @@ export default function MyStrategies() {
       labelClass: "text-slate-600 dark:text-slate-300",
     },
   ];
+
+  const workbenchRows = sorted.slice(0, 8);
+  const selectedCompareRows = [
+    ...workbenchRows.filter((row) => selectedStrategyIds.has(row.id)),
+    ...workbenchRows.filter((row) => !selectedStrategyIds.has(row.id)),
+  ].slice(0, 2);
+  const useFigmaWorkbenchLayout: boolean = true;
+
+  if (useFigmaWorkbenchLayout) {
+    return (
+      <div className="oq-strategy-workbench">
+        <section className="oq-strategy-sync">
+          <div className="oq-strategy-sync-icon"><RefreshCw className="h-3.5 w-3.5" /></div>
+          <div className="oq-strategy-sync-copy">
+            <div className="oq-strategy-sync-title">{tr("Synced with your Codex agent", "已与 Codex Agent 同步")}</div>
+            <div className="oq-strategy-sync-text">{tr("Mine in Codex — alphas land here automatically. Last sync 2 min ago.", "在 Codex 中挖掘，因子会自动流入这里。上次同步 2 分钟前。")}</div>
+          </div>
+          <span className="oq-strategy-live-pill"><span />Live</span>
+          <button type="button" className="oq-strategy-download">
+            <Download className="h-3.5 w-3.5" />
+            {tr("Download all (.zip)", "下载全部（.zip）")}
+          </button>
+        </section>
+
+        <section className="oq-strategy-toolbar">
+          <div className="oq-strategy-toolbar-left">
+            <div className="relative" ref={filterMenuRef}>
+              <button type="button" className="oq-strategy-pill-button" onClick={() => { setShowFilterMenu((prev) => !prev); setShowSortMenu(false); }}>
+                <span>{strategyFilter === "favorites" ? tr("My Favorites", "我的收藏") : tr("All", "全部")}</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              {showFilterMenu ? (
+                <div className="oq-strategy-menu">
+                  {([
+                    { key: "all", label: tr("All", "全部") },
+                    { key: "favorites", label: tr("My Favorites", "我的收藏") },
+                  ] as Array<{ key: StrategyFilter; label: string }>).map((item) => (
+                    <button key={item.key} type="button" className={strategyFilter === item.key ? "is-active" : ""} onClick={() => { setStrategyFilter(item.key); setShowFilterMenu(false); }}>
+                      <span>{item.label}</span>
+                      {strategyFilter === item.key ? <Check className="h-3 w-3" /> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="relative" ref={sortMenuRef}>
+              <button type="button" className="oq-strategy-pill-button" onClick={() => { setShowSortMenu((prev) => !prev); setShowFilterMenu(false); }}>
+                <span>{tr("Sort", "排序")}</span>
+                <ChevronDown className="h-3 w-3" />
+              </button>
+              {showSortMenu ? (
+                <div className="oq-strategy-menu oq-strategy-sort-menu">
+                  {(["updated", "name", "roi", "winRate", "sharpe"] as SortKey[]).map((key) => (
+                    <button key={key} type="button" className={sortKey === key ? "is-active" : ""} onClick={() => { sortKey === key ? setSortDesc((prev) => !prev) : setSortKey(key); }}>
+                      <span>{sortLabels[key]}</span>
+                      {sortKey === key ? <span>{sortDesc ? "↓" : "↑"}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <div className="oq-strategy-compare-note">
+            <GitCompareArrows className="h-3.5 w-3.5" />
+            <span>{tr("Tick rows to compare ·", "勾选行以比较 ·")}</span>
+            <strong>{tr(`${selectedStrategyIds.size} selected`, `已选 ${selectedStrategyIds.size} 个`)}</strong>
+          </div>
+        </section>
+
+        <section className="oq-strategy-table-card">
+          <div className="oq-strategy-table-head oq-strategy-table-grid">
+            <div />
+            <div>Strategy</div>
+            <div>Sharpe</div>
+            <div>RankIC</div>
+            <div>MaxDD</div>
+            <div>Turn</div>
+            <div>90-day</div>
+            <div>Status</div>
+            <div>Action</div>
+          </div>
+          {workbenchRows.map((row, index) => {
+            const meta = getWorkbenchMeta(index);
+            const isSelected = selectedStrategyIds.has(row.id);
+            return (
+              <div key={row.id} className={`oq-strategy-table-row oq-strategy-table-grid ${isSelected ? "is-selected" : ""}`}>
+                <button type="button" className={`oq-strategy-check ${isSelected ? "is-checked" : ""}`} onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Toggle compare", "切换比较")}>
+                  {isSelected ? <Check className="h-3 w-3" /> : null}
+                </button>
+                <div className="oq-strategy-name-cell">
+                  <div>{meta.title}</div>
+                  <span>{meta.category}</span>
+                </div>
+                <div className="oq-strategy-mono is-strong">{meta.sharpe}</div>
+                <div className="oq-strategy-mono">{meta.rankIc}</div>
+                <div className="oq-strategy-mono is-risk">{meta.maxDd}</div>
+                <div className="oq-strategy-mono">{meta.turn}</div>
+                <WorkbenchSparkline values={strategyCardCurveValues.map((value, i) => value + index * 18 + i * (index % 3))} />
+                <span className={`oq-strategy-status ${meta.status === "paused" ? "is-paused" : "is-running"}`}>
+                  <span />{meta.status === "paused" ? "Paused" : "Running"}
+                </span>
+                <Link href={`/strategies/${row.id}`} className="oq-strategy-view-link">{tr("View", "查看")}</Link>
+              </div>
+            );
+          })}
+        </section>
+
+        <section className="oq-strategy-compare-card">
+          <div className="oq-strategy-compare-header">
+            <GitCompareArrows className="h-4 w-4" />
+            <div>
+              <h2>{tr("Compare strategy", "比较策略")}</h2>
+              <p>{tr(`${selectedCompareRows.length} selected · scroll down to see every stat side-by-side`, `已选 ${selectedCompareRows.length} 个 · 向下查看指标对比`)}</p>
+            </div>
+          </div>
+          <div className="oq-strategy-compare-grid">
+            <div className="oq-strategy-compare-label" />
+            {selectedCompareRows.map((row, index) => {
+              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              return (
+                <div key={row.id} className="oq-strategy-compare-title">
+                  <button type="button" onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Remove from compare", "从比较中移除")}>×</button>
+                  <span className={index === 0 ? "is-orange" : "is-blue"} />
+                  <strong>{meta.title}</strong>
+                  <small>{meta.category}</small>
+                </div>
+              );
+            })}
+            <div className="oq-strategy-compare-section">Performance</div>
+            <div className="oq-strategy-compare-label">90-day</div>
+            {selectedCompareRows.map((row, index) => <div key={`${row.id}-curve`} className="oq-strategy-compare-cell"><WorkbenchSparkline color={index === 0 ? "#ff7a1a" : "#2a6fdb"} values={strategyCardCurveValues.map((value, i) => value + index * 220 + i * 4)} /></div>)}
+            <div className="oq-strategy-compare-label">CS Sharpe</div>
+            {selectedCompareRows.map((row, index) => {
+              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              return <div key={`${row.id}-sharpe`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong>{meta.sharpe}</strong>{index === 0 ? <small>Best</small> : null}</div>;
+            })}
+            <div className="oq-strategy-compare-label">RankIC</div>
+            {selectedCompareRows.map((row, index) => {
+              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              return <div key={`${row.id}-rankic`} className={`oq-strategy-compare-cell ${index === 1 ? "is-best" : ""}`}><strong>{meta.rankIc}</strong>{index === 1 ? <small>Best</small> : null}</div>;
+            })}
+            <div className="oq-strategy-compare-section">{`Risk & details`}</div>
+            <div className="oq-strategy-compare-label">Max drawdown</div>
+            {selectedCompareRows.map((row, index) => {
+              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              return <div key={`${row.id}-dd`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong className="is-risk">{meta.maxDd}</strong>{index === 0 ? <small>Lowest</small> : null}</div>;
+            })}
+            <div className="oq-strategy-compare-label">Turnover</div>
+            {selectedCompareRows.map((row, index) => {
+              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              return <div key={`${row.id}-turn`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong>{meta.turn}</strong>{index === 0 ? <small>Lowest</small> : null}</div>;
+            })}
+          </div>
+        </section>
+
+        <Dialog open={Boolean(pendingDeleteStrategy)} onOpenChange={(open) => !open && setPendingDeleteStrategy(null)}>
+          <DialogContent className="max-w-md rounded-2xl border-border bg-card p-0 text-foreground">
+            <div className="border-b border-border/60 px-5 py-4">
+              <DialogTitle className="text-base font-semibold">{tr("Delete Strategy", "删除策略")}</DialogTitle>
+            </div>
+            <div className="px-5 py-4">
+              <p className="text-sm leading-6 text-foreground">
+                {pendingDeleteStrategy?.name
+                  ? tr(`Confirm deleting ${pendingDeleteStrategy.name} (${pendingDeleteStrategy.id})? This action cannot be undone.`, `确认删除 ${pendingDeleteStrategy.name}（${pendingDeleteStrategy.id}）？删除后无法恢复。`)
+                  : tr("Confirm deleting this strategy? This action cannot be undone.", "确认删除该策略？删除后无法恢复。")}
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border/60 px-5 py-4">
+              <Button variant="outline" className="h-8 rounded-full border-border bg-card px-3 text-xs" onClick={() => setPendingDeleteStrategy(null)}>{tr("Cancel", "取消")}</Button>
+              <Button className="h-8 rounded-full bg-destructive px-3 text-xs text-destructive-foreground hover:bg-destructive/90" onClick={confirmDeleteStrategy}>{tr("Delete", "删除")}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 min-w-0">

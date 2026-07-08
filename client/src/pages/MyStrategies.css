@@ -1,0 +1,482 @@
+.oq-strategy-workbench {
+  --os-bg: #ffffff;
+  --os-bg-soft: #faf8f6;
+  --os-bg-warm: #fff6ef;
+  --os-surface: #f4f1ed;
+  --os-border: #ece6df;
+  --os-border-strong: #e2dad0;
+  --os-text: #0d0d0d;
+  --os-text-soft: #4a443d;
+  --os-muted: #8c8378;
+  --os-accent: #dc4900;
+  --os-accent-2: #ff7a1a;
+  --os-success: #1f8a5b;
+  --os-success-bg: #e6f4ec;
+  --os-risk: #d64550;
+  --os-shadow: 0 1.5px 6px rgba(60, 40, 20, 0.06);
+  display: grid;
+  width: min(100%, 900px);
+  gap: 16px;
+  margin: 0 auto;
+  color: var(--os-text);
+  font-family: var(--font-body);
+}
+
+.oq-strategy-sync {
+  display: grid;
+  min-height: 51px;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  background: var(--os-text);
+  padding: 10px 13.5px;
+}
+
+.oq-strategy-sync-icon {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.oq-strategy-sync-copy {
+  min-width: 0;
+}
+
+.oq-strategy-sync-title {
+  color: #ffffff;
+  font-size: 10.125px;
+  font-weight: 600;
+  line-height: 16.4px;
+}
+
+.oq-strategy-sync-text {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 8.625px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-strategy-live-pill,
+.oq-strategy-download,
+.oq-strategy-pill-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 749px;
+}
+
+.oq-strategy-live-pill {
+  min-height: 24px;
+  gap: 6px;
+  background: rgba(31, 138, 91, 0.18);
+  padding: 0 10px;
+  color: #5fd0a0;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.oq-strategy-live-pill span,
+.oq-strategy-status span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.oq-strategy-download {
+  min-height: 24px;
+  gap: 7px;
+  background: #ffffff;
+  padding: 0 11px;
+  color: var(--os-text);
+  font-size: 9.375px;
+  font-weight: 600;
+}
+
+.oq-strategy-toolbar {
+  display: flex;
+  min-height: 26px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.oq-strategy-toolbar-left,
+.oq-strategy-compare-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.oq-strategy-pill-button {
+  min-width: 80px;
+  min-height: 26px;
+  gap: 6px;
+  border: 0.75px solid var(--os-border-strong);
+  background: var(--os-bg);
+  padding: 0 11px;
+  color: var(--os-text-soft);
+  font-size: 9.375px;
+  font-weight: 600;
+}
+
+.oq-strategy-compare-note {
+  color: var(--os-muted);
+  font-size: 9.375px;
+}
+
+.oq-strategy-compare-note strong {
+  color: var(--os-text);
+  font-weight: 700;
+}
+
+.oq-strategy-menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  min-width: 150px;
+  gap: 2px;
+  border: 1px solid var(--os-border);
+  border-radius: 12px;
+  background: var(--os-bg);
+  padding: 6px;
+  box-shadow: 0 6px 18px rgba(60, 40, 20, 0.08);
+}
+
+.oq-strategy-sort-menu {
+  min-width: 180px;
+}
+
+.oq-strategy-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: var(--os-muted);
+  font-size: 10px;
+}
+
+.oq-strategy-menu button:hover,
+.oq-strategy-menu button.is-active {
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+}
+
+.oq-strategy-table-card,
+.oq-strategy-compare-card {
+  overflow: hidden;
+  border: 0.75px solid var(--os-border);
+  border-radius: 12px;
+  background: var(--os-bg);
+  box-shadow: var(--os-shadow);
+}
+
+.oq-strategy-table-grid {
+  display: grid;
+  grid-template-columns: 48px 206px 86px 86px 86px 86px 150px 94px 58px;
+  align-items: center;
+}
+
+.oq-strategy-table-head {
+  height: 27.75px;
+  border-bottom: 0.75px solid var(--os-border);
+  color: var(--os-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 7.5px;
+  font-weight: 500;
+  letter-spacing: 0.45px;
+}
+
+.oq-strategy-table-row {
+  min-height: 42.75px;
+  border-bottom: 0.75px solid var(--os-border);
+  background: var(--os-bg);
+}
+
+.oq-strategy-table-row:last-child {
+  border-bottom: 0;
+}
+
+.oq-strategy-table-row.is-selected {
+  background: var(--os-bg-warm);
+}
+
+.oq-strategy-check {
+  display: inline-flex;
+  width: 15px;
+  height: 15px;
+  align-items: center;
+  justify-content: center;
+  justify-self: center;
+  border: 1.125px solid #d2c8bc;
+  border-radius: 4.5px;
+  background: #ffffff;
+  color: #ffffff;
+}
+
+.oq-strategy-check.is-checked {
+  border-color: var(--os-text);
+  background: var(--os-text);
+}
+
+.oq-strategy-name-cell {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.oq-strategy-name-cell div {
+  overflow: hidden;
+  color: var(--os-text);
+  font-size: 10.125px;
+  font-weight: 700;
+  line-height: 16.4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-strategy-name-cell span {
+  overflow: hidden;
+  color: var(--os-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 7.875px;
+  font-weight: 500;
+  line-height: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-strategy-mono {
+  color: var(--os-text-soft);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9.375px;
+  font-weight: 500;
+  line-height: 13.125px;
+}
+
+.oq-strategy-mono.is-strong {
+  color: var(--os-text);
+  font-size: 10.125px;
+  font-weight: 700;
+}
+
+.oq-strategy-mono.is-risk,
+.oq-strategy-compare-cell .is-risk {
+  color: var(--os-risk);
+}
+
+.oq-strategy-sparkline {
+  width: 120px;
+  height: 26px;
+}
+
+.oq-strategy-status {
+  display: inline-flex;
+  width: max-content;
+  min-height: 19px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 749px;
+  padding: 0 8px;
+  font-size: 8.25px;
+  font-weight: 600;
+}
+
+.oq-strategy-status.is-running {
+  background: var(--os-success-bg);
+  color: var(--os-success);
+}
+
+.oq-strategy-status.is-paused {
+  background: var(--os-surface);
+  color: #6b635a;
+}
+
+.oq-strategy-view-link {
+  justify-self: end;
+  padding-right: 16px;
+  color: var(--os-text-soft);
+  font-size: 9.375px;
+  font-weight: 600;
+}
+
+.oq-strategy-compare-card {
+  border-radius: 15px;
+}
+
+.oq-strategy-compare-header {
+  display: flex;
+  min-height: 63px;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 0.75px solid var(--os-border);
+  padding: 13.5px 16.5px;
+}
+
+.oq-strategy-compare-header h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 12.75px;
+  font-weight: 700;
+  line-height: 20.6px;
+}
+
+.oq-strategy-compare-header p {
+  margin: 0;
+  color: var(--os-muted);
+  font-size: 9px;
+  line-height: 14.6px;
+}
+
+.oq-strategy-compare-grid {
+  display: grid;
+  grid-template-columns: 135px repeat(2, minmax(0, 1fr));
+}
+
+.oq-strategy-compare-title,
+.oq-strategy-compare-label,
+.oq-strategy-compare-cell,
+.oq-strategy-compare-section {
+  border-bottom: 0.75px solid var(--os-border);
+}
+
+.oq-strategy-compare-title {
+  position: relative;
+  display: grid;
+  min-height: 75px;
+  align-content: center;
+  gap: 5px;
+  border-left: 0.75px solid var(--os-border);
+  padding: 10px;
+}
+
+.oq-strategy-compare-title button {
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  color: var(--os-text);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.oq-strategy-compare-title > span {
+  width: 7.5px;
+  height: 7.5px;
+  border-radius: 2.25px;
+}
+
+.oq-strategy-compare-title > span.is-orange {
+  background: var(--os-accent-2);
+}
+
+.oq-strategy-compare-title > span.is-blue {
+  background: #2a6fdb;
+}
+
+.oq-strategy-compare-title strong {
+  font-family: var(--font-heading);
+  font-size: 10.125px;
+  line-height: 13px;
+}
+
+.oq-strategy-compare-title small {
+  color: var(--os-muted);
+  font-size: 8.25px;
+}
+
+.oq-strategy-compare-label {
+  display: flex;
+  min-height: 59px;
+  align-items: center;
+  background: var(--os-bg-soft);
+  padding: 0 12px;
+  color: #6b635a;
+  font-size: 9.375px;
+  font-weight: 600;
+}
+
+.oq-strategy-compare-section {
+  grid-column: 1 / -1;
+  min-height: 25.5px;
+  background: var(--os-bg-soft);
+  padding: 8px 12px;
+  color: var(--os-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 7.5px;
+  letter-spacing: 0.6px;
+}
+
+.oq-strategy-compare-cell {
+  display: grid;
+  min-height: 59px;
+  place-items: center;
+  border-left: 0.75px solid var(--os-border);
+  background: var(--os-bg);
+}
+
+.oq-strategy-compare-cell.is-best {
+  background: var(--os-bg-warm);
+}
+
+.oq-strategy-compare-cell strong {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 14.25px;
+  line-height: 20px;
+}
+
+.oq-strategy-compare-cell small {
+  color: var(--os-accent);
+  font-size: 7.5px;
+  font-weight: 700;
+}
+
+@media (max-width: 960px) {
+  .oq-strategy-workbench {
+    width: 100%;
+    padding: 0 12px 20px;
+  }
+
+  .oq-strategy-sync {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+
+  .oq-strategy-sync-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .oq-strategy-live-pill,
+  .oq-strategy-download {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .oq-strategy-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .oq-strategy-table-card,
+  .oq-strategy-compare-card {
+    overflow-x: auto;
+  }
+
+  .oq-strategy-table-head,
+  .oq-strategy-table-row {
+    min-width: 900px;
+  }
+
+  .oq-strategy-compare-grid {
+    min-width: 900px;
+  }
+}
