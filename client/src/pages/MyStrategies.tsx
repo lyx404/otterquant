@@ -51,7 +51,7 @@ import {
 } from "lucide-react";
 import "./MyStrategies.css";
 
-type SortKey = "updated" | "name" | "roi" | "winRate" | "sharpe";
+type SortKey = "updated" | "sharpe" | "rankIc" | "maxDd" | "turn";
 type ViewMode = "grid" | "list";
 type MetricKey = "roi" | "winRate" | "sharpe" | "maxDrawdown";
 type DisplayItemKey = MetricKey | "createdAt" | "id";
@@ -313,10 +313,10 @@ function StrategyTableCurveSparkline({
 
 const sortLabels: Record<SortKey, string> = {
   updated: "Updated Time",
-  name: "Name",
-  roi: "ROI",
-  winRate: "Win Rate",
   sharpe: "Sharpe",
+  rankIc: "RankIC",
+  maxDd: "MaxDD",
+  turn: "Turn",
 };
 
 const defaultVisibleItems: Record<DisplayItemKey, boolean> = {
@@ -390,6 +390,24 @@ const workbenchSamples = [
 
 function getWorkbenchMeta(index: number) {
   return workbenchSamples[index % workbenchSamples.length];
+}
+
+function getStrategyRowIndex(row: StrategyViewRow) {
+  const index = Number(row.id.replace("STR-", "")) - 463;
+  return Number.isFinite(index) ? index : 0;
+}
+
+function getWorkbenchMetaForRow(row: StrategyViewRow) {
+  return getWorkbenchMeta(getStrategyRowIndex(row));
+}
+
+function getWorkbenchSortValue(row: StrategyViewRow, key: SortKey) {
+  if (key === "updated") return new Date(row.updatedAt).getTime();
+  const meta = getWorkbenchMetaForRow(row);
+  if (key === "sharpe") return Number(meta.sharpe);
+  if (key === "rankIc") return Number(meta.rankIc);
+  if (key === "maxDd") return parsePercent(meta.maxDd);
+  return parsePercent(meta.turn);
 }
 
 function WorkbenchSparkline({
@@ -691,7 +709,7 @@ export default function MyStrategies() {
   const [sortDesc, setSortDesc] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(8);
   const [strategyFilter, setStrategyFilter] = useState<StrategyFilter>("all");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -777,18 +795,7 @@ export default function MyStrategies() {
   const sorted = useMemo(() => {
     const rows = [...filtered];
     rows.sort((a, b) => {
-      let comp = 0;
-      if (sortKey === "updated") {
-        comp = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
-      } else if (sortKey === "name") {
-        comp = a.name.localeCompare(b.name);
-      } else if (sortKey === "roi") {
-        comp = parsePercent(a.roi) - parsePercent(b.roi);
-      } else if (sortKey === "winRate") {
-        comp = parsePercent(a.winRate) - parsePercent(b.winRate);
-      } else if (sortKey === "sharpe") {
-        comp = Number(a.sharpe) - Number(b.sharpe);
-      }
+      const comp = getWorkbenchSortValue(a, sortKey) - getWorkbenchSortValue(b, sortKey);
       return sortDesc ? -comp : comp;
     });
     return rows;
@@ -905,7 +912,7 @@ export default function MyStrategies() {
     },
   ];
 
-  const workbenchRows = sorted.slice(0, 8);
+  const workbenchRows = paginated;
   const selectedCompareRows = [
     ...workbenchRows.filter((row) => selectedStrategyIds.has(row.id)),
     ...workbenchRows.filter((row) => !selectedStrategyIds.has(row.id)),
@@ -922,10 +929,6 @@ export default function MyStrategies() {
             <div className="oq-strategy-sync-text">{tr("Mine in Codex — alphas land here automatically. Last sync 2 min ago.", "在 Codex 中挖掘，因子会自动流入这里。上次同步 2 分钟前。")}</div>
           </div>
           <span className="oq-strategy-live-pill"><span />Live</span>
-          <button type="button" className="oq-strategy-download">
-            <Download className="h-3.5 w-3.5" />
-            {tr("Download all (.zip)", "下载全部（.zip）")}
-          </button>
         </section>
 
         <section className="oq-strategy-toolbar">
@@ -957,7 +960,7 @@ export default function MyStrategies() {
               </button>
               {showSortMenu ? (
                 <div className="oq-strategy-menu oq-strategy-sort-menu">
-                  {(["updated", "name", "roi", "winRate", "sharpe"] as SortKey[]).map((key) => (
+                  {(["updated", "sharpe", "rankIc", "maxDd", "turn"] as SortKey[]).map((key) => (
                     <button key={key} type="button" className={sortKey === key ? "is-active" : ""} onClick={() => { sortKey === key ? setSortDesc((prev) => !prev) : setSortKey(key); }}>
                       <span>{sortLabels[key]}</span>
                       {sortKey === key ? <span>{sortDesc ? "↓" : "↑"}</span> : null}
@@ -966,6 +969,11 @@ export default function MyStrategies() {
                 </div>
               ) : null}
             </div>
+
+            <button type="button" className="oq-strategy-download oq-strategy-pill-button">
+              <Download className="h-3.5 w-3.5" />
+              {tr("Download all (.zip)", "下载全部（.zip）")}
+            </button>
           </div>
           <div className="oq-strategy-compare-note">
             <GitCompareArrows className="h-3.5 w-3.5" />
@@ -987,10 +995,10 @@ export default function MyStrategies() {
             <div>Action</div>
           </div>
           {workbenchRows.map((row, index) => {
-            const meta = getWorkbenchMeta(index);
+            const meta = getWorkbenchMetaForRow(row);
             const isSelected = selectedStrategyIds.has(row.id);
             return (
-              <div key={row.id} className={`oq-strategy-table-row oq-strategy-table-grid ${isSelected ? "is-selected" : ""}`}>
+              <div key={row.id} className={`oq-strategy-table-row oq-strategy-table-grid ${isSelected ? "is-selected" : ""} ${index === workbenchRows.length - 1 ? "is-page-last" : ""}`}>
                 <button type="button" className={`oq-strategy-check ${isSelected ? "is-checked" : ""}`} onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Toggle compare", "切换比较")}>
                   {isSelected ? <Check className="h-3 w-3" /> : null}
                 </button>
@@ -1010,6 +1018,40 @@ export default function MyStrategies() {
               </div>
             );
           })}
+          <div className="oq-strategy-table-pagination">
+            <div className="oq-strategy-page-summary">
+              <span>{tr("Rows", "行")}</span>
+              <strong>
+                {sorted.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)}
+              </strong>
+              <span>/ {sorted.length}</span>
+            </div>
+            <div className="oq-strategy-page-controls" aria-label={tr("Strategy list pagination", "策略列表分页")}>
+              <button type="button" aria-label={tr("First page", "第一页")} disabled={page <= 1} onClick={() => setPage(1)}>
+                <ChevronsLeft className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" aria-label={tr("Previous page", "上一页")} disabled={page <= 1} onClick={() => setPage((prev) => Math.max(1, prev - 1))}>
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              {getPageRange().map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={p === page ? "is-active" : ""}
+                  aria-current={p === page ? "page" : undefined}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+              <button type="button" aria-label={tr("Next page", "下一页")} disabled={page >= totalPages} onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" aria-label={tr("Last page", "最后一页")} disabled={page >= totalPages} onClick={() => setPage(totalPages)}>
+                <ChevronsRight className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
         </section>
 
         <section className="oq-strategy-compare-card">
@@ -1023,7 +1065,7 @@ export default function MyStrategies() {
           <div className="oq-strategy-compare-grid">
             <div className="oq-strategy-compare-label" />
             {selectedCompareRows.map((row, index) => {
-              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              const meta = getWorkbenchMetaForRow(row);
               return (
                 <div key={row.id} className="oq-strategy-compare-title">
                   <button type="button" onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Remove from compare", "从比较中移除")}>×</button>
@@ -1038,23 +1080,23 @@ export default function MyStrategies() {
             {selectedCompareRows.map((row, index) => <div key={`${row.id}-curve`} className="oq-strategy-compare-cell"><WorkbenchSparkline color={index === 0 ? "#ff7a1a" : "#2a6fdb"} values={strategyCardCurveValues.map((value, i) => value + index * 220 + i * 4)} /></div>)}
             <div className="oq-strategy-compare-label">CS Sharpe</div>
             {selectedCompareRows.map((row, index) => {
-              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              const meta = getWorkbenchMetaForRow(row);
               return <div key={`${row.id}-sharpe`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong>{meta.sharpe}</strong>{index === 0 ? <small>Best</small> : null}</div>;
             })}
             <div className="oq-strategy-compare-label">RankIC</div>
             {selectedCompareRows.map((row, index) => {
-              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              const meta = getWorkbenchMetaForRow(row);
               return <div key={`${row.id}-rankic`} className={`oq-strategy-compare-cell ${index === 1 ? "is-best" : ""}`}><strong>{meta.rankIc}</strong>{index === 1 ? <small>Best</small> : null}</div>;
             })}
             <div className="oq-strategy-compare-section">{`Risk & details`}</div>
             <div className="oq-strategy-compare-label">Max drawdown</div>
             {selectedCompareRows.map((row, index) => {
-              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              const meta = getWorkbenchMetaForRow(row);
               return <div key={`${row.id}-dd`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong className="is-risk">{meta.maxDd}</strong>{index === 0 ? <small>Lowest</small> : null}</div>;
             })}
             <div className="oq-strategy-compare-label">Turnover</div>
             {selectedCompareRows.map((row, index) => {
-              const meta = getWorkbenchMeta(workbenchRows.findIndex((item) => item.id === row.id));
+              const meta = getWorkbenchMetaForRow(row);
               return <div key={`${row.id}-turn`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong>{meta.turn}</strong>{index === 0 ? <small>Lowest</small> : null}</div>;
             })}
           </div>
@@ -1436,6 +1478,7 @@ export default function MyStrategies() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="8">8</SelectItem>
                     <SelectItem value="10">10</SelectItem>
                     <SelectItem value="25">25</SelectItem>
                     <SelectItem value="50">50</SelectItem>

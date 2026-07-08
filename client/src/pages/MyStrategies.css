@@ -25,7 +25,7 @@
 .oq-strategy-sync {
   display: grid;
   min-height: 51px;
-  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   border-radius: 12px;
@@ -206,6 +206,10 @@
   border-bottom: 0;
 }
 
+.oq-strategy-table-row.is-page-last {
+  border-bottom: 0;
+}
+
 .oq-strategy-table-row.is-selected {
   background: var(--os-bg-warm);
 }
@@ -307,6 +311,80 @@
   color: var(--os-text-soft);
   font-size: 9.375px;
   font-weight: 600;
+}
+
+.oq-strategy-table-pagination {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 0.75px solid var(--os-border);
+  background: color-mix(in srgb, var(--os-bg-soft) 72%, var(--os-bg));
+  padding: 10px 12px 10px 16px;
+}
+
+.oq-strategy-page-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--os-muted);
+  font-size: 9.375px;
+  line-height: 14px;
+}
+
+.oq-strategy-page-summary strong {
+  color: var(--os-text);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9.375px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-strategy-page-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.oq-strategy-page-controls button {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 0.75px solid var(--os-border-strong);
+  border-radius: 999px;
+  background: var(--os-bg);
+  color: var(--os-text-soft);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  transition:
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-strategy-page-controls button:hover:not(:disabled),
+.oq-strategy-page-controls button:focus-visible {
+  border-color: var(--os-accent);
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+  outline: none;
+}
+
+.oq-strategy-page-controls button.is-active {
+  border-color: var(--os-accent);
+  background: var(--os-accent);
+  color: #ffffff;
+}
+
+.oq-strategy-page-controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
 }
 
 .oq-strategy-compare-card {
@@ -455,8 +533,7 @@
     white-space: nowrap;
   }
 
-  .oq-strategy-live-pill,
-  .oq-strategy-download {
+  .oq-strategy-live-pill {
     grid-column: 2;
     justify-self: start;
   }
@@ -473,6 +550,10 @@
 
   .oq-strategy-table-head,
   .oq-strategy-table-row {
+    min-width: 900px;
+  }
+
+  .oq-strategy-table-pagination {
     min-width: 900px;
   }
 

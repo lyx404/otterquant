@@ -138,7 +138,8 @@
   color: rgba(137, 150, 169, 0.65);
 }
 
-.oq-report-metric-strip button {
+.oq-report-metric-strip > button,
+.oq-report-date-select > button {
   grid-column: 5 / 7;
   justify-self: end;
   min-height: 27px;
@@ -487,7 +488,7 @@
 
 .oq-attribution-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -774,7 +775,8 @@
     grid-column: 1 / -1;
   }
 
-  .oq-report-metric-strip button {
+  .oq-report-metric-strip > button,
+  .oq-report-date-select > button {
     grid-column: 1 / -1;
     justify-self: stretch;
     overflow-wrap: anywhere;
@@ -789,20 +791,20 @@
   .oq-nav-chart,
   .oq-dense-lines,
   .oq-split-lines {
-    min-width: 720px;
+    min-width: 0;
   }
 
   .oq-report-card.is-nav .oq-report-card-body {
-    min-height: 680px;
+    min-height: 0;
   }
 
   .oq-nav-chart {
-    height: 390px;
+    height: 260px;
   }
 
   .oq-exposure-chart,
   .oq-rank-chart {
-    min-width: 620px;
+    min-width: 0;
   }
 
   .oq-report-card-body {
@@ -856,9 +858,9 @@
   --chart-3: var(--report-teal);
   --chart-4: var(--report-warning);
   --chart-5: var(--report-red);
-  width: min(900px, calc(100vw - 32px));
+  width: min(1200px, 100%);
   max-width: calc(100vw - 32px);
-  gap: 16px;
+  gap: 20px;
   margin: 0 auto;
   padding: 0;
   transform: none;
@@ -866,6 +868,10 @@
   color: var(--report-text);
   font-family: var(--font-body);
   font-kerning: normal;
+}
+
+main:has(.oq-strategy-figma-report) {
+  max-width: min(1280px, calc(100vw - 32px));
 }
 
 .oq-strategy-figma-report h1,
@@ -877,8 +883,9 @@
 }
 
 .oq-report-top {
+  position: relative;
+  display: block;
   min-height: 0;
-  align-items: stretch;
   border: 1px solid var(--report-border);
   border-radius: 12px;
   background: var(--report-panel);
@@ -890,7 +897,8 @@
   display: grid;
   min-width: 0;
   align-content: start;
-  gap: 4px;
+  gap: 6px;
+  padding-right: 248px;
 }
 
 .oq-report-kicker {
@@ -920,6 +928,36 @@
   text-transform: none;
 }
 
+.oq-report-title-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.oq-report-title-row h1 {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.oq-report-title-copy {
+  display: grid;
+  min-width: 0;
+  align-content: center;
+  gap: 2px;
+}
+
+.oq-report-title-copy h1,
+.oq-report-title-copy p {
+  margin: 0;
+}
+
+.oq-report-title-action {
+  flex: 0 0 auto;
+  min-width: 44px;
+}
+
 .oq-report-head-tools {
   justify-items: end;
   gap: 12px;
@@ -927,16 +965,18 @@
 
 .oq-report-metric-strip {
   display: flex;
-  width: min(100%, 520px);
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  width: min(100%, 760px);
+  flex-wrap: nowrap;
+  justify-content: flex-start;
   gap: 8px;
+  margin-top: 10px;
 }
 
 .oq-report-metric {
   display: grid;
-  min-height: 56px;
+  min-height: 54px;
   flex: 1 1 112px;
+  min-width: 0;
   align-content: center;
   border: 1px solid var(--report-border);
   border-radius: 12px;
@@ -976,7 +1016,8 @@
   color: var(--report-text-soft);
 }
 
-.oq-report-metric-strip button {
+.oq-report-metric-strip > button,
+.oq-report-date-select > button {
   min-height: 32px;
   flex: 1 1 196px;
   border: 1px solid var(--report-border);
@@ -991,7 +1032,65 @@
   white-space: normal;
 }
 
+.oq-report-date-select {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 220px;
+  min-width: 0;
+  z-index: 3;
+}
+
+.oq-report-date-select > button {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-report-date-menu {
+  position: absolute;
+  z-index: 30;
+  right: 0;
+  top: calc(100% + 6px);
+  display: grid;
+  min-width: min(280px, calc(100vw - 48px));
+  gap: 4px;
+  border: 1px solid var(--report-border);
+  border-radius: 12px;
+  background: var(--report-bg);
+  padding: 6px;
+  box-shadow: var(--report-shadow-lift);
+}
+
+.oq-report-date-menu button {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: 9px;
+  padding: 8px 10px;
+  color: var(--report-text-soft);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1rem;
+}
+
+.oq-report-date-menu button:hover,
+.oq-report-date-menu button:focus-visible,
+.oq-report-date-menu button[aria-selected="true"] {
+  background: var(--report-warm);
+  color: var(--report-gold);
+  outline: none;
+}
+
 .oq-report-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   max-width: 520px;
 }
@@ -1019,7 +1118,10 @@
 }
 
 .oq-report-action:focus-visible,
-.oq-report-metric-strip button:focus-visible {
+.oq-report-date-select > button:focus-visible,
+.oq-report-legend-item.is-interactive:focus-visible,
+.oq-exposure-row:focus-visible,
+.oq-rank-row:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
@@ -1062,6 +1164,10 @@
   padding: 12px 16px;
 }
 
+.oq-report-card.is-symbol-cumulative .oq-report-card-header {
+  border-bottom: 0;
+}
+
 .oq-report-card-header h2,
 .oq-position-card h2 {
   color: var(--report-text);
@@ -1081,28 +1187,138 @@
 }
 
 .oq-report-card-body {
-  padding: 16px;
+  padding: 18px;
 }
 
 .oq-report-card-body::before {
   display: none;
 }
 
+.oq-report-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
+}
+
+.oq-chart-stack,
+.oq-dense-chart,
+.oq-exposure-chart,
+.oq-rank-chart {
+  display: grid;
+  position: relative;
+  min-width: 0;
+  gap: 10px;
+}
+
+.oq-chart-toolbar {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.oq-chart-toolbar.is-subtle {
+  align-items: start;
+}
+
+.oq-chart-note {
+  color: var(--report-muted);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.oq-chart-inline-tooltip {
+  display: grid;
+  min-width: 148px;
+  gap: 1px;
+  border: 1px solid var(--report-border);
+  border-radius: 10px;
+  background: var(--report-bg);
+  padding: 7px 9px;
+  color: var(--report-text-soft);
+  box-shadow: var(--report-shadow-soft);
+}
+
+.oq-chart-inline-tooltip span,
+.oq-chart-inline-tooltip small,
+.oq-chart-inline-tooltip em {
+  color: var(--report-muted);
+  font-size: 0.625rem;
+  font-style: normal;
+  line-height: 0.875rem;
+}
+
+.oq-chart-inline-tooltip span {
+  color: var(--report-text-soft);
+  font-weight: 700;
+}
+
+.oq-chart-inline-tooltip strong {
+  color: var(--report-text);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-bar-floating-tooltip {
+  position: absolute;
+  z-index: 8;
+  width: min(220px, calc(100% - 24px));
+  pointer-events: none;
+}
+
+.oq-bar-floating-tooltip .oq-chart-inline-tooltip {
+  width: 100%;
+  border-color: rgba(235, 188, 71, 0.36);
+  background: rgba(12, 16, 23, 0.96);
+  box-shadow:
+    0 18px 40px rgba(3, 7, 12, 0.34),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.oq-chart-empty {
+  display: grid;
+  min-height: 180px;
+  place-content: center;
+  gap: 4px;
+  border: 1px dashed var(--report-border);
+  border-radius: 12px;
+  background: var(--report-panel);
+  color: var(--report-muted);
+  text-align: center;
+}
+
+.oq-chart-empty strong {
+  color: var(--report-text-soft);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.oq-chart-empty span {
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+}
+
 .oq-report-card.is-nav .oq-report-card-body {
   display: grid;
   min-height: 0;
-  grid-template-columns: minmax(0, 1fr) 260px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
   align-items: start;
-  gap: 16px;
+  gap: 22px;
 }
 
 .oq-nav-chart {
-  min-height: 280px;
-  height: 280px;
-  border: 1px solid var(--report-border);
-  border-radius: 12px;
-  background: var(--report-panel);
-  padding: 8px;
+  position: relative;
+  min-height: 360px;
+  height: 380px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  overflow: visible;
+  contain: layout;
 }
 
 .oq-nav-chart svg,
@@ -1111,6 +1327,16 @@
   font-family: var(--font-body);
   font-size: 0.625rem;
   font-variant-numeric: tabular-nums;
+  transform: none;
+}
+
+.oq-chart-axis text {
+  font-size: 0.625rem;
+  font-family: var(--font-body);
+  font-weight: 500;
+  line-height: 1;
+  transform: none;
+  text-rendering: geometricPrecision;
 }
 
 .oq-chart-grid line,
@@ -1125,6 +1351,99 @@
 
 .oq-line-blue {
   stroke: var(--report-blue);
+}
+
+.oq-line-drawdown {
+  stroke: var(--report-red);
+}
+
+.oq-chart-series,
+.oq-dense-series,
+.oq-exposure-row,
+.oq-rank-row,
+.oq-report-legend-item.is-interactive {
+  transition:
+    opacity 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    border-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-chart-series {
+  stroke-width: 2.4;
+}
+
+.oq-chart-series.is-muted,
+.oq-dense-series.is-muted {
+  opacity: 0.22;
+}
+
+.oq-chart-series.is-highlighted,
+.oq-dense-series.is-highlighted {
+  opacity: 1;
+  stroke-width: 3.2;
+}
+
+.oq-chart-active-marker {
+  fill: var(--report-bg);
+  stroke: currentColor;
+  stroke-width: 2.4;
+  cursor: pointer;
+}
+
+.oq-chart-active-marker {
+  fill: color-mix(in srgb, currentColor 18%, var(--report-bg));
+  pointer-events: none;
+}
+
+.oq-chart-hit-area {
+  fill: transparent;
+  cursor: crosshair;
+  pointer-events: all;
+}
+
+.oq-chart-tooltip {
+  position: absolute;
+  z-index: 4;
+  min-width: 132px;
+  transform: translate(-50%, calc(-100% - 10px));
+  border: 1px solid var(--report-border);
+  border-radius: 10px;
+  background: var(--report-bg);
+  padding: 8px 10px;
+  box-shadow: var(--report-shadow-lift);
+  pointer-events: none;
+}
+
+.oq-chart-tooltip.is-below {
+  transform: translate(-50%, 12px);
+}
+
+.oq-chart-tooltip span {
+  display: block;
+  color: var(--report-muted);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 0.875rem;
+}
+
+.oq-chart-tooltip small,
+.oq-chart-tooltip em {
+  display: block;
+  color: var(--report-muted);
+  font-size: 0.625rem;
+  font-style: normal;
+  line-height: 0.875rem;
+}
+
+.oq-chart-tooltip strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--report-text);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .oq-loss-marker {
@@ -1144,7 +1463,28 @@
   color: var(--report-muted);
   font-family: var(--font-body);
   font-size: 0.6875rem;
+  font-weight: 600;
   line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-report-legend-item.is-interactive {
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 749px;
+  background: transparent;
+  padding: 5px 9px;
+}
+
+.oq-report-legend-item.is-interactive:hover,
+.oq-report-legend-item.is-interactive[data-active="true"] {
+  border-color: var(--report-border);
+  background: var(--report-bg);
+  color: var(--report-text-soft);
+}
+
+.oq-report-legend-item.is-interactive[data-active="false"] {
+  opacity: 0.48;
 }
 
 .oq-report-legend-dot {
@@ -1190,30 +1530,54 @@
 
 .oq-report-two-col {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 18px;
 }
 
 .oq-report-two-col .oq-report-card-body {
-  min-height: 0;
+  min-height: 330px;
 }
 
 .oq-exposure-chart,
 .oq-rank-chart {
-  gap: 4px;
-  padding: 4px 0 0;
+  min-height: 304px;
+  align-content: start;
+  gap: 8px;
+  padding: 8px 4px 0;
 }
 
 .oq-exposure-axis,
 .oq-rank-axis {
   color: var(--report-muted);
   font-family: var(--font-body);
-  font-size: 0.5625rem;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-exposure-axis {
+  padding-left: min(240px, 42%);
+}
+
+.oq-rank-axis {
+  padding-left: min(220px, 45%);
 }
 
 .oq-exposure-row,
 .oq-rank-row {
-  min-height: 16px;
-  font-size: 0.5625rem;
+  min-height: 28px;
+  border-radius: 7px;
+  padding: 2px 4px;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  outline: none;
+}
+
+.oq-exposure-row {
+  grid-template-columns: minmax(180px, 42%) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.oq-rank-row {
+  grid-template-columns: minmax(180px, 45%) minmax(0, 1fr);
 }
 
 .oq-exposure-row span,
@@ -1221,8 +1585,48 @@
   color: var(--report-text-soft);
 }
 
+.oq-exposure-row:hover,
+.oq-exposure-row:focus-visible,
+.oq-exposure-row[data-active="true"],
+.oq-rank-row:hover,
+.oq-rank-row:focus-visible,
+.oq-rank-row[data-active="true"] {
+  background: var(--report-warm);
+}
+
+.oq-exposure-chart:has(.oq-exposure-row[data-active="true"]) .oq-exposure-row:not([data-active="true"]),
+.oq-rank-chart:has(.oq-rank-row[data-active="true"]) .oq-rank-row:not([data-active="true"]) {
+  opacity: 0.42;
+}
+
+.oq-exposure-row i,
+.oq-exposure-row b,
+.oq-rank-row b {
+  transition:
+    transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-exposure-row[data-active="true"] i,
+.oq-exposure-row[data-active="true"] b,
+.oq-rank-row[data-active="true"] b,
+.oq-exposure-row:hover i,
+.oq-exposure-row:hover b,
+.oq-rank-row:hover b {
+  transform: scaleY(1.22);
+}
+
 .oq-exposure-row i {
   background: var(--report-red);
+}
+
+.oq-exposure-row i,
+.oq-exposure-row b {
+  height: 12px;
+}
+
+.oq-rank-row b {
+  height: 12px;
 }
 
 .oq-exposure-row b,
@@ -1235,35 +1639,246 @@
 }
 
 .oq-dense-lines {
-  height: 240px;
+  display: block;
+  width: 100%;
+  height: clamp(340px, 30vw, 380px);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  overflow: visible;
+  contain: layout;
+}
+
+.oq-dense-chart:not(.is-compact) {
+  gap: 10px;
+}
+
+.oq-dense-chart:not(.is-compact) .oq-chart-toolbar {
+  align-items: center;
+  padding: 0 2px 6px;
+}
+
+.oq-dense-chart:not(.is-compact) .oq-dense-legend {
+  margin-left: auto;
+  margin-top: -8px;
+}
+
+.oq-dense-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 18px;
+  color: var(--report-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-dense-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.oq-dense-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--report-gold);
+}
+
+.oq-dense-legend i.is-muted {
+  background: color-mix(in srgb, var(--report-muted) 46%, transparent);
+}
+
+.oq-dense-chart.is-compact {
+  gap: 0;
+}
+
+.oq-dense-chart.is-compact .oq-dense-lines {
+  height: 236px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.oq-dense-chart:not(.is-compact) .oq-dense-lines .oq-chart-axis text {
+  fill: var(--report-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.oq-dense-chart.is-compact .oq-dense-lines .oq-chart-axis text {
+  font-size: 0.65rem;
+}
+
+.oq-dense-lines .oq-chart-grid line {
+  stroke: color-mix(in srgb, var(--report-border) 56%, transparent);
+  stroke-dasharray: none;
+}
+
+.oq-dense-series {
+  fill: none;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.46;
+  outline: none;
+}
+
+.oq-dense-series:focus,
+.oq-dense-series:focus-visible {
+  outline: none;
+}
+
+.oq-dense-series.is-primary {
+  stroke-width: 2.3;
+  opacity: 0.92;
+}
+
+.oq-dense-hit-area {
+  fill: transparent;
+  pointer-events: all;
+  cursor: crosshair;
+}
+
+.oq-dense-floating-tooltip {
+  position: absolute;
+  z-index: 3;
+  width: min(248px, calc(100% - 24px));
+  transform: translate(12px, 12px);
+  pointer-events: none;
+}
+
+.oq-dense-tooltip-card {
+  display: grid;
+  gap: 8px;
+  width: 100%;
   border: 1px solid var(--report-border);
-  border-radius: 12px;
-  background: var(--report-panel);
-  padding: 8px;
+  border-radius: 10px;
+  background: var(--report-bg);
+  padding: 9px 10px;
+  color: var(--report-text-soft);
+  box-shadow: var(--report-shadow-soft);
+}
+
+.oq-dense-tooltip-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--report-border);
+  padding-bottom: 6px;
+  color: var(--report-muted);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-dense-tooltip-head span {
+  color: var(--report-text-soft);
+  font-weight: 700;
+}
+
+.oq-dense-tooltip-head em {
+  flex: 0 0 auto;
+  font-style: normal;
+}
+
+.oq-dense-tooltip-list {
+  display: grid;
+  gap: 5px;
+}
+
+.oq-dense-tooltip-row {
+  display: grid;
+  min-height: 20px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.oq-dense-tooltip-row[data-active="true"] {
+  color: var(--report-text);
+}
+
+.oq-dense-tooltip-label {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--report-muted);
+  font-size: 0.6875rem;
+  line-height: 1rem;
+}
+
+.oq-dense-tooltip-row[data-active="true"] .oq-dense-tooltip-label {
+  color: var(--report-text-soft);
+}
+
+.oq-dense-tooltip-label i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.oq-dense-tooltip-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-dense-tooltip-row strong {
+  justify-self: end;
+  color: var(--report-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-dense-series:hover,
+.oq-dense-series:focus-visible {
+  opacity: 1;
+  stroke-width: 3;
 }
 
 .oq-split-lines {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 18px;
+}
+
+.oq-split-lines .oq-dense-lines {
+  height: clamp(300px, 26vw, 340px);
+}
+
+.oq-split-lines .oq-dense-lines .oq-chart-axis text {
+  font-size: 0.82rem;
 }
 
 .oq-attribution-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 
 .oq-mini-card {
-  min-height: 184px;
+  min-height: 292px;
   border: 0;
-  border-radius: 12px;
-  background: var(--report-panel);
-  padding: 12px;
+  border-radius: 0;
+  border-top: 1px solid var(--report-border);
+  background: transparent;
+  padding: 14px 0 16px;
   box-shadow: none;
 }
 
 .oq-mini-card h3 {
   gap: 0;
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   color: var(--report-text-soft);
   font-family: var(--font-body);
   font-size: 0.6875rem;
@@ -1275,26 +1890,46 @@
   display: none;
 }
 
-.oq-mini-card .oq-dense-lines {
-  height: 132px;
-  border: 0;
-  background: transparent;
-  padding: 0;
+.oq-mini-bars-wrap {
+  position: relative;
+  min-height: 236px;
 }
 
 .oq-mini-bars {
-  height: 132px;
+  height: 236px;
   gap: 12px;
-  border-top: 1px solid var(--report-border);
+  border-top: 0;
 }
 
 .oq-mini-bars i {
   border-radius: 749px;
   background: var(--report-green);
+  outline: none;
+  transition:
+    opacity 180ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 180ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .oq-mini-bars i.is-short {
   background: var(--report-red);
+}
+
+.oq-mini-bars:has(i[data-active="true"]) i:not([data-active="true"]) {
+  opacity: 0.34;
+}
+
+.oq-mini-bars i:hover,
+.oq-mini-bars i:focus-visible,
+.oq-mini-bars i[data-active="true"] {
+  transform: translateY(-2px) scaleY(1.04);
+}
+
+.oq-mini-floating-tooltip {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  top: 8px;
+  pointer-events: none;
 }
 
 .oq-position-card {
@@ -1428,25 +2063,32 @@
 
 @media (max-width: 1180px) {
   .oq-strategy-figma-report {
-    width: min(900px, calc(100vw - 32px));
+    width: min(100%, calc(100vw - 32px));
     margin: 0 auto;
     transform: none;
   }
 
   .oq-report-top {
-    flex-direction: column;
+    display: block;
   }
 
-  .oq-report-head-tools {
-    width: 100%;
-    justify-items: stretch;
+  .oq-report-title-block {
+    padding-right: 0;
   }
 
-  .oq-report-metric-strip,
-  .oq-report-actions {
+  .oq-report-metric-strip {
     width: 100%;
     max-width: 100%;
+    flex-wrap: wrap;
     justify-content: flex-start;
+  }
+
+  .oq-report-date-select {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: min(100%, 260px);
+    margin-top: 12px;
   }
 
   .oq-report-card.is-nav .oq-report-card-body,
@@ -1484,6 +2126,23 @@
     flex-basis: calc(50% - 4px);
   }
 
+  .oq-report-title-row {
+    align-items: center;
+  }
+
+  .oq-report-title-action {
+    min-height: 36px;
+  }
+
+  .oq-report-date-select {
+    flex-basis: 100%;
+  }
+
+  .oq-report-date-menu {
+    right: auto;
+    left: 0;
+  }
+
   .oq-report-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1502,19 +2161,56 @@
     padding: 12px;
   }
 
-  .oq-nav-chart,
-  .oq-dense-lines,
+  .oq-chart-toolbar,
+  .oq-report-legend {
+    align-items: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .oq-report-legend-item {
+    white-space: nowrap;
+  }
+
+  .oq-nav-chart {
+    height: 320px;
+    min-height: 320px;
+  }
+
+  .oq-dense-lines {
+    height: 280px;
+  }
+
+  .oq-dense-chart.is-compact .oq-dense-lines {
+    height: 240px;
+  }
+
   .oq-exposure-chart,
   .oq-rank-chart {
-    min-width: 680px;
+    min-height: 300px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .oq-exposure-row,
+  .oq-rank-row {
+    grid-template-columns: 48% 26% 26%;
+    font-size: 0.625rem;
+  }
+
+  .oq-rank-row {
+    grid-template-columns: 52% 48%;
+  }
+
+  .oq-chart-axis text,
+  .oq-nav-chart text,
+  .oq-dense-lines text {
+    font-size: 0.5625rem;
   }
 
   .oq-report-card.is-nav .oq-report-card-body {
     min-height: 0;
-  }
-
-  .oq-nav-chart {
-    height: 260px;
   }
 
   .oq-split-lines {

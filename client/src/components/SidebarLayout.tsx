@@ -22,6 +22,7 @@ import {
   Settings2,
   Menu,
   X,
+  ArrowLeft,
   ChevronDown,
   Rocket,
   CandlestickChart,
@@ -64,6 +65,13 @@ const pageHeaders = [
     titleZh: "我的因子",
     subtitleEn: "Create, review, and manage factor signals",
     subtitleZh: "创建、查看与管理因子信号",
+  },
+  {
+    match: (path: string) => /^\/strategies\/STR-[^/]+$/.test(path),
+    titleEn: "Strategy Detail",
+    titleZh: "策略详情",
+    subtitleEn: "Build and monitor strategy workflows",
+    subtitleZh: "构建与监控策略工作流",
   },
   {
     match: (path: string) => path.startsWith("/strategies"),
@@ -128,6 +136,8 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     currentPathname.startsWith("/strategies/") &&
     currentPathname !== "/strategies/official" &&
     new URLSearchParams(currentSearch).get("source") === "official";
+  const isStrategyReportDetail = /^\/strategies\/STR-[^/]+$/.test(currentPathname);
+  const strategyReportBackPath = isOfficialStrategyDetail ? "/strategies/official" : "/strategies";
 
   // Close mobile sidebar on route change
   useEffect(() => {
@@ -454,13 +464,26 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           className="fixed left-[var(--sidebar-width)] right-0 top-0 z-10 hidden shrink-0 items-center justify-between border-b border-[#ece6df] bg-[#faf8f6]/85 backdrop-blur-[4.5px] md:flex"
           style={{ height: FIGMA_HEADER_H }}
         >
-          <div className="ml-[21px] flex h-[35px] flex-col justify-start">
-            <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d]">
-              {tr(pageHeader.titleEn, pageHeader.titleZh)}
-            </h1>
-            <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378]">
-              {tr(pageHeader.subtitleEn, pageHeader.subtitleZh)}
-            </p>
+          <div className="ml-[21px] flex h-[35px] items-start gap-[9px]">
+            {isStrategyReportDetail && (
+              <button
+                type="button"
+                aria-label={tr("Back to strategies", "返回策略列表")}
+                title={tr("Back", "返回")}
+                onClick={() => navigate(strategyReportBackPath)}
+                className="mt-[-1px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full border border-[#e2dad0] bg-white text-[#8c8378] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] transition-colors duration-200 hover:border-[rgba(220,73,0,0.22)] hover:bg-[#fef6ef] hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25"
+              >
+                <ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.8} />
+              </button>
+            )}
+            <div className="flex min-w-0 flex-col justify-start">
+              <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d]">
+                {tr(pageHeader.titleEn, pageHeader.titleZh)}
+              </h1>
+              <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378]">
+                {tr(pageHeader.subtitleEn, pageHeader.subtitleZh)}
+              </p>
+            </div>
           </div>
           <div className="mr-[21px] flex h-[30px] items-center gap-[9px]">
             <label className="flex h-[27.75px] w-[180px] items-center rounded-full border border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]">

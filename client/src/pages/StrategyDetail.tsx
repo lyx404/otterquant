@@ -21,8 +21,6 @@ import {
   type ReportPositionRecord,
 } from "./StrategyFigmaReport";
 import {
-  ArrowLeft,
-  ClipboardList,
   Star,
 } from "lucide-react";
 
@@ -411,16 +409,6 @@ export default function StrategyDetail() {
       <button
         type="button"
         className="oq-report-action"
-        onClick={() =>
-          window.location.assign(isOfficialLibraryView ? "/strategies/official" : "/strategies")
-        }
-      >
-        <ArrowLeft className="h-3 w-3" />
-        {tr("Back", "返回")}
-      </button>
-      <button
-        type="button"
-        className="oq-report-action"
         onClick={() => {
           setStarred((prev) => !prev);
           toast.success(starred ? tr("Removed from favorites", "已取消收藏") : tr("Added to favorites", "已加入收藏"));
@@ -428,14 +416,6 @@ export default function StrategyDetail() {
       >
         <Star className={`h-3 w-3 ${starred ? "fill-current" : ""}`} />
         {starred ? tr("Starred", "已收藏") : tr("Favorite", "收藏")}
-      </button>
-      <button
-        type="button"
-        className="oq-report-action"
-        onClick={() => setIsStrategyConfigOpen(true)}
-      >
-        <ClipboardList className="h-3 w-3" />
-        {tr("Config", "配置")}
       </button>
       {isOfficialLibraryView ? (
         <button
@@ -481,8 +461,10 @@ export default function StrategyDetail() {
       )}
     </>
   );
-  const reportTitle = strategyId === "STR-465" ? "20260608_020653" : strategyHeading;
-  const reportSubtitle = `${strategyName} · ${strategyId} · ${formatConfigDate(createdAt)}`;
+  const reportTitle = strategyId === "STR-465" ? "Overnight VRP" : strategyHeading;
+  const reportSubtitle = strategyId === "STR-465"
+    ? "Volatility"
+    : `${strategyName} · ${strategyId} · ${formatConfigDate(createdAt)}`;
 
   return (
     <>
@@ -491,6 +473,12 @@ export default function StrategyDetail() {
         subtitle={reportSubtitle}
         headerMetrics={reportHeaderMetrics}
         dateLabel="2020-01-01_2020-12-31"
+        dateOptions={[
+          "2020-01-01_2020-12-31",
+          "2021-01-01_2021-12-31",
+          "2022-01-01_2022-12-31",
+          "2023-01-01_2023-12-31",
+        ]}
         actions={reportActions}
         metricRows={reportMetricRows}
         positions={reportPositions}
