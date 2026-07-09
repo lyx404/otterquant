@@ -8,7 +8,7 @@ import {
   type ExchangeApiConnection,
 } from "@/lib/exchangeApiConnections";
 import { deployStrategyToTrade, getStrategyDeployment } from "@/lib/tradeDeployments";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { type UiCopy, useAppLanguage, translateUi } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 import {
   positionHistory,
@@ -24,9 +24,100 @@ import {
   Star,
 } from "lucide-react";
 
+const strategyDetailCopy: Record<string, UiCopy> = {
+  Strategy: { ja: "ストラテジー", ko: "전략", es: "Estrategia", fr: "Stratégie" },
+  Volatility: { ja: "ボラティリティ", ko: "변동성", es: "Volatilidad", fr: "Volatilité" },
+  "Time Series": { ja: "時系列", ko: "시계열", es: "Serie temporal", fr: "Série temporelle" },
+  "Cross Section": { ja: "クロスセクション", ko: "횡단면", es: "Cross-section", fr: "Cross-section" },
+  "Long-Only": { ja: "ロングオンリー", ko: "롱 전용", es: "Solo largo", fr: "Long-only" },
+  "Short-Only": { ja: "ショートオンリー", ko: "숏 전용", es: "Solo corto", fr: "Short-only" },
+  "Market-Neutral": { ja: "マーケットニュートラル", ko: "시장중립", es: "Neutral al mercado", fr: "Market neutral" },
+  "N/A": { ja: "未設定", ko: "미설정", es: "No configurado", fr: "Non défini" },
+  "Equal Weight": { ja: "等ウェイト", ko: "동일 가중", es: "Ponderación igual", fr: "Équipondéré" },
+  "Strategy ID": { ja: "ストラテジー ID", ko: "전략 ID", es: "ID de estrategia", fr: "ID de stratégie" },
+  "Created Date": { ja: "作成日時", ko: "생성일", es: "Fecha de creación", fr: "Date de création" },
+  "Strategy Type": { ja: "ストラテジータイプ", ko: "전략 유형", es: "Tipo de estrategia", fr: "Type de stratégie" },
+  Symbol: { ja: "銘柄", ko: "종목", es: "Símbolo", fr: "Symbole" },
+  Signal: { ja: "ファクター", ko: "팩터", es: "Factor", fr: "Facteur" },
+  "Factor Weights": { ja: "ファクターウェイト", ko: "팩터 가중치", es: "Pesos de factores", fr: "Poids des facteurs" },
+  "Stop Loss": { ja: "ストップロス", ko: "손절", es: "Stop loss", fr: "Stop loss" },
+  Cooldown: { ja: "クールダウン", ko: "쿨다운", es: "Enfriamiento", fr: "Cooldown" },
+  "Strategy Side": { ja: "売買方向", ko: "전략 방향", es: "Lado de estrategia", fr: "Sens de stratégie" },
+  "Top/Tail Rule": { ja: "Top/Tail ルール", ko: "Top/Tail 규칙", es: "Regla Top/Tail", fr: "Règle Top/Tail" },
+  "Basic Info": { ja: "基本情報", ko: "기본 정보", es: "Información básica", fr: "Informations de base" },
+  Inputs: { ja: "入力", ko: "입력", es: "Entradas", fr: "Entrées" },
+  "Risk & Execution": { ja: "リスク・執行", ko: "리스크 및 실행", es: "Riesgo y ejecución", fr: "Risque et exécution" },
+  "Deployed to paper trading.": { ja: "ペーパートレードにデプロイしました。", ko: "모의 거래에 배포되었습니다.", es: "Desplegado en paper trading.", fr: "Déployé en paper trading." },
+  "Deployed to live trading.": { ja: "ライブ取引にデプロイしました。", ko: "실거래에 배포되었습니다.", es: "Desplegado en live trading.", fr: "Déployé en live trading." },
+  "Select an exchange account before submitting live deployment.": {
+    ja: "ライブデプロイ前に取引所アカウントを選択してください。",
+    ko: "실거래 배포 전에 거래소 계정을 선택하세요.",
+    es: "Selecciona una cuenta de exchange antes de enviar el despliegue live.",
+    fr: "Sélectionnez un compte exchange avant d'envoyer le déploiement live.",
+  },
+  "Enter a valid base capital amount in USDT.": {
+    ja: "有効な USDT 建て基礎資金を入力してください。",
+    ko: "유효한 USDT 기준 기본 자금을 입력하세요.",
+    es: "Introduce un capital base válido en USDT.",
+    fr: "Saisissez un capital de base valide en USDT.",
+  },
+  "Removed from favorites": { ja: "お気に入りから削除しました", ko: "즐겨찾기에서 제거됨", es: "Quitado de favoritos", fr: "Retiré des favoris" },
+  "Added to favorites": { ja: "お気に入りに追加しました", ko: "즐겨찾기에 추가됨", es: "Añadido a favoritos", fr: "Ajouté aux favoris" },
+  Starred: { ja: "お気に入り済み", ko: "즐겨찾기됨", es: "Favorito", fr: "Favori" },
+  Favorite: { ja: "お気に入り", ko: "즐겨찾기", es: "Favorito", fr: "Favori" },
+  "Use Template": { ja: "テンプレートを使用", ko: "템플릿 사용", es: "Usar plantilla", fr: "Utiliser le modèle" },
+  "View Paper": { ja: "Paper を表示", ko: "모의 보기", es: "Ver paper", fr: "Voir paper" },
+  "Paper Deploy": { ja: "Paper デプロイ", ko: "모의 배포", es: "Desplegar paper", fr: "Déployer paper" },
+  "View Live": { ja: "Live を表示", ko: "실거래 보기", es: "Ver live", fr: "Voir live" },
+  "Live Deploy": { ja: "Live デプロイ", ko: "실거래 배포", es: "Desplegar live", fr: "Déployer live" },
+  Sharpe: { ja: "Sharpe", ko: "Sharpe", es: "Sharpe", fr: "Sharpe" },
+  "Max DD": { ja: "最大 DD", ko: "최대 DD", es: "Máx. DD", fr: "DD max" },
+  "Hit Rate": { ja: "ヒット率", ko: "적중률", es: "Tasa de acierto", fr: "Taux de réussite" },
+  Turnover: { ja: "売買回転率", ko: "회전율", es: "Rotación", fr: "Turnover" },
+  "Fee Rate (backtest param)": { ja: "手数料率（バックテスト設定）", ko: "수수료율(백테스트 파라미터)", es: "Tasa de comisión (parámetro backtest)", fr: "Taux de frais (paramètre backtest)" },
+  "Annual (net)": { ja: "年率リターン（Net）", ko: "연환산 수익률(Net)", es: "Anualizado (neto)", fr: "Annualisé (net)" },
+  "Sharpe (net)": { ja: "Sharpe（Net）", ko: "Sharpe(Net)", es: "Sharpe (neto)", fr: "Sharpe (net)" },
+  "Annual (gross)": { ja: "年率リターン（Gross）", ko: "연환산 수익률(Gross)", es: "Anualizado (bruto)", fr: "Annualisé (gross)" },
+  "Sharpe (gross)": { ja: "Sharpe（Gross）", ko: "Sharpe(Gross)", es: "Sharpe (bruto)", fr: "Sharpe (gross)" },
+  "Turnover (avg/bar)": { ja: "売買回転率（平均/bar）", ko: "회전율(평균/bar)", es: "Rotación (media/bar)", fr: "Turnover (moy./bar)" },
+  "Turnover Cost (cum, ret)": { ja: "累積取引コスト（リターン）", ko: "누적 거래비용(수익률)", es: "Coste de rotación (acum., ret.)", fr: "Coût de turnover (cum., ret.)" },
+  "Total Funding Return": { ja: "累積 Funding リターン", ko: "총 펀딩 수익률", es: "Retorno total de funding", fr: "Rendement total de funding" },
+  "Periods": { ja: "期間数", ko: "기간 수", es: "Periodos", fr: "Périodes" },
+  "Deploy Strategy to Live Trading": { ja: "ストラテジーをライブ取引へデプロイ", ko: "전략을 실거래에 배포", es: "Desplegar estrategia en live trading", fr: "Déployer la stratégie en live trading" },
+  Exchange: { ja: "取引所", ko: "거래소", es: "Exchange", fr: "Exchange" },
+  "Manage Connections": { ja: "接続を管理", ko: "연결 관리", es: "Gestionar conexiones", fr: "Gérer les connexions" },
+  "No Exchange API Connected": { ja: "取引所 API 未接続", ko: "연결된 거래소 API 없음", es: "No hay API de exchange conectada", fr: "Aucune API exchange connectée" },
+  "Connect an exchange API account to enable live deployment.": {
+    ja: "ライブデプロイを有効にするには取引所 API アカウントを接続してください。",
+    ko: "실거래 배포를 활성화하려면 거래소 API 계정을 연결하세요.",
+    es: "Conecta una cuenta API de exchange para habilitar el despliegue live.",
+    fr: "Connectez un compte API exchange pour activer le déploiement live.",
+  },
+  "Connect Exchange": { ja: "取引所を接続", ko: "거래소 연결", es: "Conectar exchange", fr: "Connecter un exchange" },
+  "Select exchange account": { ja: "取引所アカウントを選択", ko: "거래소 계정 선택", es: "Selecciona una cuenta de exchange", fr: "Sélectionner un compte exchange" },
+  "Base Capital": { ja: "基礎資金", ko: "기본 자금", es: "Capital base", fr: "Capital de base" },
+  "Minimum activation capital is 100 USDT. Deployment cannot be initiated below this threshold.": {
+    ja: "最低有効化資金は 100 USDT です。このしきい値未満ではデプロイできません。",
+    ko: "최소 활성화 자금은 100 USDT입니다. 이 기준 미만으로는 배포할 수 없습니다.",
+    es: "El capital mínimo de activación es 100 USDT. No se puede iniciar el despliegue por debajo de este umbral.",
+    fr: "Le capital d'activation minimum est de 100 USDT. Le déploiement ne peut pas être lancé sous ce seuil.",
+  },
+  "Minimum activation capital: 100 USDT.": {
+    ja: "最低有効化資金: 100 USDT。",
+    ko: "최소 활성화 자금: 100 USDT.",
+    es: "Capital mínimo de activación: 100 USDT.",
+    fr: "Capital d'activation minimum : 100 USDT.",
+  },
+  Cancel: { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
+  "Submit Live Deployment": { ja: "ライブデプロイを送信", ko: "실거래 배포 제출", es: "Enviar despliegue live", fr: "Envoyer le déploiement live" },
+  "Strategy Configuration": { ja: "ストラテジー設定", ko: "전략 설정", es: "Configuración de estrategia", fr: "Configuration de stratégie" },
+  Close: { ja: "閉じる", ko: "닫기", es: "Cerrar", fr: "Fermer" },
+};
+
 export default function StrategyDetail() {
   const { uiLang } = useAppLanguage();
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const tr = (en: string, zh: string, copy: UiCopy = {}) =>
+    translateUi(uiLang, en, zh, { ...strategyDetailCopy[en], ...copy });
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
@@ -148,6 +239,10 @@ export default function StrategyDetail() {
     const hours = value.match(/[\d.]+/)?.[0];
     if (!hours) return value;
     if (uiLang === "zh") return `${hours} 小时`;
+    if (uiLang === "ja") return `${hours} 時間`;
+    if (uiLang === "ko") return `${hours}시간`;
+    if (uiLang === "es") return `${hours} ${Number(hours) === 1 ? "hora" : "horas"}`;
+    if (uiLang === "fr") return `${hours} ${Number(hours) === 1 ? "heure" : "heures"}`;
     return `${hours} ${Number(hours) === 1 ? "hour" : "hours"}`;
   };
   const inferSymbolFromName = (value: string) => {
@@ -235,7 +330,15 @@ export default function StrategyDetail() {
     rankValueRaw && isCrossSectionStrategy
       ? uiLang === "zh"
         ? `头部/尾部 ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " 个交易对"}`
-        : `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
+        : uiLang === "ja"
+          ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " 銘柄"}`
+          : uiLang === "ko"
+            ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : "개 종목"}`
+            : uiLang === "es"
+              ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instrumentos"}`
+              : uiLang === "fr"
+                ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
+                : `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
       : sortingRuleRaw;
   const stopLossValue = stopLossRaw ? (stopLossRaw.includes("%") ? stopLossRaw : `${stopLossRaw}%`) : null;
   const cooldownValue = formatCooldown(cooldownRaw);
@@ -314,11 +417,20 @@ export default function StrategyDetail() {
       return;
     }
     if (options?.exchangeLabel && options.capitalUsdt) {
-      toast.success(
+      const capital = options.capitalUsdt.toLocaleString();
+      const liveSubmitMessage =
         uiLang === "zh"
-          ? `已提交至 ${options.exchangeLabel} 的实盘部署，基础资金 ${options.capitalUsdt.toLocaleString()} USDT。`
-          : `Live deployment submitted to ${options.exchangeLabel} with ${options.capitalUsdt.toLocaleString()} USDT base capital.`
-      );
+          ? `已提交至 ${options.exchangeLabel} 的实盘部署，基础资金 ${capital} USDT。`
+          : uiLang === "ja"
+            ? `${options.exchangeLabel} へのライブデプロイを送信しました。基礎資金は ${capital} USDT です。`
+            : uiLang === "ko"
+              ? `${options.exchangeLabel} 실거래 배포를 제출했습니다. 기본 자금은 ${capital} USDT입니다.`
+              : uiLang === "es"
+                ? `Despliegue live enviado a ${options.exchangeLabel} con ${capital} USDT de capital base.`
+                : uiLang === "fr"
+                  ? `Déploiement live envoyé vers ${options.exchangeLabel} avec ${capital} USDT de capital de base.`
+                  : `Live deployment submitted to ${options.exchangeLabel} with ${capital} USDT base capital.`;
+      toast.success(liveSubmitMessage);
       return;
     }
     toast.success(tr("Deployed to live trading.", "已部署到实盘交易。"));
@@ -355,7 +467,15 @@ export default function StrategyDetail() {
       toast.error(
         uiLang === "zh"
           ? `最低启用资金为 ${minLiveCapital} USDT，低于该阈值无法发起部署。`
-          : `Minimum activation capital is ${minLiveCapital} USDT. Deployment cannot be initiated below this threshold.`
+          : uiLang === "ja"
+            ? `最低有効化資金は ${minLiveCapital} USDT です。このしきい値未満ではデプロイできません。`
+            : uiLang === "ko"
+              ? `최소 활성화 자금은 ${minLiveCapital} USDT입니다. 이 기준 미만으로는 배포할 수 없습니다.`
+              : uiLang === "es"
+                ? `El capital mínimo de activación es ${minLiveCapital} USDT. No se puede iniciar el despliegue por debajo de este umbral.`
+                : uiLang === "fr"
+                  ? `Le capital d'activation minimum est de ${minLiveCapital} USDT. Le déploiement ne peut pas être lancé sous ce seuil.`
+                  : `Minimum activation capital is ${minLiveCapital} USDT. Deployment cannot be initiated below this threshold.`
       );
       return;
     }
@@ -381,19 +501,19 @@ export default function StrategyDetail() {
     },
     { label: "Calmar", value: calmar.toFixed(3), tone: calmar >= 3 ? "good" : "muted" },
     { label: tr("Hit Rate", "命中率"), value: `${winRate.toFixed(1)}%`, tone: winRate >= 55 ? "good" : "muted" },
-    { label: "Turnover", value: "1.231", tone: "muted" },
+    { label: tr("Turnover", "换手率"), value: "1.231", tone: "muted" },
   ];
   const reportMetricRows: Array<[string, string]> = [
-    ["fee_rate (backtest param)", "0.0005"],
-    ["Annual (net)", (returnRate / 100).toFixed(6)],
-    ["Sharpe (net)", strategy.sharpe.toFixed(5)],
+    [tr("Fee Rate (backtest param)", "手续费率（回测参数）"), "0.0005"],
+    [tr("Annual (net)", "年化收益（净）"), (returnRate / 100).toFixed(6)],
+    [tr("Sharpe (net)", "夏普（净）"), strategy.sharpe.toFixed(5)],
     ["MDD", (Math.abs(drawdownPct) / 100).toFixed(6)],
-    ["Annual (gross)", ((returnRate * 1.65) / 100).toFixed(5)],
-    ["Sharpe (gross)", (strategy.sharpe * 1.66).toFixed(5)],
-    ["Turnover (avg/bar)", "1.23103"],
-    ["Turnover cost (cum, ret)", "1.00082"],
-    ["total_funding_ret", "0"],
-    ["n_periods", `${tradingDays + 529}`],
+    [tr("Annual (gross)", "年化收益（总）"), ((returnRate * 1.65) / 100).toFixed(5)],
+    [tr("Sharpe (gross)", "夏普（总）"), (strategy.sharpe * 1.66).toFixed(5)],
+    [tr("Turnover (avg/bar)", "换手率（平均/bar）"), "1.23103"],
+    [tr("Turnover Cost (cum, ret)", "累计换手成本（收益率）"), "1.00082"],
+    [tr("Total Funding Return", "累计资金费率收益"), "0"],
+    [tr("Periods", "周期数"), `${tradingDays + 529}`],
   ];
   const reportPositions: ReportPositionRecord[] = positionHistory.map((position) => ({
     symbol: position.symbol,
@@ -463,7 +583,7 @@ export default function StrategyDetail() {
   );
   const reportTitle = strategyId === "STR-465" ? "Overnight VRP" : strategyHeading;
   const reportSubtitle = strategyId === "STR-465"
-    ? "Volatility"
+    ? tr("Volatility", "波动率")
     : `${strategyName} · ${strategyId} · ${formatConfigDate(createdAt)}`;
 
   return (
@@ -482,6 +602,7 @@ export default function StrategyDetail() {
         actions={reportActions}
         metricRows={reportMetricRows}
         positions={reportPositions}
+        tr={tr}
       />
 
       <LiveDeployDialog

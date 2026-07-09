@@ -9,7 +9,7 @@
 import { Link, useLocation } from "wouter";
 import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import { type UiCopy, translateUi, useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   AlphaViewModeProvider,
   useAlphaViewMode,
@@ -45,7 +45,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { path: "/", labelEn: "Dashboard", labelZh: "仪表盘", icon: LayoutDashboard },
   { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FlaskConical },
-  { path: "/strategies", labelEn: "Strategy", labelZh: "策略", icon: Rocket },
+  { path: "/strategies", labelEn: "My Strategy", labelZh: "我的策略", icon: Rocket },
   { path: "/trade", labelEn: "Trade", labelZh: "交易", icon: CandlestickChart },
   { path: "/subscription", labelEn: "Subscription", labelZh: "订阅", icon: CreditCard },
   { path: "/account", labelEn: "Settings", labelZh: "设置", icon: Settings2 },
@@ -75,8 +75,8 @@ const pageHeaders = [
   },
   {
     match: (path: string) => path.startsWith("/strategies"),
-    titleEn: "Strategy",
-    titleZh: "策略",
+    titleEn: "My Strategy",
+    titleZh: "我的策略",
     subtitleEn: "Build and monitor strategy workflows",
     subtitleZh: "构建与监控策略工作流",
   },
@@ -102,6 +102,62 @@ const pageHeaders = [
     subtitleZh: "资料、账单、安全与 API 访问",
   },
 ];
+
+const sidebarCopy: Record<string, UiCopy> = {
+  Dashboard: { ja: "ダッシュボード", ko: "대시보드", es: "Panel", fr: "Tableau de bord" },
+  "My Factors": { ja: "マイファクター", ko: "내 팩터", es: "Mis factores", fr: "Mes facteurs" },
+  "My Strategy": { ja: "マイストラテジー", ko: "내 전략", es: "Mis estrategias", fr: "Mes stratégies" },
+  Trade: { ja: "取引", ko: "거래", es: "Trading", fr: "Trading" },
+  Subscription: { ja: "サブスクリプション", ko: "구독", es: "Suscripción", fr: "Abonnement" },
+  Settings: { ja: "設定", ko: "설정", es: "Configuración", fr: "Paramètres" },
+  "Strategy Detail": { ja: "ストラテジー詳細", ko: "전략 상세", es: "Detalle de estrategia", fr: "Détail de la stratégie" },
+  "Build and monitor strategy workflows": {
+    ja: "ストラテジーワークフローを構築・監視",
+    ko: "전략 워크플로를 구축하고 모니터링",
+    es: "Crea y supervisa flujos de estrategia",
+    fr: "Construire et surveiller les workflows de stratégie",
+  },
+  "Overview of factors, strategies, and account status": {
+    ja: "ファクター、ストラテジー、アカウント状況の概要",
+    ko: "팩터, 전략, 계정 상태 개요",
+    es: "Resumen de factores, estrategias y estado de cuenta",
+    fr: "Vue d'ensemble des facteurs, stratégies et du compte",
+  },
+  "Create, review, and manage factor signals": {
+    ja: "ファクターシグナルの作成、レビュー、管理",
+    ko: "팩터 시그널 생성, 검토 및 관리",
+    es: "Crea, revisa y gestiona señales de factores",
+    fr: "Créer, examiner et gérer les signaux de facteurs",
+  },
+  "Monitor executions and trading status": {
+    ja: "約定と取引ステータスを監視",
+    ko: "체결 및 거래 상태 모니터링",
+    es: "Supervisa ejecuciones y estado de trading",
+    fr: "Surveiller les exécutions et le statut de trading",
+  },
+  "Plan, wallet, credit usage, and account activity": {
+    ja: "プラン、ウォレット、クレジット利用、アカウント履歴",
+    ko: "플랜, 지갑, 크레딧 사용량 및 계정 활동",
+    es: "Plan, wallet, uso de créditos y actividad de cuenta",
+    fr: "Offre, wallet, crédits et activité du compte",
+  },
+  "Profile, billing, security & API access": {
+    ja: "プロフィール、請求、セキュリティ、API アクセス",
+    ko: "프로필, 결제, 보안 및 API 접근",
+    es: "Perfil, facturación, seguridad y acceso API",
+    fr: "Profil, facturation, sécurité et accès API",
+  },
+  "Back to strategies": { ja: "ストラテジー一覧に戻る", ko: "전략 목록으로 돌아가기", es: "Volver a estrategias", fr: "Retour aux stratégies" },
+  Back: { ja: "戻る", ko: "뒤로", es: "Atrás", fr: "Retour" },
+  Search: { ja: "検索", ko: "검색", es: "Buscar", fr: "Rechercher" },
+  "Search factors, traders...": {
+    ja: "ファクター、トレーダーを検索...",
+    ko: "팩터, 트레이더 검색...",
+    es: "Buscar factores, traders...",
+    fr: "Rechercher facteurs, traders...",
+  },
+  "Pro plan": { ja: "Pro プラン", ko: "Pro 플랜", es: "Plan Pro", fr: "Offre Pro" },
+};
 
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -168,7 +224,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   };
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const tr = (en: string, zh: string) => translateUi(uiLang, en, zh, sidebarCopy[en]);
   const displayName = user?.displayName || "Nicole Ong";
   const userHandle = user?.email ? `@${user.email.split("@")[0]}` : "@nicoleo";
   const avatarInitial = displayName

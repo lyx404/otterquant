@@ -21,7 +21,7 @@ import {
 import { Unplug, X } from "lucide-react";
 import type { StrategyConfigRow } from "./StrategyDetailParts";
 
-type Tr = (en: string, zh: string) => string;
+type Tr = (en: string, zh: string, copy?: Record<string, string>) => string;
 
 export function LiveDeployDialog({
   open,
@@ -178,7 +178,7 @@ export function StrategyConfigDialog({
       <DialogContent showCloseButton={false} className="oq-sd-dialog max-w-[680px] border-border bg-card p-0 text-foreground">
         <DialogClose className="absolute right-4 top-4 rounded-sm text-muted-foreground opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:outline-none focus-visible:ring-0">
           <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
+          <span className="sr-only">{tr("Close", "关闭")}</span>
         </DialogClose>
         <DialogHeader className="px-5 pb-1 pt-4">
           <DialogTitle className="text-base">{tr("Strategy Configuration", "策略配置")}</DialogTitle>

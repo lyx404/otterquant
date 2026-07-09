@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 export type UiLang = "en" | "zh" | "ja" | "ko" | "es" | "fr";
+export type UiCopy = Partial<Record<UiLang, string>>;
 
 interface AppLanguageContextType {
   uiLang: UiLang;
@@ -47,4 +48,8 @@ export function useAppLanguage() {
     throw new Error("useAppLanguage must be used within AppLanguageProvider");
   }
   return context;
+}
+
+export function translateUi(uiLang: UiLang, en: string, zh: string, copy: UiCopy = {}) {
+  return copy[uiLang] ?? (uiLang === "zh" ? zh : en);
 }
