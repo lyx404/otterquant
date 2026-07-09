@@ -22,7 +22,6 @@ import {
   Settings2,
   Menu,
   X,
-  ArrowLeft,
   ChevronDown,
   Rocket,
   CandlestickChart,
@@ -192,9 +191,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     currentPathname.startsWith("/strategies/") &&
     currentPathname !== "/strategies/official" &&
     new URLSearchParams(currentSearch).get("source") === "official";
-  const isStrategyReportDetail = /^\/strategies\/STR-[^/]+$/.test(currentPathname);
-  const strategyReportBackPath = isOfficialStrategyDetail ? "/strategies/official" : "/strategies";
-
   // Close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
@@ -521,17 +517,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           style={{ height: FIGMA_HEADER_H }}
         >
           <div className="ml-[21px] flex h-[35px] items-start gap-[9px]">
-            {isStrategyReportDetail && (
-              <button
-                type="button"
-                aria-label={tr("Back to strategies", "返回策略列表")}
-                title={tr("Back", "返回")}
-                onClick={() => navigate(strategyReportBackPath)}
-                className="mt-[-1px] flex h-[28px] w-[28px] shrink-0 items-center justify-center rounded-full border border-[#e2dad0] bg-white text-[#8c8378] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] transition-colors duration-200 hover:border-[rgba(220,73,0,0.22)] hover:bg-[#fef6ef] hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25"
-              >
-                <ArrowLeft className="h-[13px] w-[13px]" strokeWidth={1.8} />
-              </button>
-            )}
             <div className="flex min-w-0 flex-col justify-start">
               <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d]">
                 {tr(pageHeader.titleEn, pageHeader.titleZh)}

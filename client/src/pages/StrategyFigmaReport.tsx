@@ -35,6 +35,7 @@ import {
   turnoverRateLabels,
   turnoverRateTicks,
 } from "./StrategyFigmaReport.data";
+import "./StrategyFigmaReportCharts.css";
 import "./StrategyFigmaReport.css";
 
 type MetricTone = "good" | "warn" | "muted";
@@ -663,13 +664,7 @@ function toPathFromPoints(points: Array<{ x: number; y: number }>) {
     .join(" ");
 }
 
-function ChartEmptyState({
-  message,
-  tr = defaultTr,
-}: {
-  message?: string;
-  tr?: Tr;
-}) {
+function ChartEmptyState({ message, tr = defaultTr }: { message?: string; tr?: Tr }) {
   return (
     <div className="oq-chart-empty" role="status">
       <strong>{message ?? tReport(tr, "No chart data available", "暂无图表数据")}</strong>
@@ -678,17 +673,7 @@ function ChartEmptyState({
   );
 }
 
-function InlineChartTooltip({
-  title,
-  xValue,
-  yValue,
-  unit,
-}: {
-  title: string;
-  xValue: string;
-  yValue: string;
-  unit: string;
-}) {
+function InlineChartTooltip({ title, xValue, yValue, unit }: { title: string; xValue: string; yValue: string; unit: string }) {
   return (
     <div className="oq-chart-inline-tooltip" role="status">
       <span>{title}</span>
@@ -699,19 +684,10 @@ function InlineChartTooltip({
   );
 }
 
-function DenseChartTooltip({
-  xValue,
-  unit,
-  rows,
-}: {
+function DenseChartTooltip({ xValue, unit, rows }: {
   xValue: string;
   unit: string;
-  rows: Array<{
-    label: string;
-    value: string;
-    color: string;
-    active?: boolean;
-  }>;
+  rows: Array<{ label: string; value: string; color: string; active?: boolean }>;
 }) {
   return (
     <div className="oq-dense-tooltip-card" role="status">
@@ -738,22 +714,15 @@ function DenseChartTooltip({
   );
 }
 
-function ReportCard({
-  title,
-  subtitle,
-  className = "",
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  className?: string;
-  children: ReactNode;
-}) {
+function ReportCard({ title, subtitle, className = "", headerActions, children }: { title: string; subtitle: string; className?: string; headerActions?: ReactNode; children: ReactNode }) {
   return (
     <section className={`oq-report-card ${className}`}>
-      <header className="oq-report-card-header">
-        <h2>{title}</h2>
-        <p>{subtitle}</p>
+      <header className={`oq-report-card-header ${headerActions ? "has-actions" : ""}`}>
+        <div>
+          <h2>{title}</h2>
+          <p>{subtitle}</p>
+        </div>
+        {headerActions}
       </header>
       <div className="oq-report-card-body">{children}</div>
     </section>
@@ -1547,13 +1516,7 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
   );
 }
 
-function DenseLines({
-  count = 42,
-  height = 260,
-  compact = false,
-  variant = "default",
-  tr = defaultTr,
-}: {
+function DenseLines({ count = 42, height = 260, compact = false, variant = "default", tr = defaultTr }: {
   count?: number;
   height?: number;
   compact?: boolean;
@@ -1728,10 +1691,8 @@ function DenseLines({
     yMin,
     yMax,
   ]);
-  const activeSeries =
-    activeIndex === null
-      ? null
-      : denseSeries.find(series => series.index === activeIndex) ?? null;
+  const activeSeries = activeIndex === null ? null : denseSeries.find(series => series.index === activeIndex) ?? null;
+  const turnoverDeviation = isTurnoverRate && activePoint ? (denseSeries[0]?.points[activePoint.pointIndex]?.value ?? 0) - (denseSeries[1]?.points[activePoint.pointIndex]?.value ?? 0) : null;
   const denseTooltipLimit = isBarraStyleReturn || isBarraCorrelation ? barraStyleReturnLabels.length : compact ? 4 : 6;
   const denseTooltipBottom = isBarraStyleReturn || isBarraCorrelation ? "calc(100% - 214px)" : "calc(100% - 92px)";
   const tooltipRows =
@@ -1758,6 +1719,7 @@ function DenseLines({
             }))
             .sort((left, right) => left.sortDistance - right.sortDistance)
             .slice(0, denseTooltipLimit)
+            .concat(turnoverDeviation === null ? [] : [{ label: tReport(tr, "Delta vs EMA30", "偏离 EMA30"), value: `${turnoverDeviation >= 0 ? "+" : ""}${formatDenseValue(turnoverDeviation)}`, color: "var(--report-muted)", active: false }])
       : [];
   useEffect(() => {
     const node = chartRef.current;
@@ -1774,6 +1736,30 @@ function DenseLines({
     setTooltipPoint(null);
     setActivePoint(null);
   };
+  useEffect(() => {
+    if (activeIndex === null && activePoint === null && tooltipPoint === null) return;
+
+    const clearIfPointerOutside = (event: globalThis.PointerEvent) => {
+      const rect = chartRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const isOutside =
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom;
+      if (isOutside) clearDenseInteraction();
+    };
+    const clear = () => clearDenseInteraction();
+
+    window.addEventListener("pointermove", clearIfPointerOutside, true);
+    window.addEventListener("scroll", clear, true);
+    window.addEventListener("blur", clear);
+    return () => {
+      window.removeEventListener("pointermove", clearIfPointerOutside, true);
+      window.removeEventListener("scroll", clear, true);
+      window.removeEventListener("blur", clear);
+    };
+  }, [activeIndex, activePoint, tooltipPoint]);
   const showDenseTooltip = (
     index: number,
     pointIndex: number,
@@ -2510,13 +2496,7 @@ function SymbolPnlRankPanel({
   );
 }
 
-function BarraExposureBars({
-  rows = barraExposureRows,
-  tr = defaultTr,
-}: {
-  rows?: BarraExposureFactor[];
-  tr?: Tr;
-}) {
+function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?: BarraExposureFactor[]; tr?: Tr }) {
   const [activePoint, setActivePoint] = useState<{
     factor: string;
     side: "long" | "short";
@@ -2571,6 +2551,30 @@ function BarraExposureBars({
     setActivePoint(null);
     setTooltipPoint(null);
   };
+  useEffect(() => {
+    if (activePoint === null && tooltipPoint === null) return;
+
+    const clearIfPointerOutside = (event: globalThis.PointerEvent) => {
+      const rect = chartRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const isOutside =
+        event.clientX < rect.left ||
+        event.clientX > rect.right ||
+        event.clientY < rect.top ||
+        event.clientY > rect.bottom;
+      if (isOutside) clearBarraExposure();
+    };
+    const clear = () => clearBarraExposure();
+
+    window.addEventListener("pointermove", clearIfPointerOutside, true);
+    window.addEventListener("scroll", clear, true);
+    window.addEventListener("blur", clear);
+    return () => {
+      window.removeEventListener("pointermove", clearIfPointerOutside, true);
+      window.removeEventListener("scroll", clear, true);
+      window.removeEventListener("blur", clear);
+    };
+  }, [activePoint, tooltipPoint]);
 
   const showBarraTooltip = (
     row: BarraExposureFactor,
@@ -2748,54 +2752,43 @@ function BarraExposureBars({
   );
 }
 
-function AttributionGrid({ tr = defaultTr }: { tr?: Tr }) {
-  const titles = [
-    tReport(tr, "Prediction Decile Returns (cum)", "预测分位收益（累计）"),
-    tReport(tr, "Barra Style Long-Short Returns (cum)", "Barra 风格多空累计收益"),
-    tReport(tr, "Mean Daily Barra Exposure", "日均 Barra 暴露"),
-    tReport(tr, "Prediction Return Autocorr Decay", "预测收益自相关衰减"),
-    tReport(tr, "Prediction-Barra Correlation (EMA250)", "预测-Barra 相关（EMA250）"),
-    tReport(tr, "Daily Turnover Rate", "日换手率"),
+function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const tabs = [
+    tReport(tr, "Prediction decile cumulative return", "预测分位累计收益"),
+    tReport(tr, "Style long-short cumulative return", "风格多空累计收益"),
+    tReport(tr, "Style exposure", "风格暴露"),
+    tReport(tr, "Prediction decay", "预测衰减"),
+    tReport(tr, "Prediction style correlation", "预测风格相关"),
+    tReport(tr, "Daily turnover rate", "日换手率"),
   ];
+  const chart = activeIndex === 0
+    ? <DenseLines tr={tr} count={decileReturnLabels.length} height={360} variant="decile" />
+    : activeIndex === 1
+      ? <DenseLines tr={tr} count={barraStyleReturnLabels.length} height={360} variant="barra-style" />
+      : activeIndex === 2
+        ? <BarraExposureBars tr={tr} />
+        : activeIndex === 3
+          ? <DenseLines tr={tr} count={autocorrDecayLabels.length} height={360} variant="autocorr-decay" />
+          : activeIndex === 4
+            ? <DenseLines tr={tr} count={barraStyleReturnLabels.length} height={360} variant="barra-correlation" />
+            : <DenseLines tr={tr} count={turnoverRateLabels.length} height={360} variant="turnover-rate" />;
   return (
-    <div className="oq-attribution-grid">
-      {titles.map((title, index) => (
-        <div className="oq-mini-card" key={title}>
-          <h3>
-            <span />
-            {title}
-          </h3>
-          {index === 0 ? (
-            <DenseLines tr={tr} count={decileReturnLabels.length} height={240} compact variant="decile" />
-          ) : index === 1 ? (
-            <DenseLines tr={tr} count={barraStyleReturnLabels.length} height={240} compact variant="barra-style" />
-          ) : index === 2 ? (
-            <BarraExposureBars tr={tr} />
-          ) : index === 3 ? (
-            <DenseLines tr={tr} count={autocorrDecayLabels.length} height={240} compact variant="autocorr-decay" />
-          ) : index === 4 ? (
-            <DenseLines tr={tr} count={barraStyleReturnLabels.length} height={240} compact variant="barra-correlation" />
-          ) : (
-            <DenseLines
-              tr={tr}
-              count={3}
-              height={240}
-              compact
-            />
-          )}
+    <ReportCard
+      title={tReport(tr, "CS Attribution Overview", "截面归因概览")}
+      subtitle={tReport(tr, "7 Barra factors · attribution dashboard", "7 个 Barra 因子 · 归因面板")}
+      headerActions={<div className="oq-attribution-switch" role="tablist" aria-label={tReport(tr, "Switch attribution chart", "切换归因图表")}>{tabs.map((tab, index) => <button key={tab} type="button" role="tab" aria-selected={activeIndex === index} onClick={() => setActiveIndex(index)}>{tab}</button>)}</div>}
+    >
+      <div className="oq-attribution-panel">
+        <div className="oq-mini-card is-active">
+          {chart}
         </div>
-      ))}
-    </div>
+      </div>
+    </ReportCard>
   );
 }
 
-function PositionHistory({
-  rows = defaultPositions,
-  tr = defaultTr,
-}: {
-  rows?: ReportPositionRecord[];
-  tr?: Tr;
-}) {
+function PositionHistory({ rows = defaultPositions, tr = defaultTr }: { rows?: ReportPositionRecord[]; tr?: Tr }) {
   return (
     <section className="oq-position-card">
       <header>
@@ -2841,6 +2834,7 @@ export function StrategyFigmaReport({
   headerMetrics = defaultHeaderMetrics,
   dateLabel = "2020-01-01_2020-12-31",
   dateOptions,
+  topAction,
   titleAction,
   actions,
   metricRows = navMetrics,
@@ -2848,10 +2842,11 @@ export function StrategyFigmaReport({
   tr = defaultTr,
 }: {
   title?: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   headerMetrics?: ReportMetric[];
   dateLabel?: string;
   dateOptions?: string[];
+  topAction?: ReactNode;
   titleAction?: ReactNode;
   actions?: ReactNode;
   metricRows?: Array<[string, string]>;
@@ -2875,17 +2870,41 @@ export function StrategyFigmaReport({
 
   return (
     <div className="oq-strategy-figma-report">
+      {topAction ? <div className="oq-report-top-action">{topAction}</div> : null}
       <header className="oq-report-top">
         <div className="oq-report-title-block">
           <div className="oq-report-title-row">
             {titleAction}
             <div className="oq-report-title-copy">
               <h1>{title}</h1>
-              <p>{subtitle}</p>
+              <p className="oq-report-title-meta">{subtitle}</p>
             </div>
-            {actions ? (
-              <div className="oq-report-actions">{actions}</div>
-            ) : null}
+            <div className="oq-report-head-controls">
+              <div
+                className="oq-report-date-select"
+                onBlur={event => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+                    setIsDateMenuOpen(false);
+                  }
+                }}
+              >
+                <button type="button" aria-haspopup="listbox" aria-expanded={isDateMenuOpen} onClick={() => setIsDateMenuOpen(prev => !prev)}>
+                  {selectedDateLabel}
+                  <span aria-hidden="true">⌄</span>
+                </button>
+                {isDateMenuOpen ? (
+                  <div className="oq-report-date-menu" role="listbox" aria-label={tReport(tr, "Select backtest period", "选择回测周期")}>
+                    {selectableDateOptions.map(option => (
+                      <button type="button" role="option" aria-selected={selectedDateLabel === option} key={option} onMouseDown={event => event.preventDefault()} onClick={() => { setSelectedDateLabel(option); setIsDateMenuOpen(false); }}>
+                        <span>{option}</span>
+                        {selectedDateLabel === option ? <strong>✓</strong> : null}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              {actions ? <div className="oq-report-actions">{actions}</div> : null}
+            </div>
           </div>
           <div className="oq-report-metric-strip">
             {headerMetrics.map(metric => (
@@ -2899,50 +2918,6 @@ export function StrategyFigmaReport({
               </div>
             ))}
           </div>
-        </div>
-        <div
-          className="oq-report-date-select"
-          onBlur={event => {
-            if (
-              !event.currentTarget.contains(event.relatedTarget as Node | null)
-            ) {
-              setIsDateMenuOpen(false);
-            }
-          }}
-        >
-          <button
-            type="button"
-            aria-haspopup="listbox"
-            aria-expanded={isDateMenuOpen}
-            onClick={() => setIsDateMenuOpen(prev => !prev)}
-          >
-            {selectedDateLabel}
-            <span aria-hidden="true">⌄</span>
-          </button>
-          {isDateMenuOpen ? (
-            <div
-              className="oq-report-date-menu"
-              role="listbox"
-              aria-label={tReport(tr, "Select backtest period", "选择回测周期")}
-            >
-              {selectableDateOptions.map(option => (
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={selectedDateLabel === option}
-                  key={option}
-                  onMouseDown={event => event.preventDefault()}
-                  onClick={() => {
-                    setSelectedDateLabel(option);
-                    setIsDateMenuOpen(false);
-                  }}
-                >
-                  <span>{option}</span>
-                  {selectedDateLabel === option ? <strong>✓</strong> : null}
-                </button>
-              ))}
-            </div>
-          ) : null}
         </div>
       </header>
 
@@ -2985,12 +2960,7 @@ export function StrategyFigmaReport({
         <SymbolPnlRankChart tr={tr} />
       </ReportCard>
 
-      <ReportCard
-        title={tReport(tr, "CS Attribution Overview", "截面归因概览")}
-        subtitle={tReport(tr, "7 Barra factors · attribution dashboard", "7 个 Barra 因子 · 归因面板")}
-      >
-        <AttributionGrid tr={tr} />
-      </ReportCard>
+      <AttributionSection tr={tr} />
 
       <PositionHistory rows={positions} tr={tr} />
     </div>

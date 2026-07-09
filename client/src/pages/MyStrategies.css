@@ -89,6 +89,216 @@
   background: currentColor;
 }
 
+.oq-strategy-create-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.oq-strategy-create-button,
+.oq-strategy-form-primary,
+.oq-strategy-form-secondary {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 749px;
+  font-size: 10px;
+  font-weight: 700;
+  transition:
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-strategy-create-button,
+.oq-strategy-form-primary {
+  border: 0.75px solid color-mix(in srgb, var(--os-accent) 78%, #000000);
+  background: var(--os-accent);
+  padding: 0 13px;
+  color: #ffffff;
+}
+
+.oq-strategy-create-button:hover,
+.oq-strategy-form-primary:hover {
+  background: color-mix(in srgb, var(--os-accent) 88%, #000000);
+  transform: translateY(-1px);
+}
+
+.oq-strategy-create-dialog {
+  --os-bg: #ffffff;
+  --os-bg-soft: #faf8f6;
+  --os-bg-warm: #fff6ef;
+  --os-border: #ece6df;
+  --os-border-strong: #e2dad0;
+  --os-text: #0d0d0d;
+  --os-text-soft: #4a443d;
+  --os-muted: #8c8378;
+  --os-accent: #dc4900;
+  --os-risk: #d64550;
+  overflow: hidden;
+  width: min(900px, calc(100vw - 32px));
+  max-width: min(900px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  background: var(--os-bg);
+  color: var(--os-text);
+  font-family: var(--font-body);
+  overflow-y: auto;
+}
+
+.oq-strategy-create-dialog-head {
+  display: grid;
+  gap: 4px;
+  border-bottom: 0.75px solid var(--os-border);
+  padding: 18px 20px 16px;
+}
+
+.oq-strategy-create-dialog-head h2 {
+  margin: 0;
+  color: var(--os-text);
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 22px;
+}
+
+.oq-strategy-create-dialog-head p {
+  margin: 0;
+  color: var(--os-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.oq-strategy-create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 14px;
+  background: color-mix(in srgb, var(--os-bg-soft) 72%, var(--os-bg));
+  padding: 18px 20px 20px;
+}
+
+.oq-strategy-form-field,
+.oq-strategy-form-field legend {
+  min-width: 0;
+  color: var(--os-text-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 15px;
+}
+
+.oq-strategy-form-field {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.oq-strategy-form-field.is-wide {
+  grid-column: 1 / -1;
+}
+
+.oq-strategy-form-field b {
+  margin-left: 3px;
+  color: var(--os-risk);
+}
+
+.oq-strategy-form-control,
+.oq-strategy-segment-group button,
+.oq-strategy-layer-row button {
+  min-height: 42px;
+  border: 0.75px solid var(--os-border-strong);
+  border-radius: 12px;
+  background: var(--os-bg);
+  color: var(--os-text-soft);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.oq-strategy-form-control {
+  width: 100%;
+  padding: 0 13px;
+  outline: none;
+}
+
+.oq-strategy-form-control:focus-visible,
+.oq-strategy-segment-group button:focus-visible,
+.oq-strategy-layer-row button:focus-visible,
+.oq-strategy-create-button:focus-visible,
+.oq-strategy-form-primary:focus-visible,
+.oq-strategy-form-secondary:focus-visible {
+  border-color: var(--os-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--os-accent) 16%, transparent);
+  outline: none;
+}
+
+.oq-strategy-factor-picker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  color: var(--os-muted);
+  text-align: left;
+}
+
+.oq-strategy-segment-group {
+  display: grid;
+  gap: 12px;
+}
+
+.oq-strategy-segment-group.is-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.oq-strategy-segment-group.is-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.oq-strategy-segment-group button,
+.oq-strategy-layer-row button {
+  padding: 0 12px;
+}
+
+.oq-strategy-segment-group button.is-active,
+.oq-strategy-layer-row button.is-active {
+  border-color: color-mix(in srgb, var(--os-accent) 54%, var(--os-border-strong));
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--os-accent) 18%, transparent);
+}
+
+.oq-strategy-layer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 64px;
+  gap: 10px;
+}
+
+.oq-strategy-create-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 0.75px solid var(--os-border);
+  padding-top: 14px;
+}
+
+.oq-strategy-form-secondary {
+  border: 0.75px solid var(--os-border-strong);
+  background: var(--os-bg);
+  padding: 0 13px;
+  color: var(--os-text-soft);
+}
+
+.oq-strategy-form-secondary:hover {
+  border-color: var(--os-accent);
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+}
+
 .oq-strategy-download {
   min-height: 24px;
   gap: 7px;
@@ -420,6 +630,10 @@
   grid-template-columns: 135px repeat(2, minmax(0, 1fr));
 }
 
+.oq-strategy-compare-grid.is-single {
+  grid-template-columns: 135px minmax(0, 1fr);
+}
+
 .oq-strategy-compare-title,
 .oq-strategy-compare-label,
 .oq-strategy-compare-cell,
@@ -538,6 +752,18 @@
     justify-self: start;
   }
 
+  .oq-strategy-create-row {
+    justify-content: flex-start;
+  }
+
+  .oq-strategy-create-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-strategy-segment-group.is-three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .oq-strategy-toolbar {
     align-items: flex-start;
     flex-direction: column;
@@ -559,5 +785,9 @@
 
   .oq-strategy-compare-grid {
     min-width: 900px;
+  }
+
+  .oq-strategy-compare-grid.is-single {
+    min-width: 0;
   }
 }

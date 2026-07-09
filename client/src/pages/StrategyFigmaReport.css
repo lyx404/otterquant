@@ -880,9 +880,9 @@
   --chart-3: var(--report-teal);
   --chart-4: var(--report-warning);
   --chart-5: var(--report-red);
-  width: min(1200px, 100%);
+  width: min(1240px, 100%);
   max-width: calc(100vw - 32px);
-  gap: 20px;
+  gap: 18px;
   margin: 0 auto;
   padding: 0;
   transform: none;
@@ -906,21 +906,28 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-report-top {
   position: relative;
-  display: block;
+  display: grid;
+  box-sizing: border-box;
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  gap: 20px;
   border: 1px solid var(--report-border);
-  border-radius: 12px;
-  background: var(--report-panel);
-  padding: 16px;
-  box-shadow: var(--report-shadow);
+  border-radius: 15px;
+  background: var(--report-bg);
+  padding: 28px 28px 24px;
+  box-shadow: 0 8px 24px rgba(60, 40, 20, 0.06);
 }
 
 .oq-report-title-block {
   display: grid;
+  box-sizing: border-box;
+  width: 100%;
   min-width: 0;
   align-content: start;
-  gap: 6px;
-  padding-right: 248px;
+  gap: 22px;
+  padding-right: 316px;
 }
 
 .oq-report-kicker {
@@ -933,19 +940,20 @@ main:has(.oq-strategy-figma-report) {
 .oq-report-top h1 {
   max-width: 42ch;
   color: var(--report-text);
-  font-size: 1.21875rem;
-  font-weight: 700;
-  line-height: 1.6875rem;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 2.125rem;
   overflow-wrap: anywhere;
 }
 
 .oq-report-top p {
   max-width: 58ch;
-  padding-top: 0;
+  padding-top: 2px;
   color: var(--report-muted);
   font-family: var(--font-body);
-  font-size: 0.75rem;
-  line-height: 1.125rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25rem;
   overflow-wrap: anywhere;
   text-transform: none;
 }
@@ -954,7 +962,7 @@ main:has(.oq-strategy-figma-report) {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
 }
 
@@ -967,7 +975,7 @@ main:has(.oq-strategy-figma-report) {
   display: grid;
   min-width: 0;
   align-content: center;
-  gap: 2px;
+  gap: 3px;
 }
 
 .oq-report-title-copy h1,
@@ -986,43 +994,53 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-report-metric-strip {
-  display: flex;
-  width: min(100%, 760px);
-  flex-wrap: nowrap;
-  justify-content: flex-start;
-  gap: 8px;
-  margin-top: 10px;
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 0;
+  border-top: 1px solid var(--report-border);
+  padding-top: 18px;
 }
 
 .oq-report-metric {
   display: grid;
-  min-height: 54px;
-  flex: 1 1 112px;
+  min-height: 52px;
   min-width: 0;
   align-content: center;
-  border: 1px solid var(--report-border);
-  border-radius: 12px;
-  background: var(--report-bg);
-  padding: 8px 12px;
-  box-shadow: 0 1px 1.5px rgba(60, 40, 20, 0.06);
+  gap: 5px;
+  border: 0;
+  border-right: 1px solid var(--report-border);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 16px;
+  box-shadow: none;
+}
+
+.oq-report-metric:first-child {
+  padding-left: 0;
+}
+
+.oq-report-metric:last-child {
+  border-right: 0;
+  padding-right: 0;
 }
 
 .oq-report-metric span {
   color: var(--report-muted);
   font-family: var(--font-body);
-  font-size: 0.625rem;
-  font-weight: 600;
+  font-size: 0.6875rem;
+  font-weight: 700;
   line-height: 0.875rem;
   text-transform: none;
 }
 
 .oq-report-metric strong {
-  padding-top: 4px;
   color: var(--report-text);
   font-family: var(--font-heading);
-  font-size: 1.0625rem;
+  font-size: 1.375rem;
   font-weight: 700;
-  line-height: 1.25rem;
+  line-height: 1.625rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1056,9 +1074,9 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-report-date-select {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 220px;
+  top: 26px;
+  right: 28px;
+  width: 236px;
   min-width: 0;
   z-index: 3;
 }
@@ -1067,7 +1085,7 @@ main:has(.oq-strategy-figma-report) {
   display: inline-flex;
   width: 100%;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 6px;
   font-variant-numeric: tabular-nums;
 }
@@ -1113,16 +1131,16 @@ main:has(.oq-strategy-figma-report) {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   max-width: 520px;
 }
 
 .oq-report-action {
-  min-height: 32px;
+  min-height: 38px;
   border: 1px solid var(--report-border);
   border-radius: 749px;
   background: var(--report-bg);
-  padding: 7px 12px;
+  padding: 9px 14px;
   color: var(--report-text-soft);
   font-family: var(--font-body);
   font-size: 0.75rem;
@@ -1170,7 +1188,10 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-report-card,
 .oq-position-card {
-  overflow: hidden;
+  position: relative;
+  overflow: visible;
+  min-width: 0;
+  max-width: 100%;
   border: 1px solid var(--report-border);
   border-radius: 12px;
   background: var(--report-bg);
@@ -1181,9 +1202,9 @@ main:has(.oq-strategy-figma-report) {
   display: grid;
   min-height: 0;
   align-content: center;
-  gap: 2px;
+  gap: 3px;
   border-bottom: 1px solid var(--report-border);
-  padding: 12px 16px;
+  padding: 13px 16px 11px;
 }
 
 .oq-report-card.is-symbol-cumulative .oq-report-card-header {
@@ -1193,9 +1214,9 @@ main:has(.oq-strategy-figma-report) {
 .oq-report-card-header h2,
 .oq-position-card h2 {
   color: var(--report-text);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 700;
-  line-height: 1.125rem;
+  line-height: 1.1875rem;
   text-transform: none;
 }
 
@@ -1324,15 +1345,18 @@ main:has(.oq-strategy-figma-report) {
 .oq-report-card.is-nav .oq-report-card-body {
   display: grid;
   min-height: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 22px;
+  gap: 14px;
+  padding: 16px 18px 14px;
 }
 
 .oq-nav-chart {
   position: relative;
-  min-height: 360px;
-  height: clamp(390px, 38vw, 430px);
+  width: 100%;
+  max-width: 100%;
+  min-height: 420px;
+  height: clamp(420px, 40vw, 500px);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1345,13 +1369,13 @@ main:has(.oq-strategy-figma-report) {
 .oq-dense-lines {
   color: var(--report-muted);
   font-family: var(--font-body);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
   transform: none;
 }
 
 .oq-chart-axis text {
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-family: var(--font-body);
   font-weight: 500;
   line-height: 1;
@@ -1424,6 +1448,7 @@ main:has(.oq-strategy-figma-report) {
 .oq-chart-active-marker {
   fill: color-mix(in srgb, currentColor 18%, var(--report-bg));
   pointer-events: none;
+  opacity: 0.86;
 }
 
 .oq-chart-crosshair {
@@ -1480,12 +1505,12 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-chart-tooltip {
   position: absolute;
-  z-index: 4;
+  z-index: 18;
   min-width: 132px;
   transform: translate(-50%, calc(-100% - 10px));
   border: 1px solid var(--report-border);
   border-radius: 10px;
-  background: var(--report-bg);
+  background: color-mix(in srgb, var(--report-bg) 96%, var(--report-warm));
   padding: 8px 10px;
   box-shadow: var(--report-shadow-lift);
   pointer-events: none;
@@ -1495,7 +1520,6 @@ main:has(.oq-strategy-figma-report) {
   width: min(252px, calc(100% - 24px));
   transform: translate(-50%, -50%);
   border-color: var(--report-border);
-  background: color-mix(in srgb, var(--report-bg) 96%, var(--report-warm));
   padding: 10px;
 }
 
@@ -1609,37 +1633,50 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-report-metrics-table {
-  overflow: hidden;
+  display: grid;
+  overflow: visible;
+  min-width: 0;
+  max-width: 100%;
+  grid-template-columns: repeat(5, minmax(118px, 1fr));
+  gap: 2px;
   margin-top: 0;
   border: 1px solid var(--report-border);
-  border-radius: 12px;
-  background: var(--report-panel);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--report-panel) 72%, var(--report-bg));
+  padding: 8px;
   font-family: var(--font-body);
   font-size: 0.6875rem;
   line-height: 1rem;
 }
 
 .oq-report-table-row {
-  min-height: 28px;
-  grid-template-columns: minmax(0, 1fr) minmax(72px, 34%);
-  padding: 0 12px;
+  min-height: 38px;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: 2px;
+  border-radius: 7px;
+  padding: 5px 8px;
   color: var(--report-text-soft);
 }
 
 .oq-report-table-row:nth-child(odd):not(.is-head) {
-  background: color-mix(in srgb, var(--report-bg) 58%, var(--report-warm));
+  background: transparent;
 }
 
 .oq-report-table-row.is-head {
-  min-height: 30px;
-  background: var(--report-warm);
+  display: none;
+}
+
+.oq-report-table-row span {
+  overflow: hidden;
   color: var(--report-muted);
-  font-size: 0.625rem;
-  text-transform: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .oq-report-table-row strong {
   color: var(--report-gold);
+  font-size: 0.8125rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
@@ -1651,14 +1688,24 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-report-two-col .oq-report-card-body {
-  min-height: 330px;
+  box-sizing: border-box;
+  height: 560px;
+  min-height: 0;
 }
 
-.oq-exposure-chart,
-.oq-rank-chart {
+.oq-exposure-chart {
+  height: 100%;
   min-height: 304px;
   align-content: start;
   gap: 6px;
+  padding: 8px 4px 0;
+}
+
+.oq-rank-chart {
+  height: 100%;
+  min-height: 0;
+  align-content: start;
+  gap: 2px;
   padding: 8px 4px 0;
 }
 
@@ -1672,8 +1719,8 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-report-two-col > .oq-report-card:first-child .oq-exposure-row {
-  min-height: 20px;
-  padding-block: 1px;
+  min-height: 18px;
+  padding-block: 0;
 }
 
 .oq-report-two-col > .oq-report-card:first-child .oq-diverging-plot {
@@ -1743,6 +1790,12 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-rank-row {
   grid-template-columns: minmax(180px, 45%) minmax(0, 1fr);
+  min-height: 18px;
+  padding-block: 0;
+}
+
+.oq-rank-row .oq-diverging-plot {
+  min-height: 14px;
 }
 
 .oq-exposure-row span,
@@ -1940,14 +1993,18 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-dense-chart.is-compact .oq-dense-lines {
-  height: 236px;
+  height: 256px;
   border: 0;
   background: transparent;
   padding: 0;
 }
 
-.oq-dense-chart.is-symbol-cumulative .oq-dense-lines {
-  height: clamp(390px, 31vw, 460px);
+.oq-dense-chart.is-turnover-rate {
+  gap: 8px;
+}
+
+.oq-dense-chart.is-turnover-rate .oq-dense-lines {
+  height: 252px;
 }
 
 .oq-dense-chart:not(.is-compact) .oq-dense-lines .oq-chart-axis text {
@@ -1957,17 +2014,13 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-dense-chart.is-compact .oq-dense-lines .oq-chart-axis text {
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
 }
 
 .oq-dense-lines .oq-chart-grid line {
   stroke: color-mix(in srgb, var(--report-border) 56%, transparent);
   stroke-dasharray: none;
   vector-effect: non-scaling-stroke;
-}
-
-.oq-dense-chart.is-symbol-cumulative .oq-dense-lines .oq-chart-grid line {
-  stroke: color-mix(in srgb, var(--report-border) 82%, transparent);
 }
 
 .oq-dense-chart.is-decile .oq-dense-lines .oq-chart-grid line,
@@ -2006,25 +2059,6 @@ main:has(.oq-strategy-figma-report) {
   opacity: 0.92;
 }
 
-.oq-dense-chart.is-symbol-cumulative .oq-dense-series {
-  stroke-width: 1.15;
-  opacity: 0.2;
-}
-
-.oq-dense-chart.is-symbol-cumulative .oq-dense-series.is-primary {
-  stroke-width: 2.8;
-  opacity: 0.96;
-}
-
-.oq-dense-chart.is-symbol-cumulative .oq-dense-series.is-muted {
-  opacity: 0.08;
-}
-
-.oq-dense-chart.is-symbol-cumulative .oq-dense-series.is-highlighted {
-  stroke-width: 3.1;
-  opacity: 1;
-}
-
 .oq-dense-chart.is-decile .oq-dense-series {
   stroke-width: 1.55;
   opacity: 0.58;
@@ -2046,12 +2080,25 @@ main:has(.oq-strategy-figma-report) {
   opacity: 0.7;
 }
 
+.oq-dense-chart.is-turnover-rate .oq-dense-series {
+  stroke-width: 1.35;
+  opacity: 0.72;
+}
+
+.oq-dense-chart.is-turnover-rate .oq-dense-series.is-primary {
+  stroke-width: 2.65;
+  opacity: 0.98;
+}
+
 .oq-dense-chart.is-barra-style .oq-dense-series.is-highlighted,
 .oq-dense-chart.is-barra-style .oq-dense-series:hover,
 .oq-dense-chart.is-barra-style .oq-dense-series:focus-visible,
 .oq-dense-chart.is-barra-correlation .oq-dense-series.is-highlighted,
 .oq-dense-chart.is-barra-correlation .oq-dense-series:hover,
-.oq-dense-chart.is-barra-correlation .oq-dense-series:focus-visible {
+.oq-dense-chart.is-barra-correlation .oq-dense-series:focus-visible,
+.oq-dense-chart.is-turnover-rate .oq-dense-series.is-highlighted,
+.oq-dense-chart.is-turnover-rate .oq-dense-series:hover,
+.oq-dense-chart.is-turnover-rate .oq-dense-series:focus-visible {
   stroke-width: 2.85;
   opacity: 1;
 }
@@ -2096,12 +2143,13 @@ main:has(.oq-strategy-figma-report) {
   fill: color-mix(in srgb, currentColor 18%, var(--report-bg));
   stroke: currentColor;
   stroke-width: 2.2;
+  opacity: 0.86;
   pointer-events: none;
 }
 
 .oq-dense-floating-tooltip {
   position: absolute;
-  z-index: 3;
+  z-index: 20;
   width: min(248px, calc(100% - 24px));
   transform: translate(12px, 12px);
   pointer-events: none;
@@ -2201,173 +2249,6 @@ main:has(.oq-strategy-figma-report) {
   stroke-width: 3;
 }
 
-.oq-symbol-rank-chart {
-  display: grid;
-  min-width: 0;
-  gap: 14px;
-}
-
-.oq-symbol-rank-panel {
-  position: relative;
-  display: grid;
-  min-width: 0;
-  gap: 10px;
-  border: var(--report-divider-width) solid var(--report-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--report-panel) 62%, transparent);
-  padding: 12px;
-  contain: layout;
-}
-
-.oq-symbol-rank-panel-head {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.oq-symbol-rank-panel-head h3 {
-  margin: 0;
-  color: var(--report-text);
-  font-family: var(--font-heading);
-  font-size: 0.8125rem;
-  font-weight: 650;
-  line-height: 1.125rem;
-}
-
-.oq-symbol-rank-panel-head span {
-  flex: 0 0 auto;
-  color: var(--report-muted);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  line-height: 1rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.oq-symbol-rank-panel-body {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr) minmax(168px, 210px);
-  align-items: stretch;
-  gap: 12px;
-}
-
-.oq-symbol-rank-plot {
-  position: relative;
-  min-width: 0;
-}
-
-.oq-symbol-rank-lines {
-  display: block;
-  width: 100%;
-  height: 274px;
-  overflow: visible;
-}
-
-.oq-symbol-rank-lines .oq-chart-axis text {
-  fill: var(--report-muted);
-  font-size: 0.6875rem;
-  font-weight: 500;
-}
-
-.oq-symbol-rank-lines .oq-chart-grid line {
-  stroke: color-mix(in srgb, var(--report-border) 78%, transparent);
-  vector-effect: non-scaling-stroke;
-}
-
-.oq-symbol-rank-lines .oq-chart-grid line.oq-chart-vertical-grid {
-  opacity: 0.52;
-}
-
-.oq-symbol-rank-zero-line {
-  stroke: color-mix(in srgb, var(--report-text) 45%, var(--report-border)) !important;
-}
-
-.oq-symbol-rank-series {
-  fill: none;
-  stroke-width: 1.35;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  opacity: 0.62;
-  outline: none;
-  vector-effect: non-scaling-stroke;
-}
-
-.oq-symbol-rank-series.is-muted {
-  opacity: 0.12;
-}
-
-.oq-symbol-rank-series.is-highlighted,
-.oq-symbol-rank-series:hover,
-.oq-symbol-rank-series:focus-visible {
-  stroke-width: 2.7;
-  opacity: 1;
-}
-
-.oq-symbol-rank-floating-tooltip {
-  position: absolute;
-  z-index: 4;
-  width: min(240px, calc(100% - 20px));
-  transform: translate(10px, 10px);
-  pointer-events: none;
-}
-
-.oq-symbol-rank-legend {
-  display: grid;
-  min-width: 0;
-  align-content: start;
-  gap: 4px;
-  padding-top: 2px;
-}
-
-.oq-symbol-rank-legend button {
-  display: grid;
-  min-width: 0;
-  min-height: 30px;
-  grid-template-columns: 10px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 7px;
-  border: var(--report-divider-width) solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  padding: 4px 6px;
-  color: var(--report-muted);
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.6875rem;
-  line-height: 1rem;
-  text-align: left;
-  font-variant-numeric: tabular-nums;
-}
-
-.oq-symbol-rank-legend button:hover,
-.oq-symbol-rank-legend button:focus-visible,
-.oq-symbol-rank-legend button[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--report-border) 76%, transparent);
-  background: color-mix(in srgb, var(--report-warm) 58%, transparent);
-  color: var(--report-text);
-  outline: none;
-}
-
-.oq-symbol-rank-legend i {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-}
-
-.oq-symbol-rank-legend span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.oq-symbol-rank-legend strong {
-  color: inherit;
-  font-size: 0.6875rem;
-  font-weight: 700;
-}
-
 .oq-split-lines {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
@@ -2383,31 +2264,43 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-attribution-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px 18px;
 }
 
 .oq-mini-card {
-  min-height: 292px;
+  display: grid;
+  min-height: 328px;
+  min-width: 0;
+  max-width: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
   border: 0;
   border-radius: 0;
   border-top: 1px solid var(--report-border);
   background: transparent;
-  padding: 14px 0 16px;
+  padding: 12px 0 14px;
   box-shadow: none;
 }
 
 .oq-mini-card h3 {
+  display: flex;
+  min-height: 30px;
+  align-items: center;
   gap: 0;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   color: var(--report-text-soft);
   font-family: var(--font-body);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   line-height: 1rem;
 }
 
 .oq-mini-card h3 span {
   display: none;
+}
+
+.oq-mini-card .oq-dense-chart,
+.oq-mini-card .oq-barra-exposure-chart {
+  min-height: 0;
 }
 
 .oq-barra-exposure-chart {
@@ -2472,7 +2365,7 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-barra-exposure-svg .oq-chart-axis text {
   fill: var(--report-muted);
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   font-weight: 600;
 }
 
@@ -2515,8 +2408,8 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-barra-floating-tooltip {
   position: absolute;
-  z-index: 4;
-  width: min(236px, calc(100% - 16px));
+  z-index: 20;
+  width: min(248px, calc(100% - 16px));
   transform: translate(10px, 10px);
   pointer-events: none;
 }
@@ -2776,8 +2669,11 @@ main:has(.oq-strategy-figma-report) {
   .oq-report-metric-strip {
     width: 100%;
     max-width: 100%;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .oq-report-metric:nth-child(3n) {
+    border-right: 0;
   }
 
   .oq-report-date-select {
@@ -2791,11 +2687,15 @@ main:has(.oq-strategy-figma-report) {
   .oq-report-card.is-nav .oq-report-card-body,
   .oq-report-two-col,
   .oq-attribution-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-report-metrics-table {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
   }
 
   .oq-symbol-rank-panel-body {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .oq-symbol-rank-legend {
@@ -2819,6 +2719,9 @@ main:has(.oq-strategy-figma-report) {
   }
 
   .oq-report-top {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     padding: 12px;
   }
 
@@ -2828,7 +2731,19 @@ main:has(.oq-strategy-figma-report) {
   }
 
   .oq-report-metric {
-    flex-basis: calc(50% - 4px);
+    min-height: 58px;
+  }
+
+  .oq-report-metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .oq-report-metric:nth-child(3n) {
+    border-right: 1px solid var(--report-border);
+  }
+
+  .oq-report-metric:nth-child(2n) {
+    border-right: 0;
   }
 
   .oq-report-title-row {
@@ -2864,6 +2779,35 @@ main:has(.oq-strategy-figma-report) {
   .oq-report-card-body {
     overflow-x: auto;
     padding: 12px;
+  }
+
+  .oq-report-card,
+  .oq-position-card,
+  .oq-nav-chart,
+  .oq-report-metrics-table,
+  .oq-attribution-grid,
+  .oq-mini-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .oq-report-card-body:has(.oq-nav-chart),
+  .oq-report-card-body:has(.oq-dense-chart),
+  .oq-report-card-body:has(.oq-exposure-chart),
+  .oq-report-card-body:has(.oq-rank-chart),
+  .oq-report-card-body:has(.oq-symbol-rank-chart),
+  .oq-report-card-body:has(.oq-attribution-grid) {
+    overflow: visible;
+  }
+
+  .oq-report-metrics-table {
+    grid-template-columns: 1fr;
+  }
+
+  .oq-report-two-col .oq-report-card-body {
+    height: auto;
+    min-height: 0;
   }
 
   .oq-chart-toolbar,
@@ -2903,6 +2847,10 @@ main:has(.oq-strategy-figma-report) {
 
   .oq-dense-chart.is-compact .oq-dense-lines {
     height: 240px;
+  }
+
+  .oq-dense-chart.is-turnover-rate .oq-dense-lines {
+    height: 220px;
   }
 
   .oq-dense-legend.is-decile,
@@ -2954,6 +2902,7 @@ main:has(.oq-strategy-figma-report) {
 
   .oq-exposure-chart,
   .oq-rank-chart {
+    height: auto;
     min-height: 300px;
     min-width: 0;
     overflow: hidden;
@@ -3022,6 +2971,7 @@ main:has(.oq-strategy-figma-report) {
 
   .oq-chart-tooltip.is-dense {
     width: min(224px, calc(100% - 16px));
+    transform: translate(-50%, -72%);
   }
 
   .oq-event-marker {

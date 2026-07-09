@@ -21,6 +21,7 @@ import {
   type ReportPositionRecord,
 } from "./StrategyFigmaReport";
 import {
+  ArrowLeft,
   Star,
 } from "lucide-react";
 
@@ -582,15 +583,37 @@ export default function StrategyDetail() {
     </>
   );
   const reportTitle = strategyId === "STR-465" ? "Overnight VRP" : strategyHeading;
-  const reportSubtitle = strategyId === "STR-465"
+  const reportSubtitleText = strategyId === "STR-465"
     ? tr("Volatility", "波动率")
     : `${strategyName} · ${strategyId} · ${formatConfigDate(createdAt)}`;
+  const reportNo = strategyId.replace(/^STR-/, "") || strategyId;
+  const reportHash = "8ade81c02da14b73b656a13bd7fc4379";
+  const reportCreatedDate = formatConfigDate(createdAt).split(" ")[0];
+  const reportSubtitle = (
+    <>
+      <span>{reportSubtitleText}</span>
+      <span>{tr("Created Time", "创建时间")} {reportCreatedDate}</span>
+      <span>{reportHash}</span>
+    </>
+  );
+  const reportTopAction = (
+    <button
+      type="button"
+      className="oq-report-back-button"
+      onClick={() => window.location.assign("/strategies")}
+    >
+      <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
+      <span>{tr("Back to My Strategies", "返回我的策略")}</span>
+    </button>
+  );
 
   return (
     <>
       <StrategyFigmaReport
         title={reportTitle}
         subtitle={reportSubtitle}
+        titleAction={<span className="oq-report-no-badge">NO.{reportNo}</span>}
+        topAction={reportTopAction}
         headerMetrics={reportHeaderMetrics}
         dateLabel="2020-01-01_2020-12-31"
         dateOptions={[

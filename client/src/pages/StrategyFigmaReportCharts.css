@@ -1,0 +1,572 @@
+.oq-report-top-action {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.oq-report-back-button {
+  display: inline-flex;
+  min-height: 42px;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: var(--report-divider-width) solid var(--report-border);
+  border-radius: 10px;
+  background: var(--report-bg);
+  padding: 10px 14px;
+  color: var(--report-text-soft);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.125rem;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.05);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.oq-report-back-button svg {
+  flex: 0 0 auto;
+}
+
+.oq-report-back-button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-report-back-button:hover {
+  border-color: color-mix(in srgb, var(--report-gold) 26%, var(--report-border));
+  background: var(--report-warm);
+  color: var(--report-gold);
+  transform: translateY(-1px);
+}
+
+.oq-report-back-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.oq-strategy-figma-report .oq-report-title-block {
+  gap: 24px;
+  padding-right: 0;
+}
+
+.oq-strategy-figma-report .oq-report-title-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 16px;
+}
+
+.oq-report-no-badge {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--report-panel) 82%, var(--report-bg));
+  padding: 0 12px;
+  color: color-mix(in srgb, var(--report-muted) 76%, var(--report-text));
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1rem;
+  white-space: nowrap;
+}
+
+.oq-strategy-figma-report .oq-report-title-copy {
+  gap: 10px;
+}
+
+.oq-strategy-figma-report .oq-report-title-meta {
+  display: flex;
+  max-width: none;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  padding-top: 0;
+}
+
+.oq-strategy-figma-report .oq-report-title-meta span {
+  color: color-mix(in srgb, var(--report-muted) 88%, var(--report-text));
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.125rem;
+}
+
+.oq-strategy-figma-report .oq-report-title-meta span:last-child {
+  color: color-mix(in srgb, var(--report-muted) 52%, var(--report-border));
+  font-family: var(--font-mono);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.oq-report-head-controls {
+  display: grid;
+  min-width: min(100%, 520px);
+  justify-items: end;
+  gap: 10px;
+}
+
+.oq-strategy-figma-report .oq-report-head-controls .oq-report-date-select {
+  position: relative;
+  top: auto;
+  right: auto;
+  width: min(260px, 100%);
+}
+
+.oq-strategy-figma-report .oq-report-head-controls .oq-report-actions {
+  justify-content: flex-end;
+}
+
+.oq-strategy-figma-report .oq-report-card-header {
+  border-bottom: 0;
+}
+
+.oq-strategy-figma-report .oq-report-metric-strip {
+  grid-template-columns: repeat(6, minmax(104px, 1fr));
+  gap: 12px;
+  border-top: 0;
+  padding-top: 2px;
+}
+
+.oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric {
+  min-height: 92px;
+  align-content: start;
+  gap: 10px;
+  border: var(--report-divider-width) solid var(--report-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--report-bg) 92%, var(--report-panel));
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+}
+
+.oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric span {
+  color: color-mix(in srgb, var(--report-muted) 82%, var(--report-text));
+  font-size: 0.875rem;
+  font-weight: 760;
+  line-height: 1.125rem;
+  text-transform: uppercase;
+}
+
+.oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric strong {
+  color: var(--report-text);
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 760;
+  line-height: 2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-strategy-figma-report .oq-report-metric[data-tone="good"] strong,
+.oq-strategy-figma-report .oq-report-metric[data-tone="warn"] strong,
+.oq-strategy-figma-report .oq-report-metric[data-tone="muted"] strong {
+  color: var(--report-text);
+}
+
+.oq-report-card.is-symbol-cumulative .oq-report-card-body {
+  padding: 12px;
+}
+
+.oq-dense-chart.is-symbol-cumulative {
+  border: var(--report-divider-width) solid var(--report-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--report-panel) 62%, transparent);
+  padding: 12px;
+  contain: layout;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-chart-toolbar {
+  justify-content: flex-end;
+  min-height: 28px;
+  padding: 0 0 2px;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-dense-legend {
+  gap: 12px;
+  color: var(--report-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-dense-lines {
+  height: 360px;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-dense-lines .oq-chart-grid line {
+  stroke: color-mix(in srgb, var(--report-border) 78%, transparent);
+  stroke-width: var(--report-divider-width);
+}
+
+.oq-dense-chart.is-symbol-cumulative
+  .oq-dense-lines
+  .oq-chart-grid
+  line.oq-chart-vertical-grid {
+  opacity: 0.52;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-dense-lines .oq-chart-axis text {
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-dense-series {
+  stroke-width: 1.35;
+  opacity: 0.24;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-dense-series.is-primary {
+  stroke-width: 2.7;
+  opacity: 1;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-dense-series.is-muted {
+  opacity: 0.08;
+}
+
+.oq-dense-chart.is-symbol-cumulative .oq-dense-series.is-highlighted,
+.oq-dense-chart.is-symbol-cumulative .oq-dense-series:hover,
+.oq-dense-chart.is-symbol-cumulative .oq-dense-series:focus-visible {
+  stroke-width: 2.7;
+  opacity: 1;
+}
+
+.oq-symbol-rank-chart {
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+}
+
+.oq-symbol-rank-panel {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  border: var(--report-divider-width) solid var(--report-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--report-panel) 62%, transparent);
+  padding: 12px;
+  contain: layout;
+}
+
+.oq-symbol-rank-panel-head {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.oq-symbol-rank-panel-head h3 {
+  margin: 0;
+  color: var(--report-text);
+  font-family: var(--font-heading);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  line-height: 1.125rem;
+}
+
+.oq-symbol-rank-panel-head span {
+  flex: 0 0 auto;
+  color: var(--report-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-symbol-rank-panel-body {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) minmax(168px, 210px);
+  align-items: stretch;
+  gap: 12px;
+}
+
+.oq-symbol-rank-plot {
+  position: relative;
+  min-width: 0;
+}
+
+.oq-symbol-rank-lines {
+  display: block;
+  width: 100%;
+  height: 274px;
+  overflow: visible;
+}
+
+.oq-symbol-rank-lines .oq-chart-axis text {
+  fill: var(--report-muted);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+.oq-symbol-rank-lines .oq-chart-grid line {
+  stroke: color-mix(in srgb, var(--report-border) 78%, transparent);
+  vector-effect: non-scaling-stroke;
+}
+
+.oq-symbol-rank-lines .oq-chart-grid line.oq-chart-vertical-grid {
+  opacity: 0.52;
+}
+
+.oq-symbol-rank-zero-line {
+  stroke: color-mix(
+    in srgb,
+    var(--report-text) 45%,
+    var(--report-border)
+  ) !important;
+}
+
+.oq-symbol-rank-series {
+  fill: none;
+  stroke-width: 1.35;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.62;
+  outline: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.oq-symbol-rank-series.is-muted {
+  opacity: 0.12;
+}
+
+.oq-symbol-rank-series.is-highlighted,
+.oq-symbol-rank-series:hover,
+.oq-symbol-rank-series:focus-visible {
+  stroke-width: 2.7;
+  opacity: 1;
+}
+
+.oq-symbol-rank-floating-tooltip {
+  position: absolute;
+  z-index: 4;
+  width: min(240px, calc(100% - 20px));
+  transform: translate(10px, 10px);
+  pointer-events: none;
+}
+
+.oq-symbol-rank-legend {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 4px;
+  padding-top: 2px;
+}
+
+.oq-symbol-rank-legend button {
+  display: grid;
+  min-width: 0;
+  min-height: 30px;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  border: var(--report-divider-width) solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  padding: 4px 6px;
+  color: var(--report-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.6875rem;
+  line-height: 1rem;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-symbol-rank-legend button:hover,
+.oq-symbol-rank-legend button:focus-visible,
+.oq-symbol-rank-legend button[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--report-border) 76%, transparent);
+  background: color-mix(in srgb, var(--report-warm) 58%, transparent);
+  color: var(--report-text);
+  outline: none;
+}
+
+.oq-symbol-rank-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.oq-symbol-rank-legend span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-symbol-rank-legend strong {
+  color: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.oq-report-card-header.has-actions {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.oq-report-card-header.has-actions > div {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .oq-strategy-figma-report .oq-report-title-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .oq-report-head-controls {
+    grid-column: 1 / -1;
+    justify-items: start;
+  }
+
+  .oq-strategy-figma-report .oq-report-head-controls .oq-report-actions {
+    justify-content: flex-start;
+  }
+
+  .oq-strategy-figma-report .oq-report-metric-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.oq-attribution-switch {
+  display: flex;
+  max-width: min(760px, 62vw);
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px;
+}
+
+.oq-attribution-switch button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border: var(--report-divider-width) solid var(--report-border);
+  border-radius: 749px;
+  background: var(--report-bg);
+  padding: 0 13px;
+  color: var(--report-muted);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1rem;
+  transition:
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+  white-space: nowrap;
+}
+
+.oq-attribution-switch button:hover,
+.oq-attribution-switch button:focus-visible,
+.oq-attribution-switch button[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--report-gold) 58%, var(--report-border));
+  background: var(--report-warm);
+  color: var(--report-gold);
+  outline: none;
+}
+
+.oq-attribution-panel {
+  min-width: 0;
+}
+
+.oq-attribution-panel .oq-mini-card {
+  min-height: 430px;
+  border-top: 0;
+  padding: 2px 0 6px;
+}
+
+.oq-attribution-panel .oq-mini-card h3 {
+  min-height: 28px;
+  margin-bottom: 10px;
+}
+
+.oq-attribution-panel .oq-dense-chart.is-turnover-rate .oq-dense-lines,
+.oq-attribution-panel .oq-barra-exposure-svg {
+  height: clamp(340px, 30vw, 380px);
+}
+
+@media (max-width: 960px) {
+  .oq-report-back-button {
+    min-height: 40px;
+    padding: 9px 12px;
+  }
+
+  .oq-strategy-figma-report .oq-report-metric-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .oq-report-card-header.has-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-attribution-switch {
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    overflow-x: visible;
+  }
+
+  .oq-attribution-switch button {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 0;
+    padding: 0 9px;
+  }
+
+  .oq-attribution-panel .oq-mini-card {
+    min-height: 360px;
+  }
+
+  .oq-attribution-panel .oq-dense-chart.is-turnover-rate .oq-dense-lines,
+  .oq-attribution-panel .oq-barra-exposure-svg {
+    height: 300px;
+  }
+}
+
+@media (max-width: 700px) {
+  .oq-strategy-figma-report .oq-report-title-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-report-no-badge {
+    width: fit-content;
+  }
+
+  .oq-report-head-controls,
+  .oq-strategy-figma-report .oq-report-head-controls .oq-report-date-select {
+    width: 100%;
+  }
+
+  .oq-strategy-figma-report .oq-report-head-controls .oq-report-actions {
+    width: 100%;
+    max-width: none;
+  }
+
+  .oq-strategy-figma-report .oq-report-metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric {
+    min-height: 84px;
+    padding: 14px;
+  }
+
+  .oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric span {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric strong {
+    font-size: 1.375rem;
+    line-height: 1.625rem;
+  }
+}

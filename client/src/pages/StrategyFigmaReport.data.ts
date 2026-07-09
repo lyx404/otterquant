@@ -108,21 +108,26 @@ export function makeBarraCorrelationSeries(count: number, seed: number): number[
 
 export function makeTurnoverRateSeries(count: number, seed: number): number[] {
   const anchorIndex = Math.round((count - 1) * 0.955);
-  const target = seed === 0 ? 1.556 : 1.583;
   const raw = Array.from({ length: count }, (_, index) => {
     const p = index / Math.max(1, count - 1);
-    const base = seed === 0 ? 1.5 * (1 - Math.exp(-p * 32)) : 1.56 * (1 - Math.exp(-p * 28));
-    const wave = seed === 0
-      ? Math.sin(index * 1.7) * 0.18 + Math.cos(index * 0.53) * 0.11 + Math.sin(index * 3.1) * 0.08
-      : Math.sin(index * 0.13) * 0.11 + Math.cos(index * 0.047) * 0.07;
-    const earlyLift = Math.exp(-Math.pow((p - 0.18) / 0.1, 2)) * (seed === 0 ? 0.2 : 0.16);
+    const base = 1.5 * (1 - Math.exp(-p * 32));
+    const wave = Math.sin(index * 1.7) * 0.18 + Math.cos(index * 0.53) * 0.11 + Math.sin(index * 3.1) * 0.08;
+    const earlyLift = Math.exp(-Math.pow((p - 0.18) / 0.1, 2)) * 0.2;
     const late = Math.exp(-Math.pow((p - 0.86) / 0.09, 2)) * 0.1;
     return Math.max(0, Math.min(turnoverRateDomain.max, base + wave + earlyLift + late - p * 0.05));
   });
-  const delta = target - (raw[anchorIndex] ?? target);
-  return raw.map((value, index) =>
+  const delta = 1.556 - (raw[anchorIndex] ?? 1.556);
+  const daily = raw.map((value, index) =>
     Math.max(0, Math.min(turnoverRateDomain.max, value + delta * Math.exp(-Math.pow((index - anchorIndex) / 8, 2))))
   );
+  if (seed !== 1) return daily;
+
+  const alpha = 2 / (30 + 1);
+  let ema = daily[0] ?? 0;
+  return daily.map(value => {
+    ema = ema + alpha * (value - ema);
+    return Math.max(0, Math.min(turnoverRateDomain.max, ema));
+  });
 }
 
 export function getBarraStyleReturnColor(index: number) {

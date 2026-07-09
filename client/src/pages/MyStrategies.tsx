@@ -43,6 +43,7 @@ import {
   Grid2x2,
   List,
   MoreHorizontal,
+  Plus,
   RefreshCw,
   Search,
   SlidersHorizontal,
@@ -57,6 +58,9 @@ type MetricKey = "roi" | "winRate" | "sharpe" | "maxDrawdown";
 type DisplayItemKey = MetricKey | "createdAt" | "id";
 type StrategyFilter = "all" | "favorites" | "trading" | "idle";
 type ExecutionMode = "paper" | "live" | "idle";
+type StrategyWeightMode = "equal" | "custom";
+type StrategyDirection = "long" | "short" | "neutral";
+type StrategyLayerUnit = "N" | "percent";
 
 interface StrategyViewRow {
   id: string;
@@ -575,6 +579,140 @@ function MetricBox({
   );
 }
 
+function CreateStrategyComposer({
+  tr,
+  onClose,
+}: {
+  tr: (en: string, zh: string) => string;
+  onClose: () => void;
+}) {
+  const [weightMode, setWeightMode] = useState<StrategyWeightMode>("equal");
+  const [direction, setDirection] = useState<StrategyDirection>("neutral");
+  const [layerUnit, setLayerUnit] = useState<StrategyLayerUnit>("percent");
+  const [layerValue, setLayerValue] = useState("10");
+  const [strategyName, setStrategyName] = useState("BTC Alpha Composite");
+
+  const weightOptions: Array<{ key: StrategyWeightMode; label: string }> = [
+    { key: "equal", label: tr("Equal weight", "等权重") },
+    { key: "custom", label: tr("Custom weight", "自定义权重") },
+  ];
+  const directionOptions: Array<{ key: StrategyDirection; label: string }> = [
+    { key: "long", label: tr("Long only", "仅做多") },
+    { key: "short", label: tr("Short only", "仅做空") },
+    { key: "neutral", label: tr("Neutral", "中性") },
+  ];
+  const layerUnitOptions: Array<{ key: StrategyLayerUnit; label: string }> = [
+    { key: "N", label: "N" },
+    { key: "percent", label: "%" },
+  ];
+
+  return (
+    <form
+      className="oq-strategy-create-form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      <div className="oq-strategy-form-field is-wide">
+        <span>
+          {tr("Factor selection", "因子选择")}
+          <b>*</b>
+        </span>
+        <button type="button" className="oq-strategy-form-control oq-strategy-factor-picker">
+          <Search className="h-3.5 w-3.5" />
+          {tr("Choose factors from official library or my factors.", "点击从官方库或我的因子中选择因子。")}
+        </button>
+      </div>
+
+      <fieldset className="oq-strategy-form-field is-wide">
+        <legend>
+          {tr("Factor weight", "因子权重")}
+          <b>*</b>
+        </legend>
+        <div className="oq-strategy-segment-group is-two">
+          {weightOptions.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={weightMode === item.key ? "is-active" : ""}
+              onClick={() => setWeightMode(item.key)}
+              aria-pressed={weightMode === item.key}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="oq-strategy-form-field is-wide">
+        <legend>
+          {tr("Strategy direction", "策略方向")}
+          <b>*</b>
+        </legend>
+        <div className="oq-strategy-segment-group is-three">
+          {directionOptions.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={direction === item.key ? "is-active" : ""}
+              onClick={() => setDirection(item.key)}
+              aria-pressed={direction === item.key}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="oq-strategy-form-field">
+        <span>
+          {tr("Head/tail grouping rule", "头尾分层规则")}
+          <b>*</b>
+        </span>
+        <div className="oq-strategy-layer-row">
+          <input
+            className="oq-strategy-form-control"
+            value={layerValue}
+            inputMode="numeric"
+            onChange={(event) => setLayerValue(event.target.value.replace(/[^\d.]/g, ""))}
+            aria-label={tr("Head/tail grouping value", "头尾分层数值")}
+          />
+          {layerUnitOptions.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={layerUnit === item.key ? "is-active" : ""}
+              onClick={() => setLayerUnit(item.key)}
+              aria-pressed={layerUnit === item.key}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <label className="oq-strategy-form-field">
+        <span>{tr("Strategy name", "策略名称")}</span>
+        <input
+          className="oq-strategy-form-control"
+          value={strategyName}
+          onChange={(event) => setStrategyName(event.target.value)}
+        />
+      </label>
+
+      <div className="oq-strategy-create-actions">
+        <button type="button" className="oq-strategy-form-secondary" onClick={onClose}>
+          {tr("Cancel", "取消")}
+        </button>
+        <button type="submit" className="oq-strategy-form-primary">
+          {tr("Create strategy", "创建策略")}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function StrategyCard({
   row,
   starred,
@@ -719,6 +857,7 @@ export default function MyStrategies() {
   const [selectedStrategyIds, setSelectedStrategyIds] = useState<Set<string>>(new Set(["STR-463", "STR-465"]));
   const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
   const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
+  const [showCreateStrategy, setShowCreateStrategy] = useState(false);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -913,10 +1052,9 @@ export default function MyStrategies() {
   ];
 
   const workbenchRows = paginated;
-  const selectedCompareRows = [
-    ...workbenchRows.filter((row) => selectedStrategyIds.has(row.id)),
-    ...workbenchRows.filter((row) => !selectedStrategyIds.has(row.id)),
-  ].slice(0, 2);
+  const selectedCompareRows = workbenchRows.filter((row) => selectedStrategyIds.has(row.id)).slice(0, 2);
+  const hasCompareRows = selectedCompareRows.length > 0;
+  const hasPairComparison = selectedCompareRows.length > 1;
   const useFigmaWorkbenchLayout: boolean = true;
 
   if (useFigmaWorkbenchLayout) {
@@ -930,6 +1068,13 @@ export default function MyStrategies() {
           </div>
           <span className="oq-strategy-live-pill"><span />Live</span>
         </section>
+
+        <div className="oq-strategy-create-row">
+          <button type="button" className="oq-strategy-create-button" onClick={() => setShowCreateStrategy(true)}>
+            <Plus className="h-3.5 w-3.5" />
+            {tr("Create strategy", "创建策略")}
+          </button>
+        </div>
 
         <section className="oq-strategy-toolbar">
           <div className="oq-strategy-toolbar-left">
@@ -1054,7 +1199,8 @@ export default function MyStrategies() {
           </div>
         </section>
 
-        <section className="oq-strategy-compare-card">
+        {hasCompareRows ? (
+        <section className={`oq-strategy-compare-card ${hasPairComparison ? "" : "is-single"}`}>
           <div className="oq-strategy-compare-header">
             <GitCompareArrows className="h-4 w-4" />
             <div>
@@ -1062,7 +1208,7 @@ export default function MyStrategies() {
               <p>{tr(`${selectedCompareRows.length} selected · scroll down to see every stat side-by-side`, `已选 ${selectedCompareRows.length} 个 · 向下查看指标对比`)}</p>
             </div>
           </div>
-          <div className="oq-strategy-compare-grid">
+          <div className={`oq-strategy-compare-grid ${hasPairComparison ? "" : "is-single"}`}>
             <div className="oq-strategy-compare-label" />
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
@@ -1081,26 +1227,37 @@ export default function MyStrategies() {
             <div className="oq-strategy-compare-label">CS Sharpe</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-sharpe`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong>{meta.sharpe}</strong>{index === 0 ? <small>Best</small> : null}</div>;
+              return <div key={`${row.id}-sharpe`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong>{meta.sharpe}</strong>{hasPairComparison && index === 0 ? <small>Best</small> : null}</div>;
             })}
             <div className="oq-strategy-compare-label">RankIC</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-rankic`} className={`oq-strategy-compare-cell ${index === 1 ? "is-best" : ""}`}><strong>{meta.rankIc}</strong>{index === 1 ? <small>Best</small> : null}</div>;
+              return <div key={`${row.id}-rankic`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 1 ? "is-best" : ""}`}><strong>{meta.rankIc}</strong>{hasPairComparison && index === 1 ? <small>Best</small> : null}</div>;
             })}
             <div className="oq-strategy-compare-section">{`Risk & details`}</div>
             <div className="oq-strategy-compare-label">Max drawdown</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-dd`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong className="is-risk">{meta.maxDd}</strong>{index === 0 ? <small>Lowest</small> : null}</div>;
+              return <div key={`${row.id}-dd`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong className="is-risk">{meta.maxDd}</strong>{hasPairComparison && index === 0 ? <small>Lowest</small> : null}</div>;
             })}
             <div className="oq-strategy-compare-label">Turnover</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-turn`} className={`oq-strategy-compare-cell ${index === 0 ? "is-best" : ""}`}><strong>{meta.turn}</strong>{index === 0 ? <small>Lowest</small> : null}</div>;
+              return <div key={`${row.id}-turn`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong>{meta.turn}</strong>{hasPairComparison && index === 0 ? <small>Lowest</small> : null}</div>;
             })}
           </div>
         </section>
+        ) : null}
+
+        <Dialog open={showCreateStrategy} onOpenChange={setShowCreateStrategy}>
+          <DialogContent className="oq-strategy-create-dialog gap-0 rounded-2xl border-0 p-0 shadow-2xl">
+            <div className="oq-strategy-create-dialog-head">
+              <DialogTitle>{tr("Create strategy", "创建策略")}</DialogTitle>
+              <p>{tr("Build a strategy from selected factors, weights and direction rules.", "选择因子、权重和方向规则，生成新的策略组合。")}</p>
+            </div>
+            <CreateStrategyComposer tr={tr} onClose={() => setShowCreateStrategy(false)} />
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={Boolean(pendingDeleteStrategy)} onOpenChange={(open) => !open && setPendingDeleteStrategy(null)}>
           <DialogContent className="max-w-md rounded-2xl border-border bg-card p-0 text-foreground">
