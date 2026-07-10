@@ -880,7 +880,7 @@
   --chart-3: var(--report-teal);
   --chart-4: var(--report-warning);
   --chart-5: var(--report-red);
-  width: min(1240px, 100%);
+  width: min(900px, 100%);
   max-width: calc(100vw - 32px);
   gap: 18px;
   margin: 0 auto;
@@ -893,7 +893,7 @@
 }
 
 main:has(.oq-strategy-figma-report) {
-  max-width: min(1280px, calc(100vw - 32px));
+  max-width: min(932px, calc(100vw - 32px));
 }
 
 .oq-strategy-figma-report h1,
@@ -912,11 +912,11 @@ main:has(.oq-strategy-figma-report) {
   min-height: 0;
   min-width: 0;
   max-width: 100%;
-  gap: 20px;
+  gap: 16px;
   border: 1px solid var(--report-border);
-  border-radius: 15px;
+  border-radius: 12px;
   background: var(--report-bg);
-  padding: 28px 28px 24px;
+  padding: 20px 24px;
   box-shadow: 0 8px 24px rgba(60, 40, 20, 0.06);
 }
 
@@ -2864,10 +2864,6 @@ main:has(.oq-strategy-figma-report) {
 
   .oq-symbol-rank-panel {
     padding: 10px;
-  }
-
-  .oq-symbol-rank-panel-head {
-    align-items: flex-start;
   }
 
   .oq-symbol-rank-lines {

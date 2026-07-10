@@ -243,6 +243,8 @@ const reportCopy: Record<string, UiCopy> = {
   "symbol cumulative PnL lines": { ja: "銘柄別累積 PnL ライン", ko: "종목별 누적 PnL 라인", es: "líneas de PnL acumulado por símbolo", fr: "lignes de PnL cumulé par symbole" },
   "Top 10 symbols by total PnL": { ja: "総 PnL 上位 10 銘柄", ko: "총 PnL 상위 10개 종목", es: "10 símbolos principales por PnL total", fr: "Top 10 symboles par PnL total" },
   "Bottom 10 symbols by total PnL": { ja: "総 PnL 下位 10 銘柄", ko: "총 PnL 하위 10개 종목", es: "10 símbolos inferiores por PnL total", fr: "Bottom 10 symboles par PnL total" },
+  "Top 10 symbols": { ja: "上位 10 銘柄", ko: "상위 10개 종목", es: "10 símbolos principales", fr: "Top 10 symboles" },
+  "Bottom 10 symbols": { ja: "下位 10 銘柄", ko: "하위 10개 종목", es: "10 símbolos inferiores", fr: "Bottom 10 symboles" },
   "Total PnL": { ja: "総 PnL", ko: "총 PnL", es: "PnL total", fr: "PnL total" },
   "ranked symbol cumulative PnL lines": { ja: "順位付き銘柄累積 PnL ライン", ko: "순위별 종목 누적 PnL 라인", es: "líneas de PnL acumulado por símbolo clasificado", fr: "lignes de PnL cumulé par symbole classé" },
   "10 symbols": { ja: "10 銘柄", ko: "10개 종목", es: "10 símbolos", fr: "10 symboles" },
@@ -2077,22 +2079,12 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
   );
 }
 
-function SymbolPnlRankChart({ tr = defaultTr }: { tr?: Tr }) {
-  const groups = [
-    {
-      key: "top" as const,
-      title: tReport(tr, "Top 10 symbols by total PnL", "总 PnL 前 10 交易对"),
-      rows: topSymbolPnlRankRows,
-    },
-    {
-      key: "bottom" as const,
-      title: tReport(tr, "Bottom 10 symbols by total PnL", "总 PnL 后 10 交易对"),
-      rows: bottomSymbolPnlRankRows,
-    },
-  ];
-  const hasRows = groups.some(group => group.rows.length > 0);
+function SymbolPnlRankChart({ group, tr = defaultTr }: { group: SymbolPnlRankGroup; tr?: Tr }) {
+  const config = group === "top"
+    ? { title: tReport(tr, "Top 10 symbols by total PnL", "总 PnL 前 10 交易对"), rows: topSymbolPnlRankRows }
+    : { title: tReport(tr, "Bottom 10 symbols by total PnL", "总 PnL 后 10 交易对"), rows: bottomSymbolPnlRankRows };
 
-  if (!hasRows) {
+  if (config.rows.length === 0) {
     return (
       <ChartEmptyState
         message={tReport(tr, "No series to display", "暂无可展示序列")}
@@ -2103,15 +2095,25 @@ function SymbolPnlRankChart({ tr = defaultTr }: { tr?: Tr }) {
 
   return (
     <div className="oq-symbol-rank-chart">
-      {groups.map(group => (
-        <SymbolPnlRankPanel
-          key={group.key}
-          title={group.title}
-          rows={group.rows}
-          tr={tr}
-        />
-      ))}
+      <SymbolPnlRankPanel title={config.title} rows={config.rows} tr={tr} />
     </div>
+  );
+}
+
+function SymbolPnlRankSection({ tr = defaultTr }: { tr?: Tr }) {
+  const [activeGroup, setActiveGroup] = useState<SymbolPnlRankGroup>("top");
+  const options: Array<{ key: SymbolPnlRankGroup; label: string }> = [
+    { key: "top", label: tReport(tr, "Top 10 symbols", "前 10 交易对") },
+    { key: "bottom", label: tReport(tr, "Bottom 10 symbols", "后 10 交易对") },
+  ];
+  return (
+    <ReportCard
+      title={tReport(tr, "Single-Symbol PnL Rank", "单币种 PnL 排名")}
+      subtitle={tReport(tr, "ranked by total pnl", "按总 PnL 排序")}
+      headerActions={<div className="oq-attribution-switch" role="tablist" aria-label={tReport(tr, "Switch symbol PnL rank chart", "切换单币种 PnL 排名图表")}>{options.map(option => <button key={option.key} type="button" role="tab" aria-selected={activeGroup === option.key} onClick={() => setActiveGroup(option.key)}>{option.label}</button>)}</div>}
+    >
+      <SymbolPnlRankChart group={activeGroup} tr={tr} />
+    </ReportCard>
   );
 }
 
@@ -2322,10 +2324,6 @@ function SymbolPnlRankPanel({
       onMouseLeave={clearRankInteraction}
       onPointerLeave={clearRankInteraction}
     >
-      <div className="oq-symbol-rank-panel-head">
-        <h3>{title}</h3>
-        <span>{tReport(tr, "10 symbols", "10 个交易对")}</span>
-      </div>
       <div className="oq-symbol-rank-panel-body">
         <div className="oq-symbol-rank-plot">
           <svg
@@ -2874,52 +2872,57 @@ export function StrategyFigmaReport({
       <header className="oq-report-top">
         <div className="oq-report-title-block">
           <div className="oq-report-title-row">
-            {titleAction}
             <div className="oq-report-title-copy">
-              <h1>{title}</h1>
+              <div className="oq-report-title-line">
+                {titleAction}
+                <h1>{title}</h1>
+              </div>
               <p className="oq-report-title-meta">{subtitle}</p>
             </div>
             <div className="oq-report-head-controls">
-              <div
-                className="oq-report-date-select"
-                onBlur={event => {
-                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-                    setIsDateMenuOpen(false);
-                  }
-                }}
-              >
-                <button type="button" aria-haspopup="listbox" aria-expanded={isDateMenuOpen} onClick={() => setIsDateMenuOpen(prev => !prev)}>
-                  {selectedDateLabel}
-                  <span aria-hidden="true">⌄</span>
-                </button>
-                {isDateMenuOpen ? (
-                  <div className="oq-report-date-menu" role="listbox" aria-label={tReport(tr, "Select backtest period", "选择回测周期")}>
-                    {selectableDateOptions.map(option => (
-                      <button type="button" role="option" aria-selected={selectedDateLabel === option} key={option} onMouseDown={event => event.preventDefault()} onClick={() => { setSelectedDateLabel(option); setIsDateMenuOpen(false); }}>
-                        <span>{option}</span>
-                        {selectedDateLabel === option ? <strong>✓</strong> : null}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
               {actions ? <div className="oq-report-actions">{actions}</div> : null}
             </div>
           </div>
-          <div className="oq-report-metric-strip">
-            {headerMetrics.map(metric => (
-              <div
-                className="oq-report-metric"
-                data-tone={metric.tone}
-                key={metric.label}
-              >
-                <span>{metric.label}</span>
-                <strong>{metric.value}</strong>
-              </div>
-            ))}
-          </div>
         </div>
       </header>
+
+      <section className="oq-report-metric-panel" aria-label={tReport(tr, "Strategy summary metrics", "策略概览指标")}>
+        <div
+          className="oq-report-date-select"
+          onBlur={event => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              setIsDateMenuOpen(false);
+            }
+          }}
+        >
+          <button type="button" aria-haspopup="listbox" aria-expanded={isDateMenuOpen} onClick={() => setIsDateMenuOpen(prev => !prev)}>
+            {selectedDateLabel}
+            <span aria-hidden="true">⌄</span>
+          </button>
+          {isDateMenuOpen ? (
+            <div className="oq-report-date-menu" role="listbox" aria-label={tReport(tr, "Select backtest period", "选择回测周期")}>
+              {selectableDateOptions.map(option => (
+                <button type="button" role="option" aria-selected={selectedDateLabel === option} key={option} onMouseDown={event => event.preventDefault()} onClick={() => { setSelectedDateLabel(option); setIsDateMenuOpen(false); }}>
+                  <span>{option}</span>
+                  {selectedDateLabel === option ? <strong>✓</strong> : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="oq-report-metric-strip">
+          {headerMetrics.map(metric => (
+            <div
+              className="oq-report-metric"
+              data-tone={metric.tone}
+              key={metric.label}
+            >
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <ReportCard
         title={tReport(tr, "Portfolio NAV · Drawdown", "组合 NAV · 回撤")}
@@ -2953,12 +2956,7 @@ export function StrategyFigmaReport({
         <DenseLines count={denseSymbolCount} height={360} tr={tr} />
       </ReportCard>
 
-      <ReportCard
-        title={tReport(tr, "Single-Symbol PnL Rank", "单币种 PnL 排名")}
-        subtitle={tReport(tr, "ranked by total pnl", "按总 PnL 排序")}
-      >
-        <SymbolPnlRankChart tr={tr} />
-      </ReportCard>
+      <SymbolPnlRankSection tr={tr} />
 
       <AttributionSection tr={tr} />
 

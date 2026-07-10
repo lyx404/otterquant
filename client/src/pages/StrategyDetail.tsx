@@ -583,16 +583,12 @@ export default function StrategyDetail() {
     </>
   );
   const reportTitle = strategyId === "STR-465" ? "Overnight VRP" : strategyHeading;
-  const reportSubtitleText = strategyId === "STR-465"
-    ? tr("Volatility", "波动率")
-    : `${strategyName} · ${strategyId} · ${formatConfigDate(createdAt)}`;
   const reportNo = strategyId.replace(/^STR-/, "") || strategyId;
   const reportHash = "8ade81c02da14b73b656a13bd7fc4379";
   const reportCreatedDate = formatConfigDate(createdAt).split(" ")[0];
   const reportSubtitle = (
     <>
-      <span>{reportSubtitleText}</span>
-      <span>{tr("Created Time", "创建时间")} {reportCreatedDate}</span>
+      <span>{tr("Created on", "创建于")} {reportCreatedDate}</span>
       <span>{reportHash}</span>
     </>
   );

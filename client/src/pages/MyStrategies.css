@@ -89,7 +89,17 @@
   background: currentColor;
 }
 
+.oq-strategy-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
 .oq-strategy-create-row {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -196,6 +206,12 @@
   padding: 0;
 }
 
+.oq-strategy-form-field legend {
+  width: 100%;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
 .oq-strategy-form-field.is-wide {
   grid-column: 1 / -1;
 }
@@ -208,9 +224,10 @@
 .oq-strategy-form-control,
 .oq-strategy-segment-group button,
 .oq-strategy-layer-row button {
-  min-height: 42px;
+  height: 38px;
+  min-height: 38px;
   border: 0.75px solid var(--os-border-strong);
-  border-radius: 12px;
+  border-radius: 6px;
   background: var(--os-bg);
   color: var(--os-text-soft);
   font-family: var(--font-body);
@@ -241,8 +258,92 @@
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
+  border: 0;
+  border-radius: 0;
   color: var(--os-muted);
   text-align: left;
+}
+
+.oq-strategy-factor-selection {
+  display: grid;
+  overflow: hidden;
+  border: 0.75px solid var(--os-border-strong);
+  border-radius: 6px;
+  background: var(--os-bg);
+}
+
+.oq-strategy-factor-selection:focus-within {
+  border-color: var(--os-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--os-accent) 16%, transparent);
+}
+
+.oq-strategy-factor-selection.is-invalid {
+  border-color: color-mix(in srgb, var(--os-risk) 68%, var(--os-border-strong));
+  background: color-mix(in srgb, var(--os-risk) 4%, var(--os-bg));
+}
+
+.oq-strategy-factor-selection .oq-strategy-factor-picker:focus-visible {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.oq-strategy-factor-selection.has-selection .oq-strategy-factor-picker {
+  border-bottom: 0.75px solid var(--os-border);
+}
+
+.oq-strategy-factor-picker > span:first-of-type {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-strategy-factor-count {
+  margin-left: auto;
+  color: var(--os-accent);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-strategy-form-control.is-invalid {
+  border-color: color-mix(in srgb, var(--os-risk) 68%, var(--os-border-strong));
+  background: color-mix(in srgb, var(--os-risk) 4%, var(--os-bg));
+}
+
+.oq-strategy-factor-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+}
+
+.oq-strategy-factor-chips button {
+  display: inline-flex;
+  max-width: 220px;
+  min-height: 27px;
+  align-items: center;
+  gap: 6px;
+  border: 0.75px solid color-mix(in srgb, var(--os-accent) 30%, var(--os-border));
+  border-radius: 999px;
+  background: var(--os-bg-warm);
+  padding: 0 9px;
+  color: var(--os-accent);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.oq-strategy-factor-chips button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-strategy-field-error {
+  color: var(--os-risk);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 14px;
 }
 
 .oq-strategy-segment-group {
@@ -271,10 +372,110 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--os-accent) 18%, transparent);
 }
 
+.oq-strategy-weight-editor {
+  display: grid;
+  gap: 8px;
+  border: 0.75px solid var(--os-border);
+  border-radius: 12px;
+  background: var(--os-bg);
+  padding: 10px;
+}
+
+.oq-strategy-weight-editor > p {
+  margin: 0;
+  padding: 5px 2px;
+  color: var(--os-muted);
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+.oq-strategy-weight-editor > label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  align-items: center;
+  gap: 10px;
+  min-height: 42px;
+  border-bottom: 0.75px solid var(--os-border);
+  padding: 0 2px 8px;
+}
+
+.oq-strategy-weight-editor > label > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.oq-strategy-weight-editor > label strong {
+  overflow: hidden;
+  color: var(--os-text-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-strategy-weight-editor > label small {
+  color: var(--os-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8.5px;
+  font-weight: 500;
+}
+
+.oq-strategy-weight-editor input {
+  width: 100%;
+  height: 32px;
+  border: 0.75px solid var(--os-border-strong);
+  border-radius: 8px;
+  background: var(--os-bg-soft);
+  padding: 0 10px;
+  color: var(--os-text);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.oq-strategy-weight-editor input:focus-visible {
+  border-color: var(--os-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--os-accent) 12%, transparent);
+}
+
+.oq-strategy-weight-total {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--os-muted);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+.oq-strategy-weight-total strong {
+  color: var(--os-text);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.oq-strategy-weight-total small {
+  font-size: 9px;
+}
+
+.oq-strategy-weight-total.is-valid small {
+  color: var(--os-success);
+}
+
+.oq-strategy-weight-total.is-invalid small {
+  color: var(--os-risk);
+}
+
 .oq-strategy-layer-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 64px 64px;
+  grid-template-columns: calc((100% - 12px) / 2) 64px 64px;
   gap: 10px;
+}
+
+.oq-strategy-create-form > label.oq-strategy-form-field.is-wide > .oq-strategy-form-control {
+  width: calc((100% - 12px) / 2);
 }
 
 .oq-strategy-create-actions {
@@ -282,8 +483,10 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+  margin: 0 -20px -20px;
   border-top: 0.75px solid var(--os-border);
-  padding-top: 14px;
+  background: var(--os-bg);
+  padding: 14px 20px 20px;
 }
 
 .oq-strategy-form-secondary {
@@ -299,6 +502,280 @@
   color: var(--os-accent);
 }
 
+.oq-strategy-factor-dialog {
+  --os-bg: #ffffff;
+  --os-bg-soft: #faf8f6;
+  --os-bg-warm: #fff6ef;
+  --os-border: #ece6df;
+  --os-border-strong: #e2dad0;
+  --os-text: #0d0d0d;
+  --os-text-soft: #4a443d;
+  --os-muted: #8c8378;
+  --os-accent: #dc4900;
+  overflow: hidden;
+  width: min(780px, calc(100vw - 32px));
+  max-width: min(780px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  background: var(--os-bg);
+  color: var(--os-text);
+  font-family: var(--font-body);
+}
+
+.oq-strategy-factor-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 0.75px solid var(--os-border);
+  padding: 18px 20px 16px;
+}
+
+.oq-strategy-factor-dialog-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.oq-strategy-factor-dialog-head h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 22px;
+}
+
+.oq-strategy-factor-dialog-head p {
+  margin: 0;
+  color: var(--os-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.oq-strategy-factor-dialog-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 0.75px solid var(--os-border);
+  background: var(--os-bg-soft);
+  padding: 12px 20px;
+}
+
+.oq-strategy-factor-source-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  border: 0.75px solid var(--os-border);
+  border-radius: 9px;
+  background: var(--os-bg);
+  padding: 3px;
+}
+
+.oq-strategy-factor-source-tabs button {
+  display: inline-flex;
+  min-height: 29px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--os-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.oq-strategy-factor-source-tabs button span {
+  color: currentColor;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8.5px;
+  opacity: 0.72;
+}
+
+.oq-strategy-factor-source-tabs button.is-active {
+  background: var(--os-text);
+  color: #ffffff;
+}
+
+.oq-strategy-factor-search {
+  display: grid;
+  width: min(280px, 42vw);
+  min-height: 36px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border: 0.75px solid var(--os-border-strong);
+  border-radius: 9px;
+  background: var(--os-bg);
+  padding: 0 10px;
+  color: var(--os-muted);
+}
+
+.oq-strategy-factor-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--os-text);
+  font-size: 10.5px;
+  outline: none;
+}
+
+.oq-strategy-factor-search input::placeholder {
+  color: var(--os-muted);
+}
+
+.oq-strategy-factor-browser {
+  display: grid;
+  min-height: 330px;
+  max-height: min(430px, calc(100vh - 264px));
+  grid-template-columns: 154px minmax(0, 1fr);
+  background: var(--os-bg);
+}
+
+.oq-strategy-factor-browser aside {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  overflow-y: auto;
+  border-right: 0.75px solid var(--os-border);
+  background: var(--os-bg-soft);
+  padding: 12px 10px;
+}
+
+.oq-strategy-factor-browser aside button {
+  min-height: 32px;
+  border-radius: 7px;
+  padding: 0 9px;
+  color: var(--os-muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  text-align: left;
+}
+
+.oq-strategy-factor-browser aside button:hover,
+.oq-strategy-factor-browser aside button.is-active {
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+}
+
+.oq-strategy-factor-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.oq-strategy-factor-list > button {
+  display: grid;
+  min-height: 61px;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 0.75px solid var(--os-border);
+  border-radius: 10px;
+  background: var(--os-bg);
+  padding: 9px 12px;
+  text-align: left;
+  transition:
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-strategy-factor-list > button:hover:not(:disabled),
+.oq-strategy-factor-list > button.is-selected {
+  border-color: color-mix(in srgb, var(--os-accent) 45%, var(--os-border));
+  background: var(--os-bg-warm);
+}
+
+.oq-strategy-factor-list > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.oq-strategy-factor-check {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border: 0.75px solid var(--os-border-strong);
+  border-radius: 5px;
+  background: var(--os-bg);
+  color: #ffffff;
+}
+
+.oq-strategy-factor-list > button.is-selected .oq-strategy-factor-check {
+  border-color: var(--os-accent);
+  background: var(--os-accent);
+}
+
+.oq-strategy-factor-card-copy,
+.oq-strategy-factor-metric {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.oq-strategy-factor-card-copy strong {
+  overflow: hidden;
+  color: var(--os-text);
+  font-size: 11px;
+  font-weight: 720;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-strategy-factor-card-copy small,
+.oq-strategy-factor-metric small {
+  color: var(--os-muted);
+  font-size: 8.5px;
+  font-weight: 500;
+}
+
+.oq-strategy-factor-metric {
+  justify-items: end;
+}
+
+.oq-strategy-factor-metric strong {
+  color: var(--os-text-soft);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-strategy-factor-empty {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  color: var(--os-muted);
+  font-size: 10.5px;
+}
+
+.oq-strategy-factor-dialog-footer {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 0.75px solid var(--os-border);
+  background: var(--os-bg-soft);
+  padding: 10px 20px;
+}
+
+.oq-strategy-factor-dialog-footer > span {
+  color: var(--os-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.oq-strategy-factor-dialog-footer > button {
+  min-height: 32px;
+  border-radius: 999px;
+  background: var(--os-accent);
+  padding: 0 14px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
 .oq-strategy-download {
   min-height: 24px;
   gap: 7px;
@@ -310,11 +787,13 @@
 }
 
 .oq-strategy-toolbar {
-  display: flex;
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
   min-height: 26px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  gap: 8px;
 }
 
 .oq-strategy-toolbar-left,
@@ -339,6 +818,7 @@
 .oq-strategy-compare-note {
   color: var(--os-muted);
   font-size: 9.375px;
+  padding-left: 2px;
 }
 
 .oq-strategy-compare-note strong {
@@ -407,9 +887,22 @@
 }
 
 .oq-strategy-table-row {
+  position: relative;
   min-height: 42.75px;
   border-bottom: 0.75px solid var(--os-border);
   background: var(--os-bg);
+}
+
+.oq-strategy-row-link {
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 0 48px;
+  cursor: pointer;
+  outline: none;
+}
+
+.oq-strategy-row-link:focus-visible {
+  box-shadow: inset 0 0 0 2px #2a6fdb;
 }
 
 .oq-strategy-table-row:last-child {
@@ -424,7 +917,13 @@
   background: var(--os-bg-warm);
 }
 
+.oq-strategy-table-row.is-pending {
+  background: var(--os-bg);
+}
+
 .oq-strategy-check {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   width: 15px;
   height: 15px;
@@ -440,6 +939,11 @@
 .oq-strategy-check.is-checked {
   border-color: var(--os-text);
   background: var(--os-text);
+}
+
+.oq-strategy-check:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .oq-strategy-name-cell {
@@ -493,6 +997,13 @@
   height: 26px;
 }
 
+.oq-strategy-sparkline.is-pending {
+  height: 2px;
+  align-self: center;
+  border-radius: 999px;
+  background: var(--os-border-strong);
+}
+
 .oq-strategy-status {
   display: inline-flex;
   width: max-content;
@@ -515,12 +1026,22 @@
   color: #6b635a;
 }
 
+.oq-strategy-status.is-pending {
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+}
+
 .oq-strategy-view-link {
   justify-self: end;
   padding-right: 16px;
   color: var(--os-text-soft);
   font-size: 9.375px;
   font-weight: 600;
+}
+
+.oq-strategy-view-link.is-disabled {
+  color: var(--os-muted);
+  opacity: 0.55;
 }
 
 .oq-strategy-table-pagination {
@@ -752,7 +1273,13 @@
     justify-self: start;
   }
 
+  .oq-strategy-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .oq-strategy-create-row {
+    grid-column: 1;
+    grid-row: auto;
     justify-content: flex-start;
   }
 
@@ -760,13 +1287,18 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .oq-strategy-form-field {
+    grid-column: 1 / -1;
+  }
+
   .oq-strategy-segment-group.is-three {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .oq-strategy-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
+    grid-column: 1;
+    grid-row: auto;
+    gap: 8px;
   }
 
   .oq-strategy-table-card,
@@ -789,5 +1321,83 @@
 
   .oq-strategy-compare-grid.is-single {
     min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .oq-strategy-create-dialog,
+  .oq-strategy-factor-dialog {
+    width: calc(100vw - 20px);
+    max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+
+  .oq-strategy-create-form,
+  .oq-strategy-create-dialog-head {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .oq-strategy-create-actions {
+    margin-right: -14px;
+    margin-left: -14px;
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .oq-strategy-segment-group.is-three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .oq-strategy-layer-row {
+    grid-template-columns: calc((100% - 12px) / 2) 52px 52px;
+    gap: 7px;
+  }
+
+  .oq-strategy-factor-dialog-tools {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 10px 14px;
+  }
+
+  .oq-strategy-factor-source-tabs,
+  .oq-strategy-factor-search {
+    width: 100%;
+  }
+
+  .oq-strategy-factor-browser {
+    min-height: 360px;
+    max-height: calc(100vh - 290px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .oq-strategy-factor-browser aside {
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: 0;
+    border-bottom: 0.75px solid var(--os-border);
+    padding: 8px 10px;
+  }
+
+  .oq-strategy-factor-browser aside button {
+    flex: 0 0 auto;
+    padding: 0 10px;
+  }
+
+  .oq-strategy-factor-dialog-footer,
+  .oq-strategy-factor-dialog-head {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .oq-strategy-factor-list > button {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+
+  .oq-strategy-factor-metric {
+    display: none;
   }
 }

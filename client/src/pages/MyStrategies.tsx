@@ -24,9 +24,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { strategies } from "@/lib/mockData";
+import { factors, strategies, submissions, type Factor } from "@/lib/mockData";
 import { buildSeries, parsePercent } from "@/lib/strategyUtils";
 import { type UiLang, useAppLanguage } from "@/contexts/AppLanguageContext";
+import { toast } from "sonner";
 import {
   ArrowUpDown,
   ArrowUpRight,
@@ -49,6 +50,7 @@ import {
   SlidersHorizontal,
   Star,
   Trash2,
+  X,
 } from "lucide-react";
 import "./MyStrategies.css";
 
@@ -61,6 +63,46 @@ type ExecutionMode = "paper" | "live" | "idle";
 type StrategyWeightMode = "equal" | "custom";
 type StrategyDirection = "long" | "short" | "neutral";
 type StrategyLayerUnit = "N" | "percent";
+type StrategyFactorSource = "official" | "my";
+
+const MAX_STRATEGY_FACTOR_COUNT = 5;
+
+function buildStrategyDefaultWeights(factorIds: string[]) {
+  if (factorIds.length === 0) return {} as Record<string, string>;
+
+  const base = Math.floor(100 / factorIds.length);
+  const remainder = 100 - base * factorIds.length;
+  return factorIds.reduce<Record<string, string>>((weights, factorId, index) => {
+    weights[factorId] = ((base + (index < remainder ? 1 : 0)) / 100).toFixed(2);
+    return weights;
+  }, {});
+}
+
+function normalizeStrategyWeightInput(input: string) {
+  const sanitized = input.replace(/[^\d.]/g, "");
+  const dotIndex = sanitized.indexOf(".");
+  if (dotIndex === -1) return sanitized;
+  const integerPart = sanitized.slice(0, dotIndex);
+  const decimalPart = sanitized.slice(dotIndex + 1).replace(/\./g, "").slice(0, 2);
+  return `${integerPart}.${decimalPart}`;
+}
+
+function formatStrategyFactorId(factorId: string) {
+  return factorId.replace(/^AF-/, "NO.");
+}
+
+function getStrategyFactorTagLabel(tag: string, tr: (en: string, zh: string) => string) {
+  const labels: Record<string, string> = {
+    ALL: "全部",
+    MOMENTUM: "动量",
+    VOLUME: "成交量",
+    ARBITRAGE: "套利",
+    DERIVATIVES: "衍生品",
+    "RISK-ADJUSTED": "风险调整",
+    "ON-CHAIN": "链上",
+  };
+  return tr(tag === "ALL" ? "All" : tag, labels[tag] ?? tag);
+}
 
 interface StrategyViewRow {
   id: string;
@@ -74,12 +116,40 @@ interface StrategyViewRow {
   winRate: string;
   sharpe: string;
   maxDrawdown: string;
+  backtestStatus?: "pending" | "ready";
 }
 
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 const DELETED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:deleted-strategies";
+const CREATED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:created-strategies";
+const STRATEGY_BACKTEST_DURATION_MS = 3.5 * 60 * 1000;
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
+
+interface CreatedStrategyRecord {
+  id: string;
+  name: string;
+  createdAt: string;
+  readyAt: number;
+}
+
+function readCreatedStrategyRecords(): CreatedStrategyRecord[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(CREATED_STRATEGIES_STORAGE_KEY) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (record): record is CreatedStrategyRecord =>
+        typeof record?.id === "string" &&
+        typeof record?.name === "string" &&
+        typeof record?.createdAt === "string" &&
+        typeof record?.readyAt === "number"
+    );
+  } catch {
+    return [];
+  }
+}
 
 function readChartColorMode(): ChartColorMode {
   if (typeof window === "undefined") return "greenUpRedDown";
@@ -381,7 +451,19 @@ function toStrategyViewRow(index: number): StrategyViewRow {
 
 const strategyRows: StrategyViewRow[] = Array.from({ length: 20 }, (_, index) => toStrategyViewRow(index));
 
-const workbenchSamples = [
+type WorkbenchStatus = "running" | "paused" | "pending";
+
+interface WorkbenchMeta {
+  title: string;
+  category: string;
+  sharpe: string;
+  rankIc: string;
+  maxDd: string;
+  turn: string;
+  status: WorkbenchStatus;
+}
+
+const workbenchSamples: WorkbenchMeta[] = [
   { title: "Smooth Momentum Quality", category: "Momentum", sharpe: "1.64", rankIc: "0.041", maxDd: "-8.2%", turn: "31%", status: "running" },
   { title: "Funding Crowding Fade", category: "Funding", sharpe: "1.22", rankIc: "0.031", maxDd: "-11.4%", turn: "68%", status: "paused" },
   { title: "Overnight VRP", category: "Volatility", sharpe: "1.41", rankIc: "0.052", maxDd: "-9.9%", turn: "140%", status: "running" },
@@ -392,7 +474,7 @@ const workbenchSamples = [
   { title: "Overnight VRP", category: "Volatility", sharpe: "0.88", rankIc: "0.022", maxDd: "-12.1%", turn: "118%", status: "running" },
 ];
 
-function getWorkbenchMeta(index: number) {
+function getWorkbenchMeta(index: number): WorkbenchMeta {
   return workbenchSamples[index % workbenchSamples.length];
 }
 
@@ -402,7 +484,37 @@ function getStrategyRowIndex(row: StrategyViewRow) {
 }
 
 function getWorkbenchMetaForRow(row: StrategyViewRow) {
+  if (row.backtestStatus) {
+    const pending = row.backtestStatus === "pending";
+    return {
+      title: row.name,
+      category: "Composite",
+      sharpe: pending ? "—" : "1.18",
+      rankIc: pending ? "—" : "0.036",
+      maxDd: pending ? "—" : "-7.6%",
+      turn: pending ? "—" : "48%",
+      status: pending ? "pending" : "running",
+    } satisfies WorkbenchMeta;
+  }
   return getWorkbenchMeta(getStrategyRowIndex(row));
+}
+
+function toCreatedStrategyViewRow(record: CreatedStrategyRecord, now: number): StrategyViewRow {
+  const pending = now < record.readyAt;
+  return {
+    id: record.id,
+    name: record.name,
+    description: "Composite strategy created from selected factors.",
+    updatedAt: record.createdAt,
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: pending ? "—" : "12.8%",
+    winRate: pending ? "—" : "58.2%",
+    sharpe: pending ? "—" : "1.18",
+    maxDrawdown: pending ? "—" : "-7.6%",
+    backtestStatus: pending ? "pending" : "ready",
+  };
 }
 
 function getWorkbenchSortValue(row: StrategyViewRow, key: SortKey) {
@@ -582,15 +694,85 @@ function MetricBox({
 function CreateStrategyComposer({
   tr,
   onClose,
+  onCreate,
 }: {
   tr: (en: string, zh: string) => string;
   onClose: () => void;
+  onCreate: (name: string) => void;
 }) {
+  const [selectedFactorIds, setSelectedFactorIds] = useState<string[]>([]);
   const [weightMode, setWeightMode] = useState<StrategyWeightMode>("equal");
+  const [customWeights, setCustomWeights] = useState<Record<string, string>>({});
   const [direction, setDirection] = useState<StrategyDirection>("neutral");
   const [layerUnit, setLayerUnit] = useState<StrategyLayerUnit>("percent");
   const [layerValue, setLayerValue] = useState("10");
   const [strategyName, setStrategyName] = useState("BTC Alpha Composite");
+  const [factorPickerOpen, setFactorPickerOpen] = useState(false);
+  const [factorSource, setFactorSource] = useState<StrategyFactorSource>("official");
+  const [factorQuery, setFactorQuery] = useState("");
+  const [factorCategory, setFactorCategory] = useState("ALL");
+  const [showValidation, setShowValidation] = useState(false);
+
+  const officialFactors = useMemo(
+    () => factors.filter((factor) => factor.category === "official" || factor.category === "graduated"),
+    []
+  );
+  const myFactors = useMemo(() => {
+    const submittedFactorIds = new Set(submissions.map((submission) => submission.factorId));
+    return factors.filter((factor) => submittedFactorIds.has(factor.id));
+  }, []);
+  const sourceFactors = factorSource === "official" ? officialFactors : myFactors;
+  const factorCategories = useMemo(
+    () => ["ALL", ...Array.from(new Set(sourceFactors.map((factor) => factor.tag || "OTHER")))],
+    [sourceFactors]
+  );
+  const filteredFactors = useMemo(() => {
+    const keyword = factorQuery.trim().toLowerCase();
+    return sourceFactors.filter((factor) => {
+      const matchesCategory = factorCategory === "ALL" || factor.tag === factorCategory;
+      const matchesQuery =
+        !keyword ||
+        factor.name.toLowerCase().includes(keyword) ||
+        factor.id.toLowerCase().includes(keyword) ||
+        (factor.tag || "").toLowerCase().includes(keyword);
+      return matchesCategory && matchesQuery;
+    });
+  }, [factorCategory, factorQuery, sourceFactors]);
+  const selectedFactors = useMemo(
+    () =>
+      selectedFactorIds
+        .map((factorId) => factors.find((factor) => factor.id === factorId))
+        .filter((factor): factor is Factor => Boolean(factor)),
+    [selectedFactorIds]
+  );
+  const weightSum = useMemo(
+    () => selectedFactorIds.reduce((sum, factorId) => sum + Number(customWeights[factorId] || 0), 0),
+    [customWeights, selectedFactorIds]
+  );
+  const customWeightValid = weightMode === "equal" || Math.abs(weightSum - 1) <= 0.0001;
+  const layerNumber = Number(layerValue);
+  const layerValueValid =
+    Number.isFinite(layerNumber) &&
+    layerNumber > 0 &&
+    (layerUnit === "percent" ? layerNumber <= 50 : Number.isInteger(layerNumber));
+
+  useEffect(() => {
+    if (weightMode !== "custom") return;
+    setCustomWeights(buildStrategyDefaultWeights(selectedFactorIds));
+  }, [selectedFactorIds, weightMode]);
+
+  const toggleFactor = (factorId: string) => {
+    setSelectedFactorIds((current) => {
+      if (current.includes(factorId)) return current.filter((id) => id !== factorId);
+      if (current.length >= MAX_STRATEGY_FACTOR_COUNT) return current;
+      return [...current, factorId];
+    });
+  };
+
+  const changeFactorSource = (source: StrategyFactorSource) => {
+    setFactorSource(source);
+    setFactorCategory("ALL");
+  };
 
   const weightOptions: Array<{ key: StrategyWeightMode; label: string }> = [
     { key: "equal", label: tr("Equal weight", "等权重") },
@@ -611,6 +793,16 @@ function CreateStrategyComposer({
       className="oq-strategy-create-form"
       onSubmit={(event) => {
         event.preventDefault();
+        setShowValidation(true);
+        if (selectedFactorIds.length === 0 || !customWeightValid || !layerValueValid) return;
+        const createdStrategyName = strategyName.trim() || tr("Untitled strategy", "未命名策略");
+        onCreate(createdStrategyName);
+        toast.success(
+          tr(
+            `${createdStrategyName} submitted. Backtesting takes about 3–4 minutes.`,
+            `${createdStrategyName} 已提交，回测预计需要 3–4 分钟。`
+          )
+        );
         onClose();
       }}
     >
@@ -619,10 +811,48 @@ function CreateStrategyComposer({
           {tr("Factor selection", "因子选择")}
           <b>*</b>
         </span>
-        <button type="button" className="oq-strategy-form-control oq-strategy-factor-picker">
-          <Search className="h-3.5 w-3.5" />
-          {tr("Choose factors from official library or my factors.", "点击从官方库或我的因子中选择因子。")}
-        </button>
+        <div
+          className={`oq-strategy-factor-selection ${selectedFactors.length > 0 ? "has-selection" : ""} ${
+            showValidation && selectedFactorIds.length === 0 ? "is-invalid" : ""
+          }`}
+        >
+          <button
+            type="button"
+            className="oq-strategy-form-control oq-strategy-factor-picker"
+            onClick={() => setFactorPickerOpen(true)}
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>
+              {selectedFactorIds.length > 0
+                ? tr(
+                    `${selectedFactorIds.length} factors selected. Click to continue selecting.`,
+                    `已选择 ${selectedFactorIds.length} 个因子，点击继续选择。`
+                  )
+                : tr("Choose factors from official library or my factors.", "点击从官方库或我的因子中选择因子。")}
+            </span>
+            <span className="oq-strategy-factor-count">
+              {selectedFactorIds.length}/{MAX_STRATEGY_FACTOR_COUNT}
+            </span>
+          </button>
+          {selectedFactors.length > 0 ? (
+            <div className="oq-strategy-factor-chips">
+              {selectedFactors.map((factor) => (
+                <button
+                  key={factor.id}
+                  type="button"
+                  onClick={() => toggleFactor(factor.id)}
+                  aria-label={tr(`Remove ${factor.name}`, `移除 ${factor.name}`)}
+                >
+                  <span>{factor.name}</span>
+                  <X className="h-3 w-3" />
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        {showValidation && selectedFactorIds.length === 0 ? (
+          <small className="oq-strategy-field-error">{tr("Select at least one factor.", "请至少选择一个因子。")}</small>
+        ) : null}
       </div>
 
       <fieldset className="oq-strategy-form-field is-wide">
@@ -643,6 +873,43 @@ function CreateStrategyComposer({
             </button>
           ))}
         </div>
+        {weightMode === "custom" ? (
+          <div className="oq-strategy-weight-editor">
+            {selectedFactors.length > 0 ? (
+              selectedFactors.map((factor) => (
+                <label key={factor.id}>
+                  <span>
+                    <strong>{factor.name}</strong>
+                    <small>{formatStrategyFactorId(factor.id)}</small>
+                  </span>
+                  <input
+                    value={customWeights[factor.id] ?? ""}
+                    inputMode="decimal"
+                    onChange={(event) =>
+                      setCustomWeights((current) => ({
+                        ...current,
+                        [factor.id]: normalizeStrategyWeightInput(event.target.value),
+                      }))
+                    }
+                    aria-label={tr(`${factor.name} weight`, `${factor.name} 权重`)}
+                  />
+                </label>
+              ))
+            ) : (
+              <p>{tr("Select factors before setting custom weights.", "请先选择因子，再设置自定义权重。")}</p>
+            )}
+            {selectedFactors.length > 0 ? (
+              <div className={`oq-strategy-weight-total ${customWeightValid ? "is-valid" : "is-invalid"}`}>
+                <span>{tr("Weight total", "权重总和")}</span>
+                <strong>{weightSum.toFixed(2)}</strong>
+                <small>{customWeightValid ? tr("Valid", "有效") : tr("Must equal 1.00", "必须等于 1.00")}</small>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        {showValidation && !customWeightValid ? (
+          <small className="oq-strategy-field-error">{tr("Custom weights must total 1.00.", "自定义权重总和必须为 1.00。")}</small>
+        ) : null}
       </fieldset>
 
       <fieldset className="oq-strategy-form-field is-wide">
@@ -665,16 +932,16 @@ function CreateStrategyComposer({
         </div>
       </fieldset>
 
-      <div className="oq-strategy-form-field">
+      <div className="oq-strategy-form-field is-wide">
         <span>
           {tr("Head/tail grouping rule", "头尾分层规则")}
           <b>*</b>
         </span>
         <div className="oq-strategy-layer-row">
           <input
-            className="oq-strategy-form-control"
+            className={`oq-strategy-form-control ${showValidation && !layerValueValid ? "is-invalid" : ""}`}
             value={layerValue}
-            inputMode="numeric"
+            inputMode="decimal"
             onChange={(event) => setLayerValue(event.target.value.replace(/[^\d.]/g, ""))}
             aria-label={tr("Head/tail grouping value", "头尾分层数值")}
           />
@@ -690,9 +957,16 @@ function CreateStrategyComposer({
             </button>
           ))}
         </div>
+        {showValidation && !layerValueValid ? (
+          <small className="oq-strategy-field-error">
+            {layerUnit === "percent"
+              ? tr("Enter a percentage from 0 to 50.", "请输入大于 0 且不超过 50 的百分比。")
+              : tr("Enter a positive integer.", "请输入正整数。")}
+          </small>
+        ) : null}
       </div>
 
-      <label className="oq-strategy-form-field">
+      <label className="oq-strategy-form-field is-wide">
         <span>{tr("Strategy name", "策略名称")}</span>
         <input
           className="oq-strategy-form-control"
@@ -709,6 +983,116 @@ function CreateStrategyComposer({
           {tr("Create strategy", "创建策略")}
         </button>
       </div>
+
+      <Dialog
+        open={factorPickerOpen}
+        onOpenChange={(open) => {
+          setFactorPickerOpen(open);
+          if (!open) setFactorQuery("");
+        }}
+      >
+        <DialogContent className="oq-strategy-factor-dialog gap-0 rounded-2xl border-0 p-0 shadow-2xl">
+          <div className="oq-strategy-factor-dialog-head">
+            <div>
+              <DialogTitle>{tr("Select factors", "选择因子")}</DialogTitle>
+              <p>
+                {tr(
+                  `Choose up to ${MAX_STRATEGY_FACTOR_COUNT} factors from the official library or your factors.`,
+                  `从官方库或我的因子中选择，最多 ${MAX_STRATEGY_FACTOR_COUNT} 个。`
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="oq-strategy-factor-dialog-tools">
+            <div className="oq-strategy-factor-source-tabs">
+              {([
+                { key: "official", label: tr("Official library", "官方库"), count: officialFactors.length },
+                { key: "my", label: tr("My factors", "我的因子"), count: myFactors.length },
+              ] as Array<{ key: StrategyFactorSource; label: string; count: number }>).map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  className={factorSource === item.key ? "is-active" : ""}
+                  onClick={() => changeFactorSource(item.key)}
+                >
+                  {item.label}
+                  <span>{item.count}</span>
+                </button>
+              ))}
+            </div>
+            <label className="oq-strategy-factor-search">
+              <Search className="h-3.5 w-3.5" />
+              <input
+                value={factorQuery}
+                onChange={(event) => setFactorQuery(event.target.value)}
+                placeholder={tr("Search name, ID or tag", "搜索名称、ID 或标签")}
+              />
+            </label>
+          </div>
+
+          <div className="oq-strategy-factor-browser">
+            <aside>
+              {factorCategories.map((category) => (
+                <button
+                  key={category}
+                  type="button"
+                  className={factorCategory === category ? "is-active" : ""}
+                  onClick={() => setFactorCategory(category)}
+                >
+                  {getStrategyFactorTagLabel(category, tr)}
+                </button>
+              ))}
+            </aside>
+            <div className="oq-strategy-factor-list">
+              {filteredFactors.length > 0 ? (
+                filteredFactors.map((factor) => {
+                  const selected = selectedFactorIds.includes(factor.id);
+                  const reachedLimit = !selected && selectedFactorIds.length >= MAX_STRATEGY_FACTOR_COUNT;
+                  return (
+                    <button
+                      key={`${factorSource}-${factor.id}`}
+                      type="button"
+                      className={selected ? "is-selected" : ""}
+                      disabled={reachedLimit}
+                      onClick={() => toggleFactor(factor.id)}
+                    >
+                      <span className="oq-strategy-factor-check">
+                        {selected ? <Check className="h-3 w-3" /> : null}
+                      </span>
+                      <span className="oq-strategy-factor-card-copy">
+                        <strong>{factor.name}</strong>
+                        <small>
+                          {formatStrategyFactorId(factor.id)} · {getStrategyFactorTagLabel(factor.tag || "OTHER", tr)}
+                        </small>
+                      </span>
+                      <span className="oq-strategy-factor-metric">
+                        <small>{tr("OOS Sharpe", "样本外夏普")}</small>
+                        <strong>{factor.osSharpe.toFixed(2)}</strong>
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="oq-strategy-factor-empty">
+                  {tr("No factors match the current filter.", "没有符合当前筛选条件的因子。")}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="oq-strategy-factor-dialog-footer">
+            <span>
+              {selectedFactorIds.length === 0
+                ? tr("No factors selected", "尚未选择因子")
+                : tr(`${selectedFactorIds.length} factors selected`, `已选择 ${selectedFactorIds.length} 个因子`)}
+            </span>
+            <button type="button" onClick={() => setFactorPickerOpen(false)}>
+              {tr("Done", "完成")}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </form>
   );
 }
@@ -858,6 +1242,8 @@ export default function MyStrategies() {
   const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
   const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
   const [showCreateStrategy, setShowCreateStrategy] = useState(false);
+  const [createdStrategies, setCreatedStrategies] = useState<CreatedStrategyRecord[]>(() => readCreatedStrategyRecords());
+  const [backtestClock, setBacktestClock] = useState(() => Date.now());
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
@@ -913,9 +1299,33 @@ export default function MyStrategies() {
     window.localStorage.setItem(DELETED_STRATEGIES_STORAGE_KEY, JSON.stringify(Array.from(deletedStrategyIds)));
   }, [deletedStrategyIds]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(CREATED_STRATEGIES_STORAGE_KEY, JSON.stringify(createdStrategies));
+  }, [createdStrategies]);
+
+  useEffect(() => {
+    const now = Date.now();
+    const nextReadyAt = createdStrategies.reduce<number | null>((next, strategy) => {
+      if (strategy.readyAt <= now) return next;
+      return next === null ? strategy.readyAt : Math.min(next, strategy.readyAt);
+    }, null);
+
+    if (nextReadyAt === null) return;
+    const timeout = window.setTimeout(
+      () => setBacktestClock(Date.now()),
+      Math.max(0, nextReadyAt - now + 50)
+    );
+    return () => window.clearTimeout(timeout);
+  }, [backtestClock, createdStrategies]);
+
   const activeStrategyRows = useMemo(
-    () => strategyRows.filter((row) => !deletedStrategyIds.has(row.id)),
-    [deletedStrategyIds]
+    () =>
+      [
+        ...createdStrategies.map((strategy) => toCreatedStrategyViewRow(strategy, backtestClock)),
+        ...strategyRows,
+      ].filter((row) => !deletedStrategyIds.has(row.id)),
+    [backtestClock, createdStrategies, deletedStrategyIds]
   );
 
   const filtered = useMemo(() => {
@@ -990,6 +1400,27 @@ export default function MyStrategies() {
       else next.add(strategyId);
       return next;
     });
+  };
+
+  const createPendingStrategy = (name: string) => {
+    const createdAt = new Date();
+    setCreatedStrategies((current) => {
+      const nextId = Math.max(
+        482,
+        ...current.map((strategy) => Number(strategy.id.replace("STR-", "")) || 0)
+      ) + 1;
+      return [
+        {
+          id: `STR-${nextId}`,
+          name,
+          createdAt: createdAt.toISOString(),
+          readyAt: createdAt.getTime() + STRATEGY_BACKTEST_DURATION_MS,
+        },
+        ...current,
+      ];
+    });
+    setBacktestClock(createdAt.getTime());
+    setPage(1);
   };
 
   const confirmDeleteStrategy = () => {
@@ -1069,15 +1500,16 @@ export default function MyStrategies() {
           <span className="oq-strategy-live-pill"><span />Live</span>
         </section>
 
-        <div className="oq-strategy-create-row">
-          <button type="button" className="oq-strategy-create-button" onClick={() => setShowCreateStrategy(true)}>
-            <Plus className="h-3.5 w-3.5" />
-            {tr("Create strategy", "创建策略")}
-          </button>
-        </div>
+        <div className="oq-strategy-controls">
+          <div className="oq-strategy-create-row">
+            <button type="button" className="oq-strategy-create-button" onClick={() => setShowCreateStrategy(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              {tr("Create strategy", "创建策略")}
+            </button>
+          </div>
 
-        <section className="oq-strategy-toolbar">
-          <div className="oq-strategy-toolbar-left">
+          <section className="oq-strategy-toolbar">
+            <div className="oq-strategy-toolbar-left">
             <div className="relative" ref={filterMenuRef}>
               <button type="button" className="oq-strategy-pill-button" onClick={() => { setShowFilterMenu((prev) => !prev); setShowSortMenu(false); }}>
                 <span>{strategyFilter === "favorites" ? tr("My Favorites", "我的收藏") : tr("All", "全部")}</span>
@@ -1119,13 +1551,14 @@ export default function MyStrategies() {
               <Download className="h-3.5 w-3.5" />
               {tr("Download all (.zip)", "下载全部（.zip）")}
             </button>
-          </div>
-          <div className="oq-strategy-compare-note">
-            <GitCompareArrows className="h-3.5 w-3.5" />
-            <span>{tr("Tick rows to compare ·", "勾选行以比较 ·")}</span>
-            <strong>{tr(`${selectedStrategyIds.size} selected`, `已选 ${selectedStrategyIds.size} 个`)}</strong>
-          </div>
-        </section>
+            </div>
+            <div className="oq-strategy-compare-note">
+              <GitCompareArrows className="h-3.5 w-3.5" />
+              <span>{tr("Tick rows to compare ·", "勾选行以比较 ·")}</span>
+              <strong>{tr(`${selectedStrategyIds.size} selected`, `已选 ${selectedStrategyIds.size} 个`)}</strong>
+            </div>
+          </section>
+        </div>
 
         <section className="oq-strategy-table-card">
           <div className="oq-strategy-table-head oq-strategy-table-grid">
@@ -1142,11 +1575,19 @@ export default function MyStrategies() {
           {workbenchRows.map((row, index) => {
             const meta = getWorkbenchMetaForRow(row);
             const isSelected = selectedStrategyIds.has(row.id);
+            const isPending = meta.status === "pending";
             return (
-              <div key={row.id} className={`oq-strategy-table-row oq-strategy-table-grid ${isSelected ? "is-selected" : ""} ${index === workbenchRows.length - 1 ? "is-page-last" : ""}`}>
-                <button type="button" className={`oq-strategy-check ${isSelected ? "is-checked" : ""}`} onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Toggle compare", "切换比较")}>
+              <div key={row.id} className={`oq-strategy-table-row oq-strategy-table-grid ${isSelected ? "is-selected" : ""} ${isPending ? "is-pending" : ""} ${index === workbenchRows.length - 1 ? "is-page-last" : ""}`}>
+                <button type="button" className={`oq-strategy-check ${isSelected ? "is-checked" : ""}`} disabled={isPending} onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Toggle compare", "切换比较")}>
                   {isSelected ? <Check className="h-3 w-3" /> : null}
                 </button>
+                {!isPending ? (
+                  <Link
+                    href={`/strategies/${row.id}`}
+                    className="oq-strategy-row-link"
+                    aria-label={tr(`View ${meta.title}`, `查看 ${meta.title}`)}
+                  />
+                ) : null}
                 <div className="oq-strategy-name-cell">
                   <div>{meta.title}</div>
                   <span>{meta.category}</span>
@@ -1155,11 +1596,17 @@ export default function MyStrategies() {
                 <div className="oq-strategy-mono">{meta.rankIc}</div>
                 <div className="oq-strategy-mono is-risk">{meta.maxDd}</div>
                 <div className="oq-strategy-mono">{meta.turn}</div>
-                <WorkbenchSparkline values={strategyCardCurveValues.map((value, i) => value + index * 18 + i * (index % 3))} />
-                <span className={`oq-strategy-status ${meta.status === "paused" ? "is-paused" : "is-running"}`}>
-                  <span />{meta.status === "paused" ? "Paused" : "Running"}
+                {isPending ? (
+                  <span className="oq-strategy-sparkline is-pending" aria-hidden="true" />
+                ) : (
+                  <WorkbenchSparkline values={strategyCardCurveValues.map((value, i) => value + index * 18 + i * (index % 3))} />
+                )}
+                <span className={`oq-strategy-status ${isPending ? "is-pending" : meta.status === "paused" ? "is-paused" : "is-running"}`}>
+                  <span />{isPending ? "Pending" : meta.status === "paused" ? "Paused" : "Running"}
                 </span>
-                <Link href={`/strategies/${row.id}`} className="oq-strategy-view-link">{tr("View", "查看")}</Link>
+                <span className={`oq-strategy-view-link ${isPending ? "is-disabled" : ""}`} aria-disabled={isPending || undefined}>
+                  {tr("View", "查看")}
+                </span>
               </div>
             );
           })}
@@ -1255,7 +1702,11 @@ export default function MyStrategies() {
               <DialogTitle>{tr("Create strategy", "创建策略")}</DialogTitle>
               <p>{tr("Build a strategy from selected factors, weights and direction rules.", "选择因子、权重和方向规则，生成新的策略组合。")}</p>
             </div>
-            <CreateStrategyComposer tr={tr} onClose={() => setShowCreateStrategy(false)} />
+            <CreateStrategyComposer
+              tr={tr}
+              onClose={() => setShowCreateStrategy(false)}
+              onCreate={createPendingStrategy}
+            />
           </DialogContent>
         </Dialog>
 

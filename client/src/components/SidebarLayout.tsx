@@ -183,6 +183,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     : typeof window !== "undefined"
       ? window.location.search
       : "";
+  const isStrategyDetail = /^\/strategies\/STR-[^/]+$/.test(currentPathname);
   const isOfficialAlphaDetail =
     currentPathname.startsWith("/alphas/") &&
     currentPathname !== "/alphas/official" &&
@@ -527,14 +528,16 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="mr-[21px] flex h-[30px] items-center gap-[9px]">
-            <label className="flex h-[27.75px] w-[180px] items-center rounded-full border border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]">
-              <img src="/header-search.svg" alt="" className="h-[11.25px] w-[10.078px] shrink-0" />
-              <input
-                aria-label={tr("Search", "搜索")}
-                className="ml-[6px] h-[14.25px] min-w-0 flex-1 bg-transparent text-[9.75px] leading-[1.2] text-[#0d0d0d] outline-none placeholder:text-[#b5aba0]"
-                placeholder={tr("Search factors, traders...", "搜索因子、交易员...")}
-              />
-            </label>
+            {!isStrategyDetail ? (
+              <label className="flex h-[27.75px] w-[180px] items-center rounded-full border border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]">
+                <img src="/header-search.svg" alt="" className="h-[11.25px] w-[10.078px] shrink-0" />
+                <input
+                  aria-label={tr("Search", "搜索")}
+                  className="ml-[6px] h-[14.25px] min-w-0 flex-1 bg-transparent text-[9.75px] leading-[1.2] text-[#0d0d0d] outline-none placeholder:text-[#b5aba0]"
+                  placeholder={tr("Search factors, traders...", "搜索因子、交易员...")}
+                />
+              </label>
+            ) : null}
             <NotificationPanel
               triggerClassName="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]"
               iconSrc="/header-bell.svg"
