@@ -1,15 +1,12 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-  type PointerEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import type { UiCopy } from "@/contexts/AppLanguageContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  autocorrDecayDomain, autocorrDecayLabels, autocorrDecayLagLabels, autocorrDecayTicks, autocorrDecayValues,
+  autocorrDecayDomain,
+  autocorrDecayLabels,
+  autocorrDecayLagLabels,
+  autocorrDecayTicks,
+  autocorrDecayValues,
   barraCorrelationDateTicks,
   barraCorrelationDomain,
   barraCorrelationTicks,
@@ -23,7 +20,8 @@ import {
   decileReturnTicks,
   denseRepresentativeSymbol,
   denseSymbolUniverse,
-  getAutocorrDecayColor, getBarraStyleReturnColor,
+  getAutocorrDecayColor,
+  getBarraStyleReturnColor,
   getDecileReturnColor,
   getTurnoverRateColor,
   makeBarraCorrelationSeries,
@@ -35,21 +33,40 @@ import {
   turnoverRateLabels,
   turnoverRateTicks,
 } from "./StrategyFigmaReport.data";
-import "./StrategyFigmaReportCharts.css";
 import "./StrategyFigmaReport.css";
+import "./StrategyFigmaReportCharts.css";
+import { ChartCard, ChartLegendItem, ChartTooltip, useContainerNarrow } from "./StrategyFigmaReportChartPrimitives";
 
 type MetricTone = "good" | "warn" | "muted";
 type ChartSeriesKey = "net" | "gross" | "drawdown";
 type Tr = (en: string, zh: string, copy?: UiCopy) => string;
-type PortfolioDatum = { date: string; net: number; gross: number; drawdown: number };
+type PortfolioDatum = {
+  date: string;
+  net: number;
+  gross: number;
+  drawdown: number;
+};
 type PortfolioPoint = { x: number; y: number; value: number };
 type SymbolPnlRankGroup = "top" | "bottom";
-type SymbolPnlRankRow = { symbol: string; total: number; color: string; group: SymbolPnlRankGroup };
+type SymbolPnlRankRow = {
+  symbol: string;
+  total: number;
+  color: string;
+  group: SymbolPnlRankGroup;
+};
 type BarraExposureFactor = { factor: string; long: number; short: number };
 
 export type ReportMetric = { label: string; value: string; tone: MetricTone };
 
-export type ReportPositionRecord = { symbol: string; side: "Cross Long" | "Cross Short"; entry: string; interest: string; opened: string; closed: string; pnl: string };
+export type ReportPositionRecord = {
+  symbol: string;
+  side: "Cross Long" | "Cross Short";
+  entry: string;
+  interest: string;
+  opened: string;
+  closed: string;
+  pnl: string;
+};
 
 const defaultHeaderMetrics: ReportMetric[] = [
   { label: "Sharpe", value: "2.054", tone: "good" },
@@ -178,37 +195,52 @@ const defaultPositions: ReportPositionRecord[] = [
   },
 ];
 
-const linePalette = [
-  "#ebbc47",
-  "#479ef5",
-  "#29d668",
-  "#e44444",
-  "#b36af5",
-  "#12c8b1",
-  "#ff7a1a",
-  "#d946ef",
-];
-const symbolRankPalette = [
-  "#ebbc47",
-  "#479ef5",
-  "#29d668",
-  "#e44444",
-  "#b36af5",
-  "#12c8b1",
-  "#ff7a1a",
-  "#d946ef",
-  "#7dd3fc",
-  "#f97316",
-];
+const linePalette = ["#ebbc47", "#479ef5", "#29d668", "#e44444", "#b36af5", "#12c8b1", "#ff7a1a", "#d946ef"];
+const symbolRankPalette = ["#ebbc47", "#479ef5", "#29d668", "#e44444", "#b36af5", "#12c8b1", "#ff7a1a", "#d946ef", "#7dd3fc", "#f97316"];
 const defaultTr: Tr = en => en;
 const reportCopy: Record<string, UiCopy> = {
-  "No chart data available": { ja: "チャートデータがありません", ko: "차트 데이터가 없습니다", es: "No hay datos de gráfico", fr: "Aucune donnée de graphique" },
-  "Check filters or choose another period.": { ja: "フィルターを確認するか、別の期間を選択してください。", ko: "필터를 확인하거나 다른 기간을 선택하세요.", es: "Revisa los filtros o elige otro periodo.", fr: "Vérifiez les filtres ou choisissez une autre période." },
-  "No metrics available": { ja: "指標データがありません", ko: "지표 데이터가 없습니다", es: "No hay métricas disponibles", fr: "Aucune métrique disponible" },
-  "No exposure data available": { ja: "エクスポージャーデータがありません", ko: "익스포저 데이터가 없습니다", es: "No hay datos de exposición", fr: "Aucune donnée d'exposition" },
-  "No sector rank data available": { ja: "セクターランキングデータがありません", ko: "섹터 순위 데이터가 없습니다", es: "No hay ranking sectorial", fr: "Aucun classement sectoriel disponible" },
-  "No series to display": { ja: "表示する系列がありません", ko: "표시할 시계열이 없습니다", es: "No hay series para mostrar", fr: "Aucune série à afficher" },
-  "Portfolio chart series": { ja: "ポートフォリオチャート系列", ko: "포트폴리오 차트 시리즈", es: "Series del gráfico de cartera", fr: "Séries du graphique de portefeuille" },
+  "No chart data available": {
+    ja: "チャートデータがありません",
+    ko: "차트 데이터가 없습니다",
+    es: "No hay datos de gráfico",
+    fr: "Aucune donnée de graphique",
+  },
+  "Check filters or choose another period.": {
+    ja: "フィルターを確認するか、別の期間を選択してください。",
+    ko: "필터를 확인하거나 다른 기간을 선택하세요.",
+    es: "Revisa los filtros o elige otro periodo.",
+    fr: "Vérifiez les filtres ou choisissez une autre période.",
+  },
+  "No metrics available": {
+    ja: "指標データがありません",
+    ko: "지표 데이터가 없습니다",
+    es: "No hay métricas disponibles",
+    fr: "Aucune métrique disponible",
+  },
+  "No exposure data available": {
+    ja: "エクスポージャーデータがありません",
+    ko: "익스포저 데이터가 없습니다",
+    es: "No hay datos de exposición",
+    fr: "Aucune donnée d'exposition",
+  },
+  "No sector rank data available": {
+    ja: "セクターランキングデータがありません",
+    ko: "섹터 순위 데이터가 없습니다",
+    es: "No hay ranking sectorial",
+    fr: "Aucun classement sectoriel disponible",
+  },
+  "No series to display": {
+    ja: "表示する系列がありません",
+    ko: "표시할 시계열이 없습니다",
+    es: "No hay series para mostrar",
+    fr: "Aucune série à afficher",
+  },
+  "Portfolio chart series": {
+    ja: "ポートフォリオチャート系列",
+    ko: "포트폴리오 차트 시리즈",
+    es: "Series del gráfico de cartera",
+    fr: "Séries du graphique de portefeuille",
+  },
   "Portfolio net NAV, gross NAV and drawdown over time, with maximum drawdown peak and trough markers": {
     ja: "Net NAV、Gross NAV、Drawdown の時系列。最大ドローダウンのピークとボトムを表示。",
     ko: "Net NAV, Gross NAV, Drawdown 시계열과 최대 낙폭의 피크/저점 표시.",
@@ -216,82 +248,369 @@ const reportCopy: Record<string, UiCopy> = {
     fr: "Net NAV, Gross NAV et Drawdown dans le temps, avec marqueurs de pic et creux du drawdown maximal.",
   },
   "Net NAV": { ja: "Net NAV", ko: "Net NAV", es: "Net NAV", fr: "Net NAV" },
-  "Gross NAV": { ja: "Gross NAV", ko: "Gross NAV", es: "Gross NAV", fr: "Gross NAV" },
+  "Gross NAV": {
+    ja: "Gross NAV",
+    ko: "Gross NAV",
+    es: "Gross NAV",
+    fr: "Gross NAV",
+  },
   Drawdown: { ja: "Drawdown", ko: "Drawdown", es: "Drawdown", fr: "Drawdown" },
-  "Max DD peak": { ja: "最大 DD ピーク", ko: "최대 DD 피크", es: "Pico máx. DD", fr: "Pic DD max" },
-  "Max DD trough": { ja: "最大 DD ボトム", ko: "최대 DD 저점", es: "Valle máx. DD", fr: "Creux DD max" },
-  "Drawdown · worst -20.99%": { ja: "Drawdown · 最悪 -20.99%", ko: "Drawdown · 최저 -20.99%", es: "Drawdown · peor -20.99%", fr: "Drawdown · pire -20.99%" },
-  "Portfolio metrics": { ja: "ポートフォリオ指標", ko: "포트폴리오 지표", es: "Métricas de cartera", fr: "Métriques du portefeuille" },
+  "Max DD peak": {
+    ja: "最大 DD ピーク",
+    ko: "최대 DD 피크",
+    es: "Pico máx. DD",
+    fr: "Pic DD max",
+  },
+  "Max DD trough": {
+    ja: "最大 DD ボトム",
+    ko: "최대 DD 저점",
+    es: "Valle máx. DD",
+    fr: "Creux DD max",
+  },
+  "Drawdown · worst -20.99%": {
+    ja: "Drawdown · 最悪 -20.99%",
+    ko: "Drawdown · 최저 -20.99%",
+    es: "Drawdown · peor -20.99%",
+    fr: "Drawdown · pire -20.99%",
+  },
+  "Portfolio metrics": {
+    ja: "ポートフォリオ指標",
+    ko: "포트폴리오 지표",
+    es: "Métricas de cartera",
+    fr: "Métriques du portefeuille",
+  },
   Metric: { ja: "指標", ko: "지표", es: "Métrica", fr: "Métrique" },
   Value: { ja: "値", ko: "값", es: "Valor", fr: "Valeur" },
   Long: { ja: "ロング", ko: "롱", es: "Largo", fr: "Long" },
   Short: { ja: "ショート", ko: "숏", es: "Corto", fr: "Short" },
-  "Average sector exposure": { ja: "平均セクターエクスポージャー", ko: "평균 섹터 익스포저", es: "Exposición sectorial media", fr: "Exposition sectorielle moyenne" },
-  "abs weight": { ja: "絶対ウェイト", ko: "절대 가중치", es: "peso abs.", fr: "poids abs." },
-  "Positive contribution": { ja: "プラス寄与", ko: "양의 기여", es: "Contribución positiva", fr: "Contribution positive" },
-  "Negative contribution": { ja: "マイナス寄与", ko: "음의 기여", es: "Contribución negativa", fr: "Contribution négative" },
-  "Sector return rank": { ja: "セクターリターン順位", ko: "섹터 수익률 순위", es: "Ranking de retorno sectorial", fr: "Classement du rendement sectoriel" },
-  "pnl contribution": { ja: "PnL 寄与", ko: "PnL 기여", es: "contribución PnL", fr: "contribution PnL" },
-  "Line chart legend": { ja: "折れ線チャート凡例", ko: "라인 차트 범례", es: "Leyenda del gráfico de líneas", fr: "Légende du graphique en lignes" },
-  "Representative series": { ja: "代表系列", ko: "대표 시리즈", es: "Serie representativa", fr: "Série représentative" },
-  "Peer series": { ja: "比較系列", ko: "피어 시리즈", es: "Series pares", fr: "Séries comparables" },
+  "Average sector exposure": {
+    ja: "平均セクターエクスポージャー",
+    ko: "평균 섹터 익스포저",
+    es: "Exposición sectorial media",
+    fr: "Exposition sectorielle moyenne",
+  },
+  "abs weight": {
+    ja: "絶対ウェイト",
+    ko: "절대 가중치",
+    es: "peso abs.",
+    fr: "poids abs.",
+  },
+  "Positive contribution": {
+    ja: "プラス寄与",
+    ko: "양의 기여",
+    es: "Contribución positiva",
+    fr: "Contribution positive",
+  },
+  "Negative contribution": {
+    ja: "マイナス寄与",
+    ko: "음의 기여",
+    es: "Contribución negativa",
+    fr: "Contribution négative",
+  },
+  "Sector return rank": {
+    ja: "セクターリターン順位",
+    ko: "섹터 수익률 순위",
+    es: "Ranking de retorno sectorial",
+    fr: "Classement du rendement sectoriel",
+  },
+  "pnl contribution": {
+    ja: "PnL 寄与",
+    ko: "PnL 기여",
+    es: "contribución PnL",
+    fr: "contribution PnL",
+  },
+  "Line chart legend": {
+    ja: "折れ線チャート凡例",
+    ko: "라인 차트 범례",
+    es: "Leyenda del gráfico de líneas",
+    fr: "Légende du graphique en lignes",
+  },
+  "Representative series": {
+    ja: "代表系列",
+    ko: "대표 시리즈",
+    es: "Serie representativa",
+    fr: "Série représentative",
+  },
+  "Peer series": {
+    ja: "比較系列",
+    ko: "피어 시리즈",
+    es: "Series pares",
+    fr: "Séries comparables",
+  },
   Series: { ja: "系列", ko: "시리즈", es: "Serie", fr: "Série" },
-  "visible time series": { ja: "表示中の時系列", ko: "표시된 시계열", es: "series temporales visibles", fr: "séries temporelles visibles" },
-  "cum pnl": { ja: "累積 PnL", ko: "누적 PnL", es: "PnL acum.", fr: "PnL cumulé" },
-  "Cum PnL": { ja: "累積 PnL", ko: "누적 PnL", es: "PnL acum.", fr: "PnL cumulé" },
-  "Peer symbols": { ja: "比較銘柄", ko: "피어 종목", es: "Símbolos pares", fr: "Symboles comparables" },
-  "symbol cumulative PnL lines": { ja: "銘柄別累積 PnL ライン", ko: "종목별 누적 PnL 라인", es: "líneas de PnL acumulado por símbolo", fr: "lignes de PnL cumulé par symbole" },
-  "Top 10 symbols by total PnL": { ja: "総 PnL 上位 10 銘柄", ko: "총 PnL 상위 10개 종목", es: "10 símbolos principales por PnL total", fr: "Top 10 symboles par PnL total" },
-  "Bottom 10 symbols by total PnL": { ja: "総 PnL 下位 10 銘柄", ko: "총 PnL 하위 10개 종목", es: "10 símbolos inferiores por PnL total", fr: "Bottom 10 symboles par PnL total" },
-  "Top 10 symbols": { ja: "上位 10 銘柄", ko: "상위 10개 종목", es: "10 símbolos principales", fr: "Top 10 symboles" },
-  "Bottom 10 symbols": { ja: "下位 10 銘柄", ko: "하위 10개 종목", es: "10 símbolos inferiores", fr: "Bottom 10 symboles" },
+  "visible time series": {
+    ja: "表示中の時系列",
+    ko: "표시된 시계열",
+    es: "series temporales visibles",
+    fr: "séries temporelles visibles",
+  },
+  "cum pnl": {
+    ja: "累積 PnL",
+    ko: "누적 PnL",
+    es: "PnL acum.",
+    fr: "PnL cumulé",
+  },
+  "Cum PnL": {
+    ja: "累積 PnL",
+    ko: "누적 PnL",
+    es: "PnL acum.",
+    fr: "PnL cumulé",
+  },
+  "Peer symbols": {
+    ja: "比較銘柄",
+    ko: "피어 종목",
+    es: "Símbolos pares",
+    fr: "Symboles comparables",
+  },
+  "symbol cumulative PnL lines": {
+    ja: "銘柄別累積 PnL ライン",
+    ko: "종목별 누적 PnL 라인",
+    es: "líneas de PnL acumulado por símbolo",
+    fr: "lignes de PnL cumulé par symbole",
+  },
+  "Top 10 symbols by total PnL": {
+    ja: "総 PnL 上位 10 銘柄",
+    ko: "총 PnL 상위 10개 종목",
+    es: "10 símbolos principales por PnL total",
+    fr: "Top 10 symboles par PnL total",
+  },
+  "Bottom 10 symbols by total PnL": {
+    ja: "総 PnL 下位 10 銘柄",
+    ko: "총 PnL 하위 10개 종목",
+    es: "10 símbolos inferiores por PnL total",
+    fr: "Bottom 10 symboles par PnL total",
+  },
+  "Top 10 symbols": {
+    ja: "上位 10 銘柄",
+    ko: "상위 10개 종목",
+    es: "10 símbolos principales",
+    fr: "Top 10 symboles",
+  },
+  "Bottom 10 symbols": {
+    ja: "下位 10 銘柄",
+    ko: "하위 10개 종목",
+    es: "10 símbolos inferiores",
+    fr: "Bottom 10 symboles",
+  },
   "Total PnL": { ja: "総 PnL", ko: "총 PnL", es: "PnL total", fr: "PnL total" },
-  "ranked symbol cumulative PnL lines": { ja: "順位付き銘柄累積 PnL ライン", ko: "순위별 종목 누적 PnL 라인", es: "líneas de PnL acumulado por símbolo clasificado", fr: "lignes de PnL cumulé par symbole classé" },
-  "10 symbols": { ja: "10 銘柄", ko: "10개 종목", es: "10 símbolos", fr: "10 symboles" },
-  "Mean daily Barra exposure bars": { ja: "日次平均 Barra エクスポージャーバー", ko: "일평균 Barra 익스포저 막대", es: "Barras de exposición diaria media Barra", fr: "Barres d'exposition Barra quotidienne moyenne" },
-  "Barra factor long and short mean exposure": { ja: "Barra ファクターのロング/ショート平均エクスポージャー", ko: "Barra 팩터 롱/숏 평균 익스포저", es: "Exposición media larga y corta por factor Barra", fr: "Exposition moyenne long/short par facteur Barra" },
-  "Mean exposure": { ja: "平均エクスポージャー", ko: "평균 익스포저", es: "Exposición media", fr: "Exposition moyenne" },
-  "Long mean": { ja: "ロング平均", ko: "롱 평균", es: "Media larga", fr: "Moyenne long" },
-  "Short mean": { ja: "ショート平均", ko: "숏 평균", es: "Media corta", fr: "Moyenne short" },
+  "ranked symbol cumulative PnL lines": {
+    ja: "順位付き銘柄累積 PnL ライン",
+    ko: "순위별 종목 누적 PnL 라인",
+    es: "líneas de PnL acumulado por símbolo clasificado",
+    fr: "lignes de PnL cumulé par symbole classé",
+  },
+  "10 symbols": {
+    ja: "10 銘柄",
+    ko: "10개 종목",
+    es: "10 símbolos",
+    fr: "10 symboles",
+  },
+  "Mean daily Barra exposure bars": {
+    ja: "日次平均 Barra エクスポージャーバー",
+    ko: "일평균 Barra 익스포저 막대",
+    es: "Barras de exposición diaria media Barra",
+    fr: "Barres d'exposition Barra quotidienne moyenne",
+  },
+  "Barra factor long and short mean exposure": {
+    ja: "Barra ファクターのロング/ショート平均エクスポージャー",
+    ko: "Barra 팩터 롱/숏 평균 익스포저",
+    es: "Exposición media larga y corta por factor Barra",
+    fr: "Exposition moyenne long/short par facteur Barra",
+  },
+  "Mean exposure": {
+    ja: "平均エクスポージャー",
+    ko: "평균 익스포저",
+    es: "Exposición media",
+    fr: "Exposition moyenne",
+  },
+  "Long mean": {
+    ja: "ロング平均",
+    ko: "롱 평균",
+    es: "Media larga",
+    fr: "Moyenne long",
+  },
+  "Short mean": {
+    ja: "ショート平均",
+    ko: "숏 평균",
+    es: "Media corta",
+    fr: "Moyenne short",
+  },
   Factor: { ja: "ファクター", ko: "팩터", es: "Factor", fr: "Facteur" },
-  "Positive exposure": { ja: "プラスエクスポージャー", ko: "양의 익스포저", es: "Exposición positiva", fr: "Exposition positive" },
-  "Negative exposure": { ja: "マイナスエクスポージャー", ko: "음의 익스포저", es: "Exposición negativa", fr: "Exposition négative" },
-  "factor exposure": { ja: "ファクターエクスポージャー", ko: "팩터 익스포저", es: "exposición de factor", fr: "exposition facteur" },
-  "Prediction Decile Returns (cum)": { ja: "予測十分位リターン（累積）", ko: "예측 분위 수익률(누적)", es: "Retornos por decil predictivo (acum.)", fr: "Rendements par décile prédictif (cum.)" },
-  "Barra Style Long-Short Returns (cum)": { ja: "Barra スタイル Long-Short リターン（累積）", ko: "Barra 스타일 롱숏 수익률(누적)", es: "Retornos long-short de estilos Barra (acum.)", fr: "Rendements long-short des styles Barra (cum.)" },
-  "Mean Daily Barra Exposure": { ja: "日次平均 Barra エクスポージャー", ko: "일평균 Barra 익스포저", es: "Exposición diaria media Barra", fr: "Exposition Barra quotidienne moyenne" },
-  "Prediction Return Autocorr Decay": { ja: "予測リターン自己相関減衰", ko: "예측 수익률 자기상관 감쇠", es: "Decaimiento de autocorr. del retorno predictivo", fr: "Décroissance autocorr. du rendement prédictif" },
-  "Prediction-Barra Correlation (EMA250)": { ja: "予測-Barra 相関（EMA250）", ko: "예측-Barra 상관(EMA250)", es: "Correlación predicción-Barra (EMA250)", fr: "Corrélation prédiction-Barra (EMA250)" },
-  "Daily Turnover Rate": { ja: "日次売買回転率", ko: "일간 회전율", es: "Tasa de rotación diaria", fr: "Taux de turnover quotidien" },
-  "Position History": { ja: "ポジション履歴", ko: "포지션 이력", es: "Historial de posiciones", fr: "Historique des positions" },
-  "Closed positions from the latest strategy replay": { ja: "最新ストラテジーリプレイのクローズ済みポジション", ko: "최신 전략 리플레이의 청산 포지션", es: "Posiciones cerradas del último replay de estrategia", fr: "Positions clôturées du dernier replay de stratégie" },
+  "Positive exposure": {
+    ja: "プラスエクスポージャー",
+    ko: "양의 익스포저",
+    es: "Exposición positiva",
+    fr: "Exposition positive",
+  },
+  "Negative exposure": {
+    ja: "マイナスエクスポージャー",
+    ko: "음의 익스포저",
+    es: "Exposición negativa",
+    fr: "Exposition négative",
+  },
+  "factor exposure": {
+    ja: "ファクターエクスポージャー",
+    ko: "팩터 익스포저",
+    es: "exposición de factor",
+    fr: "exposition facteur",
+  },
+  "Prediction Decile Returns (cum)": {
+    ja: "予測十分位リターン（累積）",
+    ko: "예측 분위 수익률(누적)",
+    es: "Retornos por decil predictivo (acum.)",
+    fr: "Rendements par décile prédictif (cum.)",
+  },
+  "Barra Style Long-Short Returns (cum)": {
+    ja: "Barra スタイル Long-Short リターン（累積）",
+    ko: "Barra 스타일 롱숏 수익률(누적)",
+    es: "Retornos long-short de estilos Barra (acum.)",
+    fr: "Rendements long-short des styles Barra (cum.)",
+  },
+  "Mean Daily Barra Exposure": {
+    ja: "日次平均 Barra エクスポージャー",
+    ko: "일평균 Barra 익스포저",
+    es: "Exposición diaria media Barra",
+    fr: "Exposition Barra quotidienne moyenne",
+  },
+  "Prediction Return Autocorr Decay": {
+    ja: "予測リターン自己相関減衰",
+    ko: "예측 수익률 자기상관 감쇠",
+    es: "Decaimiento de autocorr. del retorno predictivo",
+    fr: "Décroissance autocorr. du rendement prédictif",
+  },
+  "Prediction-Barra Correlation (EMA250)": {
+    ja: "予測-Barra 相関（EMA250）",
+    ko: "예측-Barra 상관(EMA250)",
+    es: "Correlación predicción-Barra (EMA250)",
+    fr: "Corrélation prédiction-Barra (EMA250)",
+  },
+  "Daily Turnover Rate": {
+    ja: "日次売買回転率",
+    ko: "일간 회전율",
+    es: "Tasa de rotación diaria",
+    fr: "Taux de turnover quotidien",
+  },
+  "Position History": {
+    ja: "ポジション履歴",
+    ko: "포지션 이력",
+    es: "Historial de posiciones",
+    fr: "Historique des positions",
+  },
+  "Closed positions from the latest strategy replay": {
+    ja: "最新ストラテジーリプレイのクローズ済みポジション",
+    ko: "최신 전략 리플레이의 청산 포지션",
+    es: "Posiciones cerradas del último replay de estrategia",
+    fr: "Positions clôturées du dernier replay de stratégie",
+  },
   Position: { ja: "ポジション", ko: "포지션", es: "Posición", fr: "Position" },
-  "Entry Price": { ja: "エントリー価格", ko: "진입가", es: "Precio de entrada", fr: "Prix d'entrée" },
-  "Max Open Interest": { ja: "最大建玉", ko: "최대 미결제약정", es: "Interés abierto máx.", fr: "Open interest max" },
+  "Entry Price": {
+    ja: "エントリー価格",
+    ko: "진입가",
+    es: "Precio de entrada",
+    fr: "Prix d'entrée",
+  },
+  "Max Open Interest": {
+    ja: "最大建玉",
+    ko: "최대 미결제약정",
+    es: "Interés abierto máx.",
+    fr: "Open interest max",
+  },
   Opened: { ja: "オープン", ko: "개시", es: "Apertura", fr: "Ouverture" },
   Closed: { ja: "クローズ", ko: "청산", es: "Cierre", fr: "Clôture" },
   Perp: { ja: "無期限", ko: "무기한", es: "Perp", fr: "Perp" },
-  "Cross Long": { ja: "クロスマージン ロング", ko: "교차 롱", es: "Largo cruzado", fr: "Cross long" },
-  "Cross Short": { ja: "クロスマージン ショート", ko: "교차 숏", es: "Corto cruzado", fr: "Cross short" },
-  "Select backtest period": { ja: "バックテスト期間を選択", ko: "백테스트 기간 선택", es: "Seleccionar periodo de backtest", fr: "Sélectionner la période de backtest" },
-  "Portfolio NAV · Drawdown": { ja: "ポートフォリオ NAV · Drawdown", ko: "포트폴리오 NAV · Drawdown", es: "NAV de cartera · Drawdown", fr: "NAV portefeuille · Drawdown" },
-  "net & gross NAV · 1500 pts": { ja: "Net/Gross NAV · 1500 点", ko: "Net/Gross NAV · 1500 포인트", es: "Net/Gross NAV · 1500 pts", fr: "Net/Gross NAV · 1500 pts" },
-  "Average Sector Exposure": { ja: "平均セクターエクスポージャー", ko: "평균 섹터 익스포저", es: "Exposición sectorial media", fr: "Exposition sectorielle moyenne" },
-  "long (+) / short (-) avg abs weight": { ja: "ロング (+) / ショート (-) 平均絶対ウェイト", ko: "롱(+) / 숏(-) 평균 절대 가중치", es: "largo (+) / corto (-), peso abs. medio", fr: "long (+) / short (-), poids abs. moyen" },
-  "Sector Return Rank": { ja: "セクターリターン順位", ko: "섹터 수익률 순위", es: "Ranking de retorno sectorial", fr: "Classement du rendement sectoriel" },
-  "total pnl contribution · top + bottom": { ja: "総 PnL 寄与 · 上位 + 下位", ko: "총 PnL 기여 · 상위 + 하위", es: "contribución PnL total · top + bottom", fr: "contribution PnL totale · top + bottom" },
-  "Single-Symbol Cumulative PnL (All)": { ja: "単一銘柄累積 PnL（全体）", ko: "단일 종목 누적 PnL(전체)", es: "PnL acumulado por símbolo (todos)", fr: "PnL cumulé par symbole (tous)" },
-  "99 symbols": { ja: "99 銘柄", ko: "99개 종목", es: "99 símbolos", fr: "99 symboles" },
-  "Single-Symbol PnL Rank": { ja: "単一銘柄 PnL 順位", ko: "단일 종목 PnL 순위", es: "Ranking PnL por símbolo", fr: "Classement PnL par symbole" },
-  "ranked by total pnl": { ja: "総 PnL 順", ko: "총 PnL 기준", es: "ordenado por PnL total", fr: "classé par PnL total" },
-  "CS Attribution Overview": { ja: "CS アトリビューション概要", ko: "CS 기여도 개요", es: "Resumen de atribución CS", fr: "Vue d'ensemble attribution CS" },
-  "7 Barra factors · attribution dashboard": { ja: "7 Barra ファクター · アトリビューションダッシュボード", ko: "7개 Barra 팩터 · 기여도 대시보드", es: "7 factores Barra · panel de atribución", fr: "7 facteurs Barra · tableau d'attribution" },
+  "Cross Long": {
+    ja: "クロスマージン ロング",
+    ko: "교차 롱",
+    es: "Largo cruzado",
+    fr: "Cross long",
+  },
+  "Cross Short": {
+    ja: "クロスマージン ショート",
+    ko: "교차 숏",
+    es: "Corto cruzado",
+    fr: "Cross short",
+  },
+  "Select backtest period": {
+    ja: "バックテスト期間を選択",
+    ko: "백테스트 기간 선택",
+    es: "Seleccionar periodo de backtest",
+    fr: "Sélectionner la période de backtest",
+  },
+  "Portfolio NAV · Drawdown": {
+    ja: "ポートフォリオ NAV · Drawdown",
+    ko: "포트폴리오 NAV · Drawdown",
+    es: "NAV de cartera · Drawdown",
+    fr: "NAV portefeuille · Drawdown",
+  },
+  "net & gross NAV · 1500 pts": {
+    ja: "Net/Gross NAV · 1500 点",
+    ko: "Net/Gross NAV · 1500 포인트",
+    es: "Net/Gross NAV · 1500 pts",
+    fr: "Net/Gross NAV · 1500 pts",
+  },
+  "Average Sector Exposure": {
+    ja: "平均セクターエクスポージャー",
+    ko: "평균 섹터 익스포저",
+    es: "Exposición sectorial media",
+    fr: "Exposition sectorielle moyenne",
+  },
+  "long (+) / short (-) avg abs weight": {
+    ja: "ロング (+) / ショート (-) 平均絶対ウェイト",
+    ko: "롱(+) / 숏(-) 평균 절대 가중치",
+    es: "largo (+) / corto (-), peso abs. medio",
+    fr: "long (+) / short (-), poids abs. moyen",
+  },
+  "Sector Return Rank": {
+    ja: "セクターリターン順位",
+    ko: "섹터 수익률 순위",
+    es: "Ranking de retorno sectorial",
+    fr: "Classement du rendement sectoriel",
+  },
+  "total pnl contribution · top + bottom": {
+    ja: "総 PnL 寄与 · 上位 + 下位",
+    ko: "총 PnL 기여 · 상위 + 하위",
+    es: "contribución PnL total · top + bottom",
+    fr: "contribution PnL totale · top + bottom",
+  },
+  "Single-Symbol Cumulative PnL (All)": {
+    ja: "単一銘柄累積 PnL（全体）",
+    ko: "단일 종목 누적 PnL(전체)",
+    es: "PnL acumulado por símbolo (todos)",
+    fr: "PnL cumulé par symbole (tous)",
+  },
+  "99 symbols": {
+    ja: "99 銘柄",
+    ko: "99개 종목",
+    es: "99 símbolos",
+    fr: "99 symboles",
+  },
+  "Single-Symbol PnL Rank": {
+    ja: "単一銘柄 PnL 順位",
+    ko: "단일 종목 PnL 순위",
+    es: "Ranking PnL por símbolo",
+    fr: "Classement PnL par symbole",
+  },
+  "ranked by total pnl": {
+    ja: "総 PnL 順",
+    ko: "총 PnL 기준",
+    es: "ordenado por PnL total",
+    fr: "classé par PnL total",
+  },
+  "CS Attribution Overview": {
+    ja: "CS アトリビューション概要",
+    ko: "CS 기여도 개요",
+    es: "Resumen de atribución CS",
+    fr: "Vue d'ensemble attribution CS",
+  },
+  "7 Barra factors · attribution dashboard": {
+    ja: "7 Barra ファクター · アトリビューションダッシュボード",
+    ko: "7개 Barra 팩터 · 기여도 대시보드",
+    es: "7 factores Barra · panel de atribución",
+    fr: "7 facteurs Barra · tableau d'attribution",
+  },
 };
 const tReport = (tr: Tr, en: string, zh: string) => tr(en, zh, reportCopy[en]);
-const portfolioSeriesMeta: Record<
-  ChartSeriesKey,
-  { label: string; color: string; mark?: "bar" | "cross" }
-> = {
+const portfolioSeriesMeta: Record<ChartSeriesKey, { label: string; color: string; mark?: "bar" | "cross" }> = {
   net: { label: "Net NAV", color: "#dc4900" },
   gross: { label: "Gross NAV", color: "#2a6fdb" },
   drawdown: { label: "Drawdown", color: "#d64550" },
@@ -299,55 +618,139 @@ const portfolioSeriesMeta: Record<
 const portfolioSeriesKeys: ChartSeriesKey[] = ["net", "gross", "drawdown"];
 const portfolioNavTicks = [3.57, 2.88, 2.2, 1.51, 0.82];
 const portfolioDrawdownTicks = [0, -0.1, -0.2];
-const portfolioTimeTicks = [
-  "2021-01",
-  "2021-04",
-  "2021-07",
-  "2021-10",
-  "2021-12",
-  "2022-03",
-  "2022-06",
-];
+const portfolioTimeTicks = ["2021-01", "2021-04", "2021-07", "2021-10", "2021-12", "2022-03", "2022-06"];
 const portfolioNavDomain = { min: 0.82, max: 3.57 };
 const portfolioDrawdownDomain = { min: -0.25, max: 0 };
 const denseSymbolPnlDomain = { min: -0.24, max: 0.24 };
 const denseSymbolPnlTicks = [-0.2, -0.1, 0, 0.1, 0.2];
-const denseSymbolDateTicks = [
-  "2021-01",
-  "2021-04",
-  "2021-07",
-  "2021-10",
-  "2021-12",
-  "2022-03",
-  "2022-06",
-];
+const denseSymbolDateTicks = ["2021-01", "2021-04", "2021-07", "2021-10", "2021-12", "2022-03", "2022-06"];
 const denseSymbolCount = 99;
 const densePointCount = 160;
 const symbolRankPnlDomain = { min: -0.18, max: 0.18 };
 const symbolRankPnlTicks = [-0.15, -0.075, 0, 0.075, 0.15];
 const topSymbolPnlRankRows: SymbolPnlRankRow[] = [
-  { symbol: "BANDUSDT", total: 0.1642, color: symbolRankPalette[0], group: "top" },
-  { symbol: "API3USDT", total: 0.1475, color: symbolRankPalette[1], group: "top" },
-  { symbol: "LPTUSDT", total: 0.1328, color: symbolRankPalette[2], group: "top" },
-  { symbol: "MANAUSDT", total: 0.1186, color: symbolRankPalette[3], group: "top" },
-  { symbol: "AAVEUSDT", total: 0.1034, color: symbolRankPalette[4], group: "top" },
-  { symbol: "INJUSDT", total: 0.0941, color: symbolRankPalette[5], group: "top" },
-  { symbol: "RNDRUSDT", total: 0.0827, color: symbolRankPalette[6], group: "top" },
-  { symbol: "SOLUSDT", total: 0.0713, color: symbolRankPalette[7], group: "top" },
-  { symbol: "GMXUSDT", total: 0.0608, color: symbolRankPalette[8], group: "top" },
-  { symbol: "MAGICUSDT", total: 0.0526, color: symbolRankPalette[9], group: "top" },
+  {
+    symbol: "BANDUSDT",
+    total: 0.1642,
+    color: symbolRankPalette[0],
+    group: "top",
+  },
+  {
+    symbol: "API3USDT",
+    total: 0.1475,
+    color: symbolRankPalette[1],
+    group: "top",
+  },
+  {
+    symbol: "LPTUSDT",
+    total: 0.1328,
+    color: symbolRankPalette[2],
+    group: "top",
+  },
+  {
+    symbol: "MANAUSDT",
+    total: 0.1186,
+    color: symbolRankPalette[3],
+    group: "top",
+  },
+  {
+    symbol: "AAVEUSDT",
+    total: 0.1034,
+    color: symbolRankPalette[4],
+    group: "top",
+  },
+  {
+    symbol: "INJUSDT",
+    total: 0.0941,
+    color: symbolRankPalette[5],
+    group: "top",
+  },
+  {
+    symbol: "RNDRUSDT",
+    total: 0.0827,
+    color: symbolRankPalette[6],
+    group: "top",
+  },
+  {
+    symbol: "SOLUSDT",
+    total: 0.0713,
+    color: symbolRankPalette[7],
+    group: "top",
+  },
+  {
+    symbol: "GMXUSDT",
+    total: 0.0608,
+    color: symbolRankPalette[8],
+    group: "top",
+  },
+  {
+    symbol: "MAGICUSDT",
+    total: 0.0526,
+    color: symbolRankPalette[9],
+    group: "top",
+  },
 ];
 const bottomSymbolPnlRankRows: SymbolPnlRankRow[] = [
-  { symbol: "BATUSDT", total: -0.1514, color: symbolRankPalette[0], group: "bottom" },
-  { symbol: "ZILUSDT", total: -0.1342, color: symbolRankPalette[1], group: "bottom" },
-  { symbol: "ALGOUSDT", total: -0.1196, color: symbolRankPalette[2], group: "bottom" },
-  { symbol: "QTUMUSDT", total: -0.1038, color: symbolRankPalette[3], group: "bottom" },
-  { symbol: "DASHUSDT", total: -0.0915, color: symbolRankPalette[4], group: "bottom" },
-  { symbol: "KAVAUSDT", total: -0.0782, color: symbolRankPalette[5], group: "bottom" },
-  { symbol: "SUSHIUSDT", total: -0.0664, color: symbolRankPalette[6], group: "bottom" },
-  { symbol: "ENJUSDT", total: -0.0547, color: symbolRankPalette[7], group: "bottom" },
-  { symbol: "MASKUSDT", total: -0.0435, color: symbolRankPalette[8], group: "bottom" },
-  { symbol: "YFIUSDT", total: -0.0349, color: symbolRankPalette[9], group: "bottom" },
+  {
+    symbol: "BATUSDT",
+    total: -0.1514,
+    color: symbolRankPalette[0],
+    group: "bottom",
+  },
+  {
+    symbol: "ZILUSDT",
+    total: -0.1342,
+    color: symbolRankPalette[1],
+    group: "bottom",
+  },
+  {
+    symbol: "ALGOUSDT",
+    total: -0.1196,
+    color: symbolRankPalette[2],
+    group: "bottom",
+  },
+  {
+    symbol: "QTUMUSDT",
+    total: -0.1038,
+    color: symbolRankPalette[3],
+    group: "bottom",
+  },
+  {
+    symbol: "DASHUSDT",
+    total: -0.0915,
+    color: symbolRankPalette[4],
+    group: "bottom",
+  },
+  {
+    symbol: "KAVAUSDT",
+    total: -0.0782,
+    color: symbolRankPalette[5],
+    group: "bottom",
+  },
+  {
+    symbol: "SUSHIUSDT",
+    total: -0.0664,
+    color: symbolRankPalette[6],
+    group: "bottom",
+  },
+  {
+    symbol: "ENJUSDT",
+    total: -0.0547,
+    color: symbolRankPalette[7],
+    group: "bottom",
+  },
+  {
+    symbol: "MASKUSDT",
+    total: -0.0435,
+    color: symbolRankPalette[8],
+    group: "bottom",
+  },
+  {
+    symbol: "YFIUSDT",
+    total: -0.0349,
+    color: symbolRankPalette[9],
+    group: "bottom",
+  },
 ];
 const portfolioPeakIndex = 123;
 const portfolioTroughIndex = 129;
@@ -361,10 +764,7 @@ const portfolioChartFrame = {
   drawdownTop: 338,
   drawdownHeight: 118,
 };
-const portfolioPlotWidth =
-  portfolioChartFrame.width -
-  portfolioChartFrame.left -
-  portfolioChartFrame.right;
+const portfolioPlotWidth = portfolioChartFrame.width - portfolioChartFrame.left - portfolioChartFrame.right;
 
 function buildPortfolioNavData(count = 220): PortfolioDatum[] {
   const start = Date.UTC(2021, 0, 1);
@@ -374,28 +774,15 @@ function buildPortfolioNavData(count = 220): PortfolioDatum[] {
   return Array.from({ length: count }, (_, index) => {
     const progress = index / Math.max(1, count - 1);
     const date = new Date(start + span * progress);
-    const saturation = (amount: number) =>
-      (1 - Math.exp(-amount * progress)) / (1 - Math.exp(-amount));
-    const jagged =
-      Math.sin(index * 0.61) * 0.028 + Math.sin(index * 0.17) * 0.045;
-    const net =
-      0.86 + saturation(2.45) * 1.72 + jagged + Math.sin(index * 0.09) * 0.035;
-    const gross =
-      0.88 +
-      saturation(2.8) * 2.62 +
-      jagged * 1.35 +
-      Math.cos(index * 0.07) * 0.04;
-    const localStress = Math.abs(
-      Math.sin(index * 0.18) * 0.06 + Math.cos(index * 0.47) * 0.035
-    );
+    const saturation = (amount: number) => (1 - Math.exp(-amount * progress)) / (1 - Math.exp(-amount));
+    const jagged = Math.sin(index * 0.61) * 0.028 + Math.sin(index * 0.17) * 0.045;
+    const net = 0.86 + saturation(2.45) * 1.72 + jagged + Math.sin(index * 0.09) * 0.035;
+    const gross = 0.88 + saturation(2.8) * 2.62 + jagged * 1.35 + Math.cos(index * 0.07) * 0.04;
+    const localStress = Math.abs(Math.sin(index * 0.18) * 0.06 + Math.cos(index * 0.47) * 0.035);
     const earlyShock = Math.exp(-Math.pow((progress - 0.06) / 0.05, 2)) * 0.12;
-    const maxDrawdownShock =
-      Math.exp(-Math.pow((index - portfolioTroughIndex) / 5, 2)) * 0.18;
+    const maxDrawdownShock = Math.exp(-Math.pow((index - portfolioTroughIndex) / 5, 2)) * 0.18;
     const lateShock = Math.exp(-Math.pow((progress - 0.86) / 0.045, 2)) * 0.15;
-    let drawdown = -Math.min(
-      0.2099,
-      localStress + earlyShock + maxDrawdownShock + lateShock
-    );
+    let drawdown = -Math.min(0.2099, localStress + earlyShock + maxDrawdownShock + lateShock);
 
     if (index === portfolioPeakIndex) drawdown = 0;
     if (index === portfolioTroughIndex) drawdown = -0.2099;
@@ -412,41 +799,26 @@ function buildPortfolioNavData(count = 220): PortfolioDatum[] {
 const portfolioNavData = buildPortfolioNavData();
 
 function scalePortfolioX(index: number) {
-  return (
-    portfolioChartFrame.left +
-    (index / Math.max(1, portfolioNavData.length - 1)) * portfolioPlotWidth
-  );
+  return portfolioChartFrame.left + (index / Math.max(1, portfolioNavData.length - 1)) * portfolioPlotWidth;
 }
 
 function scalePortfolioNav(value: number) {
-  return (
-    portfolioChartFrame.navTop +
-    portfolioChartFrame.navHeight -
-    ((value - portfolioNavDomain.min) /
-      (portfolioNavDomain.max - portfolioNavDomain.min)) *
-      portfolioChartFrame.navHeight
-  );
+  return portfolioChartFrame.navTop + portfolioChartFrame.navHeight - ((value - portfolioNavDomain.min) / (portfolioNavDomain.max - portfolioNavDomain.min)) * portfolioChartFrame.navHeight;
 }
 
 function scalePortfolioDrawdown(value: number) {
   return (
     portfolioChartFrame.drawdownTop +
     portfolioChartFrame.drawdownHeight -
-    ((value - portfolioDrawdownDomain.min) /
-      (portfolioDrawdownDomain.max - portfolioDrawdownDomain.min)) *
-      portfolioChartFrame.drawdownHeight
+    ((value - portfolioDrawdownDomain.min) / (portfolioDrawdownDomain.max - portfolioDrawdownDomain.min)) * portfolioChartFrame.drawdownHeight
   );
 }
 
 function indexForPortfolioDateTick(tick: string) {
   const target = new Date(`${tick}-01T00:00:00.000Z`).getTime();
   const first = new Date(`${portfolioNavData[0].date}T00:00:00.000Z`).getTime();
-  const last = new Date(
-    `${portfolioNavData[portfolioNavData.length - 1].date}T00:00:00.000Z`
-  ).getTime();
-  const index = Math.round(
-    ((target - first) / (last - first)) * (portfolioNavData.length - 1)
-  );
+  const last = new Date(`${portfolioNavData[portfolioNavData.length - 1].date}T00:00:00.000Z`).getTime();
+  const index = Math.round(((target - first) / (last - first)) * (portfolioNavData.length - 1));
   return Math.max(0, Math.min(portfolioNavData.length - 1, index));
 }
 
@@ -470,13 +842,13 @@ function indexForDenseDateTick(tick: string, total = densePointCount) {
 }
 
 function formatDensePnlValue(value: number) {
-  if (!Number.isFinite(value)) return "N/A";
+  if (!Number.isFinite(value)) return "--";
   if (Math.abs(value) < 0.0005) return "0.0000";
   return value.toFixed(4);
 }
 
 function formatDecileReturnValue(value: number) {
-  if (!Number.isFinite(value)) return "N/A";
+  if (!Number.isFinite(value)) return "--";
   if (Math.abs(value) < 0.005) return "0.00";
   return value.toFixed(2);
 }
@@ -485,10 +857,7 @@ function portfolioPointFor(key: ChartSeriesKey, index: number): PortfolioPoint {
   const point = portfolioNavData[index];
   return {
     x: scalePortfolioX(index),
-    y:
-      key === "drawdown"
-        ? scalePortfolioDrawdown(point.drawdown)
-        : scalePortfolioNav(point[key]),
+    y: key === "drawdown" ? scalePortfolioDrawdown(point.drawdown) : scalePortfolioNav(point[key]),
     value: point[key],
   };
 }
@@ -497,10 +866,7 @@ function portfolioPathFor(key: ChartSeriesKey) {
   return portfolioNavData
     .map((point, index) => {
       const x = scalePortfolioX(index);
-      const y =
-        key === "drawdown"
-          ? scalePortfolioDrawdown(point.drawdown)
-          : scalePortfolioNav(point[key]);
+      const y = key === "drawdown" ? scalePortfolioDrawdown(point.drawdown) : scalePortfolioNav(point[key]);
       return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
     })
     .join(" ");
@@ -508,12 +874,7 @@ function portfolioPathFor(key: ChartSeriesKey) {
 
 function portfolioDrawdownAreaPath() {
   const zeroY = scalePortfolioDrawdown(0);
-  const line = portfolioNavData
-    .map(
-      (point, index) =>
-        `${index === 0 ? "M" : "L"} ${scalePortfolioX(index).toFixed(1)} ${scalePortfolioDrawdown(point.drawdown).toFixed(1)}`
-    )
-    .join(" ");
+  const line = portfolioNavData.map((point, index) => `${index === 0 ? "M" : "L"} ${scalePortfolioX(index).toFixed(1)} ${scalePortfolioDrawdown(point.drawdown).toFixed(1)}`).join(" ");
   return `${line} L ${scalePortfolioX(portfolioNavData.length - 1).toFixed(1)} ${zeroY.toFixed(1)} L ${scalePortfolioX(0).toFixed(1)} ${zeroY.toFixed(1)} Z`;
 }
 
@@ -532,14 +893,10 @@ function makeDenseSymbolPnlSeries(count: number, seed: number) {
       const progress = index / Math.max(1, count - 1);
       const runUp = 0.135 * (1 - Math.exp(-progress * 8));
       const fade = 0.062 * progress;
-      const cycle =
-        Math.sin(index * 0.11) * 0.008 + Math.sin(index * 0.37) * 0.0035;
+      const cycle = Math.sin(index * 0.11) * 0.008 + Math.sin(index * 0.37) * 0.0035;
       const midLift = Math.exp(-Math.pow((progress - 0.56) / 0.085, 2)) * 0.025;
       const lateDrag = Math.exp(-Math.pow((progress - 0.9) / 0.13, 2)) * 0.035;
-      return Math.max(
-        denseSymbolPnlDomain.min,
-        Math.min(denseSymbolPnlDomain.max, 0.012 + runUp - fade + cycle + midLift - lateDrag)
-      );
+      return Math.max(denseSymbolPnlDomain.min, Math.min(denseSymbolPnlDomain.max, 0.012 + runUp - fade + cycle + midLift - lateDrag));
     });
   }
 
@@ -549,24 +906,15 @@ function makeDenseSymbolPnlSeries(count: number, seed: number) {
   const shockCenter = 0.1 + ((seed * 17) % 75) / 100;
   return Array.from({ length: count }, (_, index) => {
     const progress = index / Math.max(1, count - 1);
-    const noise =
-      Math.sin(index * (0.19 + seed * 0.003)) * 0.0028 +
-      Math.cos(index * (0.071 + seed * 0.004)) * 0.0017;
-    const regime =
-      Math.exp(-Math.pow((progress - shockCenter) / 0.045, 2)) *
-      shockDirection *
-      (0.004 + (seed % 5) * 0.0012);
+    const noise = Math.sin(index * (0.19 + seed * 0.003)) * 0.0028 + Math.cos(index * (0.071 + seed * 0.004)) * 0.0017;
+    const regime = Math.exp(-Math.pow((progress - shockCenter) / 0.045, 2)) * shockDirection * (0.004 + (seed % 5) * 0.0012);
     const meanRevert = -value * 0.006;
     value += drift + noise + regime + meanRevert;
     return Math.max(denseSymbolPnlDomain.min, Math.min(denseSymbolPnlDomain.max, value));
   });
 }
 
-function makeSymbolRankPnlSeries(
-  row: SymbolPnlRankRow,
-  seed: number,
-  count = densePointCount
-) {
+function makeSymbolRankPnlSeries(row: SymbolPnlRankRow, seed: number, count = densePointCount) {
   const direction = row.total >= 0 ? 1 : -1;
   const magnitude = Math.max(0.02, Math.abs(row.total));
   const speed = 1.9 + (seed % 4) * 0.28;
@@ -574,19 +922,9 @@ function makeSymbolRankPnlSeries(
   const rawValues = Array.from({ length: count }, (_, index) => {
     const progress = index / Math.max(1, count - 1);
     const eased = (1 - Math.exp(-progress * speed)) / (1 - Math.exp(-speed));
-    const wave =
-      Math.sin(index * (0.08 + seed * 0.004)) * magnitude * 0.12 +
-      Math.cos(index * (0.19 + seed * 0.006)) * magnitude * 0.055;
-    const regime =
-      Math.exp(-Math.pow((progress - shockCenter) / 0.07, 2)) *
-      direction *
-      magnitude *
-      (0.12 + (seed % 3) * 0.035);
-    const lateReversion =
-      Math.exp(-Math.pow((progress - 0.82) / 0.16, 2)) *
-      -direction *
-      magnitude *
-      (0.035 + (seed % 2) * 0.02);
+    const wave = Math.sin(index * (0.08 + seed * 0.004)) * magnitude * 0.12 + Math.cos(index * (0.19 + seed * 0.006)) * magnitude * 0.055;
+    const regime = Math.exp(-Math.pow((progress - shockCenter) / 0.07, 2)) * direction * magnitude * (0.12 + (seed % 3) * 0.035);
+    const lateReversion = Math.exp(-Math.pow((progress - 0.82) / 0.16, 2)) * -direction * magnitude * (0.035 + (seed % 2) * 0.02);
     return row.total * eased + wave * (1 - progress * 0.35) + regime + lateReversion;
   });
   const first = rawValues[0] ?? 0;
@@ -595,20 +933,13 @@ function makeSymbolRankPnlSeries(
   return rawValues.map((value, index) => {
     const progress = index / Math.max(1, count - 1);
     const adjusted = value - first * (1 - progress) + (row.total - last) * progress;
-    return Math.max(
-      symbolRankPnlDomain.min,
-      Math.min(symbolRankPnlDomain.max, adjusted)
-    );
+    return Math.max(symbolRankPnlDomain.min, Math.min(symbolRankPnlDomain.max, adjusted));
   });
 }
 
-function formatChartValue(
-  value: number,
-  unit: "nav" | "percent" | "score" = "score"
-) {
-  if (!Number.isFinite(value)) return "N/A";
-  if (unit === "percent")
-    return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
+function formatChartValue(value: number, unit: "nav" | "percent" | "score" = "score") {
+  if (!Number.isFinite(value)) return "--";
+  if (unit === "percent") return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
   if (unit === "nav") return value.toFixed(2);
   return value.toFixed(3);
 }
@@ -618,19 +949,13 @@ function formatAxisTick(value: number) {
   return value.toFixed(2);
 }
 
-function getDomainPercent(
-  value: number,
-  domain: { min: number; max: number }
-) {
+function getDomainPercent(value: number, domain: { min: number; max: number }) {
   const range = domain.max - domain.min || 1;
   const percent = ((value - domain.min) / range) * 100;
   return Math.min(100, Math.max(0, percent));
 }
 
-function getDivergingBarStyle(
-  value: number,
-  domain: { min: number; max: number }
-) {
+function getDivergingBarStyle(value: number, domain: { min: number; max: number }) {
   const zero = getDomainPercent(0, domain);
   const point = getDomainPercent(value, domain);
   const width = Math.abs(point - zero);
@@ -652,18 +977,13 @@ function formatPortfolioDate(value: string) {
 }
 
 function formatCompactAxisValue(value: number) {
-  if (!Number.isFinite(value)) return "N/A";
+  if (!Number.isFinite(value)) return "--";
   if (Math.abs(value) >= 1000) return `${Math.round(value / 1000)}K`;
   return `${Math.round(value)}`;
 }
 
 function toPathFromPoints(points: Array<{ x: number; y: number }>) {
-  return points
-    .map(
-      (point, index) =>
-        `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`
-    )
-    .join(" ");
+  return points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
 }
 
 function ChartEmptyState({ message, tr = defaultTr }: { message?: string; tr?: Tr }) {
@@ -675,122 +995,6 @@ function ChartEmptyState({ message, tr = defaultTr }: { message?: string; tr?: T
   );
 }
 
-function InlineChartTooltip({ title, xValue, yValue, unit }: { title: string; xValue: string; yValue: string; unit: string }) {
-  return (
-    <div className="oq-chart-inline-tooltip" role="status">
-      <span>{title}</span>
-      <small>{xValue}</small>
-      <strong>{yValue}</strong>
-      <em>{unit}</em>
-    </div>
-  );
-}
-
-function DenseChartTooltip({ xValue, unit, rows }: {
-  xValue: string;
-  unit: string;
-  rows: Array<{ label: string; value: string; color: string; active?: boolean }>;
-}) {
-  return (
-    <div className="oq-dense-tooltip-card" role="status">
-      <div className="oq-dense-tooltip-head">
-        <span>{xValue}</span>
-        {unit ? <em>{unit}</em> : null}
-      </div>
-      <div className="oq-dense-tooltip-list">
-        {rows.map(row => (
-          <div
-            className="oq-dense-tooltip-row"
-            data-active={row.active}
-            key={row.label}
-          >
-            <span className="oq-dense-tooltip-label">
-              <i style={{ background: row.color }} />
-              <span>{row.label}</span>
-            </span>
-            <strong>{row.value}</strong>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ReportCard({ title, subtitle, className = "", headerActions, children }: { title: string; subtitle: string; className?: string; headerActions?: ReactNode; children: ReactNode }) {
-  return (
-    <section className={`oq-report-card ${className}`}>
-      <header className={`oq-report-card-header ${headerActions ? "has-actions" : ""}`}>
-        <div>
-          <h2>{title}</h2>
-          <p>{subtitle}</p>
-        </div>
-        {headerActions}
-      </header>
-      <div className="oq-report-card-body">{children}</div>
-    </section>
-  );
-}
-
-function LegendItem({
-  color,
-  label,
-  mark = "bar",
-  active = true,
-  pressed,
-  onFocus,
-  onHover,
-  onLeave,
-  onToggle,
-}: {
-  color: string;
-  label: string;
-  mark?: "bar" | "cross";
-  active?: boolean;
-  pressed?: boolean;
-  onFocus?: () => void;
-  onHover?: () => void;
-  onLeave?: () => void;
-  onToggle?: () => void;
-}) {
-  const content = (
-    <>
-      <span
-        className={
-          mark === "cross" ? "oq-report-cross-mark" : "oq-report-legend-dot"
-        }
-        style={{ color, background: mark === "bar" ? color : undefined }}
-      >
-        {mark === "cross" ? "×" : null}
-      </span>
-      {label}
-    </>
-  );
-
-  if (onToggle || onHover || onFocus) {
-    return (
-      <button
-        type="button"
-        className="oq-report-legend-item is-interactive"
-        aria-pressed={pressed}
-        data-active={active}
-        onClick={onToggle}
-        onFocus={onFocus}
-        onMouseEnter={onHover}
-        onMouseLeave={onLeave}
-        onBlur={onLeave}
-      >
-        {content}
-      </button>
-    );
-  }
-
-  return (
-    <span className="oq-report-legend-item" data-active={active}>
-      {content}
-    </span>
-  );
-}
-
 function getPortfolioSeriesLabel(key: ChartSeriesKey, tr: Tr) {
   if (key === "net") return tReport(tr, "Net NAV", "净 NAV");
   if (key === "gross") return tReport(tr, "Gross NAV", "总 NAV");
@@ -798,15 +1002,11 @@ function getPortfolioSeriesLabel(key: ChartSeriesKey, tr: Tr) {
 }
 
 function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
-  const [highlightedSeries, setHighlightedSeries] =
-    useState<ChartSeriesKey | null>(null);
-  const [visibleSeries, setVisibleSeries] = useState<Set<ChartSeriesKey>>(
-    () => new Set(portfolioSeriesKeys)
-  );
+  const [highlightedSeries, setHighlightedSeries] = useState<ChartSeriesKey | null>(null);
+  const [visibleSeries, setVisibleSeries] = useState<Set<ChartSeriesKey>>(() => new Set(portfolioSeriesKeys));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const chartStackRef = useRef<HTMLDivElement>(null);
-  const activeDatum =
-    activeIndex === null ? null : portfolioNavData[activeIndex];
+  const activeDatum = activeIndex === null ? null : portfolioNavData[activeIndex];
   const isVisible = (key: ChartSeriesKey) => visibleSeries.has(key);
   const toggleSeries = (key: ChartSeriesKey) => {
     setHighlightedSeries(null);
@@ -832,22 +1032,14 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
     const handleWindowPointerMove = (event: globalThis.PointerEvent) => {
       const rect = chartStackRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const isOutside =
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom;
+      const isOutside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
       if (isOutside) clearInteraction();
     };
 
     window.addEventListener("pointermove", handleWindowPointerMove, true);
-    return () =>
-      window.removeEventListener("pointermove", handleWindowPointerMove, true);
+    return () => window.removeEventListener("pointermove", handleWindowPointerMove, true);
   }, [highlightedSeries, activeIndex]);
-  const showTooltipForIndex = (
-    index: number,
-    key: ChartSeriesKey | null = null
-  ) => {
+  const showTooltipForIndex = (index: number, key: ChartSeriesKey | null = null) => {
     setActiveIndex(index);
     setHighlightedSeries(key);
   };
@@ -860,57 +1052,32 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
     svgPoint.x = event.clientX;
     svgPoint.y = event.clientY;
     const pointer = svgPoint.matrixTransform(matrix.inverse());
-    const nearestIndex = Math.max(
-      0,
-      Math.min(
-        portfolioNavData.length - 1,
-        Math.round(
-          ((pointer.x - portfolioChartFrame.left) / portfolioPlotWidth) *
-            (portfolioNavData.length - 1)
-        )
-      )
-    );
+    const nearestIndex = Math.max(0, Math.min(portfolioNavData.length - 1, Math.round(((pointer.x - portfolioChartFrame.left) / portfolioPlotWidth) * (portfolioNavData.length - 1))));
     const nearestSeries =
       portfolioSeriesKeys
         .filter(isVisible)
         .map(key => ({
           key,
-          distance: Math.abs(
-            portfolioPointFor(key, nearestIndex).y - pointer.y
-          ),
+          distance: Math.abs(portfolioPointFor(key, nearestIndex).y - pointer.y),
         }))
         .sort((left, right) => left.distance - right.distance)[0]?.key ?? null;
     showTooltipForIndex(nearestIndex, nearestSeries);
   };
-  const showKeyboardTooltip = (
-    direction: "start" | "previous" | "next" | "end"
-  ) => {
+  const showKeyboardTooltip = (direction: "start" | "previous" | "next" | "end") => {
     const current = activeIndex ?? portfolioTroughIndex;
     const next =
-      direction === "start"
-        ? 0
-        : direction === "end"
-          ? portfolioNavData.length - 1
-          : direction === "previous"
-            ? Math.max(0, current - 1)
-            : Math.min(portfolioNavData.length - 1, current + 1);
+      direction === "start" ? 0 : direction === "end" ? portfolioNavData.length - 1 : direction === "previous" ? Math.max(0, current - 1) : Math.min(portfolioNavData.length - 1, current + 1);
     showTooltipForIndex(next, highlightedSeries);
   };
   const peakPoint = portfolioPointFor("net", portfolioPeakIndex);
   const troughPoint = portfolioPointFor("net", portfolioTroughIndex);
   const drawdownPeakPoint = portfolioPointFor("drawdown", portfolioPeakIndex);
-  const drawdownTroughPoint = portfolioPointFor(
-    "drawdown",
-    portfolioTroughIndex
-  );
+  const drawdownTroughPoint = portfolioPointFor("drawdown", portfolioTroughIndex);
   const activeX = activeIndex === null ? null : scalePortfolioX(activeIndex);
   const tooltipRows = activeDatum
     ? portfolioSeriesKeys.filter(isVisible).map(key => ({
         label: getPortfolioSeriesLabel(key, tr),
-        value:
-          key === "drawdown"
-            ? formatChartValue(activeDatum.drawdown, "percent")
-            : formatChartValue(activeDatum[key], "nav"),
+        value: key === "drawdown" ? formatChartValue(activeDatum.drawdown, "percent") : formatChartValue(activeDatum[key], "nav"),
         color: portfolioSeriesMeta[key].color,
         active: highlightedSeries === key,
       }))
@@ -922,7 +1089,7 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
       <div className="oq-chart-toolbar">
         <div className="oq-report-legend" aria-label={tReport(tr, "Portfolio chart series", "组合图表序列")}>
           {portfolioSeriesKeys.map(key => (
-            <LegendItem
+            <ChartLegendItem
               key={key}
               color={portfolioSeriesMeta[key].color}
               label={getPortfolioSeriesLabel(key, tr)}
@@ -934,283 +1101,153 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
               onToggle={() => toggleSeries(key)}
             />
           ))}
-          <LegendItem color="#d64550" label={tReport(tr, "Max DD peak", "最大回撤峰值")} mark="cross" />
-          <LegendItem color="#1f8a5b" label={tReport(tr, "Max DD trough", "最大回撤谷值")} mark="cross" />
+          <ChartLegendItem color="#d64550" label={tReport(tr, "Max DD peak", "最大回撤峰值")} mark="cross" />
+          <ChartLegendItem color="#1f8a5b" label={tReport(tr, "Max DD trough", "最大回撤谷值")} mark="cross" />
         </div>
       </div>
-      <div
-        className="oq-nav-chart"
-        onMouseLeave={clearInteraction}
-        onPointerLeave={clearInteraction}
-      >
-        <svg
-          viewBox={`0 0 ${portfolioChartFrame.width} ${portfolioChartFrame.height}`}
-          preserveAspectRatio="none"
-          role="img"
-          tabIndex={0}
-          aria-label={tReport(
-            tr,
-            "Portfolio net NAV, gross NAV and drawdown over time, with maximum drawdown peak and trough markers",
-            "组合净 NAV、总 NAV 与回撤的时间序列，并标记最大回撤的峰值和谷值"
-          )}
-          onFocus={() => showTooltipForIndex(portfolioTroughIndex)}
-          onBlur={clearInteraction}
-          onKeyDown={event => {
-            if (event.key === "ArrowLeft") {
-              event.preventDefault();
-              showKeyboardTooltip("previous");
-            }
-            if (event.key === "ArrowRight") {
-              event.preventDefault();
-              showKeyboardTooltip("next");
-            }
-            if (event.key === "Home") {
-              event.preventDefault();
-              showKeyboardTooltip("start");
-            }
-            if (event.key === "End") {
-              event.preventDefault();
-              showKeyboardTooltip("end");
-            }
-          }}
-        >
-          <defs>
-            <linearGradient
-              id="oq-drawdown-area-gradient"
-              x1="0"
-              x2="0"
-              y1="0"
-              y2="1"
-            >
-              <stop offset="0%" stopColor="#d64550" stopOpacity="0.16" />
-              <stop offset="100%" stopColor="#d64550" stopOpacity="0.03" />
-            </linearGradient>
-          </defs>
-          <g className="oq-chart-grid" aria-hidden="true">
-            {portfolioNavTicks.map(tick => (
-              <line
-                key={`nav-${tick}`}
-                x1={portfolioChartFrame.left}
-                x2={portfolioChartFrame.width - portfolioChartFrame.right}
-                y1={scalePortfolioNav(tick)}
-                y2={scalePortfolioNav(tick)}
-              />
-            ))}
-            {portfolioDrawdownTicks.map(tick => (
-              <line
-                key={`dd-${tick}`}
-                x1={portfolioChartFrame.left}
-                x2={portfolioChartFrame.width - portfolioChartFrame.right}
-                y1={scalePortfolioDrawdown(tick)}
-                y2={scalePortfolioDrawdown(tick)}
-              />
-            ))}
-            {portfolioTimeTicks.map(tick => {
-              const x = scalePortfolioX(indexForPortfolioDateTick(tick));
-              return (
-                <line
-                  className="oq-chart-vertical-grid"
-                  key={`time-${tick}`}
-                  x1={x}
-                  x2={x}
-                  y1={portfolioChartFrame.navTop}
-                  y2={
-                    portfolioChartFrame.drawdownTop +
-                    portfolioChartFrame.drawdownHeight
-                  }
-                />
-              );
-            })}
-          </g>
-          {isVisible("drawdown") ? (
-            <path
-              d={portfolioDrawdownAreaPath()}
-              className="oq-drawdown-area"
-              aria-hidden="true"
-            />
-          ) : null}
-          {isVisible("gross") ? (
-            <path
-              d={portfolioPathFor("gross")}
-              className={seriesClass("gross", "oq-line-blue")}
-            />
-          ) : null}
-          {isVisible("net") ? (
-            <path
-              d={portfolioPathFor("net")}
-              className={seriesClass("net", "oq-line-gold")}
-            />
-          ) : null}
-          {isVisible("drawdown") ? (
-            <path
-              d={portfolioPathFor("drawdown")}
-              className={seriesClass("drawdown", "oq-line-drawdown")}
-            />
-          ) : null}
-          <g className="oq-chart-axis" aria-hidden="true">
-            {portfolioNavTicks.map(tick => (
-              <text
-                key={tick}
-                x={portfolioChartFrame.left - 14}
-                y={scalePortfolioNav(tick) + 4}
-                textAnchor="end"
-              >
-                {tick.toFixed(2)}
-              </text>
-            ))}
-            {portfolioDrawdownTicks.map(tick => (
-              <text
-                key={tick}
-                x={portfolioChartFrame.left - 14}
-                y={scalePortfolioDrawdown(tick) + 4}
-                textAnchor="end"
-              >{`${Math.round(tick * 100)}%`}</text>
-            ))}
-            {portfolioTimeTicks.map(tick => (
-              <text
-                key={tick}
-                x={scalePortfolioX(indexForPortfolioDateTick(tick))}
-                y={portfolioChartFrame.height - 18}
-                textAnchor="middle"
-              >
-                {tick}
-              </text>
-            ))}
-            <text
-              className="oq-drawdown-note"
-              x={portfolioChartFrame.left}
-              y={portfolioChartFrame.drawdownTop - 18}
-            >
-              {tReport(tr, "Drawdown · worst -20.99%", "回撤 · 最深 -20.99%")}
-            </text>
-          </g>
-          <g aria-hidden="true">
-            <line
-              className="oq-drawdown-zero-line"
-              x1={portfolioChartFrame.left}
-              x2={portfolioChartFrame.width - portfolioChartFrame.right}
-              y1={scalePortfolioDrawdown(0)}
-              y2={scalePortfolioDrawdown(0)}
-            />
-            <text
-              className="oq-event-marker is-peak"
-              x={peakPoint.x}
-              y={peakPoint.y - 8}
-              textAnchor="middle"
-            >
-              ×
-            </text>
-            <text
-              className="oq-event-marker is-trough"
-              x={troughPoint.x}
-              y={troughPoint.y + 20}
-              textAnchor="middle"
-            >
-              ×
-            </text>
-            <circle
-              className="oq-event-dot is-peak"
-              cx={drawdownPeakPoint.x}
-              cy={drawdownPeakPoint.y}
-              r="5"
-            />
-            <circle
-              className="oq-event-dot is-trough"
-              cx={drawdownTroughPoint.x}
-              cy={drawdownTroughPoint.y}
-              r="5"
-            />
-          </g>
-          {activeX !== null ? (
-            <g aria-hidden="true">
-              <line
-                className="oq-chart-crosshair"
-                x1={activeX}
-                x2={activeX}
-                y1={portfolioChartFrame.navTop}
-                y2={
-                  portfolioChartFrame.drawdownTop +
-                  portfolioChartFrame.drawdownHeight
-                }
-              />
-              {portfolioSeriesKeys.filter(isVisible).map(key => {
-                const point = portfolioPointFor(key, activeIndex ?? 0);
+      <div className="oq-nav-chart" onMouseLeave={clearInteraction} onPointerLeave={clearInteraction}>
+        <div className="oq-nav-chart-canvas">
+          <svg
+            viewBox={`0 0 ${portfolioChartFrame.width} ${portfolioChartFrame.height}`}
+            preserveAspectRatio="xMidYMid meet"
+            role="img"
+            tabIndex={0}
+            aria-label={tReport(
+              tr,
+              "Portfolio net NAV, gross NAV and drawdown over time, with maximum drawdown peak and trough markers",
+              "组合净 NAV、总 NAV 与回撤的时间序列，并标记最大回撤的峰值和谷值"
+            )}
+            onFocus={() => showTooltipForIndex(portfolioTroughIndex)}
+            onBlur={clearInteraction}
+            onKeyDown={event => {
+              if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                showKeyboardTooltip("previous");
+              }
+              if (event.key === "ArrowRight") {
+                event.preventDefault();
+                showKeyboardTooltip("next");
+              }
+              if (event.key === "Home") {
+                event.preventDefault();
+                showKeyboardTooltip("start");
+              }
+              if (event.key === "End") {
+                event.preventDefault();
+                showKeyboardTooltip("end");
+              }
+            }}
+          >
+            <defs>
+              <linearGradient id="oq-drawdown-area-gradient" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="#d64550" stopOpacity="0.16" />
+                <stop offset="100%" stopColor="#d64550" stopOpacity="0.03" />
+              </linearGradient>
+            </defs>
+            <g className="oq-chart-grid" aria-hidden="true">
+              {portfolioNavTicks.map(tick => (
+                <line key={`nav-${tick}`} x1={portfolioChartFrame.left} x2={portfolioChartFrame.width - portfolioChartFrame.right} y1={scalePortfolioNav(tick)} y2={scalePortfolioNav(tick)} />
+              ))}
+              {portfolioDrawdownTicks.map(tick => (
+                <line key={`dd-${tick}`} x1={portfolioChartFrame.left} x2={portfolioChartFrame.width - portfolioChartFrame.right} y1={scalePortfolioDrawdown(tick)} y2={scalePortfolioDrawdown(tick)} />
+              ))}
+              {portfolioTimeTicks.map(tick => {
+                const x = scalePortfolioX(indexForPortfolioDateTick(tick));
                 return (
-                  <circle
-                    className="oq-chart-active-marker"
-                    cx={point.x}
-                    cy={point.y}
-                    key={key}
-                    r={highlightedSeries === key ? 6 : 4}
-                    style={{ color: portfolioSeriesMeta[key].color }}
+                  <line
+                    className="oq-chart-vertical-grid"
+                    key={`time-${tick}`}
+                    x1={x}
+                    x2={x}
+                    y1={portfolioChartFrame.navTop}
+                    y2={portfolioChartFrame.drawdownTop + portfolioChartFrame.drawdownHeight}
                   />
                 );
               })}
             </g>
-          ) : null}
-          <rect
-            className="oq-chart-hit-area"
-            x={portfolioChartFrame.left}
-            y={portfolioChartFrame.navTop}
-            width={portfolioPlotWidth}
-            height={
-              portfolioChartFrame.drawdownTop +
-              portfolioChartFrame.drawdownHeight -
-              portfolioChartFrame.navTop
-            }
-            onPointerMove={showNearestTooltip}
-            onPointerEnter={showNearestTooltip}
-            onPointerLeave={clearInteraction}
-          />
-        </svg>
-        {activeDatum && activeX !== null ? (
-          <div
-            className="oq-chart-tooltip is-dense"
-            style={{
-              left: `clamp(128px, ${(activeX / portfolioChartFrame.width) * 100}%, calc(100% - 128px))`,
-              top: "44%",
-            }}
-            role="status"
-          >
-            <span>{formatPortfolioDate(activeDatum.date)}</span>
-            <div className="oq-chart-tooltip-list">
-              {tooltipRows.map(row => (
-                <div
-                  className="oq-chart-tooltip-row"
-                  data-active={row.active}
-                  key={row.label}
-                >
-                  <small>
-                    <i style={{ background: row.color }} />
-                    {row.label}
-                  </small>
-                  <strong>{row.value}</strong>
-                </div>
+            {isVisible("drawdown") ? <path d={portfolioDrawdownAreaPath()} className="oq-drawdown-area" aria-hidden="true" /> : null}
+            {isVisible("gross") ? <path d={portfolioPathFor("gross")} className={seriesClass("gross", "oq-line-blue")} /> : null}
+            {isVisible("net") ? <path d={portfolioPathFor("net")} className={seriesClass("net", "oq-line-gold")} /> : null}
+            {isVisible("drawdown") ? <path d={portfolioPathFor("drawdown")} className={seriesClass("drawdown", "oq-line-drawdown")} /> : null}
+            <g className="oq-chart-axis" aria-hidden="true">
+              {portfolioNavTicks.map(tick => (
+                <text key={tick} x={portfolioChartFrame.left - 14} y={scalePortfolioNav(tick) + 4} textAnchor="end">
+                  {tick.toFixed(2)}
+                </text>
               ))}
+              {portfolioDrawdownTicks.map(tick => (
+                <text key={tick} x={portfolioChartFrame.left - 14} y={scalePortfolioDrawdown(tick) + 4} textAnchor="end">{`${Math.round(tick * 100)}%`}</text>
+              ))}
+              {portfolioTimeTicks.map(tick => (
+                <text key={tick} x={scalePortfolioX(indexForPortfolioDateTick(tick))} y={portfolioChartFrame.height - 18} textAnchor="middle">
+                  {tick}
+                </text>
+              ))}
+              <text className="oq-drawdown-note" x={portfolioChartFrame.left} y={portfolioChartFrame.drawdownTop - 18}>
+                {tReport(tr, "Drawdown · worst -20.99%", "回撤 · 最深 -20.99%")}
+              </text>
+            </g>
+            <g aria-hidden="true">
+              <line
+                className="oq-drawdown-zero-line"
+                x1={portfolioChartFrame.left}
+                x2={portfolioChartFrame.width - portfolioChartFrame.right}
+                y1={scalePortfolioDrawdown(0)}
+                y2={scalePortfolioDrawdown(0)}
+              />
+              <text className="oq-event-marker is-peak" x={peakPoint.x} y={peakPoint.y - 8} textAnchor="middle">
+                ×
+              </text>
+              <text className="oq-event-marker is-trough" x={troughPoint.x} y={troughPoint.y + 20} textAnchor="middle">
+                ×
+              </text>
+              <circle className="oq-event-dot is-peak" cx={drawdownPeakPoint.x} cy={drawdownPeakPoint.y} r="5" />
+              <circle className="oq-event-dot is-trough" cx={drawdownTroughPoint.x} cy={drawdownTroughPoint.y} r="5" />
+            </g>
+            {activeX !== null ? (
+              <g aria-hidden="true">
+                <line className="oq-chart-crosshair" x1={activeX} x2={activeX} y1={portfolioChartFrame.navTop} y2={portfolioChartFrame.drawdownTop + portfolioChartFrame.drawdownHeight} />
+                {portfolioSeriesKeys.filter(isVisible).map(key => {
+                  const point = portfolioPointFor(key, activeIndex ?? 0);
+                  return <circle className="oq-chart-active-marker" cx={point.x} cy={point.y} key={key} r={highlightedSeries === key ? 6 : 4} style={{ color: portfolioSeriesMeta[key].color }} />;
+                })}
+              </g>
+            ) : null}
+            <rect
+              className="oq-chart-hit-area"
+              x={portfolioChartFrame.left}
+              y={portfolioChartFrame.navTop}
+              width={portfolioPlotWidth}
+              height={portfolioChartFrame.drawdownTop + portfolioChartFrame.drawdownHeight - portfolioChartFrame.navTop}
+              onPointerMove={showNearestTooltip}
+              onPointerEnter={showNearestTooltip}
+              onPointerDown={showNearestTooltip}
+              onPointerLeave={clearInteraction}
+            />
+          </svg>
+          {activeDatum && activeX !== null ? (
+            <div
+              className="oq-chart-tooltip is-dense"
+              style={{
+                left: `clamp(128px, ${(activeX / portfolioChartFrame.width) * 100}%, calc(100% - 128px))`,
+                top: "44%",
+              }}
+              role="status"
+            >
+              <ChartTooltip title={formatPortfolioDate(activeDatum.date)} rows={tooltipRows} />
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </div>
   );
 }
 
-function MetricsTable({
-  rows = navMetrics,
-  tr = defaultTr,
-}: {
-  rows?: Array<[string, string]>;
-  tr?: Tr;
-}) {
-  if (rows.length === 0)
-    return <ChartEmptyState message={tReport(tr, "No metrics available", "暂无指标数据")} tr={tr} />;
+function MetricsTable({ rows = navMetrics, tr = defaultTr }: { rows?: Array<[string, string]>; tr?: Tr }) {
+  if (rows.length === 0) return <ChartEmptyState message={tReport(tr, "No metrics available", "暂无指标数据")} tr={tr} />;
 
   return (
-    <div
-      className="oq-report-metrics-table"
-      role="table"
-      aria-label={tReport(tr, "Portfolio metrics", "组合指标")}
-    >
+    <div className="oq-report-metrics-table" role="table" aria-label={tReport(tr, "Portfolio metrics", "组合指标")}>
       <div className="oq-report-table-row is-head">
         <span>{tReport(tr, "Metric", "指标")}</span>
         <span>{tReport(tr, "Value", "数值")}</span>
@@ -1227,6 +1264,7 @@ function MetricsTable({
 
 function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
+  const [visibleSides, setVisibleSides] = useState<Set<"long" | "short">>(() => new Set<"long" | "short">(["long", "short"]));
   const [tooltipPoint, setTooltipPoint] = useState<{
     x: number;
     y: number;
@@ -1241,12 +1279,20 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
     setActiveLabel(null);
     setTooltipPoint(null);
   };
+  const toggleSide = (side: "long" | "short") => {
+    clearInteraction();
+    setVisibleSides(current => {
+      const next = new Set(current);
+      if (next.has(side)) next.delete(side);
+      else next.add(side);
+      return next.size > 0 ? next : current;
+    });
+  };
   const setTooltipFromPointer = (event: PointerEvent<HTMLDivElement>) => {
     const rect = chartRef.current?.getBoundingClientRect();
     if (!rect) return;
     const localX = event.clientX - rect.left;
-    const shouldFlip =
-      localX > rect.width - 244 || event.clientX > window.innerWidth - 244;
+    const shouldFlip = localX > rect.width - 244 || event.clientX > window.innerWidth - 244;
     setTooltipPoint({
       x: shouldFlip ? localX - 234 : localX + 14,
       y: event.clientY - rect.top + 14,
@@ -1267,38 +1313,28 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
     const handleWindowPointerMove = (event: globalThis.PointerEvent) => {
       const rect = chartRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const isOutside =
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom;
+      const isOutside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
       if (isOutside) clearInteraction();
     };
 
     window.addEventListener("pointermove", handleWindowPointerMove, true);
-    return () =>
-      window.removeEventListener("pointermove", handleWindowPointerMove, true);
+    return () => window.removeEventListener("pointermove", handleWindowPointerMove, true);
   }, [activeLabel]);
-  if (exposureRows.length === 0)
-    return <ChartEmptyState message={tReport(tr, "No exposure data available", "暂无行业暴露数据")} tr={tr} />;
+  if (exposureRows.length === 0) return <ChartEmptyState message={tReport(tr, "No exposure data available", "暂无行业暴露数据")} tr={tr} />;
 
   return (
     <div ref={chartRef} className="oq-exposure-chart">
       <div className="oq-chart-toolbar is-subtle">
         <div className="oq-report-legend">
-          <LegendItem color="#1f8a5b" label={tReport(tr, "Long", "多头")} />
-          <LegendItem color="#d64550" label={tReport(tr, "Short", "空头")} />
+          <ChartLegendItem color="#1f8a5b" label={tReport(tr, "Long", "多头")} active={visibleSides.has("long")} pressed={visibleSides.has("long")} onToggle={() => toggleSide("long")} />
+          <ChartLegendItem color="#d64550" label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleSide("short")} />
         </div>
       </div>
       <div className="oq-diverging-axis oq-exposure-axis" aria-hidden="true">
         <span className="oq-diverging-axis-spacer" />
         <div className="oq-diverging-axis-track">
           {exposureTicks.map(tick => (
-            <span
-              className="oq-diverging-axis-tick"
-              key={tick}
-              style={{ left: `${getDomainPercent(tick, exposureDomain)}%` }}
-            >
+            <span className="oq-diverging-axis-tick" key={tick} style={{ left: `${getDomainPercent(tick, exposureDomain)}%` }}>
               {formatAxisTick(tick)}
             </span>
           ))}
@@ -1343,14 +1379,8 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
                   }}
                 />
               ))}
-              <i
-                aria-hidden="true"
-                style={getDivergingBarStyle(shortValue, exposureDomain)}
-              />
-              <b
-                aria-hidden="true"
-                style={getDivergingBarStyle(row.long, exposureDomain)}
-              />
+              {visibleSides.has("short") ? <i aria-hidden="true" style={getDivergingBarStyle(shortValue, exposureDomain)} /> : null}
+              {visibleSides.has("long") ? <b aria-hidden="true" style={getDivergingBarStyle(row.long, exposureDomain)} /> : null}
             </div>
           </div>
         );
@@ -1363,11 +1393,30 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
             top: `clamp(46px, ${tooltipPoint.y}px, calc(100% - 98px))`,
           }}
         >
-          <InlineChartTooltip
+          <ChartTooltip
             title={activeRow.label}
-            xValue={tReport(tr, "Average sector exposure", "平均行业暴露")}
-            yValue={`${tReport(tr, "Long", "多头")} ${formatChartValue(activeRow.long)} · ${tReport(tr, "Short", "空头")} ${formatChartValue(-activeRow.short)}`}
             unit={tReport(tr, "abs weight", "绝对权重")}
+            rows={[
+              ...(visibleSides.has("long")
+                ? [
+                    {
+                      label: tReport(tr, "Long", "多头"),
+                      value: formatChartValue(activeRow.long),
+                      color: "var(--report-green)",
+                      active: true,
+                    },
+                  ]
+                : []),
+              ...(visibleSides.has("short")
+                ? [
+                    {
+                      label: tReport(tr, "Short", "空头"),
+                      value: formatChartValue(-activeRow.short),
+                      color: "var(--report-red)",
+                    },
+                  ]
+                : []),
+            ]}
           />
         </div>
       ) : null}
@@ -1377,13 +1426,13 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
 
 function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
+  const [visibleTones, setVisibleTones] = useState<Set<"positive" | "negative">>(() => new Set<"positive" | "negative">(["positive", "negative"]));
   const [tooltipPoint, setTooltipPoint] = useState<{
     x: number;
     y: number;
   } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
-  const activeRankRow =
-    sectorRankRows.find(([label]) => label === activeLabel) ?? null;
+  const activeRankRow = sectorRankRows.find(([label]) => label === activeLabel) ?? null;
   const rankZeroPercent = getDomainPercent(0, rankDomain);
   const rankPlotStyle = {
     "--zero-pct": `${rankZeroPercent}%`,
@@ -1392,12 +1441,20 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
     setActiveLabel(null);
     setTooltipPoint(null);
   };
+  const toggleTone = (tone: "positive" | "negative") => {
+    clearInteraction();
+    setVisibleTones(current => {
+      const next = new Set(current);
+      if (next.has(tone)) next.delete(tone);
+      else next.add(tone);
+      return next.size > 0 ? next : current;
+    });
+  };
   const setTooltipFromPointer = (event: PointerEvent<HTMLDivElement>) => {
     const rect = chartRef.current?.getBoundingClientRect();
     if (!rect) return;
     const localX = event.clientX - rect.left;
-    const shouldFlip =
-      localX > rect.width - 244 || event.clientX > window.innerWidth - 244;
+    const shouldFlip = localX > rect.width - 244 || event.clientX > window.innerWidth - 244;
     setTooltipPoint({
       x: shouldFlip ? localX - 234 : localX + 14,
       y: event.clientY - rect.top + 14,
@@ -1418,38 +1475,40 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
     const handleWindowPointerMove = (event: globalThis.PointerEvent) => {
       const rect = chartRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const isOutside =
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom;
+      const isOutside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
       if (isOutside) clearInteraction();
     };
 
     window.addEventListener("pointermove", handleWindowPointerMove, true);
-    return () =>
-      window.removeEventListener("pointermove", handleWindowPointerMove, true);
+    return () => window.removeEventListener("pointermove", handleWindowPointerMove, true);
   }, [activeLabel]);
-  if (sectorRankRows.length === 0)
-    return <ChartEmptyState message={tReport(tr, "No sector rank data available", "暂无行业收益排名数据")} tr={tr} />;
+  if (sectorRankRows.length === 0) return <ChartEmptyState message={tReport(tr, "No sector rank data available", "暂无行业收益排名数据")} tr={tr} />;
 
   return (
     <div ref={chartRef} className="oq-rank-chart">
       <div className="oq-chart-toolbar is-subtle">
         <div className="oq-report-legend">
-          <LegendItem color="#1f8a5b" label={tReport(tr, "Positive contribution", "正向贡献")} />
-          <LegendItem color="#d64550" label={tReport(tr, "Negative contribution", "负向贡献")} />
+          <ChartLegendItem
+            color="#1f8a5b"
+            label={tReport(tr, "Positive contribution", "正向贡献")}
+            active={visibleTones.has("positive")}
+            pressed={visibleTones.has("positive")}
+            onToggle={() => toggleTone("positive")}
+          />
+          <ChartLegendItem
+            color="#d64550"
+            label={tReport(tr, "Negative contribution", "负向贡献")}
+            active={visibleTones.has("negative")}
+            pressed={visibleTones.has("negative")}
+            onToggle={() => toggleTone("negative")}
+          />
         </div>
       </div>
       <div className="oq-diverging-axis oq-rank-axis" aria-hidden="true">
         <span className="oq-diverging-axis-spacer" />
         <div className="oq-diverging-axis-track">
           {rankTicks.map(tick => (
-            <span
-              className="oq-diverging-axis-tick"
-              key={tick}
-              style={{ left: `${getDomainPercent(tick, rankDomain)}%` }}
-            >
+            <span className="oq-diverging-axis-tick" key={tick} style={{ left: `${getDomainPercent(tick, rankDomain)}%` }}>
               {formatAxisTick(tick)}
             </span>
           ))}
@@ -1483,18 +1542,9 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
           <span title={label}>{label}</span>
           <div className="oq-diverging-plot" style={rankPlotStyle}>
             {rankTicks.map(tick => (
-              <span
-                aria-hidden="true"
-                className="oq-diverging-grid-line"
-                key={tick}
-                style={{ left: `${getDomainPercent(tick, rankDomain)}%` }}
-              />
+              <span aria-hidden="true" className="oq-diverging-grid-line" key={tick} style={{ left: `${getDomainPercent(tick, rankDomain)}%` }} />
             ))}
-            <b
-              aria-hidden="true"
-              className={value < 0 ? "is-negative" : ""}
-              style={getDivergingBarStyle(value, rankDomain)}
-            />
+            {visibleTones.has(value < 0 ? "negative" : "positive") ? <b aria-hidden="true" className={value < 0 ? "is-negative" : ""} style={getDivergingBarStyle(value, rankDomain)} /> : null}
           </div>
         </div>
       ))}
@@ -1506,11 +1556,17 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
             top: `clamp(46px, ${tooltipPoint.y}px, calc(100% - 98px))`,
           }}
         >
-          <InlineChartTooltip
+          <ChartTooltip
             title={activeRankRow[0]}
-            xValue={tReport(tr, "Total PnL contribution", "总 PnL 贡献")}
-            yValue={formatChartValue(activeRankRow[1])}
             unit={tReport(tr, "pnl contribution", "PnL 贡献")}
+            rows={[
+              {
+                label: tReport(tr, "Total PnL contribution", "总 PnL 贡献"),
+                value: formatChartValue(activeRankRow[1]),
+                color: activeRankRow[1] < 0 ? "var(--report-red)" : "var(--report-green)",
+                active: true,
+              },
+            ]}
           />
         </div>
       ) : null}
@@ -1518,7 +1574,13 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
   );
 }
 
-function DenseLines({ count = 42, height = 260, compact = false, variant = "default", tr = defaultTr }: {
+function DenseLines({
+  count = 42,
+  height = 260,
+  compact = false,
+  variant = "default",
+  tr = defaultTr,
+}: {
   count?: number;
   height?: number;
   compact?: boolean;
@@ -1526,6 +1588,7 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
   tr?: Tr;
 }) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [hiddenIndexes, setHiddenIndexes] = useState<Set<number>>(() => new Set());
   const [tooltipPoint, setTooltipPoint] = useState<{
     x: number;
     y: number;
@@ -1540,62 +1603,97 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
     symbol: string;
   } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
-  const [chartWidth, setChartWidth] = useState(0);
   const isDecileReturn = variant === "decile";
   const isBarraStyleReturn = variant === "barra-style";
   const isAutocorrDecay = variant === "autocorr-decay";
   const isBarraCorrelation = variant === "barra-correlation";
   const isTurnoverRate = variant === "turnover-rate";
   const isReturnChart = isDecileReturn || isBarraStyleReturn || isAutocorrDecay || isBarraCorrelation || isTurnoverRate;
-  const returnDomain = isAutocorrDecay ? autocorrDecayDomain : isTurnoverRate ? turnoverRateDomain : isBarraCorrelation ? barraCorrelationDomain : isBarraStyleReturn ? barraStyleReturnDomain : decileReturnDomain;
+  const returnDomain = isAutocorrDecay
+    ? autocorrDecayDomain
+    : isTurnoverRate
+      ? turnoverRateDomain
+      : isBarraCorrelation
+        ? barraCorrelationDomain
+        : isBarraStyleReturn
+          ? barraStyleReturnDomain
+          : decileReturnDomain;
   const isSymbolCumulative = !compact && count > 20;
   const renderCount = isAutocorrDecay
     ? autocorrDecayLabels.length
     : isDecileReturn
-    ? decileReturnLabels.length
-    : isTurnoverRate
-      ? turnoverRateLabels.length
-    : isBarraStyleReturn || isBarraCorrelation
-      ? barraStyleReturnLabels.length
-      : isSymbolCumulative
-        ? Math.min(Math.max(count, denseSymbolCount), denseSymbolCount)
-        : compact
-          ? Math.min(count, 8)
-          : Math.min(count, count > 20 ? 18 : count);
+      ? decileReturnLabels.length
+      : isTurnoverRate
+        ? turnoverRateLabels.length
+        : isBarraStyleReturn || isBarraCorrelation
+          ? barraStyleReturnLabels.length
+          : isSymbolCumulative
+            ? Math.min(Math.max(count, denseSymbolCount), denseSymbolCount)
+            : compact
+              ? Math.min(count, 8)
+              : Math.min(count, count > 20 ? 18 : count);
   const isSmallMultiple = compact || count <= 12;
-  const isNarrowSymbolChart =
-    isSymbolCumulative && chartWidth > 0 && chartWidth < 560;
+  const isNarrowSymbolChart = useContainerNarrow(chartRef, 560, isSymbolCumulative);
   const viewBox = {
     width: isNarrowSymbolChart ? 560 : isSmallMultiple ? 720 : 1000,
     height,
   };
-  const margin = compact
-    ? { top: 22, right: 36, bottom: 42, left: 64 }
-    : isSmallMultiple
-      ? { top: 36, right: 44, bottom: 52, left: 68 }
-      : { top: 44, right: 48, bottom: 56, left: 72 };
+  const margin = compact ? { top: 22, right: 36, bottom: 42, left: 64 } : isSmallMultiple ? { top: 36, right: 44, bottom: 52, left: 68 } : { top: 44, right: 48, bottom: 56, left: 72 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
   const pointCount = isAutocorrDecay ? autocorrDecayLagLabels.length : isTurnoverRate ? densePointCount : isReturnChart ? 120 : isSymbolCumulative ? densePointCount : 70;
   const yMin = isReturnChart ? returnDomain.min : isSymbolCumulative ? denseSymbolPnlDomain.min : 0;
-  const yMax = isReturnChart
-    ? returnDomain.max
-    : isSymbolCumulative
-      ? denseSymbolPnlDomain.max
-      : compact
-        ? 18000
-        : 30000;
-  const yTicks = isAutocorrDecay ? autocorrDecayTicks : isTurnoverRate ? turnoverRateTicks : isBarraCorrelation ? barraCorrelationTicks : isBarraStyleReturn ? barraStyleReturnTicks : isDecileReturn ? decileReturnTicks : isSymbolCumulative ? denseSymbolPnlTicks : compact ? [0, 9000, 18000] : [0, 10000, 20000, 30000];
-  const dateTickLabels = isAutocorrDecay ? autocorrDecayLagLabels.map(String) : isTurnoverRate ? turnoverRateDateTicks : isBarraCorrelation ? barraCorrelationDateTicks : isBarraStyleReturn ? barraStyleReturnDateTicks : isDecileReturn ? decileReturnDateTicks : denseSymbolDateTicks;
-  const xTickIndexes =
-    isAutocorrDecay
-      ? autocorrDecayLagLabels.map((_, index) => index)
-      : isReturnChart || isSymbolCumulative
+  const yMax = isReturnChart ? returnDomain.max : isSymbolCumulative ? denseSymbolPnlDomain.max : compact ? 18000 : 30000;
+  const yTicks = isAutocorrDecay
+    ? autocorrDecayTicks
+    : isTurnoverRate
+      ? turnoverRateTicks
+      : isBarraCorrelation
+        ? barraCorrelationTicks
+        : isBarraStyleReturn
+          ? barraStyleReturnTicks
+          : isDecileReturn
+            ? decileReturnTicks
+            : isSymbolCumulative
+              ? denseSymbolPnlTicks
+              : compact
+                ? [0, 9000, 18000]
+                : [0, 10000, 20000, 30000];
+  const dateTickLabels = isAutocorrDecay
+    ? autocorrDecayLagLabels.map(String)
+    : isTurnoverRate
+      ? turnoverRateDateTicks
+      : isBarraCorrelation
+        ? barraCorrelationDateTicks
+        : isBarraStyleReturn
+          ? barraStyleReturnDateTicks
+          : isDecileReturn
+            ? decileReturnDateTicks
+            : denseSymbolDateTicks;
+  const xTickIndexes = isAutocorrDecay
+    ? autocorrDecayLagLabels.map((_, index) => index)
+    : isReturnChart || isSymbolCumulative
       ? dateTickLabels.map(tick => indexForDenseDateTick(tick, pointCount))
       : [0, 17, 34, 52, 69];
-  const denseValueLabel = isAutocorrDecay ? tReport(tr, "Autocorrelation", "自相关") : isTurnoverRate ? tReport(tr, "Turnover rate", "换手率") : isBarraCorrelation ? tReport(tr, "EMA250 correlation", "EMA250 相关") : isReturnChart ? tReport(tr, "Cumulative return", "累计收益") : tReport(tr, "Cum PnL", "累计 PnL");
+  const denseValueLabel = isAutocorrDecay
+    ? tReport(tr, "Autocorrelation", "自相关")
+    : isTurnoverRate
+      ? tReport(tr, "Turnover rate", "换手率")
+      : isBarraCorrelation
+        ? tReport(tr, "EMA250 correlation", "EMA250 相关")
+        : isReturnChart
+          ? tReport(tr, "Cumulative return", "累计收益")
+          : tReport(tr, "Cum PnL", "累计 PnL");
   const formatDenseValue = (value: number) =>
-    isAutocorrDecay ? value.toFixed(4) : isTurnoverRate || isBarraCorrelation ? value.toFixed(3) : isReturnChart ? formatDecileReturnValue(value) : isSymbolCumulative ? formatDensePnlValue(value) : formatCompactAxisValue(value);
+    isAutocorrDecay
+      ? value.toFixed(4)
+      : isTurnoverRate || isBarraCorrelation
+        ? value.toFixed(3)
+        : isReturnChart
+          ? formatDecileReturnValue(value)
+          : isSymbolCumulative
+            ? formatDensePnlValue(value)
+            : formatCompactAxisValue(value);
   const baselineValue = isBarraStyleReturn ? -0.22 : 0;
   const denseSeries = useMemo(() => {
     return Array.from({ length: renderCount }, (_, index) => {
@@ -1604,12 +1702,11 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
           ? autocorrDecayLabels[index]
           : isTurnoverRate
             ? turnoverRateLabels[index]
-          : isDecileReturn
-          ? decileReturnLabels[index]
-          : isBarraStyleReturn || isBarraCorrelation
-            ? barraStyleReturnLabels[index]
-            : denseSymbolUniverse[index]) ??
-        `${tReport(tr, "Series", "序列")} ${index + 1}`;
+            : isDecileReturn
+              ? decileReturnLabels[index]
+              : isBarraStyleReturn || isBarraCorrelation
+                ? barraStyleReturnLabels[index]
+                : denseSymbolUniverse[index]) ?? `${tReport(tr, "Series", "序列")} ${index + 1}`;
       const isRepresentative = isSymbolCumulative && index === 0;
       const isLongShort = isDecileReturn && index === decileReturnLabels.length - 1;
       const isAutocorrLongShort = isAutocorrDecay && index === autocorrDecayLabels.length - 1;
@@ -1618,35 +1715,20 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
         ? (autocorrDecayValues[index] ?? [])
         : isTurnoverRate
           ? makeTurnoverRateSeries(pointCount, index)
-        : isDecileReturn
-        ? makeDecileReturnSeries(pointCount, index)
-        : isBarraStyleReturn
-          ? makeBarraStyleReturnSeries(pointCount, index)
-          : isBarraCorrelation
-            ? makeBarraCorrelationSeries(pointCount, index)
-          : isSymbolCumulative
-            ? makeDenseSymbolPnlSeries(pointCount, index)
-            : makeSeries(
-                pointCount,
-                index,
-                0.08 - (index % 7) * 0.035,
-                0.08 + (index % 4) * 0.03
-              ).map((value, valueIndex) => {
-                const trend = valueIndex / Math.max(1, pointCount - 1);
-                return Math.max(
-                  0,
-                  Math.min(
-                    yMax,
-                    value * (compact ? 8200 : 12200) +
-                      trend * (compact ? 2400 : 5200) +
-                      index * (compact ? 160 : 260)
-                  )
-                );
-              });
+          : isDecileReturn
+            ? makeDecileReturnSeries(pointCount, index)
+            : isBarraStyleReturn
+              ? makeBarraStyleReturnSeries(pointCount, index)
+              : isBarraCorrelation
+                ? makeBarraCorrelationSeries(pointCount, index)
+                : isSymbolCumulative
+                  ? makeDenseSymbolPnlSeries(pointCount, index)
+                  : makeSeries(pointCount, index, 0.08 - (index % 7) * 0.035, 0.08 + (index % 4) * 0.03).map((value, valueIndex) => {
+                      const trend = valueIndex / Math.max(1, pointCount - 1);
+                      return Math.max(0, Math.min(yMax, value * (compact ? 8200 : 12200) + trend * (compact ? 2400 : 5200) + index * (compact ? 160 : 260)));
+                    });
       const points = values.map((value, pointIndex) => {
-        const x =
-          margin.left +
-          (pointIndex / Math.max(1, values.length - 1)) * plotWidth;
+        const x = margin.left + (pointIndex / Math.max(1, values.length - 1)) * plotWidth;
         const y = margin.top + plotHeight - ((value - yMin) / (yMax - yMin)) * plotHeight;
         return { x, y, value };
       });
@@ -1660,19 +1742,14 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
           ? getAutocorrDecayColor(index)
           : isTurnoverRate
             ? getTurnoverRateColor(index)
-          : isDecileReturn
-          ? getDecileReturnColor(index)
-          : isBarraStyleReturn || isBarraCorrelation
-            ? getBarraStyleReturnColor(index)
-            : isRepresentative
-              ? "var(--report-red)"
-              : linePalette[index % linePalette.length],
-        isPrimary:
-          isRepresentative ||
-          isLongShort ||
-          isAutocorrLongShort ||
-          isTurnoverAverage ||
-          (!isDecileReturn && !isBarraCorrelation && !isTurnoverRate && !isSymbolCumulative && index === 0),
+            : isDecileReturn
+              ? getDecileReturnColor(index)
+              : isBarraStyleReturn || isBarraCorrelation
+                ? getBarraStyleReturnColor(index)
+                : isRepresentative
+                  ? "var(--report-gold)"
+                  : linePalette[index % linePalette.length],
+        isPrimary: isRepresentative || isLongShort || isAutocorrLongShort || isTurnoverAverage || (!isDecileReturn && !isBarraCorrelation && !isTurnoverRate && !isSymbolCumulative && index === 0),
       };
     });
   }, [
@@ -1693,50 +1770,59 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
     yMin,
     yMax,
   ]);
-  const activeSeries = activeIndex === null ? null : denseSeries.find(series => series.index === activeIndex) ?? null;
+  const activeSeries = activeIndex === null ? null : (denseSeries.find(series => series.index === activeIndex) ?? null);
   const turnoverDeviation = isTurnoverRate && activePoint ? (denseSeries[0]?.points[activePoint.pointIndex]?.value ?? 0) - (denseSeries[1]?.points[activePoint.pointIndex]?.value ?? 0) : null;
   const denseTooltipLimit = isBarraStyleReturn || isBarraCorrelation ? barraStyleReturnLabels.length : compact ? 4 : 6;
   const denseTooltipBottom = isBarraStyleReturn || isBarraCorrelation ? "calc(100% - 214px)" : "calc(100% - 92px)";
   const tooltipRows =
     activeIndex !== null && activePoint
       ? isSymbolCumulative
-          ? [
-              {
-                label: denseValueLabel,
-                value: formatDenseValue(activePoint.value),
-                color: activePoint.color,
-                active: true,
-              },
+        ? [
+            {
+              label: denseValueLabel,
+              value: formatDenseValue(activePoint.value),
+              color: activePoint.color,
+              active: true,
+            },
           ]
         : denseSeries
+            .filter(series => !hiddenIndexes.has(series.index))
             .map(series => ({
               label: series.symbol,
               value: formatDenseValue(series.points[activePoint.pointIndex]?.value ?? 0),
               color: series.color,
               active: series.index === activeIndex,
-              sortDistance:
-                series.index === activeIndex
-                  ? -1
-                  : Math.abs(series.index - activeIndex),
+              sortDistance: series.index === activeIndex ? -1 : Math.abs(series.index - activeIndex),
             }))
             .sort((left, right) => left.sortDistance - right.sortDistance)
             .slice(0, denseTooltipLimit)
-            .concat(turnoverDeviation === null ? [] : [{ label: tReport(tr, "Delta vs EMA30", "偏离 EMA30"), value: `${turnoverDeviation >= 0 ? "+" : ""}${formatDenseValue(turnoverDeviation)}`, color: "var(--report-muted)", active: false }])
+            .concat(
+              turnoverDeviation === null
+                ? []
+                : [
+                    {
+                      label: tReport(tr, "Delta vs EMA30", "偏离 EMA30"),
+                      value: `${turnoverDeviation >= 0 ? "+" : ""}${formatDenseValue(turnoverDeviation)}`,
+                      color: "var(--report-muted)",
+                      active: false,
+                      sortDistance: Number.POSITIVE_INFINITY,
+                    },
+                  ]
+            )
       : [];
-  useEffect(() => {
-    const node = chartRef.current;
-    if (!node || typeof ResizeObserver === "undefined") return;
-
-    const updateWidth = () => setChartWidth(node.getBoundingClientRect().width);
-    updateWidth();
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
   const clearDenseInteraction = () => {
     setActiveIndex(null);
     setTooltipPoint(null);
     setActivePoint(null);
+  };
+  const toggleDenseSeries = (index: number) => {
+    clearDenseInteraction();
+    setHiddenIndexes(current => {
+      const next = new Set(current);
+      if (next.has(index)) next.delete(index);
+      else if (next.size < denseSeries.length - 1) next.add(index);
+      return next;
+    });
   };
   useEffect(() => {
     if (activeIndex === null && activePoint === null && tooltipPoint === null) return;
@@ -1744,11 +1830,8 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
     const clearIfPointerOutside = (event: globalThis.PointerEvent) => {
       const rect = chartRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const isOutside =
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom;
+      if (chartRef.current?.contains(document.activeElement)) return;
+      const isOutside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
       if (isOutside) clearDenseInteraction();
     };
     const clear = () => clearDenseInteraction();
@@ -1762,12 +1845,7 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
       window.removeEventListener("blur", clear);
     };
   }, [activeIndex, activePoint, tooltipPoint]);
-  const showDenseTooltip = (
-    index: number,
-    pointIndex: number,
-    value: number,
-    event: PointerEvent<SVGElement>
-  ) => {
+  const showDenseTooltip = (index: number, pointIndex: number, value: number, event: PointerEvent<SVGElement>) => {
     const chart = event.currentTarget.closest(".oq-dense-chart");
     const rect = chart?.getBoundingClientRect();
     const series = denseSeries.find(item => item.index === index);
@@ -1781,9 +1859,9 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
         ? `${series.symbol} · ${formatDenseDate(pointIndex, pointCount)}`
         : isAutocorrDecay
           ? `Lag ${autocorrDecayLagLabels[pointIndex] ?? pointIndex + 1}`
-        : isReturnChart
-          ? formatDenseDate(pointIndex, pointCount)
-        : formatPortfolioPeriod(pointIndex, pointCount),
+          : isReturnChart
+            ? formatDenseDate(pointIndex, pointCount)
+            : formatPortfolioPeriod(pointIndex, pointCount),
       x: point.x,
       y: point.y,
       color: series.color,
@@ -1796,10 +1874,7 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
     });
   };
   const showNearestDenseTooltip = (event: PointerEvent<SVGElement>) => {
-    const svg =
-      event.currentTarget instanceof SVGSVGElement
-        ? event.currentTarget
-        : event.currentTarget.ownerSVGElement;
+    const svg = event.currentTarget instanceof SVGSVGElement ? event.currentTarget : event.currentTarget.ownerSVGElement;
     const matrix = svg?.getScreenCTM();
     if (!svg || !matrix) return;
 
@@ -1807,25 +1882,19 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
     svgPoint.x = event.clientX;
     svgPoint.y = event.clientY;
     const pointer = svgPoint.matrixTransform(matrix.inverse());
-    const pointIndex = Math.max(
-      0,
-      Math.min(
-        pointCount - 1,
-        Math.round(((pointer.x - margin.left) / plotWidth) * (pointCount - 1))
-      )
-    );
-    const candidates = denseSeries.map(series => {
-      const point = series.points[pointIndex];
-      return {
-        index: series.index,
-        pointIndex,
-        value: point?.value ?? 0,
-        distance: point ? Math.abs(point.y - pointer.y) : Number.POSITIVE_INFINITY,
-      };
-    });
-    const nearest = candidates
-      .slice(1)
-      .reduce((best, item) => (item.distance < best.distance ? item : best), candidates[0]);
+    const pointIndex = Math.max(0, Math.min(pointCount - 1, Math.round(((pointer.x - margin.left) / plotWidth) * (pointCount - 1))));
+    const candidates = denseSeries
+      .filter(series => !hiddenIndexes.has(series.index))
+      .map(series => {
+        const point = series.points[pointIndex];
+        return {
+          index: series.index,
+          pointIndex,
+          value: point?.value ?? 0,
+          distance: point ? Math.abs(point.y - pointer.y) : Number.POSITIVE_INFINITY,
+        };
+      });
+    const nearest = candidates.slice(1).reduce((best, item) => (item.distance < best.distance ? item : best), candidates[0]);
     showDenseTooltip(nearest.index, nearest.pointIndex, nearest.value, event);
   };
   const showDenseFocusTooltip = (series: (typeof denseSeries)[number]) => {
@@ -1840,9 +1909,9 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
         ? `${series.symbol} · ${formatDenseDate(series.points.length - 1, pointCount)}`
         : isAutocorrDecay
           ? `Lag ${autocorrDecayLagLabels[series.points.length - 1] ?? series.points.length}`
-        : isReturnChart
-          ? formatDenseDate(series.points.length - 1, pointCount)
-        : formatPortfolioPeriod(series.points.length - 1, pointCount),
+          : isReturnChart
+            ? formatDenseDate(series.points.length - 1, pointCount)
+            : formatPortfolioPeriod(series.points.length - 1, pointCount),
       x: lastPoint.x,
       y: lastPoint.y,
       color: series.color,
@@ -1855,46 +1924,64 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
       });
     }
   };
-  if (count <= 0)
-    return <ChartEmptyState message={tReport(tr, "No series to display", "暂无可展示序列")} tr={tr} />;
+  if (count <= 0) return <ChartEmptyState message={tReport(tr, "No series to display", "暂无可展示序列")} tr={tr} />;
 
   return (
     <div
       ref={chartRef}
       className={`oq-dense-chart ${compact ? "is-compact" : ""} ${isSymbolCumulative ? "is-symbol-cumulative" : ""} ${isDecileReturn ? "is-decile" : ""} ${isBarraStyleReturn ? "is-barra-style" : ""} ${isAutocorrDecay ? "is-autocorr" : ""} ${isBarraCorrelation ? "is-barra-correlation" : ""} ${isTurnoverRate ? "is-turnover-rate" : ""}`}
-      onMouseLeave={clearDenseInteraction}
-      onPointerLeave={clearDenseInteraction}
     >
       {isReturnChart ? (
         <div className={`oq-dense-legend ${isDecileReturn ? "is-decile" : "is-factor"}`} aria-label={tReport(tr, "Line chart legend", "折线图图例")}>
           {denseSeries.map(series => (
-            <span data-active={activeIndex === series.index} key={series.index}>
+            <button
+              type="button"
+              aria-pressed={!hiddenIndexes.has(series.index)}
+              data-active={activeIndex === series.index}
+              data-visible={!hiddenIndexes.has(series.index)}
+              key={series.index}
+              onClick={() => toggleDenseSeries(series.index)}
+              onFocus={() => showDenseFocusTooltip(series)}
+              onBlur={clearDenseInteraction}
+              onMouseEnter={() => showDenseFocusTooltip(series)}
+              onMouseLeave={clearDenseInteraction}
+            >
               <i style={{ background: series.color }} />
               {series.symbol}
-            </span>
+            </button>
           ))}
         </div>
       ) : !compact ? (
         <div className="oq-chart-toolbar is-subtle">
           <div className="oq-dense-legend" aria-label={tReport(tr, "Line chart legend", "折线图图例")}>
-            <span>
+            <button
+              type="button"
+              aria-pressed="true"
+              data-active={activeIndex === (activeSeries?.index ?? 0)}
+              data-visible="true"
+              onMouseDown={event => event.preventDefault()}
+              onClick={event => {
+                showDenseFocusTooltip(denseSeries[0]);
+                event.currentTarget.focus();
+              }}
+              onFocus={() => {
+                requestAnimationFrame(() => showDenseFocusTooltip(denseSeries[0]));
+              }}
+              onBlur={clearDenseInteraction}
+              onMouseEnter={() => showDenseFocusTooltip(denseSeries[0])}
+              onPointerEnter={() => showDenseFocusTooltip(denseSeries[0])}
+              onMouseLeave={clearDenseInteraction}
+            >
               <i
                 style={{
-                  background:
-                    activeIndex === null
-                      ? linePalette[0]
-                      : linePalette[activeIndex % linePalette.length],
+                  background: activeIndex === null ? linePalette[0] : linePalette[activeIndex % linePalette.length],
                 }}
               />
-              {activeIndex === null
-                ? denseRepresentativeSymbol
-                : (activeSeries?.symbol ?? `${tReport(tr, "Series", "序列")} ${activeIndex + 1}`)}
-            </span>
+              {activeIndex === null ? denseRepresentativeSymbol : (activeSeries?.symbol ?? `${tReport(tr, "Series", "序列")} ${activeIndex + 1}`)}
+            </button>
             <span>
               <i className="is-muted" />
-              {isSymbolCumulative
-                ? tReport(tr, "Peer symbols", "同组交易对")
-                : tReport(tr, "Peer series", "同组序列")}
+              {isSymbolCumulative ? tReport(tr, "Peer symbols", "同组交易对") : tReport(tr, "Peer series", "同组序列")}
             </span>
           </div>
         </div>
@@ -1909,36 +1996,27 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
             ? `${renderCount} ${tReport(tr, "decile cumulative return lines", "条分位累计收益曲线")}`
             : isAutocorrDecay
               ? `${renderCount} ${tReport(tr, "prediction return autocorrelation decay lines", "条预测收益自相关衰减曲线")}`
-            : isBarraCorrelation
-              ? `${renderCount} ${tReport(tr, "Prediction-Barra EMA250 correlation lines", "条预测-Barra EMA250 相关曲线")}`
-            : isTurnoverRate
-              ? `${renderCount} ${tReport(tr, "daily turnover rate lines", "条日换手率曲线")}`
-            : isBarraStyleReturn
-              ? `${renderCount} ${tReport(tr, "Barra style cumulative return lines", "条 Barra 风格累计收益曲线")}`
-            : isSymbolCumulative
-            ? `${renderCount} ${tReport(tr, "symbol cumulative PnL lines", "条交易对累计 PnL 曲线")}`
-            : `${renderCount} ${tReport(tr, "visible time series", "条可见时间序列")}`
+              : isBarraCorrelation
+                ? `${renderCount} ${tReport(tr, "Prediction-Barra EMA250 correlation lines", "条预测-Barra EMA250 相关曲线")}`
+                : isTurnoverRate
+                  ? `${renderCount} ${tReport(tr, "daily turnover rate lines", "条日换手率曲线")}`
+                  : isBarraStyleReturn
+                    ? `${renderCount} ${tReport(tr, "Barra style cumulative return lines", "条 Barra 风格累计收益曲线")}`
+                    : isSymbolCumulative
+                      ? `${renderCount} ${tReport(tr, "symbol cumulative PnL lines", "条交易对累计 PnL 曲线")}`
+                      : `${renderCount} ${tReport(tr, "visible time series", "条可见时间序列")}`
         }
         onPointerEnter={showNearestDenseTooltip}
         onPointerMove={showNearestDenseTooltip}
+        onPointerDown={showNearestDenseTooltip}
         onPointerLeave={clearDenseInteraction}
         onPointerCancel={clearDenseInteraction}
       >
         <g className="oq-chart-grid" aria-hidden="true">
           {isSymbolCumulative || isReturnChart
             ? xTickIndexes.map(pointIndex => {
-                const x =
-                  margin.left + (pointIndex / Math.max(1, pointCount - 1)) * plotWidth;
-                return (
-                  <line
-                    className="oq-chart-vertical-grid"
-                    key={`x-${pointIndex}`}
-                    x1={x}
-                    x2={x}
-                    y1={margin.top}
-                    y2={margin.top + plotHeight}
-                  />
-                );
+                const x = margin.left + (pointIndex / Math.max(1, pointCount - 1)) * plotWidth;
+                return <line className="oq-chart-vertical-grid" key={`x-${pointIndex}`} x1={x} x2={x} y1={margin.top} y2={margin.top + plotHeight} />;
               })
             : null}
           {isReturnChart ? (
@@ -1952,15 +2030,7 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
           ) : null}
           {yTicks.map(tick => {
             const y = margin.top + plotHeight - ((tick - yMin) / (yMax - yMin)) * plotHeight;
-            return (
-              <line
-                key={tick}
-                x1={margin.left}
-                x2={viewBox.width - margin.right}
-                y1={y}
-                y2={y}
-              />
-            );
+            return <line key={tick} x1={margin.left} x2={viewBox.width - margin.right} y1={y} y2={y} />;
           })}
         </g>
         <g className="oq-chart-axis" aria-hidden="true">
@@ -1968,34 +2038,21 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
             const y = margin.top + plotHeight - ((tick - yMin) / (yMax - yMin)) * plotHeight;
             return (
               <text key={tick} x={margin.left - 18} y={y + 4} textAnchor="end">
-                {isAutocorrDecay
-                  ? tick.toFixed(1)
-                  : isReturnChart
-                  ? formatDecileReturnValue(tick)
-                  : isSymbolCumulative
-                  ? formatDensePnlValue(tick)
-                  : formatCompactAxisValue(tick)}
+                {isAutocorrDecay ? tick.toFixed(1) : isReturnChart ? formatDecileReturnValue(tick) : isSymbolCumulative ? formatDensePnlValue(tick) : formatCompactAxisValue(tick)}
               </text>
             );
           })}
           {xTickIndexes.map(pointIndex => {
-            const x =
-              margin.left + (pointIndex / Math.max(1, pointCount - 1)) * plotWidth;
+            const x = margin.left + (pointIndex / Math.max(1, pointCount - 1)) * plotWidth;
             return (
-              <text
-                key={pointIndex}
-                x={x}
-                y={viewBox.height - 18}
-                textAnchor="middle"
-              >
-                {isSymbolCumulative || isReturnChart
-                  ? dateTickLabels[xTickIndexes.findIndex(index => index === pointIndex)]
-                  : formatPortfolioPeriod(pointIndex, pointCount)}
+              <text key={pointIndex} x={x} y={viewBox.height - 18} textAnchor="middle">
+                {isSymbolCumulative || isReturnChart ? dateTickLabels[xTickIndexes.findIndex(index => index === pointIndex)] : formatPortfolioPeriod(pointIndex, pointCount)}
               </text>
             );
           })}
         </g>
         {denseSeries.map(series => {
+          if (hiddenIndexes.has(series.index)) return null;
           const isDimmed = activeIndex !== null && activeIndex !== series.index;
           return (
             <path
@@ -2003,7 +2060,7 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
               d={series.path}
               stroke={series.color}
               className={`oq-dense-series ${series.isPrimary ? "is-primary" : ""} ${isDimmed ? "is-muted" : ""} ${activeIndex === series.index ? "is-highlighted" : ""}`}
-              tabIndex={0}
+              tabIndex={series.isPrimary ? 0 : -1}
               aria-label={`${series.symbol}: ${denseValueLabel} ${formatDenseValue(series.value ?? 0)}`}
               onMouseDown={event => event.preventDefault()}
               onFocus={() => showDenseFocusTooltip(series)}
@@ -2030,20 +2087,8 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
           : null}
         {activePoint ? (
           <g aria-hidden="true">
-            <line
-              className="oq-dense-crosshair"
-              x1={activePoint.x}
-              x2={activePoint.x}
-              y1={margin.top}
-              y2={margin.top + plotHeight}
-            />
-            <circle
-              className="oq-dense-active-marker"
-              cx={activePoint.x}
-              cy={activePoint.y}
-              r={isSymbolCumulative ? 4.5 : 4}
-              style={{ color: activePoint.color }}
-            />
+            <line className="oq-dense-crosshair" x1={activePoint.x} x2={activePoint.x} y1={margin.top} y2={margin.top + plotHeight} />
+            <circle className="oq-dense-active-marker" cx={activePoint.x} cy={activePoint.y} r={isSymbolCumulative ? 4.5 : 4} style={{ color: activePoint.color }} />
           </g>
         ) : null}
         <rect
@@ -2068,11 +2113,7 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
             top: `clamp(40px, ${tooltipPoint.y}px, ${denseTooltipBottom})`,
           }}
         >
-          <DenseChartTooltip
-            xValue={activePoint.xValue}
-            unit={isReturnChart ? denseValueLabel : isSymbolCumulative ? "" : tReport(tr, "cum pnl", "累计 PnL")}
-            rows={tooltipRows}
-          />
+          <ChartTooltip title={activePoint.xValue} unit={isReturnChart ? denseValueLabel : isSymbolCumulative ? "" : tReport(tr, "cum pnl", "累计 PnL")} rows={tooltipRows} />
         </div>
       ) : null}
     </div>
@@ -2080,17 +2121,19 @@ function DenseLines({ count = 42, height = 260, compact = false, variant = "defa
 }
 
 function SymbolPnlRankChart({ group, tr = defaultTr }: { group: SymbolPnlRankGroup; tr?: Tr }) {
-  const config = group === "top"
-    ? { title: tReport(tr, "Top 10 symbols by total PnL", "总 PnL 前 10 交易对"), rows: topSymbolPnlRankRows }
-    : { title: tReport(tr, "Bottom 10 symbols by total PnL", "总 PnL 后 10 交易对"), rows: bottomSymbolPnlRankRows };
+  const config =
+    group === "top"
+      ? {
+          title: tReport(tr, "Top 10 symbols by total PnL", "总 PnL 前 10 交易对"),
+          rows: topSymbolPnlRankRows,
+        }
+      : {
+          title: tReport(tr, "Bottom 10 symbols by total PnL", "总 PnL 后 10 交易对"),
+          rows: bottomSymbolPnlRankRows,
+        };
 
   if (config.rows.length === 0) {
-    return (
-      <ChartEmptyState
-        message={tReport(tr, "No series to display", "暂无可展示序列")}
-        tr={tr}
-      />
-    );
+    return <ChartEmptyState message={tReport(tr, "No series to display", "暂无可展示序列")} tr={tr} />;
   }
 
   return (
@@ -2107,27 +2150,33 @@ function SymbolPnlRankSection({ tr = defaultTr }: { tr?: Tr }) {
     { key: "bottom", label: tReport(tr, "Bottom 10 symbols", "后 10 交易对") },
   ];
   return (
-    <ReportCard
-      title={tReport(tr, "Single-Symbol PnL Rank", "单币种 PnL 排名")}
-      subtitle={tReport(tr, "ranked by total pnl", "按总 PnL 排序")}
-      headerActions={<div className="oq-attribution-switch" role="tablist" aria-label={tReport(tr, "Switch symbol PnL rank chart", "切换单币种 PnL 排名图表")}>{options.map(option => <button key={option.key} type="button" role="tab" aria-selected={activeGroup === option.key} onClick={() => setActiveGroup(option.key)}>{option.label}</button>)}</div>}
-    >
-      <SymbolPnlRankChart group={activeGroup} tr={tr} />
-    </ReportCard>
+    <Tabs value={activeGroup} onValueChange={value => setActiveGroup(value as SymbolPnlRankGroup)}>
+      <ChartCard
+        title={tReport(tr, "Single-Symbol PnL Rank", "单币种 PnL 排名")}
+        subtitle={tReport(tr, "ranked by total pnl", "按总 PnL 排序")}
+        className="is-symbol-rank"
+        headerActions={
+          <TabsList className="oq-attribution-switch" aria-label={tReport(tr, "Switch symbol PnL rank chart", "切换单币种 PnL 排名图表")}>
+            {options.map(option => (
+              <TabsTrigger key={option.key} value={option.key}>
+                {option.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        }
+      >
+        {options.map(option => (
+          <TabsContent className="oq-chart-tab-panel" key={option.key} value={option.key}>
+            <SymbolPnlRankChart group={option.key} tr={tr} />
+          </TabsContent>
+        ))}
+      </ChartCard>
+    </Tabs>
   );
 }
 
-function SymbolPnlRankPanel({
-  title,
-  rows,
-  tr = defaultTr,
-}: {
-  title: string;
-  rows: SymbolPnlRankRow[];
-  tr?: Tr;
-}) {
+function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; rows: SymbolPnlRankRow[]; tr?: Tr }) {
   const chartRef = useRef<HTMLDivElement>(null);
-  const [chartWidth, setChartWidth] = useState(0);
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [tooltipPoint, setTooltipPoint] = useState<{
     x: number;
@@ -2142,27 +2191,18 @@ function SymbolPnlRankPanel({
     y: number;
     color: string;
   } | null>(null);
-  const isNarrowRankChart = chartWidth > 0 && chartWidth < 620;
+  const isNarrowRankChart = useContainerNarrow(chartRef, 620);
   const viewBox = { width: isNarrowRankChart ? 560 : 880, height: 274 };
   const margin = { top: 26, right: 20, bottom: 44, left: 62 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
-  const xTickIndexes = denseSymbolDateTicks.map(tick =>
-    indexForDenseDateTick(tick, densePointCount)
-  );
+  const xTickIndexes = denseSymbolDateTicks.map(tick => indexForDenseDateTick(tick, densePointCount));
   const series = useMemo(() => {
     return rows.map((row, rowIndex) => {
       const values = makeSymbolRankPnlSeries(row, rowIndex, densePointCount);
       const points = values.map((value, pointIndex) => {
-        const x =
-          margin.left +
-          (pointIndex / Math.max(1, values.length - 1)) * plotWidth;
-        const y =
-          margin.top +
-          plotHeight -
-          ((value - symbolRankPnlDomain.min) /
-            (symbolRankPnlDomain.max - symbolRankPnlDomain.min)) *
-            plotHeight;
+        const x = margin.left + (pointIndex / Math.max(1, values.length - 1)) * plotWidth;
+        const y = margin.top + plotHeight - ((value - symbolRankPnlDomain.min) / (symbolRankPnlDomain.max - symbolRankPnlDomain.min)) * plotHeight;
         return { x, y, value };
       });
       return {
@@ -2172,10 +2212,7 @@ function SymbolPnlRankPanel({
       };
     });
   }, [margin.left, margin.top, plotHeight, plotWidth, rows]);
-  const activeSeries =
-    activeSymbol === null
-      ? null
-      : series.find(item => item.symbol === activeSymbol) ?? null;
+  const activeSeries = activeSymbol === null ? null : (series.find(item => item.symbol === activeSymbol) ?? null);
   const tooltipRows = activePoint
     ? [
         {
@@ -2199,40 +2236,20 @@ function SymbolPnlRankPanel({
   };
 
   useEffect(() => {
-    const node = chartRef.current;
-    if (!node || typeof ResizeObserver === "undefined") return;
-
-    const updateWidth = () => setChartWidth(node.getBoundingClientRect().width);
-    updateWidth();
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
     if (activeSymbol === null) return;
 
     const handleWindowPointerMove = (event: globalThis.PointerEvent) => {
       const rect = chartRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const isOutside =
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom;
+      const isOutside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
       if (isOutside) clearRankInteraction();
     };
 
     window.addEventListener("pointermove", handleWindowPointerMove, true);
-    return () =>
-      window.removeEventListener("pointermove", handleWindowPointerMove, true);
+    return () => window.removeEventListener("pointermove", handleWindowPointerMove, true);
   }, [activeSymbol]);
 
-  const showRankPoint = (
-    symbol: string,
-    pointIndex: number,
-    event: PointerEvent<SVGElement>
-  ) => {
+  const showRankPoint = (symbol: string, pointIndex: number, event: PointerEvent<SVGElement>) => {
     const panel = event.currentTarget.closest(".oq-symbol-rank-panel");
     const rect = panel?.getBoundingClientRect();
     const item = series.find(candidate => candidate.symbol === symbol);
@@ -2256,10 +2273,7 @@ function SymbolPnlRankPanel({
   };
 
   const showNearestRankPoint = (event: PointerEvent<SVGElement>) => {
-    const svg =
-      event.currentTarget instanceof SVGSVGElement
-        ? event.currentTarget
-        : event.currentTarget.ownerSVGElement;
+    const svg = event.currentTarget instanceof SVGSVGElement ? event.currentTarget : event.currentTarget.ownerSVGElement;
     const matrix = svg?.getScreenCTM();
     if (!svg || !matrix || series.length === 0) return;
 
@@ -2267,13 +2281,7 @@ function SymbolPnlRankPanel({
     svgPoint.x = event.clientX;
     svgPoint.y = event.clientY;
     const pointer = svgPoint.matrixTransform(matrix.inverse());
-    const pointIndex = Math.max(
-      0,
-      Math.min(
-        densePointCount - 1,
-        Math.round(((pointer.x - margin.left) / plotWidth) * (densePointCount - 1))
-      )
-    );
+    const pointIndex = Math.max(0, Math.min(densePointCount - 1, Math.round(((pointer.x - margin.left) / plotWidth) * (densePointCount - 1))));
     const nearest = series
       .map(item => {
         const point = item.points[pointIndex];
@@ -2309,21 +2317,11 @@ function SymbolPnlRankPanel({
   };
 
   if (rows.length === 0) {
-    return (
-      <ChartEmptyState
-        message={tReport(tr, "No series to display", "暂无可展示序列")}
-        tr={tr}
-      />
-    );
+    return <ChartEmptyState message={tReport(tr, "No series to display", "暂无可展示序列")} tr={tr} />;
   }
 
   return (
-    <section
-      ref={chartRef}
-      className="oq-symbol-rank-panel"
-      onMouseLeave={clearRankInteraction}
-      onPointerLeave={clearRankInteraction}
-    >
+    <section ref={chartRef} className="oq-symbol-rank-panel" onMouseLeave={clearRankInteraction} onPointerLeave={clearRankInteraction}>
       <div className="oq-symbol-rank-panel-body">
         <div className="oq-symbol-rank-plot">
           <svg
@@ -2339,47 +2337,17 @@ function SymbolPnlRankPanel({
           >
             <g className="oq-chart-grid" aria-hidden="true">
               {xTickIndexes.map(pointIndex => {
-                const x =
-                  margin.left +
-                  (pointIndex / Math.max(1, densePointCount - 1)) * plotWidth;
-                return (
-                  <line
-                    className="oq-chart-vertical-grid"
-                    key={`x-${pointIndex}`}
-                    x1={x}
-                    x2={x}
-                    y1={margin.top}
-                    y2={margin.top + plotHeight}
-                  />
-                );
+                const x = margin.left + (pointIndex / Math.max(1, densePointCount - 1)) * plotWidth;
+                return <line className="oq-chart-vertical-grid" key={`x-${pointIndex}`} x1={x} x2={x} y1={margin.top} y2={margin.top + plotHeight} />;
               })}
               {symbolRankPnlTicks.map(tick => {
-                const y =
-                  margin.top +
-                  plotHeight -
-                  ((tick - symbolRankPnlDomain.min) /
-                    (symbolRankPnlDomain.max - symbolRankPnlDomain.min)) *
-                    plotHeight;
-                return (
-                  <line
-                    key={tick}
-                    className={tick === 0 ? "oq-symbol-rank-zero-line" : ""}
-                    x1={margin.left}
-                    x2={viewBox.width - margin.right}
-                    y1={y}
-                    y2={y}
-                  />
-                );
+                const y = margin.top + plotHeight - ((tick - symbolRankPnlDomain.min) / (symbolRankPnlDomain.max - symbolRankPnlDomain.min)) * plotHeight;
+                return <line key={tick} className={tick === 0 ? "oq-symbol-rank-zero-line" : ""} x1={margin.left} x2={viewBox.width - margin.right} y1={y} y2={y} />;
               })}
             </g>
             <g className="oq-chart-axis" aria-hidden="true">
               {symbolRankPnlTicks.map(tick => {
-                const y =
-                  margin.top +
-                  plotHeight -
-                  ((tick - symbolRankPnlDomain.min) /
-                    (symbolRankPnlDomain.max - symbolRankPnlDomain.min)) *
-                    plotHeight;
+                const y = margin.top + plotHeight - ((tick - symbolRankPnlDomain.min) / (symbolRankPnlDomain.max - symbolRankPnlDomain.min)) * plotHeight;
                 return (
                   <text key={tick} x={margin.left - 16} y={y + 4} textAnchor="end">
                     {formatDensePnlValue(tick)}
@@ -2387,16 +2355,9 @@ function SymbolPnlRankPanel({
                 );
               })}
               {xTickIndexes.map((pointIndex, tickIndex) => {
-                const x =
-                  margin.left +
-                  (pointIndex / Math.max(1, densePointCount - 1)) * plotWidth;
+                const x = margin.left + (pointIndex / Math.max(1, densePointCount - 1)) * plotWidth;
                 return (
-                  <text
-                    key={pointIndex}
-                    x={x}
-                    y={viewBox.height - 18}
-                    textAnchor="middle"
-                  >
+                  <text key={pointIndex} x={x} y={viewBox.height - 18} textAnchor="middle">
                     {denseSymbolDateTicks[tickIndex]}
                   </text>
                 );
@@ -2423,20 +2384,8 @@ function SymbolPnlRankPanel({
             })}
             {activePoint ? (
               <g aria-hidden="true">
-                <line
-                  className="oq-dense-crosshair"
-                  x1={activePoint.x}
-                  x2={activePoint.x}
-                  y1={margin.top}
-                  y2={margin.top + plotHeight}
-                />
-                <circle
-                  className="oq-dense-active-marker"
-                  cx={activePoint.x}
-                  cy={activePoint.y}
-                  r="4"
-                  style={{ color: activePoint.color }}
-                />
+                <line className="oq-dense-crosshair" x1={activePoint.x} x2={activePoint.x} y1={margin.top} y2={margin.top + plotHeight} />
+                <circle className="oq-dense-active-marker" cx={activePoint.x} cy={activePoint.y} r="4" style={{ color: activePoint.color }} />
               </g>
             ) : null}
             <rect
@@ -2460,18 +2409,11 @@ function SymbolPnlRankPanel({
                 top: `clamp(44px, ${tooltipPoint.y}px, calc(100% - 96px))`,
               }}
             >
-              <DenseChartTooltip
-                xValue={`${activePoint.symbol} · ${activePoint.date}`}
-                unit=""
-                rows={tooltipRows}
-              />
+              <ChartTooltip title={`${activePoint.symbol} · ${activePoint.date}`} unit="" rows={tooltipRows} />
             </div>
           ) : null}
         </div>
-        <div
-          className="oq-symbol-rank-legend"
-          aria-label={tReport(tr, "Line chart legend", "折线图图例")}
-        >
+        <div className="oq-symbol-rank-legend" aria-label={tReport(tr, "Line chart legend", "折线图图例")}>
           {series.map(item => (
             <button
               type="button"
@@ -2495,6 +2437,7 @@ function SymbolPnlRankPanel({
 }
 
 function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?: BarraExposureFactor[]; tr?: Tr }) {
+  const [visibleSides, setVisibleSides] = useState<Set<"long" | "short">>(() => new Set<"long" | "short">(["long", "short"]));
   const [activePoint, setActivePoint] = useState<{
     factor: string;
     side: "long" | "short";
@@ -2511,43 +2454,46 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
   const margin = { top: 16, right: 18, bottom: 54, left: 56 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
-  const zeroY =
-    margin.top +
-    plotHeight -
-    ((0 - barraExposureDomain.min) /
-      (barraExposureDomain.max - barraExposureDomain.min)) *
-      plotHeight;
+  const zeroY = margin.top + plotHeight - ((0 - barraExposureDomain.min) / (barraExposureDomain.max - barraExposureDomain.min)) * plotHeight;
   const groupWidth = plotWidth / Math.max(1, rows.length);
   const barWidth = Math.min(18, groupWidth * 0.22);
   const tooltipRows = activePoint
     ? [
-        {
-          label: tReport(tr, "Long mean", "多头均值"),
-          value: formatChartValue(
-            rows.find(row => row.factor === activePoint.factor)?.long ?? 0
-          ),
-          color: "var(--report-green)",
-          active: activePoint.side === "long",
-        },
-        {
-          label: tReport(tr, "Short mean", "空头均值"),
-          value: formatChartValue(
-            rows.find(row => row.factor === activePoint.factor)?.short ?? 0
-          ),
-          color: "var(--report-red)",
-          active: activePoint.side === "short",
-        },
+        ...(visibleSides.has("long")
+          ? [
+              {
+                label: tReport(tr, "Long mean", "多头均值"),
+                value: formatChartValue(rows.find(row => row.factor === activePoint.factor)?.long ?? 0),
+                color: "var(--report-green)",
+                active: activePoint.side === "long",
+              },
+            ]
+          : []),
+        ...(visibleSides.has("short")
+          ? [
+              {
+                label: tReport(tr, "Short mean", "空头均值"),
+                value: formatChartValue(rows.find(row => row.factor === activePoint.factor)?.short ?? 0),
+                color: "var(--report-red)",
+                active: activePoint.side === "short",
+              },
+            ]
+          : []),
       ]
     : [];
-  const scaleY = (value: number) =>
-    margin.top +
-    plotHeight -
-    ((value - barraExposureDomain.min) /
-      (barraExposureDomain.max - barraExposureDomain.min)) *
-      plotHeight;
+  const scaleY = (value: number) => margin.top + plotHeight - ((value - barraExposureDomain.min) / (barraExposureDomain.max - barraExposureDomain.min)) * plotHeight;
   const clearBarraExposure = () => {
     setActivePoint(null);
     setTooltipPoint(null);
+  };
+  const toggleBarraSide = (side: "long" | "short") => {
+    clearBarraExposure();
+    setVisibleSides(current => {
+      const next = new Set(current);
+      if (next.has(side)) next.delete(side);
+      else next.add(side);
+      return next.size > 0 ? next : current;
+    });
   };
   useEffect(() => {
     if (activePoint === null && tooltipPoint === null) return;
@@ -2555,11 +2501,7 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
     const clearIfPointerOutside = (event: globalThis.PointerEvent) => {
       const rect = chartRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const isOutside =
-        event.clientX < rect.left ||
-        event.clientX > rect.right ||
-        event.clientY < rect.top ||
-        event.clientY > rect.bottom;
+      const isOutside = event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom;
       if (isOutside) clearBarraExposure();
     };
     const clear = () => clearBarraExposure();
@@ -2574,13 +2516,7 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
     };
   }, [activePoint, tooltipPoint]);
 
-  const showBarraTooltip = (
-    row: BarraExposureFactor,
-    side: "long" | "short",
-    x: number,
-    y: number,
-    event?: { clientX: number; clientY: number }
-  ) => {
+  const showBarraTooltip = (row: BarraExposureFactor, side: "long" | "short", x: number, y: number, event?: { clientX: number; clientY: number }) => {
     const rect = chartRef.current?.getBoundingClientRect();
     setActivePoint({
       factor: row.factor,
@@ -2605,68 +2541,30 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
   };
 
   if (rows.length === 0) {
-    return (
-      <ChartEmptyState
-        message={tReport(tr, "No chart data available", "暂无图表数据")}
-        tr={tr}
-      />
-    );
+    return <ChartEmptyState message={tReport(tr, "No chart data available", "暂无图表数据")} tr={tr} />;
   }
 
   return (
-    <div
-      ref={chartRef}
-      className="oq-barra-exposure-chart"
-      onMouseLeave={clearBarraExposure}
-      onPointerLeave={clearBarraExposure}
-    >
-      <div className="oq-barra-exposure-legend" aria-hidden="true">
-        <span>
-          <i className="is-long" />
-          {tReport(tr, "Long", "多头")}
-        </span>
-        <span>
-          <i className="is-short" />
-          {tReport(tr, "Short", "空头")}
-        </span>
+    <div ref={chartRef} className="oq-barra-exposure-chart" onMouseLeave={clearBarraExposure} onPointerLeave={clearBarraExposure}>
+      <div className="oq-report-legend oq-barra-exposure-legend" aria-label={tReport(tr, "Line chart legend", "图表图例")}>
+        <ChartLegendItem color="#1f8a5b" label={tReport(tr, "Long", "多头")} active={visibleSides.has("long")} pressed={visibleSides.has("long")} onToggle={() => toggleBarraSide("long")} />
+        <ChartLegendItem color="#d64550" label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleBarraSide("short")} />
       </div>
       <svg
         className="oq-barra-exposure-svg"
         viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"
         role="img"
-        aria-label={tReport(
-          tr,
-          "Barra factor long and short mean exposure",
-          "Barra 因子多空平均暴露"
-        )}
+        aria-label={tReport(tr, "Barra factor long and short mean exposure", "Barra 因子多空平均暴露")}
       >
         <g className="oq-chart-grid" aria-hidden="true">
           {barraExposureTicks.map(tick => {
             const y = scaleY(tick);
-            return (
-              <line
-                key={tick}
-                className={tick === 0 ? "oq-barra-zero-line" : ""}
-                x1={margin.left}
-                x2={viewBox.width - margin.right}
-                y1={y}
-                y2={y}
-              />
-            );
+            return <line key={tick} className={tick === 0 ? "oq-barra-zero-line" : ""} x1={margin.left} x2={viewBox.width - margin.right} y1={y} y2={y} />;
           })}
           {rows.map((row, index) => {
             const x = margin.left + groupWidth * index + groupWidth / 2;
-            return (
-              <line
-                key={row.factor}
-                className="oq-chart-vertical-grid"
-                x1={x}
-                x2={x}
-                y1={margin.top}
-                y2={margin.top + plotHeight}
-              />
-            );
+            return <line key={row.factor} className="oq-chart-vertical-grid" x1={x} x2={x} y1={margin.top} y2={margin.top + plotHeight} />;
           })}
         </g>
         <g className="oq-chart-axis" aria-hidden="true">
@@ -2678,13 +2576,7 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
           {rows.map((row, index) => {
             const x = margin.left + groupWidth * index + groupWidth / 2;
             return (
-              <text
-                key={row.factor}
-                x={x}
-                y={viewBox.height - 18}
-                textAnchor="end"
-                transform={`rotate(-36 ${x} ${viewBox.height - 18})`}
-              >
+              <text key={row.factor} x={x} y={viewBox.height - 18} textAnchor="end" transform={`rotate(-36 ${x} ${viewBox.height - 18})`}>
                 {row.factor}
               </text>
             );
@@ -2692,43 +2584,38 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
         </g>
         {rows.map((row, index) => {
           const centerX = margin.left + groupWidth * index + groupWidth / 2;
-          return (["long", "short"] as const).map(side => {
-            const value = row[side];
-            const y = scaleY(value);
-            const rectY = Math.min(y, zeroY);
-            const height = Math.max(2, Math.abs(zeroY - y));
-            const x = centerX + (side === "long" ? -barWidth - 3 : 3);
-            const active =
-              activePoint?.factor === row.factor && activePoint.side === side;
-            return (
-              <rect
-                key={`${row.factor}-${side}`}
-                className={`oq-barra-exposure-bar is-${side}`}
-                data-active={active}
-                x={x}
-                y={rectY}
-                width={barWidth}
-                height={height}
-                rx="3"
-                tabIndex={0}
-                aria-label={`${row.factor}: ${side === "long" ? tReport(tr, "Long mean", "多头均值") : tReport(tr, "Short mean", "空头均值")} ${formatChartValue(value)}`}
-                onMouseDown={event => event.preventDefault()}
-                onFocus={() => showBarraTooltip(row, side, x + barWidth / 2, y)}
-                onBlur={clearBarraExposure}
-                onMouseEnter={event =>
-                  showBarraTooltip(row, side, x + barWidth / 2, y, event)
-                }
-                onPointerEnter={event =>
-                  showBarraTooltip(row, side, x + barWidth / 2, y, event)
-                }
-                onPointerMove={event =>
-                  showBarraTooltip(row, side, x + barWidth / 2, y, event)
-                }
-              >
-                <title>{`${row.factor} · ${formatChartValue(value)}`}</title>
-              </rect>
-            );
-          });
+          return (["long", "short"] as const)
+            .filter(side => visibleSides.has(side))
+            .map(side => {
+              const value = row[side];
+              const y = scaleY(value);
+              const rectY = Math.min(y, zeroY);
+              const height = Math.max(2, Math.abs(zeroY - y));
+              const x = centerX + (side === "long" ? -barWidth - 3 : 3);
+              const active = activePoint?.factor === row.factor && activePoint.side === side;
+              return (
+                <rect
+                  key={`${row.factor}-${side}`}
+                  className={`oq-barra-exposure-bar is-${side}`}
+                  data-active={active}
+                  x={x}
+                  y={rectY}
+                  width={barWidth}
+                  height={height}
+                  rx="3"
+                  tabIndex={0}
+                  aria-label={`${row.factor}: ${side === "long" ? tReport(tr, "Long mean", "多头均值") : tReport(tr, "Short mean", "空头均值")} ${formatChartValue(value)}`}
+                  onMouseDown={event => event.preventDefault()}
+                  onFocus={() => showBarraTooltip(row, side, x + barWidth / 2, y)}
+                  onBlur={clearBarraExposure}
+                  onMouseEnter={event => showBarraTooltip(row, side, x + barWidth / 2, y, event)}
+                  onPointerEnter={event => showBarraTooltip(row, side, x + barWidth / 2, y, event)}
+                  onPointerMove={event => showBarraTooltip(row, side, x + barWidth / 2, y, event)}
+                >
+                  <title>{`${row.factor} · ${formatChartValue(value)}`}</title>
+                </rect>
+              );
+            });
         })}
       </svg>
       {activePoint && tooltipPoint ? (
@@ -2739,11 +2626,7 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
             top: `clamp(38px, ${tooltipPoint.y}px, calc(100% - 104px))`,
           }}
         >
-          <DenseChartTooltip
-            xValue={activePoint.factor.toUpperCase()}
-            unit={tReport(tr, "Mean exposure", "平均暴露")}
-            rows={tooltipRows}
-          />
+          <ChartTooltip title={activePoint.factor.toUpperCase()} unit={tReport(tr, "Mean exposure", "平均暴露")} rows={tooltipRows} />
         </div>
       ) : null}
     </div>
@@ -2751,38 +2634,64 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
 }
 
 function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState("decile");
   const tabs = [
-    tReport(tr, "Prediction decile cumulative return", "预测分位累计收益"),
-    tReport(tr, "Style long-short cumulative return", "风格多空累计收益"),
-    tReport(tr, "Style exposure", "风格暴露"),
-    tReport(tr, "Prediction decay", "预测衰减"),
-    tReport(tr, "Prediction style correlation", "预测风格相关"),
-    tReport(tr, "Daily turnover rate", "日换手率"),
+    {
+      key: "decile",
+      label: tReport(tr, "Prediction decile cumulative return", "预测分位累计收益"),
+      chart: <DenseLines tr={tr} count={decileReturnLabels.length} height={360} variant="decile" />,
+    },
+    {
+      key: "style-return",
+      label: tReport(tr, "Style long-short cumulative return", "风格多空累计收益"),
+      chart: <DenseLines tr={tr} count={barraStyleReturnLabels.length} height={360} variant="barra-style" />,
+    },
+    {
+      key: "style-exposure",
+      label: tReport(tr, "Style exposure", "风格暴露"),
+      chart: <BarraExposureBars tr={tr} />,
+    },
+    {
+      key: "decay",
+      label: tReport(tr, "Prediction decay", "预测衰减"),
+      chart: <DenseLines tr={tr} count={autocorrDecayLabels.length} height={360} variant="autocorr-decay" />,
+    },
+    {
+      key: "correlation",
+      label: tReport(tr, "Prediction style correlation", "预测风格相关"),
+      chart: <DenseLines tr={tr} count={barraStyleReturnLabels.length} height={360} variant="barra-correlation" />,
+    },
+    {
+      key: "turnover",
+      label: tReport(tr, "Daily turnover rate", "日换手率"),
+      chart: <DenseLines tr={tr} count={turnoverRateLabels.length} height={360} variant="turnover-rate" />,
+    },
   ];
-  const chart = activeIndex === 0
-    ? <DenseLines tr={tr} count={decileReturnLabels.length} height={360} variant="decile" />
-    : activeIndex === 1
-      ? <DenseLines tr={tr} count={barraStyleReturnLabels.length} height={360} variant="barra-style" />
-      : activeIndex === 2
-        ? <BarraExposureBars tr={tr} />
-        : activeIndex === 3
-          ? <DenseLines tr={tr} count={autocorrDecayLabels.length} height={360} variant="autocorr-decay" />
-          : activeIndex === 4
-            ? <DenseLines tr={tr} count={barraStyleReturnLabels.length} height={360} variant="barra-correlation" />
-            : <DenseLines tr={tr} count={turnoverRateLabels.length} height={360} variant="turnover-rate" />;
   return (
-    <ReportCard
-      title={tReport(tr, "CS Attribution Overview", "截面归因概览")}
-      subtitle={tReport(tr, "7 Barra factors · attribution dashboard", "7 个 Barra 因子 · 归因面板")}
-      headerActions={<div className="oq-attribution-switch" role="tablist" aria-label={tReport(tr, "Switch attribution chart", "切换归因图表")}>{tabs.map((tab, index) => <button key={tab} type="button" role="tab" aria-selected={activeIndex === index} onClick={() => setActiveIndex(index)}>{tab}</button>)}</div>}
-    >
-      <div className="oq-attribution-panel">
-        <div className="oq-mini-card is-active">
-          {chart}
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <ChartCard
+        title={tReport(tr, "CS Attribution Overview", "截面归因概览")}
+        subtitle={tReport(tr, "7 Barra factors · attribution dashboard", "7 个 Barra 因子 · 归因面板")}
+        className="is-attribution"
+        headerActions={
+          <TabsList className="oq-attribution-switch" aria-label={tReport(tr, "Switch attribution chart", "切换归因图表")}>
+            {tabs.map(tab => (
+              <TabsTrigger key={tab.key} value={tab.key}>
+                {tab.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        }
+      >
+        <div className="oq-attribution-panel">
+          {tabs.map(tab => (
+            <TabsContent className="oq-mini-card oq-chart-tab-panel" key={tab.key} value={tab.key}>
+              {tab.chart}
+            </TabsContent>
+          ))}
         </div>
-      </div>
-    </ReportCard>
+      </ChartCard>
+    </Tabs>
   );
 }
 
@@ -2816,9 +2725,7 @@ function PositionHistory({ rows = defaultPositions, tr = defaultTr }: { rows?: R
             <span>{position.interest}</span>
             <span>{position.opened}</span>
             <span>{position.closed}</span>
-            <b className={position.pnl.startsWith("-") ? "is-loss" : ""}>
-              {position.pnl}
-            </b>
+            <b className={position.pnl.startsWith("-") ? "is-loss" : ""}>{position.pnl}</b>
           </article>
         ))}
       </div>
@@ -2851,18 +2758,7 @@ export function StrategyFigmaReport({
   positions?: ReportPositionRecord[];
   tr?: Tr;
 }) {
-  const selectableDateOptions = Array.from(
-    new Set(
-      dateOptions && dateOptions.length > 0
-        ? dateOptions
-        : [
-            dateLabel,
-            "2021-01-01_2021-12-31",
-            "2022-01-01_2022-12-31",
-            "2023-01-01_2023-12-31",
-          ]
-    )
-  );
+  const selectableDateOptions = Array.from(new Set(dateOptions && dateOptions.length > 0 ? dateOptions : [dateLabel, "2021-01-01_2021-12-31", "2022-01-01_2022-12-31", "2023-01-01_2023-12-31"]));
   const [selectedDateLabel, setSelectedDateLabel] = useState(dateLabel);
   const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
 
@@ -2879,9 +2775,7 @@ export function StrategyFigmaReport({
               </div>
               <p className="oq-report-title-meta">{subtitle}</p>
             </div>
-            <div className="oq-report-head-controls">
-              {actions ? <div className="oq-report-actions">{actions}</div> : null}
-            </div>
+            <div className="oq-report-head-controls">{actions ? <div className="oq-report-actions">{actions}</div> : null}</div>
           </div>
         </div>
       </header>
@@ -2902,7 +2796,17 @@ export function StrategyFigmaReport({
           {isDateMenuOpen ? (
             <div className="oq-report-date-menu" role="listbox" aria-label={tReport(tr, "Select backtest period", "选择回测周期")}>
               {selectableDateOptions.map(option => (
-                <button type="button" role="option" aria-selected={selectedDateLabel === option} key={option} onMouseDown={event => event.preventDefault()} onClick={() => { setSelectedDateLabel(option); setIsDateMenuOpen(false); }}>
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={selectedDateLabel === option}
+                  key={option}
+                  onMouseDown={event => event.preventDefault()}
+                  onClick={() => {
+                    setSelectedDateLabel(option);
+                    setIsDateMenuOpen(false);
+                  }}
+                >
                   <span>{option}</span>
                   {selectedDateLabel === option ? <strong>✓</strong> : null}
                 </button>
@@ -2912,11 +2816,7 @@ export function StrategyFigmaReport({
         </div>
         <div className="oq-report-metric-strip">
           {headerMetrics.map(metric => (
-            <div
-              className="oq-report-metric"
-              data-tone={metric.tone}
-              key={metric.label}
-            >
+            <div className="oq-report-metric" data-tone={metric.tone} key={metric.label}>
               <span>{metric.label}</span>
               <strong>{metric.value}</strong>
             </div>
@@ -2924,37 +2824,23 @@ export function StrategyFigmaReport({
         </div>
       </section>
 
-      <ReportCard
-        title={tReport(tr, "Portfolio NAV · Drawdown", "组合 NAV · 回撤")}
-        subtitle={tReport(tr, "net & gross NAV · 1500 pts", "净/总 NAV · 1500 点")}
-        className="is-nav"
-      >
+      <ChartCard title={tReport(tr, "Portfolio NAV · Drawdown", "组合 NAV · 回撤")} subtitle={tReport(tr, "net & gross NAV · 1500 pts", "净/总 NAV · 1500 点")} className="is-nav">
         <PortfolioNavChart tr={tr} />
         <MetricsTable rows={metricRows} tr={tr} />
-      </ReportCard>
+      </ChartCard>
 
       <div className="oq-report-two-col">
-        <ReportCard
-          title={tReport(tr, "Average Sector Exposure", "行业暴露")}
-          subtitle={tReport(tr, "long (+) / short (-) avg abs weight", "多头 (+) / 空头 (-) 平均绝对权重")}
-        >
+        <ChartCard title={tReport(tr, "Average Sector Exposure", "行业暴露")} subtitle={tReport(tr, "long (+) / short (-) avg abs weight", "多头 (+) / 空头 (-) 平均绝对权重")}>
           <ExposureChart tr={tr} />
-        </ReportCard>
-        <ReportCard
-          title={tReport(tr, "Sector Return Rank", "行业收益排名")}
-          subtitle={tReport(tr, "total pnl contribution · top + bottom", "总 PnL 贡献 · 头部 + 尾部")}
-        >
+        </ChartCard>
+        <ChartCard title={tReport(tr, "Sector Return Rank", "行业收益排名")} subtitle={tReport(tr, "total pnl contribution · top + bottom", "总 PnL 贡献 · 头部 + 尾部")}>
           <SectorRankChart tr={tr} />
-        </ReportCard>
+        </ChartCard>
       </div>
 
-      <ReportCard
-        title={tReport(tr, "Single-Symbol Cumulative PnL (All)", "单币种累计 PnL（全部）")}
-        subtitle={tReport(tr, "99 symbols", "99 个交易对")}
-        className="is-symbol-cumulative"
-      >
+      <ChartCard title={tReport(tr, "Single-Symbol Cumulative PnL (All)", "单币种累计 PnL（全部）")} subtitle={tReport(tr, "99 symbols", "99 个交易对")} className="is-symbol-cumulative">
         <DenseLines count={denseSymbolCount} height={360} tr={tr} />
-      </ReportCard>
+      </ChartCard>
 
       <SymbolPnlRankSection tr={tr} />
 
