@@ -22,10 +22,20 @@ import {
 } from "./StrategyFigmaReport";
 import {
   ArrowLeft,
+  SlidersHorizontal,
   Star,
 } from "lucide-react";
 
+const SHOW_LIVE_DEPLOY_ACTION = false;
+
 const strategyDetailCopy: Record<string, UiCopy> = {
+  Optimizer: { ja: "オプティマイザー", ko: "옵티마이저", es: "Optimizador", fr: "Optimiseur" },
+  "Optimizer is not available yet": {
+    ja: "オプティマイザーはまだ利用できません",
+    ko: "옵티마이저는 아직 사용할 수 없습니다",
+    es: "El optimizador aún no está disponible",
+    fr: "L'optimiseur n'est pas encore disponible",
+  },
   Strategy: { ja: "ストラテジー", ko: "전략", es: "Estrategia", fr: "Stratégie" },
   Volatility: { ja: "ボラティリティ", ko: "변동성", es: "Volatilidad", fr: "Volatilité" },
   "Time Series": { ja: "時系列", ko: "시계열", es: "Serie temporal", fr: "Série temporelle" },
@@ -538,6 +548,14 @@ export default function StrategyDetail() {
         <Star className={`h-3 w-3 ${starred ? "fill-current" : ""}`} />
         {starred ? tr("Starred", "已收藏") : tr("Favorite", "收藏")}
       </button>
+      <button
+        type="button"
+        className="oq-report-action"
+        onClick={() => toast.info(tr("Optimizer is not available yet", "优化器暂未开放"))}
+      >
+        <SlidersHorizontal className="h-3 w-3" />
+        {tr("Optimizer", "优化器")}
+      </button>
       {isOfficialLibraryView ? (
         <button
           type="button"
@@ -565,19 +583,21 @@ export default function StrategyDetail() {
           >
             {paperDeployment ? tr("View Paper", "查看模拟") : tr("Paper Deploy", "模拟部署")}
           </button>
-          <button
-            type="button"
-            className="oq-report-action is-live"
-            onClick={() => {
-              if (liveDeployment) {
-                openTradePage("live", liveDeployment.id);
-                return;
-              }
-              openLiveDeployModal();
-            }}
-          >
-            {liveDeployment ? tr("View Live", "查看实盘") : tr("Live Deploy", "实盘部署")}
-          </button>
+          {SHOW_LIVE_DEPLOY_ACTION ? (
+            <button
+              type="button"
+              className="oq-report-action is-live"
+              onClick={() => {
+                if (liveDeployment) {
+                  openTradePage("live", liveDeployment.id);
+                  return;
+                }
+                openLiveDeployModal();
+              }}
+            >
+              {liveDeployment ? tr("View Live", "查看实盘") : tr("Live Deploy", "实盘部署")}
+            </button>
+          ) : null}
         </>
       )}
     </>

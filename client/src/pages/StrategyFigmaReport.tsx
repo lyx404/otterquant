@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { CalendarDays, Check, ChevronDown } from "lucide-react";
 import type { UiCopy } from "@/contexts/AppLanguageContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1264,6 +1265,7 @@ function MetricsTable({ rows = navMetrics, tr = defaultTr }: { rows?: Array<[str
 
 function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
   const [activeLabel, setActiveLabel] = useState<string | null>(null);
+  const [activeSide, setActiveSide] = useState<"long" | "short" | null>(null);
   const [visibleSides, setVisibleSides] = useState<Set<"long" | "short">>(() => new Set<"long" | "short">(["long", "short"]));
   const [tooltipPoint, setTooltipPoint] = useState<{
     x: number;
@@ -1277,6 +1279,7 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
   } as CSSProperties;
   const clearInteraction = () => {
     setActiveLabel(null);
+    setActiveSide(null);
     setTooltipPoint(null);
   };
   const toggleSide = (side: "long" | "short") => {
@@ -1288,13 +1291,13 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
       return next.size > 0 ? next : current;
     });
   };
-  const setTooltipFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+  const setTooltipFromPointer = (event: PointerEvent<HTMLElement>) => {
     const rect = chartRef.current?.getBoundingClientRect();
     if (!rect) return;
     const localX = event.clientX - rect.left;
-    const shouldFlip = localX > rect.width - 244 || event.clientX > window.innerWidth - 244;
+    const shouldFlip = localX > rect.width - 314 || event.clientX > window.innerWidth - 314;
     setTooltipPoint({
-      x: shouldFlip ? localX - 234 : localX + 14,
+      x: shouldFlip ? localX - 304 : localX + 14,
       y: event.clientY - rect.top + 14,
     });
   };
@@ -1303,9 +1306,14 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
     const rowRect = rowElement.getBoundingClientRect();
     if (!chartRect) return;
     setTooltipPoint({
-      x: rowRect.right - chartRect.left - 234,
+      x: rowRect.right - chartRect.left - 304,
       y: rowRect.top - chartRect.top + rowRect.height / 2 + 10,
     });
+  };
+  const showTooltip = (label: string, side: "long" | "short", event: PointerEvent<HTMLElement>) => {
+    setActiveLabel(label);
+    setActiveSide(side);
+    setTooltipFromPointer(event);
   };
   useEffect(() => {
     if (activeLabel === null) return;
@@ -1345,7 +1353,6 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
         return (
           <div
             className="oq-exposure-row"
-            data-active={activeLabel === row.label}
             key={row.label}
             tabIndex={0}
             role="img"
@@ -1353,19 +1360,11 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
             onMouseDown={event => event.preventDefault()}
             onFocus={event => {
               setActiveLabel(row.label);
+              setActiveSide(visibleSides.has("long") ? "long" : "short");
               setTooltipFromRow(event.currentTarget);
             }}
             onBlur={clearInteraction}
             onMouseLeave={clearInteraction}
-            onPointerEnter={event => {
-              setActiveLabel(row.label);
-              setTooltipFromPointer(event);
-            }}
-            onPointerMove={event => {
-              setActiveLabel(row.label);
-              setTooltipFromPointer(event);
-            }}
-            onPointerLeave={clearInteraction}
           >
             <span title={row.label}>{row.label}</span>
             <div className="oq-diverging-plot" style={exposurePlotStyle}>
@@ -1379,45 +1378,46 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
                   }}
                 />
               ))}
-              {visibleSides.has("short") ? <i aria-hidden="true" style={getDivergingBarStyle(shortValue, exposureDomain)} /> : null}
-              {visibleSides.has("long") ? <b aria-hidden="true" style={getDivergingBarStyle(row.long, exposureDomain)} /> : null}
+              {visibleSides.has("short") ? (
+                <i
+                  aria-hidden="true"
+                  style={getDivergingBarStyle(shortValue, exposureDomain)}
+                  onPointerEnter={event => showTooltip(row.label, "short", event)}
+                  onPointerMove={event => showTooltip(row.label, "short", event)}
+                  onPointerLeave={clearInteraction}
+                />
+              ) : null}
+              {visibleSides.has("long") ? (
+                <b
+                  aria-hidden="true"
+                  style={getDivergingBarStyle(row.long, exposureDomain)}
+                  onPointerEnter={event => showTooltip(row.label, "long", event)}
+                  onPointerMove={event => showTooltip(row.label, "long", event)}
+                  onPointerLeave={clearInteraction}
+                />
+              ) : null}
             </div>
           </div>
         );
       })}
-      {activeRow && tooltipPoint ? (
+      {activeRow && activeSide && tooltipPoint ? (
         <div
           className="oq-bar-floating-tooltip"
           style={{
-            left: `clamp(12px, ${tooltipPoint.x}px, calc(100% - 232px))`,
+            left: `clamp(12px, ${tooltipPoint.x}px, calc(100% - 312px))`,
             top: `clamp(46px, ${tooltipPoint.y}px, calc(100% - 98px))`,
           }}
         >
-          <ChartTooltip
-            title={activeRow.label}
-            unit={tReport(tr, "abs weight", "绝对权重")}
-            rows={[
-              ...(visibleSides.has("long")
-                ? [
-                    {
-                      label: tReport(tr, "Long", "多头"),
-                      value: formatChartValue(activeRow.long),
-                      color: "var(--report-green)",
-                      active: true,
-                    },
-                  ]
-                : []),
-              ...(visibleSides.has("short")
-                ? [
-                    {
-                      label: tReport(tr, "Short", "空头"),
-                      value: formatChartValue(-activeRow.short),
-                      color: "var(--report-red)",
-                    },
-                  ]
-                : []),
-            ]}
-          />
+          <div className="oq-bar-value-tooltip" role="status">
+            <strong>{activeRow.label}</strong>
+            <div className="oq-bar-value-tooltip-row">
+              <span>
+                <i style={{ background: activeSide === "long" ? "var(--report-green)" : "var(--report-red)" }} />
+                {activeSide === "long" ? tReport(tr, "Long", "多头") : tReport(tr, "Short", "空头")}
+              </span>
+              <b>{(activeSide === "long" ? activeRow.long : activeRow.short).toFixed(4)}</b>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
@@ -1450,13 +1450,13 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
       return next.size > 0 ? next : current;
     });
   };
-  const setTooltipFromPointer = (event: PointerEvent<HTMLDivElement>) => {
+  const setTooltipFromPointer = (event: PointerEvent<HTMLElement>) => {
     const rect = chartRef.current?.getBoundingClientRect();
     if (!rect) return;
     const localX = event.clientX - rect.left;
-    const shouldFlip = localX > rect.width - 244 || event.clientX > window.innerWidth - 244;
+    const shouldFlip = localX > rect.width - 314 || event.clientX > window.innerWidth - 314;
     setTooltipPoint({
-      x: shouldFlip ? localX - 234 : localX + 14,
+      x: shouldFlip ? localX - 304 : localX + 14,
       y: event.clientY - rect.top + 14,
     });
   };
@@ -1465,9 +1465,13 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
     const rowRect = rowElement.getBoundingClientRect();
     if (!chartRect) return;
     setTooltipPoint({
-      x: rowRect.right - chartRect.left - 234,
+      x: rowRect.right - chartRect.left - 304,
       y: rowRect.top - chartRect.top + rowRect.height / 2 + 10,
     });
+  };
+  const showTooltip = (label: string, event: PointerEvent<HTMLElement>) => {
+    setActiveLabel(label);
+    setTooltipFromPointer(event);
   };
   useEffect(() => {
     if (activeLabel === null) return;
@@ -1517,7 +1521,6 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
       {sectorRankRows.map(([label, value]) => (
         <div
           className="oq-rank-row"
-          data-active={activeLabel === label}
           key={label}
           tabIndex={0}
           role="img"
@@ -1529,22 +1532,22 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
           }}
           onBlur={clearInteraction}
           onMouseLeave={clearInteraction}
-          onPointerEnter={event => {
-            setActiveLabel(label);
-            setTooltipFromPointer(event);
-          }}
-          onPointerMove={event => {
-            setActiveLabel(label);
-            setTooltipFromPointer(event);
-          }}
-          onPointerLeave={clearInteraction}
         >
           <span title={label}>{label}</span>
           <div className="oq-diverging-plot" style={rankPlotStyle}>
             {rankTicks.map(tick => (
               <span aria-hidden="true" className="oq-diverging-grid-line" key={tick} style={{ left: `${getDomainPercent(tick, rankDomain)}%` }} />
             ))}
-            {visibleTones.has(value < 0 ? "negative" : "positive") ? <b aria-hidden="true" className={value < 0 ? "is-negative" : ""} style={getDivergingBarStyle(value, rankDomain)} /> : null}
+            {visibleTones.has(value < 0 ? "negative" : "positive") ? (
+              <b
+                aria-hidden="true"
+                className={value < 0 ? "is-negative" : ""}
+                style={getDivergingBarStyle(value, rankDomain)}
+                onPointerEnter={event => showTooltip(label, event)}
+                onPointerMove={event => showTooltip(label, event)}
+                onPointerLeave={clearInteraction}
+              />
+            ) : null}
           </div>
         </div>
       ))}
@@ -1552,22 +1555,20 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
         <div
           className="oq-bar-floating-tooltip"
           style={{
-            left: `clamp(12px, ${tooltipPoint.x}px, calc(100% - 232px))`,
+            left: `clamp(12px, ${tooltipPoint.x}px, calc(100% - 312px))`,
             top: `clamp(46px, ${tooltipPoint.y}px, calc(100% - 98px))`,
           }}
         >
-          <ChartTooltip
-            title={activeRankRow[0]}
-            unit={tReport(tr, "pnl contribution", "PnL 贡献")}
-            rows={[
-              {
-                label: tReport(tr, "Total PnL contribution", "总 PnL 贡献"),
-                value: formatChartValue(activeRankRow[1]),
-                color: activeRankRow[1] < 0 ? "var(--report-red)" : "var(--report-green)",
-                active: true,
-              },
-            ]}
-          />
+          <div className="oq-bar-value-tooltip" role="status">
+            <strong>{activeRankRow[0]}</strong>
+            <div className="oq-bar-value-tooltip-row">
+              <span>
+                <i style={{ background: activeRankRow[1] < 0 ? "var(--report-red)" : "var(--report-green)" }} />
+                Total PnL
+              </span>
+              <b>{activeRankRow[1].toFixed(4)}</b>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
@@ -1683,7 +1684,9 @@ function DenseLines({
         ? tReport(tr, "EMA250 correlation", "EMA250 相关")
         : isReturnChart
           ? tReport(tr, "Cumulative return", "累计收益")
-          : tReport(tr, "Cum PnL", "累计 PnL");
+          : isSymbolCumulative
+            ? "Cum Pnl"
+            : tReport(tr, "Cum PnL", "累计 PnL");
   const formatDenseValue = (value: number) =>
     isAutocorrDecay
       ? value.toFixed(4)
@@ -1979,10 +1982,12 @@ function DenseLines({
               />
               {activeIndex === null ? denseRepresentativeSymbol : (activeSeries?.symbol ?? `${tReport(tr, "Series", "序列")} ${activeIndex + 1}`)}
             </button>
-            <span>
-              <i className="is-muted" />
-              {isSymbolCumulative ? tReport(tr, "Peer symbols", "同组交易对") : tReport(tr, "Peer series", "同组序列")}
-            </span>
+            {!isSymbolCumulative ? (
+              <span>
+                <i className="is-muted" />
+                {tReport(tr, "Peer series", "同组序列")}
+              </span>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -2153,7 +2158,6 @@ function SymbolPnlRankSection({ tr = defaultTr }: { tr?: Tr }) {
     <Tabs value={activeGroup} onValueChange={value => setActiveGroup(value as SymbolPnlRankGroup)}>
       <ChartCard
         title={tReport(tr, "Single-Symbol PnL Rank", "单币种 PnL 排名")}
-        subtitle={tReport(tr, "ranked by total pnl", "按总 PnL 排序")}
         className="is-symbol-rank"
         headerActions={
           <TabsList className="oq-attribution-switch" aria-label={tReport(tr, "Switch symbol PnL rank chart", "切换单币种 PnL 排名图表")}>
@@ -2457,30 +2461,6 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
   const zeroY = margin.top + plotHeight - ((0 - barraExposureDomain.min) / (barraExposureDomain.max - barraExposureDomain.min)) * plotHeight;
   const groupWidth = plotWidth / Math.max(1, rows.length);
   const barWidth = Math.min(18, groupWidth * 0.22);
-  const tooltipRows = activePoint
-    ? [
-        ...(visibleSides.has("long")
-          ? [
-              {
-                label: tReport(tr, "Long mean", "多头均值"),
-                value: formatChartValue(rows.find(row => row.factor === activePoint.factor)?.long ?? 0),
-                color: "var(--report-green)",
-                active: activePoint.side === "long",
-              },
-            ]
-          : []),
-        ...(visibleSides.has("short")
-          ? [
-              {
-                label: tReport(tr, "Short mean", "空头均值"),
-                value: formatChartValue(rows.find(row => row.factor === activePoint.factor)?.short ?? 0),
-                color: "var(--report-red)",
-                active: activePoint.side === "short",
-              },
-            ]
-          : []),
-      ]
-    : [];
   const scaleY = (value: number) => margin.top + plotHeight - ((value - barraExposureDomain.min) / (barraExposureDomain.max - barraExposureDomain.min)) * plotHeight;
   const clearBarraExposure = () => {
     setActivePoint(null);
@@ -2592,12 +2572,10 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
               const rectY = Math.min(y, zeroY);
               const height = Math.max(2, Math.abs(zeroY - y));
               const x = centerX + (side === "long" ? -barWidth - 3 : 3);
-              const active = activePoint?.factor === row.factor && activePoint.side === side;
               return (
                 <rect
                   key={`${row.factor}-${side}`}
                   className={`oq-barra-exposure-bar is-${side}`}
-                  data-active={active}
                   x={x}
                   y={rectY}
                   width={barWidth}
@@ -2608,9 +2586,9 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
                   onMouseDown={event => event.preventDefault()}
                   onFocus={() => showBarraTooltip(row, side, x + barWidth / 2, y)}
                   onBlur={clearBarraExposure}
-                  onMouseEnter={event => showBarraTooltip(row, side, x + barWidth / 2, y, event)}
                   onPointerEnter={event => showBarraTooltip(row, side, x + barWidth / 2, y, event)}
                   onPointerMove={event => showBarraTooltip(row, side, x + barWidth / 2, y, event)}
+                  onPointerLeave={clearBarraExposure}
                 >
                   <title>{`${row.factor} · ${formatChartValue(value)}`}</title>
                 </rect>
@@ -2622,11 +2600,20 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
         <div
           className="oq-barra-floating-tooltip"
           style={{
-            left: `clamp(8px, ${tooltipPoint.x}px, calc(100% - 244px))`,
+            left: `clamp(8px, ${tooltipPoint.x}px, calc(100% - 312px))`,
             top: `clamp(38px, ${tooltipPoint.y}px, calc(100% - 104px))`,
           }}
         >
-          <ChartTooltip title={activePoint.factor.toUpperCase()} unit={tReport(tr, "Mean exposure", "平均暴露")} rows={tooltipRows} />
+          <div className="oq-bar-value-tooltip" role="status">
+            <strong>{activePoint.factor}</strong>
+            <div className="oq-bar-value-tooltip-row">
+              <span>
+                <i style={{ background: activePoint.side === "long" ? "var(--report-green)" : "var(--report-red)" }} />
+                {activePoint.side === "long" ? "Long mean" : "Short mean"}
+              </span>
+              <b>{activePoint.value.toFixed(4)}</b>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
@@ -2671,7 +2658,6 @@ function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
     <Tabs value={activeTab} onValueChange={setActiveTab}>
       <ChartCard
         title={tReport(tr, "CS Attribution Overview", "截面归因概览")}
-        subtitle={tReport(tr, "7 Barra factors · attribution dashboard", "7 个 Barra 因子 · 归因面板")}
         className="is-attribution"
         headerActions={
           <TabsList className="oq-attribution-switch" aria-label={tReport(tr, "Switch attribution chart", "切换归因图表")}>
@@ -2701,7 +2687,6 @@ function PositionHistory({ rows = defaultPositions, tr = defaultTr }: { rows?: R
       <header>
         <div>
           <h2>{tReport(tr, "Position History", "仓位历史")}</h2>
-          <p>{tReport(tr, "Closed positions from the latest strategy replay", "最近一次策略回放中的已平仓仓位")}</p>
         </div>
       </header>
       <div className="oq-position-table">
@@ -2790,8 +2775,11 @@ export function StrategyFigmaReport({
           }}
         >
           <button type="button" aria-haspopup="listbox" aria-expanded={isDateMenuOpen} onClick={() => setIsDateMenuOpen(prev => !prev)}>
-            {selectedDateLabel}
-            <span aria-hidden="true">⌄</span>
+            <span className="oq-report-date-trigger-label">
+              <CalendarDays aria-hidden="true" />
+              <span>{selectedDateLabel}</span>
+            </span>
+            <ChevronDown aria-hidden="true" className="oq-report-date-chevron" />
           </button>
           {isDateMenuOpen ? (
             <div className="oq-report-date-menu" role="listbox" aria-label={tReport(tr, "Select backtest period", "选择回测周期")}>
@@ -2808,7 +2796,7 @@ export function StrategyFigmaReport({
                   }}
                 >
                   <span>{option}</span>
-                  {selectedDateLabel === option ? <strong>✓</strong> : null}
+                  {selectedDateLabel === option ? <Check aria-hidden="true" /> : null}
                 </button>
               ))}
             </div>
@@ -2824,21 +2812,21 @@ export function StrategyFigmaReport({
         </div>
       </section>
 
-      <ChartCard title={tReport(tr, "Portfolio NAV · Drawdown", "组合 NAV · 回撤")} subtitle={tReport(tr, "net & gross NAV · 1500 pts", "净/总 NAV · 1500 点")} className="is-nav">
+      <ChartCard title={tReport(tr, "Portfolio NAV · Drawdown", "组合 NAV · 回撤")} className="is-nav">
         <PortfolioNavChart tr={tr} />
         <MetricsTable rows={metricRows} tr={tr} />
       </ChartCard>
 
       <div className="oq-report-two-col">
-        <ChartCard title={tReport(tr, "Average Sector Exposure", "行业暴露")} subtitle={tReport(tr, "long (+) / short (-) avg abs weight", "多头 (+) / 空头 (-) 平均绝对权重")}>
+        <ChartCard title={tReport(tr, "Average Sector Exposure", "行业暴露")}>
           <ExposureChart tr={tr} />
         </ChartCard>
-        <ChartCard title={tReport(tr, "Sector Return Rank", "行业收益排名")} subtitle={tReport(tr, "total pnl contribution · top + bottom", "总 PnL 贡献 · 头部 + 尾部")}>
+        <ChartCard title={tReport(tr, "Sector Return Rank", "行业收益排名")}>
           <SectorRankChart tr={tr} />
         </ChartCard>
       </div>
 
-      <ChartCard title={tReport(tr, "Single-Symbol Cumulative PnL (All)", "单币种累计 PnL（全部）")} subtitle={tReport(tr, "99 symbols", "99 个交易对")} className="is-symbol-cumulative">
+      <ChartCard title={tReport(tr, "Single-Symbol Cumulative PnL (All)", "单币种累计 PnL（全部）")} className="is-symbol-cumulative">
         <DenseLines count={denseSymbolCount} height={360} tr={tr} />
       </ChartCard>
 

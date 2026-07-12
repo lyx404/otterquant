@@ -15,7 +15,7 @@ export function ChartCard({
   children,
 }: {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   className?: string;
   headerActions?: ReactNode;
   children: ReactNode;
@@ -27,7 +27,7 @@ export function ChartCard({
       >
         <div>
           <h2>{title}</h2>
-          <p>{subtitle}</p>
+          {subtitle ? <p>{subtitle}</p> : null}
         </div>
         {headerActions}
       </header>

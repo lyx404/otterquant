@@ -1171,7 +1171,7 @@ main:has(.oq-strategy-figma-report) {
   border-color: var(--report-gold);
   background: var(--report-gold);
   color: #ffffff;
-  box-shadow: 0 7.5px 21px rgba(221, 90, 12, 0.22);
+  box-shadow: none;
 }
 
 .oq-report-action.is-live {
@@ -1308,7 +1308,7 @@ main:has(.oq-strategy-figma-report) {
 .oq-bar-floating-tooltip {
   position: absolute;
   z-index: 8;
-  width: min(220px, calc(100% - 24px));
+  width: min(300px, calc(100% - 24px));
   pointer-events: none;
 }
 
@@ -1317,6 +1317,62 @@ main:has(.oq-strategy-figma-report) {
   border-color: var(--report-border);
   background: color-mix(in srgb, var(--report-bg) 96%, var(--report-warm));
   box-shadow: var(--report-shadow-lift);
+}
+
+.oq-bar-value-tooltip {
+  display: grid;
+  width: 100%;
+  gap: 12px;
+  border: 1px solid var(--report-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--report-bg) 97%, var(--report-warm));
+  padding: 13px 16px;
+  box-shadow: var(--report-shadow-lift);
+}
+
+.oq-bar-value-tooltip > strong {
+  overflow: hidden;
+  color: var(--report-text-soft);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1rem;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.oq-bar-value-tooltip-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.oq-bar-value-tooltip-row span {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  color: var(--report-text-soft);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+.oq-bar-value-tooltip-row span i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.oq-bar-value-tooltip-row b {
+  color: var(--report-text);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.125rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .oq-chart-empty {
@@ -1834,22 +1890,6 @@ main:has(.oq-strategy-figma-report) {
   transform: translateX(-50%);
 }
 
-.oq-exposure-row:hover,
-.oq-exposure-row:focus-visible,
-.oq-exposure-row[data-active="true"],
-.oq-rank-row:hover,
-.oq-rank-row:focus-visible,
-.oq-rank-row[data-active="true"] {
-  background: var(--report-warm);
-}
-
-.oq-exposure-chart:has(.oq-exposure-row[data-active="true"])
-  .oq-exposure-row:not([data-active="true"]),
-.oq-rank-chart:has(.oq-rank-row[data-active="true"])
-  .oq-rank-row:not([data-active="true"]) {
-  opacity: 0.42;
-}
-
 .oq-exposure-row i,
 .oq-exposure-row b,
 .oq-rank-row b {
@@ -1862,15 +1902,6 @@ main:has(.oq-strategy-figma-report) {
     transform 180ms cubic-bezier(0.25, 1, 0.5, 1),
     opacity 180ms cubic-bezier(0.25, 1, 0.5, 1);
   transform: translateY(-50%);
-}
-
-.oq-exposure-row[data-active="true"] i,
-.oq-exposure-row[data-active="true"] b,
-.oq-rank-row[data-active="true"] b,
-.oq-exposure-row:hover i,
-.oq-exposure-row:hover b,
-.oq-rank-row:hover b {
-  transform: translateY(-50%) scaleY(1.22);
 }
 
 .oq-exposure-row i {
@@ -2371,11 +2402,6 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-barra-exposure-bar {
   outline: none;
-  transition:
-    opacity 160ms cubic-bezier(0.25, 1, 0.5, 1),
-    transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
-  transform-box: fill-box;
-  transform-origin: center;
   vector-effect: non-scaling-stroke;
 }
 
@@ -2387,16 +2413,9 @@ main:has(.oq-strategy-figma-report) {
   fill: var(--report-red);
 }
 
-.oq-barra-exposure-svg:has(.oq-barra-exposure-bar[data-active="true"])
-  .oq-barra-exposure-bar:not([data-active="true"]) {
-  opacity: 0.32;
-}
-
-.oq-barra-exposure-bar:hover,
-.oq-barra-exposure-bar:focus-visible,
-.oq-barra-exposure-bar[data-active="true"] {
-  opacity: 1;
-  transform: scaleX(1.18);
+.oq-barra-exposure-bar:focus-visible {
+  stroke: var(--ring);
+  stroke-width: 2;
 }
 
 .oq-barra-active-marker {
@@ -2409,7 +2428,7 @@ main:has(.oq-strategy-figma-report) {
 .oq-barra-floating-tooltip {
   position: absolute;
   z-index: 20;
-  width: min(248px, calc(100% - 16px));
+  width: min(300px, calc(100% - 16px));
   transform: translate(10px, 10px);
   pointer-events: none;
 }
@@ -2439,7 +2458,7 @@ main:has(.oq-strategy-figma-report) {
   display: block;
   padding: 12px 16px;
   color: var(--report-text);
-  border-bottom: 1px solid var(--report-border);
+  border-bottom: 0;
 }
 
 .oq-position-card h2,
@@ -2464,7 +2483,7 @@ main:has(.oq-strategy-figma-report) {
   min-height: 34px;
   border-bottom: var(--report-divider-width) solid var(--report-border);
   border-radius: 0;
-  background: var(--report-bg);
+  background: rgb(250, 248, 246);
   color: var(--report-muted);
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 0.625rem;

@@ -150,9 +150,77 @@
   margin-bottom: 10px;
 }
 
+.oq-report-metric-panel .oq-report-date-select > button {
+  min-height: 32px;
+  border-color: color-mix(in srgb, var(--report-border) 78%, transparent);
+  border-radius: 8px;
+  background: rgb(250, 248, 246);
+  padding: 6px 9px;
+  color: var(--report-muted);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1rem;
+  text-align: left;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.oq-report-metric-panel .oq-report-date-select > button:hover,
+.oq-report-metric-panel .oq-report-date-select > button[aria-expanded="true"] {
+  border-color: var(--report-border);
+  background: var(--report-panel);
+  color: var(--report-text-soft);
+}
+
+.oq-report-date-trigger-label {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+
+.oq-report-date-trigger-label > svg,
+.oq-report-date-chevron {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--report-muted);
+  stroke-width: 1.7;
+}
+
+.oq-report-date-trigger-label > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-report-date-select > button[aria-expanded="true"] .oq-report-date-chevron {
+  transform: rotate(180deg);
+}
+
 .oq-report-metric-panel .oq-report-date-menu {
   right: auto;
   left: 0;
+  min-width: min(220px, calc(100vw - 48px));
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: var(--report-shadow);
+}
+
+.oq-report-metric-panel .oq-report-date-menu button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 7px 8px;
+  font-size: 0.6875rem;
+}
+
+.oq-report-metric-panel .oq-report-date-menu button > svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: var(--report-gold);
+  stroke-width: 1.8;
 }
 
 .oq-strategy-figma-report .oq-report-metric-strip {
@@ -623,7 +691,7 @@ main:has(.oq-strategy-figma-report) {
   .oq-report-card-header {
   min-height: 64px;
   gap: var(--chart-space-1);
-  border-bottom: var(--report-divider-width) solid var(--report-border);
+  border-bottom: 0;
   padding: var(--chart-space-3) var(--chart-space-4);
 }
 
