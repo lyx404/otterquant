@@ -142,7 +142,6 @@ const sectorRankRows: Array<[string, number]> = [
 ];
 
 const exposureDomain = { min: -0.15, max: 0.15 };
-const exposureTicks = [-0.15, -0.07, 0, 0.07, 0.15];
 const rankDomain = { min: -0.23, max: 0.78 };
 const rankTicks = [-0.2, 0, 0.29, 0.54, 0.78];
 const barraExposureDomain = { min: -0.69, max: 0.69 };
@@ -757,13 +756,13 @@ const portfolioPeakIndex = 123;
 const portfolioTroughIndex = 129;
 const portfolioChartFrame = {
   width: 1000,
-  height: 506,
-  left: 98,
-  right: 28,
-  navTop: 34,
-  navHeight: 244,
-  drawdownTop: 338,
-  drawdownHeight: 118,
+  height: 470,
+  left: 64,
+  right: 20,
+  navTop: 24,
+  navHeight: 236,
+  drawdownTop: 310,
+  drawdownHeight: 112,
 };
 const portfolioPlotWidth = portfolioChartFrame.width - portfolioChartFrame.left - portfolioChartFrame.right;
 
@@ -940,9 +939,8 @@ function makeSymbolRankPnlSeries(row: SymbolPnlRankRow, seed: number, count = de
 
 function formatChartValue(value: number, unit: "nav" | "percent" | "score" = "score") {
   if (!Number.isFinite(value)) return "--";
-  if (unit === "percent") return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)}%`;
-  if (unit === "nav") return value.toFixed(2);
-  return value.toFixed(3);
+  if (unit === "percent") return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(2)}%`;
+  return value.toFixed(4);
 }
 
 function formatAxisTick(value: number) {
@@ -1338,16 +1336,6 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
           <ChartLegendItem color="#d64550" label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleSide("short")} />
         </div>
       </div>
-      <div className="oq-diverging-axis oq-exposure-axis" aria-hidden="true">
-        <span className="oq-diverging-axis-spacer" />
-        <div className="oq-diverging-axis-track">
-          {exposureTicks.map(tick => (
-            <span className="oq-diverging-axis-tick" key={tick} style={{ left: `${getDomainPercent(tick, exposureDomain)}%` }}>
-              {formatAxisTick(tick)}
-            </span>
-          ))}
-        </div>
-      </div>
       {exposureRows.map(row => {
         const shortValue = -row.short;
         return (
@@ -1368,16 +1356,6 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
           >
             <span title={row.label}>{row.label}</span>
             <div className="oq-diverging-plot" style={exposurePlotStyle}>
-              {exposureTicks.map(tick => (
-                <span
-                  aria-hidden="true"
-                  className="oq-diverging-grid-line"
-                  key={tick}
-                  style={{
-                    left: `${getDomainPercent(tick, exposureDomain)}%`,
-                  }}
-                />
-              ))}
               {visibleSides.has("short") ? (
                 <i
                   aria-hidden="true"
@@ -1408,16 +1386,17 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
             top: `clamp(46px, ${tooltipPoint.y}px, calc(100% - 98px))`,
           }}
         >
-          <div className="oq-bar-value-tooltip" role="status">
-            <strong>{activeRow.label}</strong>
-            <div className="oq-bar-value-tooltip-row">
-              <span>
-                <i style={{ background: activeSide === "long" ? "var(--report-green)" : "var(--report-red)" }} />
-                {activeSide === "long" ? tReport(tr, "Long", "多头") : tReport(tr, "Short", "空头")}
-              </span>
-              <b>{(activeSide === "long" ? activeRow.long : activeRow.short).toFixed(4)}</b>
-            </div>
-          </div>
+          <ChartTooltip
+            title={activeRow.label.toUpperCase()}
+            rows={[
+              {
+                label: activeSide === "long" ? tReport(tr, "Long", "多头") : tReport(tr, "Short", "空头"),
+                value: (activeSide === "long" ? activeRow.long : activeRow.short).toFixed(4),
+                color: activeSide === "long" ? "var(--report-green)" : "var(--report-red)",
+                active: true,
+              },
+            ]}
+          />
         </div>
       ) : null}
     </div>
@@ -1535,9 +1514,6 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
         >
           <span title={label}>{label}</span>
           <div className="oq-diverging-plot" style={rankPlotStyle}>
-            {rankTicks.map(tick => (
-              <span aria-hidden="true" className="oq-diverging-grid-line" key={tick} style={{ left: `${getDomainPercent(tick, rankDomain)}%` }} />
-            ))}
             {visibleTones.has(value < 0 ? "negative" : "positive") ? (
               <b
                 aria-hidden="true"
@@ -1559,16 +1535,17 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
             top: `clamp(46px, ${tooltipPoint.y}px, calc(100% - 98px))`,
           }}
         >
-          <div className="oq-bar-value-tooltip" role="status">
-            <strong>{activeRankRow[0]}</strong>
-            <div className="oq-bar-value-tooltip-row">
-              <span>
-                <i style={{ background: activeRankRow[1] < 0 ? "var(--report-red)" : "var(--report-green)" }} />
-                Total PnL
-              </span>
-              <b>{activeRankRow[1].toFixed(4)}</b>
-            </div>
-          </div>
+          <ChartTooltip
+            title={activeRankRow[0].toUpperCase()}
+            rows={[
+              {
+                label: tReport(tr, "Total PnL", "总 PnL"),
+                value: activeRankRow[1].toFixed(4),
+                color: activeRankRow[1] < 0 ? "var(--report-red)" : "var(--report-green)",
+                active: true,
+              },
+            ]}
+          />
         </div>
       ) : null}
     </div>
@@ -1639,7 +1616,7 @@ function DenseLines({
     width: isNarrowSymbolChart ? 560 : isSmallMultiple ? 720 : 1000,
     height,
   };
-  const margin = compact ? { top: 22, right: 36, bottom: 42, left: 64 } : isSmallMultiple ? { top: 36, right: 44, bottom: 52, left: 68 } : { top: 44, right: 48, bottom: 56, left: 72 };
+  const margin = compact ? { top: 20, right: 20, bottom: 40, left: 56 } : isSmallMultiple ? { top: 24, right: 24, bottom: 44, left: 56 } : { top: 24, right: 24, bottom: 44, left: 60 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
   const pointCount = isAutocorrDecay ? autocorrDecayLagLabels.length : isTurnoverRate ? densePointCount : isReturnChart ? 120 : isSymbolCumulative ? densePointCount : 70;
@@ -1690,10 +1667,8 @@ function DenseLines({
   const formatDenseValue = (value: number) =>
     isAutocorrDecay
       ? value.toFixed(4)
-      : isTurnoverRate || isBarraCorrelation
-        ? value.toFixed(3)
-        : isReturnChart
-          ? formatDecileReturnValue(value)
+      : isReturnChart
+        ? value.toFixed(4)
           : isSymbolCumulative
             ? formatDensePnlValue(value)
             : formatCompactAxisValue(value);
@@ -2114,7 +2089,7 @@ function DenseLines({
         <div
           className="oq-dense-floating-tooltip"
           style={{
-            left: `clamp(12px, ${tooltipPoint.x}px, calc(100% - 260px))`,
+            left: `clamp(12px, ${tooltipPoint.x}px, calc(100% - 312px))`,
             top: `clamp(40px, ${tooltipPoint.y}px, ${denseTooltipBottom})`,
           }}
         >
@@ -2196,8 +2171,8 @@ function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; ro
     color: string;
   } | null>(null);
   const isNarrowRankChart = useContainerNarrow(chartRef, 620);
-  const viewBox = { width: isNarrowRankChart ? 560 : 880, height: 274 };
-  const margin = { top: 26, right: 20, bottom: 44, left: 62 };
+  const viewBox = { width: isNarrowRankChart ? 560 : 880, height: 300 };
+  const margin = { top: 20, right: 16, bottom: 40, left: 56 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
   const xTickIndexes = denseSymbolDateTicks.map(tick => indexForDenseDateTick(tick, densePointCount));
@@ -2409,7 +2384,7 @@ function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; ro
             <div
               className="oq-symbol-rank-floating-tooltip"
               style={{
-                left: `clamp(10px, ${tooltipPoint.x}px, calc(100% - 252px))`,
+                left: `clamp(10px, ${tooltipPoint.x}px, calc(100% - 312px))`,
                 top: `clamp(44px, ${tooltipPoint.y}px, calc(100% - 96px))`,
               }}
             >
@@ -2604,16 +2579,17 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
             top: `clamp(38px, ${tooltipPoint.y}px, calc(100% - 104px))`,
           }}
         >
-          <div className="oq-bar-value-tooltip" role="status">
-            <strong>{activePoint.factor}</strong>
-            <div className="oq-bar-value-tooltip-row">
-              <span>
-                <i style={{ background: activePoint.side === "long" ? "var(--report-green)" : "var(--report-red)" }} />
-                {activePoint.side === "long" ? "Long mean" : "Short mean"}
-              </span>
-              <b>{activePoint.value.toFixed(4)}</b>
-            </div>
-          </div>
+          <ChartTooltip
+            title={activePoint.factor.toUpperCase()}
+            rows={[
+              {
+                label: activePoint.side === "long" ? tReport(tr, "Long mean", "多头均值") : tReport(tr, "Short mean", "空头均值"),
+                value: activePoint.value.toFixed(4),
+                color: activePoint.side === "long" ? "var(--report-green)" : "var(--report-red)",
+                active: true,
+              },
+            ]}
+          />
         </div>
       ) : null}
     </div>

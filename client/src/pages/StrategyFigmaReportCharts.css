@@ -269,15 +269,15 @@
 }
 
 .oq-dense-chart.is-symbol-cumulative {
-  border: var(--report-divider-width) solid var(--report-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--report-panel) 62%, transparent);
-  padding: 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
   contain: layout;
 }
 
 .oq-dense-chart.is-symbol-cumulative .oq-chart-toolbar {
-  justify-content: flex-end;
+  justify-content: flex-start;
   min-height: 28px;
   padding: 0 0 2px;
 }
@@ -290,7 +290,7 @@
 }
 
 .oq-dense-chart.is-symbol-cumulative .oq-dense-lines {
-  height: 360px;
+  height: clamp(320px, 34vw, 420px);
 }
 
 .oq-dense-chart.is-symbol-cumulative .oq-dense-lines .oq-chart-grid line {
@@ -342,10 +342,10 @@
   display: grid;
   min-width: 0;
   gap: 10px;
-  border: var(--report-divider-width) solid var(--report-border);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--report-panel) 62%, transparent);
-  padding: 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
   contain: layout;
 }
 
@@ -365,7 +365,7 @@
 .oq-symbol-rank-lines {
   display: block;
   width: 100%;
-  height: 274px;
+  height: clamp(300px, 28vw, 360px);
   overflow: visible;
 }
 
@@ -552,7 +552,7 @@
 }
 
 .oq-attribution-panel .oq-mini-card {
-  min-height: 430px;
+  min-height: 0;
   border-top: 0;
   padding: 2px 0 6px;
 }
@@ -564,7 +564,7 @@
 
 .oq-attribution-panel .oq-dense-chart.is-turnover-rate .oq-dense-lines,
 .oq-attribution-panel .oq-barra-exposure-svg {
-  height: clamp(340px, 30vw, 380px);
+  height: clamp(320px, 30vw, 420px);
 }
 
 @media (max-width: 960px) {
@@ -595,12 +595,12 @@
   }
 
   .oq-attribution-panel .oq-mini-card {
-    min-height: 360px;
+    min-height: 0;
   }
 
   .oq-attribution-panel .oq-dense-chart.is-turnover-rate .oq-dense-lines,
   .oq-attribution-panel .oq-barra-exposure-svg {
-    height: 300px;
+    height: 320px;
   }
 }
 
@@ -658,19 +658,28 @@
   --chart-card-radius: var(--radius-md, 8px);
   --chart-control-radius: var(--radius-sm, 4px);
   --chart-axis-size: 0.6875rem;
+  --chart-legend-size: 0.6875rem;
   --chart-label-size: 0.75rem;
   --chart-title-size: 0.875rem;
+  --chart-value-size: 0.75rem;
+  --chart-tooltip-size: 0.75rem;
+  --chart-axis-color: var(--report-muted);
+  --chart-grid-color: color-mix(in srgb, var(--report-border) 68%, transparent);
+  --chart-zero-color: color-mix(in srgb, var(--report-text) 42%, var(--report-border));
+  --chart-plot-bg: transparent;
   --chart-motion-fast: 180ms;
   --chart-ease-out: cubic-bezier(0.25, 1, 0.5, 1);
   --chart-tooltip-z: 60;
+  --chart-tooltip-width: min(300px, calc(100% - 24px));
   --chart-plot-main-min: 320px;
-  --chart-plot-medium-min: 274px;
-  --chart-plot-small-min: 236px;
+  --chart-plot-medium-min: 300px;
+  --chart-plot-small-min: 280px;
   width: min(900px, 100%);
   gap: var(--chart-space-4);
 }
 
 main:has(.oq-strategy-figma-report) {
+  width: min(932px, calc(100vw - 32px));
   max-width: min(932px, calc(100vw - 32px));
 }
 
@@ -719,6 +728,16 @@ main:has(.oq-strategy-figma-report) {
   padding: var(--chart-space-4);
 }
 
+.oq-strategy-figma-report
+  .oq-report-card:is(.is-attribution, .is-symbol-rank)
+  .oq-report-card-body {
+  padding-block: 0;
+}
+
+.oq-strategy-figma-report .oq-report-card.is-nav .oq-report-card-body {
+  padding-top: 0;
+}
+
 .oq-strategy-figma-report .oq-chart-stack,
 .oq-strategy-figma-report .oq-dense-chart,
 .oq-strategy-figma-report .oq-exposure-chart,
@@ -726,6 +745,7 @@ main:has(.oq-strategy-figma-report) {
 .oq-strategy-figma-report .oq-symbol-rank-panel {
   gap: var(--chart-space-3);
   min-height: var(--chart-plot-medium-min);
+  background: var(--chart-plot-bg);
 }
 
 .oq-strategy-figma-report .oq-chart-toolbar,
@@ -746,12 +766,27 @@ main:has(.oq-strategy-figma-report) {
   scrollbar-width: thin;
 }
 
+.oq-strategy-figma-report .oq-dense-legend {
+  width: 100%;
+  margin: 0;
+  justify-content: flex-start;
+  gap: var(--chart-space-4);
+  padding: 0 0 2px;
+  color: var(--chart-axis-color);
+  font-size: var(--chart-legend-size);
+}
+
+.oq-strategy-figma-report .oq-dense-chart .oq-dense-legend {
+  margin: 0;
+  justify-content: flex-start;
+}
+
 .oq-strategy-figma-report .oq-report-legend-item {
   min-height: 28px;
   gap: 7px;
   color: var(--report-muted);
   font-family: var(--font-body);
-  font-size: var(--chart-axis-size);
+  font-size: var(--chart-legend-size);
   font-weight: 650;
   line-height: 1rem;
 }
@@ -808,7 +843,7 @@ main:has(.oq-strategy-figma-report) {
   padding: 4px 2px;
   color: var(--report-muted);
   font-family: var(--font-body);
-  font-size: var(--chart-axis-size);
+  font-size: var(--chart-legend-size);
   font-weight: 650;
   line-height: 1rem;
   transition:
@@ -860,14 +895,14 @@ main:has(.oq-strategy-figma-report) {
   position: relative;
   width: 100%;
   min-width: 0;
-  aspect-ratio: 1000 / 506;
+  aspect-ratio: 1000 / 470;
 }
 
 .oq-strategy-figma-report .oq-nav-chart svg {
   display: block;
   width: 100%;
   height: 100%;
-  aspect-ratio: 1000 / 506;
+  aspect-ratio: 1000 / 470;
   transform: none;
 }
 
@@ -883,13 +918,36 @@ main:has(.oq-strategy-figma-report) {
   font-family: var(--font-body);
   font-size: var(--chart-axis-size);
   font-weight: 500;
+  fill: var(--chart-axis-color);
+  color: var(--chart-axis-color);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
   transform-box: fill-box;
 }
 
+.oq-strategy-figma-report
+  :is(.oq-dense-chart, .oq-symbol-rank-panel, .oq-barra-exposure-chart)
+  :is(.oq-dense-lines, .oq-symbol-rank-lines, .oq-barra-exposure-svg)
+  .oq-chart-axis
+  text {
+  fill: var(--chart-axis-color);
+  font-size: var(--chart-axis-size);
+  font-weight: 500;
+}
+
+.oq-strategy-figma-report :is(.oq-chart-grid line, .oq-dense-lines line) {
+  stroke: var(--chart-grid-color);
+  stroke-width: var(--report-divider-width);
+}
+
+.oq-strategy-figma-report
+  :is(.oq-dense-zero-line, .oq-symbol-rank-zero-line, .oq-barra-zero-line, .oq-drawdown-zero-line) {
+  stroke: var(--chart-zero-color) !important;
+}
+
 .oq-strategy-figma-report .oq-chart-tooltip.is-dense {
   z-index: var(--chart-tooltip-z);
+  width: var(--chart-tooltip-width);
   border: 0;
   background: transparent;
   padding: 0;
@@ -898,9 +956,47 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-strategy-figma-report .oq-chart-tooltip-card {
   width: 100%;
-  max-width: 260px;
+  max-width: 300px;
   border-radius: var(--chart-card-radius);
   font-family: var(--font-body);
+}
+
+.oq-strategy-figma-report .oq-dense-tooltip-card {
+  gap: var(--chart-space-3);
+  border-color: var(--report-border);
+  background: color-mix(in srgb, var(--report-bg) 97%, var(--report-warm));
+  padding: 12px 14px;
+}
+
+.oq-strategy-figma-report .oq-dense-tooltip-head {
+  gap: var(--chart-space-3);
+  border-bottom: 0;
+  padding-bottom: 0;
+  font-size: var(--chart-tooltip-size);
+  line-height: 1rem;
+}
+
+.oq-strategy-figma-report .oq-dense-tooltip-head span {
+  font-size: var(--chart-tooltip-size);
+  font-weight: 650;
+}
+
+.oq-strategy-figma-report .oq-dense-tooltip-label {
+  font-size: var(--chart-tooltip-size);
+  line-height: 1.125rem;
+}
+
+.oq-strategy-figma-report .oq-dense-tooltip-row strong {
+  font-family: var(--font-mono);
+  font-size: var(--chart-value-size);
+  font-weight: 650;
+  line-height: 1.125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-strategy-figma-report .oq-symbol-rank-legend strong {
+  font-size: var(--chart-value-size);
+  font-variant-numeric: tabular-nums;
 }
 
 .oq-strategy-figma-report
@@ -911,6 +1007,17 @@ main:has(.oq-strategy-figma-report) {
     .oq-barra-floating-tooltip
   ) {
   z-index: var(--chart-tooltip-z);
+  width: var(--chart-tooltip-width);
+}
+
+.oq-strategy-figma-report
+  :is(.oq-bar-floating-tooltip, .oq-barra-floating-tooltip)
+  .oq-dense-tooltip-head
+  span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .oq-strategy-figma-report .oq-report-metrics-table {
@@ -932,23 +1039,26 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-strategy-figma-report .oq-report-two-col .oq-report-card-body {
-  height: auto;
+  height: 100%;
   min-height: 0;
 }
 
 .oq-strategy-figma-report .oq-exposure-chart,
-.oq-strategy-figma-report .oq-rank-chart,
-.oq-strategy-figma-report
-  .oq-report-two-col
-  > .oq-report-card:first-child
-  .oq-exposure-chart {
-  height: auto;
+.oq-strategy-figma-report .oq-rank-chart {
   min-height: 0;
+  align-content: stretch;
   gap: 6px;
   padding-top: var(--chart-space-2);
 }
 
-.oq-strategy-figma-report .oq-exposure-axis,
+.oq-strategy-figma-report .oq-exposure-chart {
+  height: 500px;
+}
+
+.oq-strategy-figma-report .oq-rank-chart {
+  height: 100%;
+}
+
 .oq-strategy-figma-report .oq-exposure-row,
 .oq-strategy-figma-report .oq-rank-axis,
 .oq-strategy-figma-report .oq-rank-row {
@@ -979,6 +1089,34 @@ main:has(.oq-strategy-figma-report) {
   > .oq-report-card:first-child
   .oq-diverging-plot {
   min-height: 20px;
+  background: var(--chart-plot-bg);
+}
+
+.oq-strategy-figma-report
+  :is(
+    .oq-nav-chart,
+    .oq-dense-lines,
+    .oq-symbol-rank-lines,
+    .oq-barra-exposure-svg,
+    .oq-mini-card,
+    .oq-symbol-rank-panel,
+    .oq-dense-chart.is-symbol-cumulative
+  ) {
+  background: var(--chart-plot-bg);
+}
+
+.oq-strategy-figma-report .oq-dense-chart.is-symbol-cumulative,
+.oq-strategy-figma-report .oq-symbol-rank-panel {
+  border: 0;
+  padding: 0;
+}
+
+.oq-strategy-figma-report .oq-dense-chart.is-symbol-cumulative .oq-dense-lines {
+  height: clamp(320px, 34vw, 420px);
+}
+
+.oq-strategy-figma-report .oq-symbol-rank-lines {
+  height: clamp(300px, 28vw, 360px);
 }
 
 .oq-strategy-figma-report
@@ -1102,6 +1240,7 @@ main:has(.oq-strategy-figma-report) {
   display: block;
   min-height: 0;
   border-top: 0;
+  background: var(--chart-plot-bg);
   padding: 0;
 }
 
@@ -1111,11 +1250,12 @@ main:has(.oq-strategy-figma-report) {
   .oq-dense-chart.is-turnover-rate
   .oq-dense-lines,
 .oq-strategy-figma-report .oq-attribution-panel .oq-barra-exposure-svg {
-  height: clamp(320px, 28vw, 380px);
+  height: clamp(320px, 30vw, 420px);
 }
 
 .oq-strategy-figma-report .oq-attribution-panel .oq-barra-exposure-chart {
   min-height: var(--chart-plot-small-min);
+  background: var(--chart-plot-bg);
 }
 
 .oq-strategy-figma-report .oq-barra-exposure-legend {
@@ -1138,6 +1278,12 @@ main:has(.oq-strategy-figma-report) {
 
   .oq-strategy-figma-report .oq-report-two-col {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-strategy-figma-report .oq-report-two-col .oq-report-card-body,
+  .oq-strategy-figma-report .oq-exposure-chart,
+  .oq-strategy-figma-report .oq-rank-chart {
+    height: auto;
   }
 }
 
@@ -1175,8 +1321,8 @@ main:has(.oq-strategy-figma-report) {
   }
 
   .oq-strategy-figma-report .oq-nav-chart-canvas {
-    width: 720px;
-    min-width: 720px;
+    width: 620px;
+    min-width: 620px;
   }
 
   .oq-strategy-figma-report .oq-report-metrics-table {
@@ -1194,7 +1340,6 @@ main:has(.oq-strategy-figma-report) {
     min-height: 44px;
   }
 
-  .oq-strategy-figma-report .oq-exposure-axis,
   .oq-strategy-figma-report .oq-exposure-row,
   .oq-strategy-figma-report .oq-rank-axis,
   .oq-strategy-figma-report .oq-rank-row {
@@ -1230,7 +1375,7 @@ main:has(.oq-strategy-figma-report) {
     .oq-dense-chart.is-turnover-rate
     .oq-dense-lines,
   .oq-strategy-figma-report .oq-attribution-panel .oq-barra-exposure-svg {
-    height: 300px;
+    height: 320px;
   }
 }
 

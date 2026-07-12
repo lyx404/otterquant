@@ -87,7 +87,13 @@ function MaybeExplainTooltip({
   );
 }
 
+const SHOW_WORKBENCH_260712 = false;
+
 export default function Trade() {
+  return SHOW_WORKBENCH_260712 ? <TradeWorkbench260712 /> : null;
+}
+
+function TradeWorkbench260712() {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const search = useSearch();

@@ -175,7 +175,13 @@ function ChartColorPreview({ mode }: { mode: ChartColorMode }) {
   );
 }
 
+const SHOW_ACCOUNT_WORKBENCH_260712 = false;
+
 export default function Account() {
+  return SHOW_ACCOUNT_WORKBENCH_260712 ? <AccountWorkbench260712 /> : null;
+}
+
+function AccountWorkbench260712() {
   const { user, updateUser, logout } = useAuth();
   const { uiLang, setUiLang } = useAppLanguage();
   const { themePreference, setThemePreference } = useTheme();

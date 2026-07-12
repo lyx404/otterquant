@@ -1383,7 +1383,13 @@ function FixedHostingFeePage() {
   );
 }
 
+const SHOW_SUBSCRIPTION_WORKBENCH_260712 = false;
+
 export default function Subscription() {
+  return SHOW_SUBSCRIPTION_WORKBENCH_260712 ? <SubscriptionWorkbench260712 /> : null;
+}
+
+function SubscriptionWorkbench260712() {
   const [location] = useLocation();
   const isHostingPage = location === "/subscription/hosting";
 
