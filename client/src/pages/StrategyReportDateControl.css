@@ -1,0 +1,36 @@
+.oq-report-date-trigger-label {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+}
+
+.oq-report-date-trigger-label > svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+}
+
+.oq-report-date-trigger-label.is-custom-range {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: 4px;
+}
+
+.oq-report-date-trigger-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-report-date-trigger-label.is-custom-range .oq-report-date-trigger-value {
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.oq-report-date-trigger-separator {
+  color: var(--report-muted);
+}

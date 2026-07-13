@@ -87,7 +87,7 @@ function MaybeExplainTooltip({
   );
 }
 
-const SHOW_WORKBENCH_260712 = false;
+const SHOW_WORKBENCH_260712 = true;
 
 export default function Trade() {
   return SHOW_WORKBENCH_260712 ? <TradeWorkbench260712 /> : null;

@@ -478,7 +478,7 @@ function AccountWorkbench260712() {
                 <Select value={uiLang} onValueChange={(value) => setUiLang(value as UiLang)}>
                   <SelectTrigger
                     size="sm"
-                    className="h-9 min-w-[148px] rounded-full border-border bg-accent/35 px-3 text-xs"
+                    className="oq-account-language-trigger h-10 min-w-[148px] rounded-full border-border bg-accent/35 px-3 text-xs shadow-none"
                     aria-label={tr("Select language", "选择语言")}
                   >
                     <SelectValue />
@@ -565,10 +565,14 @@ function AccountWorkbench260712() {
                   <div className="text-xs text-muted-foreground">{tr("Get notified about signal status changes, test results, and performance updates", "接收信号状态变化、回测结果与绩效更新通知")}</div>
                 </div>
                 <button
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${alphasNotify ? "bg-primary" : "bg-muted"}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={alphasNotify}
+                  aria-label={tr("Interaction Messages", "互动消息")}
+                  className={`oq-account-notification-switch relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${alphasNotify ? "bg-primary" : "bg-muted"}`}
                   onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? tr("Interaction messages disabled", "已关闭互动消息") : tr("Interaction messages enabled", "已开启互动消息")); }}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-none transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
               <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
@@ -582,10 +586,14 @@ function AccountWorkbench260712() {
                   </div>
                 </div>
                 <button
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${systemNotify ? "bg-primary" : "bg-muted"}`}
+                  type="button"
+                  role="switch"
+                  aria-checked={systemNotify}
+                  aria-label={tr("Announcements", "公告")}
+                  className={`oq-account-notification-switch relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${systemNotify ? "bg-primary" : "bg-muted"}`}
                   onClick={() => { setSystemNotify(!systemNotify); toast.success(systemNotify ? tr("Announcements disabled", "已关闭公告") : tr("Announcements enabled", "已开启公告")); }}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${systemNotify ? "translate-x-5" : "translate-x-0"}`} />
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-none transition-transform duration-200 ease-in-out ${systemNotify ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
             </div>

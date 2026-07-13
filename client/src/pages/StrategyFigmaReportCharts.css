@@ -83,7 +83,7 @@
   justify-content: center;
   border-radius: 6px;
   background: color-mix(in srgb, var(--report-muted) 8%, var(--report-bg));
-  padding: 0.125rem 0.5rem;
+  padding: 0.25rem 0.5rem;
   color: var(--report-muted);
   font-family: var(--font-body);
   font-size: 0.75rem;
@@ -100,14 +100,14 @@
   display: flex;
   max-width: none;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  gap: 8px 12px;
   padding-top: 0;
 }
 
 .oq-strategy-figma-report .oq-report-title-meta span {
   color: color-mix(in srgb, var(--report-muted) 88%, var(--report-text));
-  font-size: 0.8125rem;
-  font-weight: 650;
+  font-size: 0.625rem;
+  font-weight: 400;
   line-height: 1.125rem;
 }
 
@@ -243,14 +243,14 @@
   gap: 5px;
   border: var(--report-divider-width) solid var(--report-border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--report-panel) 54%, var(--report-bg));
+  background: var(--report-panel);
   padding: 10px 12px;
   box-shadow: none;
 }
 
 .oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric span {
   color: color-mix(in srgb, var(--report-muted) 82%, var(--report-text));
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 760;
   line-height: 0.875rem;
   text-transform: none;
@@ -259,7 +259,7 @@
 .oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric strong {
   color: var(--report-text);
   font-family: var(--font-mono);
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 760;
   line-height: 1.5rem;
   font-variant-numeric: tabular-nums;
@@ -657,12 +657,12 @@
   }
 
   .oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric span {
-    font-size: 0.75rem;
+    font-size: 0.625rem;
     line-height: 1rem;
   }
 
   .oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric strong {
-    font-size: 1.375rem;
+    font-size: 1rem;
     line-height: 1.625rem;
   }
 }

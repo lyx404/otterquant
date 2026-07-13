@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
-import { CalendarDays, Check, ChevronDown } from "lucide-react";
-import type { UiCopy } from "@/contexts/AppLanguageContext";
+import type { UiCopy, UiLang } from "@/contexts/AppLanguageContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StrategyReportDateControl } from "./StrategyReportDateControl";
 import {
   autocorrDecayDomain,
   autocorrDecayLabels,
@@ -29,6 +29,9 @@ import {
   makeBarraStyleReturnSeries,
   makeDecileReturnSeries,
   makeTurnoverRateSeries,
+  portfolioNavData,
+  portfolioPeakIndex,
+  portfolioTroughIndex,
   turnoverRateDateTicks,
   turnoverRateDomain,
   turnoverRateLabels,
@@ -41,12 +44,6 @@ import { ChartCard, ChartLegendItem, ChartTooltip, useContainerNarrow } from "./
 type MetricTone = "good" | "warn" | "muted";
 type ChartSeriesKey = "net" | "gross" | "drawdown";
 type Tr = (en: string, zh: string, copy?: UiCopy) => string;
-type PortfolioDatum = {
-  date: string;
-  net: number;
-  gross: number;
-  drawdown: number;
-};
 type PortfolioPoint = { x: number; y: number; value: number };
 type SymbolPnlRankGroup = "top" | "bottom";
 type SymbolPnlRankRow = {
@@ -534,6 +531,14 @@ const reportCopy: Record<string, UiCopy> = {
     es: "Seleccionar periodo de backtest",
     fr: "Sélectionner la période de backtest",
   },
+  "Custom date range": {
+    ja: "カスタム期間",
+    ko: "사용자 지정 기간",
+    es: "Rango personalizado",
+    fr: "Période personnalisée",
+  },
+  "Start date": { ja: "開始日", ko: "시작일", es: "Fecha de inicio", fr: "Date de début" },
+  "End date": { ja: "終了日", ko: "종료일", es: "Fecha de fin", fr: "Date de fin" },
   "Portfolio NAV · Drawdown": {
     ja: "ポートフォリオ NAV · Drawdown",
     ko: "포트폴리오 NAV · Drawdown",
@@ -750,8 +755,6 @@ const bottomSymbolPnlRankRows: SymbolPnlRankRow[] = [
     group: "bottom",
   },
 ];
-const portfolioPeakIndex = 123;
-const portfolioTroughIndex = 129;
 const portfolioChartFrame = {
   width: 1000,
   height: 470,
@@ -764,38 +767,6 @@ const portfolioChartFrame = {
 };
 const portfolioTooltipEdgeInset = 158;
 const portfolioPlotWidth = portfolioChartFrame.width - portfolioChartFrame.left - portfolioChartFrame.right;
-
-function buildPortfolioNavData(count = 220): PortfolioDatum[] {
-  const start = Date.UTC(2021, 0, 1);
-  const end = Date.UTC(2022, 5, 1);
-  const span = end - start;
-
-  return Array.from({ length: count }, (_, index) => {
-    const progress = index / Math.max(1, count - 1);
-    const date = new Date(start + span * progress);
-    const saturation = (amount: number) => (1 - Math.exp(-amount * progress)) / (1 - Math.exp(-amount));
-    const jagged = Math.sin(index * 0.61) * 0.028 + Math.sin(index * 0.17) * 0.045;
-    const net = 0.86 + saturation(2.45) * 1.72 + jagged + Math.sin(index * 0.09) * 0.035;
-    const gross = 0.88 + saturation(2.8) * 2.62 + jagged * 1.35 + Math.cos(index * 0.07) * 0.04;
-    const localStress = Math.abs(Math.sin(index * 0.18) * 0.06 + Math.cos(index * 0.47) * 0.035);
-    const earlyShock = Math.exp(-Math.pow((progress - 0.06) / 0.05, 2)) * 0.12;
-    const maxDrawdownShock = Math.exp(-Math.pow((index - portfolioTroughIndex) / 5, 2)) * 0.18;
-    const lateShock = Math.exp(-Math.pow((progress - 0.86) / 0.045, 2)) * 0.15;
-    let drawdown = -Math.min(0.2099, localStress + earlyShock + maxDrawdownShock + lateShock);
-
-    if (index === portfolioPeakIndex) drawdown = 0;
-    if (index === portfolioTroughIndex) drawdown = -0.2099;
-
-    return {
-      date: date.toISOString().slice(0, 10),
-      net,
-      gross,
-      drawdown,
-    };
-  });
-}
-
-const portfolioNavData = buildPortfolioNavData();
 
 function scalePortfolioX(index: number) {
   return portfolioChartFrame.left + (index / Math.max(1, portfolioNavData.length - 1)) * portfolioPlotWidth;
@@ -2780,6 +2751,8 @@ export function StrategyFigmaReport({
   headerMetrics = defaultHeaderMetrics,
   dateLabel = "2020-01-01_2020-12-31",
   dateOptions,
+  customDateOption,
+  uiLang = "en",
   topAction,
   titleAction,
   actions,
@@ -2792,6 +2765,8 @@ export function StrategyFigmaReport({
   headerMetrics?: ReportMetric[];
   dateLabel?: string;
   dateOptions?: string[];
+  customDateOption?: string;
+  uiLang?: UiLang;
   topAction?: ReactNode;
   titleAction?: ReactNode;
   actions?: ReactNode;
@@ -2799,10 +2774,6 @@ export function StrategyFigmaReport({
   positions?: ReportPositionRecord[];
   tr?: Tr;
 }) {
-  const selectableDateOptions = Array.from(new Set(dateOptions && dateOptions.length > 0 ? dateOptions : [dateLabel, "2021-01-01_2021-12-31", "2022-01-01_2022-12-31", "2023-01-01_2023-12-31"]));
-  const [selectedDateLabel, setSelectedDateLabel] = useState(dateLabel);
-  const [isDateMenuOpen, setIsDateMenuOpen] = useState(false);
-
   return (
     <div className="oq-strategy-figma-report">
       {topAction ? <div className="oq-report-top-action">{topAction}</div> : null}
@@ -2822,42 +2793,18 @@ export function StrategyFigmaReport({
       </header>
 
       <section className="oq-report-metric-panel" aria-label={tReport(tr, "Strategy summary metrics", "策略概览指标")}>
-        <div
-          className="oq-report-date-select"
-          onBlur={event => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-              setIsDateMenuOpen(false);
-            }
+        <StrategyReportDateControl
+          dateLabel={dateLabel}
+          dateOptions={dateOptions}
+          customDateOption={customDateOption}
+          uiLang={uiLang}
+          labels={{
+            selectPeriod: tReport(tr, "Select backtest period", "选择回测周期"),
+            customRange: tReport(tr, "Custom date range", "自定义时间范围"),
+            startDate: tReport(tr, "Start date", "开始日期"),
+            endDate: tReport(tr, "End date", "结束日期"),
           }}
-        >
-          <button type="button" aria-haspopup="listbox" aria-expanded={isDateMenuOpen} onClick={() => setIsDateMenuOpen(prev => !prev)}>
-            <span className="oq-report-date-trigger-label">
-              <CalendarDays aria-hidden="true" />
-              <span>{selectedDateLabel}</span>
-            </span>
-            <ChevronDown aria-hidden="true" className="oq-report-date-chevron" />
-          </button>
-          {isDateMenuOpen ? (
-            <div className="oq-report-date-menu" role="listbox" aria-label={tReport(tr, "Select backtest period", "选择回测周期")}>
-              {selectableDateOptions.map(option => (
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={selectedDateLabel === option}
-                  key={option}
-                  onMouseDown={event => event.preventDefault()}
-                  onClick={() => {
-                    setSelectedDateLabel(option);
-                    setIsDateMenuOpen(false);
-                  }}
-                >
-                  <span>{option}</span>
-                  {selectedDateLabel === option ? <Check aria-hidden="true" /> : null}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        />
         <div className="oq-report-metric-strip">
           {headerMetrics.map(metric => (
             <div className="oq-report-metric" data-tone={metric.tone} key={metric.label}>

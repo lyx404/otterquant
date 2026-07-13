@@ -14,7 +14,7 @@ import {
   positionHistory,
   type StrategyConfigRow,
 } from "./StrategyDetailParts";
-import { LiveDeployDialog, StrategyConfigDialog } from "./StrategyDetailDialogs";
+import { LiveDeployDialog, OptimizerDialog, StrategyConfigDialog, type OptimizedStrategyVersion } from "./StrategyDetailDialogs";
 import {
   StrategyFigmaReport,
   type ReportMetric,
@@ -30,11 +30,17 @@ const SHOW_LIVE_DEPLOY_ACTION = false;
 
 const strategyDetailCopy: Record<string, UiCopy> = {
   Optimizer: { ja: "オプティマイザー", ko: "옵티마이저", es: "Optimizador", fr: "Optimiseur" },
-  "Optimizer is not available yet": {
-    ja: "オプティマイザーはまだ利用できません",
-    ko: "옵티마이저는 아직 사용할 수 없습니다",
-    es: "El optimizador aún no está disponible",
-    fr: "L'optimiseur n'est pas encore disponible",
+  "Run Optimizer": {
+    ja: "最適化を実行",
+    ko: "옵티마이저 실행",
+    es: "Ejecutar optimizador",
+    fr: "Lancer l'optimiseur",
+  },
+  "Optimizer job submitted.": {
+    ja: "最適化ジョブを送信しました。",
+    ko: "최적화 작업을 제출했습니다.",
+    es: "Trabajo de optimización enviado.",
+    fr: "Tâche d'optimisation envoyée.",
   },
   Strategy: { ja: "ストラテジー", ko: "전략", es: "Estrategia", fr: "Stratégie" },
   Volatility: { ja: "ボラティリティ", ko: "변동성", es: "Volatilidad", fr: "Volatilité" },
@@ -162,6 +168,7 @@ export default function StrategyDetail() {
   const [deploymentVersion, setDeploymentVersion] = useState(0);
   const [isStrategyConfigOpen, setIsStrategyConfigOpen] = useState(false);
   const [isLiveDeployOpen, setIsLiveDeployOpen] = useState(false);
+  const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const [connectedExchangeApis, setConnectedExchangeApis] = useState<ExchangeApiConnection[]>(() =>
     readExchangeApiConnections()
   );
@@ -169,9 +176,19 @@ export default function StrategyDetail() {
   const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
 
   const strategyName = customName || strategy.name;
-  const strategyHeading = strategyName;
   const strategyId = strategy.id;
+  const strategyDisplayName = strategyId === "STR-465"
+    ? "Overnight VRP"
+    : strategyId === "STR-486" ? "MEV Protection Factor" : strategyName;
+  const isOptimizedStrategy = Boolean(searchParams.get("optimizedFrom")) || /-OPT-\d+$/.test(strategyId);
   const createdAt = searchParams.get("createdAt") || strategy.updatedAt;
+  const optimizedVersionCreatedAt = createdAt.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? createdAt;
+  const optimizedStrategyId = `${strategyId}-OPT-01`;
+  const optimizedVersions: OptimizedStrategyVersion[] = isOptimizedStrategy ? [] : [{
+    id: optimizedStrategyId,
+    number: strategyId.replace(/^STR-/, ""),
+    createdAt: optimizedVersionCreatedAt,
+  }];
   const paperDeployment = useMemo(
     () => getStrategyDeployment(strategyId, "paper"),
     [deploymentVersion, strategyId]
@@ -550,7 +567,7 @@ export default function StrategyDetail() {
       <button
         type="button"
         className="oq-report-action"
-        onClick={() => toast.info(tr("Optimizer is not available yet", "优化器暂未开放"))}
+        onClick={() => setIsOptimizerOpen(true)}
       >
         <SlidersHorizontal className="h-3 w-3" />
         {tr("Optimizer", "优化器")}
@@ -601,7 +618,7 @@ export default function StrategyDetail() {
       )}
     </>
   );
-  const reportTitle = strategyId === "STR-465" ? "Overnight VRP" : strategyHeading;
+  const reportTitle = strategyDisplayName;
   const reportNo = strategyId.replace(/^STR-/, "") || strategyId;
   const reportHash = "8ade81c02da14b73b656a13bd7fc4379";
   const reportCreatedDate = formatConfigDate(createdAt).split(" ")[0];
@@ -630,13 +647,16 @@ export default function StrategyDetail() {
         titleAction={<span className="oq-report-no-badge">NO.{reportNo}</span>}
         topAction={reportTopAction}
         headerMetrics={reportHeaderMetrics}
-        dateLabel="2020-01-01_2020-12-31"
+        dateLabel={tr("Past 30 days", "过去30天")}
         dateOptions={[
-          "2020-01-01_2020-12-31",
-          "2021-01-01_2021-12-31",
-          "2022-01-01_2022-12-31",
-          "2023-01-01_2023-12-31",
+          tr("Past 30 days", "过去30天"),
+          tr("Past 90 days", "过去90天"),
+          tr("Past 180 days", "过去180天"),
+          tr("Past year", "过去1年"),
+          tr("Custom start date", "自定义起始时间"),
         ]}
+        customDateOption={tr("Custom start date", "自定义起始时间")}
+        uiLang={uiLang}
         actions={reportActions}
         metricRows={reportMetricRows}
         positions={reportPositions}
@@ -656,6 +676,19 @@ export default function StrategyDetail() {
         isCapitalBelowMinimum={isCapitalBelowMinimum}
         canSubmitLiveDeploy={canSubmitLiveDeploy}
         submitLiveDeployment={submitLiveDeployment}
+      />
+
+      <OptimizerDialog
+        open={isOptimizerOpen}
+        onOpenChange={setIsOptimizerOpen}
+        strategyName={strategyDisplayName}
+        strategyId={strategyId}
+        optimizedVersions={optimizedVersions}
+        tr={tr}
+        onSubmit={() => {
+          toast.success(tr("Optimizer job submitted.", "优化任务已提交。"));
+          setIsOptimizerOpen(false);
+        }}
       />
 
       <StrategyConfigDialog

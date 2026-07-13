@@ -1,3 +1,41 @@
+export type PortfolioNavDatum = {
+  date: string;
+  net: number;
+  gross: number;
+  drawdown: number;
+};
+
+export const portfolioPeakIndex = 123;
+export const portfolioTroughIndex = 129;
+
+export function buildPortfolioNavData(count = 220): PortfolioNavDatum[] {
+  const start = Date.UTC(2021, 0, 1);
+  const end = Date.UTC(2022, 5, 1);
+  const span = end - start;
+
+  return Array.from({ length: count }, (_, index) => {
+    const progress = index / Math.max(1, count - 1);
+    const date = new Date(start + span * progress);
+    const saturation = (amount: number) => (1 - Math.exp(-amount * progress)) / (1 - Math.exp(-amount));
+    const jagged = Math.sin(index * 0.61) * 0.028 + Math.sin(index * 0.17) * 0.045;
+    const net = 0.86 + saturation(2.45) * 1.72 + jagged + Math.sin(index * 0.09) * 0.035;
+    const gross = 0.88 + saturation(2.8) * 2.62 + jagged * 1.35 + Math.cos(index * 0.07) * 0.04;
+    const localStress = Math.abs(Math.sin(index * 0.18) * 0.06 + Math.cos(index * 0.47) * 0.035);
+    const earlyShock = Math.exp(-Math.pow((progress - 0.06) / 0.05, 2)) * 0.12;
+    const maxDrawdownShock = Math.exp(-Math.pow((index - portfolioTroughIndex) / 5, 2)) * 0.18;
+    const lateShock = Math.exp(-Math.pow((progress - 0.86) / 0.045, 2)) * 0.15;
+    let drawdown = -Math.min(0.2099, localStress + earlyShock + maxDrawdownShock + lateShock);
+
+    if (index === portfolioPeakIndex) drawdown = 0;
+    if (index === portfolioTroughIndex) drawdown = -0.2099;
+
+    return { date: date.toISOString().slice(0, 10), net, gross, drawdown };
+  });
+}
+
+export const portfolioNavData = buildPortfolioNavData();
+export const portfolioGrossNavValues = portfolioNavData.map((point) => point.gross);
+
 export const denseRepresentativeSymbol = "LTCUSDT";
 
 export const decileReturnDomain = { min: -3.63, max: 5.38 };

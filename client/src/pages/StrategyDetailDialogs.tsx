@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -18,10 +19,171 @@ import {
   getExchangeVenueMeta,
   type ExchangeApiConnection,
 } from "@/lib/exchangeApiConnections";
-import { Unplug, X } from "lucide-react";
+import { ArrowUpRight, GitBranch, RotateCcw, Unplug, X } from "lucide-react";
 import type { StrategyConfigRow } from "./StrategyDetailParts";
+import "./StrategyDetailDialogs.css";
 
 type Tr = (en: string, zh: string, copy?: Record<string, string>) => string;
+
+const optimizerNumericParameters = [
+  { key: "wmin", defaultValue: "-0.03", step: "0.01" },
+  { key: "wmax", defaultValue: "0.03", step: "0.01" },
+  { key: "gross_exposure", defaultValue: "1.0", step: "0.1" },
+  { key: "net_exposure_th", defaultValue: "0.03", step: "0.01" },
+  { key: "lambd", defaultValue: "3000.0", step: "100" },
+  { key: "cost", defaultValue: "1.2", step: "0.1" },
+  { key: "cov_window", defaultValue: "90", step: "1" },
+  { key: "cov_shrinkage", defaultValue: "0.1", step: "0.01" },
+  { key: "beta_neutral_th", defaultValue: "0.02", step: "0.01" },
+  { key: "beta_window", defaultValue: "90", step: "1" },
+] as const;
+
+type OptimizerParameterKey = (typeof optimizerNumericParameters)[number]["key"];
+export type OptimizerParameterValues = Record<OptimizerParameterKey, string>;
+
+export type OptimizedStrategyVersion = {
+  id: string;
+  number: string;
+  createdAt: string;
+};
+
+const defaultOptimizerParameterValues = Object.fromEntries(
+  optimizerNumericParameters.map((parameter) => [parameter.key, parameter.defaultValue])
+) as OptimizerParameterValues;
+
+export function OptimizerDialog({
+  open,
+  onOpenChange,
+  strategyName,
+  strategyId,
+  optimizedVersions,
+  tr,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  strategyName: string;
+  strategyId: string;
+  optimizedVersions: OptimizedStrategyVersion[];
+  tr: Tr;
+  onSubmit: (values: OptimizerParameterValues) => void;
+}) {
+  const [values, setValues] = useState<OptimizerParameterValues>(() => ({ ...defaultOptimizerParameterValues }));
+  const [isVersionsOpen, setIsVersionsOpen] = useState(false);
+  const numericValues = optimizerNumericParameters.map((parameter) => Number(values[parameter.key]));
+  const isValid = numericValues.every(Number.isFinite) && Number(values.wmin) < Number(values.wmax);
+
+  const versionLinks = optimizedVersions.map((version) => (
+    <a
+      href={`/strategies/${encodeURIComponent(version.id)}?name=${encodeURIComponent(strategyName)}&optimizedFrom=${encodeURIComponent(strategyId)}`}
+      key={version.id}
+    >
+      <span>
+        <strong>{strategyName}</strong>
+        <span className="oq-optimizer-version-meta">
+          <small>{`NO.${version.number}`}</small>
+          <small>{tr("Created", "创建时间")} {version.createdAt}</small>
+        </span>
+      </span>
+      <ArrowUpRight aria-hidden="true" />
+    </a>
+  ));
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) setIsVersionsOpen(false);
+    onOpenChange(nextOpen);
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="oq-sd-dialog oq-optimizer-dialog max-w-[560px] border-border bg-card p-0 text-foreground">
+          <DialogHeader className="oq-optimizer-header">
+            <DialogTitle>{tr("Optimizer", "优化器")}</DialogTitle>
+            {optimizedVersions.length > 0 ? (
+              <button
+                type="button"
+                className="oq-optimizer-history-trigger"
+                aria-haspopup="dialog"
+                onClick={() => setIsVersionsOpen(true)}
+              >
+                <GitBranch aria-hidden="true" />
+                {tr("Optimization History", "优化历史")}
+              </button>
+            ) : null}
+          </DialogHeader>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (isValid) onSubmit(values);
+            }}
+          >
+            <div className="oq-optimizer-parameter-list">
+              {optimizerNumericParameters.map((parameter) => {
+                const isModified = values[parameter.key] !== parameter.defaultValue;
+                const inputId = `optimizer-${parameter.key}`;
+                return (
+                  <div className="oq-optimizer-parameter-row" key={parameter.key}>
+                    <label htmlFor={inputId}><code>{parameter.key}</code></label>
+                    <div className="oq-optimizer-input-wrap">
+                      <input
+                        id={inputId}
+                        type="number"
+                        inputMode="decimal"
+                        step={parameter.step}
+                        value={values[parameter.key]}
+                        onChange={(event) => setValues((current) => ({ ...current, [parameter.key]: event.target.value }))}
+                        aria-label={parameter.key}
+                      />
+                      {isModified ? (
+                        <button
+                          type="button"
+                          className="oq-optimizer-reset-parameter"
+                          aria-label={`${tr("Restore default value", "恢复默认值")} ${parameter.key}`}
+                          title={tr("Restore default value", "恢复默认值")}
+                          onClick={() => setValues((current) => ({ ...current, [parameter.key]: parameter.defaultValue }))}
+                        >
+                          <RotateCcw aria-hidden="true" />
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="oq-optimizer-parameter-row is-readonly">
+                <code>market_symbol</code>
+                <output>&quot;BTCUSDT&quot;</output>
+              </div>
+            </div>
+
+            <div className="oq-optimizer-actions">
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+                {tr("Cancel", "取消")}
+              </Button>
+              <Button type="submit" disabled={!isValid}>
+                {tr("Run Optimizer", "运行优化")}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={open && isVersionsOpen} onOpenChange={setIsVersionsOpen}>
+        <DialogContent className="oq-sd-dialog oq-optimizer-history-dialog max-w-[420px] border-border bg-card p-0 text-foreground">
+          <DialogHeader className="oq-optimizer-history-header">
+            <DialogTitle>{tr("Optimization History", "优化历史")}</DialogTitle>
+          </DialogHeader>
+          <div className="oq-optimizer-history-body">
+            <div className="oq-optimizer-version-list">
+              {versionLinks}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export function LiveDeployDialog({
   open,

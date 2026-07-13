@@ -146,7 +146,7 @@
   min-height: 27px;
   border: 1px solid var(--report-border);
   border-radius: 8px;
-  background: var(--report-panel);
+  background: transparent;
   padding: 5px 9px;
   color: var(--report-gold);
   font-family: "JetBrains Mono", ui-monospace, monospace;
@@ -991,7 +991,7 @@ main:has(.oq-strategy-figma-report) {
   border: 0;
   border-right: 1px solid var(--report-border);
   border-radius: 0;
-  background: transparent;
+  background: var(--report-panel);
   padding: 0 16px;
   box-shadow: none;
 }
@@ -1045,7 +1045,7 @@ main:has(.oq-strategy-figma-report) {
   padding: 6px 12px;
   color: var(--report-text-soft);
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   line-height: 1.125rem;
   text-align: center;
   white-space: normal;
@@ -1104,6 +1104,86 @@ main:has(.oq-strategy-figma-report) {
   background: var(--report-warm);
   color: var(--report-gold);
   outline: none;
+}
+
+.oq-report-date-calendar-panel {
+  position: absolute;
+  z-index: 31;
+  top: calc(100% + 6px);
+  right: auto;
+  left: 0;
+  width: min(496px, calc(100vw - 48px));
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-bg);
+  padding: 8px;
+  box-shadow: var(--report-shadow-lift);
+}
+
+.oq-report-date-range-summary {
+  display: grid;
+  min-height: 32px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  background: var(--report-panel);
+  padding: 0 8px;
+  color: var(--report-text-soft);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-report-range-calendar {
+  width: 100%;
+  padding: 8px 0 0;
+  background: transparent;
+  --cell-size: 28px;
+}
+
+.oq-report-range-calendar .rdp-months {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.oq-report-range-calendar .rdp-month {
+  min-width: 0;
+  flex: 1 1 0;
+  gap: 12px;
+}
+
+.oq-report-range-calendar .rdp-caption_label {
+  color: var(--report-text);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.oq-report-range-calendar .rdp-weekday,
+.oq-report-range-calendar .rdp-outside {
+  color: var(--report-muted);
+}
+
+.oq-report-range-calendar .rdp-weekday,
+.oq-report-range-calendar .rdp-day_button {
+  font-size: 0.625rem;
+}
+
+.oq-report-range-calendar .rdp-week {
+  margin-top: 4px;
+}
+
+.oq-report-range-calendar .rdp-button_previous,
+.oq-report-range-calendar .rdp-button_next {
+  border-radius: 6px;
+  color: var(--report-text-soft);
+}
+
+.oq-report-range-calendar .rdp-button_previous svg,
+.oq-report-range-calendar .rdp-button_next svg {
+  width: 14px;
+  height: 14px;
 }
 
 .oq-report-actions {
@@ -2331,7 +2411,7 @@ main:has(.oq-strategy-figma-report) {
   border-radius: 0;
   background: var(--report-bg);
   font-family: var(--font-body);
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   line-height: 1.125rem;
   transition: background-color 160ms cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -2355,7 +2435,7 @@ main:has(.oq-strategy-figma-report) {
   overflow: hidden;
   color: var(--report-text);
   font-family: var(--font-heading);
-  font-size: 0.8125rem;
+  font-size: 0.625rem;
   font-weight: 700;
   line-height: 1.125rem;
   text-overflow: ellipsis;
@@ -2411,7 +2491,7 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-position-table b {
   color: var(--report-green);
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   font-weight: 700;
   line-height: 1.125rem;
   white-space: nowrap;
@@ -2537,6 +2617,11 @@ main:has(.oq-strategy-figma-report) {
     margin-top: 12px;
   }
 
+  .oq-report-date-calendar-panel {
+    right: auto;
+    left: 0;
+  }
+
   .oq-report-card.is-nav .oq-report-card-body,
   .oq-report-two-col,
   .oq-attribution-grid {
@@ -2614,6 +2699,24 @@ main:has(.oq-strategy-figma-report) {
   .oq-report-date-menu {
     right: auto;
     left: 0;
+  }
+
+  .oq-report-date-calendar-panel {
+    right: auto;
+    left: 0;
+    width: min(100vw - 48px, 256px);
+    padding: 8px;
+  }
+
+  .oq-report-date-range-summary {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 8px;
+    padding: 0 8px;
+    font-size: 0.625rem;
+  }
+
+  .oq-report-range-calendar .rdp-months {
+    gap: 0;
   }
 
   .oq-report-actions {

@@ -430,6 +430,24 @@
   pointer-events: none;
 }
 
+.oq-account .oq-account-language-trigger {
+  height: 40px;
+  box-shadow: none !important;
+}
+
+.oq-account .oq-account-language-trigger:focus,
+.oq-account .oq-account-language-trigger:focus-visible,
+.oq-account .oq-account-language-trigger[data-state="open"] {
+  border-color: var(--qa-accent) !important;
+  box-shadow: none !important;
+  outline: none;
+}
+
+.oq-account .oq-account-notification-switch,
+.oq-account .oq-account-notification-switch > span {
+  box-shadow: none !important;
+}
+
 .oq-account .shadow-xl,
 .oq-account .shadow-2xl {
   box-shadow: var(--qa-shadow-4);
