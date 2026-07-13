@@ -1735,7 +1735,7 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-exposure-row span,
 .oq-rank-row span {
-  color: var(--report-text-soft);
+  color: var(--report-muted);
 }
 
 .oq-diverging-plot {
@@ -2283,6 +2283,7 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-position-card {
+  overflow: hidden;
   width: 100%;
   color: var(--report-text);
 }

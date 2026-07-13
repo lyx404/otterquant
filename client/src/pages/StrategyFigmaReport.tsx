@@ -70,8 +70,7 @@ export type ReportPositionRecord = {
 };
 
 const defaultHeaderMetrics: ReportMetric[] = [
-  { label: "Sharpe", value: "2.054", tone: "good" },
-  { label: "IC", value: "—", tone: "muted" },
+  { label: "Sharpe Ratio", value: "2.054", tone: "good" },
   { label: "Max DD", value: "20.8%", tone: "warn" },
   { label: "Calmar", value: "4.800", tone: "good" },
   { label: "Hit Rate", value: "—", tone: "muted" },
@@ -143,7 +142,6 @@ const sectorRankRows: Array<[string, number]> = [
 
 const exposureDomain = { min: -0.15, max: 0.15 };
 const rankDomain = { min: -0.23, max: 0.78 };
-const rankTicks = [-0.2, 0, 0.29, 0.54, 0.78];
 const barraExposureDomain = { min: -0.69, max: 0.69 };
 const barraExposureTicks = [-0.69, -0.34, 0, 0.34, 0.69];
 const barraExposureRows: BarraExposureFactor[] = [
@@ -757,13 +755,14 @@ const portfolioTroughIndex = 129;
 const portfolioChartFrame = {
   width: 1000,
   height: 470,
-  left: 64,
-  right: 20,
+  left: 44,
+  right: 40,
   navTop: 24,
   navHeight: 236,
   drawdownTop: 310,
-  drawdownHeight: 112,
+  drawdownHeight: 126,
 };
+const portfolioTooltipEdgeInset = 158;
 const portfolioPlotWidth = portfolioChartFrame.width - portfolioChartFrame.left - portfolioChartFrame.right;
 
 function buildPortfolioNavData(count = 220): PortfolioDatum[] {
@@ -1001,14 +1000,12 @@ function getPortfolioSeriesLabel(key: ChartSeriesKey, tr: Tr) {
 }
 
 function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
-  const [highlightedSeries, setHighlightedSeries] = useState<ChartSeriesKey | null>(null);
   const [visibleSeries, setVisibleSeries] = useState<Set<ChartSeriesKey>>(() => new Set(portfolioSeriesKeys));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const chartStackRef = useRef<HTMLDivElement>(null);
   const activeDatum = activeIndex === null ? null : portfolioNavData[activeIndex];
   const isVisible = (key: ChartSeriesKey) => visibleSeries.has(key);
   const toggleSeries = (key: ChartSeriesKey) => {
-    setHighlightedSeries(null);
     setActiveIndex(null);
     setVisibleSeries(current => {
       const next = new Set(current);
@@ -1017,16 +1014,9 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
       return next.size > 0 ? next : current;
     });
   };
-  const seriesClass = (key: ChartSeriesKey, baseClass: string) => {
-    const isMuted = highlightedSeries !== null && highlightedSeries !== key;
-    return `${baseClass} oq-chart-series ${isMuted ? "is-muted" : ""} ${highlightedSeries === key ? "is-highlighted" : ""}`;
-  };
-  const clearInteraction = () => {
-    setHighlightedSeries(null);
-    setActiveIndex(null);
-  };
+  const clearInteraction = () => setActiveIndex(null);
   useEffect(() => {
-    if (highlightedSeries === null && activeIndex === null) return;
+    if (activeIndex === null) return;
 
     const handleWindowPointerMove = (event: globalThis.PointerEvent) => {
       const rect = chartStackRef.current?.getBoundingClientRect();
@@ -1037,11 +1027,8 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
 
     window.addEventListener("pointermove", handleWindowPointerMove, true);
     return () => window.removeEventListener("pointermove", handleWindowPointerMove, true);
-  }, [highlightedSeries, activeIndex]);
-  const showTooltipForIndex = (index: number, key: ChartSeriesKey | null = null) => {
-    setActiveIndex(index);
-    setHighlightedSeries(key);
-  };
+  }, [activeIndex]);
+  const showTooltipForIndex = (index: number) => setActiveIndex(index);
   const showNearestTooltip = (event: PointerEvent<SVGRectElement>) => {
     const svg = event.currentTarget.ownerSVGElement;
     const matrix = svg?.getScreenCTM();
@@ -1052,21 +1039,13 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
     svgPoint.y = event.clientY;
     const pointer = svgPoint.matrixTransform(matrix.inverse());
     const nearestIndex = Math.max(0, Math.min(portfolioNavData.length - 1, Math.round(((pointer.x - portfolioChartFrame.left) / portfolioPlotWidth) * (portfolioNavData.length - 1))));
-    const nearestSeries =
-      portfolioSeriesKeys
-        .filter(isVisible)
-        .map(key => ({
-          key,
-          distance: Math.abs(portfolioPointFor(key, nearestIndex).y - pointer.y),
-        }))
-        .sort((left, right) => left.distance - right.distance)[0]?.key ?? null;
-    showTooltipForIndex(nearestIndex, nearestSeries);
+    showTooltipForIndex(nearestIndex);
   };
   const showKeyboardTooltip = (direction: "start" | "previous" | "next" | "end") => {
     const current = activeIndex ?? portfolioTroughIndex;
     const next =
       direction === "start" ? 0 : direction === "end" ? portfolioNavData.length - 1 : direction === "previous" ? Math.max(0, current - 1) : Math.min(portfolioNavData.length - 1, current + 1);
-    showTooltipForIndex(next, highlightedSeries);
+    showTooltipForIndex(next);
   };
   const peakPoint = portfolioPointFor("net", portfolioPeakIndex);
   const troughPoint = portfolioPointFor("net", portfolioTroughIndex);
@@ -1078,7 +1057,7 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
         label: getPortfolioSeriesLabel(key, tr),
         value: key === "drawdown" ? formatChartValue(activeDatum.drawdown, "percent") : formatChartValue(activeDatum[key], "nav"),
         color: portfolioSeriesMeta[key].color,
-        active: highlightedSeries === key,
+        active: true,
       }))
     : [];
   if (portfolioNavData.length === 0) return <ChartEmptyState />;
@@ -1094,9 +1073,6 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
               label={getPortfolioSeriesLabel(key, tr)}
               active={isVisible(key)}
               pressed={isVisible(key)}
-              onFocus={() => setHighlightedSeries(key)}
-              onHover={() => setHighlightedSeries(key)}
-              onLeave={() => setHighlightedSeries(null)}
               onToggle={() => toggleSeries(key)}
             />
           ))}
@@ -1165,9 +1141,9 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
               })}
             </g>
             {isVisible("drawdown") ? <path d={portfolioDrawdownAreaPath()} className="oq-drawdown-area" aria-hidden="true" /> : null}
-            {isVisible("gross") ? <path d={portfolioPathFor("gross")} className={seriesClass("gross", "oq-line-blue")} /> : null}
-            {isVisible("net") ? <path d={portfolioPathFor("net")} className={seriesClass("net", "oq-line-gold")} /> : null}
-            {isVisible("drawdown") ? <path d={portfolioPathFor("drawdown")} className={seriesClass("drawdown", "oq-line-drawdown")} /> : null}
+            {isVisible("gross") ? <path d={portfolioPathFor("gross")} className="oq-line-blue oq-chart-series" /> : null}
+            {isVisible("net") ? <path d={portfolioPathFor("net")} className="oq-line-gold oq-chart-series" /> : null}
+            {isVisible("drawdown") ? <path d={portfolioPathFor("drawdown")} className="oq-line-drawdown oq-chart-series" /> : null}
             <g className="oq-chart-axis" aria-hidden="true">
               {portfolioNavTicks.map(tick => (
                 <text key={tick} x={portfolioChartFrame.left - 14} y={scalePortfolioNav(tick) + 4} textAnchor="end">
@@ -1178,7 +1154,7 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
                 <text key={tick} x={portfolioChartFrame.left - 14} y={scalePortfolioDrawdown(tick) + 4} textAnchor="end">{`${Math.round(tick * 100)}%`}</text>
               ))}
               {portfolioTimeTicks.map(tick => (
-                <text key={tick} x={scalePortfolioX(indexForPortfolioDateTick(tick))} y={portfolioChartFrame.height - 18} textAnchor="middle">
+                <text key={tick} x={scalePortfolioX(indexForPortfolioDateTick(tick))} y={portfolioChartFrame.height - 6} textAnchor="middle">
                   {tick}
                 </text>
               ))}
@@ -1208,7 +1184,7 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
                 <line className="oq-chart-crosshair" x1={activeX} x2={activeX} y1={portfolioChartFrame.navTop} y2={portfolioChartFrame.drawdownTop + portfolioChartFrame.drawdownHeight} />
                 {portfolioSeriesKeys.filter(isVisible).map(key => {
                   const point = portfolioPointFor(key, activeIndex ?? 0);
-                  return <circle className="oq-chart-active-marker" cx={point.x} cy={point.y} key={key} r={highlightedSeries === key ? 6 : 4} style={{ color: portfolioSeriesMeta[key].color }} />;
+                  return <circle className="oq-chart-active-marker" cx={point.x} cy={point.y} key={key} r="4" style={{ color: portfolioSeriesMeta[key].color }} />;
                 })}
               </g>
             ) : null}
@@ -1220,7 +1196,10 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
               height={portfolioChartFrame.drawdownTop + portfolioChartFrame.drawdownHeight - portfolioChartFrame.navTop}
               onPointerMove={showNearestTooltip}
               onPointerEnter={showNearestTooltip}
-              onPointerDown={showNearestTooltip}
+              onPointerDown={event => {
+                event.preventDefault();
+                showNearestTooltip(event);
+              }}
               onPointerLeave={clearInteraction}
             />
           </svg>
@@ -1228,7 +1207,7 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
             <div
               className="oq-chart-tooltip is-dense"
               style={{
-                left: `clamp(128px, ${(activeX / portfolioChartFrame.width) * 100}%, calc(100% - 128px))`,
+                left: `clamp(${portfolioTooltipEdgeInset}px, ${(activeX / portfolioChartFrame.width) * 100}%, calc(100% - ${portfolioTooltipEdgeInset}px))`,
                 top: "44%",
               }}
               role="status"
@@ -1329,55 +1308,61 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
   if (exposureRows.length === 0) return <ChartEmptyState message={tReport(tr, "No exposure data available", "暂无行业暴露数据")} tr={tr} />;
 
   return (
-    <div ref={chartRef} className="oq-exposure-chart">
+    <div
+      ref={chartRef}
+      className="oq-exposure-chart"
+      style={{ "--chart-row-count": exposureRows.length } as CSSProperties}
+    >
       <div className="oq-chart-toolbar is-subtle">
         <div className="oq-report-legend">
           <ChartLegendItem color="#1f8a5b" label={tReport(tr, "Long", "多头")} active={visibleSides.has("long")} pressed={visibleSides.has("long")} onToggle={() => toggleSide("long")} />
           <ChartLegendItem color="#d64550" label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleSide("short")} />
         </div>
       </div>
-      {exposureRows.map(row => {
-        const shortValue = -row.short;
-        return (
-          <div
-            className="oq-exposure-row"
-            key={row.label}
-            tabIndex={0}
-            role="img"
-            aria-label={`${row.label}: ${tReport(tr, "Long", "多头")} ${formatChartValue(row.long, "score")}, ${tReport(tr, "Short", "空头")} ${formatChartValue(shortValue, "score")}`}
-            onMouseDown={event => event.preventDefault()}
-            onFocus={event => {
-              setActiveLabel(row.label);
-              setActiveSide(visibleSides.has("long") ? "long" : "short");
-              setTooltipFromRow(event.currentTarget);
-            }}
-            onBlur={clearInteraction}
-            onMouseLeave={clearInteraction}
-          >
-            <span title={row.label}>{row.label}</span>
-            <div className="oq-diverging-plot" style={exposurePlotStyle}>
-              {visibleSides.has("short") ? (
-                <i
-                  aria-hidden="true"
-                  style={getDivergingBarStyle(shortValue, exposureDomain)}
-                  onPointerEnter={event => showTooltip(row.label, "short", event)}
-                  onPointerMove={event => showTooltip(row.label, "short", event)}
-                  onPointerLeave={clearInteraction}
-                />
-              ) : null}
-              {visibleSides.has("long") ? (
-                <b
-                  aria-hidden="true"
-                  style={getDivergingBarStyle(row.long, exposureDomain)}
-                  onPointerEnter={event => showTooltip(row.label, "long", event)}
-                  onPointerMove={event => showTooltip(row.label, "long", event)}
-                  onPointerLeave={clearInteraction}
-                />
-              ) : null}
+      <div className="oq-diverging-rows">
+        {exposureRows.map(row => {
+          const shortValue = -row.short;
+          return (
+            <div
+              className="oq-exposure-row"
+              key={row.label}
+              tabIndex={0}
+              role="img"
+              aria-label={`${row.label}: ${tReport(tr, "Long", "多头")} ${formatChartValue(row.long, "score")}, ${tReport(tr, "Short", "空头")} ${formatChartValue(shortValue, "score")}`}
+              onMouseDown={event => event.preventDefault()}
+              onFocus={event => {
+                setActiveLabel(row.label);
+                setActiveSide(visibleSides.has("long") ? "long" : "short");
+                setTooltipFromRow(event.currentTarget);
+              }}
+              onBlur={clearInteraction}
+              onMouseLeave={clearInteraction}
+            >
+              <span title={row.label}>{row.label}</span>
+              <div className="oq-diverging-plot" style={exposurePlotStyle}>
+                {visibleSides.has("short") ? (
+                  <i
+                    aria-hidden="true"
+                    style={getDivergingBarStyle(shortValue, exposureDomain)}
+                    onPointerEnter={event => showTooltip(row.label, "short", event)}
+                    onPointerMove={event => showTooltip(row.label, "short", event)}
+                    onPointerLeave={clearInteraction}
+                  />
+                ) : null}
+                {visibleSides.has("long") ? (
+                  <b
+                    aria-hidden="true"
+                    style={getDivergingBarStyle(row.long, exposureDomain)}
+                    onPointerEnter={event => showTooltip(row.label, "long", event)}
+                    onPointerMove={event => showTooltip(row.label, "long", event)}
+                    onPointerLeave={clearInteraction}
+                  />
+                ) : null}
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
       {activeRow && activeSide && tooltipPoint ? (
         <div
           className="oq-bar-floating-tooltip"
@@ -1468,7 +1453,11 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
   if (sectorRankRows.length === 0) return <ChartEmptyState message={tReport(tr, "No sector rank data available", "暂无行业收益排名数据")} tr={tr} />;
 
   return (
-    <div ref={chartRef} className="oq-rank-chart">
+    <div
+      ref={chartRef}
+      className="oq-rank-chart"
+      style={{ "--chart-row-count": sectorRankRows.length } as CSSProperties}
+    >
       <div className="oq-chart-toolbar is-subtle">
         <div className="oq-report-legend">
           <ChartLegendItem
@@ -1487,46 +1476,38 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
           />
         </div>
       </div>
-      <div className="oq-diverging-axis oq-rank-axis" aria-hidden="true">
-        <span className="oq-diverging-axis-spacer" />
-        <div className="oq-diverging-axis-track">
-          {rankTicks.map(tick => (
-            <span className="oq-diverging-axis-tick" key={tick} style={{ left: `${getDomainPercent(tick, rankDomain)}%` }}>
-              {formatAxisTick(tick)}
-            </span>
-          ))}
-        </div>
-      </div>
-      {sectorRankRows.map(([label, value]) => (
-        <div
-          className="oq-rank-row"
-          key={label}
-          tabIndex={0}
-          role="img"
-          aria-label={`${label}: ${formatChartValue(value, "score")}`}
-          onMouseDown={event => event.preventDefault()}
-          onFocus={event => {
-            setActiveLabel(label);
-            setTooltipFromRow(event.currentTarget);
-          }}
-          onBlur={clearInteraction}
-          onMouseLeave={clearInteraction}
-        >
-          <span title={label}>{label}</span>
-          <div className="oq-diverging-plot" style={rankPlotStyle}>
-            {visibleTones.has(value < 0 ? "negative" : "positive") ? (
-              <b
-                aria-hidden="true"
-                className={value < 0 ? "is-negative" : ""}
-                style={getDivergingBarStyle(value, rankDomain)}
-                onPointerEnter={event => showTooltip(label, event)}
-                onPointerMove={event => showTooltip(label, event)}
-                onPointerLeave={clearInteraction}
-              />
-            ) : null}
+      <div className="oq-diverging-rows">
+        {sectorRankRows.map(([label, value]) => (
+          <div
+            className="oq-rank-row"
+            key={label}
+            tabIndex={0}
+            role="img"
+            aria-label={`${label}: ${formatChartValue(value, "score")}`}
+            onMouseDown={event => event.preventDefault()}
+            onFocus={event => {
+              setActiveLabel(label);
+              setTooltipFromRow(event.currentTarget);
+            }}
+            onBlur={clearInteraction}
+            onMouseLeave={clearInteraction}
+          >
+            <span title={label}>{label}</span>
+            <div className="oq-diverging-plot" style={rankPlotStyle}>
+              {visibleTones.has(value < 0 ? "negative" : "positive") ? (
+                <b
+                  aria-hidden="true"
+                  className={value < 0 ? "is-negative" : ""}
+                  style={getDivergingBarStyle(value, rankDomain)}
+                  onPointerEnter={event => showTooltip(label, event)}
+                  onPointerMove={event => showTooltip(label, event)}
+                  onPointerLeave={clearInteraction}
+                />
+              ) : null}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
       {activeRankRow && tooltipPoint ? (
         <div
           className="oq-bar-floating-tooltip"
@@ -1616,7 +1597,14 @@ function DenseLines({
     width: isNarrowSymbolChart ? 560 : isSmallMultiple ? 720 : 1000,
     height,
   };
-  const margin = compact ? { top: 20, right: 20, bottom: 40, left: 56 } : isSmallMultiple ? { top: 24, right: 24, bottom: 44, left: 56 } : { top: 24, right: 24, bottom: 44, left: 60 };
+  const usesFilledReturnFrame = isDecileReturn || isBarraStyleReturn;
+  const margin = usesFilledReturnFrame
+    ? { top: 8, right: 36, bottom: 18, left: 44 }
+    : compact
+      ? { top: 20, right: 20, bottom: 40, left: 56 }
+      : isSmallMultiple
+        ? { top: 24, right: 24, bottom: 44, left: 56 }
+        : { top: 24, right: 24, bottom: 44, left: 60 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
   const pointCount = isAutocorrDecay ? autocorrDecayLagLabels.length : isTurnoverRate ? densePointCount : isReturnChart ? 120 : isSymbolCumulative ? densePointCount : 70;
@@ -2025,7 +2013,7 @@ function DenseLines({
           {xTickIndexes.map(pointIndex => {
             const x = margin.left + (pointIndex / Math.max(1, pointCount - 1)) * plotWidth;
             return (
-              <text key={pointIndex} x={x} y={viewBox.height - 18} textAnchor="middle">
+              <text key={pointIndex} x={x} y={usesFilledReturnFrame ? viewBox.height - 6 : viewBox.height - 18} textAnchor="middle">
                 {isSymbolCumulative || isReturnChart ? dateTickLabels[xTickIndexes.findIndex(index => index === pointIndex)] : formatPortfolioPeriod(pointIndex, pointCount)}
               </text>
             );
@@ -2156,6 +2144,7 @@ function SymbolPnlRankSection({ tr = defaultTr }: { tr?: Tr }) {
 
 function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; rows: SymbolPnlRankRow[]; tr?: Tr }) {
   const chartRef = useRef<HTMLDivElement>(null);
+  const plotRef = useRef<HTMLDivElement>(null);
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [tooltipPoint, setTooltipPoint] = useState<{
     x: number;
@@ -2170,9 +2159,36 @@ function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; ro
     y: number;
     color: string;
   } | null>(null);
-  const isNarrowRankChart = useContainerNarrow(chartRef, 620);
-  const viewBox = { width: isNarrowRankChart ? 560 : 880, height: 300 };
-  const margin = { top: 20, right: 16, bottom: 40, left: 56 };
+  const isNarrowRankChart = useContainerNarrow(plotRef, 620);
+  const viewBoxWidth = isNarrowRankChart ? 560 : 880;
+  const [viewBoxHeight, setViewBoxHeight] = useState(300);
+
+  useEffect(() => {
+    const node = plotRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rect = node.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const nextHeight = Math.max(300, Math.round((viewBoxWidth * rect.height) / rect.width));
+        setViewBoxHeight(current => (current === nextHeight ? current : nextHeight));
+      });
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    measure();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [viewBoxWidth]);
+
+  const viewBox = { width: viewBoxWidth, height: viewBoxHeight };
+  const margin = { top: 8, right: 16, bottom: 18, left: 56 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
   const xTickIndexes = denseSymbolDateTicks.map(tick => indexForDenseDateTick(tick, densePointCount));
@@ -2302,7 +2318,7 @@ function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; ro
   return (
     <section ref={chartRef} className="oq-symbol-rank-panel" onMouseLeave={clearRankInteraction} onPointerLeave={clearRankInteraction}>
       <div className="oq-symbol-rank-panel-body">
-        <div className="oq-symbol-rank-plot">
+        <div ref={plotRef} className="oq-symbol-rank-plot">
           <svg
             className="oq-symbol-rank-lines"
             viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
@@ -2336,7 +2352,7 @@ function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; ro
               {xTickIndexes.map((pointIndex, tickIndex) => {
                 const x = margin.left + (pointIndex / Math.max(1, densePointCount - 1)) * plotWidth;
                 return (
-                  <text key={pointIndex} x={x} y={viewBox.height - 18} textAnchor="middle">
+                  <text key={pointIndex} x={x} y={viewBox.height - 6} textAnchor="middle">
                     {denseSymbolDateTicks[tickIndex]}
                   </text>
                 );

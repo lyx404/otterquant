@@ -26,7 +26,12 @@ import {
 } from "@/components/ui/tooltip";
 import { factors, strategies, submissions, type Factor } from "@/lib/mockData";
 import { buildSeries, parsePercent } from "@/lib/strategyUtils";
-import { type UiLang, useAppLanguage } from "@/contexts/AppLanguageContext";
+import {
+  translateUi,
+  type UiCopy,
+  type UiLang,
+  useAppLanguage,
+} from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 import {
   ArrowUpDown,
@@ -67,6 +72,239 @@ type StrategyFactorSource = "official" | "my";
 
 const MAX_STRATEGY_FACTOR_COUNT = 5;
 
+type StrategyTr = (en: string, zh: string, copy?: UiCopy) => string;
+
+const strategyCopy: Record<string, UiCopy> = {
+  "Live Trading": { ja: "ライブ運用", ko: "실거래", es: "Trading real", fr: "Trading reel" },
+  "Paper Trading": { ja: "ペーパートレード", ko: "모의 거래", es: "Simulacion", fr: "Simulation" },
+  "Not Running": { ja: "未稼働", ko: "미실행", es: "Inactiva", fr: "A l'arret" },
+  "for reference": { ja: "参考値", ko: "참고용", es: "de referencia", fr: "indicatif" },
+  high: { ja: "高水準", ko: "높음", es: "alto", fr: "eleve" },
+  moderate: { ja: "中程度", ko: "보통", es: "moderado", fr: "modere" },
+  low: { ja: "低水準", ko: "낮음", es: "bajo", fr: "faible" },
+  "well controlled": { ja: "良好に管理", ko: "양호하게 통제됨", es: "bien controlado", fr: "bien maitrise" },
+  noticeable: { ja: "要注意", ko: "주의 필요", es: "a vigilar", fr: "a surveiller" },
+  "high risk": { ja: "高リスク", ko: "고위험", es: "riesgo alto", fr: "risque eleve" },
+  "very steady": { ja: "非常に安定", ko: "매우 안정적", es: "muy estable", fr: "tres stable" },
+  "relatively steady": { ja: "比較的安定", ko: "비교적 안정적", es: "relativamente estable", fr: "relativement stable" },
+  usable: { ja: "実用水準", ko: "활용 가능", es: "utilizable", fr: "exploitable" },
+  "less steady": { ja: "安定性が低い", ko: "안정성 낮음", es: "poco estable", fr: "peu stable" },
+  "Equal weight": { ja: "等ウェイト", ko: "동일 가중", es: "Ponderacion igual", fr: "Ponderation egale" },
+  "Custom weight": { ja: "カスタムウェイト", ko: "사용자 지정 가중", es: "Ponderacion personalizada", fr: "Ponderation personnalisee" },
+  "Long only": { ja: "ロングのみ", ko: "롱 전용", es: "Solo largo", fr: "Long uniquement" },
+  "Short only": { ja: "ショートのみ", ko: "숏 전용", es: "Solo corto", fr: "Short uniquement" },
+  Neutral: { ja: "マーケットニュートラル", ko: "시장 중립", es: "Neutral al mercado", fr: "Neutre au marche" },
+  "Untitled strategy": { ja: "無題の戦略", ko: "제목 없는 전략", es: "Estrategia sin titulo", fr: "Strategie sans titre" },
+  "Factor selection": { ja: "ファクター選択", ko: "팩터 선택", es: "Seleccion de factores", fr: "Selection des facteurs" },
+  "Choose factors from official library or my factors.": { ja: "公式ライブラリまたはマイファクターから選択してください。", ko: "공식 라이브러리 또는 내 팩터에서 선택하세요.", es: "Elige factores de la biblioteca oficial o de Mis factores.", fr: "Choisissez des facteurs dans la bibliotheque officielle ou Mes facteurs." },
+  "Select at least one factor.": { ja: "少なくとも1つのファクターを選択してください。", ko: "팩터를 하나 이상 선택하세요.", es: "Selecciona al menos un factor.", fr: "Selectionnez au moins un facteur." },
+  "Factor weight": { ja: "ファクターウェイト", ko: "팩터 가중치", es: "Ponderacion de factores", fr: "Ponderation des facteurs" },
+  "Select factors before setting custom weights.": { ja: "カスタムウェイトを設定する前にファクターを選択してください。", ko: "사용자 지정 가중치를 설정하기 전에 팩터를 선택하세요.", es: "Selecciona factores antes de definir ponderaciones personalizadas.", fr: "Selectionnez des facteurs avant de definir les ponderations personnalisees." },
+  "Weight total": { ja: "ウェイト合計", ko: "가중치 합계", es: "Ponderacion total", fr: "Total des ponderations" },
+  Valid: { ja: "有効", ko: "유효", es: "Valido", fr: "Valide" },
+  "Must equal 1.00": { ja: "合計は1.00", ko: "합계 1.00 필요", es: "Debe ser 1,00", fr: "Doit etre egal a 1,00" },
+  "Custom weights must total 1.00.": { ja: "カスタムウェイトの合計は1.00にしてください。", ko: "사용자 지정 가중치 합계는 1.00이어야 합니다.", es: "Las ponderaciones personalizadas deben sumar 1,00.", fr: "Les ponderations personnalisees doivent totaliser 1,00." },
+  "Strategy direction": { ja: "戦略方向", ko: "전략 방향", es: "Direccion de la estrategia", fr: "Direction de la strategie" },
+  "Head/tail grouping rule": { ja: "上位・下位グループ規則", ko: "상·하위 그룹 규칙", es: "Regla de grupos superior/inferior", fr: "Regle des groupes tete/queue" },
+  "Head/tail grouping value": { ja: "上位・下位グループ値", ko: "상·하위 그룹 값", es: "Valor de grupos superior/inferior", fr: "Valeur des groupes tete/queue" },
+  "Enter a percentage from 0 to 50.": { ja: "0より大きく50以下の割合を入力してください。", ko: "0보다 크고 50 이하인 비율을 입력하세요.", es: "Introduce un porcentaje mayor que 0 y hasta 50.", fr: "Saisissez un pourcentage superieur a 0 et inferieur ou egal a 50." },
+  "Enter a positive integer.": { ja: "正の整数を入力してください。", ko: "양의 정수를 입력하세요.", es: "Introduce un numero entero positivo.", fr: "Saisissez un entier positif." },
+  "Strategy name": { ja: "戦略名", ko: "전략명", es: "Nombre de la estrategia", fr: "Nom de la strategie" },
+  Cancel: { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
+  "Create strategy": { ja: "戦略を作成", ko: "전략 생성", es: "Crear estrategia", fr: "Creer une strategie" },
+  "Select factors": { ja: "ファクターを選択", ko: "팩터 선택", es: "Seleccionar factores", fr: "Selectionner des facteurs" },
+  "Official library": { ja: "公式ライブラリ", ko: "공식 라이브러리", es: "Biblioteca oficial", fr: "Bibliotheque officielle" },
+  "My factors": { ja: "マイファクター", ko: "내 팩터", es: "Mis factores", fr: "Mes facteurs" },
+  "Search name, ID or tag": { ja: "名前、ID、タグを検索", ko: "이름, ID 또는 태그 검색", es: "Buscar por nombre, ID o etiqueta", fr: "Rechercher par nom, ID ou etiquette" },
+  "OOS Sharpe": { ja: "OOS Sharpe", ko: "OOS Sharpe", es: "Sharpe OOS", fr: "Sharpe OOS" },
+  "No factors match the current filter.": { ja: "現在のフィルターに一致するファクターはありません。", ko: "현재 필터와 일치하는 팩터가 없습니다.", es: "Ningun factor coincide con el filtro actual.", fr: "Aucun facteur ne correspond au filtre actuel." },
+  "No factors selected": { ja: "ファクター未選択", ko: "선택된 팩터 없음", es: "Ningun factor seleccionado", fr: "Aucun facteur selectionne" },
+  Done: { ja: "完了", ko: "완료", es: "Listo", fr: "Termine" },
+  Created: { ja: "作成日", ko: "생성일", es: "Creada", fr: "Creee" },
+  "Asset Curve": { ja: "資産曲線", ko: "자산 곡선", es: "Curva patrimonial", fr: "Courbe de capital" },
+  "Win Rate": { ja: "勝率", ko: "승률", es: "Tasa de acierto", fr: "Taux de reussite" },
+  Sharpe: { ja: "Sharpe", ko: "Sharpe", es: "Sharpe", fr: "Sharpe" },
+  "Max DD": { ja: "MaxDD", ko: "MaxDD", es: "MaxDD", fr: "MaxDD" },
+  "More actions": { ja: "その他の操作", ko: "추가 작업", es: "Mas acciones", fr: "Plus d'actions" },
+  Delete: { ja: "削除", ko: "삭제", es: "Eliminar", fr: "Supprimer" },
+  "Toggle favorite": { ja: "お気に入りを切替", ko: "즐겨찾기 전환", es: "Alternar favorito", fr: "Basculer le favori" },
+  View: { ja: "表示", ko: "보기", es: "Ver", fr: "Voir" },
+  "Synced with your Codex agent": { ja: "Codexエージェントと同期済み", ko: "Codex 에이전트와 동기화됨", es: "Sincronizado con tu agente Codex", fr: "Synchronise avec votre agent Codex" },
+  "Mine in Codex — alphas land here automatically. Last sync 2 min ago.": { ja: "CodexでマイニングしたAlphaは自動的にここへ反映されます。最終同期: 2分前。", ko: "Codex에서 발굴한 Alpha가 여기에 자동 반영됩니다. 마지막 동기화: 2분 전.", es: "Los alphas extraidos en Codex aparecen aqui automaticamente. Ultima sincronizacion: hace 2 min.", fr: "Les alphas explores dans Codex arrivent ici automatiquement. Derniere synchronisation: il y a 2 min." },
+  Live: { ja: "ライブ", ko: "실시간", es: "En vivo", fr: "En direct" },
+  "My Favorites": { ja: "お気に入り", ko: "즐겨찾기", es: "Mis favoritos", fr: "Mes favoris" },
+  All: { ja: "すべて", ko: "전체", es: "Todas", fr: "Toutes" },
+  Sort: { ja: "並べ替え", ko: "정렬", es: "Ordenar", fr: "Trier" },
+  "Updated Time": { ja: "更新日時", ko: "업데이트 시간", es: "Fecha de actualizacion", fr: "Date de mise a jour" },
+  "Download all (.zip)": { ja: "すべてダウンロード（.zip）", ko: "전체 다운로드 (.zip)", es: "Descargar todo (.zip)", fr: "Tout telecharger (.zip)" },
+  "Tick rows to compare ·": { ja: "比較する行を選択 ·", ko: "비교할 행 선택 ·", es: "Marca filas para comparar ·", fr: "Cochez les lignes a comparer ·" },
+  "Toggle compare": { ja: "比較対象を切替", ko: "비교 선택 전환", es: "Alternar comparacion", fr: "Basculer la comparaison" },
+  Rows: { ja: "行", ko: "행", es: "Filas", fr: "Lignes" },
+  "Strategy list pagination": { ja: "戦略一覧のページ切替", ko: "전략 목록 페이지 이동", es: "Paginacion de estrategias", fr: "Pagination de la liste des strategies" },
+  "First page": { ja: "最初のページ", ko: "첫 페이지", es: "Primera pagina", fr: "Premiere page" },
+  "Previous page": { ja: "前のページ", ko: "이전 페이지", es: "Pagina anterior", fr: "Page precedente" },
+  "Next page": { ja: "次のページ", ko: "다음 페이지", es: "Pagina siguiente", fr: "Page suivante" },
+  "Last page": { ja: "最後のページ", ko: "마지막 페이지", es: "Ultima pagina", fr: "Derniere page" },
+  "Compare strategy": { ja: "戦略比較", ko: "전략 비교", es: "Comparar estrategias", fr: "Comparer les strategies" },
+  "Remove from compare": { ja: "比較から削除", ko: "비교에서 제거", es: "Quitar de la comparacion", fr: "Retirer de la comparaison" },
+  "Build a strategy from selected factors, weights and direction rules.": { ja: "選択したファクター、ウェイト、方向ルールから戦略を構築します。", ko: "선택한 팩터, 가중치 및 방향 규칙으로 전략을 구성합니다.", es: "Crea una estrategia con los factores, ponderaciones y reglas de direccion seleccionados.", fr: "Construisez une strategie a partir des facteurs, ponderations et regles de direction selectionnes." },
+  "Delete Strategy": { ja: "戦略を削除", ko: "전략 삭제", es: "Eliminar estrategia", fr: "Supprimer la strategie" },
+  "Confirm deleting this strategy? This action cannot be undone.": { ja: "この戦略を削除しますか？この操作は取り消せません。", ko: "이 전략을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.", es: "¿Confirmas que quieres eliminar esta estrategia? Esta accion no se puede deshacer.", fr: "Confirmer la suppression de cette strategie ? Cette action est irreversible." },
+  "Search by name or ID...": { ja: "名前またはIDで検索...", ko: "이름 또는 ID 검색...", es: "Buscar por nombre o ID...", fr: "Rechercher par nom ou ID..." },
+  Name: { ja: "名前", ko: "이름", es: "Nombre", fr: "Nom" },
+  Descending: { ja: "降順", ko: "내림차순", es: "Descendente", fr: "Decroissant" },
+  Ascending: { ja: "昇順", ko: "오름차순", es: "Ascendente", fr: "Croissant" },
+  "Display Items": { ja: "表示項目", ko: "표시 항목", es: "Elementos visibles", fr: "Elements affiches" },
+  "Max Drawdown": { ja: "最大ドローダウン", ko: "최대 낙폭", es: "Maximo drawdown", fr: "Drawdown maximal" },
+  "Created Date": { ja: "作成日", ko: "생성일", es: "Fecha de creacion", fr: "Date de creation" },
+  "Restore defaults": { ja: "既定値に戻す", ko: "기본값 복원", es: "Restaurar valores predeterminados", fr: "Restaurer les valeurs par defaut" },
+  Status: { ja: "ステータス", ko: "상태", es: "Estado", fr: "Statut" },
+  Action: { ja: "操作", ko: "작업", es: "Accion", fr: "Action" },
+  "No strategies match your filters.": { ja: "フィルターに一致する戦略はありません。", ko: "필터와 일치하는 전략이 없습니다.", es: "Ninguna estrategia coincide con los filtros.", fr: "Aucune strategie ne correspond aux filtres." },
+  "List view": { ja: "リスト表示", ko: "목록 보기", es: "Vista de lista", fr: "Vue en liste" },
+  "Grid view": { ja: "グリッド表示", ko: "그리드 보기", es: "Vista de cuadricula", fr: "Vue en grille" },
+  Strategy: { ja: "戦略", ko: "전략", es: "Estrategia", fr: "Strategie" },
+  RankIC: { ja: "RankIC", ko: "RankIC", es: "RankIC", fr: "RankIC" },
+  MaxDD: { ja: "MaxDD", ko: "MaxDD", es: "MaxDD", fr: "MaxDD" },
+  Turn: { ja: "売買回転率", ko: "회전율", es: "Rotacion", fr: "Rotation" },
+  "90-day": { ja: "90日", ko: "90일", es: "90 dias", fr: "90 jours" },
+  Pending: { ja: "バックテスト中", ko: "백테스트 중", es: "En backtest", fr: "Backtest en cours" },
+  Paused: { ja: "一時停止", ko: "일시 중지", es: "En pausa", fr: "En pause" },
+  Running: { ja: "稼働中", ko: "실행 중", es: "En ejecucion", fr: "En cours" },
+  Performance: { ja: "パフォーマンス", ko: "성과", es: "Rendimiento", fr: "Performance" },
+  "CS Sharpe": { ja: "クロスセクショナルSharpe", ko: "횡단면 Sharpe", es: "Sharpe transversal", fr: "Sharpe transversal" },
+  Best: { ja: "最高", ko: "최고", es: "Mejor", fr: "Meilleur" },
+  "Risk & details": { ja: "リスクと詳細", ko: "위험 및 상세", es: "Riesgo y detalles", fr: "Risque et details" },
+  "Max drawdown": { ja: "最大ドローダウン", ko: "최대 낙폭", es: "Maximo drawdown", fr: "Drawdown maximal" },
+  Lowest: { ja: "最低", ko: "최저", es: "Menor", fr: "Le plus faible" },
+  Turnover: { ja: "売買回転率", ko: "회전율", es: "Rotacion", fr: "Rotation" },
+  Total: { ja: "合計", ko: "전체", es: "Total", fr: "Total" },
+  Trading: { ja: "運用中", ko: "거래 중", es: "En trading", fr: "En trading" },
+};
+
+function makeStrategyTranslator(uiLang: UiLang): StrategyTr {
+  return (en, zh, copy = strategyCopy[en]) => translateUi(uiLang, en, zh, copy);
+}
+
+function formatBacktestSubmitted(strategyName: string, tr: StrategyTr) {
+  return tr(
+    `${strategyName} submitted. Backtesting takes about 3–4 minutes.`,
+    `${strategyName} 已提交，回测预计需要 3–4 分钟。`,
+    {
+      ja: `${strategyName}を送信しました。バックテストには約3〜4分かかります。`,
+      ko: `${strategyName} 제출이 완료되었습니다. 백테스트에는 약 3~4분이 소요됩니다.`,
+      es: `${strategyName} enviada. El backtest tarda unos 3-4 minutos.`,
+      fr: `${strategyName} soumise. Le backtest prend environ 3 a 4 minutes.`,
+    }
+  );
+}
+
+function formatFactorSelectionCount(count: number, tr: StrategyTr, continueSelection = false) {
+  if (continueSelection) {
+    return tr(
+      `${count} factors selected. Click to continue selecting.`,
+      `已选择 ${count} 个因子，点击继续选择。`,
+      {
+        ja: `${count}個のファクターを選択済み。クリックして選択を続けます。`,
+        ko: `${count}개 팩터를 선택했습니다. 클릭하여 계속 선택하세요.`,
+        es: `${count} factores seleccionados. Haz clic para seguir seleccionando.`,
+        fr: `${count} facteurs selectionnes. Cliquez pour poursuivre la selection.`,
+      }
+    );
+  }
+  return tr(`${count} factors selected`, `已选择 ${count} 个因子`, {
+    ja: `${count}個のファクターを選択済み`,
+    ko: `${count}개 팩터 선택됨`,
+    es: `${count} factores seleccionados`,
+    fr: `${count} facteurs selectionnes`,
+  });
+}
+
+function formatStrategySelectionCount(count: number, tr: StrategyTr) {
+  return tr(`${count} selected`, `已选 ${count} 个`, {
+    ja: `${count}件選択`,
+    ko: `${count}개 선택됨`,
+    es: `${count} seleccionadas`,
+    fr: `${count} selectionnees`,
+  });
+}
+
+function formatCompareSummary(count: number, tr: StrategyTr) {
+  return tr(
+    `${count} selected · scroll down to see every stat side-by-side`,
+    `已选 ${count} 个 · 向下查看指标对比`,
+    {
+      ja: `${count}件選択 · 下にスクロールして指標を並べて比較`,
+      ko: `${count}개 선택됨 · 아래로 스크롤하여 모든 지표 비교`,
+      es: `${count} seleccionadas · desplaza para comparar todas las metricas`,
+      fr: `${count} selectionnees · faites defiler pour comparer toutes les statistiques`,
+    }
+  );
+}
+
+function formatFactorPickerHelp(maxCount: number, tr: StrategyTr) {
+  return tr(
+    `Choose up to ${maxCount} factors from the official library or your factors.`,
+    `从官方库或我的因子中选择，最多 ${maxCount} 个。`,
+    {
+      ja: `公式ライブラリまたはマイファクターから最大${maxCount}個選択できます。`,
+      ko: `공식 라이브러리 또는 내 팩터에서 최대 ${maxCount}개를 선택하세요.`,
+      es: `Elige hasta ${maxCount} factores de la biblioteca oficial o de Mis factores.`,
+      fr: `Choisissez jusqu'a ${maxCount} facteurs dans la bibliotheque officielle ou Mes facteurs.`,
+    }
+  );
+}
+
+function formatDeleteConfirmation(row: StrategyViewRow | null, tr: StrategyTr) {
+  if (!row?.name) return tr("Confirm deleting this strategy? This action cannot be undone.", "确认删除该策略？删除后无法恢复。");
+  return tr(
+    `Confirm deleting ${row.name} (${row.id})? This action cannot be undone.`,
+    `确认删除 ${row.name}（${row.id}）？删除后无法恢复。`,
+    {
+      ja: `${row.name}（${row.id}）を削除しますか？この操作は取り消せません。`,
+      ko: `${row.name} (${row.id}) 전략을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
+      es: `¿Confirmas que quieres eliminar ${row.name} (${row.id})? Esta accion no se puede deshacer.`,
+      fr: `Confirmer la suppression de ${row.name} (${row.id}) ? Cette action est irreversible.`,
+    }
+  );
+}
+
+function formatViewStrategyLabel(strategyName: string, tr: StrategyTr) {
+  return tr(`View ${strategyName}`, `查看 ${strategyName}`, {
+    ja: `${strategyName}を表示`,
+    ko: `${strategyName} 보기`,
+    es: `Ver ${strategyName}`,
+    fr: `Voir ${strategyName}`,
+  });
+}
+
+function formatRemoveFactorLabel(factorName: string, tr: StrategyTr) {
+  return tr(`Remove ${factorName}`, `移除 ${factorName}`, {
+    ja: `${factorName}を削除`,
+    ko: `${factorName} 제거`,
+    es: `Quitar ${factorName}`,
+    fr: `Retirer ${factorName}`,
+  });
+}
+
+function formatFactorWeightLabel(factorName: string, tr: StrategyTr) {
+  return tr(`${factorName} weight`, `${factorName} 权重`, {
+    ja: `${factorName}のウェイト`,
+    ko: `${factorName} 가중치`,
+    es: `Ponderacion de ${factorName}`,
+    fr: `Ponderation de ${factorName}`,
+  });
+}
+
+function formatPageSummary(start: number, end: number, total: number, tr: StrategyTr) {
+  return tr(`${start}–${end} of ${total}`, `${start}–${end}，共 ${total} 条`, {
+    ja: `${start}〜${end} / ${total}件`,
+    ko: `${start}~${end} / 총 ${total}개`,
+    es: `${start}-${end} de ${total}`,
+    fr: `${start}-${end} sur ${total}`,
+  });
+}
+
 function buildStrategyDefaultWeights(factorIds: string[]) {
   if (factorIds.length === 0) return {} as Record<string, string>;
 
@@ -91,17 +329,19 @@ function formatStrategyFactorId(factorId: string) {
   return factorId.replace(/^AF-/, "NO.");
 }
 
-function getStrategyFactorTagLabel(tag: string, tr: (en: string, zh: string) => string) {
-  const labels: Record<string, string> = {
-    ALL: "全部",
-    MOMENTUM: "动量",
-    VOLUME: "成交量",
-    ARBITRAGE: "套利",
-    DERIVATIVES: "衍生品",
-    "RISK-ADJUSTED": "风险调整",
-    "ON-CHAIN": "链上",
+function getStrategyFactorTagLabel(tag: string, tr: StrategyTr) {
+  const labels: Record<string, { en: string; zh: string; copy: UiCopy }> = {
+    ALL: { en: "All", zh: "全部", copy: strategyCopy.All },
+    MOMENTUM: { en: "Momentum", zh: "动量", copy: { ja: "モメンタム", ko: "모멘텀", es: "Momentum", fr: "Momentum" } },
+    VOLUME: { en: "Volume", zh: "成交量", copy: { ja: "出来高", ko: "거래량", es: "Volumen", fr: "Volume" } },
+    ARBITRAGE: { en: "Arbitrage", zh: "套利", copy: { ja: "アービトラージ", ko: "차익거래", es: "Arbitraje", fr: "Arbitrage" } },
+    DERIVATIVES: { en: "Derivatives", zh: "衍生品", copy: { ja: "デリバティブ", ko: "파생상품", es: "Derivados", fr: "Derives" } },
+    "RISK-ADJUSTED": { en: "Risk-adjusted", zh: "风险调整", copy: { ja: "リスク調整", ko: "위험 조정", es: "Ajustado por riesgo", fr: "Ajuste du risque" } },
+    "ON-CHAIN": { en: "On-chain", zh: "链上", copy: { ja: "オンチェーン", ko: "온체인", es: "On-chain", fr: "On-chain" } },
+    OTHER: { en: "Other", zh: "其他", copy: { ja: "その他", ko: "기타", es: "Otros", fr: "Autres" } },
   };
-  return tr(tag === "ALL" ? "All" : tag, labels[tag] ?? tag);
+  const label = labels[tag];
+  return label ? tr(label.en, label.zh, label.copy) : tag;
 }
 
 interface StrategyViewRow {
@@ -326,10 +566,12 @@ function StrategyTableCurveSparkline({
   values,
   upColor,
   downColor,
+  label,
 }: {
   values: number[];
   upColor: string;
   downColor: string;
+  label: string;
 }) {
   const svgId = useId().replace(/:/g, "");
   const width = 108;
@@ -342,7 +584,7 @@ function StrategyTableCurveSparkline({
   const runs = buildSparklineAreaRuns(points, upColor, downColor, zeroY);
 
   return (
-    <div className="flex h-full min-h-[42px] w-[108px] items-center" aria-label="资产曲线">
+    <div className="flex h-full min-h-[42px] w-[108px] items-center" aria-label={label}>
       <svg viewBox={`0 0 ${width} ${height}`} className="h-full w-full overflow-visible" fill="none" aria-hidden="true">
         {runs.map((run, index) => (
           <g key={`${run.points[0].x}-${run.points[run.points.length - 1].x}-${run.color}`}>
@@ -385,13 +627,18 @@ function StrategyTableCurveSparkline({
   );
 }
 
-const sortLabels: Record<SortKey, string> = {
-  updated: "Updated Time",
-  sharpe: "Sharpe",
-  rankIc: "RankIC",
-  maxDd: "MaxDD",
-  turn: "Turn",
+const sortLabels: Record<SortKey, { en: string; zh: string }> = {
+  updated: { en: "Updated Time", zh: "更新时间" },
+  sharpe: { en: "Sharpe", zh: "夏普比率" },
+  rankIc: { en: "RankIC", zh: "RankIC" },
+  maxDd: { en: "MaxDD", zh: "最大回撤" },
+  turn: { en: "Turn", zh: "换手率" },
 };
+
+function getSortLabel(key: SortKey, tr: StrategyTr) {
+  const label = sortLabels[key];
+  return tr(label.en, label.zh);
+}
 
 const defaultVisibleItems: Record<DisplayItemKey, boolean> = {
   roi: true,
@@ -473,6 +720,53 @@ const workbenchSamples: WorkbenchMeta[] = [
   { title: "Overnight VRP", category: "Volatility", sharpe: "0.62", rankIc: "0.014", maxDd: "-14.8%", turn: "24%", status: "running" },
   { title: "Overnight VRP", category: "Volatility", sharpe: "0.88", rankIc: "0.022", maxDd: "-12.1%", turn: "118%", status: "running" },
 ];
+
+const workbenchTitleCopy: Record<string, { zh: string; copy: UiCopy }> = {
+  "Smooth Momentum Quality": {
+    zh: "平滑动量质量",
+    copy: { ja: "平滑化モメンタム品質", ko: "스무딩 모멘텀 퀄리티", es: "Calidad de momentum suavizado", fr: "Qualite momentum lissee" },
+  },
+  "Funding Crowding Fade": {
+    zh: "资金费率拥挤反转",
+    copy: { ja: "資金調達率混雑リバーサル", ko: "펀딩 혼잡 반전", es: "Reversion de saturacion de funding", fr: "Retournement de concentration du funding" },
+  },
+  "Overnight VRP": {
+    zh: "隔夜波动率风险溢价",
+    copy: { ja: "オーバーナイトVRP", ko: "오버나이트 VRP", es: "VRP nocturno", fr: "VRP overnight" },
+  },
+  "Order Imbalance Reversion": {
+    zh: "订单不平衡反转",
+    copy: { ja: "注文不均衡リバーサル", ko: "주문 불균형 반전", es: "Reversion del desequilibrio de ordenes", fr: "Retournement du desequilibre d'ordres" },
+  },
+  "Liquidity Fragility Short": {
+    zh: "流动性脆弱性空头",
+    copy: { ja: "流動性脆弱性ショート", ko: "유동성 취약성 숏", es: "Corto de fragilidad de liquidez", fr: "Short sur fragilite de liquidite" },
+  },
+  "Volume Shock Continuation": {
+    zh: "成交量冲击延续",
+    copy: { ja: "出来高ショック継続", ko: "거래량 충격 지속", es: "Continuacion del choque de volumen", fr: "Continuation du choc de volume" },
+  },
+};
+
+const workbenchCategoryCopy: Record<string, { zh: string; copy: UiCopy }> = {
+  Momentum: { zh: "动量", copy: { ja: "モメンタム", ko: "모멘텀", es: "Momentum", fr: "Momentum" } },
+  Funding: { zh: "资金费率", copy: { ja: "資金調達率", ko: "펀딩", es: "Funding", fr: "Funding" } },
+  Volatility: { zh: "波动率", copy: { ja: "ボラティリティ", ko: "변동성", es: "Volatilidad", fr: "Volatilite" } },
+  "Order flow": { zh: "订单流", copy: { ja: "注文フロー", ko: "주문 흐름", es: "Flujo de ordenes", fr: "Flux d'ordres" } },
+  Liquidity: { zh: "流动性", copy: { ja: "流動性", ko: "유동성", es: "Liquidez", fr: "Liquidite" } },
+  Volume: { zh: "成交量", copy: { ja: "出来高", ko: "거래량", es: "Volumen", fr: "Volume" } },
+  Composite: { zh: "复合策略", copy: { ja: "複合戦略", ko: "복합 전략", es: "Estrategia compuesta", fr: "Strategie composite" } },
+};
+
+function translateWorkbenchTitle(title: string, tr: StrategyTr) {
+  const localized = workbenchTitleCopy[title];
+  return localized ? tr(title, localized.zh, localized.copy) : title;
+}
+
+function translateWorkbenchCategory(category: string, tr: StrategyTr) {
+  const localized = workbenchCategoryCopy[category];
+  return localized ? tr(category, localized.zh, localized.copy) : category;
+}
 
 function getWorkbenchMeta(index: number): WorkbenchMeta {
   return workbenchSamples[index % workbenchSamples.length];
@@ -556,7 +850,7 @@ function WorkbenchSparkline({
   );
 }
 
-function getStatusLabel(label: StrategyViewRow["statusLabel"], tr: (en: string, zh: string) => string) {
+function getStatusLabel(label: StrategyViewRow["statusLabel"], tr: StrategyTr) {
   if (label === "Live Trading") return tr("Live Trading", "实盘交易");
   if (label === "Paper Trading") return tr("Paper Trading", "模拟交易");
   return tr("Not Running", "未运行");
@@ -596,7 +890,7 @@ function MaybeExplainTooltip({
   );
 }
 
-function percentLevel(value: string, tr: (en: string, zh: string) => string, higherIsBetter = true) {
+function percentLevel(value: string, tr: StrategyTr, higherIsBetter = true) {
   const parsed = Math.abs(parsePercent(value));
   if (Number.isNaN(parsed)) return tr("for reference", "仅供参考");
 
@@ -611,7 +905,7 @@ function percentLevel(value: string, tr: (en: string, zh: string) => string, hig
   return tr("high risk", "风险较高");
 }
 
-function sharpeLevel(value: string, tr: (en: string, zh: string) => string) {
+function sharpeLevel(value: string, tr: StrategyTr) {
   const parsed = Number(value);
   if (Number.isNaN(parsed)) return tr("for reference", "仅供参考");
   if (parsed >= 3) return tr("very steady", "非常稳定");
@@ -623,29 +917,57 @@ function sharpeLevel(value: string, tr: (en: string, zh: string) => string) {
 function getMetricExplanation(
   key: MetricKey,
   row: StrategyViewRow,
-  tr: (en: string, zh: string) => string
+  tr: StrategyTr
 ) {
   if (key === "roi") {
+    const level = percentLevel(row.roi, tr);
     return tr(
-      `ROI shows return. ${row.roi} is ${percentLevel(row.roi, tr)}.`,
-      `ROI 表示收益率，${row.roi} 属于${percentLevel(row.roi, tr)}。`
+      `ROI shows return. ${row.roi} is ${level}.`,
+      `ROI 表示收益率，${row.roi} 属于${level}。`,
+      {
+        ja: `ROIは収益率を示します。${row.roi}は${level}です。`,
+        ko: `ROI는 수익률을 나타냅니다. ${row.roi}는 ${level} 수준입니다.`,
+        es: `El ROI muestra la rentabilidad. ${row.roi} se considera ${level}.`,
+        fr: `Le ROI mesure le rendement. ${row.roi} est considere comme ${level}.`,
+      }
     );
   }
   if (key === "winRate") {
+    const level = percentLevel(row.winRate, tr);
     return tr(
-      `Win rate is profitable trades divided by total trades. ${row.winRate} is ${percentLevel(row.winRate, tr)}.`,
-      `盈利交易次数占总交易次数的比例，${row.winRate} 属于${percentLevel(row.winRate, tr)}。`
+      `Win rate is profitable trades divided by total trades. ${row.winRate} is ${level}.`,
+      `盈利交易次数占总交易次数的比例，${row.winRate} 属于${level}。`,
+      {
+        ja: `勝率は利益取引数を総取引数で割った比率です。${row.winRate}は${level}です。`,
+        ko: `승률은 수익 거래 수를 전체 거래 수로 나눈 비율입니다. ${row.winRate}는 ${level} 수준입니다.`,
+        es: `La tasa de acierto divide las operaciones rentables entre el total. ${row.winRate} se considera ${level}.`,
+        fr: `Le taux de reussite rapporte les trades gagnants au total. ${row.winRate} est considere comme ${level}.`,
+      }
     );
   }
   if (key === "sharpe") {
+    const level = sharpeLevel(row.sharpe, tr);
     return tr(
-      `Sharpe measures return stability. ${row.sharpe} is ${sharpeLevel(row.sharpe, tr)}.`,
-      `夏普比率衡量收益稳定性，${row.sharpe} 属于${sharpeLevel(row.sharpe, tr)}。`
+      `Sharpe measures return stability. ${row.sharpe} is ${level}.`,
+      `夏普比率衡量收益稳定性，${row.sharpe} 属于${level}。`,
+      {
+        ja: `Sharpeはリスク調整後リターンの安定性を示します。${row.sharpe}は${level}です。`,
+        ko: `Sharpe는 위험 조정 수익의 안정성을 측정합니다. ${row.sharpe}는 ${level} 수준입니다.`,
+        es: `El Sharpe mide la estabilidad del rendimiento ajustado al riesgo. ${row.sharpe} se considera ${level}.`,
+        fr: `Le Sharpe mesure la stabilite du rendement ajuste du risque. ${row.sharpe} est considere comme ${level}.`,
+      }
     );
   }
+  const level = percentLevel(row.maxDrawdown, tr, false);
   return tr(
-    `Max drawdown is the largest decline. ${row.maxDrawdown} risk is ${percentLevel(row.maxDrawdown, tr, false)}.`,
-    `最大回撤表示期间最大下跌幅度，${row.maxDrawdown} 风险${percentLevel(row.maxDrawdown, tr, false)}。`
+    `Max drawdown is the largest decline. ${row.maxDrawdown} risk is ${level}.`,
+    `最大回撤表示期间最大下跌幅度，${row.maxDrawdown} 风险${level}。`,
+    {
+      ja: `最大ドローダウンは期間中の最大下落幅です。${row.maxDrawdown}のリスクは${level}です。`,
+      ko: `최대 낙폭은 기간 중 가장 큰 하락 폭입니다. ${row.maxDrawdown}의 위험 수준은 ${level}입니다.`,
+      es: `El maximo drawdown es la mayor caida del periodo. El riesgo de ${row.maxDrawdown} es ${level}.`,
+      fr: `Le drawdown maximal est la plus forte baisse de la periode. Le risque de ${row.maxDrawdown} est ${level}.`,
+    }
   );
 }
 
@@ -696,7 +1018,7 @@ function CreateStrategyComposer({
   onClose,
   onCreate,
 }: {
-  tr: (en: string, zh: string) => string;
+  tr: StrategyTr;
   onClose: () => void;
   onCreate: (name: string) => void;
 }) {
@@ -797,12 +1119,7 @@ function CreateStrategyComposer({
         if (selectedFactorIds.length === 0 || !customWeightValid || !layerValueValid) return;
         const createdStrategyName = strategyName.trim() || tr("Untitled strategy", "未命名策略");
         onCreate(createdStrategyName);
-        toast.success(
-          tr(
-            `${createdStrategyName} submitted. Backtesting takes about 3–4 minutes.`,
-            `${createdStrategyName} 已提交，回测预计需要 3–4 分钟。`
-          )
-        );
+        toast.success(formatBacktestSubmitted(createdStrategyName, tr));
         onClose();
       }}
     >
@@ -824,10 +1141,7 @@ function CreateStrategyComposer({
             <Search className="h-3.5 w-3.5" />
             <span>
               {selectedFactorIds.length > 0
-                ? tr(
-                    `${selectedFactorIds.length} factors selected. Click to continue selecting.`,
-                    `已选择 ${selectedFactorIds.length} 个因子，点击继续选择。`
-                  )
+                ? formatFactorSelectionCount(selectedFactorIds.length, tr, true)
                 : tr("Choose factors from official library or my factors.", "点击从官方库或我的因子中选择因子。")}
             </span>
             <span className="oq-strategy-factor-count">
@@ -841,7 +1155,7 @@ function CreateStrategyComposer({
                   key={factor.id}
                   type="button"
                   onClick={() => toggleFactor(factor.id)}
-                  aria-label={tr(`Remove ${factor.name}`, `移除 ${factor.name}`)}
+                  aria-label={formatRemoveFactorLabel(factor.name, tr)}
                 >
                   <span>{factor.name}</span>
                   <X className="h-3 w-3" />
@@ -891,7 +1205,7 @@ function CreateStrategyComposer({
                         [factor.id]: normalizeStrategyWeightInput(event.target.value),
                       }))
                     }
-                    aria-label={tr(`${factor.name} weight`, `${factor.name} 权重`)}
+                    aria-label={formatFactorWeightLabel(factor.name, tr)}
                   />
                 </label>
               ))
@@ -996,10 +1310,7 @@ function CreateStrategyComposer({
             <div>
               <DialogTitle>{tr("Select factors", "选择因子")}</DialogTitle>
               <p>
-                {tr(
-                  `Choose up to ${MAX_STRATEGY_FACTOR_COUNT} factors from the official library or your factors.`,
-                  `从官方库或我的因子中选择，最多 ${MAX_STRATEGY_FACTOR_COUNT} 个。`
-                )}
+                {formatFactorPickerHelp(MAX_STRATEGY_FACTOR_COUNT, tr)}
               </p>
             </div>
           </div>
@@ -1085,7 +1396,7 @@ function CreateStrategyComposer({
             <span>
               {selectedFactorIds.length === 0
                 ? tr("No factors selected", "尚未选择因子")
-                : tr(`${selectedFactorIds.length} factors selected`, `已选择 ${selectedFactorIds.length} 个因子`)}
+                : formatFactorSelectionCount(selectedFactorIds.length, tr)}
             </span>
             <button type="button" onClick={() => setFactorPickerOpen(false)}>
               {tr("Done", "完成")}
@@ -1097,6 +1408,77 @@ function CreateStrategyComposer({
   );
 }
 
+const strategyDescriptionCopy: Record<string, { zh: string; copy: UiCopy }> = {
+  "Cross-Exchange Arb Pro": {
+    zh: "利用主流 CEX 平台间的价格偏差，并结合价差分析与订单簿深度进行套利。",
+    copy: {
+      ja: "主要CEX間の価格差を、スプレッド分析と板の厚みを組み合わせて裁定します。",
+      ko: "주요 CEX 간 가격 괴리를 스프레드 분석과 오더북 깊이를 결합해 차익거래합니다.",
+      es: "Arbitra diferencias de precio entre los principales CEX mediante analisis de spreads y profundidad del libro de ordenes.",
+      fr: "Arbitre les ecarts de prix entre les principaux CEX a l'aide de l'analyse des spreads et de la profondeur du carnet d'ordres.",
+    },
+  },
+  "Stable Yield Optimizer": {
+    zh: "聚焦资金费率套利与基差交易的低风险策略，并通过受控敞口提升收益稳定性。",
+    copy: {
+      ja: "資金調達率アービトラージとベーシス取引に注力し、管理されたエクスポージャーで収益の安定性を高めます。",
+      ko: "펀딩 차익거래와 베이시스 거래에 집중하고 통제된 익스포저로 수익 안정성을 높이는 저위험 전략입니다.",
+      es: "Estrategia de bajo riesgo centrada en arbitraje de funding y basis trading, con exposicion controlada para estabilizar el rendimiento.",
+      fr: "Strategie a faible risque axee sur l'arbitrage du funding et le basis trading, avec une exposition controlee pour stabiliser le rendement.",
+    },
+  },
+  "BTC Alpha Composite": {
+    zh: "结合 RSI 交叉、成交量背离与资金费率信号的多因子动量策略，适用于 BTC 永续合约。",
+    copy: {
+      ja: "RSIクロス、出来高ダイバージェンス、資金調達率シグナルを組み合わせたBTC無期限先物向けマルチファクター・モメンタム戦略です。",
+      ko: "RSI 교차, 거래량 다이버전스, 펀딩 시그널을 결합한 BTC 무기한 선물용 멀티팩터 모멘텀 전략입니다.",
+      es: "Estrategia multifactor de momentum para perpetuos de BTC que combina cruces de RSI, divergencia de volumen y senales de funding.",
+      fr: "Strategie momentum multifactorielle pour les perpetuels BTC combinant croisements RSI, divergence de volume et signaux de funding.",
+    },
+  },
+  "DeFi Yield Hunter": {
+    zh: "从 TVL 资金流、LP 行为和 Gas 费模式中提取 Alpha，覆盖主要 DeFi 协议。",
+    copy: {
+      ja: "主要DeFiプロトコルを対象に、TVLフロー、LP行動、ガス代パターンからAlphaを抽出します。",
+      ko: "주요 DeFi 프로토콜의 TVL 자금 흐름, LP 행동, 가스비 패턴에서 Alpha를 추출합니다.",
+      es: "Extrae alpha de flujos de TVL, comportamiento de LP y patrones de gas en los principales protocolos DeFi.",
+      fr: "Extrait de l'alpha des flux de TVL, du comportement des LP et des schemas de frais de gas sur les principaux protocoles DeFi.",
+    },
+  },
+  "Altcoin Rotation": {
+    zh: "基于动量、巨鲸跟踪与链上指标，在前 50 大山寨币之间进行系统化轮动。",
+    copy: {
+      ja: "モメンタム、クジラ追跡、オンチェーン指標に基づき、上位50のアルトコインを体系的にローテーションします。",
+      ko: "모멘텀, 고래 추적, 온체인 지표를 기반으로 상위 50개 알트코인을 체계적으로 순환합니다.",
+      es: "Rota de forma sistematica entre las 50 principales altcoins usando momentum, seguimiento de ballenas y metricas on-chain.",
+      fr: "Effectue une rotation systematique parmi les 50 principaux altcoins a partir du momentum, du suivi des baleines et de metriques on-chain.",
+    },
+  },
+  "MEV Protection Alpha": {
+    zh: "通过识别并规避 MEV 攻击，同时捕捉具备抗 Sandwich 特征的机会来生成 Alpha。",
+    copy: {
+      ja: "MEV攻撃を検知・回避しつつ、サンドイッチ耐性のある機会を捉えてAlphaを創出します。",
+      ko: "MEV 공격을 식별하고 회피하는 동시에 샌드위치 공격에 강한 기회를 포착해 Alpha를 생성합니다.",
+      es: "Genera alpha identificando y evitando ataques MEV mientras captura oportunidades resistentes a sandwich attacks.",
+      fr: "Genere de l'alpha en identifiant et en evitant les attaques MEV tout en capturant des opportunites resistantes aux sandwich attacks.",
+    },
+  },
+};
+
+function translateStrategyDescription(row: StrategyViewRow, tr: StrategyTr) {
+  const localized = strategyDescriptionCopy[row.name];
+  if (localized) return tr(row.description, localized.zh, localized.copy);
+  if (row.description === "Composite strategy created from selected factors.") {
+    return tr(row.description, "由所选因子创建的复合策略。", {
+      ja: "選択したファクターから作成した複合戦略です。",
+      ko: "선택한 팩터로 생성한 복합 전략입니다.",
+      es: "Estrategia compuesta creada a partir de los factores seleccionados.",
+      fr: "Strategie composite creee a partir des facteurs selectionnes.",
+    });
+  }
+  return row.description;
+}
+
 function StrategyCard({
   row,
   starred,
@@ -1104,7 +1486,7 @@ function StrategyCard({
   onRequestDelete,
   visibleItems,
   plainExplainEnabled,
-  uiLang,
+  tr,
   chartColors,
 }: {
   row: StrategyViewRow;
@@ -1113,29 +1495,10 @@ function StrategyCard({
   onRequestDelete: () => void;
   visibleItems: Record<DisplayItemKey, boolean>;
   plainExplainEnabled: boolean;
-  uiLang: UiLang;
+  tr: StrategyTr;
   chartColors: ChartColorTokens;
 }) {
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
-  const translatedDescription = (() => {
-    if (uiLang !== "zh") return row.description;
-    switch (row.name) {
-      case "Cross-Exchange Arb Pro":
-        return "利用主流 CEX 平台间的价格偏差，并结合价差分析与订单簿深度进行套利。";
-      case "Stable Yield Optimizer":
-        return "聚焦资金费率套利与基差交易的低风险策略，并通过受控敞口提升收益稳定性。";
-      case "BTC Alpha Composite":
-        return "结合 RSI 交叉、成交量背离与资金费率信号的多因子动量策略，适用于 BTC 永续合约。";
-      case "DeFi Yield Hunter":
-        return "从 TVL 资金流、LP 行为和 Gas 费模式中提取 Alpha，覆盖主要 DeFi 协议。";
-      case "Altcoin Rotation":
-        return "基于动量、巨鲸跟踪与链上指标，在前 50 大山寨币之间进行系统化轮动。";
-      case "MEV Protection Alpha":
-        return "通过识别并规避 MEV 攻击，同时捕捉具备抗 Sandwich 特征的机会来生成 Alpha。";
-      default:
-        return row.description;
-    }
-  })();
+  const translatedDescription = translateStrategyDescription(row, tr);
   const metaItems = [
     visibleItems.createdAt ? { label: tr("Created", "创建日期"), value: row.updatedAt } : null,
     visibleItems.id ? { label: "ID", value: row.id } : null,
@@ -1246,7 +1609,7 @@ export default function MyStrategies() {
   const [backtestClock, setBacktestClock] = useState(() => Date.now());
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const tr = makeStrategyTranslator(uiLang);
   const shouldShowPlainExplanations = plainExplainEnabled;
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
 
@@ -1450,7 +1813,7 @@ export default function MyStrategies() {
   const topStats = [
     {
       key: "all" as const,
-      label: "Total",
+      label: tr("Total", "全部策略"),
       value: String(activeStrategyRows.length),
       icon: <List className="h-3.5 w-3.5 text-slate-400" />,
       tone: "text-foreground",
@@ -1458,7 +1821,7 @@ export default function MyStrategies() {
     },
     {
       key: "favorites" as const,
-      label: "My Favorites",
+      label: tr("My Favorites", "我的收藏"),
       value: String(favoriteCount),
       icon: <Star className="h-3.5 w-3.5 text-[#ffb900]" />,
       tone: "text-[#ffb900]",
@@ -1466,7 +1829,7 @@ export default function MyStrategies() {
     },
     {
       key: "trading" as const,
-      label: "Trading",
+      label: tr("Trading", "交易中"),
       value: String(tradingCount),
       icon: <ArrowUpDown className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />,
       tone: "text-indigo-600 dark:text-indigo-400",
@@ -1474,7 +1837,7 @@ export default function MyStrategies() {
     },
     {
       key: "idle" as const,
-      label: "Not Running",
+      label: tr("Not Running", "未运行"),
       value: String(idleCount),
       icon: <Circle className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />,
       tone: "text-slate-600 dark:text-slate-300",
@@ -1497,7 +1860,7 @@ export default function MyStrategies() {
             <div className="oq-strategy-sync-title">{tr("Synced with your Codex agent", "已与 Codex Agent 同步")}</div>
             <div className="oq-strategy-sync-text">{tr("Mine in Codex — alphas land here automatically. Last sync 2 min ago.", "在 Codex 中挖掘，因子会自动流入这里。上次同步 2 分钟前。")}</div>
           </div>
-          <span className="oq-strategy-live-pill"><span />Live</span>
+          <span className="oq-strategy-live-pill"><span />{tr("Live", "实时")}</span>
         </section>
 
         <div className="oq-strategy-controls">
@@ -1539,7 +1902,7 @@ export default function MyStrategies() {
                 <div className="oq-strategy-menu oq-strategy-sort-menu">
                   {(["updated", "sharpe", "rankIc", "maxDd", "turn"] as SortKey[]).map((key) => (
                     <button key={key} type="button" className={sortKey === key ? "is-active" : ""} onClick={() => { sortKey === key ? setSortDesc((prev) => !prev) : setSortKey(key); }}>
-                      <span>{sortLabels[key]}</span>
+                      <span>{getSortLabel(key, tr)}</span>
                       {sortKey === key ? <span>{sortDesc ? "↓" : "↑"}</span> : null}
                     </button>
                   ))}
@@ -1555,7 +1918,7 @@ export default function MyStrategies() {
             <div className="oq-strategy-compare-note">
               <GitCompareArrows className="h-3.5 w-3.5" />
               <span>{tr("Tick rows to compare ·", "勾选行以比较 ·")}</span>
-              <strong>{tr(`${selectedStrategyIds.size} selected`, `已选 ${selectedStrategyIds.size} 个`)}</strong>
+              <strong>{formatStrategySelectionCount(selectedStrategyIds.size, tr)}</strong>
             </div>
           </section>
         </div>
@@ -1563,17 +1926,19 @@ export default function MyStrategies() {
         <section className="oq-strategy-table-card">
           <div className="oq-strategy-table-head oq-strategy-table-grid">
             <div />
-            <div>Strategy</div>
-            <div>Sharpe</div>
-            <div>RankIC</div>
-            <div>MaxDD</div>
-            <div>Turn</div>
-            <div>90-day</div>
-            <div>Status</div>
-            <div>Action</div>
+            <div>{tr("Strategy", "策略")}</div>
+            <div>{tr("Sharpe", "夏普比率")}</div>
+            <div>{tr("RankIC", "RankIC")}</div>
+            <div>{tr("MaxDD", "最大回撤")}</div>
+            <div>{tr("Turn", "换手率")}</div>
+            <div>{tr("90-day", "近 90 日")}</div>
+            <div>{tr("Status", "状态")}</div>
+            <div>{tr("Action", "操作")}</div>
           </div>
           {workbenchRows.map((row, index) => {
             const meta = getWorkbenchMetaForRow(row);
+            const localizedTitle = translateWorkbenchTitle(meta.title, tr);
+            const localizedCategory = translateWorkbenchCategory(meta.category, tr);
             const isSelected = selectedStrategyIds.has(row.id);
             const isPending = meta.status === "pending";
             return (
@@ -1585,12 +1950,12 @@ export default function MyStrategies() {
                   <Link
                     href={`/strategies/${row.id}`}
                     className="oq-strategy-row-link"
-                    aria-label={tr(`View ${meta.title}`, `查看 ${meta.title}`)}
+                    aria-label={formatViewStrategyLabel(localizedTitle, tr)}
                   />
                 ) : null}
                 <div className="oq-strategy-name-cell">
-                  <div>{meta.title}</div>
-                  <span>{meta.category}</span>
+                  <div>{localizedTitle}</div>
+                  <span>{localizedCategory}</span>
                 </div>
                 <div className="oq-strategy-mono is-strong">{meta.sharpe}</div>
                 <div className="oq-strategy-mono">{meta.rankIc}</div>
@@ -1602,7 +1967,7 @@ export default function MyStrategies() {
                   <WorkbenchSparkline values={strategyCardCurveValues.map((value, i) => value + index * 18 + i * (index % 3))} />
                 )}
                 <span className={`oq-strategy-status ${isPending ? "is-pending" : meta.status === "paused" ? "is-paused" : "is-running"}`}>
-                  <span />{isPending ? "Pending" : meta.status === "paused" ? "Paused" : "Running"}
+                  <span />{isPending ? tr("Pending", "回测中") : meta.status === "paused" ? tr("Paused", "已暂停") : tr("Running", "运行中")}
                 </span>
                 <span className={`oq-strategy-view-link ${isPending ? "is-disabled" : ""}`} aria-disabled={isPending || undefined}>
                   {tr("View", "查看")}
@@ -1652,45 +2017,47 @@ export default function MyStrategies() {
             <GitCompareArrows className="h-4 w-4" />
             <div>
               <h2>{tr("Compare strategy", "比较策略")}</h2>
-              <p>{tr(`${selectedCompareRows.length} selected · scroll down to see every stat side-by-side`, `已选 ${selectedCompareRows.length} 个 · 向下查看指标对比`)}</p>
+              <p>{formatCompareSummary(selectedCompareRows.length, tr)}</p>
             </div>
           </div>
           <div className={`oq-strategy-compare-grid ${hasPairComparison ? "" : "is-single"}`}>
             <div className="oq-strategy-compare-label" />
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
+              const localizedTitle = translateWorkbenchTitle(meta.title, tr);
+              const localizedCategory = translateWorkbenchCategory(meta.category, tr);
               return (
                 <div key={row.id} className="oq-strategy-compare-title">
                   <button type="button" onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Remove from compare", "从比较中移除")}>×</button>
                   <span className={index === 0 ? "is-orange" : "is-blue"} />
-                  <strong>{meta.title}</strong>
-                  <small>{meta.category}</small>
+                  <strong>{localizedTitle}</strong>
+                  <small>{localizedCategory}</small>
                 </div>
               );
             })}
-            <div className="oq-strategy-compare-section">Performance</div>
-            <div className="oq-strategy-compare-label">90-day</div>
+            <div className="oq-strategy-compare-section">{tr("Performance", "表现")}</div>
+            <div className="oq-strategy-compare-label">{tr("90-day", "近 90 日")}</div>
             {selectedCompareRows.map((row, index) => <div key={`${row.id}-curve`} className="oq-strategy-compare-cell"><WorkbenchSparkline color={index === 0 ? "#ff7a1a" : "#2a6fdb"} values={strategyCardCurveValues.map((value, i) => value + index * 220 + i * 4)} /></div>)}
-            <div className="oq-strategy-compare-label">CS Sharpe</div>
+            <div className="oq-strategy-compare-label">{tr("CS Sharpe", "截面夏普比率")}</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-sharpe`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong>{meta.sharpe}</strong>{hasPairComparison && index === 0 ? <small>Best</small> : null}</div>;
+              return <div key={`${row.id}-sharpe`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong>{meta.sharpe}</strong>{hasPairComparison && index === 0 ? <small>{tr("Best", "最佳")}</small> : null}</div>;
             })}
-            <div className="oq-strategy-compare-label">RankIC</div>
+            <div className="oq-strategy-compare-label">{tr("RankIC", "RankIC")}</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-rankic`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 1 ? "is-best" : ""}`}><strong>{meta.rankIc}</strong>{hasPairComparison && index === 1 ? <small>Best</small> : null}</div>;
+              return <div key={`${row.id}-rankic`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 1 ? "is-best" : ""}`}><strong>{meta.rankIc}</strong>{hasPairComparison && index === 1 ? <small>{tr("Best", "最佳")}</small> : null}</div>;
             })}
-            <div className="oq-strategy-compare-section">{`Risk & details`}</div>
-            <div className="oq-strategy-compare-label">Max drawdown</div>
+            <div className="oq-strategy-compare-section">{tr("Risk & details", "风险与详情")}</div>
+            <div className="oq-strategy-compare-label">{tr("Max drawdown", "最大回撤")}</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-dd`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong className="is-risk">{meta.maxDd}</strong>{hasPairComparison && index === 0 ? <small>Lowest</small> : null}</div>;
+              return <div key={`${row.id}-dd`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong className="is-risk">{meta.maxDd}</strong>{hasPairComparison && index === 0 ? <small>{tr("Lowest", "最低")}</small> : null}</div>;
             })}
-            <div className="oq-strategy-compare-label">Turnover</div>
+            <div className="oq-strategy-compare-label">{tr("Turnover", "换手率")}</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-turn`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong>{meta.turn}</strong>{hasPairComparison && index === 0 ? <small>Lowest</small> : null}</div>;
+              return <div key={`${row.id}-turn`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong>{meta.turn}</strong>{hasPairComparison && index === 0 ? <small>{tr("Lowest", "最低")}</small> : null}</div>;
             })}
           </div>
         </section>
@@ -1717,9 +2084,7 @@ export default function MyStrategies() {
             </div>
             <div className="px-5 py-4">
               <p className="text-sm leading-6 text-foreground">
-                {pendingDeleteStrategy?.name
-                  ? tr(`Confirm deleting ${pendingDeleteStrategy.name} (${pendingDeleteStrategy.id})? This action cannot be undone.`, `确认删除 ${pendingDeleteStrategy.name}（${pendingDeleteStrategy.id}）？删除后无法恢复。`)
-                  : tr("Confirm deleting this strategy? This action cannot be undone.", "确认删除该策略？删除后无法恢复。")}
+                {formatDeleteConfirmation(pendingDeleteStrategy, tr)}
               </p>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-border/60 px-5 py-4">
@@ -1899,7 +2264,7 @@ export default function MyStrategies() {
                 viewMode === "list" ? "bg-primary/12 text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
               onClick={() => setViewMode("list")}
-              aria-label="List view"
+              aria-label={tr("List view", "列表视图")}
             >
               <Columns3 className="h-3.5 w-3.5" />
             </button>
@@ -1909,7 +2274,7 @@ export default function MyStrategies() {
                 viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
               onClick={() => setViewMode("grid")}
-              aria-label="Grid view"
+              aria-label={tr("Grid view", "网格视图")}
             >
               <Grid2x2 className="h-3.5 w-3.5" />
             </button>
@@ -1935,7 +2300,7 @@ export default function MyStrategies() {
               onRequestDelete={() => requestDeleteStrategy(row)}
               visibleItems={visibleItems}
               plainExplainEnabled={shouldShowPlainExplanations}
-              uiLang={uiLang}
+              tr={tr}
               chartColors={chartColors}
             />
           ))}
@@ -1999,6 +2364,7 @@ export default function MyStrategies() {
                           values={strategyCardCurveValues}
                           upColor={chartColors.upHex}
                           downColor={chartColors.downHex}
+                          label={tr("Asset Curve", "资产曲线")}
                         />
                       </div>
                     </td>
@@ -2070,7 +2436,12 @@ export default function MyStrategies() {
           <div className="flex items-center justify-between border-t border-border/60 bg-card/40 px-6 py-4">
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
               <span className="font-mono tabular-nums">
-                {sorted.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, sorted.length)} of {sorted.length}
+                {formatPageSummary(
+                  sorted.length === 0 ? 0 : (page - 1) * pageSize + 1,
+                  Math.min(page * pageSize, sorted.length),
+                  sorted.length,
+                  tr
+                )}
               </span>
               <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-1.5">
@@ -2100,6 +2471,7 @@ export default function MyStrategies() {
                 variant="outline"
                 size="sm"
                 className="h-7 w-7 rounded-lg border-border p-0"
+                aria-label={tr("First page", "第一页")}
                 disabled={page <= 1}
                 onClick={() => setPage(1)}
               >
@@ -2109,6 +2481,7 @@ export default function MyStrategies() {
                 variant="outline"
                 size="sm"
                 className="h-7 w-7 rounded-lg border-border p-0"
+                aria-label={tr("Previous page", "上一页")}
                 disabled={page <= 1}
                 onClick={() => setPage((prev) => prev - 1)}
               >
@@ -2131,6 +2504,7 @@ export default function MyStrategies() {
                 variant="outline"
                 size="sm"
                 className="h-7 w-7 rounded-lg border-border p-0"
+                aria-label={tr("Next page", "下一页")}
                 disabled={page >= totalPages}
                 onClick={() => setPage((prev) => prev + 1)}
               >
@@ -2140,6 +2514,7 @@ export default function MyStrategies() {
                 variant="outline"
                 size="sm"
                 className="h-7 w-7 rounded-lg border-border p-0"
+                aria-label={tr("Last page", "最后一页")}
                 disabled={page >= totalPages}
                 onClick={() => setPage(totalPages)}
               >
@@ -2156,12 +2531,7 @@ export default function MyStrategies() {
           </div>
           <div className="px-5 py-4">
             <p className="text-sm leading-6 text-foreground">
-              {pendingDeleteStrategy?.name
-                ? tr(
-                    `Confirm deleting ${pendingDeleteStrategy.name} (${pendingDeleteStrategy.id})? This action cannot be undone.`,
-                    `确认删除 ${pendingDeleteStrategy.name}（${pendingDeleteStrategy.id}）？删除后无法恢复。`
-                  )
-                : tr("Confirm deleting this strategy? This action cannot be undone.", "确认删除该策略？删除后无法恢复。")}
+              {formatDeleteConfirmation(pendingDeleteStrategy, tr)}
             </p>
           </div>
           <div className="flex items-center justify-end gap-2 border-t border-border/60 px-5 py-4">

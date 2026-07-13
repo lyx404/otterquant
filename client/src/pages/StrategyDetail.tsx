@@ -81,7 +81,7 @@ const strategyDetailCopy: Record<string, UiCopy> = {
   "Paper Deploy": { ja: "Paper デプロイ", ko: "모의 배포", es: "Desplegar paper", fr: "Déployer paper" },
   "View Live": { ja: "Live を表示", ko: "실거래 보기", es: "Ver live", fr: "Voir live" },
   "Live Deploy": { ja: "Live デプロイ", ko: "실거래 배포", es: "Desplegar live", fr: "Déployer live" },
-  Sharpe: { ja: "Sharpe", ko: "Sharpe", es: "Sharpe", fr: "Sharpe" },
+  "Sharpe Ratio": { ja: "シャープレシオ", ko: "샤프 비율", es: "Ratio de Sharpe", fr: "Ratio de Sharpe" },
   "Max DD": { ja: "最大 DD", ko: "최대 DD", es: "Máx. DD", fr: "DD max" },
   "Hit Rate": { ja: "ヒット率", ko: "적중률", es: "Tasa de acierto", fr: "Taux de réussite" },
   Turnover: { ja: "売買回転率", ko: "회전율", es: "Rotación", fr: "Turnover" },
@@ -500,11 +500,10 @@ export default function StrategyDetail() {
 
   const reportHeaderMetrics: ReportMetric[] = [
     {
-      label: tr("Sharpe", "夏普"),
+      label: tr("Sharpe Ratio", "夏普比率"),
       value: strategy.sharpe.toFixed(3),
       tone: strategy.sharpe >= 1.5 ? "good" : "muted",
     },
-    { label: "IC", value: "—", tone: "muted" },
     {
       label: tr("Max DD", "最大回撤"),
       value: `${Math.abs(drawdownPct).toFixed(1)}%`,

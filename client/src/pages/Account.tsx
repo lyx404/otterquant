@@ -175,10 +175,8 @@ function ChartColorPreview({ mode }: { mode: ChartColorMode }) {
   );
 }
 
-const SHOW_ACCOUNT_WORKBENCH_260712 = false;
-
 export default function Account() {
-  return SHOW_ACCOUNT_WORKBENCH_260712 ? <AccountWorkbench260712 /> : null;
+  return <AccountWorkbench260712 />;
 }
 
 function AccountWorkbench260712() {
@@ -563,19 +561,19 @@ function AccountWorkbench260712() {
             <div className="px-6 pb-6 pt-5 space-y-3">
               <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
                 <div>
-                  <div className="text-sm font-medium text-foreground">{tr("Signals Notifications", "信号通知")}</div>
+                  <div className="text-sm font-medium text-foreground">{tr("Interaction Messages", "互动消息")}</div>
                   <div className="text-xs text-muted-foreground">{tr("Get notified about signal status changes, test results, and performance updates", "接收信号状态变化、回测结果与绩效更新通知")}</div>
                 </div>
                 <button
                   className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${alphasNotify ? "bg-primary" : "bg-muted"}`}
-                  onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? tr("Signals notifications disabled", "已关闭信号通知") : tr("Signals notifications enabled", "已开启信号通知")); }}
+                  onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? tr("Interaction messages disabled", "已关闭互动消息") : tr("Interaction messages enabled", "已开启互动消息")); }}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
               <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
                 <div className="pr-6">
-                  <div className="text-sm font-medium text-foreground">{tr("System Messages", "系统消息")}</div>
+                  <div className="text-sm font-medium text-foreground">{tr("Announcements", "公告")}</div>
                   <div className="text-xs text-muted-foreground">
                     {tr(
                       "Get notified about skill updates, new skills, deprecations, platform announcements, maintenance, and Official Library expansion.",
@@ -585,7 +583,7 @@ function AccountWorkbench260712() {
                 </div>
                 <button
                   className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${systemNotify ? "bg-primary" : "bg-muted"}`}
-                  onClick={() => { setSystemNotify(!systemNotify); toast.success(systemNotify ? tr("System messages disabled", "已关闭系统消息") : tr("System messages enabled", "已开启系统消息")); }}
+                  onClick={() => { setSystemNotify(!systemNotify); toast.success(systemNotify ? tr("Announcements disabled", "已关闭公告") : tr("Announcements enabled", "已开启公告")); }}
                 >
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${systemNotify ? "translate-x-5" : "translate-x-0"}`} />
                 </button>

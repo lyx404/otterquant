@@ -4,8 +4,21 @@ export type ChartTooltipRow = {
   label: string;
   value: string;
   color?: string;
+  mark?: "dot" | "cross";
   active?: boolean;
 };
+
+function ChartSeriesMark({ color, mark = "dot" }: { color: string; mark?: "dot" | "cross" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={mark === "cross" ? "oq-report-cross-mark" : "oq-report-legend-dot"}
+      style={{ color, background: mark === "dot" ? color : undefined }}
+    >
+      {mark === "cross" ? "x" : null}
+    </span>
+  );
+}
 
 export function ChartCard({
   title,
@@ -59,15 +72,7 @@ export function ChartLegendItem({
 }) {
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className={
-          mark === "cross" ? "oq-report-cross-mark" : "oq-report-legend-dot"
-        }
-        style={{ color, background: mark === "dot" ? color : undefined }}
-      >
-        {mark === "cross" ? "x" : null}
-      </span>
+      <ChartSeriesMark color={color} mark={mark} />
       <span>{label}</span>
     </>
   );
@@ -120,7 +125,7 @@ export function ChartTooltip({
             key={`${row.label}-${index}`}
           >
             <span className="oq-dense-tooltip-label">
-              {row.color ? <i style={{ background: row.color }} /> : null}
+              {row.color ? <ChartSeriesMark color={row.color} mark={row.mark} /> : null}
               <span>{row.label}</span>
             </span>
             <strong>{row.value || "--"}</strong>
