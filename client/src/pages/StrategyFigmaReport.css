@@ -2338,6 +2338,7 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-position-table article:last-child {
   border-bottom: 0;
+  margin-bottom: var(--chart-space-1, 4px);
 }
 
 .oq-position-table article:hover {

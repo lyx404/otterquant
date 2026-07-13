@@ -1562,12 +1562,39 @@ function DenseLines({
     symbol: string;
   } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [responsiveViewBox, setResponsiveViewBox] = useState<{ width: number; height: number } | null>(null);
   const isDecileReturn = variant === "decile";
   const isBarraStyleReturn = variant === "barra-style";
   const isAutocorrDecay = variant === "autocorr-decay";
   const isBarraCorrelation = variant === "barra-correlation";
   const isTurnoverRate = variant === "turnover-rate";
   const isReturnChart = isDecileReturn || isBarraStyleReturn || isAutocorrDecay || isBarraCorrelation || isTurnoverRate;
+  useEffect(() => {
+    const node = svgRef.current;
+    if (!node || !isReturnChart || typeof ResizeObserver === "undefined") return;
+
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rect = node.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const next = { width: Math.round(rect.width), height: Math.round(rect.height) };
+        setResponsiveViewBox(current =>
+          current?.width === next.width && current.height === next.height ? current : next,
+        );
+      });
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    measure();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [isReturnChart]);
   const returnDomain = isAutocorrDecay
     ? autocorrDecayDomain
     : isTurnoverRate
@@ -1593,18 +1620,22 @@ function DenseLines({
               : Math.min(count, count > 20 ? 18 : count);
   const isSmallMultiple = compact || count <= 12;
   const isNarrowSymbolChart = useContainerNarrow(chartRef, 560, isSymbolCumulative);
-  const viewBox = {
-    width: isNarrowSymbolChart ? 560 : isSmallMultiple ? 720 : 1000,
-    height,
-  };
+  const viewBox = responsiveViewBox && isReturnChart
+    ? responsiveViewBox
+    : {
+        width: isNarrowSymbolChart ? 560 : isSmallMultiple ? 720 : 1000,
+        height,
+      };
   const usesFilledReturnFrame = isDecileReturn || isBarraStyleReturn;
   const margin = usesFilledReturnFrame
     ? { top: 8, right: 36, bottom: 18, left: 44 }
-    : compact
-      ? { top: 20, right: 20, bottom: 40, left: 56 }
-      : isSmallMultiple
-        ? { top: 24, right: 24, bottom: 44, left: 56 }
-        : { top: 24, right: 24, bottom: 44, left: 60 };
+    : isSymbolCumulative
+      ? { top: 6, right: 24, bottom: 24, left: 60 }
+      : compact
+        ? { top: 20, right: 20, bottom: 40, left: 56 }
+        : isSmallMultiple
+          ? { top: 24, right: 24, bottom: 44, left: 56 }
+          : { top: 24, right: 24, bottom: 44, left: 60 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
   const pointCount = isAutocorrDecay ? autocorrDecayLagLabels.length : isTurnoverRate ? densePointCount : isReturnChart ? 120 : isSymbolCumulative ? densePointCount : 70;
@@ -1955,6 +1986,7 @@ function DenseLines({
         </div>
       ) : null}
       <svg
+        ref={svgRef}
         className="oq-dense-lines"
         viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"
@@ -2013,7 +2045,7 @@ function DenseLines({
           {xTickIndexes.map(pointIndex => {
             const x = margin.left + (pointIndex / Math.max(1, pointCount - 1)) * plotWidth;
             return (
-              <text key={pointIndex} x={x} y={usesFilledReturnFrame ? viewBox.height - 6 : viewBox.height - 18} textAnchor="middle">
+              <text key={pointIndex} x={x} y={isSymbolCumulative ? viewBox.height : isReturnChart ? viewBox.height - 3 : viewBox.height - 18} textAnchor="middle">
                 {isSymbolCumulative || isReturnChart ? dateTickLabels[xTickIndexes.findIndex(index => index === pointIndex)] : formatPortfolioPeriod(pointIndex, pointCount)}
               </text>
             );
@@ -2352,7 +2384,7 @@ function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; ro
               {xTickIndexes.map((pointIndex, tickIndex) => {
                 const x = margin.left + (pointIndex / Math.max(1, densePointCount - 1)) * plotWidth;
                 return (
-                  <text key={pointIndex} x={x} y={viewBox.height - 6} textAnchor="middle">
+                  <text key={pointIndex} x={x} y={viewBox.height - 3} textAnchor="middle">
                     {denseSymbolDateTicks[tickIndex]}
                   </text>
                 );
@@ -2445,7 +2477,34 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
     y: number;
   } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
-  const viewBox = { width: 720, height: 250 };
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [responsiveViewBox, setResponsiveViewBox] = useState<{ width: number; height: number } | null>(null);
+  useEffect(() => {
+    const node = svgRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+
+    let frame = 0;
+    const measure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rect = node.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const next = { width: Math.round(rect.width), height: Math.round(rect.height) };
+        setResponsiveViewBox(current =>
+          current?.width === next.width && current.height === next.height ? current : next,
+        );
+      });
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    measure();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, []);
+  const viewBox = responsiveViewBox ?? { width: 720, height: 250 };
   const margin = { top: 16, right: 18, bottom: 54, left: 56 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
@@ -2522,6 +2581,7 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
         <ChartLegendItem color="#d64550" label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleBarraSide("short")} />
       </div>
       <svg
+        ref={svgRef}
         className="oq-barra-exposure-svg"
         viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
         preserveAspectRatio="xMidYMid meet"
@@ -2614,6 +2674,10 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
 
 function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
   const [activeTab, setActiveTab] = useState("decile");
+  const switchRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (switchRef.current) switchRef.current.scrollLeft = 0;
+  }, []);
   const tabs = [
     {
       key: "decile",
@@ -2652,7 +2716,7 @@ function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
         title={tReport(tr, "CS Attribution Overview", "截面归因概览")}
         className="is-attribution"
         headerActions={
-          <TabsList className="oq-attribution-switch" aria-label={tReport(tr, "Switch attribution chart", "切换归因图表")}>
+          <TabsList ref={switchRef} className="oq-attribution-switch" aria-label={tReport(tr, "Switch attribution chart", "切换归因图表")}>
             {tabs.map(tab => (
               <TabsTrigger key={tab.key} value={tab.key}>
                 {tab.label}
