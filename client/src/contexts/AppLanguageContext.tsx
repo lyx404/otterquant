@@ -3,6 +3,9 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from "
 export type UiLang = "en" | "zh" | "ja" | "ko" | "es" | "fr";
 export type UiCopy = Partial<Record<UiLang, string>>;
 
+const LANGUAGE_DEFAULTS_VERSION = "2";
+const LANGUAGE_DEFAULTS_VERSION_KEY = "otter_language_defaults_version";
+
 interface AppLanguageContextType {
   uiLang: UiLang;
   setUiLang: (lang: UiLang) => void;
@@ -32,6 +35,14 @@ export function AppLanguageProvider({ children }: { children: React.ReactNode })
       document.documentElement.lang = documentLangMap[uiLang];
     }
   }, [uiLang]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (localStorage.getItem(LANGUAGE_DEFAULTS_VERSION_KEY) === LANGUAGE_DEFAULTS_VERSION) return;
+
+    localStorage.setItem(LANGUAGE_DEFAULTS_VERSION_KEY, LANGUAGE_DEFAULTS_VERSION);
+    setUiLang("zh");
+  }, []);
 
   const value = useMemo(() => ({ uiLang, setUiLang }), [uiLang]);
 

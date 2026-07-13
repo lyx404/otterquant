@@ -3,6 +3,9 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 type Theme = "light" | "dark";
 type ThemePreference = Theme | "system";
 
+const THEME_DEFAULTS_VERSION = "2";
+const THEME_DEFAULTS_VERSION_KEY = "otter_theme_defaults_version";
+
 interface ThemeContextType {
   theme: Theme;
   themePreference: ThemePreference;
@@ -71,6 +74,14 @@ export function ThemeProvider({
       localStorage.setItem("theme", themePreference);
     }
   }, [themePreference, switchable]);
+
+  useEffect(() => {
+    if (!switchable || typeof window === "undefined") return;
+    if (localStorage.getItem(THEME_DEFAULTS_VERSION_KEY) === THEME_DEFAULTS_VERSION) return;
+
+    localStorage.setItem(THEME_DEFAULTS_VERSION_KEY, THEME_DEFAULTS_VERSION);
+    setThemePreference(defaultTheme);
+  }, [defaultTheme, switchable]);
 
   const toggleTheme = switchable
     ? () => {
