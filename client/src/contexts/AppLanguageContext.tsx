@@ -21,9 +21,9 @@ const documentLangMap: Record<UiLang, string> = {
 
 export function AppLanguageProvider({ children }: { children: React.ReactNode }) {
   const [uiLang, setUiLang] = useState<UiLang>(() => {
-    if (typeof window === "undefined") return "en";
+    if (typeof window === "undefined") return "zh";
     const stored = localStorage.getItem("otter_ui_lang");
-    return supportedLangs.includes(stored as UiLang) ? (stored as UiLang) : "en";
+    return supportedLangs.includes(stored as UiLang) ? (stored as UiLang) : "zh";
   });
 
   useEffect(() => {
