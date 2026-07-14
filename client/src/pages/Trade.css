@@ -38,213 +38,248 @@
 
 .oq-trade-metric-card {
   display: grid;
-  min-height: 132px;
-  align-content: space-between;
-  border: 1px solid var(--qt-border);
-  border-radius: 13.5px;
+  height: 72px;
+  min-height: 72px;
+  align-content: center;
+  gap: 4px;
+  border: 0.75px solid var(--qt-border);
+  border-radius: 12px;
   background: var(--qt-bg);
-  padding: 18px;
+  padding: 8px 18px;
   box-shadow: var(--qt-shadow-3);
   transition:
     border-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
-    box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1),
-    transform 180ms cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .oq-trade-metric-card:hover {
   border-color: var(--qt-border-strong);
   box-shadow: var(--qt-shadow-4);
-  transform: translateY(-1px);
 }
 
 .oq-trade-metric-label {
-  display: flex;
   min-width: 0;
-  align-items: center;
-  gap: 7.5px;
-  color: var(--qt-muted);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 14px;
-}
-
-.oq-trade-metric-label svg,
-.oq-trade-section-title svg {
-  color: var(--qt-accent);
-}
-
-.oq-trade-metric-value {
-  margin: 12px 0 0;
-  color: var(--qt-text);
-  font-family: var(--font-heading);
-  font-size: 22.5px;
-  font-weight: 700;
-  line-height: 36px;
-  letter-spacing: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.oq-trade-metric-note {
-  margin: 6px 0 0;
   color: var(--qt-muted);
   font-size: 10px;
   font-weight: 500;
   line-height: 14px;
 }
 
+.oq-trade-metric-value {
+  margin: 0;
+  color: var(--qt-text);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 30px;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 .oq-trade-section {
   overflow: hidden;
-  border: 1px solid var(--qt-border);
-  border-radius: 13.5px;
+  border: 0.75px solid var(--qt-border);
+  border-radius: 12px;
   background: var(--qt-bg);
   box-shadow: var(--qt-shadow-3);
 }
 
-.oq-trade-section-header {
+.oq-trade-filter-row {
   display: flex;
   min-width: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 20px 24px 0;
-}
-
-.oq-trade-section-title {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 9px;
-  color: var(--qt-text);
-  font-family: var(--font-heading);
-  font-size: 19.5px;
-  font-weight: 700;
-  line-height: 27px;
+  justify-content: flex-start;
 }
 
 .oq-trade-filter {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
-  gap: 3px;
-  border: 1px solid var(--qt-border);
-  border-radius: 37.5px;
-  background: var(--qt-bg);
-  padding: 3px;
-  box-shadow: var(--qt-shadow-1);
+  gap: 6px;
+  overflow-x: auto;
 }
 
 .oq-trade-filter-button {
   display: inline-flex;
-  min-height: 27px;
+  height: 26px;
+  min-height: 26px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 37.5px;
-  padding: 0 12px;
-  color: var(--qt-muted-strong);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
+  gap: 6px;
+  border: 0.75px solid var(--qt-border);
+  border-radius: 999px;
+  background: var(--qt-bg);
+  padding: 0 10px;
+  color: var(--qt-text-soft);
+  font-size: 9.5px;
+  font-weight: 600;
+  line-height: 12px;
   transition:
     background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
     border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
     color 160ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.oq-trade-filter-button:hover,
-.oq-trade-filter-button.is-active {
-  border-color: rgba(220, 73, 0, 0.18);
+.oq-trade-filter-button:hover:not(.is-active) {
+  border-color: var(--qt-border-strong);
   background: var(--qt-bg-warm);
-  color: var(--qt-accent);
+}
+
+.oq-trade-filter-button.is-active {
+  border-color: var(--qt-text);
+  background: var(--qt-text);
+  color: var(--qt-bg);
+}
+
+.oq-trade-filter-count {
+  display: inline-flex;
+  min-width: 16px;
+  height: 12px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--qt-surface);
+  padding: 0 4px;
+  color: var(--qt-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-trade-filter-button.is-active .oq-trade-filter-count {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--qt-bg);
+}
+
+.oq-trade-filter-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--qt-accent) 28%, transparent);
+  outline-offset: 2px;
+}
+
+.oq-trade-table-scroll {
+  --oq-trade-table-columns: minmax(230px, 1fr) 96px 90px 64px 86px 126px 150px;
+  overflow-x: auto;
+}
+
+.oq-trade-table-grid {
+  display: grid;
+  grid-template-columns: var(--oq-trade-table-columns);
+  align-items: center;
+  padding-inline: 16px;
+}
+
+.oq-trade-table-head {
+  min-height: 34px;
+  border-bottom: 0.75px solid var(--qt-border);
+  color: var(--qt-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 12px;
 }
 
 .oq-trade-bot-list {
-  display: grid;
-  gap: 9px;
-  padding: 20px 24px 24px;
+  display: block;
 }
 
 .oq-trade-bot-row {
-  border: 1px solid var(--qt-border);
-  border-radius: 13.5px;
-  background: var(--qt-bg-soft);
+  position: relative;
+  display: grid;
+  min-height: 64px;
+  grid-template-columns: var(--oq-trade-table-columns);
+  align-items: center;
+  border-bottom: 0.75px solid var(--qt-border);
+  background: var(--qt-bg);
+  padding-inline: 16px;
   transition:
     background-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
-    border-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
-    box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1),
-    transform 180ms cubic-bezier(0.25, 1, 0.5, 1);
+    box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-trade-bot-row:last-child {
+  border-bottom: 0;
 }
 
 .oq-trade-bot-row:hover,
 .oq-trade-bot-row.is-focused {
-  border-color: rgba(220, 73, 0, 0.28);
-  background: var(--qt-bg-warm);
-  box-shadow: var(--qt-shadow-1);
-  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--qt-bg-soft) 72%, var(--qt-bg));
 }
 
 .oq-trade-bot-row.is-focused {
   animation: oq-trade-focus 1.2s cubic-bezier(0.25, 1, 0.5, 1) both;
 }
 
-.oq-trade-bot-main {
+.oq-trade-row-link {
   display: grid;
-  grid-template-columns: minmax(210px, 1fr) minmax(320px, 1.35fr) auto;
+  min-width: 0;
+  min-height: 64px;
+  grid-column: 1 / span 6;
+  grid-template-columns: subgrid;
   align-items: center;
-  gap: 18px;
-  padding: 16px 18px;
+  color: inherit;
+  outline: none;
+}
+
+.oq-trade-row-link:focus-visible {
+  box-shadow: inset 0 0 0 2px
+    color-mix(in srgb, var(--qt-accent) 36%, transparent);
 }
 
 .oq-trade-bot-identity {
+  display: grid;
   min-width: 0;
-}
-
-.oq-trade-bot-heading {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 7.5px;
+  gap: 2px;
 }
 
 .oq-trade-bot-title {
+  display: block;
   min-width: 0;
-  cursor: pointer;
   overflow: hidden;
   color: var(--qt-text);
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 700;
-  line-height: 18px;
+  line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
   transition: color 160ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.oq-trade-bot-title:hover {
+.oq-trade-row-link:hover .oq-trade-bot-title {
   color: var(--qt-accent);
 }
 
 .oq-trade-status {
   display: inline-flex;
+  width: max-content;
+  min-height: 20px;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
-  border-radius: 37.5px;
-  padding: 3px 7.5px;
-  font-size: 8px;
-  font-weight: 700;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 8.5px;
+  font-weight: 600;
   line-height: 12px;
 }
 
+.oq-trade-status > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
 .oq-trade-status.is-running {
-  border-color: rgba(31, 138, 91, 0.22);
   background: var(--qt-success-bg);
   color: var(--qt-success);
 }
 
 .oq-trade-status.is-paused {
-  border-color: rgba(204, 124, 10, 0.22);
-  background: var(--qt-warning-bg);
-  color: var(--qt-warning);
+  background: var(--qt-surface);
+  color: var(--qt-muted-strong);
 }
 
 .oq-trade-bot-meta,
@@ -256,48 +291,27 @@
 }
 
 .oq-trade-bot-meta {
-  margin-top: 5px;
-  font-size: 10px;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8px;
   font-weight: 500;
-  line-height: 14px;
+  line-height: 12px;
 }
 
 .oq-trade-bot-updated {
-  margin-top: 12px;
-  font-size: 9px;
-  line-height: 12px;
-}
-
-.oq-trade-bot-metrics {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px 18px;
-  border-inline-start: 1px solid var(--qt-border);
-  padding-inline-start: 18px;
-}
-
-.oq-trade-bot-metric {
-  min-width: 0;
-}
-
-.oq-trade-bot-metric-label {
-  overflow: hidden;
-  color: var(--qt-muted);
-  font-size: 8px;
-  font-weight: 600;
-  line-height: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8.5px;
+  font-weight: 500;
+  line-height: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
 .oq-trade-bot-metric-value {
-  margin-top: 5px;
   overflow: hidden;
-  color: var(--qt-text);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 18px;
+  color: var(--qt-text-soft);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -305,25 +319,26 @@
 
 .oq-trade-actions {
   display: flex;
+  grid-column: 7;
   align-items: center;
   justify-content: flex-end;
-  gap: 7.5px;
+  gap: 4px;
 }
 
 .oq-trade-button,
 .oq-trade-dialog-button {
   display: inline-flex;
-  min-height: 32px;
+  min-height: 27px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   border-color: var(--qt-border) !important;
   border-radius: 37.5px !important;
   background: var(--qt-bg) !important;
-  padding: 0 12px !important;
+  padding: 0 9px !important;
   color: var(--qt-text-soft) !important;
-  font-size: 10px !important;
-  font-weight: 700 !important;
+  font-size: 8.5px !important;
+  font-weight: 600 !important;
   line-height: 14px !important;
   box-shadow: var(--qt-shadow-1);
   transition:
@@ -425,6 +440,14 @@
   gap: 9px !important;
 }
 
+.oq-trade-dialog-button {
+  min-height: 32px;
+  gap: 6px;
+  padding: 0 12px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+
 .oq-trade-dialog-button.is-primary {
   border-color: rgba(220, 73, 0, 0.2) !important;
   background: var(--qt-accent) !important;
@@ -440,7 +463,9 @@
 .oq-trade :is(button, a):focus-visible,
 .oq-trade-dialog :is(button, a):focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(220, 73, 0, 0.28), var(--qt-shadow-1);
+  box-shadow:
+    0 0 0 2px rgba(220, 73, 0, 0.28),
+    var(--qt-shadow-1);
 }
 
 @keyframes oq-trade-focus {
@@ -457,22 +482,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .oq-trade-bot-main {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
+  .oq-trade-table-grid {
+    min-width: 830px;
   }
 
-  .oq-trade-bot-metrics {
-    border-block-start: 1px solid var(--qt-border);
-    border-inline-start: 0;
-    padding-block-start: 16px;
-    padding-inline-start: 0;
-  }
-
-  .oq-trade-actions {
-    justify-content: flex-start;
-    border-block-start: 1px solid var(--qt-border);
-    padding-block-start: 16px;
+  .oq-trade-bot-row {
+    min-width: 830px;
   }
 }
 
@@ -486,50 +501,27 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .oq-trade-section-header {
-    align-items: stretch;
-    flex-direction: column;
-    padding: 18px 16px 0;
-  }
-
   .oq-trade-filter {
     width: 100%;
-    overflow-x: auto;
   }
 
   .oq-trade-filter-button {
     min-height: 36px;
-    flex: 1;
     min-width: max-content;
   }
 
-  .oq-trade-bot-list {
-    padding: 18px 16px 18px;
-  }
-
-  .oq-trade-bot-main {
-    padding: 16px;
-  }
-
-  .oq-trade-bot-metrics {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .oq-trade-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .oq-trade-actions > a,
-  .oq-trade-actions .oq-trade-button,
-  .oq-trade-dialog-button {
-    width: 100%;
-    min-height: 44px;
+  .oq-trade-actions .oq-trade-button {
+    min-height: 36px;
   }
 
   .oq-trade-dialog {
     width: calc(100vw - 24px) !important;
     padding: 18px 16px !important;
+  }
+
+  .oq-trade-dialog-button {
+    width: 100%;
+    min-height: 44px;
   }
 }
 

@@ -80,6 +80,13 @@ const pageHeaders = [
     subtitleZh: "构建与监控策略工作流",
   },
   {
+    match: (path: string) => /^\/trade\/[^/]+$/.test(path),
+    titleEn: "Trade Detail",
+    titleZh: "交易详情",
+    subtitleEn: "Monitor executions and trading status",
+    subtitleZh: "监控执行与交易状态",
+  },
+  {
     match: (path: string) => path.startsWith("/trade"),
     titleEn: "Trade",
     titleZh: "交易",
@@ -110,6 +117,7 @@ const sidebarCopy: Record<string, UiCopy> = {
   Subscription: { ja: "サブスクリプション", ko: "구독", es: "Suscripción", fr: "Abonnement" },
   Settings: { ja: "設定", ko: "설정", es: "Configuración", fr: "Paramètres" },
   "Strategy Detail": { ja: "ストラテジー詳細", ko: "전략 상세", es: "Detalle de estrategia", fr: "Détail de la stratégie" },
+  "Trade Detail": { ja: "取引詳細", ko: "거래 상세", es: "Detalle de operación", fr: "Détail de la transaction" },
   "Build and monitor strategy workflows": {
     ja: "ストラテジーワークフローを構築・監視",
     ko: "전략 워크플로를 구축하고 모니터링",
@@ -148,13 +156,6 @@ const sidebarCopy: Record<string, UiCopy> = {
   },
   "Back to strategies": { ja: "ストラテジー一覧に戻る", ko: "전략 목록으로 돌아가기", es: "Volver a estrategias", fr: "Retour aux stratégies" },
   Back: { ja: "戻る", ko: "뒤로", es: "Atrás", fr: "Retour" },
-  Search: { ja: "検索", ko: "검색", es: "Buscar", fr: "Rechercher" },
-  "Search factors, traders...": {
-    ja: "ファクター、トレーダーを検索...",
-    ko: "팩터, 트레이더 검색...",
-    es: "Buscar factores, traders...",
-    fr: "Rechercher facteurs, traders...",
-  },
   "Pro plan": { ja: "Pro プラン", ko: "Pro 플랜", es: "Plan Pro", fr: "Offre Pro" },
 };
 
@@ -183,7 +184,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     : typeof window !== "undefined"
       ? window.location.search
       : "";
-  const isStrategyDetail = /^\/strategies\/STR-[^/]+$/.test(currentPathname);
   const isOfficialAlphaDetail =
     currentPathname.startsWith("/alphas/") &&
     currentPathname !== "/alphas/official" &&
@@ -528,16 +528,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="mr-[21px] flex h-[30px] items-center gap-[9px]">
-            {!isStrategyDetail ? (
-              <label className="flex h-[27.75px] w-[180px] items-center rounded-full border border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]">
-                <img src="/header-search.svg" alt="" className="h-[11.25px] w-[10.078px] shrink-0" />
-                <input
-                  aria-label={tr("Search", "搜索")}
-                  className="ml-[6px] h-[14.25px] min-w-0 flex-1 bg-transparent text-[9.75px] leading-[1.2] text-[#0d0d0d] outline-none placeholder:text-[#b5aba0]"
-                  placeholder={tr("Search factors, traders...", "搜索因子、交易员...")}
-                />
-              </label>
-            ) : null}
             <NotificationPanel
               triggerClassName="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]"
               iconSrc="/header-bell.svg"
