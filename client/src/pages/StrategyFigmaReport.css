@@ -921,7 +921,7 @@ main:has(.oq-strategy-figma-report) {
 .oq-report-top h1 {
   max-width: 42ch;
   color: var(--report-text);
-  font-size: 1.75rem;
+  font-size: 1.375rem;
   font-weight: 800;
   line-height: 2.125rem;
   overflow-wrap: anywhere;

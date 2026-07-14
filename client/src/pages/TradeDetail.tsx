@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { ChartContainer } from "@/components/ui/chart";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StrategyReportDateControl } from "./StrategyReportDateControl";
 import {
   Tooltip,
@@ -22,6 +23,8 @@ import {
 import {
   formatSigned,
   tradeBots,
+  tradeFillRows,
+  tradeHistoryRows,
   tradePositionRows,
   type TradeEnvironment,
 } from "@/lib/tradeData";
@@ -30,9 +33,69 @@ import {
   Activity,
   BarChart3,
   PieChart,
+  RefreshCw,
+  Square,
 } from "lucide-react";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import "./TradeDetail.css";
+
+const MAX_VISIBLE_ALLOCATION_ASSETS = 10;
+
+const ALLOCATION_PALETTE = [
+  "var(--td-allocation-1)",
+  "var(--td-allocation-2)",
+  "var(--td-allocation-3)",
+  "var(--td-allocation-4)",
+  "var(--td-allocation-5)",
+  "var(--td-allocation-6)",
+  "var(--td-allocation-7)",
+  "var(--td-allocation-8)",
+  "var(--td-allocation-9)",
+  "var(--td-allocation-10)",
+];
+
+const PREFERRED_ALLOCATION_COLOR_INDEX: Record<string, number> = {
+  ETH: 0,
+  BTC: 1,
+  SKL: 2,
+  FIL: 3,
+  SOL: 4,
+  DOGE: 5,
+  XRP: 6,
+  BNB: 7,
+  ETC: 8,
+  PAXG: 9,
+};
+
+type TradeAllocationDatum = {
+  asset: string;
+  value: number;
+  percent: number;
+  color: string;
+  isOther: boolean;
+  memberCount: number;
+};
+
+function getAllocationColor(asset: string) {
+  const preferredIndex = PREFERRED_ALLOCATION_COLOR_INDEX[asset];
+
+  if (preferredIndex !== undefined) return ALLOCATION_PALETTE[preferredIndex];
+
+  const hash = Array.from(asset).reduce((value, character) => (
+    ((value << 5) - value + character.charCodeAt(0)) | 0
+  ), 0);
+  return ALLOCATION_PALETTE[Math.abs(hash) % ALLOCATION_PALETTE.length];
+}
+
+function formatRefreshTimestamp(date: Date) {
+  const datePart = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((value, index) => String(value).padStart(index === 0 ? 4 : 2, "0"))
+    .join("-");
+  const timePart = [date.getHours(), date.getMinutes()]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+  return `${datePart} ${timePart}`;
+}
 
 function isTradeEnvironment(value: string | null): value is TradeEnvironment {
   return value === "paper" || value === "live";
@@ -40,6 +103,7 @@ function isTradeEnvironment(value: string | null): value is TradeEnvironment {
 
 type TradeViewMode = "trading" | "analysis";
 type OverviewMetric = "return" | "pnl";
+type OverviewTrendMetricKey = "returnValue" | "pnlValue";
 type AnalysisRange = "7D" | "30D" | "90D" | "365D";
 type CurvePoint = { x: number; y: number; value: number };
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
@@ -84,6 +148,41 @@ function getChartColorTokens(mode: ChartColorMode) {
         upHex: "#10B981",
         downHex: "#F43F5E",
       };
+}
+
+function OverviewTrendActiveDot({
+  cx,
+  cy,
+  payload,
+  metricKey,
+}: {
+  cx?: number;
+  cy?: number;
+  payload?: Partial<Record<OverviewTrendMetricKey, number>>;
+  metricKey: OverviewTrendMetricKey;
+}) {
+  if (typeof cx !== "number" || typeof cy !== "number") return null;
+
+  const value = payload?.[metricKey] ?? 0;
+  const stroke = value >= 0 ? "var(--semantic-up)" : "var(--semantic-down)";
+
+  return <circle cx={cx} cy={cy} r={4} fill="var(--td-bg)" stroke={stroke} strokeWidth={2.4} />;
+}
+
+function getOverviewTrendTicks(
+  min: number,
+  max: number,
+  [domainMin, domainMax]: [number, number]
+) {
+  if (min >= 0) {
+    return [domainMin, 0, domainMax / 3, (domainMax * 2) / 3, domainMax];
+  }
+
+  if (max <= 0) {
+    return [domainMin, (domainMin * 2) / 3, domainMin / 3, 0, domainMax];
+  }
+
+  return [domainMin, min / 2, 0, max / 2, domainMax];
 }
 
 function parseNumeric(text: string) {
@@ -162,12 +261,15 @@ export default function TradeDetail() {
   const searchParams = new URLSearchParams(search);
   const [viewMode] = useState<TradeViewMode>("trading");
   const [overviewMetric, setOverviewMetric] = useState<OverviewMetric>("return");
+  const [activeAllocationAsset, setActiveAllocationAsset] = useState<string | null>(null);
   const [analysisCurveRange, setAnalysisCurveRange] = useState<AnalysisRange>("90D");
   const [analysisReturnRange, setAnalysisReturnRange] = useState<AnalysisRange>("30D");
   const [analysisCurveHoverIndex, setAnalysisCurveHoverIndex] = useState<number | null>(null);
   const [analysisReturnHoverIndex, setAnalysisReturnHoverIndex] = useState<number | null>(null);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
+  const [executionStatusOverride, setExecutionStatusOverride] = useState<{ tradeId: string; status: "paused" } | null>(null);
+  const [refreshedAtByTrade, setRefreshedAtByTrade] = useState<Record<string, string>>({});
   const tradeId = params?.id ?? "";
   const trade = tradeBots.find((item) => item.id === tradeId);
   useEffect(() => {
@@ -221,11 +323,26 @@ export default function TradeDetail() {
   const envFromQuery = searchParams.get("env");
   const runtimeEnvironment = isTradeEnvironment(envFromQuery) ? envFromQuery : trade.environment;
   const statusFromQuery = searchParams.get("status");
-  const runtimeStatus = statusFromQuery === "paused" ? "paused" : "running";
+  const queriedStatus = statusFromQuery === "paused" ? "paused" : "running";
+  const runtimeStatus = executionStatusOverride?.tradeId === tradeId
+    ? executionStatusOverride.status
+    : queriedStatus;
+  const displayedUpdatedAt = refreshedAtByTrade[tradeId] ?? trade.updatedAt;
 
   const visiblePositions = tradePositionRows.filter(
     (row) => row.environment === runtimeEnvironment
   );
+  const currentPositionRows = visiblePositions.map((row) => {
+    const margin = parseNumeric(row.margin);
+
+    return {
+      ...row,
+      roi: margin > 0 ? (row.pnl / margin) * 100 : 0,
+      signedSize: row.side === "short" && !row.size.startsWith("-") ? `-${row.size}` : row.size,
+    };
+  });
+  const visibleFills = tradeFillRows.filter((row) => row.environment === runtimeEnvironment);
+  const historicalPositions = tradeHistoryRows.filter((row) => row.environment === runtimeEnvironment);
   const realizedPnl = Number((trade.unrealizedPnl * 2.65).toFixed(2));
   const totalPnl = realizedPnl + trade.unrealizedPnl;
   const baseEquity = Math.max(trade.equity - totalPnl, 1);
@@ -254,39 +371,103 @@ export default function TradeDetail() {
     });
   }, [roi, totalPnl, trade.updatedAt]);
 
-  const overviewAllocationData = useMemo(() => {
-    const palette = ["#3478f6", "#f59e0b", "#2a9d8f", "#8b6fd8"];
+  const overviewAllocation = useMemo(() => {
     const totals = new Map<string, number>();
+    const configuredAllocation = trade.assetAllocation?.filter((item) => item.weight > 0) ?? [];
 
-    visiblePositions.forEach((row) => {
-      const asset = row.symbol.replace("USDT", "");
-      totals.set(asset, (totals.get(asset) ?? 0) + parseNumeric(row.margin));
-    });
+    if (configuredAllocation.length > 0) {
+      configuredAllocation.forEach(({ asset, weight }) => totals.set(asset, weight));
+    } else {
+      visiblePositions.forEach((row) => {
+        const asset = row.symbol.replace(/USDT$/, "");
+        const margin = parseNumeric(row.margin);
 
-    if (totals.size === 0) {
-      totals.set(trade.symbol.replace("USDT", ""), 1);
+        if (margin > 0) {
+          totals.set(asset, (totals.get(asset) ?? 0) + margin);
+        }
+      });
     }
 
-    const total = Array.from(totals.values()).reduce((sum, value) => sum + value, 0) || 1;
-    return Array.from(totals.entries())
-      .sort(([, a], [, b]) => b - a)
-      .map(([asset, value], index) => ({
-        asset,
-        value,
-        percent: Number(((value / total) * 100).toFixed(2)),
-        color: palette[index % palette.length],
-      }));
-  }, [trade.symbol, visiblePositions]);
+    const sortedAssets = Array.from(totals.entries()).sort(([, a], [, b]) => b - a);
+    const assetCount = sortedAssets.length;
 
-  const overviewMetricKey = overviewMetric === "return" ? "returnValue" : "pnlValue";
+    if (assetCount === 0) {
+      return { assetCount, items: [] as TradeAllocationDatum[] };
+    }
+
+    const visibleAssets = sortedAssets.slice(0, MAX_VISIBLE_ALLOCATION_ASSETS);
+    const otherAssets = sortedAssets.slice(MAX_VISIBLE_ALLOCATION_ASSETS);
+    const otherValue = otherAssets.reduce((sum, [, value]) => sum + value, 0);
+    const groupedAssets = visibleAssets.map(([asset, value]) => ({ asset, value, memberCount: 1 }));
+
+    if (otherValue > 0) {
+      groupedAssets.push({ asset: "Other", value: otherValue, memberCount: otherAssets.length });
+    }
+
+    const total = groupedAssets.reduce((sum, item) => sum + item.value, 0);
+    const items = groupedAssets.map(({ asset, value, memberCount }) => ({
+      asset,
+      value,
+      percent: Number(((value / total) * 100).toFixed(2)),
+      color: asset === "Other"
+        ? "var(--td-chart-other)"
+        : getAllocationColor(asset),
+      isOther: asset === "Other",
+      memberCount,
+    }));
+    const roundingDelta = Number((100 - items.reduce((sum, item) => sum + item.percent, 0)).toFixed(2));
+
+    if (roundingDelta !== 0) {
+      items[0] = { ...items[0], percent: Number((items[0].percent + roundingDelta).toFixed(2)) };
+    }
+
+    return { assetCount, items, usesConfiguredWeights: configuredAllocation.length > 0 };
+  }, [trade.assetAllocation, visiblePositions]);
+  const overviewAllocationData = overviewAllocation.items;
+  const overviewAllocationAriaLabel = overviewAllocationData.length === 0
+    ? tr("No open positions to allocate.", "当前没有可用于计算资产占比的持仓。")
+    : overviewAllocation.usesConfiguredWeights
+      ? tr(
+          `Asset preference spans ${overviewAllocation.assetCount} assets: ${overviewAllocationData
+            .map((item) => `${item.asset} ${item.percent.toFixed(2)}%`)
+            .join(", ")}.`,
+          `资产偏好包含 ${overviewAllocation.assetCount} 个资产：${overviewAllocationData
+            .map((item) => `${item.asset} ${item.percent.toFixed(2)}%`)
+            .join("，")}。`
+        )
+    : tr(
+        `Current margin is allocated across ${overviewAllocation.assetCount} assets: ${overviewAllocationData
+          .map((item) => `${item.asset} ${item.value.toFixed(2)} USDT, ${item.percent.toFixed(2)}%`)
+          .join(", ")}.`,
+        `当前保证金分布于 ${overviewAllocation.assetCount} 个资产：${overviewAllocationData
+          .map((item) => `${item.isOther ? "其他" : item.asset} ${item.value.toFixed(2)} USDT，占比 ${item.percent.toFixed(2)}%`)
+          .join("，")}。`
+      );
+
+  const overviewMetricKey: OverviewTrendMetricKey = overviewMetric === "return" ? "returnValue" : "pnlValue";
   const overviewTrendValues = overviewTrendData.map((row) => row[overviewMetricKey]);
+  const overviewTrendFinalValue = overviewTrendValues.at(-1) ?? 0;
+  const overviewTrendEndColor = overviewTrendFinalValue >= 0 ? "var(--semantic-up)" : "var(--semantic-down)";
   const overviewTrendMin = Math.min(0, ...overviewTrendValues);
   const overviewTrendMax = Math.max(0, ...overviewTrendValues);
+  const overviewTrendZeroOffset = overviewTrendMax <= 0
+    ? 0
+    : overviewTrendMin >= 0
+      ? 1
+      : overviewTrendMax / (overviewTrendMax - overviewTrendMin);
+  const overviewTrendGradientSuffix = `${tradeId}-${overviewMetric}`;
+  const overviewTrendStrokeId = `trade-overview-stroke-${overviewTrendGradientSuffix}`;
+  const overviewTrendFillId = `trade-overview-fill-${overviewTrendGradientSuffix}`;
   const overviewTrendPadding = Math.max((overviewTrendMax - overviewTrendMin) * 0.14, overviewMetric === "return" ? 0.03 : 5);
   const overviewTrendDomain: [number, number] = [
     overviewTrendMin - overviewTrendPadding,
     overviewTrendMax + overviewTrendPadding,
   ];
+  const overviewTrendYAxisTicks = getOverviewTrendTicks(
+    overviewTrendMin,
+    overviewTrendMax,
+    overviewTrendDomain
+  );
   const analysisCurve = useMemo(() => {
     const cfg = analysisCurveConfig[analysisCurveRange];
     const width = 960;
@@ -386,6 +567,20 @@ export default function TradeDetail() {
     }
   };
   const translatePreferenceLabel = (label: string) => (label === "Other" ? tr("Other", "其他") : label);
+  const translateFillAction = (action: string) => {
+    switch (action) {
+      case "Open Long":
+        return tr("Open Long", "开多");
+      case "Close Long":
+        return tr("Close Long", "平多");
+      case "Open Short":
+        return tr("Open Short", "开空");
+      case "Close Short":
+        return tr("Close Short", "平空");
+      default:
+        return action;
+    }
+  };
   return (
     <div className="oq-trade-detail min-w-0" style={semanticColorVars}>
       <div className="oq-trade-detail-heading">
@@ -398,24 +593,63 @@ export default function TradeDetail() {
           <div className="oq-trade-detail-title-copy">
             <div className="oq-trade-detail-title-line">
               <h1>{trade.name}</h1>
-              <span className={`oq-trade-detail-status ${runtimeStatus === "running" ? "is-running" : "is-paused"}`}>
-                <span aria-hidden="true" />
-                {runtimeStatus === "running" ? tr("Running", "运行中") : tr("Paused", "已暂停")}
-              </span>
+              <div className="oq-trade-detail-title-tags">
+                <span className={`oq-trade-detail-mode ${runtimeEnvironment === "paper" ? "is-paper" : "is-live"}`}>
+                  {runtimeEnvironment === "paper" ? tr("Paper", "模拟") : tr("Live", "实盘")}
+                </span>
+                <span
+                  className={`oq-trade-detail-status ${runtimeStatus === "running" ? "is-running" : "is-paused"}`}
+                  aria-live="polite"
+                >
+                  <span aria-hidden="true" />
+                  {runtimeStatus === "running" ? tr("Running", "运行中") : tr("Paused", "已暂停")}
+                </span>
+              </div>
             </div>
             <div className="oq-trade-detail-meta">
               <span className="oq-trade-detail-id">{trade.id}</span>
-              <span>{tr("Updated", "更新于")} {trade.updatedAt}</span>
+              <span aria-live="polite">{tr("Updated", "更新于")} {displayedUpdatedAt}</span>
               <span>
                 {trade.symbol} · {trade.market === "Perp" ? tr("Perp", "永续") : tr("Spot", "现货")} · {trade.leverage}
               </span>
             </div>
           </div>
 
-          <div className="oq-trade-detail-statuses" aria-label={tr("Execution environment", "执行环境")}>
-            <span className={`oq-trade-detail-environment ${runtimeEnvironment === "paper" ? "is-paper" : "is-live"}`}>
-              {runtimeEnvironment === "paper" ? tr("Paper Execution", "模拟执行") : tr("Live Execution", "实盘执行")}
-            </span>
+          <div className="oq-trade-detail-statuses" aria-label={tr("Trade controls", "交易控制")}>
+            <button
+              type="button"
+              className="oq-trade-detail-action"
+              onClick={() => {
+                setRefreshedAtByTrade((current) => ({
+                  ...current,
+                  [tradeId]: formatRefreshTimestamp(new Date()),
+                }));
+              }}
+            >
+              <RefreshCw aria-hidden="true" />
+              <span>{tr("Refresh", "刷新")}</span>
+            </button>
+            <button
+              type="button"
+              className="oq-trade-detail-action is-stop"
+              disabled={runtimeStatus === "paused"}
+              onClick={() => {
+                setExecutionStatusOverride({ tradeId, status: "paused" });
+
+                if (typeof window !== "undefined") {
+                  const nextSearchParams = new URLSearchParams(window.location.search);
+                  nextSearchParams.set("status", "paused");
+                  window.history.replaceState(
+                    window.history.state,
+                    "",
+                    `${window.location.pathname}?${nextSearchParams.toString()}`
+                  );
+                }
+              }}
+            >
+              <Square aria-hidden="true" />
+              <span>{tr("Stop", "停止")}</span>
+            </button>
           </div>
         </header>
       </div>
@@ -434,6 +668,7 @@ export default function TradeDetail() {
               ]}
               customDateOption={tr("Custom start date", "自定义起始时间")}
               uiLang={uiLang}
+              variant="compact"
               labels={{
                 selectPeriod: tr("Select performance period", "选择表现周期"),
                 customRange: tr("Custom date range", "自定义时间范围"),
@@ -477,7 +712,7 @@ export default function TradeDetail() {
           <article className="oq-trade-overview-card oq-trade-trend-card" aria-labelledby="trade-trend-title">
             <header className="oq-trade-overview-card-header oq-trade-trend-header">
               <h2 id="trade-trend-title">{tr("Performance Trend", "收益走势")}</h2>
-              <div className="oq-trade-trend-segmented" role="group" aria-label={tr("Trend metric", "走势指标")}>
+              <div className="oq-trade-trend-selector" role="group" aria-label={tr("Trend metric", "走势指标")}>
                 <button
                   type="button"
                   className={overviewMetric === "return" ? "is-active" : ""}
@@ -497,144 +732,358 @@ export default function TradeDetail() {
               </div>
             </header>
 
-            <ChartContainer
-              className="oq-trade-trend-chart"
-              config={{
-                [overviewMetricKey]: {
-                  label: overviewMetric === "return" ? tr("Return", "收益率") : tr("PnL", "盈亏"),
-                  color: "var(--semantic-up)",
-                },
-              }}
-              role="img"
-              aria-label={
-                overviewMetric === "return"
-                  ? tr(`30-day return trend ending at ${formatSigned(roi)}%.`, `近 30 天收益率走势，期末为 ${formatSigned(roi)}%。`)
-                  : tr(`30-day PnL trend ending at ${formatSigned(totalPnl)} USDT.`, `近 30 天盈亏走势，期末为 ${formatSigned(totalPnl)} USDT。`)
-              }
-            >
-              <AreaChart data={overviewTrendData} accessibilityLayer margin={{ top: 12, right: 12, bottom: 0, left: 2 }}>
-                <CartesianGrid vertical={false} stroke="var(--td-border)" strokeOpacity={0.72} />
-                <XAxis
-                  dataKey="date"
-                  axisLine={false}
-                  tickLine={false}
-                  interval={5}
-                  minTickGap={24}
-                  tick={{ fill: "var(--td-muted)", fontSize: 10 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  width={58}
-                  domain={overviewTrendDomain}
-                  tick={{ fill: "var(--td-muted)", fontSize: 10 }}
-                  tickFormatter={(value) =>
-                    overviewMetric === "return"
-                      ? `${Number(value).toFixed(1)}%`
-                      : Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 })
-                  }
-                />
-                <RechartsTooltip
-                  cursor={{ stroke: "var(--td-muted)", strokeDasharray: "3 4", strokeOpacity: 0.55 }}
-                  contentStyle={{
-                    border: "0.75px solid var(--td-border)",
-                    borderRadius: 8,
-                    background: "var(--td-bg)",
-                    boxShadow: "0 8px 20px rgba(60, 40, 20, 0.09)",
-                    fontSize: 11,
-                  }}
-                  labelStyle={{ color: "var(--td-muted)", marginBottom: 4 }}
-                  labelFormatter={(label) => `${tr("Date", "日期")} ${label}`}
-                  formatter={(value) => [
-                    overviewMetric === "return"
-                      ? `${Number(value).toFixed(2)}%`
-                      : `${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`,
-                    overviewMetric === "return" ? tr("Return", "收益率") : tr("PnL", "盈亏"),
-                  ]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey={overviewMetricKey}
-                  stroke="var(--semantic-up)"
-                  strokeWidth={2}
-                  fill="var(--semantic-up)"
-                  fillOpacity={0.08}
-                  dot={false}
-                  activeDot={{ r: 4, fill: "var(--td-bg)", stroke: "var(--semantic-up)", strokeWidth: 2 }}
-                  isAnimationActive={false}
-                />
-              </AreaChart>
-            </ChartContainer>
+            <div className="oq-trade-trend-body">
+              <ChartContainer
+                className="oq-trade-trend-chart"
+                config={{
+                  [overviewMetricKey]: {
+                    label: overviewMetric === "return" ? tr("Return", "收益率") : tr("PnL", "盈亏"),
+                    color: overviewTrendEndColor,
+                  },
+                }}
+                role="img"
+                aria-label={
+                  overviewMetric === "return"
+                    ? tr(`30-day return trend ending at ${formatSigned(roi)}%.`, `近 30 天收益率走势，期末为 ${formatSigned(roi)}%。`)
+                    : tr(`30-day PnL trend ending at ${formatSigned(totalPnl)} USDT.`, `近 30 天盈亏走势，期末为 ${formatSigned(totalPnl)} USDT。`)
+                }
+              >
+                <AreaChart data={overviewTrendData} accessibilityLayer margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
+                  <defs>
+                    <linearGradient id={overviewTrendStrokeId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset={`${overviewTrendZeroOffset * 100}%`} stopColor="var(--semantic-up)" />
+                      <stop offset={`${overviewTrendZeroOffset * 100}%`} stopColor="var(--semantic-down)" />
+                    </linearGradient>
+                    <linearGradient id={overviewTrendFillId} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--semantic-up)" stopOpacity={0.08} />
+                      <stop offset={`${overviewTrendZeroOffset * 100}%`} stopColor="var(--semantic-up)" stopOpacity={0.08} />
+                      <stop offset={`${overviewTrendZeroOffset * 100}%`} stopColor="var(--semantic-down)" stopOpacity={0.08} />
+                      <stop offset="100%" stopColor="var(--semantic-down)" stopOpacity={0.08} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--td-chart-grid)" />
+                  <XAxis
+                    dataKey="date"
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={10}
+                    interval={5}
+                    minTickGap={24}
+                    tick={{ fill: "var(--td-muted)", fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 500 }}
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tickMargin={8}
+                    width={48}
+                    domain={overviewTrendDomain}
+                    ticks={overviewTrendYAxisTicks}
+                    tick={{ fill: "var(--td-muted)", fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 500 }}
+                    tickFormatter={(value) => {
+                      const numericValue = Number(value);
+                      if (numericValue === 0) return overviewMetric === "return" ? "0%" : "0";
+
+                      return overviewMetric === "return"
+                        ? `${numericValue.toFixed(1)}%`
+                        : numericValue.toLocaleString(undefined, { maximumFractionDigits: 0 });
+                    }}
+                  />
+                  <RechartsTooltip
+                    cursor={{ stroke: "var(--td-muted)", strokeDasharray: "4 6", strokeOpacity: 0.45 }}
+                    wrapperStyle={{ zIndex: 8, pointerEvents: "none" }}
+                    content={(
+                      <TradeTrendTooltip
+                        metric={overviewMetric}
+                        metricLabel={overviewMetric === "return" ? tr("Return", "收益率") : tr("PnL", "盈亏")}
+                        year={trade.updatedAt.slice(0, 4)}
+                      />
+                    )}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey={overviewMetricKey}
+                    stroke={`url(#${overviewTrendStrokeId})`}
+                    strokeWidth={2.4}
+                    fill={`url(#${overviewTrendFillId})`}
+                    fillOpacity={1}
+                    dot={false}
+                    activeDot={<OverviewTrendActiveDot metricKey={overviewMetricKey} />}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ChartContainer>
+            </div>
           </article>
 
           <article className="oq-trade-overview-card oq-trade-allocation-card" aria-labelledby="trade-allocation-title">
-          <header className="oq-trade-overview-card-header">
-            <div>
+            <header className="oq-trade-overview-card-header">
               <h2 id="trade-allocation-title">{tr("Asset Preference", "资产偏好")}</h2>
-              <p>{tr("Current visible positions by margin", "按当前可见持仓保证金计算")}</p>
-            </div>
-            <span>{tr("Current", "当前")}</span>
-          </header>
+            </header>
 
-          <div className="oq-trade-allocation-body">
-            <div className="oq-trade-allocation-visual">
-              <ChartContainer
-                className="oq-trade-allocation-chart"
-                config={{ allocation: { label: tr("Allocation", "资产占比") } }}
-                role="img"
-                aria-label={tr(
-                  `Asset allocation across ${overviewAllocationData.length} assets.`,
-                  `当前持仓分布于 ${overviewAllocationData.length} 个资产。`
-                )}
+            {overviewAllocationData.length > 0 ? (
+              <div
+                className="oq-trade-allocation-body"
+                onMouseLeave={() => setActiveAllocationAsset(null)}
+                onPointerLeave={() => setActiveAllocationAsset(null)}
               >
-                <RechartsPieChart accessibilityLayer>
-                  <RechartsTooltip
-                    contentStyle={{
-                      border: "0.75px solid var(--td-border)",
-                      borderRadius: 8,
-                      background: "var(--td-bg)",
-                      boxShadow: "0 8px 20px rgba(60, 40, 20, 0.09)",
-                      fontSize: 11,
-                    }}
-                    formatter={(value, name) => [`${Number(value).toFixed(2)}%`, String(name)]}
-                  />
-                  <Pie
-                    data={overviewAllocationData}
-                    dataKey="percent"
-                    nameKey="asset"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={58}
-                    outerRadius={88}
-                    paddingAngle={2}
-                    stroke="var(--td-bg)"
-                    strokeWidth={2}
-                    isAnimationActive={false}
+                <div className="oq-trade-allocation-visual">
+                  <ChartContainer
+                    className="oq-trade-allocation-chart"
+                    config={{ allocation: { label: tr("Allocation", "资产占比") } }}
+                    role="img"
+                    aria-label={overviewAllocationAriaLabel}
                   >
-                    {overviewAllocationData.map((item) => (
-                      <Cell key={item.asset} fill={item.color} />
-                    ))}
-                  </Pie>
-                </RechartsPieChart>
-              </ChartContainer>
-              <div className="oq-trade-allocation-center" aria-hidden="true">
-                <strong>{overviewAllocationData.length}</strong>
-                <span>{tr("Assets", "资产")}</span>
-              </div>
-            </div>
+                    <RechartsPieChart accessibilityLayer>
+                      <RechartsTooltip
+                        cursor={false}
+                        wrapperStyle={{ zIndex: 4, pointerEvents: "none" }}
+                        content={(
+                          <TradeAllocationTooltip
+                            otherLabel={tr("Other", "其他")}
+                            itemUnitLabel={tr("assets", "项")}
+                          />
+                        )}
+                      />
+                      <Pie
+                        data={overviewAllocationData}
+                        dataKey="percent"
+                        nameKey="asset"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={58}
+                        outerRadius={88}
+                        paddingAngle={overviewAllocationData.length > 6 ? 0.75 : 2}
+                        stroke="var(--td-bg)"
+                        strokeWidth={2}
+                        isAnimationActive={false}
+                      >
+                        {overviewAllocationData.map((item) => (
+                          <Cell
+                            key={item.asset}
+                            className="oq-trade-allocation-cell"
+                            fill={item.color}
+                            opacity={activeAllocationAsset === null || activeAllocationAsset === item.asset ? 1 : 0.18}
+                            strokeWidth={activeAllocationAsset === item.asset ? 3 : 2}
+                            onMouseEnter={() => setActiveAllocationAsset(item.asset)}
+                          />
+                        ))}
+                      </Pie>
+                    </RechartsPieChart>
+                  </ChartContainer>
+                </div>
 
-            <ul className="oq-trade-allocation-legend" aria-label={tr("Asset allocation details", "资产占比明细")}>
-              {overviewAllocationData.map((item) => (
-                <li key={item.asset}>
-                  <span className="oq-trade-allocation-swatch" style={{ backgroundColor: item.color }} aria-hidden="true" />
-                  <span>{item.asset}</span>
-                  <strong>{item.percent.toFixed(2)}%</strong>
-                </li>
-              ))}
-            </ul>
-          </div>
+                <div
+                  className="oq-trade-allocation-legend"
+                  role="group"
+                  aria-label={tr("Asset allocation details", "资产占比明细")}
+                >
+                  {overviewAllocationData.map((item) => (
+                    <button
+                      type="button"
+                      key={item.asset}
+                      aria-pressed={activeAllocationAsset === item.asset}
+                      aria-label={`${item.isOther ? tr("Other", "其他") : item.asset}: ${item.percent.toFixed(2)}%`}
+                      onFocus={() => setActiveAllocationAsset(item.asset)}
+                      onBlur={() => setActiveAllocationAsset(null)}
+                      onMouseEnter={() => setActiveAllocationAsset(item.asset)}
+                      onPointerEnter={() => setActiveAllocationAsset(item.asset)}
+                    >
+                      <span className="oq-trade-allocation-swatch" style={{ backgroundColor: item.color }} aria-hidden="true" />
+                      <span title={item.isOther ? tr("Other", "其他") : item.asset}>
+                        {item.isOther ? tr("Other", "其他") : item.asset}
+                      </span>
+                      <strong>{item.percent.toFixed(2)}%</strong>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="oq-trade-allocation-empty" role="status">
+                <PieChart aria-hidden="true" />
+                <strong>{tr("No open positions", "暂无当前仓位")}</strong>
+                <span>{tr("Allocation will appear after a position is opened.", "开仓后将在这里显示资产占比。")}</span>
+              </div>
+            )}
           </article>
         </div>
+      </section>
+
+      <section className="oq-trade-workspace" aria-label={tr("Position workspace", "仓位工作台")}>
+        <Tabs defaultValue="current" className="oq-trade-workspace-tabs">
+          <div className="oq-trade-workspace-tabs-header">
+            <TabsList className="oq-trade-workspace-tabs-list" aria-label={tr("Position views", "仓位视图")}>
+              <TabsTrigger value="current">{tr("Current Positions", "当前仓位")}</TabsTrigger>
+              <TabsTrigger value="history">{tr("Position History", "历史仓位")}</TabsTrigger>
+              <TabsTrigger value="activity">{tr("Activity Log", "操作记录")}</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="current" className="oq-trade-workspace-tab-panel">
+            <TradeWorkspaceTable
+              label={tr("Current positions", "当前仓位")}
+              className="is-current-positions"
+              headers={[
+                tr("Symbol", "交易对"),
+                tr("Size", "数量"),
+                tr("Entry", "开仓均价"),
+                tr("Mark", "标记价格"),
+                tr("Margin", "保证金"),
+                tr("Unrealized PnL (ROI)", "未实现盈亏（ROI）"),
+              ]}
+              isEmpty={currentPositionRows.length === 0}
+              emptyMessage={tr("No current positions", "暂无当前仓位")}
+            >
+              {currentPositionRows.map((row) => (
+                <tr key={row.id}>
+                  <td className="oq-trade-position-symbol">
+                    <div className="oq-trade-position-symbol-line">
+                      <strong>{row.symbol}</strong>
+                    </div>
+                    <div className="oq-trade-position-meta">
+                      <span className={`oq-trade-position-direction is-${row.side}`}>
+                        {row.side === "long" ? tr("Long", "做多") : tr("Short", "做空")}
+                      </span>
+                      <span>{tr("Perp", "永续")}</span>
+                      <span>{row.leverage}</span>
+                    </div>
+                  </td>
+                  <td className={`oq-trade-position-size is-${row.side}`}>
+                    {row.signedSize}
+                  </td>
+                  <td className="oq-trade-position-number">{row.entry}</td>
+                  <td className="oq-trade-position-number">{row.mark}</td>
+                  <td className="oq-trade-position-stack">
+                    <strong>{row.margin}</strong>
+                    <span className="oq-trade-position-margin-mode">
+                      {row.marginMode === "cross" ? tr("Cross", "全仓") : tr("Isolated", "逐仓")}
+                    </span>
+                  </td>
+                  <td className={`oq-trade-workspace-value ${row.pnl >= 0 ? "is-positive" : "is-negative"}`}>
+                    <strong>{formatSigned(row.pnl)} USDT</strong>
+                    <span>({formatSigned(row.roi)}%)</span>
+                  </td>
+                </tr>
+              ))}
+            </TradeWorkspaceTable>
+          </TabsContent>
+
+          <TabsContent value="history" className="oq-trade-workspace-tab-panel">
+            <TradeWorkspaceTable
+              label={tr("Position history", "历史仓位")}
+              className="is-history-positions"
+              headers={[
+                tr("Symbol", "交易对"),
+                tr("Opened At", "开仓时间"),
+                tr("Entry Price", "开仓价格"),
+                tr("Closed At", "全部平仓"),
+                tr("Maximum Position Size", "最大持仓量"),
+                tr("Exit Average", "平仓均价"),
+                tr("Realized PnL", "平仓盈亏"),
+              ]}
+              isEmpty={historicalPositions.length === 0}
+              emptyMessage={tr("No position history", "暂无历史仓位")}
+            >
+              {historicalPositions.map((row) => {
+                const [openedDate, openedTime] = row.openedAt.split(" ");
+                const [closedDate, closedTime] = row.closedAt.split(" ");
+
+                return (
+                  <tr key={row.id}>
+                    <td className="oq-trade-position-symbol">
+                      <div className="oq-trade-position-symbol-line">
+                        <strong>{row.symbol}</strong>
+                      </div>
+                      <div className="oq-trade-position-meta">
+                        <span className={`oq-trade-position-direction is-${row.side}`}>
+                          {row.side === "long" ? tr("Long", "做多") : tr("Short", "做空")}
+                        </span>
+                        <span>{row.marginMode === "cross" ? tr("Cross", "全仓") : tr("Isolated", "逐仓")}</span>
+                        <span>{row.market === "Perp" ? tr("Perp", "永续") : tr("Spot", "现货")}</span>
+                        <span>{row.leverage}</span>
+                      </div>
+                    </td>
+                    <td className="oq-trade-history-time">
+                      <strong>{openedDate}</strong>
+                      <span>{openedTime}</span>
+                    </td>
+                    <td className="oq-trade-position-number">{row.entryPrice}</td>
+                    <td className="oq-trade-history-time">
+                      <strong>{closedDate}</strong>
+                      <span>{closedTime}</span>
+                    </td>
+                    <td className="oq-trade-position-stack">
+                      <strong>{row.maxSize}</strong>
+                      <span>{tr("Closed", "已平仓")} {row.closedSize}</span>
+                    </td>
+                    <td className="oq-trade-position-number">{row.exitPrice}</td>
+                    <td className={`oq-trade-workspace-value ${row.realizedPnl >= 0 ? "is-positive" : "is-negative"}`}>
+                      {formatSigned(row.realizedPnl)} USDT
+                    </td>
+                  </tr>
+                );
+              })}
+            </TradeWorkspaceTable>
+          </TabsContent>
+
+          <TabsContent value="activity" className="oq-trade-workspace-tab-panel">
+            {visibleFills.length > 0 ? (
+              <ol className="oq-trade-activity-list" aria-label={tr("Activity log", "操作记录")}>
+                {visibleFills.map((row) => {
+                  const [date, clock] = row.time.split(" ");
+                  const isOpen = row.action.startsWith("Open");
+
+                  return (
+                    <li key={row.id} className={`oq-trade-activity-item ${isOpen ? "is-open" : "is-close"}`}>
+                      <time className="oq-trade-activity-time" dateTime={`2026-${row.time.replace(" ", "T")}`}>
+                        <span>{date},</span>
+                        <strong>{clock}</strong>
+                      </time>
+
+                      <div className="oq-trade-activity-marker" aria-hidden="true">
+                        <span />
+                      </div>
+
+                      <div className="oq-trade-activity-content">
+                        <header className="oq-trade-activity-header">
+                          <div className="oq-trade-activity-identity">
+                            <span className={`oq-trade-workspace-badge ${isOpen ? "is-open" : "is-close"}`}>
+                              {translateFillAction(row.action)}
+                            </span>
+                            <strong>{row.symbol}</strong>
+                            <span className="oq-trade-activity-market">
+                              {row.market === "Perp" ? tr("Perp", "永续") : tr("Spot", "现货")}
+                            </span>
+                          </div>
+                        </header>
+
+                        <p className="oq-trade-activity-summary">
+                          {uiLang === "zh" ? (
+                            <>
+                              以均价 <strong>{row.price} USDT</strong> 成交，数量 <strong>{row.qty}</strong>，成交额 <strong>{row.value}</strong>
+                            </>
+                          ) : (
+                            <>
+                              Filled at an average price of <strong>{row.price} USDT</strong>, quantity <strong>{row.qty}</strong>, value <strong>{row.value}</strong>
+                            </>
+                          )}
+                        </p>
+
+                        {row.realizedPnl !== undefined ? (
+                          <div className={`oq-trade-activity-pnl ${row.realizedPnl >= 0 ? "is-positive" : "is-negative"}`}>
+                            <span>{tr("Realized PnL", "已实现盈亏")}</span>
+                            <strong>{formatSigned(row.realizedPnl)} USDT</strong>
+                          </div>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <div className="oq-trade-workspace-empty">{tr("No activity records", "暂无操作记录")}</div>
+            )}
+          </TabsContent>
+        </Tabs>
       </section>
 
       {viewMode === "analysis" ? (
@@ -1054,6 +1503,106 @@ export default function TradeDetail() {
 
         </>
       ) : null}
+    </div>
+  );
+}
+
+function TradeWorkspaceTable({
+  label,
+  className,
+  headers,
+  isEmpty,
+  emptyMessage,
+  children,
+}: {
+  label: string;
+  className?: string;
+  headers: string[];
+  isEmpty: boolean;
+  emptyMessage: string;
+  children: ReactNode;
+}) {
+  if (isEmpty) {
+    return <div className="oq-trade-workspace-empty">{emptyMessage}</div>;
+  }
+
+  return (
+    <div className="oq-trade-workspace-table-scroll">
+      <table className={`oq-trade-workspace-table${className ? ` ${className}` : ""}`} aria-label={label}>
+        <thead>
+          <tr>
+            {headers.map(header => <th key={header} scope="col">{header}</th>)}
+          </tr>
+        </thead>
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function TradeTrendTooltip({
+  active,
+  label,
+  payload,
+  metric,
+  metricLabel,
+  year,
+}: {
+  active?: boolean;
+  label?: string | number;
+  payload?: readonly { value?: string | number }[];
+  metric: OverviewMetric;
+  metricLabel: string;
+  year: string;
+}) {
+  const numericValue = Number(payload?.[0]?.value);
+
+  if (!active || !Number.isFinite(numericValue)) return null;
+
+  const formattedValue = `${numericValue > 0 ? "+" : ""}${numericValue.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}${metric === "return" ? "%" : " USDT"}`;
+
+  return (
+    <div className="oq-trade-trend-tooltip" role="status">
+      <div className="oq-trade-trend-tooltip-date">{year}-{String(label ?? "--")}</div>
+      <div className="oq-trade-trend-tooltip-row">
+        <i
+          style={{ backgroundColor: numericValue >= 0 ? "var(--semantic-up)" : "var(--semantic-down)" }}
+          aria-hidden="true"
+        />
+        <span>{metricLabel}</span>
+        <strong>{formattedValue}</strong>
+      </div>
+    </div>
+  );
+}
+
+function TradeAllocationTooltip({
+  active,
+  payload,
+  otherLabel,
+  itemUnitLabel,
+}: {
+  active?: boolean;
+  payload?: readonly { payload?: TradeAllocationDatum }[];
+  otherLabel: string;
+  itemUnitLabel: string;
+}) {
+  const item = payload?.[0]?.payload;
+
+  if (!active || !item) return null;
+
+  return (
+    <div className="oq-trade-allocation-tooltip">
+      <div className="oq-trade-allocation-tooltip-head">
+        <span>
+          <i style={{ backgroundColor: item.color }} aria-hidden="true" />
+          {item.isOther ? `${otherLabel} · ${item.memberCount} ${itemUnitLabel}` : item.asset}
+        </span>
+        <strong>{item.percent.toFixed(2)}%</strong>
+      </div>
     </div>
   );
 }

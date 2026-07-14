@@ -2798,6 +2798,7 @@ export function StrategyFigmaReport({
           dateOptions={dateOptions}
           customDateOption={customDateOption}
           uiLang={uiLang}
+          variant="compact"
           labels={{
             selectPeriod: tReport(tr, "Select backtest period", "选择回测周期"),
             customRange: tReport(tr, "Custom date range", "自定义时间范围"),

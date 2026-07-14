@@ -22,6 +22,7 @@ export function StrategyReportDateControl({
   customDateOption,
   uiLang,
   labels,
+  variant = "default",
 }: {
   dateLabel: string;
   dateOptions?: string[];
@@ -33,6 +34,7 @@ export function StrategyReportDateControl({
     startDate: string;
     endDate: string;
   };
+  variant?: "default" | "compact";
 }) {
   const options = Array.from(new Set(dateOptions && dateOptions.length > 0
     ? dateOptions
@@ -75,7 +77,7 @@ export function StrategyReportDateControl({
 
   return (
     <div
-      className="oq-report-date-select"
+      className={`oq-report-date-select oq-report-date-select--${variant}`}
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeOverlays();
       }}

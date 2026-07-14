@@ -26,7 +26,7 @@ import {
   type BotStatus,
 } from "@/lib/tradeData";
 import { getTradeBotsWithDeployments } from "@/lib/tradeDeployments";
-import { CircleStop, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CircleStop, Trash2 } from "lucide-react";
 import "./Trade.css";
 
 type PendingAction =
@@ -35,6 +35,8 @@ type PendingAction =
   | null;
 
 type BotStatusFilter = "all" | "running" | "stop";
+type BotSortKey = "equity" | "unrealizedPnl" | "roi";
+type BotSortDirection = "default" | "desc" | "asc";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
@@ -99,6 +101,7 @@ function TradeWorkbench260712() {
   const envFromQuery = searchParams.get("env");
   const focusStrategyId = searchParams.get("focusStrategy");
   const focusTradeId = searchParams.get("focusTradeId");
+  const tradeSearchQuery = (searchParams.get("q") ?? "").trim().toLowerCase();
 
   const [environment, setEnvironment] = useState<TradeEnvironment>(
     envFromQuery === "live" ? "live" : "paper"
@@ -107,6 +110,10 @@ function TradeWorkbench260712() {
   const [hiddenBotIds, setHiddenBotIds] = useState<Set<string>>(new Set());
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [statusFilter, setStatusFilter] = useState<BotStatusFilter>("all");
+  const [botSort, setBotSort] = useState<{ key: BotSortKey | null; direction: BotSortDirection }>({
+    key: null,
+    direction: "default",
+  });
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() =>
     readChartColorMode()
   );
@@ -161,14 +168,41 @@ function TradeWorkbench260712() {
         .map(bot => ({ ...bot, status: statusById[bot.id] ?? "running" })),
     [allTradeBots, environment, hiddenBotIds, statusById]
   );
-  const filteredVisibleBots = useMemo(() => {
-    if (statusFilter === "all") return visibleBots;
+  const searchFilteredBots = useMemo(() => {
+    if (!tradeSearchQuery) return visibleBots;
+
     return visibleBots.filter(bot =>
+      [bot.name, bot.id, bot.strategyId, bot.symbol, bot.market, bot.leverage]
+        .filter(value => value !== undefined && value !== null)
+        .some(value => String(value).toLowerCase().includes(tradeSearchQuery))
+    );
+  }, [tradeSearchQuery, visibleBots]);
+  const filteredVisibleBots = useMemo(() => {
+    if (statusFilter === "all") return searchFilteredBots;
+    return searchFilteredBots.filter(bot =>
       statusFilter === "running"
         ? bot.status === "running"
         : bot.status !== "running"
     );
-  }, [statusFilter, visibleBots]);
+  }, [searchFilteredBots, statusFilter]);
+  const sortedVisibleBots = useMemo(() => {
+    if (!botSort.key || botSort.direction === "default") return filteredVisibleBots;
+
+    const sortValue = (bot: (typeof filteredVisibleBots)[number]) => {
+      if (botSort.key === "equity") return bot.equity;
+      if (botSort.key === "unrealizedPnl") return bot.unrealizedPnl;
+      return (bot.unrealizedPnl / Math.max(bot.equity, 1)) * 100;
+    };
+    const multiplier = botSort.direction === "desc" ? -1 : 1;
+
+    return filteredVisibleBots
+      .map((bot, index) => ({ bot, index }))
+      .sort((left, right) => {
+        const difference = sortValue(left.bot) - sortValue(right.bot);
+        return difference === 0 ? left.index - right.index : difference * multiplier;
+      })
+      .map(({ bot }) => bot);
+  }, [botSort, filteredVisibleBots]);
   const visiblePositions = useMemo(
     () => tradePositionRows.filter(row => row.environment === environment),
     [environment]
@@ -231,6 +265,35 @@ function TradeWorkbench260712() {
     });
   const formatBotRoi = (bot: (typeof visibleBots)[number]) =>
     ((bot.unrealizedPnl / Math.max(bot.equity, 1)) * 100).toFixed(1);
+  const cycleBotSort = (key: BotSortKey) => {
+    setBotSort(current => {
+      if (current.key !== key || current.direction === "default") {
+        return { key, direction: "desc" };
+      }
+      if (current.direction === "desc") return { key, direction: "asc" };
+      return { key: null, direction: "default" };
+    });
+  };
+  const sortDirectionFor = (key: BotSortKey): BotSortDirection =>
+    botSort.key === key ? botSort.direction : "default";
+  const ariaSortFor = (key: BotSortKey): "none" | "ascending" | "descending" => {
+    const direction = sortDirectionFor(key);
+    if (direction === "desc") return "descending";
+    if (direction === "asc") return "ascending";
+    return "none";
+  };
+  const sortButtonLabel = (key: BotSortKey, enLabel: string, zhLabel: string) => {
+    const direction = sortDirectionFor(key);
+    if (direction === "default") return tr(`Sort ${enLabel} descending`, `${zhLabel}按降序排列`);
+    if (direction === "desc") return tr(`Sort ${enLabel} ascending`, `${zhLabel}按升序排列`);
+    return tr(`Restore default ${enLabel} order`, `恢复${zhLabel}默认顺序`);
+  };
+  const sortIconFor = (key: BotSortKey) => {
+    const direction = sortDirectionFor(key);
+    if (direction === "desc") return <ArrowDown aria-hidden="true" />;
+    if (direction === "asc") return <ArrowUp aria-hidden="true" />;
+    return <ArrowUpDown aria-hidden="true" />;
+  };
   const metricExplanations = {
     activeBots: tr(
       "Number of strategies currently running automated trading. Running strategies = count of strategies in running status.",
@@ -390,27 +453,65 @@ function TradeWorkbench260712() {
         >
           <div className="oq-trade-table-head oq-trade-table-grid" role="row">
             <div role="columnheader">{tr("Strategy", "策略")}</div>
-            <div role="columnheader">{tr("Equity", "权益")}</div>
-            <div role="columnheader">{tr("Unrealized PnL", "未实现盈亏")}</div>
-            <div role="columnheader">ROI</div>
+            <div role="columnheader" aria-sort={ariaSortFor("equity")}>
+              <button
+                type="button"
+                className={`oq-trade-sort-button ${sortDirectionFor("equity") !== "default" ? "is-active" : ""}`}
+                onClick={() => cycleBotSort("equity")}
+                aria-label={sortButtonLabel("equity", "equity", "权益")}
+              >
+                <span>{tr("Equity", "权益")}</span>
+                {sortIconFor("equity")}
+              </button>
+            </div>
+            <div role="columnheader" aria-sort={ariaSortFor("unrealizedPnl")}>
+              <button
+                type="button"
+                className={`oq-trade-sort-button ${sortDirectionFor("unrealizedPnl") !== "default" ? "is-active" : ""}`}
+                onClick={() => cycleBotSort("unrealizedPnl")}
+                aria-label={sortButtonLabel("unrealizedPnl", "unrealized PnL", "未实现盈亏")}
+              >
+                <span>{tr("Unrealized PnL", "未实现盈亏")}</span>
+                {sortIconFor("unrealizedPnl")}
+              </button>
+            </div>
+            <div role="columnheader" aria-sort={ariaSortFor("roi")}>
+              <button
+                type="button"
+                className={`oq-trade-sort-button ${sortDirectionFor("roi") !== "default" ? "is-active" : ""}`}
+                onClick={() => cycleBotSort("roi")}
+                aria-label={sortButtonLabel("roi", "ROI", "ROI")}
+              >
+                <span>ROI</span>
+                {sortIconFor("roi")}
+              </button>
+            </div>
             <div role="columnheader">{tr("Status", "状态")}</div>
             <div role="columnheader">{tr("Updated", "更新时间")}</div>
             <div role="columnheader">{tr("Actions", "操作")}</div>
           </div>
 
           <div className="oq-trade-bot-list" role="rowgroup">
-            {filteredVisibleBots.length === 0 ? (
+            {sortedVisibleBots.length === 0 ? (
               <div className="oq-trade-empty">
                 <p className="oq-trade-empty-title">
                   {tr(
-                    "No trading bots match the selected status.",
-                    "没有符合当前状态筛选条件的交易机器人。"
+                    tradeSearchQuery
+                      ? "No trading bots match the current search and status filters."
+                      : "No trading bots match the selected status.",
+                    tradeSearchQuery
+                      ? "没有符合当前搜索和状态筛选条件的交易机器人。"
+                      : "没有符合当前状态筛选条件的交易机器人。"
                   )}
                 </p>
                 <p className="oq-trade-empty-copy">
                   {tr(
-                    "Try switching status filter or create/deploy a strategy in Strategy workspace.",
-                    "请尝试切换状态筛选，或前往策略工作区创建/部署策略。"
+                    tradeSearchQuery
+                      ? "Try another keyword or switch the status filter."
+                      : "Try switching status filter or create/deploy a strategy in Strategy workspace.",
+                    tradeSearchQuery
+                      ? "请尝试其他关键词，或切换状态筛选。"
+                      : "请尝试切换状态筛选，或前往策略工作区创建/部署策略。"
                   )}
                 </p>
                 <div className="oq-trade-empty-action">
@@ -422,7 +523,7 @@ function TradeWorkbench260712() {
                 </div>
               </div>
             ) : (
-              filteredVisibleBots.map(bot => {
+              sortedVisibleBots.map(bot => {
                 const explanations = botMetricExplanations();
 
                 return (

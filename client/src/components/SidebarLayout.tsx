@@ -6,7 +6,7 @@
  * Bottom: account controls + user dropdown
  * Mobile: overlay sidebar with backdrop
  */
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { type UiCopy, translateUi, useAppLanguage } from "@/contexts/AppLanguageContext";
@@ -157,6 +157,18 @@ const sidebarCopy: Record<string, UiCopy> = {
   "Back to strategies": { ja: "ストラテジー一覧に戻る", ko: "전략 목록으로 돌아가기", es: "Volver a estrategias", fr: "Retour aux stratégies" },
   Back: { ja: "戻る", ko: "뒤로", es: "Atrás", fr: "Retour" },
   "Pro plan": { ja: "Pro プラン", ko: "Pro 플랜", es: "Plan Pro", fr: "Offre Pro" },
+  "Search strategies, IDs, or symbols": {
+    ja: "ストラテジー、ID、取引ペアを検索",
+    ko: "전략, ID 또는 거래쌍 검색",
+    es: "Buscar estrategias, ID o símbolos",
+    fr: "Rechercher une stratégie, un ID ou un symbole",
+  },
+  "Clear search": {
+    ja: "検索をクリア",
+    ko: "검색 지우기",
+    es: "Borrar búsqueda",
+    fr: "Effacer la recherche",
+  },
 };
 
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
@@ -169,6 +181,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
 function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const [location, navigate] = useLocation();
+  const search = useSearch();
   const { user } = useAuth();
   const { uiLang } = useAppLanguage();
   const { alphaViewMode } = useAlphaViewMode();
@@ -179,11 +192,11 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     "/strategies": false,
   });
   const currentPathname = location.split("?")[0];
-  const currentSearch = location.includes("?")
-    ? location.slice(location.indexOf("?"))
-    : typeof window !== "undefined"
-      ? window.location.search
-      : "";
+  const currentSearch = search
+    ? `?${search.replace(/^\?/, "")}`
+    : "";
+  const isTradeIndexPage = currentPathname === "/trade";
+  const headerSearchQuery = new URLSearchParams(currentSearch).get("q") ?? "";
   const isOfficialAlphaDetail =
     currentPathname.startsWith("/alphas/") &&
     currentPathname !== "/alphas/official" &&
@@ -231,6 +244,16 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     .map((part) => part.charAt(0).toUpperCase())
     .join("") || "NO";
   const pageHeader = pageHeaders.find((item) => item.match(currentPathname)) ?? pageHeaders[0];
+  const updateHeaderSearch = (query: string) => {
+    const nextSearchParams = new URLSearchParams(currentSearch);
+    if (query) {
+      nextSearchParams.set("q", query);
+    } else {
+      nextSearchParams.delete("q");
+    }
+    const nextSearch = nextSearchParams.toString();
+    navigate(`${currentPathname}${nextSearch ? `?${nextSearch}` : ""}`, { replace: true });
+  };
 
   const syncAlphaCopy = useCallback((root: ParentNode, mode: AlphaViewMode) => {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -527,7 +550,35 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               </p>
             </div>
           </div>
-          <div className="mr-[21px] flex h-[30px] items-center gap-[9px]">
+          <div className="mr-[21px] flex h-[30px] items-center gap-[20px]">
+            {isTradeIndexPage && (
+              <label className="flex h-[27.75px] w-[180px] shrink-0 items-center gap-[6px] rounded-[749.25px] border-[0.75px] border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] transition-colors focus-within:border-[#dc4900]/45 focus-within:ring-2 focus-within:ring-[#dc4900]/10">
+                <img
+                  src="/header-search.svg"
+                  alt=""
+                  className="h-[11.25px] w-[10.078px] shrink-0"
+                  aria-hidden="true"
+                />
+                <input
+                  type="search"
+                  value={headerSearchQuery}
+                  onChange={(event) => updateHeaderSearch(event.target.value)}
+                  placeholder={tr("Search strategies, IDs, or symbols", "搜索策略、ID 或交易对")}
+                  aria-label={tr("Search strategies, IDs, or symbols", "搜索策略、ID 或交易对")}
+                  className="min-w-0 flex-1 bg-transparent p-0 text-[9.75px] font-normal leading-[1.2] text-[#0d0d0d] outline-none placeholder:text-[#b5aba0] [&::-webkit-search-cancel-button]:hidden"
+                />
+                {headerSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => updateHeaderSearch("")}
+                    aria-label={tr("Clear search", "清空搜索")}
+                    className="-mr-[7px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#8c8378] transition-colors hover:bg-[#f5f0eb] hover:text-[#0d0d0d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25"
+                  >
+                    <X className="h-[10px] w-[10px]" aria-hidden="true" />
+                  </button>
+                )}
+              </label>
+            )}
             <NotificationPanel
               triggerClassName="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]"
               iconSrc="/header-bell.svg"

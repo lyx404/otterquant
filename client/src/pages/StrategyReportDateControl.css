@@ -34,3 +34,218 @@
 .oq-report-date-trigger-separator {
   color: var(--report-muted);
 }
+
+.oq-report-date-select.oq-report-date-select--compact {
+  --report-bg: #ffffff;
+  --report-panel: #faf8f6;
+  --report-subtle-surface: #fbfbfc;
+  --report-border: #ece6df;
+  --report-subtle-border: #f3f3f3;
+  --report-divider-width: 0.75px;
+  --report-gold: #dc4900;
+  --report-text: #0d0d0d;
+  --report-text-soft: #2a2622;
+  --report-muted: #8c8378;
+  --report-warm: #fef6ef;
+  --report-shadow: 0 1.5px 6px rgba(60, 40, 20, 0.06);
+  --report-shadow-lift: 0 6px 18px rgba(60, 40, 20, 0.08);
+  --background: var(--report-bg);
+  --foreground: var(--report-text);
+  --popover: var(--report-bg);
+  --popover-foreground: var(--report-text);
+  --primary: var(--report-gold);
+  --primary-foreground: #ffffff;
+  --muted: var(--report-panel);
+  --muted-foreground: var(--report-muted);
+  --accent: var(--report-warm);
+  --accent-foreground: var(--report-text);
+  --border: var(--report-border);
+  --input: var(--report-border);
+  --ring: color-mix(in srgb, var(--report-gold) 32%, transparent);
+  position: relative;
+  inset: auto;
+  z-index: 3;
+  width: min(220px, 100%);
+  min-width: 0;
+  flex: 0 0 auto;
+  margin: 0;
+  font-family: var(--font-body);
+}
+
+.oq-report-date-select.oq-report-date-select--compact > button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  border: var(--report-divider-width) solid var(--report-subtle-border);
+  border-radius: 8px;
+  background: var(--report-subtle-surface);
+  padding: 6px 9px;
+  color: var(--report-muted);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1rem;
+  text-align: left;
+  white-space: nowrap;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.oq-report-date-select.oq-report-date-select--compact > button:hover,
+.oq-report-date-select.oq-report-date-select--compact > button[aria-expanded="true"] {
+  border-color: color-mix(in srgb, var(--report-text) 12%, var(--report-subtle-border));
+  background: var(--report-subtle-surface);
+  color: var(--report-text-soft);
+}
+
+.oq-report-date-select.oq-report-date-select--compact > button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.oq-report-date-select--compact .oq-report-date-trigger-label {
+  display: inline-flex;
+  gap: 7px;
+}
+
+.oq-report-date-select--compact .oq-report-date-trigger-label > svg,
+.oq-report-date-select--compact .oq-report-date-chevron {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  color: var(--report-muted);
+  stroke-width: 1.7;
+}
+
+.oq-report-date-select.oq-report-date-select--compact > button[aria-expanded="true"] .oq-report-date-chevron {
+  transform: rotate(180deg);
+}
+
+.oq-report-date-select--compact .oq-report-date-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: auto;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  min-width: min(220px, calc(100vw - 48px));
+  gap: 4px;
+  border: var(--report-divider-width) solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-bg);
+  padding: 4px;
+  box-shadow: var(--report-shadow);
+}
+
+.oq-report-date-select--compact .oq-report-date-menu button {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 7px 8px;
+  color: var(--report-text-soft);
+  font: inherit;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1rem;
+  cursor: pointer;
+}
+
+.oq-report-date-select--compact .oq-report-date-menu button:hover,
+.oq-report-date-select--compact .oq-report-date-menu button:focus-visible,
+.oq-report-date-select--compact .oq-report-date-menu button[aria-selected="true"] {
+  background: var(--report-warm);
+  color: var(--report-gold);
+  outline: none;
+}
+
+.oq-report-date-select--compact .oq-report-date-menu button > svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  color: var(--report-gold);
+  stroke-width: 1.8;
+}
+
+.oq-report-date-select--compact .oq-report-date-calendar-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: auto;
+  left: 0;
+  z-index: 31;
+  width: min(496px, calc(100vw - 48px));
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-bg);
+  padding: 8px;
+  box-shadow: var(--report-shadow-lift);
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar {
+  width: 100%;
+  padding: 8px 0 0;
+  background: transparent;
+  --cell-size: 28px;
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar .rdp-months {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar .rdp-month {
+  min-width: 0;
+  flex: 1 1 0;
+  gap: 12px;
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar .rdp-caption_label {
+  color: var(--report-text);
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar :is(.rdp-weekday, .rdp-outside) {
+  color: var(--report-muted);
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar :is(.rdp-weekday, .rdp-day_button) {
+  font-size: 0.625rem;
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar .rdp-week {
+  margin-top: 4px;
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar :is(.rdp-button_previous, .rdp-button_next) {
+  border-radius: 6px;
+  color: var(--report-text-soft);
+}
+
+.oq-report-date-select--compact .oq-report-range-calendar :is(.rdp-button_previous, .rdp-button_next) svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 700px) {
+  .oq-report-date-select--compact .oq-report-date-calendar-panel {
+    width: min(100vw - 48px, 256px);
+  }
+
+  .oq-report-date-select--compact .oq-report-range-calendar .rdp-months {
+    gap: 0;
+  }
+
+  .oq-report-date-select--compact .oq-report-range-calendar .rdp-month {
+    flex: 0 0 auto;
+  }
+}
