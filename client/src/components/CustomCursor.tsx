@@ -1,11 +1,10 @@
 /*
- * CustomCursor — Indigo/Sky + Slate Design System
+ * CustomCursor — Quandora brand accent
  * Circle cursor that follows the mouse pointer
- * Uses CSS variable --primary to stay on-theme in both light & dark modes
- * Light primary: #4F46E5 (Indigo-600) / Dark primary: #818CF8 (Indigo-400)
+ * Uses CSS variable --brand-accent to stay on-theme in light and dark modes.
  *
  * NOTE: mix-blend-mode: difference is intentionally NOT used because it causes
- * Indigo to appear green/yellow on light backgrounds due to color inversion.
+ * The brand accent can invert unpredictably on light backgrounds.
  */
 import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
@@ -15,27 +14,25 @@ export default function CustomCursor() {
   const dotRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = useState(false);
 
-  /* Read the current --primary CSS variable value */
-  const getPrimaryColor = useCallback(() => {
+  const getCursorColor = useCallback(() => {
     const raw = getComputedStyle(document.documentElement)
-      .getPropertyValue("--primary")
+      .getPropertyValue("--brand-accent")
       .trim();
-    return raw || "#4F46E5";
+    return raw || "#dc4900";
   }, []);
 
-  /* Derive a semi-transparent version of primary for hover bg */
-  const getPrimaryAlpha = useCallback(
+  const getCursorAlpha = useCallback(
     (alpha: number) => {
-      const hex = getPrimaryColor();
+      const hex = getCursorColor();
       if (!hex.startsWith("#") || hex.length < 7) {
-        return `rgba(79, 70, 229, ${alpha})`;
+        return `rgba(220, 73, 0, ${alpha})`;
       }
       const r = parseInt(hex.slice(1, 3), 16);
       const g = parseInt(hex.slice(3, 5), 16);
       const b = parseInt(hex.slice(5, 7), 16);
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     },
-    [getPrimaryColor]
+    [getCursorColor]
   );
 
   useEffect(() => {
@@ -101,12 +98,12 @@ export default function CustomCursor() {
     if (!cursor) return;
 
     if (isHovering) {
-      const primary = getPrimaryColor();
+      const accent = getCursorColor();
       gsap.to(cursor, {
         width: 56,
         height: 56,
-        borderColor: primary,
-        backgroundColor: getPrimaryAlpha(0.1),
+        borderColor: accent,
+        backgroundColor: getCursorAlpha(0.1),
         duration: 0.3,
         ease: "power3.out",
       });
@@ -114,13 +111,13 @@ export default function CustomCursor() {
       gsap.to(cursor, {
         width: 32,
         height: 32,
-        borderColor: getPrimaryAlpha(0.5),
+        borderColor: getCursorAlpha(0.5),
         backgroundColor: "transparent",
         duration: 0.3,
         ease: "power3.out",
       });
     }
-  }, [isHovering, getPrimaryColor, getPrimaryAlpha]);
+  }, [isHovering, getCursorColor, getCursorAlpha]);
 
   /* Listen for theme changes (class toggle on <html>) to refresh colors */
   useEffect(() => {
@@ -129,15 +126,13 @@ export default function CustomCursor() {
     if (!cursor || !dot) return;
 
     const refreshColors = () => {
-      const primary = getPrimaryColor();
-      // Update dot background
-      dot.style.backgroundColor = primary;
-      // Update ring border
+      const accent = getCursorColor();
+      dot.style.backgroundColor = accent;
       if (!isHovering) {
-        cursor.style.borderColor = getPrimaryAlpha(0.5);
+        cursor.style.borderColor = getCursorAlpha(0.5);
       } else {
-        cursor.style.borderColor = primary;
-        cursor.style.backgroundColor = getPrimaryAlpha(0.1);
+        cursor.style.borderColor = accent;
+        cursor.style.backgroundColor = getCursorAlpha(0.1);
       }
     };
 
@@ -159,11 +154,11 @@ export default function CustomCursor() {
     });
 
     return () => themeObserver.disconnect();
-  }, [isHovering, getPrimaryColor, getPrimaryAlpha]);
+  }, [isHovering, getCursorColor, getCursorAlpha]);
 
   return (
     <>
-      {/* Outer ring — NO mix-blend-mode to preserve true Indigo color */}
+      {/* Outer ring has no blend mode so the brand accent stays accurate. */}
       <div
         ref={cursorRef}
         className="pointer-events-none fixed top-0 left-0 z-[9999] rounded-full border will-change-transform"
@@ -171,7 +166,7 @@ export default function CustomCursor() {
           width: 32,
           height: 32,
           transform: "translate(-50%, -50%)",
-          borderColor: "var(--primary)",
+          borderColor: "var(--brand-accent)",
           opacity: 0.5,
         }}
       />
@@ -181,7 +176,7 @@ export default function CustomCursor() {
         className="pointer-events-none fixed top-0 left-0 z-[9999] w-[5px] h-[5px] rounded-full will-change-transform"
         style={{
           transform: "translate(-50%, -50%)",
-          backgroundColor: "var(--primary)",
+          backgroundColor: "var(--brand-accent)",
         }}
       />
     </>

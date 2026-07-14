@@ -159,9 +159,9 @@
 
 .oq-report-metric-panel .oq-report-date-select > button {
   min-height: 32px;
-  border-color: color-mix(in srgb, var(--report-border) 78%, transparent);
+  border-color: var(--report-subtle-border);
   border-radius: 8px;
-  background: rgb(250, 248, 246);
+  background: var(--report-subtle-surface);
   padding: 6px 9px;
   color: var(--report-muted);
   font-family: var(--font-body);
@@ -175,8 +175,8 @@
 
 .oq-report-metric-panel .oq-report-date-select > button:hover,
 .oq-report-metric-panel .oq-report-date-select > button[aria-expanded="true"] {
-  border-color: var(--report-border);
-  background: var(--report-panel);
+  border-color: color-mix(in srgb, var(--report-text) 12%, var(--report-subtle-border));
+  background: var(--report-subtle-surface);
   color: var(--report-text-soft);
 }
 
@@ -241,9 +241,9 @@
   min-height: 72px;
   align-content: center;
   gap: 5px;
-  border: var(--report-divider-width) solid var(--report-border);
+  border: var(--report-divider-width) solid var(--report-subtle-border);
   border-radius: 8px;
-  background: var(--report-panel);
+  background: var(--report-subtle-surface);
   padding: 10px 12px;
   box-shadow: none;
 }

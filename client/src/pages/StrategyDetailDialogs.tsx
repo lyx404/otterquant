@@ -19,11 +19,13 @@ import {
   getExchangeVenueMeta,
   type ExchangeApiConnection,
 } from "@/lib/exchangeApiConnections";
-import { ArrowUpRight, GitBranch, RotateCcw, Unplug, X } from "lucide-react";
+import { ArrowUpRight, History, RotateCcw, Unplug, X } from "lucide-react";
 import type { StrategyConfigRow } from "./StrategyDetailParts";
 import "./StrategyDetailDialogs.css";
 
 type Tr = (en: string, zh: string, copy?: Record<string, string>) => string;
+
+export const OPTIMIZATION_HISTORY_LIMIT = 10;
 
 const optimizerNumericParameters = [
   { key: "wmin", defaultValue: "-0.03", step: "0.01" },
@@ -45,6 +47,7 @@ export type OptimizedStrategyVersion = {
   id: string;
   number: string;
   createdAt: string;
+  status: "ready" | "pending";
 };
 
 const defaultOptimizerParameterValues = Object.fromEntries(
@@ -73,21 +76,49 @@ export function OptimizerDialog({
   const numericValues = optimizerNumericParameters.map((parameter) => Number(values[parameter.key]));
   const isValid = numericValues.every(Number.isFinite) && Number(values.wmin) < Number(values.wmax);
 
-  const versionLinks = optimizedVersions.map((version) => (
-    <a
-      href={`/strategies/${encodeURIComponent(version.id)}?name=${encodeURIComponent(strategyName)}&optimizedFrom=${encodeURIComponent(strategyId)}`}
-      key={version.id}
-    >
-      <span>
-        <strong>{strategyName}</strong>
-        <span className="oq-optimizer-version-meta">
-          <small>{`NO.${version.number}`}</small>
-          <small>{tr("Created", "创建时间")} {version.createdAt}</small>
+  const versionItems = optimizedVersions.slice(0, OPTIMIZATION_HISTORY_LIMIT).map((version) => {
+    const content = (
+      <>
+        <span className="oq-optimizer-version-summary">
+          <small className="oq-optimizer-version-badge">{`NO.${version.number}`}</small>
+          <span className="oq-optimizer-version-details">
+            <strong>{strategyName}</strong>
+            <small className="oq-optimizer-version-date">
+              {tr("Created", "创建时间")} {version.createdAt}
+            </small>
+          </span>
         </span>
-      </span>
-      <ArrowUpRight aria-hidden="true" />
-    </a>
-  ));
+        {version.status === "pending" ? (
+          <small className="oq-optimizer-version-status">Pending</small>
+        ) : (
+          <ArrowUpRight aria-hidden="true" />
+        )}
+      </>
+    );
+
+    if (version.status === "pending") {
+      return (
+        <div
+          className="oq-optimizer-version-item is-pending"
+          role="link"
+          aria-disabled="true"
+          key={version.id}
+        >
+          {content}
+        </div>
+      );
+    }
+
+    return (
+      <a
+        className="oq-optimizer-version-item"
+        href={`/strategies/${encodeURIComponent(version.id)}?name=${encodeURIComponent(strategyName)}&optimizedFrom=${encodeURIComponent(strategyId)}`}
+        key={version.id}
+      >
+        {content}
+      </a>
+    );
+  });
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) setIsVersionsOpen(false);
@@ -105,10 +136,11 @@ export function OptimizerDialog({
                 type="button"
                 className="oq-optimizer-history-trigger"
                 aria-haspopup="dialog"
+                aria-label={tr("Optimization History", "优化历史")}
+                title={tr("Optimization History", "优化历史")}
                 onClick={() => setIsVersionsOpen(true)}
               >
-                <GitBranch aria-hidden="true" />
-                {tr("Optimization History", "优化历史")}
+                <History aria-hidden="true" />
               </button>
             ) : null}
           </DialogHeader>
@@ -176,7 +208,7 @@ export function OptimizerDialog({
           </DialogHeader>
           <div className="oq-optimizer-history-body">
             <div className="oq-optimizer-version-list">
-              {versionLinks}
+              {versionItems}
             </div>
           </div>
         </DialogContent>

@@ -265,25 +265,6 @@ function TradeWorkbench260712() {
 
   return (
     <div className={`oq-trade ${environment === "live" ? "is-live" : "is-paper"}`}>
-      <div className="oq-trade-tabs" aria-label={tr("Trading environment", "交易环境")}>
-        <button
-          type="button"
-          onClick={() => setEnvironment("paper")}
-          className={`oq-trade-tab ${environment === "paper" ? "is-active" : ""}`}
-          aria-pressed={environment === "paper"}
-        >
-          {tr("Paper Trading", "模拟交易")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setEnvironment("live")}
-          className={`oq-trade-tab ${environment === "live" ? "is-active" : ""}`}
-          aria-pressed={environment === "live"}
-        >
-          {tr("Live Trading", "实盘交易")}
-        </button>
-      </div>
-
       <div className="oq-trade-summary-grid">
         <MaybeExplainTooltip enabled={plainExplainEnabled} explanation={metricExplanations.activeBots}>
           <div className="oq-trade-metric-card">

@@ -253,6 +253,16 @@
   outline: none;
 }
 
+.oq-strategy-create-dialog input.oq-strategy-form-control:focus {
+  border-color: var(--os-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--os-accent) 16%, transparent);
+}
+
+.oq-strategy-create-dialog input.oq-strategy-form-control.is-invalid:focus {
+  border-color: color-mix(in srgb, var(--os-risk) 68%, var(--os-border-strong)) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--os-risk) 12%, transparent);
+}
+
 .oq-strategy-factor-picker {
   display: inline-flex;
   align-items: center;
@@ -564,6 +574,12 @@
   font-family: var(--font-body);
 }
 
+.oq-strategy-create-dialog > [data-slot="dialog-close"]:focus:not(:focus-visible),
+.oq-strategy-factor-dialog > [data-slot="dialog-close"]:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
 .oq-strategy-factor-dialog-head {
   display: flex;
   align-items: flex-start;
@@ -651,6 +667,10 @@
   color: var(--os-muted);
 }
 
+.oq-strategy-factor-search:focus-within {
+  border-color: var(--os-text-soft);
+}
+
 .oq-strategy-factor-search input {
   width: 100%;
   border: 0;
@@ -658,6 +678,11 @@
   color: var(--os-text);
   font-size: 10.5px;
   outline: none;
+}
+
+.oq-strategy-factor-dialog .oq-strategy-factor-search input:focus {
+  border-color: transparent !important;
+  box-shadow: none;
 }
 
 .oq-strategy-factor-search input::placeholder {

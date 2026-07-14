@@ -14,7 +14,13 @@ import {
   positionHistory,
   type StrategyConfigRow,
 } from "./StrategyDetailParts";
-import { LiveDeployDialog, OptimizerDialog, StrategyConfigDialog, type OptimizedStrategyVersion } from "./StrategyDetailDialogs";
+import {
+  LiveDeployDialog,
+  OPTIMIZATION_HISTORY_LIMIT,
+  OptimizerDialog,
+  StrategyConfigDialog,
+  type OptimizedStrategyVersion,
+} from "./StrategyDetailDialogs";
 import {
   StrategyFigmaReport,
   type ReportMetric,
@@ -27,6 +33,14 @@ import {
 } from "lucide-react";
 
 const SHOW_LIVE_DEPLOY_ACTION = false;
+
+function subtractIsoDays(value: string, days: number) {
+  const isoDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+  if (!isoDate) return value;
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}
 
 const strategyDetailCopy: Record<string, UiCopy> = {
   Optimizer: { ja: "オプティマイザー", ko: "옵티마이저", es: "Optimizador", fr: "Optimiseur" },
@@ -183,12 +197,20 @@ export default function StrategyDetail() {
   const isOptimizedStrategy = Boolean(searchParams.get("optimizedFrom")) || /-OPT-\d+$/.test(strategyId);
   const createdAt = searchParams.get("createdAt") || strategy.updatedAt;
   const optimizedVersionCreatedAt = createdAt.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? createdAt;
-  const optimizedStrategyId = `${strategyId}-OPT-01`;
-  const optimizedVersions: OptimizedStrategyVersion[] = isOptimizedStrategy ? [] : [{
-    id: optimizedStrategyId,
-    number: strategyId.replace(/^STR-/, ""),
-    createdAt: optimizedVersionCreatedAt,
-  }];
+  const optimizedVersionNumber = Number(strategyId.replace(/^STR-/, ""));
+  const optimizedVersions: OptimizedStrategyVersion[] = isOptimizedStrategy
+    ? []
+    : Array.from({ length: OPTIMIZATION_HISTORY_LIMIT }, (_, index) => {
+        const number = Number.isFinite(optimizedVersionNumber)
+          ? String(Math.max(1, optimizedVersionNumber - index)).padStart(3, "0")
+          : String(index + 1).padStart(3, "0");
+        return {
+          id: `STR-${number}`,
+          number,
+          createdAt: subtractIsoDays(optimizedVersionCreatedAt, index),
+          status: index === 0 ? "pending" : "ready",
+        };
+      });
   const paperDeployment = useMemo(
     () => getStrategyDeployment(strategyId, "paper"),
     [deploymentVersion, strategyId]
@@ -534,7 +556,7 @@ export default function StrategyDetail() {
     [tr("Fee Rate (backtest param)", "手续费率（回测参数）"), "0.0005"],
     [tr("Annual (net)", "年化收益（净）"), (returnRate / 100).toFixed(6)],
     [tr("Sharpe (net)", "夏普（净）"), strategy.sharpe.toFixed(5)],
-    ["MDD", (Math.abs(drawdownPct) / 100).toFixed(6)],
+    [tr("MDD", "最大回撤"), (Math.abs(drawdownPct) / 100).toFixed(6)],
     [tr("Annual (gross)", "年化收益（总）"), ((returnRate * 1.65) / 100).toFixed(5)],
     [tr("Sharpe (gross)", "夏普（总）"), (strategy.sharpe * 1.66).toFixed(5)],
     [tr("Turnover (avg/bar)", "换手率（平均/bar）"), "1.23103"],

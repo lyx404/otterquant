@@ -1,7 +1,7 @@
 /*
- * AlphaForge — Indigo/Sky + Slate Design System
+ * AlphaForge — Orange/Sky + Slate Design System
  * Dual-theme: Light (Slate-50 #F8FAFC) / Dark (Slate-950 #020617)
- * Primary: Indigo-600 #4F46E5 (light) / Indigo-400 #818CF8 (dark)
+ * Primary: Quandora orange #DC4900 (light) / #FF6A1A (dark)
  * Secondary: Sky-500 #0EA5E9 (light) / Sky-400 #38BDF8 (dark)
  * Text: Slate scale (900/500 light — 50/400 dark)
  * Surface: White #FFFFFF (light) / Slate-900 #0F172A (dark)
@@ -73,6 +73,7 @@
   --font-body: "Hanken Grotesk", "Noto Sans", sans-serif;
   --font-heading: "Outfit", "Noto Sans", sans-serif;
   --font-sans: var(--font-body);
+  --brand-accent: #dc4900;
 
   --radius: 0.75rem;
   --background: #F8FAFC;
@@ -81,7 +82,7 @@
   --card-foreground: #0F172A;
   --popover: #FFFFFF;
   --popover-foreground: #0F172A;
-  --primary: #4F46E5;
+  --primary: var(--brand-accent);
   --primary-foreground: #FFFFFF;
   --secondary: #0EA5E9;
   --secondary-foreground: #FFFFFF;
@@ -93,7 +94,7 @@
   --destructive-foreground: #FFFFFF;
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: #4F46E5;
+  --ring: var(--brand-accent);
   --success: #10B981;
   --warning: #F59E0B;
   --chart-1: #4F46E5;
@@ -103,22 +104,22 @@
   --chart-5: #EF4444;
   --sidebar: #FFFFFF;
   --sidebar-foreground: #64748B;
-  --sidebar-primary: #4F46E5;
+  --sidebar-primary: var(--brand-accent);
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #F1F5F9;
   --sidebar-accent-foreground: #0F172A;
   --sidebar-border: #E2E8F0;
-  --sidebar-ring: #4F46E5;
+  --sidebar-ring: var(--brand-accent);
 
   /* Brand scramble effect */
-  --brand-scramble: #4F47E6;
+  --brand-scramble: var(--brand-accent);
   --brand-glow: none;
 
   /* Elevation shadows — light */
   --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
   --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.08);
+  --shadow-glow: 0 0 40px rgba(220, 73, 0, 0.08);
 }
 
 :lang(zh),
@@ -151,13 +152,14 @@
    DARK THEME — Slate-950 base
    ══════════════════════════════════════════════ */
 .dark {
+  --brand-accent: #ff6a1a;
   --background: #020617;
   --foreground: #F8FAFC;
   --card: #0F172A;
   --card-foreground: #F8FAFC;
   --popover: #0F172A;
   --popover-foreground: #F8FAFC;
-  --primary: #818CF8;
+  --primary: var(--brand-accent);
   --primary-foreground: #020617;
   --secondary: #38BDF8;
   --secondary-foreground: #020617;
@@ -169,7 +171,7 @@
   --destructive-foreground: #020617;
   --border: #1E293B;
   --input: #1E293B;
-  --ring: #818CF8;
+  --ring: var(--brand-accent);
   --success: #34D399;
   --warning: #FBBF24;
   --chart-1: #818CF8;
@@ -179,22 +181,22 @@
   --chart-5: #F87171;
   --sidebar: #0F172A;
   --sidebar-foreground: #94A3B8;
-  --sidebar-primary: #818CF8;
+  --sidebar-primary: var(--brand-accent);
   --sidebar-primary-foreground: #020617;
   --sidebar-accent: #1E293B;
   --sidebar-accent-foreground: #F8FAFC;
   --sidebar-border: #1E293B;
-  --sidebar-ring: #818CF8;
+  --sidebar-ring: var(--brand-accent);
 
   /* Brand scramble effect — dark */
-  --brand-scramble: #818CF8;
-  --brand-glow: 0 0 10px rgba(79, 71, 230, 0.3);
+  --brand-scramble: var(--brand-accent);
+  --brand-glow: 0 0 10px rgba(255, 106, 26, 0.3);
 
   /* Elevation — dark: no shadows, use border + bg-step */
   --shadow-card: none;
   --shadow-card-hover: none;
   --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 40px rgba(129, 140, 248, 0.1);
+  --shadow-glow: 0 0 40px rgba(255, 106, 26, 0.1);
 }
 
 /* ══════════════════════════════════════════════
@@ -206,8 +208,14 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    accent-color: var(--brand-accent);
+    caret-color: var(--brand-accent);
     font-family: var(--font-body);
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  ::selection {
+    background: color-mix(in srgb, var(--brand-accent) 24%, transparent);
+    color: var(--foreground);
   }
   h1 {
     font-size: 2.25rem;
@@ -351,21 +359,14 @@
     background-color: color-mix(in srgb, var(--foreground) 42%, transparent);
   }
 
-  /* ── Focus ring: indigo glow ── */
+  /* ── Focus ring: brand accent glow ── */
   input:focus,
   select:focus,
   textarea:focus,
   [role="combobox"]:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-    border-color: rgba(79, 70, 229, 0.5) !important;
-  }
-  .dark input:focus,
-  .dark select:focus,
-  .dark textarea:focus,
-  .dark [role="combobox"]:focus {
-    box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
-    border-color: rgba(129, 140, 248, 0.5) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-accent) 20%, transparent);
+    border-color: color-mix(in srgb, var(--brand-accent) 50%, transparent) !important;
   }
 
   /* ── Transition utilities ── */

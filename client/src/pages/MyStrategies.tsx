@@ -696,7 +696,7 @@ function toStrategyViewRow(index: number): StrategyViewRow {
     executionMode === "live"
       ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
       : executionMode === "paper"
-        ? "border-indigo-500/25 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300"
+        ? "border-primary/25 bg-primary/10 text-primary"
         : "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300";
 
   return {
@@ -1864,9 +1864,9 @@ export default function MyStrategies() {
       key: "trading" as const,
       label: tr("Trading", "交易中"),
       value: String(tradingCount),
-      icon: <ArrowUpDown className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />,
-      tone: "text-indigo-600 dark:text-indigo-400",
-      labelClass: "text-indigo-600 dark:text-indigo-400",
+      icon: <ArrowUpDown className="h-3.5 w-3.5 text-primary" />,
+      tone: "text-primary",
+      labelClass: "text-primary",
     },
     {
       key: "idle" as const,
@@ -2248,7 +2248,7 @@ export default function MyStrategies() {
                           [item.key]: !prev[item.key],
                         }))
                       }
-                      className="h-3.5 w-3.5 accent-indigo-500"
+                      className="h-3.5 w-3.5 accent-primary"
                     />
                   </label>
                 ))}

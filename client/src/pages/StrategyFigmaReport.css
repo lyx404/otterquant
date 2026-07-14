@@ -817,8 +817,10 @@
   --report-bg: #ffffff;
   --report-panel: #faf8f6;
   --report-panel-deep: #f4f1ed;
+  --report-subtle-surface: #fbfbfc;
   --report-border: #ece6df;
   --report-border-strong: #ece6df;
+  --report-subtle-border: #f3f3f3;
   --report-divider-width: 0.75px;
   --report-gold: #dc4900;
   --report-gold-soft: #f3dfcb;
@@ -1659,9 +1661,9 @@ main:has(.oq-strategy-figma-report) {
   grid-template-columns: repeat(5, minmax(118px, 1fr));
   gap: 2px;
   margin-top: 0;
-  border: 1px solid var(--report-border);
+  border: 1px solid var(--report-subtle-border);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--report-panel) 72%, var(--report-bg));
+  background: var(--report-subtle-surface);
   padding: 8px;
   font-family: var(--font-body);
   font-size: 0.6875rem;
@@ -1694,7 +1696,7 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-report-table-row strong {
-  color: var(--report-gold);
+  color: var(--report-text);
   font-size: 0.8125rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
