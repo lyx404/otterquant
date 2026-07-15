@@ -11,6 +11,7 @@ import { deployStrategyToTrade, getStrategyDeployment } from "@/lib/tradeDeploym
 import { type UiCopy, useAppLanguage, translateUi } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 import {
+  PLAIN_EXPLANATION_STORAGE_KEY,
   positionHistory,
   type StrategyConfigRow,
 } from "./StrategyDetailParts";
@@ -24,6 +25,7 @@ import {
 import {
   StrategyFigmaReport,
   type ReportMetric,
+  type ReportMetricRow,
   type ReportPositionRecord,
 } from "./StrategyFigmaReport";
 import {
@@ -33,6 +35,11 @@ import {
 } from "lucide-react";
 
 const SHOW_LIVE_DEPLOY_ACTION = false;
+
+function readPlainExplanationEnabled() {
+  if (typeof window === "undefined") return true;
+  return window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY) !== "false";
+}
 
 function subtractIsoDays(value: string, days: number) {
   const isoDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
@@ -188,6 +195,7 @@ export default function StrategyDetail() {
   );
   const [selectedExchangeApiId, setSelectedExchangeApiId] = useState<string>("");
   const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
+  const [plainExplainEnabled, setPlainExplainEnabled] = useState(readPlainExplanationEnabled);
 
   const strategyName = customName || strategy.name;
   const strategyId = strategy.id;
@@ -232,6 +240,15 @@ export default function StrategyDetail() {
       setSelectedExchangeApiId(connectedExchangeApis[0].id);
     }
   }, [connectedExchangeApis, selectedExchangeApiId]);
+  useEffect(() => {
+    const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
+    window.addEventListener("storage", syncPlainExplanation);
+    window.addEventListener("focus", syncPlainExplanation);
+    return () => {
+      window.removeEventListener("storage", syncPlainExplanation);
+      window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
   const minLiveCapital = 100;
   const parsedLiveCapital = Number(liveCapitalInput);
   const isLiveCapitalNumeric = Number.isFinite(parsedLiveCapital);
@@ -542,27 +559,123 @@ export default function StrategyDetail() {
       label: tr("Sharpe Ratio", "夏普比率"),
       value: strategy.sharpe.toFixed(3),
       tone: strategy.sharpe >= 1.5 ? "good" : "muted",
+      explanation: tr(
+        "Measures return stability. Higher values generally indicate steadier performance.",
+        "衡量收益的稳定性，数值越高通常越稳健。"
+      ),
     },
     {
       label: tr("Max DD", "最大回撤"),
       value: `${Math.abs(drawdownPct).toFixed(1)}%`,
       tone: Math.abs(drawdownPct) >= 15 ? "warn" : "good",
+      explanation: tr(
+        "Shows the largest historical decline. Lower values indicate less downside risk.",
+        "表示历史最大跌幅，数值越低风险越小。"
+      ),
     },
-    { label: "Calmar", value: calmar.toFixed(3), tone: calmar >= 3 ? "good" : "muted" },
-    { label: tr("Hit Rate", "命中率"), value: `${winRate.toFixed(1)}%`, tone: winRate >= 55 ? "good" : "muted" },
-    { label: tr("Turnover", "换手率"), value: "1.231", tone: "muted" },
+    {
+      label: "Calmar",
+      value: calmar.toFixed(3),
+      tone: calmar >= 3 ? "good" : "muted",
+      explanation: tr(
+        "Measures return relative to maximum drawdown. Higher values are better.",
+        "衡量收益相对最大回撤的效率，数值越高越好。"
+      ),
+    },
+    {
+      label: tr("Hit Rate", "命中率"),
+      value: `${winRate.toFixed(1)}%`,
+      tone: winRate >= 55 ? "good" : "muted",
+      explanation: tr(
+        "Shows the percentage of profitable trades.",
+        "表示盈利交易占全部交易的比例。"
+      ),
+    },
+    {
+      label: tr("Turnover", "换手率"),
+      value: "1.231",
+      tone: "muted",
+      explanation: tr(
+        "Shows how often positions change. Higher values mean more frequent trading.",
+        "表示持仓调整频率，数值越高交易越频繁。"
+      ),
+    },
   ];
-  const reportMetricRows: Array<[string, string]> = [
-    [tr("Fee Rate (backtest param)", "手续费率（回测参数）"), "0.0005"],
-    [tr("Annual (net)", "年化收益（净）"), (returnRate / 100).toFixed(6)],
-    [tr("Sharpe (net)", "夏普（净）"), strategy.sharpe.toFixed(5)],
-    [tr("MDD", "最大回撤"), (Math.abs(drawdownPct) / 100).toFixed(6)],
-    [tr("Annual (gross)", "年化收益（总）"), ((returnRate * 1.65) / 100).toFixed(5)],
-    [tr("Sharpe (gross)", "夏普（总）"), (strategy.sharpe * 1.66).toFixed(5)],
-    [tr("Turnover (avg/bar)", "换手率（平均/bar）"), "1.23103"],
-    [tr("Turnover Cost (cum, ret)", "累计换手成本（收益率）"), "1.00082"],
-    [tr("Total Funding Return", "累计资金费率收益"), "0"],
-    [tr("Periods", "周期数"), `${tradingDays + 529}`],
+  const reportMetricRows: ReportMetricRow[] = [
+    [
+      tr("Fee Rate (backtest param)", "手续费率（回测参数）"),
+      "0.0005",
+      tr(
+        "Fee rate applied to each trade in the backtest.",
+        "回测中每次成交使用的手续费率。"
+      ),
+    ],
+    [
+      tr("Annual (net)", "年化收益（净）"),
+      (returnRate / 100).toFixed(6),
+      tr("Annualized return after trading costs.", "扣除交易成本后的年化收益率。"),
+    ],
+    [
+      tr("Sharpe (net)", "夏普（净）"),
+      strategy.sharpe.toFixed(5),
+      tr(
+        "Return stability after trading costs. Higher values generally indicate steadier performance.",
+        "扣除交易成本后的收益稳定性，数值越高通常越稳健。"
+      ),
+    ],
+    [
+      tr("MDD", "最大回撤"),
+      (Math.abs(drawdownPct) / 100).toFixed(6),
+      tr(
+        "Shows the largest historical decline. Lower values indicate less downside risk.",
+        "表示历史最大跌幅，数值越低风险越小。"
+      ),
+    ],
+    [
+      tr("Annual (gross)", "年化收益（总）"),
+      ((returnRate * 1.65) / 100).toFixed(5),
+      tr("Annualized return before trading costs.", "未扣除交易成本的年化收益率。"),
+    ],
+    [
+      tr("Sharpe (gross)", "夏普（总）"),
+      (strategy.sharpe * 1.66).toFixed(5),
+      tr(
+        "Return stability before trading costs. Higher values generally indicate steadier performance.",
+        "未扣除交易成本的收益稳定性，数值越高通常越稳健。"
+      ),
+    ],
+    [
+      tr("Turnover (avg/bar)", "换手率（平均/bar）"),
+      "1.23103",
+      tr(
+        "Average position turnover per period. Higher values mean more frequent trading.",
+        "表示每个周期平均调整仓位的幅度，数值越高交易越频繁。"
+      ),
+    ],
+    [
+      tr("Turnover Cost (cum, ret)", "累计换手成本（收益率）"),
+      "1.00082",
+      tr(
+        "Cumulative trading cost from position turnover, expressed as return.",
+        "表示换手产生的累计成本占收益的比例。"
+      ),
+    ],
+    [
+      tr("Total Funding Return", "累计资金费率收益"),
+      "0",
+      tr(
+        "Cumulative profit or cost from funding fees.",
+        "表示资金费率带来的累计收益或成本。"
+      ),
+    ],
+    [
+      tr("Periods", "周期数"),
+      `${tradingDays + 529}`,
+      tr(
+        "Number of periods included in this backtest.",
+        "表示本次回测包含的统计周期数量。"
+      ),
+    ],
   ];
   const reportPositions: ReportPositionRecord[] = positionHistory.map((position) => ({
     symbol: position.symbol,
@@ -669,6 +782,7 @@ export default function StrategyDetail() {
         titleAction={<span className="oq-report-no-badge">NO.{reportNo}</span>}
         topAction={reportTopAction}
         headerMetrics={reportHeaderMetrics}
+        plainExplainEnabled={plainExplainEnabled}
         dateLabel={tr("Past 30 days", "过去30天")}
         dateOptions={[
           tr("Past 30 days", "过去30天"),

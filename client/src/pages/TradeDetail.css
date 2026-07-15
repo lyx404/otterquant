@@ -151,7 +151,7 @@
   line-height: 18px;
 }
 
-.oq-trade-detail-meta span:last-child {
+.oq-trade-detail-market-meta {
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
 }
@@ -349,6 +349,7 @@
   display: block;
   grid-area: performance;
   overflow: visible;
+  padding: 16px;
 }
 
 .oq-trade-trend-card {
@@ -368,21 +369,22 @@
 
 .oq-trade-performance-metrics {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px 6.75px;
   margin: 16px 0 0;
 }
 
 .oq-trade-performance-metrics > div {
   display: grid;
+  height: 72px;
   min-width: 0;
-  min-height: 96px;
   align-content: center;
-  gap: 8px;
-  border: 0.75px solid color-mix(in srgb, var(--td-border) 76%, transparent);
+  gap: 9px;
+  border: 0.5px solid rgb(243, 243, 243);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--td-muted) 4%, var(--td-bg));
-  padding: 12px 14px;
+  background: rgb(251, 251, 252);
+  padding: 12px;
+  box-shadow: none;
 }
 
 .oq-trade-performance-metrics > div:last-child {
@@ -391,19 +393,22 @@
 
 .oq-trade-performance-metrics dt {
   color: var(--td-muted);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 14px;
+  font-family: var(--font-body);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 0.875rem;
 }
 
 .oq-trade-performance-metrics dd {
+  height: 26px;
   margin: 0;
   overflow: hidden;
+  padding-top: 2px;
   color: var(--td-text-soft);
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 18px;
+  font-family: "Roboto Mono", ui-monospace, monospace;
+  font-size: 1rem;
   font-weight: 700;
-  line-height: 24px;
+  line-height: 1.5rem;
   text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -979,7 +984,11 @@
   margin-top: 5px;
 }
 
-.oq-trade-position-meta span {
+.oq-trade-position-meta span,
+.oq-trade-activity-identity .oq-trade-position-direction,
+.oq-trade-activity-market {
+  display: inline-flex;
+  align-items: center;
   border-radius: 4px;
   background: color-mix(in srgb, var(--td-muted) 8%, var(--td-bg));
   padding: 2px 5px;
@@ -989,12 +998,12 @@
   line-height: 12px;
 }
 
-.oq-trade-position-meta .oq-trade-position-direction.is-long {
+.oq-trade-position-direction.is-long {
   background: color-mix(in srgb, var(--semantic-up) 8%, var(--td-bg));
   color: color-mix(in srgb, var(--semantic-up) 82%, var(--td-text));
 }
 
-.oq-trade-position-meta .oq-trade-position-direction.is-short {
+.oq-trade-position-direction.is-short {
   background: color-mix(in srgb, var(--semantic-down) 8%, var(--td-bg));
   color: color-mix(in srgb, var(--semantic-down) 82%, var(--td-text));
 }
@@ -1090,7 +1099,7 @@
 }
 
 .oq-trade-workspace-table.is-history-positions :is(th, td):first-child {
-  width: 19%;
+  width: 17%;
 }
 
 .oq-trade-workspace-table.is-history-positions :is(th, td):nth-child(2),
@@ -1099,16 +1108,30 @@
 }
 
 .oq-trade-workspace-table.is-history-positions :is(th, td):nth-child(3),
-.oq-trade-workspace-table.is-history-positions :is(th, td):nth-child(6),
-.oq-trade-workspace-table.is-history-positions :is(th, td):last-child {
-  width: 12%;
+.oq-trade-workspace-table.is-history-positions :is(th, td):nth-child(6) {
+  width: 14%;
 }
 
 .oq-trade-workspace-table.is-history-positions :is(th, td):nth-child(5) {
-  width: 19%;
+  width: 16%;
+}
+
+.oq-trade-workspace-table.is-history-positions :is(th, td):last-child {
+  width: 13%;
+}
+
+.oq-trade-workspace-table.is-history-positions :is(th, td) {
+  padding-right: 12px;
+  padding-left: 12px;
 }
 
 .oq-trade-workspace-table.is-history-positions :is(th, td):not(:first-child) {
+  text-align: right;
+}
+
+.oq-trade-workspace-table.is-history-positions :is(th, td):nth-child(3),
+.oq-trade-workspace-table.is-history-positions :is(th, td):nth-child(6),
+.oq-trade-workspace-table.is-history-positions :is(th, td):last-child {
   text-align: right;
 }
 
@@ -1127,7 +1150,7 @@
   .oq-trade-position-stack span,
   .oq-trade-workspace-value
 ) {
-  font-size: 10px;
+  font-size: 0.625rem;
 }
 
 .oq-trade-workspace-table.is-history-positions tbody tr {
@@ -1138,14 +1161,61 @@
   background: color-mix(in srgb, var(--td-bg-warm) 36%, var(--td-bg));
 }
 
-.oq-trade-workspace-table.is-history-positions :is(.oq-trade-history-time, .oq-trade-position-stack) strong {
-  font-weight: 400;
-}
-
 .oq-trade-history-time,
 .oq-trade-workspace-table.is-history-positions :is(.oq-trade-position-number, .oq-trade-position-stack, .oq-trade-workspace-value) {
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.oq-trade-workspace-table.is-history-positions :is(.oq-trade-history-time, .oq-trade-position-stack) {
+  vertical-align: middle;
+}
+
+.oq-trade-workspace-table.is-history-positions .oq-trade-history-time strong,
+.oq-trade-workspace-table.is-history-positions .oq-trade-position-stack > strong {
+  color: var(--td-text-soft);
+  font-family: inherit;
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: 1rem;
+}
+
+.oq-trade-workspace-table.is-history-positions .oq-trade-history-time span {
+  margin-top: 0.1875rem;
+  color: var(--td-muted);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 0.75rem;
+}
+
+.oq-trade-history-closed-line {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  margin-top: 0.1875rem;
+  color: var(--td-muted);
+  line-height: 0.75rem;
+}
+
+.oq-trade-position-stack .oq-trade-history-closed-line span {
+  display: inline;
+  margin-top: 0;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: inherit;
+}
+
+.oq-trade-position-stack .oq-trade-history-closed-line strong {
+  display: inline;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.625rem;
+  font-weight: 400;
+  line-height: inherit;
 }
 
 .oq-trade-activity-list {
@@ -1184,7 +1254,7 @@
 .oq-trade-activity-time strong {
   color: color-mix(in srgb, var(--td-muted) 82%, transparent);
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.625rem;
   font-weight: 500;
   line-height: 16px;
 }
@@ -1220,12 +1290,11 @@
 .oq-trade-activity-marker span {
   position: relative;
   z-index: 1;
-  width: 10px;
-  height: 10px;
-  border: 2px solid var(--td-bg);
+  width: 6px;
+  height: 6px;
+  margin-top: 2px;
   border-radius: 50%;
   background: color-mix(in srgb, var(--td-border) 78%, var(--td-bg));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--td-border) 82%, transparent);
 }
 
 .oq-trade-activity-content {
@@ -1261,36 +1330,20 @@
 
 .oq-trade-activity-identity > strong {
   color: var(--td-text);
-  font-size: 12px;
+  font-size: 0.625rem;
   font-weight: 750;
   line-height: 18px;
 }
 
-.oq-trade-activity-identity .oq-trade-workspace-badge.is-open {
-  background: color-mix(in srgb, var(--td-success) 9%, var(--td-bg));
-  color: color-mix(in srgb, var(--td-success) 84%, var(--td-text));
-}
-
-.oq-trade-activity-identity .oq-trade-workspace-badge.is-close {
-  background: color-mix(in srgb, var(--td-risk) 8%, var(--td-bg));
-  color: color-mix(in srgb, var(--td-risk) 84%, var(--td-text));
-}
-
-.oq-trade-activity-market {
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--td-muted) 8%, var(--td-bg));
-  padding: 2px 5px;
-  color: var(--td-text-soft);
-  font-size: 9px;
-  font-weight: 600;
-  line-height: 13px;
-}
-
 .oq-trade-activity-summary {
+  display: flex;
   min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 4px;
   margin: 0;
   color: var(--td-text-soft);
-  font-size: 11px;
+  font-size: 0.625rem;
   line-height: 18px;
   overflow-wrap: anywhere;
 }
@@ -1298,38 +1351,41 @@
 .oq-trade-activity-summary strong {
   color: var(--td-text);
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 10.5px;
+  font-size: 0.625rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
 .oq-trade-activity-pnl {
-  display: flex;
-  width: fit-content;
-  max-width: 100%;
+  display: inline-flex;
   align-items: baseline;
-  gap: 7px;
-  border-radius: 4px;
-  padding: 3px 6px;
-  font-size: 9px;
-  line-height: 14px;
+  gap: 4px;
+  color: var(--td-text-soft);
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .oq-trade-activity-pnl strong {
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 10px;
+  font-size: inherit;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .oq-trade-activity-pnl.is-positive {
-  background: color-mix(in srgb, var(--semantic-up) 7%, var(--td-bg));
-  color: color-mix(in srgb, var(--semantic-up) 78%, var(--td-text));
+  background: transparent;
 }
 
 .oq-trade-activity-pnl.is-negative {
-  background: color-mix(in srgb, var(--semantic-down) 7%, var(--td-bg));
-  color: color-mix(in srgb, var(--semantic-down) 78%, var(--td-text));
+  background: transparent;
+}
+
+.oq-trade-activity-pnl.is-positive strong {
+  color: color-mix(in srgb, var(--semantic-up) 82%, var(--td-text));
+}
+
+.oq-trade-activity-pnl.is-negative strong {
+  color: color-mix(in srgb, var(--semantic-down) 82%, var(--td-text));
 }
 
 .oq-trade-workspace-empty {
@@ -1359,10 +1415,6 @@
   .oq-trade-performance-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-top: 12px;
-  }
-
-  .oq-trade-performance-metrics > div:last-child {
-    grid-column: 1 / -1;
   }
 
   .oq-trade-trend-card,

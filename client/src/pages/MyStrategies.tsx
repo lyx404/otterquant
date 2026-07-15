@@ -4,7 +4,7 @@
  * Visual style stays aligned with existing My Alphas dark design tokens.
  */
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -142,6 +142,8 @@ const strategyCopy: Record<string, UiCopy> = {
   "Download all (.zip)": { ja: "すべてダウンロード（.zip）", ko: "전체 다운로드 (.zip)", es: "Descargar todo (.zip)", fr: "Tout telecharger (.zip)" },
   "Tick rows to compare ·": { ja: "比較する行を選択 ·", ko: "비교할 행 선택 ·", es: "Marca filas para comparar ·", fr: "Cochez les lignes a comparer ·" },
   "Toggle compare": { ja: "比較対象を切替", ko: "비교 선택 전환", es: "Alternar comparacion", fr: "Basculer la comparaison" },
+  "No matching strategies": { ja: "一致する戦略がありません", ko: "일치하는 전략이 없습니다", es: "No hay estrategias coincidentes", fr: "Aucune strategie correspondante" },
+  "Adjust the keyword or filter.": { ja: "キーワードまたはフィルターを調整してください。", ko: "키워드 또는 필터를 조정하세요.", es: "Ajusta la palabra clave o el filtro.", fr: "Ajustez le mot-cle ou le filtre." },
   Rows: { ja: "行", ko: "행", es: "Filas", fr: "Lignes" },
   "Strategy list pagination": { ja: "戦略一覧のページ切替", ko: "전략 목록 페이지 이동", es: "Paginacion de estrategias", fr: "Pagination de la liste des strategies" },
   "First page": { ja: "最初のページ", ko: "첫 페이지", es: "Primera pagina", fr: "Premiere page" },
@@ -897,7 +899,7 @@ function MaybeExplainTooltip({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[240px] text-xs leading-5">
+      <TooltipContent side="top" className="oq-plain-explanation-tooltip">
         {explanation}
       </TooltipContent>
     </Tooltip>
@@ -1029,10 +1031,12 @@ function MetricBox({
 
 function CreateStrategyComposer({
   tr,
+  plainExplainEnabled,
   onClose,
   onCreate,
 }: {
   tr: StrategyTr;
+  plainExplainEnabled: boolean;
   onClose: () => void;
   onCreate: (name: string) => void;
 }) {
@@ -1212,7 +1216,15 @@ function CreateStrategyComposer({
 
       <fieldset className="oq-strategy-form-field is-wide">
         <legend>
-          {tr("Strategy direction", "策略方向")}
+          <MaybeExplainTooltip
+            enabled={plainExplainEnabled}
+            explanation={tr(
+              "Neutral: holds both long and short positions; Long only: holds assets expected to rise; Short only: holds assets expected to fall.",
+              "中性：同时配置多头和空头；仅做多：只持有预期上涨的标的；仅做空：只持有预期下跌的标的。",
+            )}
+          >
+            <span tabIndex={plainExplainEnabled ? 0 : undefined}>{tr("Strategy direction", "策略方向")}</span>
+          </MaybeExplainTooltip>
           <b>*</b>
         </legend>
         <div className="oq-strategy-segment-group is-three">
@@ -1232,7 +1244,15 @@ function CreateStrategyComposer({
 
       <div className="oq-strategy-form-field is-wide">
         <span>
-          {tr("Head/tail grouping rule", "头尾分层规则")}
+          <MaybeExplainTooltip
+            enabled={plainExplainEnabled}
+            explanation={tr(
+              "The value sets the size selected from each end of the ranking. N selects that many assets from both the top and bottom; % selects that percentage from each end.",
+              "数值表示每端选取的规模；选择 N 时，从排名头部和尾部各选 N 个标的；选择 % 时，从两端各选相同比例的标的。",
+            )}
+          >
+            <span tabIndex={plainExplainEnabled ? 0 : undefined}>{tr("Head/tail grouping rule", "头尾分层规则")}</span>
+          </MaybeExplainTooltip>
           <b>*</b>
         </span>
         <div className="oq-strategy-layer-row">
@@ -1573,7 +1593,19 @@ function StrategyCard({
 
 export default function MyStrategies() {
   const { uiLang } = useAppLanguage();
-  const [query, setQuery] = useState("");
+  const [, navigate] = useLocation();
+  const search = useSearch();
+  const query = useMemo(() => new URLSearchParams(search).get("q") ?? "", [search]);
+  const setQuery = (nextQuery: string) => {
+    const nextSearchParams = new URLSearchParams(search);
+    if (nextQuery) {
+      nextSearchParams.set("q", nextQuery);
+    } else {
+      nextSearchParams.delete("q");
+    }
+    const nextSearch = nextSearchParams.toString();
+    navigate(`/strategies${nextSearch ? `?${nextSearch}` : ""}`, { replace: true });
+  };
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDesc, setSortDesc] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
@@ -1685,8 +1717,13 @@ export default function MyStrategies() {
 
     const keyword = query.trim().toLowerCase();
     if (!keyword) return byTopFilter;
-    return byTopFilter.filter((row) => row.name.toLowerCase().includes(keyword) || row.id.toLowerCase().includes(keyword));
-  }, [activeStrategyRows, query, strategyFilter, starred]);
+    return byTopFilter.filter((row) => {
+      const meta = getWorkbenchMetaForRow(row);
+      const visibleTitle = translateWorkbenchTitle(meta.title, tr).toLowerCase();
+      const visibleCategory = translateWorkbenchCategory(meta.category, tr).toLowerCase();
+      return [visibleTitle, visibleCategory, row.name, row.id].some((value) => value.toLowerCase().includes(keyword));
+    });
+  }, [activeStrategyRows, query, strategyFilter, starred, uiLang]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered;
@@ -1950,7 +1987,12 @@ export default function MyStrategies() {
             <div>{tr("Status", "状态")}</div>
             <div>{renderWorkbenchSortHeader("updated", tr("Created Date", "创建时间"))}</div>
           </div>
-          {workbenchRows.map((row, index) => {
+          {sorted.length === 0 ? (
+            <div className="oq-strategy-table-empty" role="status">
+              <p className="oq-strategy-table-empty-title">{tr("No matching strategies", "未找到匹配的策略")}</p>
+              <p className="oq-strategy-table-empty-copy">{tr("Adjust the keyword or filter.", "请调整关键词或筛选条件。")}</p>
+            </div>
+          ) : workbenchRows.map((row, index) => {
             const meta = getWorkbenchMetaForRow(row);
             const localizedTitle = translateWorkbenchTitle(meta.title, tr);
             const localizedCategory = translateWorkbenchCategory(meta.category, tr);
@@ -1988,7 +2030,7 @@ export default function MyStrategies() {
               </div>
             );
           })}
-          <div className="oq-strategy-table-pagination">
+          {sorted.length > 0 ? <div className="oq-strategy-table-pagination">
             <div className="oq-strategy-page-summary">
               <span>{tr("Rows", "行")}</span>
               <strong>
@@ -2021,7 +2063,7 @@ export default function MyStrategies() {
                 <ChevronsRight className="h-3.5 w-3.5" />
               </button>
             </div>
-          </div>
+          </div> : null}
         </section>
 
         {hasCompareRows ? (
@@ -2079,6 +2121,7 @@ export default function MyStrategies() {
             </div>
             <CreateStrategyComposer
               tr={tr}
+              plainExplainEnabled={shouldShowPlainExplanations}
               onClose={() => setShowCreateStrategy(false)}
               onCreate={createPendingStrategy}
             />

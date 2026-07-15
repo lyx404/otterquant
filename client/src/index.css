@@ -120,6 +120,10 @@
   --shadow-card-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   --shadow-glow: 0 0 40px rgba(220, 73, 0, 0.08);
+  --oq-workbench-tooltip-bg: #ffffff;
+  --oq-workbench-tooltip-border: #e2dad0;
+  --oq-workbench-tooltip-text: #4a443d;
+  --oq-workbench-tooltip-shadow: 0 4px 12px rgba(60, 40, 20, 0.08);
 }
 
 :lang(zh),
@@ -197,6 +201,10 @@
   --shadow-card-hover: none;
   --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 40px rgba(255, 106, 26, 0.1);
+  --oq-workbench-tooltip-bg: #1b1816;
+  --oq-workbench-tooltip-border: #3a332d;
+  --oq-workbench-tooltip-text: #d8d1ca;
+  --oq-workbench-tooltip-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
 }
 
 /* ══════════════════════════════════════════════
@@ -283,6 +291,25 @@
     box-shadow: var(--shadow-dropdown);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+  }
+
+  .oq-plain-explanation-tooltip {
+    max-width: min(260px, calc(100vw - 24px)) !important;
+    border: 0.75px solid var(--oq-workbench-tooltip-border);
+    border-radius: 8px !important;
+    background: var(--oq-workbench-tooltip-bg) !important;
+    padding: 8px 10px !important;
+    color: var(--oq-workbench-tooltip-text) !important;
+    font-family: var(--font-body);
+    font-size: 0.625rem !important;
+    font-weight: 500;
+    line-height: 1rem !important;
+    letter-spacing: 0;
+    box-shadow: var(--oq-workbench-tooltip-shadow) !important;
+  }
+
+  .oq-plain-explanation-tooltip svg {
+    fill: var(--oq-workbench-tooltip-bg) !important;
   }
 
   /* ── Data Display — Roboto Mono tabular-nums ── */

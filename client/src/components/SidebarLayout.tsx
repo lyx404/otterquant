@@ -195,7 +195,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const currentSearch = search
     ? `?${search.replace(/^\?/, "")}`
     : "";
-  const isTradeIndexPage = currentPathname === "/trade";
+  const hasHeaderSearch = currentPathname === "/trade" || currentPathname === "/strategies";
   const headerSearchQuery = new URLSearchParams(currentSearch).get("q") ?? "";
   const isOfficialAlphaDetail =
     currentPathname.startsWith("/alphas/") &&
@@ -551,7 +551,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="mr-[21px] flex h-[30px] items-center gap-[20px]">
-            {isTradeIndexPage && (
+            {hasHeaderSearch && (
               <label className="flex h-[27.75px] w-[180px] shrink-0 items-center gap-[6px] rounded-[749.25px] border-[0.75px] border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] transition-colors focus-within:border-[#dc4900]/45 focus-within:ring-2 focus-within:ring-[#dc4900]/10">
                 <img
                   src="/header-search.svg"

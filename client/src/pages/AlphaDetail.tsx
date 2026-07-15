@@ -816,7 +816,7 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
     return (
       <Tooltip>
         <TooltipTrigger asChild>{child}</TooltipTrigger>
-        <TooltipContent side="top" className="max-w-[220px] text-xs leading-5">
+        <TooltipContent side="top" className="oq-plain-explanation-tooltip">
           {content}
         </TooltipContent>
       </Tooltip>

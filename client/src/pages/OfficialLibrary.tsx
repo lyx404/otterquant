@@ -170,7 +170,7 @@ function MaybeExplainTooltip({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[220px] text-xs leading-5">
+      <TooltipContent side="top" className="oq-plain-explanation-tooltip">
         {explanation}
       </TooltipContent>
     </Tooltip>

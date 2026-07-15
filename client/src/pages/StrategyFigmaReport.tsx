@@ -40,6 +40,7 @@ import {
 import "./StrategyFigmaReport.css";
 import "./StrategyFigmaReportCharts.css";
 import { ChartCard, ChartLegendItem, ChartTooltip, useContainerNarrow } from "./StrategyFigmaReportChartPrimitives";
+import { MaybeExplainTooltip } from "./StrategyDetailParts";
 
 type MetricTone = "good" | "warn" | "muted";
 type ChartSeriesKey = "net" | "gross" | "drawdown";
@@ -54,7 +55,8 @@ type SymbolPnlRankRow = {
 };
 type BarraExposureFactor = { factor: string; long: number; short: number };
 
-export type ReportMetric = { label: string; value: string; tone: MetricTone };
+export type ReportMetric = { label: string; value: string; tone: MetricTone; explanation?: string };
+export type ReportMetricRow = [metric: string, value: string, explanation?: string];
 
 export type ReportPositionRecord = {
   symbol: string;
@@ -74,7 +76,7 @@ const defaultHeaderMetrics: ReportMetric[] = [
   { label: "Turnover", value: "1.231", tone: "muted" },
 ];
 
-const navMetrics: Array<[string, string]> = [
+const navMetrics: ReportMetricRow[] = [
   ["fee_rate (backtest param)", "0.0005"],
   ["Annual (net)", "0.996769"],
   ["Sharpe (net)", "2.05374"],
@@ -618,6 +620,10 @@ const portfolioSeriesMeta: Record<ChartSeriesKey, { label: string; color: string
   gross: { label: "Gross NAV", color: "#2a6fdb" },
   drawdown: { label: "Drawdown", color: "#d64550" },
 };
+const portfolioDrawdownEventColors = {
+  peak: "var(--report-red)",
+  trough: "var(--report-green)",
+} as const;
 const portfolioSeriesKeys: ChartSeriesKey[] = ["net", "gross", "drawdown"];
 const portfolioNavTicks = [3.57, 2.88, 2.2, 1.51, 0.82];
 const portfolioDrawdownTicks = [0, -0.1, -0.2];
@@ -1047,8 +1053,8 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
               onToggle={() => toggleSeries(key)}
             />
           ))}
-          <ChartLegendItem color="#d64550" label={tReport(tr, "Max DD peak", "最大回撤峰值")} mark="cross" />
-          <ChartLegendItem color="#1f8a5b" label={tReport(tr, "Max DD trough", "最大回撤谷值")} mark="cross" />
+          <ChartLegendItem color={portfolioDrawdownEventColors.peak} label={tReport(tr, "Max DD peak", "最大回撤峰值")} mark="cross" />
+          <ChartLegendItem color={portfolioDrawdownEventColors.trough} label={tReport(tr, "Max DD trough", "最大回撤谷值")} mark="cross" />
         </div>
       </div>
       <div className="oq-nav-chart" onMouseLeave={clearInteraction} onPointerLeave={clearInteraction}>
@@ -1141,14 +1147,14 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
                 y1={scalePortfolioDrawdown(0)}
                 y2={scalePortfolioDrawdown(0)}
               />
-              <text className="oq-event-marker is-peak" x={peakPoint.x} y={peakPoint.y - 8} textAnchor="middle">
+              <text className="oq-event-marker is-peak" x={peakPoint.x} y={peakPoint.y - 8} textAnchor="middle" style={{ fill: portfolioDrawdownEventColors.peak }}>
                 ×
               </text>
-              <text className="oq-event-marker is-trough" x={troughPoint.x} y={troughPoint.y + 20} textAnchor="middle">
+              <text className="oq-event-marker is-trough" x={troughPoint.x} y={troughPoint.y + 20} textAnchor="middle" style={{ fill: portfolioDrawdownEventColors.trough }}>
                 ×
               </text>
-              <circle className="oq-event-dot is-peak" cx={drawdownPeakPoint.x} cy={drawdownPeakPoint.y} r="5" />
-              <circle className="oq-event-dot is-trough" cx={drawdownTroughPoint.x} cy={drawdownTroughPoint.y} r="5" />
+              <circle className="oq-event-dot is-peak" cx={drawdownPeakPoint.x} cy={drawdownPeakPoint.y} r="5" style={{ fill: portfolioDrawdownEventColors.peak }} />
+              <circle className="oq-event-dot is-trough" cx={drawdownTroughPoint.x} cy={drawdownTroughPoint.y} r="5" style={{ fill: portfolioDrawdownEventColors.trough }} />
             </g>
             {activeX !== null ? (
               <g aria-hidden="true">
@@ -1192,7 +1198,15 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
   );
 }
 
-function MetricsTable({ rows = navMetrics, tr = defaultTr }: { rows?: Array<[string, string]>; tr?: Tr }) {
+function MetricsTable({
+  rows = navMetrics,
+  tr = defaultTr,
+  plainExplainEnabled = true,
+}: {
+  rows?: ReportMetricRow[];
+  tr?: Tr;
+  plainExplainEnabled?: boolean;
+}) {
   if (rows.length === 0) return <ChartEmptyState message={tReport(tr, "No metrics available", "暂无指标数据")} tr={tr} />;
 
   return (
@@ -1201,11 +1215,20 @@ function MetricsTable({ rows = navMetrics, tr = defaultTr }: { rows?: Array<[str
         <span>{tReport(tr, "Metric", "指标")}</span>
         <span>{tReport(tr, "Value", "数值")}</span>
       </div>
-      {rows.map(([metric, value]) => (
-        <div className="oq-report-table-row" key={metric}>
-          <span>{metric}</span>
-          <strong>{value}</strong>
-        </div>
+      {rows.map(([metric, value, explanation]) => (
+        <MaybeExplainTooltip
+          enabled={plainExplainEnabled}
+          explanation={explanation}
+          key={metric}
+        >
+          <div
+            className="oq-report-table-row"
+            tabIndex={explanation && plainExplainEnabled ? 0 : undefined}
+          >
+            <span>{metric}</span>
+            <strong>{value}</strong>
+          </div>
+        </MaybeExplainTooltip>
       ))}
     </div>
   );
@@ -2646,9 +2669,33 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
 function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
   const [activeTab, setActiveTab] = useState("decile");
   const switchRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (switchRef.current) switchRef.current.scrollLeft = 0;
-  }, []);
+  const scrollAttributionTabIntoView = (tabKey: string) => {
+    const container = switchRef.current;
+    if (!container) return;
+
+    const trigger = container.querySelector<HTMLButtonElement>(
+      `[data-attribution-tab="${tabKey}"]`
+    );
+    if (!trigger) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const triggerRect = trigger.getBoundingClientRect();
+    const edgePadding = 8;
+    const isFullyVisible = triggerRect.left >= containerRect.left + edgePadding
+      && triggerRect.right <= containerRect.right - edgePadding;
+    if (isFullyVisible) return;
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    trigger.scrollIntoView({
+      behavior: prefersReducedMotion ? "auto" : "smooth",
+      block: "nearest",
+      inline: "center",
+    });
+  };
+  const handleAttributionTabChange = (value: string) => {
+    setActiveTab(value);
+    window.setTimeout(() => scrollAttributionTabIntoView(value), 0);
+  };
   const tabs = [
     {
       key: "decile",
@@ -2682,14 +2729,14 @@ function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
     },
   ];
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab}>
+    <Tabs value={activeTab} onValueChange={handleAttributionTabChange}>
       <ChartCard
         title={tReport(tr, "CS Attribution Overview", "截面归因概览")}
         className="is-attribution"
         headerActions={
           <TabsList ref={switchRef} className="oq-attribution-switch" aria-label={tReport(tr, "Switch attribution chart", "切换归因图表")}>
             {tabs.map(tab => (
-              <TabsTrigger key={tab.key} value={tab.key}>
+              <TabsTrigger data-attribution-tab={tab.key} key={tab.key} value={tab.key}>
                 {tab.label}
               </TabsTrigger>
             ))}
@@ -2753,6 +2800,7 @@ export function StrategyFigmaReport({
   dateOptions,
   customDateOption,
   uiLang = "en",
+  plainExplainEnabled = true,
   topAction,
   titleAction,
   actions,
@@ -2767,10 +2815,11 @@ export function StrategyFigmaReport({
   dateOptions?: string[];
   customDateOption?: string;
   uiLang?: UiLang;
+  plainExplainEnabled?: boolean;
   topAction?: ReactNode;
   titleAction?: ReactNode;
   actions?: ReactNode;
-  metricRows?: Array<[string, string]>;
+  metricRows?: ReportMetricRow[];
   positions?: ReportPositionRecord[];
   tr?: Tr;
 }) {
@@ -2808,17 +2857,27 @@ export function StrategyFigmaReport({
         />
         <div className="oq-report-metric-strip">
           {headerMetrics.map(metric => (
-            <div className="oq-report-metric" data-tone={metric.tone} key={metric.label}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-            </div>
+            <MaybeExplainTooltip
+              enabled={plainExplainEnabled}
+              explanation={metric.explanation}
+              key={metric.label}
+            >
+              <div
+                className="oq-report-metric"
+                data-tone={metric.tone}
+                tabIndex={metric.explanation && plainExplainEnabled ? 0 : undefined}
+              >
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+              </div>
+            </MaybeExplainTooltip>
           ))}
         </div>
       </section>
 
       <ChartCard title={tReport(tr, "Portfolio NAV · Drawdown", "组合 NAV · 回撤")} className="is-nav">
         <PortfolioNavChart tr={tr} />
-        <MetricsTable rows={metricRows} tr={tr} />
+        <MetricsTable rows={metricRows} tr={tr} plainExplainEnabled={plainExplainEnabled} />
       </ChartCard>
 
       <div className="oq-report-two-col">

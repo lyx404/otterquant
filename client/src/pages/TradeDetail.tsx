@@ -169,20 +169,43 @@ function OverviewTrendActiveDot({
   return <circle cx={cx} cy={cy} r={4} fill="var(--td-bg)" stroke={stroke} strokeWidth={2.4} />;
 }
 
-function getOverviewTrendTicks(
-  min: number,
-  max: number,
-  [domainMin, domainMax]: [number, number]
-) {
-  if (min >= 0) {
-    return [domainMin, 0, domainMax / 3, (domainMax * 2) / 3, domainMax];
+function getNiceOverviewTrendStep(rawStep: number, minimumStep: number) {
+  const safeStep = Math.max(Math.abs(rawStep), minimumStep);
+  const magnitude = 10 ** Math.floor(Math.log10(safeStep));
+  const normalized = safeStep / magnitude;
+  const multiplier = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 2.5 ? 2.5 : normalized <= 5 ? 5 : 10;
+  return multiplier * magnitude;
+}
+
+function roundOverviewTrendAxisValue(value: number, step: number) {
+  const precision = Math.min(8, Math.max(0, Math.ceil(-Math.log10(step)) + 2));
+  return Number(value.toFixed(precision));
+}
+
+function getOverviewTrendAxis(values: number[], minimumStep: number) {
+  const finiteValues = values.filter(Number.isFinite);
+  const dataMin = Math.min(0, ...finiteValues);
+  const dataMax = Math.max(0, ...finiteValues);
+  const step = getNiceOverviewTrendStep((dataMax - dataMin) / 4, minimumStep);
+
+  let domainMin = Math.floor(dataMin / step) * step;
+  let domainMax = Math.ceil(dataMax / step) * step;
+  if (domainMin === domainMax) {
+    domainMin -= step * 2;
+    domainMax += step * 2;
   }
 
-  if (max <= 0) {
-    return [domainMin, (domainMin * 2) / 3, domainMin / 3, 0, domainMax];
-  }
+  domainMin = roundOverviewTrendAxisValue(domainMin, step);
+  domainMax = roundOverviewTrendAxisValue(domainMax, step);
+  const intervalCount = Math.round((domainMax - domainMin) / step);
+  const ticks = Array.from({ length: intervalCount + 1 }, (_, index) => (
+    roundOverviewTrendAxisValue(domainMin + index * step, step)
+  ));
 
-  return [domainMin, min / 2, 0, max / 2, domainMax];
+  return {
+    domain: [domainMin, domainMax] as [number, number],
+    ticks,
+  };
 }
 
 function parseNumeric(text: string) {
@@ -350,6 +373,77 @@ export default function TradeDetail() {
   const estimatedSharpe = Number((0.45 + trade.winRate / 32).toFixed(2));
   const maxDrawdown = Number((3.5 + (100 - trade.winRate) * 0.23).toFixed(2));
   const profitablePositions = visiblePositions.filter((row) => row.pnl > 0).length;
+  const performanceMetrics = [
+    {
+      label: tr("Assets", "资产"),
+      value: trade.equity.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+      explanation: tr(
+        "Shows the current total assets in this strategy account.",
+        "表示当前策略账户的资产总额。"
+      ),
+    },
+    {
+      label: tr("Return", "收益率"),
+      value: `${formatSigned(roi)}%`,
+      className: roi >= 0 ? "is-positive" : "is-negative",
+      explanation: tr(
+        "Shows cumulative return over the selected period.",
+        "表示所选周期内的累计收益比例。"
+      ),
+    },
+    {
+      label: tr("PnL (USDT)", "盈亏（USDT）"),
+      value: formatSigned(totalPnl),
+      className: totalPnl >= 0 ? "is-positive" : "is-negative",
+      explanation: tr(
+        "Shows the total profit or loss over the selected period.",
+        "表示所选周期内累计赚取或亏损的金额。"
+      ),
+    },
+    {
+      label: tr("Sharpe Ratio", "夏普比率"),
+      value: estimatedSharpe.toFixed(2),
+      explanation: tr(
+        "Measures return stability. Higher values generally indicate steadier performance.",
+        "衡量收益的稳定性，数值越高通常越稳健。"
+      ),
+    },
+    {
+      label: tr("Max Drawdown", "最大回撤"),
+      value: `${maxDrawdown.toFixed(2)}%`,
+      explanation: tr(
+        "Shows the largest historical decline. Lower values indicate less downside risk.",
+        "表示历史最大跌幅，数值越低风险越小。"
+      ),
+    },
+    {
+      label: tr("Win Rate", "胜率"),
+      value: `${trade.winRate.toFixed(2)}%`,
+      explanation: tr(
+        "Shows the percentage of profitable positions.",
+        "表示盈利仓位占全部仓位的比例。"
+      ),
+    },
+    {
+      label: tr("Profitable Positions", "盈利仓位"),
+      value: String(profitablePositions),
+      explanation: tr(
+        "Shows the number of profitable positions in the selected range.",
+        "表示统计范围内盈利仓位的数量。"
+      ),
+    },
+    {
+      label: tr("Total Positions", "总仓位数量"),
+      value: String(visiblePositions.length),
+      explanation: tr(
+        "Shows the total number of positions in the selected range.",
+        "表示统计范围内的仓位总数。"
+      ),
+    },
+  ];
 
   const overviewTrendData = useMemo(() => {
     const parsedDate = new Date(`${trade.updatedAt.slice(0, 10)}T00:00:00`);
@@ -360,8 +454,13 @@ export default function TradeDetail() {
       const date = new Date(endDate);
       date.setDate(endDate.getDate() - (29 - index));
       const wave = Math.sin(index * 0.58) * Math.sin(progress * Math.PI);
-      const returnValue = roi * progress + wave * Math.max(Math.abs(roi) * 0.28, 0.04);
-      const pnlValue = totalPnl * progress + wave * Math.max(Math.abs(totalPnl) * 0.08, 8);
+      const drawdownEnvelope = Math.sin(progress * Math.PI) * ((1 - progress) ** 1.4);
+      const returnValue = roi * progress
+        + wave * Math.max(Math.abs(roi) * 0.28, 0.04)
+        - drawdownEnvelope * Math.max(Math.abs(roi) * 0.75, 0.75);
+      const pnlValue = totalPnl * progress
+        + wave * Math.max(Math.abs(totalPnl) * 0.08, 8)
+        - drawdownEnvelope * Math.max(Math.abs(totalPnl) * 0.75, 25);
 
       return {
         date: `${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
@@ -448,26 +547,21 @@ export default function TradeDetail() {
   const overviewTrendValues = overviewTrendData.map((row) => row[overviewMetricKey]);
   const overviewTrendFinalValue = overviewTrendValues.at(-1) ?? 0;
   const overviewTrendEndColor = overviewTrendFinalValue >= 0 ? "var(--semantic-up)" : "var(--semantic-down)";
-  const overviewTrendMin = Math.min(0, ...overviewTrendValues);
-  const overviewTrendMax = Math.max(0, ...overviewTrendValues);
-  const overviewTrendZeroOffset = overviewTrendMax <= 0
+  const overviewTrendAxis = getOverviewTrendAxis(
+    overviewTrendValues,
+    overviewMetric === "return" ? 0.1 : 10
+  );
+  const overviewTrendDomain = overviewTrendAxis.domain;
+  const overviewTrendYAxisTicks = overviewTrendAxis.ticks;
+  const [overviewTrendDomainMin, overviewTrendDomainMax] = overviewTrendDomain;
+  const overviewTrendZeroOffset = overviewTrendDomainMax <= 0
     ? 0
-    : overviewTrendMin >= 0
+    : overviewTrendDomainMin >= 0
       ? 1
-      : overviewTrendMax / (overviewTrendMax - overviewTrendMin);
+      : overviewTrendDomainMax / (overviewTrendDomainMax - overviewTrendDomainMin);
   const overviewTrendGradientSuffix = `${tradeId}-${overviewMetric}`;
   const overviewTrendStrokeId = `trade-overview-stroke-${overviewTrendGradientSuffix}`;
   const overviewTrendFillId = `trade-overview-fill-${overviewTrendGradientSuffix}`;
-  const overviewTrendPadding = Math.max((overviewTrendMax - overviewTrendMin) * 0.14, overviewMetric === "return" ? 0.03 : 5);
-  const overviewTrendDomain: [number, number] = [
-    overviewTrendMin - overviewTrendPadding,
-    overviewTrendMax + overviewTrendPadding,
-  ];
-  const overviewTrendYAxisTicks = getOverviewTrendTicks(
-    overviewTrendMin,
-    overviewTrendMax,
-    overviewTrendDomain
-  );
   const analysisCurve = useMemo(() => {
     const cfg = analysisCurveConfig[analysisCurveRange];
     const width = 960;
@@ -592,7 +686,14 @@ export default function TradeDetail() {
         <header className="oq-trade-detail-hero">
           <div className="oq-trade-detail-title-copy">
             <div className="oq-trade-detail-title-line">
+              <span className="oq-trade-detail-id">{trade.id}</span>
               <h1>{trade.name}</h1>
+            </div>
+            <div className="oq-trade-detail-meta">
+              <span aria-live="polite">{tr("Updated", "更新于")} {displayedUpdatedAt}</span>
+              <span className="oq-trade-detail-market-meta">
+                {trade.symbol} · {trade.market === "Perp" ? tr("Perp", "永续") : tr("Spot", "现货")} · {trade.leverage}
+              </span>
               <div className="oq-trade-detail-title-tags">
                 <span className={`oq-trade-detail-mode ${runtimeEnvironment === "paper" ? "is-paper" : "is-live"}`}>
                   {runtimeEnvironment === "paper" ? tr("Paper", "模拟") : tr("Live", "实盘")}
@@ -605,13 +706,6 @@ export default function TradeDetail() {
                   {runtimeStatus === "running" ? tr("Running", "运行中") : tr("Paused", "已暂停")}
                 </span>
               </div>
-            </div>
-            <div className="oq-trade-detail-meta">
-              <span className="oq-trade-detail-id">{trade.id}</span>
-              <span aria-live="polite">{tr("Updated", "更新于")} {displayedUpdatedAt}</span>
-              <span>
-                {trade.symbol} · {trade.market === "Perp" ? tr("Perp", "永续") : tr("Spot", "现货")} · {trade.leverage}
-              </span>
             </div>
           </div>
 
@@ -678,34 +772,18 @@ export default function TradeDetail() {
             />
 
             <dl className="oq-trade-performance-metrics">
-              <div>
-                <dt>{tr("Return", "收益率")}</dt>
-                <dd className={roi >= 0 ? "is-positive" : "is-negative"}>{formatSigned(roi)}%</dd>
-              </div>
-              <div>
-                <dt>{tr("PnL (USDT)", "盈亏（USDT）")}</dt>
-                <dd className={totalPnl >= 0 ? "is-positive" : "is-negative"}>{formatSigned(totalPnl)}</dd>
-              </div>
-              <div>
-                <dt>{tr("Sharpe Ratio", "夏普比率")}</dt>
-                <dd>{estimatedSharpe.toFixed(2)}</dd>
-              </div>
-              <div>
-                <dt>{tr("Max Drawdown", "最大回撤")}</dt>
-                <dd>{maxDrawdown.toFixed(2)}%</dd>
-              </div>
-              <div>
-                <dt>{tr("Win Rate", "胜率")}</dt>
-                <dd>{trade.winRate.toFixed(2)}%</dd>
-              </div>
-              <div>
-                <dt>{tr("Profitable Positions", "盈利仓位")}</dt>
-                <dd>{profitablePositions}</dd>
-              </div>
-              <div>
-                <dt>{tr("Total Positions", "总仓位数量")}</dt>
-                <dd>{visiblePositions.length}</dd>
-              </div>
+              {performanceMetrics.map((metric) => (
+                <MaybeExplainTooltip
+                  enabled={plainExplainEnabled}
+                  explanation={metric.explanation}
+                  key={metric.label}
+                >
+                  <div tabIndex={plainExplainEnabled ? 0 : undefined}>
+                    <dt>{metric.label}</dt>
+                    <dd className={metric.className}>{metric.value}</dd>
+                  </div>
+                </MaybeExplainTooltip>
+              ))}
             </dl>
           </article>
 
@@ -1013,7 +1091,10 @@ export default function TradeDetail() {
                     </td>
                     <td className="oq-trade-position-stack">
                       <strong>{row.maxSize}</strong>
-                      <span>{tr("Closed", "已平仓")} {row.closedSize}</span>
+                      <div className="oq-trade-history-closed-line">
+                        <span>{tr("Closed", "已平仓")}</span>
+                        <strong>{row.closedSize}</strong>
+                      </div>
                     </td>
                     <td className="oq-trade-position-number">{row.exitPrice}</td>
                     <td className={`oq-trade-workspace-value ${row.realizedPnl >= 0 ? "is-positive" : "is-negative"}`}>
@@ -1031,6 +1112,7 @@ export default function TradeDetail() {
                 {visibleFills.map((row) => {
                   const [date, clock] = row.time.split(" ");
                   const isOpen = row.action.startsWith("Open");
+                  const directionClass = row.action.endsWith("Long") ? "is-long" : "is-short";
 
                   return (
                     <li key={row.id} className={`oq-trade-activity-item ${isOpen ? "is-open" : "is-close"}`}>
@@ -1046,10 +1128,10 @@ export default function TradeDetail() {
                       <div className="oq-trade-activity-content">
                         <header className="oq-trade-activity-header">
                           <div className="oq-trade-activity-identity">
-                            <span className={`oq-trade-workspace-badge ${isOpen ? "is-open" : "is-close"}`}>
+                            <strong>{row.symbol}</strong>
+                            <span className={`oq-trade-position-direction ${directionClass}`}>
                               {translateFillAction(row.action)}
                             </span>
-                            <strong>{row.symbol}</strong>
                             <span className="oq-trade-activity-market">
                               {row.market === "Perp" ? tr("Perp", "永续") : tr("Spot", "现货")}
                             </span>
@@ -1057,23 +1139,24 @@ export default function TradeDetail() {
                         </header>
 
                         <p className="oq-trade-activity-summary">
-                          {uiLang === "zh" ? (
-                            <>
-                              以均价 <strong>{row.price} USDT</strong> 成交，数量 <strong>{row.qty}</strong>，成交额 <strong>{row.value}</strong>
-                            </>
-                          ) : (
-                            <>
-                              Filled at an average price of <strong>{row.price} USDT</strong>, quantity <strong>{row.qty}</strong>, value <strong>{row.value}</strong>
-                            </>
-                          )}
+                          <span className="oq-trade-activity-fill-detail">
+                            {uiLang === "zh" ? (
+                              <>
+                                以均价 <strong>{row.price} USDT</strong> 成交，数量 <strong>{row.qty}</strong>，成交额 <strong>{row.value}</strong>
+                              </>
+                            ) : (
+                              <>
+                                Filled at an average price of <strong>{row.price} USDT</strong>, quantity <strong>{row.qty}</strong>, value <strong>{row.value}</strong>
+                              </>
+                            )}
+                          </span>
+                          {row.realizedPnl !== undefined ? (
+                            <span className={`oq-trade-activity-pnl ${row.realizedPnl >= 0 ? "is-positive" : "is-negative"}`}>
+                              <span>{tr("Realized PnL", "，已实现盈亏")}</span>
+                              <strong>{formatSigned(row.realizedPnl)} USDT</strong>
+                            </span>
+                          ) : null}
                         </p>
-
-                        {row.realizedPnl !== undefined ? (
-                          <div className={`oq-trade-activity-pnl ${row.realizedPnl >= 0 ? "is-positive" : "is-negative"}`}>
-                            <span>{tr("Realized PnL", "已实现盈亏")}</span>
-                            <strong>{formatSigned(row.realizedPnl)} USDT</strong>
-                          </div>
-                        ) : null}
                       </div>
                     </li>
                   );
@@ -1644,7 +1727,7 @@ function MaybeExplainTooltip({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[260px] text-xs leading-5">
+      <TooltipContent side="top" className="oq-plain-explanation-tooltip">
         {explanation}
       </TooltipContent>
     </Tooltip>

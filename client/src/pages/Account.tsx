@@ -8,7 +8,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
@@ -182,7 +181,6 @@ export default function Account() {
 function AccountWorkbench260712() {
   const { user, updateUser, logout } = useAuth();
   const { uiLang, setUiLang } = useAppLanguage();
-  const { themePreference, setThemePreference } = useTheme();
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
@@ -491,34 +489,6 @@ function AccountWorkbench260712() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("Theme", "主题")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {tr("Choose light, dark, or system theme.", "选择浅色、深色或跟随系统主题。")}
-                  </div>
-                </div>
-                <div className="inline-flex items-center gap-1 rounded-full border border-border bg-accent p-1">
-                  {([
-                    { value: "dark", en: "Dark", zh: "深色模式" },
-                    { value: "light", en: "Light", zh: "浅色模式" },
-                    { value: "system", en: "System", zh: "跟随系统" },
-                  ] as const).map((item) => (
-                    <button
-                      key={item.value}
-                      onClick={() => setThemePreference?.(item.value)}
-                      className={`h-8 rounded-full px-3 text-xs font-medium transition-colors ${
-                        themePreference === item.value
-                          ? "bg-primary/10 text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      {tr(item.en, item.zh)}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">

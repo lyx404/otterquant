@@ -1009,6 +1009,32 @@
   background: var(--os-bg);
 }
 
+.oq-strategy-table-empty {
+  display: grid;
+  min-height: 180px;
+  place-content: center;
+  justify-items: center;
+  gap: 9px;
+  padding: 32px 18px;
+  text-align: center;
+}
+
+.oq-strategy-table-empty-title {
+  margin: 0;
+  color: var(--os-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.oq-strategy-table-empty-copy {
+  max-width: 56ch;
+  margin: 0;
+  color: var(--os-muted);
+  font-size: 10px;
+  line-height: 15px;
+}
+
 .oq-strategy-check {
   position: relative;
   z-index: 2;

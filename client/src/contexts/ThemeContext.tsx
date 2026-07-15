@@ -40,13 +40,14 @@ export function ThemeProvider({
     if (typeof window === "undefined") return;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const resolveTheme = () => (themePreference === "system" ? (mediaQuery.matches ? "dark" : "light") : themePreference);
+    const activePreference = switchable ? themePreference : defaultTheme;
+    const resolveTheme = () => (activePreference === "system" ? (mediaQuery.matches ? "dark" : "light") : activePreference);
     const applyTheme = () => setTheme(resolveTheme());
 
     applyTheme();
 
     const handleChange = () => {
-      if (themePreference === "system") {
+      if (activePreference === "system") {
         applyTheme();
       }
     };
@@ -58,7 +59,7 @@ export function ThemeProvider({
 
     mediaQuery.addListener(handleChange);
     return () => mediaQuery.removeListener(handleChange);
-  }, [themePreference]);
+  }, [defaultTheme, switchable, themePreference]);
 
   useEffect(() => {
     const root = document.documentElement;

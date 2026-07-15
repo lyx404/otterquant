@@ -80,7 +80,7 @@ function MaybeExplainTooltip({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[260px] text-xs leading-5">
+      <TooltipContent side="top" className="oq-plain-explanation-tooltip">
         {explanation}
       </TooltipContent>
     </Tooltip>
@@ -296,36 +296,22 @@ function TradeWorkbench260712() {
   };
   const metricExplanations = {
     activeBots: tr(
-      "Number of strategies currently running automated trading. Running strategies = count of strategies in running status.",
-      "当前处于自动交易状态的策略数量，进行中的策略 = 运行中策略数量。"
+      "Number of strategies currently trading automatically.",
+      "当前正在自动交易的策略数量。"
     ),
     totalEquity: tr(
-      "Current total equity across all strategies. Total equity = sum of each strategy's account equity.",
-      "当前所有策略的账户权益总额，总权益 = 各策略账户权益之和。"
+      "Combined account assets of all visible strategies.",
+      "所有可见策略的账户资产合计。"
     ),
     unrealizedPnl: tr(
-      "Current floating profit or loss of open positions. Unrealized PnL = current position value - entry cost.",
-      "当前未平仓仓位的浮动盈亏，未实现盈亏 = 当前持仓价值 - 开仓成本。"
+      "Combined floating profit or loss of all open positions.",
+      "当前未平仓仓位的浮动盈亏合计。"
     ),
     avgRoi: tr(
-      "Average return across visible strategies. Average ROI = sum of strategy ROI / number of strategies.",
-      "当前可见策略收益率的平均水平，平均ROI = 各策略ROI之和 / 策略数量。"
+      "Average return across visible strategies.",
+      "当前可见策略收益率的平均值。"
     ),
   };
-  const botMetricExplanations = () => ({
-    equity: tr(
-      "Current total account equity. Equity = balance + unrealized PnL.",
-      "当前账户权益总额，权益总额 = 账户余额 + 未实现盈亏。"
-    ),
-    upnl: tr(
-      "Current floating profit or loss. UPNL = current position value - entry cost.",
-      "当前未平仓浮动盈亏，UPNL = 当前持仓价值 - 开仓成本。"
-    ),
-    roi: tr(
-      "Current return ratio. ROI = UPNL / equity.",
-      "当前收益率，ROI = UPNL / 权益总额。"
-    ),
-  });
 
   useEffect(() => {
     if (!focusStrategyId && !focusTradeId) return;
@@ -371,7 +357,7 @@ function TradeWorkbench260712() {
               })}
             </p>
             <div className="oq-trade-metric-label">
-              {tr("Total Equity", "总权益")}
+              {tr("Total Assets", "总资产")}
             </div>
           </div>
         </MaybeExplainTooltip>
@@ -458,9 +444,9 @@ function TradeWorkbench260712() {
                 type="button"
                 className={`oq-trade-sort-button ${sortDirectionFor("equity") !== "default" ? "is-active" : ""}`}
                 onClick={() => cycleBotSort("equity")}
-                aria-label={sortButtonLabel("equity", "equity", "权益")}
+                aria-label={sortButtonLabel("equity", "assets", "资产")}
               >
-                <span>{tr("Equity", "权益")}</span>
+                <span>{tr("Assets", "资产")}</span>
                 {sortIconFor("equity")}
               </button>
             </div>
@@ -497,131 +483,105 @@ function TradeWorkbench260712() {
                 <p className="oq-trade-empty-title">
                   {tr(
                     tradeSearchQuery
-                      ? "No trading bots match the current search and status filters."
-                      : "No trading bots match the selected status.",
+                      ? "No matching trading bots"
+                      : "No trading bots in this status",
                     tradeSearchQuery
-                      ? "没有符合当前搜索和状态筛选条件的交易机器人。"
-                      : "没有符合当前状态筛选条件的交易机器人。"
+                      ? "未找到匹配的交易机器人"
+                      : "当前状态下没有交易机器人"
                   )}
                 </p>
                 <p className="oq-trade-empty-copy">
                   {tr(
                     tradeSearchQuery
-                      ? "Try another keyword or switch the status filter."
-                      : "Try switching status filter or create/deploy a strategy in Strategy workspace.",
+                      ? "Adjust the keyword or status filter."
+                      : "Switch the status filter.",
                     tradeSearchQuery
-                      ? "请尝试其他关键词，或切换状态筛选。"
-                      : "请尝试切换状态筛选，或前往策略工作区创建/部署策略。"
+                      ? "请调整关键词或状态筛选。"
+                      : "请切换状态筛选。"
                   )}
                 </p>
-                <div className="oq-trade-empty-action">
-                  <Link href="/strategies">
-                    <Button variant="outline" className="oq-trade-button">
-                      {tr("Go to Strategy", "前往策略")}
-                    </Button>
-                  </Link>
-                </div>
               </div>
             ) : (
-              sortedVisibleBots.map(bot => {
-                const explanations = botMetricExplanations();
-
-                return (
-                  <div
-                    key={bot.id}
-                    id={`trade-bot-${bot.id}`}
-                    className={`oq-trade-bot-row ${focusedBotId === bot.id ? "is-focused" : ""}`}
-                    role="row"
+              sortedVisibleBots.map(bot => (
+                <div
+                  key={bot.id}
+                  id={`trade-bot-${bot.id}`}
+                  className={`oq-trade-bot-row ${focusedBotId === bot.id ? "is-focused" : ""}`}
+                  role="row"
+                >
+                  <Link
+                    href={`/trade/${bot.id}?env=${bot.environment}&status=${bot.status}`}
+                    className="oq-trade-row-link"
+                    aria-label={tr(
+                      `Open ${bot.name} details`,
+                      `打开 ${bot.name} 详情`
+                    )}
                   >
-                    <Link
-                      href={`/trade/${bot.id}?env=${bot.environment}&status=${bot.status}`}
-                      className="oq-trade-row-link"
-                      aria-label={tr(
-                        `Open ${bot.name} details`,
-                        `打开 ${bot.name} 详情`
-                      )}
-                    >
-                      <div className="oq-trade-bot-identity" role="cell">
-                        <div className="oq-trade-bot-title">{bot.name}</div>
-                        <div className="oq-trade-bot-meta">
-                          {bot.id} · {bot.symbol} · {marketLabel(bot.market)} ·{" "}
-                          {bot.leverage}
-                        </div>
+                    <div className="oq-trade-bot-identity" role="cell">
+                      <div className="oq-trade-bot-title">{bot.name}</div>
+                      <div className="oq-trade-bot-meta">
+                        {bot.id} · {bot.symbol} · {marketLabel(bot.market)} ·{" "}
+                        {bot.leverage}
                       </div>
-
-                      <MaybeExplainTooltip
-                        enabled={plainExplainEnabled}
-                        explanation={explanations.equity}
-                      >
-                        <div className="oq-trade-bot-metric-value" role="cell">
-                          {bot.equity.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </div>
-                      </MaybeExplainTooltip>
-                      <MaybeExplainTooltip
-                        enabled={plainExplainEnabled}
-                        explanation={explanations.upnl}
-                      >
-                        <div
-                          className={`oq-trade-bot-metric-value ${getTrendClass(bot.unrealizedPnl, chartColorMode)}`}
-                          role="cell"
-                        >
-                          {formatSigned(bot.unrealizedPnl)}
-                        </div>
-                      </MaybeExplainTooltip>
-                      <MaybeExplainTooltip
-                        enabled={plainExplainEnabled}
-                        explanation={explanations.roi}
-                      >
-                        <div className="oq-trade-bot-metric-value" role="cell">
-                          {formatBotRoi(bot)}%
-                        </div>
-                      </MaybeExplainTooltip>
-
-                      <span
-                        className={`oq-trade-status ${bot.status === "running" ? "is-running" : "is-paused"}`}
-                        role="cell"
-                      >
-                        <span aria-hidden="true" />
-                        {bot.status === "running"
-                          ? tr("Running", "运行中")
-                          : tr("Stopped", "已停止")}
-                      </span>
-                      <time className="oq-trade-bot-updated" role="cell">
-                        {bot.updatedAt}
-                      </time>
-                    </Link>
-
-                    <div className="oq-trade-actions" role="cell">
-                      {bot.status === "running" ? (
-                        <Button
-                          variant="outline"
-                          className="oq-trade-button"
-                          onClick={() =>
-                            setPendingAction({ type: "stop", botId: bot.id })
-                          }
-                        >
-                          <CircleStop className="h-3.5 w-3.5" />
-                          {tr("Stop", "停止")}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          className="oq-trade-button is-risk"
-                          onClick={() =>
-                            setPendingAction({ type: "delete", botId: bot.id })
-                          }
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          {tr("Delete", "删除")}
-                        </Button>
-                      )}
                     </div>
+
+                    <div className="oq-trade-bot-metric-value" role="cell">
+                      {bot.equity.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                    <div
+                      className={`oq-trade-bot-metric-value ${getTrendClass(bot.unrealizedPnl, chartColorMode)}`}
+                      role="cell"
+                    >
+                      {formatSigned(bot.unrealizedPnl)}
+                    </div>
+                    <div className="oq-trade-bot-metric-value" role="cell">
+                      {formatBotRoi(bot)}%
+                    </div>
+
+                    <span
+                      className={`oq-trade-status ${bot.status === "running" ? "is-running" : "is-paused"}`}
+                      role="cell"
+                    >
+                      <span aria-hidden="true" />
+                      {bot.status === "running"
+                        ? tr("Running", "运行中")
+                        : tr("Stopped", "已停止")}
+                    </span>
+                    <time className="oq-trade-bot-updated" role="cell">
+                      {bot.updatedAt}
+                    </time>
+                  </Link>
+
+                  <div className="oq-trade-actions" role="cell">
+                    {bot.status === "running" ? (
+                      <Button
+                        variant="outline"
+                        className="oq-trade-button"
+                        onClick={() =>
+                          setPendingAction({ type: "stop", botId: bot.id })
+                        }
+                      >
+                        <CircleStop className="h-3.5 w-3.5" />
+                        {tr("Stop", "停止")}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="oq-trade-button is-risk"
+                        onClick={() =>
+                          setPendingAction({ type: "delete", botId: bot.id })
+                        }
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        {tr("Delete", "删除")}
+                      </Button>
+                    )}
                   </div>
-                );
-              })
+                </div>
+              ))
             )}
           </div>
         </div>

@@ -155,7 +155,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light" switchable>
+      <ThemeProvider defaultTheme="light">
         <AppLanguageProvider>
           <TooltipProvider>
             <AuthProvider>
