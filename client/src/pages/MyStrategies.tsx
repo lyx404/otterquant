@@ -175,6 +175,8 @@ const strategyCopy: Record<string, UiCopy> = {
   "90-day": { ja: "90日", ko: "90일", es: "90 dias", fr: "90 jours" },
   Pending: { ja: "バックテスト中", ko: "백테스트 중", es: "En backtest", fr: "Backtest en cours" },
   Paused: { ja: "一時停止", ko: "일시 중지", es: "En pausa", fr: "En pause" },
+  "Not Started": { ja: "未開始", ko: "시작 안 함", es: "No iniciada", fr: "Non demarree" },
+  Stopped: { ja: "停止済み", ko: "중지됨", es: "Detenida", fr: "Arretee" },
   Running: { ja: "稼働中", ko: "실행 중", es: "En ejecucion", fr: "En cours" },
   Performance: { ja: "パフォーマンス", ko: "성과", es: "Rendimiento", fr: "Performance" },
   "CS Sharpe": { ja: "クロスセクショナルSharpe", ko: "횡단면 Sharpe", es: "Sharpe transversal", fr: "Sharpe transversal" },
@@ -718,7 +720,7 @@ function toStrategyViewRow(index: number): StrategyViewRow {
 
 const strategyRows: StrategyViewRow[] = Array.from({ length: 20 }, (_, index) => toStrategyViewRow(index));
 
-type WorkbenchStatus = "running" | "paused" | "pending";
+type WorkbenchStatus = "not-started" | "running" | "stopped";
 
 interface WorkbenchMeta {
   title: string;
@@ -732,7 +734,7 @@ interface WorkbenchMeta {
 
 const workbenchSamples: WorkbenchMeta[] = [
   { title: "Smooth Momentum Quality", category: "Momentum", sharpe: "1.64", rankIc: "0.041", maxDd: "-8.2%", turn: "31%", status: "running" },
-  { title: "Funding Crowding Fade", category: "Funding", sharpe: "1.22", rankIc: "0.031", maxDd: "-11.4%", turn: "68%", status: "paused" },
+  { title: "Funding Crowding Fade", category: "Funding", sharpe: "1.22", rankIc: "0.031", maxDd: "-11.4%", turn: "68%", status: "stopped" },
   { title: "Overnight VRP", category: "Volatility", sharpe: "1.41", rankIc: "0.052", maxDd: "-9.9%", turn: "140%", status: "running" },
   { title: "Order Imbalance Reversion", category: "Order flow", sharpe: "0.98", rankIc: "0.024", maxDd: "-6.1%", turn: "12%", status: "running" },
   { title: "Liquidity Fragility Short", category: "Liquidity", sharpe: "1.33", rankIc: "0.040", maxDd: "-10.3%", turn: "96%", status: "running" },
@@ -807,10 +809,11 @@ function getWorkbenchMetaForRow(row: StrategyViewRow) {
       rankIc: pending ? "—" : "0.036",
       maxDd: pending ? "—" : "-7.6%",
       turn: pending ? "—" : "48%",
-      status: pending ? "pending" : "running",
+      status: "not-started",
     } satisfies WorkbenchMeta;
   }
-  return getWorkbenchMeta(getStrategyRowIndex(row));
+  const meta = getWorkbenchMeta(getStrategyRowIndex(row));
+  return row.executionMode === "idle" ? { ...meta, status: "not-started" as const } : meta;
 }
 
 function toCreatedStrategyViewRow(record: CreatedStrategyRecord, now: number): StrategyViewRow {
@@ -1916,7 +1919,7 @@ export default function MyStrategies() {
   ];
 
   const workbenchRows = paginated;
-  const selectedCompareRows = workbenchRows.filter((row) => selectedStrategyIds.has(row.id)).slice(0, 2);
+  const selectedCompareRows = activeStrategyRows.filter((row) => selectedStrategyIds.has(row.id)).slice(0, 2);
   const hasCompareRows = selectedCompareRows.length > 0;
   const hasPairComparison = selectedCompareRows.length > 1;
   const useFigmaWorkbenchLayout: boolean = true;
@@ -1984,7 +1987,7 @@ export default function MyStrategies() {
             <div>{renderWorkbenchSortHeader("maxDd", tr("MaxDD", "最大回撤"))}</div>
             <div>{renderWorkbenchSortHeader("turn", tr("Turn", "换手率"))}</div>
             <div>NAV</div>
-            <div>{tr("Status", "状态")}</div>
+            <div>{tr("Paper Status", "模拟盘状态")}</div>
             <div>{renderWorkbenchSortHeader("updated", tr("Created Date", "创建时间"))}</div>
           </div>
           {sorted.length === 0 ? (
@@ -1997,7 +2000,7 @@ export default function MyStrategies() {
             const localizedTitle = translateWorkbenchTitle(meta.title, tr);
             const localizedCategory = translateWorkbenchCategory(meta.category, tr);
             const isSelected = selectedStrategyIds.has(row.id);
-            const isPending = meta.status === "pending";
+            const isPending = row.backtestStatus === "pending";
             const isCompareDisabled = isPending || (!isSelected && selectedStrategyIds.size >= MAX_COMPARE_STRATEGY_COUNT);
             return (
               <div key={row.id} className={`oq-strategy-table-row oq-strategy-table-grid ${isSelected ? "is-selected" : ""} ${isPending ? "is-pending" : ""} ${index === workbenchRows.length - 1 ? "is-page-last" : ""}`}>
@@ -2023,8 +2026,9 @@ export default function MyStrategies() {
                 ) : (
                   <WorkbenchSparkline values={portfolioGrossNavValues} color="#2a6fdb" />
                 )}
-                <span className={`oq-strategy-status ${isPending ? "is-pending" : meta.status === "paused" ? "is-paused" : "is-running"}`}>
-                  <span />{isPending ? tr("Pending", "回测中") : meta.status === "paused" ? tr("Paused", "已暂停") : tr("Running", "运行中")}
+                <span className={`oq-strategy-status is-${meta.status}`}>
+                  {meta.status !== "not-started" ? <span /> : null}
+                  {meta.status === "not-started" ? tr("Not Started", "未启动") : meta.status === "stopped" ? tr("Stopped", "已停止") : tr("Running", "运行中")}
                 </span>
                 <span className="oq-strategy-created-at">{formatStrategyCreatedDate(row.updatedAt)}</span>
               </div>

@@ -217,6 +217,63 @@ export function OptimizerDialog({
   );
 }
 
+export function PaperDeployDialog({
+  open,
+  onOpenChange,
+  strategyName,
+  strategyId,
+  tr,
+  submitPaperDeployment,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  strategyName: string;
+  strategyId: string;
+  tr: Tr;
+  submitPaperDeployment: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="oq-sd-dialog oq-paper-deploy-dialog max-w-[480px] border-border bg-card p-0 text-foreground">
+        <DialogHeader className="oq-paper-deploy-header">
+          <DialogTitle>{tr("Deploy Strategy to Paper Trading", "部署到模拟交易")}</DialogTitle>
+        </DialogHeader>
+
+        <dl className="oq-paper-deploy-summary">
+          <div>
+            <dt>{tr("Strategy", "策略")}</dt>
+            <dd className="oq-paper-deploy-strategy">
+              <strong>{strategyName}</strong>
+              <span>{strategyId}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>{tr("Environment", "环境")}</dt>
+            <dd>{tr("Paper Trading", "模拟交易")}</dd>
+          </div>
+          <div>
+            <dt>{tr("Initial Capital", "初始资金")}</dt>
+            <dd className="oq-paper-deploy-number">12,000 USDT</dd>
+          </div>
+          <div>
+            <dt>{tr("Leverage", "杠杆")}</dt>
+            <dd className="oq-paper-deploy-number">1x</dd>
+          </div>
+        </dl>
+
+        <div className="oq-paper-deploy-actions">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {tr("Cancel", "取消")}
+          </Button>
+          <Button type="button" onClick={submitPaperDeployment}>
+            {tr("Confirm Paper Deployment", "确认模拟部署")}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function LiveDeployDialog({
   open,
   onOpenChange,

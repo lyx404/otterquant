@@ -1,0 +1,255 @@
+.oq-subscription-plan {
+  --osub-bg: #ffffff;
+  --osub-bg-warm: #fff6ef;
+  --osub-border: #ece6df;
+  --osub-border-warm: #f3dfcb;
+  --osub-text: #0d0d0d;
+  --osub-text-soft: #4a443d;
+  --osub-muted: #8c8378;
+  --osub-disabled: #b5aba0;
+  --osub-accent: #e8750c;
+  --osub-accent-dark: #9c3a10;
+  display: grid;
+  width: min(calc(100% - 32px), 604.5px);
+  gap: 13.5px;
+  margin: 0 auto;
+  padding-top: 19.5px;
+  color: var(--osub-text);
+  font-family: var(--font-body);
+}
+
+.oq-subscription-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.oq-subscription-plan-card {
+  display: flex;
+  min-width: 0;
+  height: 229.365px;
+  flex-direction: column;
+  border-radius: 13.5px;
+  padding: 16.5px;
+  overflow: hidden;
+}
+
+.oq-subscription-plan-card.is-free {
+  border: 0.75px solid var(--osub-border);
+  background: var(--osub-bg);
+  box-shadow: 0 1.5px 3px rgba(60, 40, 20, 0.06);
+}
+
+.oq-subscription-plan-card.is-pro {
+  background-color: var(--osub-text);
+  background-image: url("/figma/subscription-pro-bg.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  box-shadow: 0 6px 18px rgba(60, 40, 20, 0.08);
+  color: var(--osub-bg);
+}
+
+.oq-subscription-plan-label-row {
+  display: flex;
+  height: 15.756px;
+  align-items: center;
+}
+
+.oq-subscription-plan-label {
+  color: var(--osub-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 7.875px;
+  font-weight: 500;
+  line-height: 11.025px;
+  letter-spacing: 0.7875px;
+}
+
+.is-pro .oq-subscription-plan-label {
+  color: #f8be4d;
+}
+
+.oq-subscription-current-badge {
+  display: inline-flex;
+  min-height: 15.756px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--osub-accent);
+  padding: 0 6.75px;
+  color: var(--osub-bg);
+  font-size: 7.875px;
+  font-weight: 400;
+  line-height: 12.757px;
+  white-space: nowrap;
+}
+
+.oq-subscription-price-row {
+  display: flex;
+  height: 36.45px;
+  align-items: baseline;
+}
+
+.is-free .oq-subscription-price-row {
+  margin-top: 1.264px;
+}
+
+.is-pro .oq-subscription-price-row {
+  margin-top: 6px;
+}
+
+.oq-subscription-price-row strong {
+  font-family: var(--font-heading);
+  font-size: 22.5px;
+  font-weight: 700;
+  line-height: 36.45px;
+}
+
+.oq-subscription-price-row span {
+  margin-left: -4px;
+  color: var(--osub-muted);
+  font-size: 9.75px;
+  font-weight: 400;
+  line-height: 15.795px;
+}
+
+.is-pro .oq-subscription-price-row span {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.oq-subscription-feature-list {
+  display: grid;
+  gap: 6.75px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.oq-subscription-feature-list li {
+  display: grid;
+  min-height: 15.791px;
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: center;
+  gap: 6.75px;
+  color: var(--osub-text-soft);
+  font-size: 9.75px;
+  font-weight: 400;
+  line-height: 15.795px;
+}
+
+.oq-subscription-feature-list img {
+  width: 12px;
+  height: 12px;
+}
+
+.oq-subscription-feature-list .is-unavailable {
+  color: var(--osub-disabled);
+}
+
+.is-pro .oq-subscription-feature-list li {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.oq-subscription-manage-button {
+  width: 100%;
+  min-height: 29.25px;
+  margin-top: 13.506px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--osub-bg);
+  color: var(--osub-text);
+  font-size: 9.75px;
+  font-weight: 700;
+  line-height: 1.2;
+  transition: background-color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-subscription-manage-button:hover {
+  background: #f4f1ed;
+}
+
+.oq-subscription-manage-button:focus-visible,
+.oq-subscription-cancel-button:focus-visible {
+  outline: 2px solid rgba(220, 73, 0, 0.28);
+  outline-offset: 2px;
+}
+
+.oq-subscription-renewal {
+  display: grid;
+  min-height: 49.5px;
+  grid-template-columns: 13.5px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 0.75px solid var(--osub-border-warm);
+  border-radius: 10.5px;
+  background: var(--osub-bg-warm);
+  padding: 12px 16.5px 12px 15px;
+}
+
+.oq-subscription-renewal > img {
+  width: 13.5px;
+  height: 13.5px;
+}
+
+.oq-subscription-renewal p {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--osub-accent-dark);
+  font-size: 9.375px;
+  font-weight: 400;
+  line-height: 15.188px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-subscription-renewal strong {
+  font-weight: 700;
+}
+
+.oq-subscription-cancel-button {
+  min-width: 74.52px;
+  min-height: 24px;
+  border: 0.75px solid var(--osub-border-warm);
+  border-radius: 999px;
+  background: var(--osub-bg);
+  padding: 0 10px;
+  color: #c2470d;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition:
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-subscription-cancel-button:hover {
+  border-color: rgba(194, 71, 13, 0.32);
+  background: #fffaf6;
+}
+
+@media (max-width: 680px) {
+  .oq-subscription-plan {
+    width: min(calc(100% - 24px), 420px);
+    padding-top: 12px;
+  }
+
+  .oq-subscription-plan-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-subscription-renewal {
+    grid-template-columns: 13.5px minmax(0, 1fr);
+  }
+
+  .oq-subscription-renewal p {
+    overflow: visible;
+    white-space: normal;
+  }
+
+  .oq-subscription-cancel-button {
+    grid-column: 2;
+    justify-self: start;
+  }
+}

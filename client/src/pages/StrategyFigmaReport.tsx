@@ -55,7 +55,13 @@ type SymbolPnlRankRow = {
 };
 type BarraExposureFactor = { factor: string; long: number; short: number };
 
-export type ReportMetric = { label: string; value: string; tone: MetricTone; explanation?: string };
+export type ReportMetric = {
+  label: string;
+  value: string;
+  tone: MetricTone;
+  explanation?: string;
+  valueColor?: string;
+};
 export type ReportMetricRow = [metric: string, value: string, explanation?: string];
 
 export type ReportPositionRecord = {
@@ -2770,7 +2776,7 @@ function PositionHistory({ rows = defaultPositions, tr = defaultTr }: { rows?: R
           <span>{tReport(tr, "Max Open Interest", "最大持仓")}</span>
           <span>{tReport(tr, "Opened", "开仓时间")}</span>
           <span>{tReport(tr, "Closed", "平仓时间")}</span>
-          <span>PnL</span>
+          <span>{tReport(tr, "PnL", "盈亏")}</span>
         </div>
         {rows.map(position => (
           <article key={position.symbol}>
@@ -2868,7 +2874,7 @@ export function StrategyFigmaReport({
                 tabIndex={metric.explanation && plainExplainEnabled ? 0 : undefined}
               >
                 <span>{metric.label}</span>
-                <strong>{metric.value}</strong>
+                <strong style={metric.valueColor ? { color: metric.valueColor } : undefined}>{metric.value}</strong>
               </div>
             </MaybeExplainTooltip>
           ))}

@@ -1137,14 +1137,15 @@
   color: var(--os-success);
 }
 
-.oq-strategy-status.is-paused {
+.oq-strategy-status.is-stopped {
   background: var(--os-surface);
   color: #6b635a;
 }
 
-.oq-strategy-status.is-pending {
-  background: var(--os-bg-warm);
-  color: var(--os-accent);
+.oq-strategy-status.is-not-started {
+  background: transparent;
+  color: var(--os-muted);
+  font-weight: 500;
 }
 
 .oq-strategy-created-at {

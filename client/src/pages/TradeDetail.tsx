@@ -28,6 +28,7 @@ import {
   tradePositionRows,
   type TradeEnvironment,
 } from "@/lib/tradeData";
+import { getTradeBotsWithDeployments } from "@/lib/tradeDeployments";
 import {
   ArrowLeft,
   Activity,
@@ -294,7 +295,7 @@ export default function TradeDetail() {
   const [executionStatusOverride, setExecutionStatusOverride] = useState<{ tradeId: string; status: "paused" } | null>(null);
   const [refreshedAtByTrade, setRefreshedAtByTrade] = useState<Record<string, string>>({});
   const tradeId = params?.id ?? "";
-  const trade = tradeBots.find((item) => item.id === tradeId);
+  const trade = getTradeBotsWithDeployments(tradeBots).find((item) => item.id === tradeId);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -329,7 +330,7 @@ export default function TradeDetail() {
     return (
       <div className="space-y-6 min-w-0">
         <div className="surface-card border border-border/70 p-6">
-          <p className="text-lg font-semibold text-foreground">{tr("Trade bot not found", "未找到交易机器人")}</p>
+          <p className="text-lg font-semibold text-foreground">{tr("Paper trading deployment not found", "未找到模拟盘")}</p>
           <p className="mt-2 text-sm text-muted-foreground">
             {tr("The selected trade id does not exist in the current workspace.", "当前工作区中不存在所选交易 ID。")}
           </p>
@@ -375,7 +376,7 @@ export default function TradeDetail() {
   const profitablePositions = visiblePositions.filter((row) => row.pnl > 0).length;
   const performanceMetrics = [
     {
-      label: tr("Assets", "资产"),
+      label: tr("Assets (USDT)", "资产（USDT）"),
       value: trade.equity.toLocaleString(undefined, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -386,21 +387,21 @@ export default function TradeDetail() {
       ),
     },
     {
-      label: tr("Return", "收益率"),
-      value: `${formatSigned(roi)}%`,
-      className: roi >= 0 ? "is-positive" : "is-negative",
-      explanation: tr(
-        "Shows cumulative return over the selected period.",
-        "表示所选周期内的累计收益比例。"
-      ),
-    },
-    {
       label: tr("PnL (USDT)", "盈亏（USDT）"),
       value: formatSigned(totalPnl),
       className: totalPnl >= 0 ? "is-positive" : "is-negative",
       explanation: tr(
         "Shows the total profit or loss over the selected period.",
         "表示所选周期内累计赚取或亏损的金额。"
+      ),
+    },
+    {
+      label: tr("Return", "收益率"),
+      value: `${formatSigned(roi)}%`,
+      className: roi >= 0 ? "is-positive" : "is-negative",
+      explanation: tr(
+        "Shows cumulative return over the selected period.",
+        "表示所选周期内的累计收益比例。"
       ),
     },
     {
@@ -553,12 +554,13 @@ export default function TradeDetail() {
   );
   const overviewTrendDomain = overviewTrendAxis.domain;
   const overviewTrendYAxisTicks = overviewTrendAxis.ticks;
-  const [overviewTrendDomainMin, overviewTrendDomainMax] = overviewTrendDomain;
-  const overviewTrendZeroOffset = overviewTrendDomainMax <= 0
+  const overviewTrendValueMin = Math.min(0, ...overviewTrendValues);
+  const overviewTrendValueMax = Math.max(0, ...overviewTrendValues);
+  const overviewTrendZeroOffset = overviewTrendValueMax <= 0
     ? 0
-    : overviewTrendDomainMin >= 0
+    : overviewTrendValueMin >= 0
       ? 1
-      : overviewTrendDomainMax / (overviewTrendDomainMax - overviewTrendDomainMin);
+      : overviewTrendValueMax / (overviewTrendValueMax - overviewTrendValueMin);
   const overviewTrendGradientSuffix = `${tradeId}-${overviewMetric}`;
   const overviewTrendStrokeId = `trade-overview-stroke-${overviewTrendGradientSuffix}`;
   const overviewTrendFillId = `trade-overview-fill-${overviewTrendGradientSuffix}`;
@@ -703,7 +705,7 @@ export default function TradeDetail() {
                   aria-live="polite"
                 >
                   <span aria-hidden="true" />
-                  {runtimeStatus === "running" ? tr("Running", "运行中") : tr("Paused", "已暂停")}
+                  {runtimeStatus === "running" ? tr("Running", "运行中") : tr("Stopped", "已停止")}
                 </span>
               </div>
             </div>
@@ -1006,7 +1008,8 @@ export default function TradeDetail() {
                 tr("Entry", "开仓均价"),
                 tr("Mark", "标记价格"),
                 tr("Margin", "保证金"),
-                tr("Unrealized PnL (ROI)", "未实现盈亏（ROI）"),
+                tr("Unrealized PnL (USDT)", "未实现盈亏（USDT）"),
+                tr("Return", "收益率"),
               ]}
               isEmpty={currentPositionRows.length === 0}
               emptyMessage={tr("No current positions", "暂无当前仓位")}
@@ -1038,7 +1041,9 @@ export default function TradeDetail() {
                   </td>
                   <td className={`oq-trade-workspace-value ${row.pnl >= 0 ? "is-positive" : "is-negative"}`}>
                     <strong>{formatSigned(row.pnl)} USDT</strong>
-                    <span>({formatSigned(row.roi)}%)</span>
+                  </td>
+                  <td className={`oq-trade-workspace-value ${row.roi >= 0 ? "is-positive" : "is-negative"}`}>
+                    <strong>{formatSigned(row.roi)}%</strong>
                   </td>
                 </tr>
               ))}

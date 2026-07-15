@@ -97,8 +97,8 @@ const pageHeaders = [
     match: (path: string) => path.startsWith("/subscription"),
     titleEn: "Subscription",
     titleZh: "订阅",
-    subtitleEn: "Plan, wallet, credit usage, and account activity",
-    subtitleZh: "查看套餐、钱包、额度使用与账户活动",
+    subtitleEn: "Manage your plan and renewal status",
+    subtitleZh: "管理套餐与续费状态",
   },
   {
     match: (path: string) => path.startsWith("/account"),
@@ -142,11 +142,11 @@ const sidebarCopy: Record<string, UiCopy> = {
     es: "Supervisa ejecuciones y estado de trading",
     fr: "Surveiller les exécutions et le statut de trading",
   },
-  "Plan, wallet, credit usage, and account activity": {
-    ja: "プラン、ウォレット、クレジット利用、アカウント履歴",
-    ko: "플랜, 지갑, 크레딧 사용량 및 계정 활동",
-    es: "Plan, wallet, uso de créditos y actividad de cuenta",
-    fr: "Offre, wallet, crédits et activité du compte",
+  "Manage your plan and renewal status": {
+    ja: "プランと更新状況を管理",
+    ko: "플랜 및 갱신 상태 관리",
+    es: "Gestiona tu plan y el estado de renovación",
+    fr: "Gérer l’offre et le statut de renouvellement",
   },
   "Profile, billing, security & API access": {
     ja: "プロフィール、請求、セキュリティ、API アクセス",

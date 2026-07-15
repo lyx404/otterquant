@@ -11,14 +11,17 @@ import { deployStrategyToTrade, getStrategyDeployment } from "@/lib/tradeDeploym
 import { type UiCopy, useAppLanguage, translateUi } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 import {
+  CHART_COLOR_MODE_STORAGE_KEY,
   PLAIN_EXPLANATION_STORAGE_KEY,
   positionHistory,
+  type ChartColorMode,
   type StrategyConfigRow,
 } from "./StrategyDetailParts";
 import {
   LiveDeployDialog,
   OPTIMIZATION_HISTORY_LIMIT,
   OptimizerDialog,
+  PaperDeployDialog,
   StrategyConfigDialog,
   type OptimizedStrategyVersion,
 } from "./StrategyDetailDialogs";
@@ -39,6 +42,18 @@ const SHOW_LIVE_DEPLOY_ACTION = false;
 function readPlainExplanationEnabled() {
   if (typeof window === "undefined") return true;
   return window.localStorage.getItem(PLAIN_EXPLANATION_STORAGE_KEY) !== "false";
+}
+
+function readChartColorMode(): ChartColorMode {
+  if (typeof window === "undefined") return "greenUpRedDown";
+  const stored = window.localStorage.getItem(CHART_COLOR_MODE_STORAGE_KEY);
+  return stored === "redUpGreenDown" || stored === "greenUpRedDown"
+    ? stored
+    : "greenUpRedDown";
+}
+
+function getDrawdownColor(mode: ChartColorMode) {
+  return mode === "redUpGreenDown" ? "#10B981" : "#F43F5E";
 }
 
 function subtractIsoDays(value: string, days: number) {
@@ -106,6 +121,22 @@ const strategyDetailCopy: Record<string, UiCopy> = {
   "Use Template": { ja: "テンプレートを使用", ko: "템플릿 사용", es: "Usar plantilla", fr: "Utiliser le modèle" },
   "View Paper": { ja: "Paper を表示", ko: "모의 보기", es: "Ver paper", fr: "Voir paper" },
   "Paper Deploy": { ja: "Paper デプロイ", ko: "모의 배포", es: "Desplegar paper", fr: "Déployer paper" },
+  "Deploy Strategy to Paper Trading": {
+    ja: "ストラテジーをペーパートレードへデプロイ",
+    ko: "전략을 모의 거래에 배포",
+    es: "Desplegar estrategia en paper trading",
+    fr: "Déployer la stratégie en paper trading",
+  },
+  Environment: { ja: "環境", ko: "환경", es: "Entorno", fr: "Environnement" },
+  "Paper Trading": { ja: "ペーパートレード", ko: "모의 거래", es: "Paper trading", fr: "Paper trading" },
+  "Initial Capital": { ja: "初期資金", ko: "초기 자금", es: "Capital inicial", fr: "Capital initial" },
+  Leverage: { ja: "レバレッジ", ko: "레버리지", es: "Apalancamiento", fr: "Effet de levier" },
+  "Confirm Paper Deployment": {
+    ja: "ペーパーデプロイを確認",
+    ko: "모의 배포 확인",
+    es: "Confirmar despliegue paper",
+    fr: "Confirmer le déploiement paper",
+  },
   "View Live": { ja: "Live を表示", ko: "실거래 보기", es: "Ver live", fr: "Voir live" },
   "Live Deploy": { ja: "Live デプロイ", ko: "실거래 배포", es: "Desplegar live", fr: "Déployer live" },
   "Sharpe Ratio": { ja: "シャープレシオ", ko: "샤프 비율", es: "Ratio de Sharpe", fr: "Ratio de Sharpe" },
@@ -188,6 +219,7 @@ export default function StrategyDetail() {
   const [starred, setStarred] = useState(false);
   const [deploymentVersion, setDeploymentVersion] = useState(0);
   const [isStrategyConfigOpen, setIsStrategyConfigOpen] = useState(false);
+  const [isPaperDeployOpen, setIsPaperDeployOpen] = useState(false);
   const [isLiveDeployOpen, setIsLiveDeployOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
   const [connectedExchangeApis, setConnectedExchangeApis] = useState<ExchangeApiConnection[]>(() =>
@@ -196,6 +228,7 @@ export default function StrategyDetail() {
   const [selectedExchangeApiId, setSelectedExchangeApiId] = useState<string>("");
   const [liveCapitalInput, setLiveCapitalInput] = useState("1000");
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(readPlainExplanationEnabled);
+  const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
 
   const strategyName = customName || strategy.name;
   const strategyId = strategy.id;
@@ -247,6 +280,15 @@ export default function StrategyDetail() {
     return () => {
       window.removeEventListener("storage", syncPlainExplanation);
       window.removeEventListener("focus", syncPlainExplanation);
+    };
+  }, []);
+  useEffect(() => {
+    const syncChartColorMode = () => setChartColorMode(readChartColorMode());
+    window.addEventListener("storage", syncChartColorMode);
+    window.addEventListener("focus", syncChartColorMode);
+    return () => {
+      window.removeEventListener("storage", syncChartColorMode);
+      window.removeEventListener("focus", syncChartColorMode);
     };
   }, []);
   const minLiveCapital = 100;
@@ -516,6 +558,11 @@ export default function StrategyDetail() {
     setIsLiveDeployOpen(true);
   };
 
+  const submitPaperDeployment = () => {
+    deployStrategy("paper");
+    setIsPaperDeployOpen(false);
+  };
+
   const goToExchangeApi = () => {
     setIsLiveDeployOpen(false);
     window.location.assign("/account?tab=exchangeApi");
@@ -566,15 +613,16 @@ export default function StrategyDetail() {
     },
     {
       label: tr("Max DD", "最大回撤"),
-      value: `${Math.abs(drawdownPct).toFixed(1)}%`,
+      value: `${drawdownPct === 0 ? "" : "-"}${Math.abs(drawdownPct).toFixed(1)}%`,
       tone: Math.abs(drawdownPct) >= 15 ? "warn" : "good",
+      valueColor: getDrawdownColor(chartColorMode),
       explanation: tr(
         "Shows the largest historical decline. Lower values indicate less downside risk.",
         "表示历史最大跌幅，数值越低风险越小。"
       ),
     },
     {
-      label: "Calmar",
+      label: tr("Calmar", "卡玛比率"),
       value: calmar.toFixed(3),
       tone: calmar >= 3 ? "good" : "muted",
       explanation: tr(
@@ -729,10 +777,10 @@ export default function StrategyDetail() {
                 openTradePage("paper", paperDeployment.id);
                 return;
               }
-              deployStrategy("paper");
+              setIsPaperDeployOpen(true);
             }}
           >
-            {paperDeployment ? tr("View Paper", "查看模拟") : tr("Paper Deploy", "模拟部署")}
+            {paperDeployment ? tr("View Paper", "查看模拟盘") : tr("Paper Deploy", "模拟部署盘")}
           </button>
           {SHOW_LIVE_DEPLOY_ACTION ? (
             <button
@@ -797,6 +845,15 @@ export default function StrategyDetail() {
         metricRows={reportMetricRows}
         positions={reportPositions}
         tr={tr}
+      />
+
+      <PaperDeployDialog
+        open={isPaperDeployOpen}
+        onOpenChange={setIsPaperDeployOpen}
+        strategyName={strategyDisplayName}
+        strategyId={strategyId}
+        tr={tr}
+        submitPaperDeployment={submitPaperDeployment}
       />
 
       <LiveDeployDialog

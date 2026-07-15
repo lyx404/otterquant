@@ -17,6 +17,7 @@ import {
   Trophy,
   Wallet,
 } from "lucide-react";
+import "./Subscription.css";
 
 type MoneyActivityItem = {
   id: string;
@@ -1383,7 +1384,107 @@ function FixedHostingFeePage() {
   );
 }
 
-const SHOW_SUBSCRIPTION_WORKBENCH_260712 = false;
+const subscriptionPlans = [
+  {
+    name: "Free",
+    price: "$0",
+    features: [
+      { en: "Browse the community", zh: "浏览社区", available: true },
+      { en: "Save up to 5 factors", zh: "最多保存 5 个因子", available: true },
+      { en: "Codex auto-sync", zh: "Codex 自动同步", available: false },
+    ],
+  },
+  {
+    name: "Pro",
+    price: "$15",
+    features: [
+      { en: "Unlimited saved factors", zh: "无限保存因子", available: true },
+      { en: "Codex auto-sync & mining", zh: "Codex 自动同步与挖掘", available: true },
+      { en: "Live broker tracking", zh: "实盘经纪商追踪", available: true },
+      { en: "Full API access", zh: "完整 API 访问", available: true },
+    ],
+  },
+] as const;
+
+function SubscriptionPlanPage() {
+  const { uiLang } = useAppLanguage();
+  const [cancelScheduled, setCancelScheduled] = useState(false);
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+
+  return (
+    <section className="oq-subscription-plan" aria-label={tr("Subscription plans", "订阅套餐")}>
+      <div className="oq-subscription-plan-grid">
+        {subscriptionPlans.map((plan) => {
+          const isPro = plan.name === "Pro";
+
+          return (
+            <article key={plan.name} className={`oq-subscription-plan-card ${isPro ? "is-pro" : "is-free"}`}>
+              <div className="oq-subscription-plan-label-row">
+                <span className="oq-subscription-plan-label">{plan.name}</span>
+                {isPro ? <span className="oq-subscription-current-badge">{tr("Current plan", "当前套餐")}</span> : null}
+              </div>
+
+              <div className="oq-subscription-price-row">
+                <strong>{plan.price}</strong>
+                <span>{tr("/mo", "/月")}</span>
+              </div>
+
+              <ul className="oq-subscription-feature-list">
+                {plan.features.map((feature) => (
+                  <li key={feature.en} className={feature.available ? "" : "is-unavailable"}>
+                    <img
+                      src={feature.available ? "/figma/subscription-check.svg" : "/figma/subscription-unavailable.svg"}
+                      alt=""
+                      aria-hidden="true"
+                    />
+                    <span>{tr(feature.en, feature.zh)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {isPro ? (
+                <button
+                  type="button"
+                  className="oq-subscription-manage-button"
+                  onClick={() => toast.info(tr("Your Pro plan is active.", "Pro 套餐当前已生效。"))}
+                >
+                  {tr("Manage plan", "管理套餐")}
+                </button>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="oq-subscription-renewal" role="status">
+        <img src="/figma/subscription-info.svg" alt="" aria-hidden="true" />
+        <p>
+          {cancelScheduled ? (
+            tr("Your Pro plan remains active through Jul 1, 2026.", "Pro 套餐将在 2026 年 7 月 1 日前保持有效。")
+          ) : (
+            <>
+              {tr("Your Pro plan renews ", "Pro 套餐将于 ")}
+              <strong>{tr("Jul 1, 2026", "2026 年 7 月 1 日")}</strong>
+              {tr(" at $15/mo. Cancel anytime — you keep access through the billing period.", "以每月 $15 续费。可随时取消，当前账期内仍可继续使用。")}
+            </>
+          )}
+        </p>
+        <button
+          type="button"
+          className="oq-subscription-cancel-button"
+          onClick={() => {
+            setCancelScheduled((current) => !current);
+            toast.success(cancelScheduled ? tr("Plan renewal restored.", "已恢复套餐续费。") : tr("Plan cancellation scheduled.", "已安排取消套餐。"));
+          }}
+        >
+          {cancelScheduled ? tr("Resume plan", "恢复续费") : tr("Cancel plan", "取消套餐")}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+const SHOW_SUBSCRIPTION_WORKBENCH_260712 = true;
 
 export default function Subscription() {
   return SHOW_SUBSCRIPTION_WORKBENCH_260712 ? <SubscriptionWorkbench260712 /> : null;
@@ -1393,5 +1494,5 @@ function SubscriptionWorkbench260712() {
   const [location] = useLocation();
   const isHostingPage = location === "/subscription/hosting";
 
-  return isHostingPage ? <FixedHostingFeePage /> : <CreditsPage />;
+  return isHostingPage ? <FixedHostingFeePage /> : <SubscriptionPlanPage />;
 }

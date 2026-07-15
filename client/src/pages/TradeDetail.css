@@ -5,6 +5,7 @@
   --td-text: #0d0d0d;
   --td-text-soft: #4a443d;
   --td-muted: #8c8378;
+  --td-muted-strong: #6b635a;
   --td-accent: #dc4900;
   --td-success: #1f8a5b;
   --td-warning: #cc7c0a;
@@ -277,7 +278,7 @@
 
 .oq-trade-detail-status.is-paused {
   background: #f4f1ed;
-  color: var(--td-muted);
+  color: var(--td-muted-strong);
 }
 
 .oq-trade-overview {
@@ -910,29 +911,33 @@
 }
 
 .oq-trade-workspace-table.is-current-positions {
-  min-width: 820px;
+  min-width: 880px;
   table-layout: fixed;
 }
 
 .oq-trade-workspace-table.is-current-positions :is(th, td):first-child {
-  width: 21%;
+  width: 20%;
 }
 
 .oq-trade-workspace-table.is-current-positions :is(th, td):nth-child(2) {
-  width: 16%;
+  width: 14%;
 }
 
 .oq-trade-workspace-table.is-current-positions :is(th, td):nth-child(3),
 .oq-trade-workspace-table.is-current-positions :is(th, td):nth-child(4) {
-  width: 14%;
+  width: 12%;
 }
 
 .oq-trade-workspace-table.is-current-positions :is(th, td):nth-child(5) {
-  width: 16%;
+  width: 14%;
+}
+
+.oq-trade-workspace-table.is-current-positions :is(th, td):nth-child(6) {
+  width: 18%;
 }
 
 .oq-trade-workspace-table.is-current-positions :is(th, td):last-child {
-  width: 19%;
+  width: 10%;
 }
 
 .oq-trade-workspace-table.is-current-positions :is(th, td):not(:first-child) {
@@ -1302,12 +1307,7 @@
   min-width: 0;
   align-content: start;
   gap: 7px;
-  border-bottom: 0.75px solid color-mix(in srgb, var(--td-border) 62%, transparent);
   padding: 14px 0 16px;
-}
-
-.oq-trade-activity-item:last-child .oq-trade-activity-content {
-  border-bottom: 0;
 }
 
 .oq-trade-activity-header,

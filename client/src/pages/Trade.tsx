@@ -26,12 +26,11 @@ import {
   type BotStatus,
 } from "@/lib/tradeData";
 import { getTradeBotsWithDeployments } from "@/lib/tradeDeployments";
-import { ArrowDown, ArrowUp, ArrowUpDown, CircleStop, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CircleStop, RotateCcw } from "lucide-react";
 import "./Trade.css";
 
 type PendingAction =
   | { type: "stop"; botId: string }
-  | { type: "delete"; botId: string }
   | null;
 
 type BotStatusFilter = "all" | "running" | "stop";
@@ -107,7 +106,6 @@ function TradeWorkbench260712() {
     envFromQuery === "live" ? "live" : "paper"
   );
   const [focusedBotId, setFocusedBotId] = useState<string | null>(null);
-  const [hiddenBotIds, setHiddenBotIds] = useState<Set<string>>(new Set());
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [statusFilter, setStatusFilter] = useState<BotStatusFilter>("all");
   const [botSort, setBotSort] = useState<{ key: BotSortKey | null; direction: BotSortDirection }>({
@@ -164,9 +162,8 @@ function TradeWorkbench260712() {
     () =>
       allTradeBots
         .filter(bot => bot.environment === environment)
-        .filter(bot => !hiddenBotIds.has(bot.id))
         .map(bot => ({ ...bot, status: statusById[bot.id] ?? "running" })),
-    [allTradeBots, environment, hiddenBotIds, statusById]
+    [allTradeBots, environment, statusById]
   );
   const searchFilteredBots = useMemo(() => {
     if (!tradeSearchQuery) return visibleBots;
@@ -231,25 +228,17 @@ function TradeWorkbench260712() {
 
   const stopBot = (botId: string) => {
     setStatusById(prev => ({ ...prev, [botId]: "paused" }));
-    toast.success(tr("Trading bot stopped", "交易机器人已停止"));
+    toast.success(tr("Paper trading stopped", "模拟盘已停止"));
   };
 
-  const deleteBot = (botId: string) => {
-    setHiddenBotIds(prev => {
-      const next = new Set(prev);
-      next.add(botId);
-      return next;
-    });
-    toast.success(tr("Trading bot deleted", "交易机器人已删除"));
+  const restartBot = (botId: string) => {
+    setStatusById(prev => ({ ...prev, [botId]: "running" }));
+    toast.success(tr("Paper trading restarted", "模拟盘已重新启动"));
   };
 
   const confirmPendingAction = () => {
     if (!pendingAction) return;
-    if (pendingAction.type === "stop") {
-      stopBot(pendingAction.botId);
-    } else {
-      deleteBot(pendingAction.botId);
-    }
+    stopBot(pendingAction.botId);
     setPendingAction(null);
   };
 
@@ -304,8 +293,8 @@ function TradeWorkbench260712() {
       "所有可见策略的账户资产合计。"
     ),
     unrealizedPnl: tr(
-      "Combined floating profit or loss of all open positions.",
-      "当前未平仓仓位的浮动盈亏合计。"
+      "Combined PnL across all visible strategies.",
+      "当前可见策略的盈亏金额合计。"
     ),
     avgRoi: tr(
       "Average return across visible strategies.",
@@ -357,7 +346,7 @@ function TradeWorkbench260712() {
               })}
             </p>
             <div className="oq-trade-metric-label">
-              {tr("Total Assets", "总资产")}
+              {tr("Total Assets (USDT)", "总资产（USDT）")}
             </div>
           </div>
         </MaybeExplainTooltip>
@@ -373,7 +362,7 @@ function TradeWorkbench260712() {
               {formatSigned(summary.totalUnrealized)}
             </p>
             <div className="oq-trade-metric-label">
-              {tr("Unrealized PnL", "未实现盈亏")}
+              {tr("PnL (USDT)", "盈亏（USDT）")}
             </div>
           </div>
         </MaybeExplainTooltip>
@@ -455,9 +444,9 @@ function TradeWorkbench260712() {
                 type="button"
                 className={`oq-trade-sort-button ${sortDirectionFor("unrealizedPnl") !== "default" ? "is-active" : ""}`}
                 onClick={() => cycleBotSort("unrealizedPnl")}
-                aria-label={sortButtonLabel("unrealizedPnl", "unrealized PnL", "未实现盈亏")}
+                aria-label={sortButtonLabel("unrealizedPnl", "PnL", "盈亏")}
               >
-                <span>{tr("Unrealized PnL", "未实现盈亏")}</span>
+                <span>{tr("PnL", "盈亏")}</span>
                 {sortIconFor("unrealizedPnl")}
               </button>
             </div>
@@ -466,13 +455,13 @@ function TradeWorkbench260712() {
                 type="button"
                 className={`oq-trade-sort-button ${sortDirectionFor("roi") !== "default" ? "is-active" : ""}`}
                 onClick={() => cycleBotSort("roi")}
-                aria-label={sortButtonLabel("roi", "ROI", "ROI")}
+                aria-label={sortButtonLabel("roi", "return", "收益率")}
               >
-                <span>ROI</span>
+                <span>{tr("Return", "收益率")}</span>
                 {sortIconFor("roi")}
               </button>
             </div>
-            <div role="columnheader">{tr("Status", "状态")}</div>
+            <div role="columnheader">{tr("Paper Status", "模拟盘状态")}</div>
             <div role="columnheader">{tr("Updated", "更新时间")}</div>
             <div role="columnheader">{tr("Actions", "操作")}</div>
           </div>
@@ -483,11 +472,11 @@ function TradeWorkbench260712() {
                 <p className="oq-trade-empty-title">
                   {tr(
                     tradeSearchQuery
-                      ? "No matching trading bots"
-                      : "No trading bots in this status",
+                      ? "No matching paper-trading deployments"
+                      : "No paper-trading deployments in this status",
                     tradeSearchQuery
-                      ? "未找到匹配的交易机器人"
-                      : "当前状态下没有交易机器人"
+                      ? "未找到匹配的模拟盘"
+                      : "当前状态下没有模拟盘"
                   )}
                 </p>
                 <p className="oq-trade-empty-copy">
@@ -529,13 +518,13 @@ function TradeWorkbench260712() {
                       {bot.equity.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
-                      })}
+                      })} USDT
                     </div>
                     <div
                       className={`oq-trade-bot-metric-value ${getTrendClass(bot.unrealizedPnl, chartColorMode)}`}
                       role="cell"
                     >
-                      {formatSigned(bot.unrealizedPnl)}
+                      {formatSigned(bot.unrealizedPnl)} USDT
                     </div>
                     <div className="oq-trade-bot-metric-value" role="cell">
                       {formatBotRoi(bot)}%
@@ -564,19 +553,17 @@ function TradeWorkbench260712() {
                           setPendingAction({ type: "stop", botId: bot.id })
                         }
                       >
-                        <CircleStop className="h-3.5 w-3.5" />
+                        <CircleStop className="size-3" />
                         {tr("Stop", "停止")}
                       </Button>
                     ) : (
                       <Button
                         variant="outline"
-                        className="oq-trade-button is-risk"
-                        onClick={() =>
-                          setPendingAction({ type: "delete", botId: bot.id })
-                        }
+                        className="oq-trade-button"
+                        onClick={() => restartBot(bot.id)}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {tr("Delete", "删除")}
+                        <RotateCcw className="size-3" />
+                        {tr("Restart", "重新启动")}
                       </Button>
                     )}
                   </div>
@@ -594,20 +581,13 @@ function TradeWorkbench260712() {
         <AlertDialogContent className="oq-trade-dialog">
           <AlertDialogHeader className="oq-trade-dialog-header">
             <AlertDialogTitle className="oq-trade-dialog-title">
-              {pendingAction?.type === "stop"
-                ? tr("Stop Trading Bot", "停止交易机器人")
-                : tr("Delete Trading Bot", "删除交易机器人")}
+              {tr("Stop Paper Trading", "停止模拟盘")}
             </AlertDialogTitle>
             <AlertDialogDescription className="oq-trade-dialog-description">
-              {pendingAction?.type === "stop"
-                ? tr(
-                    "Are you sure you want to stop this bot? Open positions and bot settings will be kept for future resume.",
-                    "确认要停止这个机器人吗？当前持仓与机器人配置会被保留，后续可继续恢复。"
-                  )
-                : tr(
-                    "Are you sure you want to delete this stopped bot from the workspace? This action cannot be undone.",
-                    "确认要将这个已停止的机器人从工作区中删除吗？此操作不可撤销。"
-                  )}
+              {tr(
+                "Are you sure you want to stop this paper-trading deployment? Open positions and its configuration will be kept so you can restart it later.",
+                "确认要停止该模拟盘吗？当前持仓与模拟盘配置将保留，之后可以重新启动。"
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="oq-trade-dialog-footer">
@@ -618,9 +598,7 @@ function TradeWorkbench260712() {
               className="oq-trade-dialog-button is-primary"
               onClick={confirmPendingAction}
             >
-              {pendingAction?.type === "stop"
-                ? tr("Confirm Stop", "确认停止")
-                : tr("Confirm Delete", "确认删除")}
+              {tr("Confirm Stop", "确认停止")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

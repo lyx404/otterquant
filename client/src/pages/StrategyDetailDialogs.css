@@ -1,3 +1,113 @@
+.oq-sd-dialog.oq-paper-deploy-dialog {
+  display: flex;
+  width: calc(100% - 24px);
+  max-width: 480px;
+  max-height: calc(100dvh - 24px);
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 18px 48px rgba(60, 40, 20, 0.14);
+}
+
+.oq-paper-deploy-header {
+  padding: 16px 52px 14px 20px;
+  border-bottom: 0.75px solid var(--border);
+}
+
+.oq-paper-deploy-header h2 {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+}
+
+.oq-paper-deploy-summary {
+  overflow: hidden;
+  margin: 16px 20px 0;
+  border: 0.75px solid #f3f3f3;
+  border-radius: 6px;
+  background: #fbfbfc;
+}
+
+.oq-paper-deploy-summary > div {
+  display: grid;
+  min-height: 48px;
+  grid-template-columns: 124px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border-bottom: 0.75px solid #f3f3f3;
+  padding: 8px 12px;
+}
+
+.oq-paper-deploy-summary > div:last-child {
+  border-bottom: 0;
+}
+
+.oq-paper-deploy-summary dt {
+  color: var(--muted-foreground);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1rem;
+}
+
+.oq-paper-deploy-summary dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.125rem;
+}
+
+.oq-paper-deploy-strategy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.oq-paper-deploy-strategy strong {
+  min-width: 0;
+  overflow: hidden;
+  font-size: inherit;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-paper-deploy-strategy span {
+  flex: 0 0 auto;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--muted-foreground) 8%, var(--card));
+  padding: 2px 6px;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1rem;
+}
+
+.oq-paper-deploy-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-paper-deploy-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 20px;
+}
+
+.oq-paper-deploy-actions button {
+  min-width: 104px;
+  height: 36px;
+  border-radius: 5px;
+  padding: 0 16px;
+  font-size: 0.75rem;
+}
+
 .oq-optimizer-dialog {
   --optimizer-list-surface: #fbfbfc;
   --optimizer-list-border: #f3f3f3;
@@ -331,6 +441,30 @@
 }
 
 @media (max-width: 640px) {
+  .oq-paper-deploy-header,
+  .oq-paper-deploy-actions {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .oq-paper-deploy-header {
+    padding-right: 48px;
+  }
+
+  .oq-paper-deploy-summary {
+    margin-right: 14px;
+    margin-left: 14px;
+  }
+
+  .oq-paper-deploy-summary > div {
+    grid-template-columns: 96px minmax(0, 1fr);
+  }
+
+  .oq-paper-deploy-actions button {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
   .oq-optimizer-dialog {
     width: calc(100vw - 24px);
     max-width: calc(100vw - 24px);
