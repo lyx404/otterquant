@@ -1247,6 +1247,14 @@ main:has(.oq-strategy-figma-report) {
   filter: saturate(1.04);
 }
 
+.oq-report-action.is-deploying,
+.oq-report-action.is-deploying:hover {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+  filter: saturate(0.72);
+}
+
 .oq-report-card,
 .oq-position-card {
   position: relative;

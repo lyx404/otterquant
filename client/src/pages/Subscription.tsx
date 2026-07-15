@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +10,7 @@ import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import { toast } from "sonner";
 import {
   CalendarDays,
+  Check,
   CreditCard,
   Database,
   History,
@@ -1384,102 +1386,266 @@ function FixedHostingFeePage() {
   );
 }
 
+type BillingCycle = "monthly" | "yearly";
+
 const subscriptionPlans = [
   {
-    name: "Free",
-    price: "$0",
+    id: "basic",
+    nameEn: "Basic",
+    nameZh: "基础版",
+    monthlyPrice: 10,
+    yearlyPrice: 8,
+    yearlyTotal: 96,
     features: [
-      { en: "Browse the community", zh: "浏览社区", available: true },
-      { en: "Save up to 5 factors", zh: "最多保存 5 个因子", available: true },
-      { en: "Codex auto-sync", zh: "Codex 自动同步", available: false },
+      { en: "Browse community factors", zh: "浏览社区因子" },
+      { en: "Save up to 5 factors", zh: "最多保存 5 个因子" },
+      { en: "Community backtests", zh: "社区回测与基础指标" },
+      { en: "One personal workspace", zh: "1 个个人工作区" },
+      { en: "Community support", zh: "社区支持" },
     ],
   },
   {
-    name: "Pro",
-    price: "$15",
+    id: "professional",
+    nameEn: "Professional",
+    nameZh: "专业版",
+    monthlyPrice: 15,
+    yearlyPrice: 12,
+    yearlyTotal: 144,
     features: [
-      { en: "Unlimited saved factors", zh: "无限保存因子", available: true },
-      { en: "Codex auto-sync & mining", zh: "Codex 自动同步与挖掘", available: true },
-      { en: "Live broker tracking", zh: "实盘经纪商追踪", available: true },
-      { en: "Full API access", zh: "完整 API 访问", available: true },
+      { en: "Unlimited factors and strategies", zh: "无限保存因子与策略" },
+      { en: "Codex auto-sync and mining", zh: "Codex 自动同步与挖掘" },
+      { en: "Advanced backtests and full API", zh: "高级回测与完整 API" },
+      { en: "Live broker tracking", zh: "实盘经纪商追踪" },
+      { en: "Priority support", zh: "优先技术支持" },
     ],
+  },
+  {
+    id: "enterprise",
+    nameEn: "Enterprise",
+    nameZh: "企业版",
+    monthlyPrice: 49,
+    yearlyPrice: 39,
+    yearlyTotal: 468,
+    features: [
+      { en: "Everything in Professional", zh: "包含专业版全部权益" },
+      { en: "Team workspaces and roles", zh: "团队空间与权限管理" },
+      { en: "Dedicated compute capacity", zh: "专属算力与并发配额" },
+      { en: "Private data and broker access", zh: "私有数据源与券商接入" },
+      { en: "Dedicated technical support", zh: "专属技术支持" },
+    ],
+  },
+] as const;
+
+const subscriptionHistory = [
+  {
+    id: "SUB-20260601-001",
+    dateTime: "2026-06-01",
+    dateEn: "Jun 1, 2026",
+    dateZh: "2026 年 6 月 1 日",
+    planEn: "Professional",
+    planZh: "专业版",
+    cycleEn: "Monthly",
+    cycleZh: "月付",
+    amount: "$15",
+  },
+  {
+    id: "SUB-20260501-001",
+    dateTime: "2026-05-01",
+    dateEn: "May 1, 2026",
+    dateZh: "2026 年 5 月 1 日",
+    planEn: "Professional",
+    planZh: "专业版",
+    cycleEn: "Monthly",
+    cycleZh: "月付",
+    amount: "$15",
+  },
+  {
+    id: "SUB-20260401-001",
+    dateTime: "2026-04-01",
+    dateEn: "Apr 1, 2026",
+    dateZh: "2026 年 4 月 1 日",
+    planEn: "Professional",
+    planZh: "专业版",
+    cycleEn: "Monthly",
+    cycleZh: "月付",
+    amount: "$15",
   },
 ] as const;
 
 function SubscriptionPlanPage() {
   const { uiLang } = useAppLanguage();
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+  const [manageOpen, setManageOpen] = useState(false);
   const [cancelScheduled, setCancelScheduled] = useState(false);
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const togglePlanCancellation = () => {
+    setCancelScheduled((current) => {
+      toast.success(current ? tr("Plan renewal restored.", "已恢复套餐续费。") : tr("Plan cancellation scheduled.", "已安排取消套餐。"));
+      return !current;
+    });
+  };
 
   return (
-    <section className="oq-subscription-plan" aria-label={tr("Subscription plans", "订阅套餐")}>
+    <section
+      className="oq-subscription-plan"
+      data-billing-cycle={billingCycle}
+      aria-label={tr("Subscription plans", "订阅套餐")}
+    >
+      <div className="oq-subscription-plan-toolbar">
+        <div className="oq-subscription-billing" role="group" aria-label={tr("Billing cycle", "付款周期")}>
+          <button
+            type="button"
+            className={billingCycle === "monthly" ? "is-active" : ""}
+            aria-pressed={billingCycle === "monthly"}
+            onClick={() => setBillingCycle("monthly")}
+          >
+            {tr("Monthly", "月付")}
+          </button>
+          <button
+            type="button"
+            className={billingCycle === "yearly" ? "is-active" : ""}
+            aria-pressed={billingCycle === "yearly"}
+            onClick={() => setBillingCycle("yearly")}
+          >
+            {tr("Yearly", "年付")}
+            <span>{tr("Save about 20%", "省约 20%")}</span>
+          </button>
+        </div>
+        <button type="button" className="oq-subscription-manage-entry" onClick={() => setManageOpen(true)}>
+          <CreditCard aria-hidden="true" />
+          <span>{tr("Manage subscription", "管理订阅")}</span>
+        </button>
+      </div>
+
       <div className="oq-subscription-plan-grid">
         {subscriptionPlans.map((plan) => {
-          const isPro = plan.name === "Pro";
+          const isCurrent = plan.id === "professional";
+          const price = billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
 
           return (
-            <article key={plan.name} className={`oq-subscription-plan-card ${isPro ? "is-pro" : "is-free"}`}>
-              <div className="oq-subscription-plan-label-row">
-                <span className="oq-subscription-plan-label">{plan.name}</span>
-                {isPro ? <span className="oq-subscription-current-badge">{tr("Current plan", "当前套餐")}</span> : null}
+            <article key={plan.id} className={`oq-subscription-plan-card${isCurrent ? " is-current" : ""}`}>
+              <header className="oq-subscription-plan-header">
+                <div className="oq-subscription-plan-label-row">
+                  <h2 className="oq-subscription-plan-label">{tr(plan.nameEn, plan.nameZh)}</h2>
+                  {isCurrent ? <span className="oq-subscription-current-badge">{tr("Current plan", "当前套餐")}</span> : null}
+                </div>
+              </header>
+
+              <div className="oq-subscription-price-block">
+                <div className="oq-subscription-price-row">
+                  <span className="oq-subscription-currency">$</span>
+                  <strong>{price}</strong>
+                  <span className="oq-subscription-price-cycle">{tr("/ month", "/ 月")}</span>
+                </div>
+                <p className="oq-subscription-billing-note" aria-hidden={billingCycle === "monthly"}>
+                  {billingCycle === "yearly"
+                    ? tr(`Billed $${plan.yearlyTotal} yearly`, `按年计费 $${plan.yearlyTotal}`)
+                    : "\u00A0"}
+                </p>
               </div>
 
-              <div className="oq-subscription-price-row">
-                <strong>{plan.price}</strong>
-                <span>{tr("/mo", "/月")}</span>
-              </div>
+              <button
+                type="button"
+                className="oq-subscription-plan-button"
+                disabled={isCurrent}
+                onClick={() => {
+                  toast.info(tr(`Subscribe to ${plan.nameEn}.`, `已选择${plan.nameZh}。`));
+                }}
+              >
+                {isCurrent ? tr("Current plan", "当前套餐") : tr("Subscribe", "订阅")}
+              </button>
 
               <ul className="oq-subscription-feature-list">
                 {plan.features.map((feature) => (
-                  <li key={feature.en} className={feature.available ? "" : "is-unavailable"}>
-                    <img
-                      src={feature.available ? "/figma/subscription-check.svg" : "/figma/subscription-unavailable.svg"}
-                      alt=""
-                      aria-hidden="true"
-                    />
+                  <li key={feature.en}>
+                    <Check aria-hidden="true" />
                     <span>{tr(feature.en, feature.zh)}</span>
                   </li>
                 ))}
               </ul>
-
-              {isPro ? (
-                <button
-                  type="button"
-                  className="oq-subscription-manage-button"
-                  onClick={() => toast.info(tr("Your Pro plan is active.", "Pro 套餐当前已生效。"))}
-                >
-                  {tr("Manage plan", "管理套餐")}
-                </button>
-              ) : null}
             </article>
           );
         })}
       </div>
 
-      <div className="oq-subscription-renewal" role="status">
-        <img src="/figma/subscription-info.svg" alt="" aria-hidden="true" />
-        <p>
-          {cancelScheduled ? (
-            tr("Your Pro plan remains active through Jul 1, 2026.", "Pro 套餐将在 2026 年 7 月 1 日前保持有效。")
-          ) : (
-            <>
-              {tr("Your Pro plan renews ", "Pro 套餐将于 ")}
-              <strong>{tr("Jul 1, 2026", "2026 年 7 月 1 日")}</strong>
-              {tr(" at $15/mo. Cancel anytime — you keep access through the billing period.", "以每月 $15 续费。可随时取消，当前账期内仍可继续使用。")}
-            </>
-          )}
-        </p>
-        <button
-          type="button"
-          className="oq-subscription-cancel-button"
-          onClick={() => {
-            setCancelScheduled((current) => !current);
-            toast.success(cancelScheduled ? tr("Plan renewal restored.", "已恢复套餐续费。") : tr("Plan cancellation scheduled.", "已安排取消套餐。"));
-          }}
-        >
-          {cancelScheduled ? tr("Resume plan", "恢复续费") : tr("Cancel plan", "取消套餐")}
-        </button>
-      </div>
+      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
+        <DialogContent className="oq-subscription-manage-dialog max-w-[560px] gap-0 border-0 bg-white p-0 text-[#171512]">
+          <DialogHeader className="oq-subscription-manage-dialog-header">
+            <DialogTitle>{tr("Manage subscription", "管理订阅")}</DialogTitle>
+            <DialogDescription>
+              {tr("Review your current plan and subscription history.", "查看当前套餐与历史订阅记录。")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="oq-subscription-manage-dialog-body">
+            <section className="oq-subscription-current-plan" aria-label={tr("Current subscription", "当前订阅计划")}>
+              <div className="oq-subscription-current-plan-heading">
+                <div>
+                  <p>{tr("Current plan", "当前订阅计划")}</p>
+                  <h3>{tr("Professional", "专业版")}</h3>
+                </div>
+                <span className={cancelScheduled ? "is-pending" : ""}>
+                  {cancelScheduled ? tr("Cancellation scheduled", "已安排取消") : tr("Active", "生效中")}
+                </span>
+              </div>
+
+              <div className="oq-subscription-current-plan-price">
+                <strong>$15</strong>
+                <span>{tr("/ month", "/ 月")}</span>
+              </div>
+
+              <dl className="oq-subscription-current-plan-details">
+                <div>
+                  <dt>{tr("Billing cycle", "付款周期")}</dt>
+                  <dd>{tr("Monthly", "月付")}</dd>
+                </div>
+                <div>
+                  <dt>{cancelScheduled ? tr("Access through", "可使用至") : tr("Next renewal", "下次续费")}</dt>
+                  <dd>{tr("Jul 1, 2026", "2026 年 7 月 1 日")}</dd>
+                </div>
+                <div>
+                  <dt>{tr("Monthly credit", "每月额度")}</dt>
+                  <dd>{tr("10,000 credit", "10,000 额度")}</dd>
+                </div>
+              </dl>
+
+              <button
+                type="button"
+                className={`oq-subscription-dialog-plan-action${cancelScheduled ? " is-restore" : ""}`}
+                onClick={togglePlanCancellation}
+              >
+                {cancelScheduled ? tr("Resume renewal", "恢复续费") : tr("Cancel subscription", "取消订阅")}
+              </button>
+            </section>
+
+            <section className="oq-subscription-history" aria-label={tr("Subscription history", "历史订阅记录")}>
+              <div className="oq-subscription-history-heading">
+                <History aria-hidden="true" />
+                <h3>{tr("Subscription history", "历史订阅记录")}</h3>
+              </div>
+              <ul>
+                {subscriptionHistory.map((record) => (
+                  <li key={record.id}>
+                    <ReceiptText aria-hidden="true" />
+                    <div className="oq-subscription-history-date">
+                      <time dateTime={record.dateTime}>{tr(record.dateEn, record.dateZh)}</time>
+                      <span>{record.id}</span>
+                    </div>
+                    <div className="oq-subscription-history-plan">
+                      <strong>{tr(record.planEn, record.planZh)}</strong>
+                      <span>{tr(record.cycleEn, record.cycleZh)}</span>
+                    </div>
+                    <div className="oq-subscription-history-amount">
+                      <strong>{record.amount}</strong>
+                      <span>{tr("Paid", "已支付")}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

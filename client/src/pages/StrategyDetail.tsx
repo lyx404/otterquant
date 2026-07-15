@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useSearch } from "wouter";
 import { strategies } from "@/lib/mockData";
 import { parsePercent } from "@/lib/strategyUtils";
@@ -21,7 +21,6 @@ import {
   LiveDeployDialog,
   OPTIMIZATION_HISTORY_LIMIT,
   OptimizerDialog,
-  PaperDeployDialog,
   StrategyConfigDialog,
   type OptimizedStrategyVersion,
 } from "./StrategyDetailDialogs";
@@ -120,7 +119,8 @@ const strategyDetailCopy: Record<string, UiCopy> = {
   Favorite: { ja: "お気に入り", ko: "즐겨찾기", es: "Favorito", fr: "Favori" },
   "Use Template": { ja: "テンプレートを使用", ko: "템플릿 사용", es: "Usar plantilla", fr: "Utiliser le modèle" },
   "View Paper": { ja: "Paper を表示", ko: "모의 보기", es: "Ver paper", fr: "Voir paper" },
-  "Paper Deploy": { ja: "Paper デプロイ", ko: "모의 배포", es: "Desplegar paper", fr: "Déployer paper" },
+  "Deploy Paper": { ja: "Paper デプロイ", ko: "모의 배포", es: "Desplegar paper", fr: "Déployer paper" },
+  Deploying: { ja: "デプロイ中", ko: "배포 중", es: "Desplegando", fr: "Déploiement" },
   "Deploy Strategy to Paper Trading": {
     ja: "ストラテジーをペーパートレードへデプロイ",
     ko: "전략을 모의 거래에 배포",
@@ -219,9 +219,10 @@ export default function StrategyDetail() {
   const [starred, setStarred] = useState(false);
   const [deploymentVersion, setDeploymentVersion] = useState(0);
   const [isStrategyConfigOpen, setIsStrategyConfigOpen] = useState(false);
-  const [isPaperDeployOpen, setIsPaperDeployOpen] = useState(false);
+  const [isPaperDeploying, setIsPaperDeploying] = useState(false);
   const [isLiveDeployOpen, setIsLiveDeployOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
+  const paperDeployTimerRef = useRef<number | null>(null);
   const [connectedExchangeApis, setConnectedExchangeApis] = useState<ExchangeApiConnection[]>(() =>
     readExchangeApiConnections()
   );
@@ -281,6 +282,11 @@ export default function StrategyDetail() {
       window.removeEventListener("storage", syncPlainExplanation);
       window.removeEventListener("focus", syncPlainExplanation);
     };
+  }, []);
+  useEffect(() => () => {
+    if (paperDeployTimerRef.current !== null) {
+      window.clearTimeout(paperDeployTimerRef.current);
+    }
   }, []);
   useEffect(() => {
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -558,9 +564,19 @@ export default function StrategyDetail() {
     setIsLiveDeployOpen(true);
   };
 
-  const submitPaperDeployment = () => {
-    deployStrategy("paper");
-    setIsPaperDeployOpen(false);
+  const handlePaperDeployment = () => {
+    if (paperDeployment) {
+      window.location.assign(`/trade/${encodeURIComponent(paperDeployment.id)}?env=paper`);
+      return;
+    }
+    if (isPaperDeploying) return;
+
+    setIsPaperDeploying(true);
+    paperDeployTimerRef.current = window.setTimeout(() => {
+      deployStrategy("paper");
+      setIsPaperDeploying(false);
+      paperDeployTimerRef.current = null;
+    }, 900);
   };
 
   const goToExchangeApi = () => {
@@ -771,16 +787,16 @@ export default function StrategyDetail() {
         <>
           <button
             type="button"
-            className="oq-report-action is-primary"
-            onClick={() => {
-              if (paperDeployment) {
-                openTradePage("paper", paperDeployment.id);
-                return;
-              }
-              setIsPaperDeployOpen(true);
-            }}
+            className={`oq-report-action is-primary${isPaperDeploying ? " is-deploying" : ""}`}
+            disabled={isPaperDeploying}
+            aria-busy={isPaperDeploying}
+            onClick={handlePaperDeployment}
           >
-            {paperDeployment ? tr("View Paper", "查看模拟盘") : tr("Paper Deploy", "模拟部署盘")}
+            {isPaperDeploying
+              ? tr("Deploying", "部署中")
+              : paperDeployment
+                ? tr("View Paper", "查看模拟盘")
+                : tr("Deploy Paper", "部署模拟盘")}
           </button>
           {SHOW_LIVE_DEPLOY_ACTION ? (
             <button
@@ -845,15 +861,6 @@ export default function StrategyDetail() {
         metricRows={reportMetricRows}
         positions={reportPositions}
         tr={tr}
-      />
-
-      <PaperDeployDialog
-        open={isPaperDeployOpen}
-        onOpenChange={setIsPaperDeployOpen}
-        strategyName={strategyDisplayName}
-        strategyId={strategyId}
-        tr={tr}
-        submitPaperDeployment={submitPaperDeployment}
       />
 
       <LiveDeployDialog
