@@ -130,7 +130,7 @@
   box-sizing: border-box;
   overflow: hidden;
   border: var(--qa-border-width) solid var(--qa-border);
-  border-radius: 9px;
+  border-radius: 12px;
   background: var(--qa-bg);
 }
 
@@ -237,8 +237,7 @@
   margin: 0;
 }
 
-.oq-agent-control,
-.oq-agent-install-mode {
+.oq-agent-control {
   display: inline-flex;
   height: 23px;
   align-items: center;
@@ -267,8 +266,7 @@
   stroke-width: 1.7;
 }
 
-.oq-agent-control:hover,
-.oq-agent-install-mode:hover {
+.oq-agent-control:hover {
   border-color: var(--qa-border-strong);
   background: var(--qa-bg-warm);
   color: var(--qa-text-soft);
@@ -302,6 +300,22 @@
   font-weight: 700;
 }
 
+.oq-agent-install-mode {
+  display: inline-flex;
+  min-height: 16px;
+  align-items: center;
+  justify-content: center;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 5px;
+  background: var(--qa-bg-soft);
+  padding: 0 5px;
+  color: var(--qa-muted-strong);
+  font-size: 8px;
+  font-weight: 600;
+  line-height: 12px;
+  white-space: nowrap;
+}
+
 .oq-agent-install-mark {
   display: grid;
   width: 15px;
@@ -314,12 +328,6 @@
 
 .oq-agent-install-mark.is-codex {
   background: transparent;
-}
-
-.oq-agent-install-mode {
-  position: absolute;
-  top: 20px;
-  right: 20px;
 }
 
 .oq-agent-install-card > p {
@@ -425,7 +433,7 @@
 
 .oq-account .surface-card {
   border: var(--qa-border-width) solid var(--qa-border);
-  border-radius: 13.5px;
+  border-radius: 12px;
   background: var(--qa-bg);
   box-shadow: var(--qa-shadow-3);
   transition:
@@ -442,6 +450,10 @@
 .oq-account-profile {
   display: grid;
   gap: 16px;
+}
+
+.oq-account-setting-row {
+  border-radius: 12px;
 }
 
 .oq-profile-card {

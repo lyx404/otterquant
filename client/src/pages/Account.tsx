@@ -474,7 +474,7 @@ function AccountWorkbench260712() {
             </div>
 
             <div className="px-6 pb-6 pt-5 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+              <div className="oq-account-setting-row flex flex-wrap items-center justify-between gap-4 bg-accent/30 px-5 py-4">
                 <div>
                   <div className="text-sm font-semibold text-foreground">{tr("Language", "语言")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -499,7 +499,7 @@ function AccountWorkbench260712() {
                 </Select>
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-accent/30 px-5 py-4">
+              <div className="oq-account-setting-row flex flex-wrap items-center justify-between gap-4 bg-accent/30 px-5 py-4">
                 <div>
                   <div className="text-sm font-semibold text-foreground">{tr("Color Configuration", "颜色配置")}</div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -539,7 +539,7 @@ function AccountWorkbench260712() {
               </div>
             </div>
             <div className="px-6 pb-6 pt-5 space-y-3">
-              <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
+              <div className="oq-account-setting-row flex items-center justify-between gap-5 bg-accent/30 px-5 py-4">
                 <div>
                   <div className="text-sm font-medium text-foreground">{tr("Interaction Messages", "互动消息")}</div>
                   <div className="text-xs text-muted-foreground">{tr("Get notified about signal status changes, test results, and performance updates", "接收信号状态变化、回测结果与绩效更新通知")}</div>
@@ -555,7 +555,7 @@ function AccountWorkbench260712() {
                   <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-none transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
-              <div className="flex items-center justify-between gap-5 rounded-2xl bg-accent/30 px-5 py-4">
+              <div className="oq-account-setting-row flex items-center justify-between gap-5 bg-accent/30 px-5 py-4">
                 <div className="pr-6">
                   <div className="text-sm font-medium text-foreground">{tr("Announcements", "公告")}</div>
                   <div className="text-xs text-muted-foreground">

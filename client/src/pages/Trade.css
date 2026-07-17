@@ -12,9 +12,9 @@
   --qt-muted-strong: #6b635a;
   --qt-accent: #dc4900;
   --qt-accent-hover: #e8750c;
-  --qt-success: #1f8a5b;
+  --qt-success: var(--market-green);
   --qt-success-bg: #e6f4ec;
-  --qt-risk: #d64550;
+  --qt-risk: var(--market-red);
   --qt-risk-bg: #fbeaeb;
   --qt-warning: #cc7c0a;
   --qt-warning-bg: #fff1dc;
@@ -160,7 +160,7 @@
 }
 
 .oq-trade-table-scroll {
-  --oq-trade-table-columns: 240px 100px 100px 68px 84px 124px 96px;
+  --oq-trade-table-columns: 208px 128px 128px 80px 96px 152px 72px;
   overflow-x: auto;
 }
 
@@ -566,11 +566,11 @@
   }
 
   .oq-trade-table-grid {
-    min-width: 844px;
+    min-width: 896px;
   }
 
   .oq-trade-bot-row {
-    min-width: 844px;
+    min-width: 896px;
   }
 }
 

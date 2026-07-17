@@ -847,6 +847,7 @@ export default function StrategyDetail() {
         topAction={reportTopAction}
         headerMetrics={reportHeaderMetrics}
         plainExplainEnabled={plainExplainEnabled}
+        chartColorMode={chartColorMode}
         dateLabel={tr("Past 30 days", "过去30天")}
         dateOptions={[
           tr("Past 30 days", "过去30天"),

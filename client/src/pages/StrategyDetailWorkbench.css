@@ -13,9 +13,9 @@
   --sd-accent: #dc4900;
   --sd-accent-hover: #e8750c;
   --sd-accent-pressed: #c2470d;
-  --sd-positive: #1f8a5b;
+  --sd-positive: var(--market-green);
   --sd-positive-soft: #e6f4ec;
-  --sd-risk: #d64550;
+  --sd-risk: var(--market-red);
   --sd-risk-soft: #fbeaeb;
   --sd-info: #2a6fdb;
   --sd-teal: #41a5a1;
@@ -204,12 +204,12 @@
 
 .oq-strategy-detail-workbench .text-\[var\(--semantic-up\)\],
 .oq-sd-dialog .text-\[var\(--semantic-up\)\] {
-  color: var(--sd-positive) !important;
+  color: var(--semantic-up, var(--sd-positive)) !important;
 }
 
 .oq-strategy-detail-workbench .text-\[var\(--semantic-down\)\],
 .oq-sd-dialog .text-\[var\(--semantic-down\)\] {
-  color: var(--sd-risk) !important;
+  color: var(--semantic-down, var(--sd-risk)) !important;
 }
 
 .oq-sd-detail-card {
@@ -303,11 +303,11 @@
 
 .oq-strategy-detail-workbench [style*="--semantic-up"],
 .oq-strategy-detail-workbench .bg-\[var\(--semantic-up\)\] {
-  background-color: var(--sd-positive) !important;
+  background-color: var(--semantic-up, var(--sd-positive)) !important;
 }
 
 .oq-strategy-detail-workbench .bg-\[var\(--semantic-down\)\] {
-  background-color: var(--sd-risk) !important;
+  background-color: var(--semantic-down, var(--sd-risk)) !important;
 }
 
 .oq-strategy-detail-workbench article {

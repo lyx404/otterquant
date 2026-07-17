@@ -871,6 +871,10 @@
   gap: 6px;
 }
 
+.oq-strategy-toolbar-left {
+  flex-wrap: wrap;
+}
+
 .oq-strategy-pill-button {
   min-width: 80px;
   min-height: 26px;
@@ -884,9 +888,11 @@
 }
 
 .oq-strategy-compare-note {
+  margin-left: 6px;
   color: var(--os-muted);
   font-size: 9.375px;
   padding-left: 2px;
+  white-space: nowrap;
 }
 
 .oq-strategy-compare-note strong {

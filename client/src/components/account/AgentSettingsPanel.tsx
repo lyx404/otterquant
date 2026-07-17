@@ -160,10 +160,10 @@ export function AgentSettingsPanel({ tr }: AgentSettingsPanelProps) {
               />
             </div>
             <strong>Codex desktop</strong>
+            <span className="oq-agent-install-mode">
+              {tr("Auto Install", "自动安装")}
+            </span>
           </div>
-          <button type="button" className="oq-agent-install-mode">
-            {tr("Auto Install", "自动安装")}
-          </button>
           <p>
             {tr(
               "Enter the following command in the Codex chat to install the plugin.",
@@ -200,10 +200,10 @@ export function AgentSettingsPanel({ tr }: AgentSettingsPanelProps) {
               />
             </div>
             <strong>Codex desktop</strong>
+            <span className="oq-agent-install-mode">
+              {tr("Manual Install", "手动安装")}
+            </span>
           </div>
-          <button type="button" className="oq-agent-install-mode">
-            {tr("Manual Install", "手动安装")}
-          </button>
           <p>
             {tr(
               "Follow the steps below to add the plugin in Codex by hand.",

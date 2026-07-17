@@ -7,8 +7,8 @@
   --report-gold: #ebbc47;
   --report-gold-soft: rgba(235, 188, 71, 0.52);
   --report-blue: #479ef5;
-  --report-green: #29d668;
-  --report-red: #e44444;
+  --report-green: var(--market-green);
+  --report-red: var(--market-red);
   --report-text: #dee6ed;
   --report-muted: #8996a9;
   --report-shadow: 0 0 20px -12px rgba(235, 188, 71, 0.69);
@@ -657,7 +657,7 @@
   --muted-foreground: var(--report-muted, #8996a9);
   --border: var(--report-border, #263140);
   --input: var(--report-border, #263140);
-  --destructive: var(--report-red, #e44444);
+  --destructive: var(--report-red, var(--market-red));
   overflow: hidden;
   border: 1px solid rgba(235, 188, 71, 0.48);
   border-radius: 10px;
@@ -825,8 +825,8 @@
   --report-gold: #dc4900;
   --report-gold-soft: #f3dfcb;
   --report-blue: #2a6fdb;
-  --report-green: #1f8a5b;
-  --report-red: #d64550;
+  --report-green: var(--market-green);
+  --report-red: var(--market-red);
   --report-text: #0d0d0d;
   --report-text-soft: #2a2622;
   --report-muted: #8c8378;
@@ -1249,10 +1249,14 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-report-action.is-deploying,
 .oq-report-action.is-deploying:hover {
-  cursor: wait;
-  opacity: 0.72;
+  cursor: not-allowed;
+  border-color: color-mix(in srgb, var(--report-gold) 32%, var(--report-border));
+  background: color-mix(in srgb, var(--report-gold) 14%, var(--report-bg));
+  color: color-mix(in srgb, var(--report-gold) 78%, var(--report-text));
+  opacity: 1;
   transform: none;
-  filter: saturate(0.72);
+  filter: none;
+  box-shadow: none;
 }
 
 .oq-report-card,
@@ -2437,7 +2441,7 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-position-symbol {
   min-width: 0;
-  gap: 4px 6px;
+  gap: 4px;
 }
 
 .oq-position-symbol strong {
@@ -2455,22 +2459,32 @@ main:has(.oq-strategy-figma-report) {
 .oq-position-symbol span,
 .oq-position-symbol small {
   display: inline-flex;
-  min-height: 18px;
   align-items: center;
-  border: var(--report-divider-width) solid var(--report-border);
-  border-radius: 749px;
-  background: var(--report-panel);
-  color: var(--report-muted);
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--report-muted) 8%, var(--report-bg));
+  color: var(--report-text-soft);
   font-size: 0.625rem;
-  line-height: 0.875rem;
-  padding: 1px 7px;
+  font-weight: 600;
+  line-height: 0.75rem;
+  padding: 2px 5px;
   text-transform: none;
 }
 
-.oq-position-symbol small {
+.oq-position-symbol .oq-position-direction.is-long {
+  background: color-mix(in srgb, var(--report-green) 8%, var(--report-bg));
+  color: color-mix(in srgb, var(--report-green) 82%, var(--report-text));
+}
+
+.oq-position-symbol .oq-position-direction.is-short {
+  background: color-mix(in srgb, var(--report-red) 8%, var(--report-bg));
+  color: color-mix(in srgb, var(--report-red) 82%, var(--report-text));
+}
+
+.oq-position-symbol .oq-position-status {
   flex-basis: auto;
-  background: color-mix(in srgb, var(--report-green) 11%, var(--report-bg));
-  color: var(--report-green);
+  background: color-mix(in srgb, var(--report-green) 8%, var(--report-bg));
+  color: color-mix(in srgb, var(--report-green) 82%, var(--report-text));
 }
 
 .oq-position-head span:not(:first-child),
@@ -2526,7 +2540,7 @@ main:has(.oq-strategy-figma-report) {
   --muted-foreground: #8c8378;
   --border: #ece6df;
   --input: #ece6df;
-  --destructive: #d64550;
+  --destructive: var(--market-red);
   border: 0.75px solid var(--border);
   border-radius: 12px;
   background: var(--card);

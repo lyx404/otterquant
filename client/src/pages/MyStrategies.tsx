@@ -139,7 +139,7 @@ const strategyCopy: Record<string, UiCopy> = {
   All: { ja: "すべて", ko: "전체", es: "Todas", fr: "Toutes" },
   Sort: { ja: "並べ替え", ko: "정렬", es: "Ordenar", fr: "Trier" },
   "Updated Time": { ja: "更新日時", ko: "업데이트 시간", es: "Fecha de actualizacion", fr: "Date de mise a jour" },
-  "Download all (.zip)": { ja: "すべてダウンロード（.zip）", ko: "전체 다운로드 (.zip)", es: "Descargar todo (.zip)", fr: "Tout telecharger (.zip)" },
+  "Download all": { ja: "すべてダウンロード", ko: "전체 다운로드", es: "Descargar todo", fr: "Tout telecharger" },
   "Tick rows to compare ·": { ja: "比較する行を選択 ·", ko: "비교할 행 선택 ·", es: "Marca filas para comparar ·", fr: "Cochez les lignes a comparer ·" },
   "Toggle compare": { ja: "比較対象を切替", ko: "비교 선택 전환", es: "Alternar comparacion", fr: "Basculer la comparaison" },
   "No matching strategies": { ja: "一致する戦略がありません", ko: "일치하는 전략이 없습니다", es: "No hay estrategias coincidentes", fr: "Aucune strategie correspondante" },
@@ -439,8 +439,10 @@ function getChartColorTokens(mode: ChartColorMode) {
 type ChartColorTokens = ReturnType<typeof getChartColorTokens>;
 
 function strategyMetricColor(key: MetricKey, value: string, chartColors: ChartColorTokens) {
-  if (key === "roi") return parsePercent(value) < 0 ? chartColors.downHex : chartColors.upHex;
-  if (key === "maxDrawdown") return parsePercent(value) === 0 ? undefined : chartColors.downHex;
+  const numericValue = parsePercent(value);
+  if (!Number.isFinite(numericValue)) return undefined;
+  if (key === "roi") return numericValue < 0 ? chartColors.downHex : chartColors.upHex;
+  if (key === "maxDrawdown") return numericValue === 0 ? undefined : chartColors.downHex;
   return undefined;
 }
 
@@ -1968,13 +1970,13 @@ export default function MyStrategies() {
 
             <button type="button" className="oq-strategy-download oq-strategy-pill-button">
               <Download className="h-3.5 w-3.5" />
-              {tr("Download all (.zip)", "下载全部（.zip）")}
+              {tr("Download all", "下载全部")}
             </button>
-            </div>
             <div className="oq-strategy-compare-note">
               <GitCompareArrows className="h-3.5 w-3.5" />
               <span>{tr("Tick rows to compare ·", "勾选行以比较 ·")}</span>
               <strong>{formatStrategySelectionCount(selectedStrategyIds.size, tr)}</strong>
+            </div>
             </div>
           </section>
         </div>
@@ -2019,7 +2021,12 @@ export default function MyStrategies() {
                   <span>{localizedCategory}</span>
                 </div>
                 <div className="oq-strategy-mono">{meta.sharpe}</div>
-                <div className="oq-strategy-mono is-risk">{meta.maxDd}</div>
+                <div
+                  className="oq-strategy-mono"
+                  style={{ color: strategyMetricColor("maxDrawdown", meta.maxDd, chartColors) }}
+                >
+                  {meta.maxDd}
+                </div>
                 <div className="oq-strategy-mono">{meta.turn}</div>
                 {isPending ? (
                   <span className="oq-strategy-sparkline is-pending" aria-hidden="true" />
@@ -2106,7 +2113,19 @@ export default function MyStrategies() {
             <div className="oq-strategy-compare-label">{tr("Max drawdown", "最大回撤")}</div>
             {selectedCompareRows.map((row, index) => {
               const meta = getWorkbenchMetaForRow(row);
-              return <div key={`${row.id}-dd`} className={`oq-strategy-compare-cell ${hasPairComparison && index === 0 ? "is-best" : ""}`}><strong className="is-risk">{meta.maxDd}</strong>{hasPairComparison && index === 0 ? <small>{tr("Lowest", "最低")}</small> : null}</div>;
+              const isBest = hasPairComparison && index === 0;
+
+              return (
+                <div
+                  key={`${row.id}-dd`}
+                  className={`oq-strategy-compare-cell ${isBest ? "is-best" : ""}`}
+                >
+                  <strong style={{ color: strategyMetricColor("maxDrawdown", meta.maxDd, chartColors) }}>
+                    {meta.maxDd}
+                  </strong>
+                  {isBest ? <small>{tr("Lowest", "最低")}</small> : null}
+                </div>
+              );
             })}
             <div className="oq-strategy-compare-label">{tr("Turnover", "换手率")}</div>
             {selectedCompareRows.map((row, index) => {

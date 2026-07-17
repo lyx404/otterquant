@@ -40,7 +40,7 @@ import {
 import "./StrategyFigmaReport.css";
 import "./StrategyFigmaReportCharts.css";
 import { ChartCard, ChartLegendItem, ChartTooltip, useContainerNarrow } from "./StrategyFigmaReportChartPrimitives";
-import { MaybeExplainTooltip } from "./StrategyDetailParts";
+import { MaybeExplainTooltip, type ChartColorMode } from "./StrategyDetailParts";
 
 type MetricTone = "good" | "warn" | "muted";
 type ChartSeriesKey = "net" | "gross" | "drawdown";
@@ -624,7 +624,7 @@ const tReport = (tr: Tr, en: string, zh: string) => tr(en, zh, reportCopy[en]);
 const portfolioSeriesMeta: Record<ChartSeriesKey, { label: string; color: string; mark?: "bar" | "cross" }> = {
   net: { label: "Net NAV", color: "#dc4900" },
   gross: { label: "Gross NAV", color: "#2a6fdb" },
-  drawdown: { label: "Drawdown", color: "#d64550" },
+  drawdown: { label: "Drawdown", color: "var(--report-red)" },
 };
 const portfolioDrawdownEventColors = {
   peak: "var(--report-red)",
@@ -1098,8 +1098,8 @@ function PortfolioNavChart({ tr = defaultTr }: { tr?: Tr }) {
           >
             <defs>
               <linearGradient id="oq-drawdown-area-gradient" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#d64550" stopOpacity="0.16" />
-                <stop offset="100%" stopColor="#d64550" stopOpacity="0.03" />
+                <stop offset="0%" stopColor="var(--report-red)" stopOpacity="0.16" />
+                <stop offset="100%" stopColor="var(--report-red)" stopOpacity="0.03" />
               </linearGradient>
             </defs>
             <g className="oq-chart-grid" aria-hidden="true">
@@ -1315,8 +1315,8 @@ function ExposureChart({ tr = defaultTr }: { tr?: Tr }) {
     >
       <div className="oq-chart-toolbar is-subtle">
         <div className="oq-report-legend">
-          <ChartLegendItem color="#1f8a5b" label={tReport(tr, "Long", "多头")} active={visibleSides.has("long")} pressed={visibleSides.has("long")} onToggle={() => toggleSide("long")} />
-          <ChartLegendItem color="#d64550" label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleSide("short")} />
+          <ChartLegendItem color="var(--report-green)" label={tReport(tr, "Long", "多头")} active={visibleSides.has("long")} pressed={visibleSides.has("long")} onToggle={() => toggleSide("long")} />
+          <ChartLegendItem color="var(--report-red)" label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleSide("short")} />
         </div>
       </div>
       <div className="oq-diverging-rows">
@@ -1461,14 +1461,14 @@ function SectorRankChart({ tr = defaultTr }: { tr?: Tr }) {
       <div className="oq-chart-toolbar is-subtle">
         <div className="oq-report-legend">
           <ChartLegendItem
-            color="#1f8a5b"
+            color="var(--report-green)"
             label={tReport(tr, "Positive contribution", "正向贡献")}
             active={visibleTones.has("positive")}
             pressed={visibleTones.has("positive")}
             onToggle={() => toggleTone("positive")}
           />
           <ChartLegendItem
-            color="#d64550"
+            color="var(--report-red)"
             label={tReport(tr, "Negative contribution", "负向贡献")}
             active={visibleTones.has("negative")}
             pressed={visibleTones.has("negative")}
@@ -2463,7 +2463,15 @@ function SymbolPnlRankPanel({ title, rows, tr = defaultTr }: { title: string; ro
   );
 }
 
-function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?: BarraExposureFactor[]; tr?: Tr }) {
+function BarraExposureBars({
+  rows = barraExposureRows,
+  tr = defaultTr,
+  chartColorMode = "greenUpRedDown",
+}: {
+  rows?: BarraExposureFactor[];
+  tr?: Tr;
+  chartColorMode?: ChartColorMode;
+}) {
   const [visibleSides, setVisibleSides] = useState<Set<"long" | "short">>(() => new Set<"long" | "short">(["long", "short"]));
   const [activePoint, setActivePoint] = useState<{
     factor: string;
@@ -2505,6 +2513,8 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
     };
   }, []);
   const viewBox = responsiveViewBox ?? { width: 720, height: 250 };
+  const longColor = chartColorMode === "redUpGreenDown" ? "#F43F5E" : "#10B981";
+  const shortColor = chartColorMode === "redUpGreenDown" ? "#10B981" : "#F43F5E";
   const margin = { top: 16, right: 18, bottom: 54, left: 56 };
   const plotWidth = viewBox.width - margin.left - margin.right;
   const plotHeight = viewBox.height - margin.top - margin.bottom;
@@ -2577,8 +2587,8 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
   return (
     <div ref={chartRef} className="oq-barra-exposure-chart" onMouseLeave={clearBarraExposure} onPointerLeave={clearBarraExposure}>
       <div className="oq-report-legend oq-barra-exposure-legend" aria-label={tReport(tr, "Line chart legend", "图表图例")}>
-        <ChartLegendItem color="#1f8a5b" label={tReport(tr, "Long", "多头")} active={visibleSides.has("long")} pressed={visibleSides.has("long")} onToggle={() => toggleBarraSide("long")} />
-        <ChartLegendItem color="#d64550" label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleBarraSide("short")} />
+        <ChartLegendItem color={longColor} label={tReport(tr, "Long", "多头")} active={visibleSides.has("long")} pressed={visibleSides.has("long")} onToggle={() => toggleBarraSide("long")} />
+        <ChartLegendItem color={shortColor} label={tReport(tr, "Short", "空头")} active={visibleSides.has("short")} pressed={visibleSides.has("short")} onToggle={() => toggleBarraSide("short")} />
       </div>
       <svg
         ref={svgRef}
@@ -2632,6 +2642,7 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
                   width={barWidth}
                   height={height}
                   rx="3"
+                  style={{ fill: side === "long" ? longColor : shortColor }}
                   tabIndex={0}
                   aria-label={`${row.factor}: ${side === "long" ? tReport(tr, "Long mean", "多头均值") : tReport(tr, "Short mean", "空头均值")} ${formatChartValue(value)}`}
                   onMouseDown={event => event.preventDefault()}
@@ -2661,7 +2672,7 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
               {
                 label: activePoint.side === "long" ? tReport(tr, "Long mean", "多头均值") : tReport(tr, "Short mean", "空头均值"),
                 value: activePoint.value.toFixed(4),
-                color: activePoint.side === "long" ? "var(--report-green)" : "var(--report-red)",
+                color: activePoint.side === "long" ? longColor : shortColor,
                 active: true,
               },
             ]}
@@ -2672,7 +2683,13 @@ function BarraExposureBars({ rows = barraExposureRows, tr = defaultTr }: { rows?
   );
 }
 
-function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
+function AttributionSection({
+  tr = defaultTr,
+  chartColorMode = "greenUpRedDown",
+}: {
+  tr?: Tr;
+  chartColorMode?: ChartColorMode;
+}) {
   const [activeTab, setActiveTab] = useState("decile");
   const switchRef = useRef<HTMLDivElement>(null);
   const scrollAttributionTabIntoView = (tabKey: string) => {
@@ -2716,7 +2733,7 @@ function AttributionSection({ tr = defaultTr }: { tr?: Tr }) {
     {
       key: "style-exposure",
       label: tReport(tr, "Style exposure", "风格暴露"),
-      chart: <BarraExposureBars tr={tr} />,
+      chart: <BarraExposureBars tr={tr} chartColorMode={chartColorMode} />,
     },
     {
       key: "decay",
@@ -2778,21 +2795,27 @@ function PositionHistory({ rows = defaultPositions, tr = defaultTr }: { rows?: R
           <span>{tReport(tr, "Closed", "平仓时间")}</span>
           <span>{tReport(tr, "PnL", "盈亏")}</span>
         </div>
-        {rows.map(position => (
-          <article key={position.symbol}>
-            <div className="oq-position-symbol">
-              <strong>{position.symbol}</strong>
-              <span>{tReport(tr, "Perp", "永续")}</span>
-              <span>{tReport(tr, position.side, position.side === "Cross Long" ? "全仓做多" : "全仓做空")}</span>
-              <small>{tReport(tr, "Closed", "已平仓")}</small>
-            </div>
-            <span>{position.entry}</span>
-            <span>{position.interest}</span>
-            <span>{position.opened}</span>
-            <span>{position.closed}</span>
-            <b className={position.pnl.startsWith("-") ? "is-loss" : ""}>{position.pnl}</b>
-          </article>
-        ))}
+        {rows.map(position => {
+          const isLong = position.side === "Cross Long";
+
+          return (
+            <article key={position.symbol}>
+              <div className="oq-position-symbol">
+                <strong>{position.symbol}</strong>
+                <span className="oq-position-contract">{tReport(tr, "Perp", "永续")}</span>
+                <span className={`oq-position-direction is-${isLong ? "long" : "short"}`}>
+                  {tReport(tr, position.side, isLong ? "全仓做多" : "全仓做空")}
+                </span>
+                <small className="oq-position-status">{tReport(tr, "Closed", "已平仓")}</small>
+              </div>
+              <span>{position.entry}</span>
+              <span>{position.interest}</span>
+              <span>{position.opened}</span>
+              <span>{position.closed}</span>
+              <b className={position.pnl.startsWith("-") ? "is-loss" : ""}>{position.pnl}</b>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -2807,6 +2830,7 @@ export function StrategyFigmaReport({
   customDateOption,
   uiLang = "en",
   plainExplainEnabled = true,
+  chartColorMode = "greenUpRedDown",
   topAction,
   titleAction,
   actions,
@@ -2822,6 +2846,7 @@ export function StrategyFigmaReport({
   customDateOption?: string;
   uiLang?: UiLang;
   plainExplainEnabled?: boolean;
+  chartColorMode?: ChartColorMode;
   topAction?: ReactNode;
   titleAction?: ReactNode;
   actions?: ReactNode;
@@ -2829,8 +2854,18 @@ export function StrategyFigmaReport({
   positions?: ReportPositionRecord[];
   tr?: Tr;
 }) {
+  const reportColorVars = (chartColorMode === "redUpGreenDown"
+    ? {
+        "--report-green": "rgb(244, 63, 94)",
+        "--report-red": "rgb(16, 185, 129)",
+      }
+    : {
+        "--report-green": "rgb(16, 185, 129)",
+        "--report-red": "rgb(244, 63, 94)",
+      }) as CSSProperties;
+
   return (
-    <div className="oq-strategy-figma-report">
+    <div className="oq-strategy-figma-report" style={reportColorVars}>
       {topAction ? <div className="oq-report-top-action">{topAction}</div> : null}
       <header className="oq-report-top">
         <div className="oq-report-title-block">
@@ -2901,7 +2936,7 @@ export function StrategyFigmaReport({
 
       <SymbolPnlRankSection tr={tr} />
 
-      <AttributionSection tr={tr} />
+      <AttributionSection tr={tr} chartColorMode={chartColorMode} />
 
       <PositionHistory rows={positions} tr={tr} />
     </div>
