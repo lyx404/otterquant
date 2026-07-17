@@ -103,8 +103,305 @@
   min-width: 0;
 }
 
-.oq-account-blank-placeholder {
-  min-height: 520px;
+.oq-account-section-title {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.oq-agent-settings {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  width: 100%;
+}
+
+.oq-agent-connection-list,
+.oq-agent-installation-list {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  width: 100%;
+}
+
+.oq-agent-connection-card,
+.oq-agent-install-card {
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 9px;
+  background: var(--qa-bg);
+}
+
+.oq-agent-connection-card {
+  height: 91px;
+  padding: 0;
+}
+
+.oq-agent-mark {
+  position: absolute;
+  top: 11px;
+  left: 13px;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  color: #d97955;
+}
+
+.oq-agent-mark.is-codex {
+  background: transparent;
+}
+
+.oq-agent-mark svg,
+.oq-agent-install-mark svg {
+  width: 11px;
+  height: 11px;
+  stroke-width: 1.8;
+}
+
+.oq-agent-codex-avatar {
+  display: block;
+}
+
+.oq-agent-codex-avatar svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: initial;
+}
+
+.oq-agent-mark-image {
+  display: block;
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.oq-agent-mark-openclaw {
+  width: 16px;
+  height: 16px;
+}
+
+.oq-agent-connection-title {
+  position: absolute;
+  top: 11px;
+  left: 31px;
+  right: 12px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--qa-text);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-agent-connection-status {
+  position: absolute;
+  top: 29px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--qa-muted);
+  font-size: 8.625px;
+  line-height: 14px;
+}
+
+.oq-agent-connection-status > span {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--qa-muted);
+}
+
+.oq-agent-connection-status.is-connected {
+  color: var(--qa-success);
+}
+
+.oq-agent-connection-status.is-connected > span {
+  background: var(--qa-success);
+}
+
+.oq-agent-card-actions {
+  position: absolute;
+  top: 55px;
+  left: 13px;
+  right: 13px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.65fr);
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.oq-agent-control,
+.oq-agent-install-mode {
+  display: inline-flex;
+  height: 23px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 9px;
+  background: var(--qa-bg);
+  min-width: 0;
+  padding: 0 4px;
+  color: var(--qa-muted);
+  font-size: 8.625px;
+  font-weight: 400;
+  line-height: 14px;
+  white-space: nowrap;
+  transition:
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-agent-control svg {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  stroke-width: 1.7;
+}
+
+.oq-agent-control:hover,
+.oq-agent-install-mode:hover {
+  border-color: var(--qa-border-strong);
+  background: var(--qa-bg-warm);
+  color: var(--qa-text-soft);
+}
+
+.oq-agent-install-card {
+  padding: 0;
+}
+
+.oq-agent-auto-install-card {
+  height: 105px;
+}
+
+.oq-agent-manual-install-card {
+  height: 500px;
+}
+
+.oq-agent-install-heading {
+  position: absolute;
+  top: 11px;
+  left: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--qa-text);
+  font-size: 10px;
+  line-height: 20px;
+}
+
+.oq-agent-install-heading strong {
+  font-weight: 700;
+}
+
+.oq-agent-install-mark {
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border-radius: 5px;
+  background: #eef0ff;
+  color: #5a73ff;
+}
+
+.oq-agent-install-mark.is-codex {
+  background: transparent;
+}
+
+.oq-agent-install-mode {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.oq-agent-install-card > p {
+  position: absolute;
+  top: 29px;
+  left: 13px;
+  right: 13px;
+  min-height: 14px;
+  margin: 0;
+  padding: 0;
+  color: var(--qa-muted);
+  font-size: 8.625px;
+  line-height: 14px;
+}
+
+.oq-agent-install-command {
+  position: absolute;
+  top: 58px;
+  left: 16px;
+  right: 20px;
+  display: flex;
+  height: 34px;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  border: 1px solid var(--qa-border);
+  border-radius: 9px;
+  background: var(--qa-bg);
+  padding: 0 7px 0 14px;
+}
+
+.oq-agent-install-command code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--qa-muted);
+  font-size: 8.625px;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-agent-install-command button {
+  display: inline-flex;
+  height: 18px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--qa-surface-strong);
+  padding: 0 9px;
+  color: var(--qa-text);
+  font-size: 8.625px;
+  line-height: 14px;
+}
+
+.oq-agent-install-command button svg {
+  width: 9px;
+  height: 9px;
+  stroke-width: 1.8;
+}
+
+.oq-agent-manual-guide {
+  position: absolute;
+  top: 57px;
+  bottom: 0;
+  left: 15px;
+  right: 21px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--qa-border);
+  border-radius: 12px 12px 0 0;
+  background: var(--qa-bg);
+}
+
+.oq-agent-manual-guide img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .oq-account-content > .space-y-6 {
@@ -507,6 +804,19 @@
     min-width: 96px;
     min-height: 44px;
     justify-content: center;
+  }
+
+  .oq-agent-settings {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+  }
+
+  .oq-agent-connection-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-agent-installation-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .oq-profile-card-header {

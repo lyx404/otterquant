@@ -44,13 +44,13 @@ function TooltipContent({
         data-slot="tooltip-content"
         sideOffset={sideOffset}
         className={cn(
-          "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit max-w-[280px] origin-(--radix-tooltip-content-transform-origin) rounded-lg px-3 py-2 text-xs leading-relaxed shadow-lg",
+          "oq-workbench-tooltip animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 w-fit max-w-[280px] origin-(--radix-tooltip-content-transform-origin)",
           className
         )}
         {...props}
       >
         {children}
-        <TooltipPrimitive.Arrow className="fill-slate-100 dark:fill-slate-800 z-50" />
+        <TooltipPrimitive.Arrow className="oq-workbench-tooltip-arrow z-50" />
       </TooltipPrimitive.Content>
     </TooltipPrimitive.Portal>
   );

@@ -1,7 +1,9 @@
 .oq-trade-detail {
   --td-bg: #ffffff;
   --td-bg-warm: #fef6ef;
+  --td-surface: #f4f1ed;
   --td-border: #e2dad0;
+  --td-border-strong: #d2c8bc;
   --td-text: #0d0d0d;
   --td-text-soft: #4a443d;
   --td-muted: #8c8378;
@@ -168,20 +170,18 @@
 
 .oq-trade-detail-action {
   display: inline-flex;
-  min-height: 36px;
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  min-height: 28px;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  border: 0.75px solid var(--td-border);
+  border: 1px solid var(--td-border);
   border-radius: 8px;
   background: var(--td-bg);
-  padding: 0 12px;
-  color: var(--td-text-soft);
-  font-family: var(--font-body);
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 16px;
-  white-space: nowrap;
+  padding: 0;
+  color: var(--td-muted-strong);
+  box-shadow: 0 1px 1.5px rgba(60, 40, 20, 0.06);
   cursor: pointer;
   transition:
     border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
@@ -197,9 +197,9 @@
 }
 
 .oq-trade-detail-action:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--td-accent) 30%, var(--td-border));
-  background: var(--td-bg-warm);
-  color: var(--td-accent);
+  border-color: var(--td-border-strong);
+  background: color-mix(in srgb, var(--td-surface) 72%, var(--td-bg));
+  color: var(--td-text-soft);
 }
 
 .oq-trade-detail-action:focus-visible {
@@ -208,15 +208,15 @@
 }
 
 .oq-trade-detail-action.is-stop {
-  border-color: color-mix(in srgb, var(--td-risk) 24%, var(--td-border));
+  border-color: color-mix(in srgb, var(--td-risk) 32%, var(--td-border));
   background: color-mix(in srgb, var(--td-risk) 5%, var(--td-bg));
-  color: color-mix(in srgb, var(--td-risk) 86%, var(--td-text));
+  color: var(--td-risk);
 }
 
 .oq-trade-detail-action.is-stop:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--td-risk) 52%, var(--td-border));
-  background: color-mix(in srgb, var(--td-risk) 9%, var(--td-bg));
-  color: color-mix(in srgb, var(--td-risk) 78%, var(--td-text));
+  background: color-mix(in srgb, var(--td-risk) 10%, var(--td-bg));
+  color: var(--td-risk);
 }
 
 .oq-trade-detail-action:disabled {
@@ -1463,7 +1463,10 @@
   }
 
   .oq-trade-detail-action {
-    min-height: 44px;
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
   }
 
   .oq-trade-trend-selector button {

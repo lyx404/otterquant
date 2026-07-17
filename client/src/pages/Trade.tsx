@@ -26,7 +26,7 @@ import {
   type BotStatus,
 } from "@/lib/tradeData";
 import { getTradeBotsWithDeployments } from "@/lib/tradeDeployments";
-import { ArrowDown, ArrowUp, ArrowUpDown, CircleStop, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CircleStop, Play, RefreshCw } from "lucide-react";
 import "./Trade.css";
 
 type PendingAction =
@@ -63,6 +63,16 @@ function readPlainExplanationEnabled() {
   if (stored === "true") return true;
   if (stored === "false") return false;
   return true;
+}
+
+function formatRefreshTimestamp(date: Date) {
+  const datePart = [date.getFullYear(), date.getMonth() + 1, date.getDate()]
+    .map((value, index) => String(value).padStart(index === 0 ? 4 : 2, "0"))
+    .join("-");
+  const timePart = [date.getHours(), date.getMinutes()]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+  return `${datePart} ${timePart}`;
 }
 
 function MaybeExplainTooltip({
@@ -130,6 +140,7 @@ function TradeWorkbench260712() {
       ])
     )
   );
+  const [refreshedAtById, setRefreshedAtById] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (envFromQuery === "paper" || envFromQuery === "live") {
@@ -162,8 +173,12 @@ function TradeWorkbench260712() {
     () =>
       allTradeBots
         .filter(bot => bot.environment === environment)
-        .map(bot => ({ ...bot, status: statusById[bot.id] ?? "running" })),
-    [allTradeBots, environment, statusById]
+        .map(bot => ({
+          ...bot,
+          status: statusById[bot.id] ?? "running",
+          updatedAt: refreshedAtById[bot.id] ?? bot.updatedAt,
+        })),
+    [allTradeBots, environment, refreshedAtById, statusById]
   );
   const searchFilteredBots = useMemo(() => {
     if (!tradeSearchQuery) return visibleBots;
@@ -234,6 +249,14 @@ function TradeWorkbench260712() {
   const restartBot = (botId: string) => {
     setStatusById(prev => ({ ...prev, [botId]: "running" }));
     toast.success(tr("Paper trading restarted", "模拟盘已重新启动"));
+  };
+
+  const refreshBot = (botId: string) => {
+    setRefreshedAtById(prev => ({
+      ...prev,
+      [botId]: formatRefreshTimestamp(new Date()),
+    }));
+    toast.success(tr("Paper trading data refreshed", "模拟盘数据已刷新"));
   };
 
   const confirmPendingAction = () => {
@@ -546,25 +569,53 @@ function TradeWorkbench260712() {
 
                   <div className="oq-trade-actions" role="cell">
                     {bot.status === "running" ? (
-                      <Button
-                        variant="outline"
-                        className="oq-trade-button"
-                        onClick={() =>
-                          setPendingAction({ type: "stop", botId: bot.id })
-                        }
-                      >
-                        <CircleStop className="size-3" />
-                        {tr("Stop", "停止")}
-                      </Button>
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="oq-trade-icon-button"
+                              aria-label={tr("Refresh", "刷新")}
+                              onClick={() => refreshBot(bot.id)}
+                            >
+                              <RefreshCw aria-hidden="true" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">{tr("Refresh", "刷新")}</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="oq-trade-icon-button is-stop"
+                              aria-label={tr("Stop", "停止")}
+                              onClick={() =>
+                                setPendingAction({ type: "stop", botId: bot.id })
+                              }
+                            >
+                              <CircleStop aria-hidden="true" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">{tr("Stop", "停止")}</TooltipContent>
+                        </Tooltip>
+                      </>
                     ) : (
-                      <Button
-                        variant="outline"
-                        className="oq-trade-button"
-                        onClick={() => restartBot(bot.id)}
-                      >
-                        <RotateCcw className="size-3" />
-                        {tr("Restart", "重新启动")}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="oq-trade-icon-button"
+                            aria-label={tr("Restart", "重新启动")}
+                            onClick={() => restartBot(bot.id)}
+                          >
+                            <Play aria-hidden="true" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{tr("Restart", "重新启动")}</TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </div>

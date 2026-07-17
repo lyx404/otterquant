@@ -30,6 +30,7 @@ import {
   type ExchangeApiConnection,
   type ExchangeVenue,
 } from "@/lib/exchangeApiConnections";
+import { AgentSettingsPanel } from "@/components/account/AgentSettingsPanel";
 import "./Account.css";
 
 type TabId = "general" | "profile" | "agent" | "exchangeApi" | "api";
@@ -39,6 +40,11 @@ const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementTy
   { id: "profile", labelEn: "Profile", labelZh: "资料", icon: User },
   { id: "agent", labelEn: "Agent Settings", labelZh: "Agent设置", icon: Key },
 ];
+
+// Switch these to true only when restoring "Workbench 260717".
+const SHOW_ACCOUNT_PROFILE_WORKBENCH_260717 = false;
+const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260717 = false;
+
 const languageOptions: { value: UiLang; label: string }[] = [
   { value: "en", label: "English" },
   { value: "zh", label: "中文" },
@@ -461,7 +467,9 @@ function AccountWorkbench260712() {
           <div className="surface-card overflow-hidden">
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
-                <span className="text-base font-semibold text-foreground">{tr("General", "常规")}</span>
+                <span className="oq-account-section-title font-semibold text-foreground">
+                  {tr("General", "常规")}
+                </span>
               </div>
             </div>
 
@@ -525,7 +533,9 @@ function AccountWorkbench260712() {
           <div className="surface-card overflow-hidden">
             <div className="px-6 pt-5 pb-0">
               <div className="flex items-center gap-2">
-                <span className="text-base font-semibold text-foreground">{tr("Notifications", "通知")}</span>
+                <span className="oq-account-section-title font-semibold text-foreground">
+                  {tr("Notifications", "通知")}
+                </span>
               </div>
             </div>
             <div className="px-6 pb-6 pt-5 space-y-3">
@@ -572,7 +582,7 @@ function AccountWorkbench260712() {
       )}
 
       {/* ═══════════════ Profile Tab ═══════════════ */}
-      {activeTab === "profile" && (
+      {activeTab === "profile" && SHOW_ACCOUNT_PROFILE_WORKBENCH_260717 && (
         <div className="oq-account-profile">
           {/* Account Settings */}
           <div className="surface-card oq-profile-card pb-6">
@@ -809,8 +819,8 @@ function AccountWorkbench260712() {
         </div>
       )}
 
-      {activeTab === "agent" && (
-        <div className="oq-account-blank-placeholder" aria-hidden="true" />
+      {activeTab === "agent" && SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260717 && (
+        <AgentSettingsPanel tr={tr} />
       )}
 
       {/* ═══════════════ Exchange API Tab ═══════════════ */}
@@ -1123,7 +1133,7 @@ function AccountWorkbench260712() {
       )}
 
       {/* ═══════════════ Profile Actions ═══════════════ */}
-      {activeTab === "profile" && (
+      {activeTab === "profile" && SHOW_ACCOUNT_PROFILE_WORKBENCH_260717 && (
         <div className="oq-account-profile">
           <div className="surface-card oq-logout-card">
             <div className="oq-logout-content">

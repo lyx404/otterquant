@@ -293,12 +293,12 @@
     -webkit-backdrop-filter: blur(12px);
   }
 
+  .oq-workbench-tooltip,
   .oq-plain-explanation-tooltip {
     max-width: min(260px, calc(100vw - 24px)) !important;
     border: 0.75px solid var(--oq-workbench-tooltip-border);
     border-radius: 8px !important;
     background: var(--oq-workbench-tooltip-bg) !important;
-    padding: 8px 10px !important;
     color: var(--oq-workbench-tooltip-text) !important;
     font-family: var(--font-body);
     font-size: 0.625rem !important;
@@ -308,6 +308,15 @@
     box-shadow: var(--oq-workbench-tooltip-shadow) !important;
   }
 
+  .oq-workbench-tooltip {
+    padding: 6px 9px !important;
+  }
+
+  .oq-plain-explanation-tooltip {
+    padding: 8px 10px !important;
+  }
+
+  .oq-workbench-tooltip-arrow,
   .oq-plain-explanation-tooltip svg {
     fill: var(--oq-workbench-tooltip-bg) !important;
   }

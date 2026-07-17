@@ -33,9 +33,10 @@ import {
   ArrowLeft,
   Activity,
   BarChart3,
+  CircleStop,
   PieChart,
+  Play,
   RefreshCw,
-  Square,
 } from "lucide-react";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import "./TradeDetail.css";
@@ -292,7 +293,7 @@ export default function TradeDetail() {
   const [analysisReturnHoverIndex, setAnalysisReturnHoverIndex] = useState<number | null>(null);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
-  const [executionStatusOverride, setExecutionStatusOverride] = useState<{ tradeId: string; status: "paused" } | null>(null);
+  const [executionStatusOverride, setExecutionStatusOverride] = useState<{ tradeId: string; status: "running" | "paused" } | null>(null);
   const [refreshedAtByTrade, setRefreshedAtByTrade] = useState<Record<string, string>>({});
   const tradeId = params?.id ?? "";
   const trade = getTradeBotsWithDeployments(tradeBots).find((item) => item.id === tradeId);
@@ -712,40 +713,79 @@ export default function TradeDetail() {
           </div>
 
           <div className="oq-trade-detail-statuses" aria-label={tr("Trade controls", "交易控制")}>
-            <button
-              type="button"
-              className="oq-trade-detail-action"
-              onClick={() => {
-                setRefreshedAtByTrade((current) => ({
-                  ...current,
-                  [tradeId]: formatRefreshTimestamp(new Date()),
-                }));
-              }}
-            >
-              <RefreshCw aria-hidden="true" />
-              <span>{tr("Refresh", "刷新")}</span>
-            </button>
-            <button
-              type="button"
-              className="oq-trade-detail-action is-stop"
-              disabled={runtimeStatus === "paused"}
-              onClick={() => {
-                setExecutionStatusOverride({ tradeId, status: "paused" });
+            {runtimeStatus === "running" ? (
+              <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="oq-trade-detail-action"
+                      aria-label={tr("Refresh", "刷新")}
+                      onClick={() => {
+                        setRefreshedAtByTrade((current) => ({
+                          ...current,
+                          [tradeId]: formatRefreshTimestamp(new Date()),
+                        }));
+                      }}
+                    >
+                      <RefreshCw aria-hidden="true" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{tr("Refresh", "刷新")}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="oq-trade-detail-action is-stop"
+                      aria-label={tr("Stop", "停止")}
+                      onClick={() => {
+                        setExecutionStatusOverride({ tradeId, status: "paused" });
 
-                if (typeof window !== "undefined") {
-                  const nextSearchParams = new URLSearchParams(window.location.search);
-                  nextSearchParams.set("status", "paused");
-                  window.history.replaceState(
-                    window.history.state,
-                    "",
-                    `${window.location.pathname}?${nextSearchParams.toString()}`
-                  );
-                }
-              }}
-            >
-              <Square aria-hidden="true" />
-              <span>{tr("Stop", "停止")}</span>
-            </button>
+                        if (typeof window !== "undefined") {
+                          const nextSearchParams = new URLSearchParams(window.location.search);
+                          nextSearchParams.set("status", "paused");
+                          window.history.replaceState(
+                            window.history.state,
+                            "",
+                            `${window.location.pathname}?${nextSearchParams.toString()}`
+                          );
+                        }
+                      }}
+                    >
+                      <CircleStop aria-hidden="true" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{tr("Stop", "停止")}</TooltipContent>
+                </Tooltip>
+              </>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="oq-trade-detail-action"
+                    aria-label={tr("Restart", "重新启动")}
+                    onClick={() => {
+                      setExecutionStatusOverride({ tradeId, status: "running" });
+
+                      if (typeof window !== "undefined") {
+                        const nextSearchParams = new URLSearchParams(window.location.search);
+                        nextSearchParams.set("status", "running");
+                        window.history.replaceState(
+                          window.history.state,
+                          "",
+                          `${window.location.pathname}?${nextSearchParams.toString()}`
+                        );
+                      }
+                    }}
+                  >
+                    <Play aria-hidden="true" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{tr("Restart", "重新启动")}</TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </header>
       </div>
