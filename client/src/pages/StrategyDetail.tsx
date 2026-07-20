@@ -20,7 +20,9 @@ import {
   LiveDeployDialog,
   OptimizerDialog,
   STRATEGY_VERSION_HISTORY_LIMIT,
+  buildStrategyVersionHistory,
   StrategyConfigDialog,
+  StrategyDeleteDialog,
   StrategyVersionHistoryDialog,
   type StrategyVersion,
 } from "./StrategyDetailDialogs";
@@ -53,16 +55,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   Tooltip,
@@ -100,14 +92,6 @@ function readChartColorMode(): ChartColorMode {
 
 function getDrawdownColor(mode: ChartColorMode) {
   return mode === "redUpGreenDown" ? "#10B981" : "#F43F5E";
-}
-
-function subtractIsoDays(value: string, days: number) {
-  const isoDate = value.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
-  if (!isoDate) return value;
-  const date = new Date(`${isoDate}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() - days);
-  return date.toISOString().slice(0, 10);
 }
 
 function formatCurrentVersionTimestamp() {
@@ -343,29 +327,13 @@ export default function StrategyDetail() {
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(readPlainExplanationEnabled);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(readChartColorMode);
 
-  const strategyName = customName || strategy.name;
   const strategyId = strategy.id;
-  const defaultStrategyDisplayName = strategyId === "STR-465"
+  const defaultStrategyDisplayName = customName || (strategyId === "STR-465"
     ? "Overnight VRP"
-    : strategyId === "STR-486" ? "MEV Protection Factor" : strategyName;
+    : strategyId === "STR-486" ? "MEV Protection Factor" : strategy.name);
   const strategyDisplayName = strategyEditValues?.strategyName || defaultStrategyDisplayName;
   const createdAt = searchParams.get("createdAt") || strategy.updatedAt;
-  const versionBaseDate = createdAt.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? createdAt;
-  const baseStrategyVersions: StrategyVersion[] = Array.from(
-    { length: STRATEGY_VERSION_HISTORY_LIMIT },
-    (_, index) => {
-      const number = String(STRATEGY_VERSION_HISTORY_LIMIT - index).padStart(2, "0");
-      const time = `${String(9 + ((index * 2) % 8)).padStart(2, "0")}:${index % 2 === 0 ? "00" : "30"}`;
-      return {
-        id: `${strategyId}-V${number}`,
-        number,
-        createdAt: `${subtractIsoDays(versionBaseDate, index)} ${time}`,
-        source: index % 2 === 0 ? "optimizer" : "edit",
-        note: "",
-        status: index === 0 ? "pending" : "ready",
-      };
-    }
-  );
+  const baseStrategyVersions = buildStrategyVersionHistory(strategyId, createdAt);
   const strategyVersions = [...sessionStrategyVersions, ...baseStrategyVersions]
     .slice(0, STRATEGY_VERSION_HISTORY_LIMIT);
   const effectiveDefaultVersionId = defaultVersionId
@@ -541,7 +509,7 @@ export default function StrategyDetail() {
     ? tr("Long-Only", "仅做多")
     : effectiveComposition.direction === "short"
       ? tr("Short-Only", "仅做空")
-      : tr("Market-Neutral", "多空中性");
+      : tr("Market-Neutral", "中性");
   const compositionTopTailRule = (() => {
     const value = effectiveComposition.layerValue;
     const isPercent = effectiveComposition.layerUnit === "percent";
@@ -828,7 +796,12 @@ export default function StrategyDetail() {
   const viewLatestVersion = () => navigate(latestStrategyUrl);
   const rollbackToHistoricalVersion = () => {
     if (!historicalVersion || historicalVersion.status !== "ready") return;
-    setDefaultVersionId(historicalVersion.id);
+    const nextVersionId = appendStrategyVersion(
+      historicalVersion.source,
+      historicalVersion.note,
+      "ready"
+    );
+    setDefaultVersionId(nextVersionId);
     toast.success(`${tr("Rolled back to", "已回滚至")} V${historicalVersion.number}`);
     navigate(latestStrategyUrl);
   };
@@ -837,11 +810,12 @@ export default function StrategyDetail() {
     note: string,
     status: StrategyVersion["status"]
   ) => {
+    const number = String(STRATEGY_VERSION_HISTORY_LIMIT + sessionStrategyVersions.length + 1).padStart(2, "0");
+    const nextVersionId = `${strategyId}-V${number}`;
     setSessionStrategyVersions((current) => {
-      const number = String(STRATEGY_VERSION_HISTORY_LIMIT + current.length + 1).padStart(2, "0");
       return [
         {
-          id: `${strategyId}-V${number}`,
+          id: nextVersionId,
           number,
           createdAt: formatCurrentVersionTimestamp(),
           source: sourceType,
@@ -851,9 +825,18 @@ export default function StrategyDetail() {
         ...current,
       ];
     });
+    return nextVersionId;
   };
   const reportActions = isHistoricalVersionView ? (
     <>
+      <button
+        type="button"
+        className="oq-report-action"
+        onClick={() => setIsStrategyConfigOpen(true)}
+      >
+        <Layers3 aria-hidden="true" />
+        {tr("Strategy Composition", "策略构成")}
+      </button>
       <button type="button" className="oq-report-action" onClick={viewLatestVersion}>
         <ArrowUpRight aria-hidden="true" />
         {tr("View Latest", "查看最新")}
@@ -1064,10 +1047,15 @@ export default function StrategyDetail() {
         onOpenChange={setIsVersionHistoryOpen}
         strategyName={strategyDisplayName}
         strategyId={strategyId}
+        strategyCreatedAt={createdAt}
         versions={strategyVersions}
         defaultVersionId={effectiveDefaultVersionId}
+        onViewComposition={() => {
+          setIsStrategyConfigOpen(true);
+        }}
         onSetDefaultVersion={(version) => {
-          setDefaultVersionId(version.id);
+          const nextVersionId = appendStrategyVersion(version.source, version.note, "ready");
+          setDefaultVersionId(nextVersionId);
           toast.success(`${tr("Rolled back to", "已回滚至")} V${version.number}`);
         }}
         title={tr("Version History", "历史版本")}
@@ -1111,38 +1099,13 @@ export default function StrategyDetail() {
         formatDecimalWeight={formatDecimalWeight}
       />
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent className="oq-report-delete-dialog">
-          <AlertDialogHeader className="oq-report-delete-dialog-header">
-            <AlertDialogTitle className="oq-report-delete-dialog-title">
-              {tr("Delete Strategy", "删除策略")}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="oq-report-delete-dialog-description">
-              {tr(
-                "Are you sure you want to delete this strategy? It will be permanently removed from your workspace and cannot be restored.",
-                "确认要删除该策略吗？此操作会将其从工作区永久移除，且无法恢复。",
-                {
-                  ja: "このストラテジーを削除しますか？ワークスペースから完全に削除され、復元できません。",
-                  ko: "이 전략을 삭제할까요? 워크스페이스에서 영구적으로 삭제되며 복구할 수 없습니다.",
-                  es: "¿Quieres eliminar esta estrategia? Se retirará permanentemente del espacio de trabajo y no se podrá recuperar.",
-                  fr: "Voulez-vous supprimer cette stratégie ? Elle sera définitivement retirée de l’espace de travail et ne pourra pas être restaurée.",
-                }
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="oq-report-delete-dialog-footer">
-            <AlertDialogCancel className="oq-report-delete-dialog-button">
-              {tr("Cancel", "取消")}
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="oq-report-delete-dialog-button is-primary"
-              onClick={confirmDeleteStrategy}
-            >
-              {tr("Confirm Delete", "确认删除")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <StrategyDeleteDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={confirmDeleteStrategy}
+        strategyName={strategyDisplayName}
+        tr={tr}
+      />
     </>
   );
 

@@ -13,6 +13,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -25,8 +32,17 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { factors, strategies, submissions, type Factor } from "@/lib/mockData";
-import { buildSeries, parsePercent } from "@/lib/strategyUtils";
+import { buildSeries, formatStrategyFactorId, parsePercent } from "@/lib/strategyUtils";
 import { portfolioGrossNavValues } from "./StrategyFigmaReport.data";
+import {
+  OptimizerDialog,
+  STRATEGY_VERSION_HISTORY_LIMIT,
+  buildStrategyVersionHistory,
+  StrategyConfigDialog,
+  StrategyDeleteDialog,
+  StrategyVersionHistoryDialog,
+  type StrategyVersion,
+} from "./StrategyDetailDialogs";
 import {
   translateUi,
   type UiCopy,
@@ -50,8 +66,11 @@ import {
   Download,
   GitCompareArrows,
   Grid2x2,
+  History,
+  Layers3,
   List,
   MoreHorizontal,
+  Pencil,
   Plus,
   RefreshCw,
   Search,
@@ -167,7 +186,6 @@ const strategyCopy: Record<string, UiCopy> = {
   "Remove from compare": { ja: "比較から削除", ko: "비교에서 제거", es: "Quitar de la comparacion", fr: "Retirer de la comparaison" },
   "Build a strategy from selected factors, weights and direction rules.": { ja: "選択したファクター、ウェイト、方向ルールから戦略を構築します。", ko: "선택한 팩터, 가중치 및 방향 규칙으로 전략을 구성합니다.", es: "Crea una estrategia con los factores, ponderaciones y reglas de direccion seleccionados.", fr: "Construisez une strategie a partir des facteurs, ponderations et regles de direction selectionnes." },
   "Delete Strategy": { ja: "戦略を削除", ko: "전략 삭제", es: "Eliminar estrategia", fr: "Supprimer la strategie" },
-  "Confirm deleting this strategy? This action cannot be undone.": { ja: "この戦略を削除しますか？この操作は取り消せません。", ko: "이 전략을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.", es: "¿Confirmas que quieres eliminar esta estrategia? Esta accion no se puede deshacer.", fr: "Confirmer la suppression de cette strategie ? Cette action est irreversible." },
   "Search by name or ID...": { ja: "名前またはIDで検索...", ko: "이름 또는 ID 검색...", es: "Buscar por nombre o ID...", fr: "Rechercher par nom ou ID..." },
   Name: { ja: "名前", ko: "이름", es: "Nombre", fr: "Nom" },
   Descending: { ja: "降順", ko: "내림차순", es: "Descendente", fr: "Decroissant" },
@@ -275,20 +293,6 @@ function formatFactorPickerHelp(maxCount: number, tr: StrategyTr) {
   );
 }
 
-function formatDeleteConfirmation(row: StrategyViewRow | null, tr: StrategyTr) {
-  if (!row?.name) return tr("Confirm deleting this strategy? This action cannot be undone.", "确认删除该策略？删除后无法恢复。");
-  return tr(
-    `Confirm deleting ${row.name} (${row.id})? This action cannot be undone.`,
-    `确认删除 ${row.name}（${row.id}）？删除后无法恢复。`,
-    {
-      ja: `${row.name}（${row.id}）を削除しますか？この操作は取り消せません。`,
-      ko: `${row.name} (${row.id}) 전략을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`,
-      es: `¿Confirmas que quieres eliminar ${row.name} (${row.id})? Esta accion no se puede deshacer.`,
-      fr: `Confirmer la suppression de ${row.name} (${row.id}) ? Cette action est irreversible.`,
-    }
-  );
-}
-
 function formatViewStrategyLabel(strategyName: string, tr: StrategyTr) {
   return tr(`View ${strategyName}`, `查看 ${strategyName}`, {
     ja: `${strategyName}を表示`,
@@ -355,10 +359,6 @@ function normalizeStrategyWeightInput(input: string) {
   const integerPart = sanitized.slice(0, dotIndex);
   const decimalPart = sanitized.slice(dotIndex + 1).replace(/\./g, "").slice(0, 2);
   return `${integerPart}.${decimalPart}`;
-}
-
-function formatStrategyFactorId(factorId: string) {
-  return factorId.replace(/^AF-/, "NO.");
 }
 
 function getStrategyFactorTagLabel(tag: string, tr: StrategyTr) {
@@ -851,6 +851,12 @@ function toCreatedStrategyViewRow(record: CreatedStrategyRecord, now: number): S
   };
 }
 
+function formatStrategyVersionTimestamp() {
+  const now = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+
 function getWorkbenchSortValue(row: StrategyViewRow, key: SortKey) {
   if (key === "updated") return new Date(row.updatedAt).getTime();
   if (key === "roi") return parsePercent(row.roi);
@@ -883,6 +889,103 @@ function WorkbenchSparkline({
     <svg viewBox={`0 0 ${width} ${height}`} className="oq-strategy-sparkline" fill="none" aria-hidden="true">
       <path d={linePath} stroke={strokeColor} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
+  );
+}
+
+function StrategyWorkbenchActions({
+  row,
+  isStarred,
+  tr,
+  onOpenConfig,
+  onOpenHistory,
+  onOpenEditor,
+  onOpenOptimizer,
+  onToggleFavorite,
+  onRequestDelete,
+}: {
+  row: StrategyViewRow;
+  isStarred: boolean;
+  tr: StrategyTr;
+  onOpenConfig: (row: StrategyViewRow) => void;
+  onOpenHistory: (row: StrategyViewRow) => void;
+  onOpenEditor: (row: StrategyViewRow) => void;
+  onOpenOptimizer: (row: StrategyViewRow) => void;
+  onToggleFavorite: (strategyId: string) => void;
+  onRequestDelete: (row: StrategyViewRow) => void;
+}) {
+  return (
+    <div className="oq-strategy-row-actions">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className="oq-strategy-action-button"
+            aria-label={tr("Strategy Composition", "策略构成")}
+            onClick={() => onOpenConfig(row)}
+          >
+            <Layers3 aria-hidden="true" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tr("Strategy Composition", "策略构成")}</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            className="oq-strategy-action-button"
+            aria-label={tr("Version History", "历史版本")}
+            onClick={() => onOpenHistory(row)}
+          >
+            <History aria-hidden="true" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tr("Version History", "历史版本")}</TooltipContent>
+      </Tooltip>
+
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                className="oq-strategy-action-button"
+                aria-label={tr("More", "更多")}
+              >
+                <MoreHorizontal aria-hidden="true" />
+              </Button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top">{tr("More", "更多")}</TooltipContent>
+        </Tooltip>
+        <DropdownMenuContent align="end" sideOffset={6} className="oq-strategy-action-menu">
+          <DropdownMenuItem className="oq-strategy-action-menu-item" onSelect={() => onOpenEditor(row)}>
+            <Pencil aria-hidden="true" />
+            {tr("Edit", "编辑")}
+          </DropdownMenuItem>
+          <DropdownMenuItem className="oq-strategy-action-menu-item" onSelect={() => onOpenOptimizer(row)}>
+            <SlidersHorizontal aria-hidden="true" />
+            {tr("Optimizer", "优化器")}
+          </DropdownMenuItem>
+          <DropdownMenuItem className="oq-strategy-action-menu-item" onSelect={() => onToggleFavorite(row.id)}>
+            <Star className={isStarred ? "fill-current" : ""} aria-hidden="true" />
+            {isStarred ? tr("Starred", "已收藏") : tr("Favorite", "收藏")}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="oq-strategy-action-menu-separator" />
+          <DropdownMenuItem
+            className="oq-strategy-action-menu-item is-destructive"
+            variant="destructive"
+            onSelect={() => onRequestDelete(row)}
+          >
+            <Trash2 aria-hidden="true" />
+            {tr("Delete", "删除")}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }
 
@@ -1683,6 +1786,13 @@ export default function MyStrategies() {
   const [backtestClock, setBacktestClock] = useState(() => Date.now());
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
+  const [configStrategy, setConfigStrategy] = useState<StrategyViewRow | null>(null);
+  const [historyStrategy, setHistoryStrategy] = useState<StrategyViewRow | null>(null);
+  const [editingStrategy, setEditingStrategy] = useState<StrategyViewRow | null>(null);
+  const [optimizerStrategy, setOptimizerStrategy] = useState<StrategyViewRow | null>(null);
+  const [strategyEdits, setStrategyEdits] = useState<Record<string, StrategyComposerValues>>({});
+  const [sessionStrategyVersions, setSessionStrategyVersions] = useState<Record<string, StrategyVersion[]>>({});
+  const [defaultStrategyVersionIds, setDefaultStrategyVersionIds] = useState<Record<string, string>>({});
   const tr = makeStrategyTranslator(uiLang);
   const shouldShowPlainExplanations = plainExplainEnabled;
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
@@ -1880,6 +1990,92 @@ export default function MyStrategies() {
     [activeStrategyRows, starred]
   );
 
+  const getStrategyComposerValues = (row: StrategyViewRow): StrategyComposerValues => {
+    const editedValues = strategyEdits[row.id];
+    if (editedValues) return editedValues;
+    const meta = getWorkbenchMetaForRow(row);
+    return {
+      selectedFactorIds: ["AF-001", "AF-004", "AF-005"],
+      customWeights: { "AF-001": "0.34", "AF-004": "0.33", "AF-005": "0.33" },
+      direction: "neutral",
+      layerUnit: "N",
+      layerValue: "5",
+      strategyName: translateWorkbenchTitle(meta.title, tr),
+      strategyNote: "",
+    };
+  };
+
+  const appendStrategyVersion = (
+    row: StrategyViewRow,
+    source: StrategyVersion["source"],
+    note: string,
+    status: StrategyVersion["status"]
+  ) => {
+    const rowVersions = sessionStrategyVersions[row.id] ?? [];
+    const number = String(STRATEGY_VERSION_HISTORY_LIMIT + rowVersions.length + 1).padStart(2, "0");
+    const nextVersionId = `${row.id}-V${number}`;
+    setSessionStrategyVersions((current) => {
+      const rowVersions = current[row.id] ?? [];
+      const nextVersion: StrategyVersion = {
+        id: nextVersionId,
+        number,
+        createdAt: formatStrategyVersionTimestamp(),
+        source,
+        note,
+        status,
+      };
+      return { ...current, [row.id]: [nextVersion, ...rowVersions] };
+    });
+    return nextVersionId;
+  };
+
+  const toggleFavoriteStrategy = (strategyId: string) => {
+    setStarred((current) => {
+      const next = new Set(current);
+      if (next.has(strategyId)) next.delete(strategyId);
+      else next.add(strategyId);
+      return next;
+    });
+  };
+
+  const configValues = configStrategy ? getStrategyComposerValues(configStrategy) : null;
+  const configDirection = configValues?.direction === "long"
+    ? tr("Long-Only", "仅做多")
+    : configValues?.direction === "short"
+      ? tr("Short-Only", "仅做空")
+      : tr("Market-Neutral", "中性");
+  const configTopTailRule = (() => {
+    const value = configValues?.layerValue ?? "5";
+    const isPercent = configValues?.layerUnit === "percent";
+    if (uiLang === "zh") return `前后${value}${isPercent ? "%" : "名"}`;
+    if (uiLang === "ja") return `上位 / 下位それぞれ ${value}${isPercent ? "%" : " 銘柄"}`;
+    if (uiLang === "ko") return `상위 / 하위 각각 ${value}${isPercent ? "%" : "개 종목"}`;
+    if (uiLang === "es") return `Superior / inferior: ${value}${isPercent ? "%" : " instrumentos"} cada uno`;
+    if (uiLang === "fr") return `Haut / bas : ${value}${isPercent ? "%" : " instruments"} chacun`;
+    return `Top / tail ${value}${isPercent ? "%" : " instruments"} each`;
+  })();
+  const configFactorWeightItems = (configValues?.selectedFactorIds ?? []).map((factorId) => {
+    const factor = factors.find((item) => item.id === factorId);
+    const parsedWeight = Number(configValues?.customWeights[factorId]);
+    return {
+      id: factorId,
+      label: factor?.name ?? factorId,
+      value: Number.isFinite(parsedWeight) ? parsedWeight : 0,
+    };
+  });
+  const historyVersions = historyStrategy
+    ? [
+        ...(sessionStrategyVersions[historyStrategy.id] ?? []),
+        ...buildStrategyVersionHistory(historyStrategy.id, historyStrategy.updatedAt),
+      ]
+        .slice(0, STRATEGY_VERSION_HISTORY_LIMIT)
+    : [];
+  const historyDefaultVersionId = historyStrategy
+    ? defaultStrategyVersionIds[historyStrategy.id]
+      ?? historyVersions.find((version) => version.status === "ready")?.id
+      ?? null
+    : null;
+
   const requestDeleteStrategy = (row: StrategyViewRow) => {
     setPendingDeleteStrategy(row);
   };
@@ -2045,6 +2241,7 @@ export default function MyStrategies() {
             <div>NAV</div>
             <div>{tr("Paper Status", "模拟盘状态")}</div>
             <div>{renderWorkbenchSortHeader("updated", tr("Created Date", "创建时间"))}</div>
+            <div>{tr("Action", "操作")}</div>
           </div>
           {sorted.length === 0 ? (
             <div className="oq-strategy-table-empty" role="status">
@@ -2053,10 +2250,11 @@ export default function MyStrategies() {
             </div>
           ) : workbenchRows.map((row, index) => {
             const meta = getWorkbenchMetaForRow(row);
-            const localizedTitle = translateWorkbenchTitle(meta.title, tr);
+            const localizedTitle = strategyEdits[row.id]?.strategyName ?? translateWorkbenchTitle(meta.title, tr);
             const isSelected = selectedStrategyIds.has(row.id);
             const isPending = row.backtestStatus === "pending";
             const isCompareDisabled = isPending || (!isSelected && selectedStrategyIds.size >= MAX_COMPARE_STRATEGY_COUNT);
+            const detailParams = new URLSearchParams({ name: localizedTitle, createdAt: row.updatedAt });
             return (
               <div key={row.id} className={`oq-strategy-table-row oq-strategy-table-grid ${isSelected ? "is-selected" : ""} ${isPending ? "is-pending" : ""} ${index === workbenchRows.length - 1 ? "is-page-last" : ""}`}>
                 <button type="button" className={`oq-strategy-check ${isSelected ? "is-checked" : ""}`} disabled={isCompareDisabled} onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Toggle compare", "切换比较")}>
@@ -2064,7 +2262,7 @@ export default function MyStrategies() {
                 </button>
                 {!isPending ? (
                   <Link
-                    href={`/strategies/${row.id}`}
+                    href={`/strategies/${encodeURIComponent(row.id)}?${detailParams.toString()}`}
                     className="oq-strategy-row-link"
                     aria-label={formatViewStrategyLabel(localizedTitle, tr)}
                   />
@@ -2090,6 +2288,17 @@ export default function MyStrategies() {
                   {meta.status === "not-started" ? tr("Not Started", "未启动") : meta.status === "stopped" ? tr("Stopped", "已停止") : tr("Running", "运行中")}
                 </span>
                 <span className="oq-strategy-created-at">{formatStrategyCreatedDate(row.updatedAt)}</span>
+                <StrategyWorkbenchActions
+                  row={row}
+                  isStarred={starred.has(row.id)}
+                  tr={tr}
+                  onOpenConfig={setConfigStrategy}
+                  onOpenHistory={setHistoryStrategy}
+                  onOpenEditor={setEditingStrategy}
+                  onOpenOptimizer={setOptimizerStrategy}
+                  onToggleFavorite={toggleFavoriteStrategy}
+                  onRequestDelete={requestDeleteStrategy}
+                />
               </div>
             );
           })}
@@ -2206,22 +2415,90 @@ export default function MyStrategies() {
           </DialogContent>
         </Dialog>
 
-        <Dialog open={Boolean(pendingDeleteStrategy)} onOpenChange={(open) => !open && setPendingDeleteStrategy(null)}>
-          <DialogContent className="max-w-md rounded-2xl border-border bg-card p-0 text-foreground">
-            <div className="border-b border-border/60 px-5 py-4">
-              <DialogTitle className="text-base font-semibold">{tr("Delete Strategy", "删除策略")}</DialogTitle>
+        <StrategyConfigDialog
+          open={Boolean(configStrategy)}
+          onOpenChange={(open) => !open && setConfigStrategy(null)}
+          title={tr("Strategy Composition", "策略构成")}
+          tr={tr}
+          direction={configDirection}
+          topTailRule={configTopTailRule}
+          factorWeightItems={configFactorWeightItems}
+          formatDecimalWeight={(value) => Number(value.toFixed(2)).toString()}
+        />
+
+        <StrategyVersionHistoryDialog
+          open={Boolean(historyStrategy)}
+          onOpenChange={(open) => !open && setHistoryStrategy(null)}
+          strategyName={historyStrategy
+            ? strategyEdits[historyStrategy.id]?.strategyName
+              ?? translateWorkbenchTitle(getWorkbenchMetaForRow(historyStrategy).title, tr)
+            : ""}
+          strategyId={historyStrategy?.id ?? ""}
+          strategyCreatedAt={historyStrategy?.updatedAt ?? ""}
+          versions={historyVersions}
+          defaultVersionId={historyDefaultVersionId}
+          onViewComposition={() => {
+            if (!historyStrategy) return;
+            setConfigStrategy(historyStrategy);
+          }}
+          onSetDefaultVersion={(version) => {
+            if (!historyStrategy) return;
+            const nextVersionId = appendStrategyVersion(
+              historyStrategy,
+              version.source,
+              version.note,
+              "ready"
+            );
+            setDefaultStrategyVersionIds((current) => ({ ...current, [historyStrategy.id]: nextVersionId }));
+            toast.success(`${tr("Rolled back to", "已回滚至")} V${version.number}`);
+          }}
+          title={tr("Version History", "历史版本")}
+          tr={tr}
+        />
+
+        <Dialog open={Boolean(editingStrategy)} onOpenChange={(open) => !open && setEditingStrategy(null)}>
+          <DialogContent className="oq-strategy-create-dialog gap-0 rounded-2xl border-0 p-0 shadow-2xl">
+            <div className="oq-strategy-create-dialog-head">
+              <DialogTitle>{tr("Edit strategy", "编辑策略")}</DialogTitle>
+              <p>{tr("Update factors, weights and direction rules for this strategy.", "修改此策略的因子、权重和方向规则。")}</p>
             </div>
-            <div className="px-5 py-4">
-              <p className="text-sm leading-6 text-foreground">
-                {formatDeleteConfirmation(pendingDeleteStrategy, tr)}
-              </p>
-            </div>
-            <div className="flex items-center justify-end gap-2 border-t border-border/60 px-5 py-4">
-              <Button variant="outline" className="h-8 rounded-full border-border bg-card px-3 text-xs" onClick={() => setPendingDeleteStrategy(null)}>{tr("Cancel", "取消")}</Button>
-              <Button className="h-8 rounded-full bg-destructive px-3 text-xs text-destructive-foreground hover:bg-destructive/90" onClick={confirmDeleteStrategy}>{tr("Delete", "删除")}</Button>
-            </div>
+            {editingStrategy ? (
+              <CreateStrategyComposer
+                key={`${editingStrategy.id}-${sessionStrategyVersions[editingStrategy.id]?.length ?? 0}`}
+                tr={tr}
+                plainExplainEnabled={shouldShowPlainExplanations}
+                mode="edit"
+                initialValues={getStrategyComposerValues(editingStrategy)}
+                onClose={() => setEditingStrategy(null)}
+                onSubmit={(values) => {
+                  setStrategyEdits((current) => ({ ...current, [editingStrategy.id]: values }));
+                  appendStrategyVersion(editingStrategy, "edit", values.strategyNote.trim(), "ready");
+                  toast.success(tr("Strategy updated.", "策略已更新。"));
+                }}
+              />
+            ) : null}
           </DialogContent>
         </Dialog>
+
+        <OptimizerDialog
+          open={Boolean(optimizerStrategy)}
+          onOpenChange={(open) => !open && setOptimizerStrategy(null)}
+          tr={tr}
+          onSubmit={(_, note) => {
+            if (!optimizerStrategy) return;
+            appendStrategyVersion(optimizerStrategy, "optimizer", note, "pending");
+            toast.success(tr("Optimizer job submitted.", "优化任务已提交。"));
+            setOptimizerStrategy(null);
+          }}
+        />
+
+        <StrategyDeleteDialog
+          open={Boolean(pendingDeleteStrategy)}
+          onOpenChange={(open) => !open && setPendingDeleteStrategy(null)}
+          onConfirm={confirmDeleteStrategy}
+          strategyName={pendingDeleteStrategy?.name ?? ""}
+          tr={tr}
+        />
       </div>
     );
   }
@@ -2653,33 +2930,13 @@ export default function MyStrategies() {
           </div>
         </div>
       )}
-      <Dialog open={Boolean(pendingDeleteStrategy)} onOpenChange={(open) => !open && setPendingDeleteStrategy(null)}>
-        <DialogContent className="max-w-md rounded-2xl border-border bg-card p-0 text-foreground">
-          <div className="border-b border-border/60 px-5 py-4">
-            <DialogTitle className="text-base font-semibold">{tr("Delete Strategy", "删除策略")}</DialogTitle>
-          </div>
-          <div className="px-5 py-4">
-            <p className="text-sm leading-6 text-foreground">
-              {formatDeleteConfirmation(pendingDeleteStrategy, tr)}
-            </p>
-          </div>
-          <div className="flex items-center justify-end gap-2 border-t border-border/60 px-5 py-4">
-            <Button
-              variant="outline"
-              className="h-8 rounded-full border-border bg-card px-3 text-xs"
-              onClick={() => setPendingDeleteStrategy(null)}
-            >
-              {tr("Cancel", "取消")}
-            </Button>
-            <Button
-              className="h-8 rounded-full bg-destructive px-3 text-xs text-destructive-foreground hover:bg-destructive/90"
-              onClick={confirmDeleteStrategy}
-            >
-              {tr("Delete", "删除")}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <StrategyDeleteDialog
+        open={Boolean(pendingDeleteStrategy)}
+        onOpenChange={(open) => !open && setPendingDeleteStrategy(null)}
+        onConfirm={confirmDeleteStrategy}
+        strategyName={pendingDeleteStrategy?.name ?? ""}
+        tr={tr}
+      />
     </div>
   );
 }

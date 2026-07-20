@@ -958,7 +958,7 @@
 
 .oq-strategy-table-grid {
   display: grid;
-  grid-template-columns: 48px 204px 96px 96px 96px 176px 100px 84px;
+  grid-template-columns: 40px minmax(168px, 1fr) repeat(3, 82px) 150px 94px 86px 112px;
   align-items: center;
 }
 
@@ -1006,7 +1006,7 @@
 .oq-strategy-row-link {
   position: absolute;
   z-index: 1;
-  inset: 0 0 0 48px;
+  inset: 0 112px 0 40px;
   cursor: pointer;
   outline: none;
 }
@@ -1177,6 +1177,84 @@
   font-size: 9.375px;
   font-weight: 500;
   white-space: nowrap;
+}
+
+.oq-strategy-row-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.oq-strategy-action-button {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  border: 1px solid #e2dad0 !important;
+  border-radius: 7px !important;
+  background: #ffffff !important;
+  padding: 0 !important;
+  color: #6b635a !important;
+  box-shadow: none;
+  transform: none;
+}
+
+.oq-strategy-action-button svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 1.8;
+}
+
+.oq-strategy-action-button:hover,
+.oq-strategy-action-button:focus-visible,
+.oq-strategy-action-button[data-state="open"] {
+  border-color: #d2c8bc !important;
+  background: #faf8f6 !important;
+  color: #4a443d !important;
+  outline: none;
+  transform: none;
+}
+
+.oq-strategy-action-menu {
+  z-index: 80;
+  min-width: 184px;
+  border-color: #ece6df;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 6px;
+  color: #0d0d0d;
+  box-shadow: 0 12px 30px rgba(60, 40, 20, 0.12);
+}
+
+.oq-strategy-action-menu-item {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: #2a2622;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  cursor: pointer;
+}
+
+.oq-strategy-action-menu-item > svg {
+  color: currentColor !important;
+  stroke-width: 1.8;
+}
+
+.oq-strategy-action-menu-item[data-highlighted] {
+  background: #fef6ef;
+  color: #dc4900;
+}
+
+.oq-strategy-action-menu-item.is-destructive {
+  color: #dc2626;
+}
+
+.oq-strategy-action-menu-separator {
+  background: #ece6df;
 }
 
 .oq-strategy-table-pagination {

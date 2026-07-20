@@ -5,6 +5,10 @@ export function parsePercent(value: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export function formatStrategyFactorId(factorId: string): string {
+  return factorId.replace(/^AF-/, "NO.");
+}
+
 export function average(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;

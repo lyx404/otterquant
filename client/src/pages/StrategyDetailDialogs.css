@@ -1,3 +1,91 @@
+.oq-strategy-delete-dialog {
+  --delete-dialog-bg: #ffffff;
+  --delete-dialog-warm: #fef6ef;
+  --delete-dialog-border: #e2dad0;
+  --delete-dialog-text: #0d0d0d;
+  --delete-dialog-text-soft: #4a443d;
+  --delete-dialog-muted: #8c8378;
+  --delete-dialog-accent: #dc4900;
+  width: min(512px, calc(100vw - 32px));
+  max-width: min(512px, calc(100vw - 32px));
+  gap: 16px;
+  border: 1px solid var(--delete-dialog-border) !important;
+  border-radius: 15px !important;
+  background: var(--delete-dialog-bg) !important;
+  color: var(--delete-dialog-text);
+  padding: 20px !important;
+  box-shadow: 0 6px 18px rgba(60, 40, 20, 0.08) !important;
+}
+
+.oq-strategy-delete-dialog-header {
+  gap: 9px !important;
+  text-align: left !important;
+}
+
+.oq-strategy-delete-dialog-title {
+  color: var(--delete-dialog-text);
+  font-family: var(--font-heading);
+  font-size: 19.5px;
+  font-weight: 700;
+  line-height: 27px;
+}
+
+.oq-strategy-delete-dialog-description {
+  color: var(--delete-dialog-muted) !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+
+.oq-strategy-delete-dialog-footer {
+  gap: 9px !important;
+}
+
+.oq-strategy-delete-dialog-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-color: var(--delete-dialog-border) !important;
+  border-radius: 37.5px !important;
+  background: var(--delete-dialog-bg) !important;
+  padding: 0 12px !important;
+  color: var(--delete-dialog-text-soft) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 14px !important;
+  box-shadow: none !important;
+  transition:
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-strategy-delete-dialog-button:hover {
+  border-color: rgba(220, 73, 0, 0.28) !important;
+  background: var(--delete-dialog-warm) !important;
+  color: var(--delete-dialog-accent) !important;
+  transform: translateY(-1px);
+}
+
+.oq-strategy-delete-dialog-button.is-primary {
+  border-color: rgba(220, 73, 0, 0.2) !important;
+  background: var(--delete-dialog-accent) !important;
+  color: #ffffff !important;
+}
+
+.oq-strategy-delete-dialog-button.is-primary:hover {
+  background: #e8750c !important;
+  color: #ffffff !important;
+}
+
+.oq-strategy-delete-dialog :is(button, a):focus-visible {
+  outline: 2px solid rgba(220, 73, 0, 0.28);
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
 .oq-sd-dialog.oq-paper-deploy-dialog {
   display: flex;
   width: calc(100% - 24px);
@@ -26,7 +114,7 @@
   overflow: hidden;
   margin: 16px 20px 0;
   border: 0.75px solid #f3f3f3;
-  border-radius: 6px;
+  border-radius: 50px;
   background: #fbfbfc;
 }
 
@@ -109,6 +197,8 @@
 }
 
 .oq-sd-dialog.oq-strategy-config-dialog {
+  --config-foreground: #0f172a;
+  --config-muted: #64748b;
   display: flex;
   width: min(620px, calc(100vw - 32px));
   max-width: min(620px, calc(100vw - 32px));
@@ -130,7 +220,7 @@
   min-height: 28px;
   place-items: center;
   border-radius: 6px;
-  color: var(--muted-foreground);
+  color: var(--config-muted);
   opacity: 0.72;
 }
 
@@ -138,7 +228,7 @@
 .oq-sd-dialog.oq-strategy-config-dialog .oq-strategy-config-close:focus-visible {
   border-color: var(--border);
   background: var(--muted);
-  color: var(--foreground);
+  color: var(--config-foreground);
   opacity: 1;
   outline: none;
   transform: none;
@@ -146,12 +236,13 @@
 
 .oq-strategy-config-header {
   gap: 4px;
-  border-bottom: 0.75px solid var(--border);
+  border-bottom: 0;
   padding: 16px 52px 14px 20px;
 }
 
 .oq-sd-dialog.oq-strategy-config-dialog .oq-strategy-config-header h2 {
   margin: 0;
+  color: var(--config-foreground);
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.5rem;
@@ -168,20 +259,26 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
   margin: 0;
-  border-bottom: 0.75px solid var(--border);
-  padding: 16px 0;
+  border-bottom: 0;
+  padding: 0;
 }
 
 .oq-strategy-config-summary > div {
   display: grid;
+  min-height: 64px;
   min-width: 0;
+  align-content: center;
   gap: 4px;
+  border: 0.5px solid #f3f3f3;
+  border-radius: 8px;
+  background: #fbfbfc;
+  padding: 10px 12px;
 }
 
 .oq-strategy-config-summary dt,
 .oq-strategy-config-section-head > span {
-  color: var(--muted-foreground);
-  font-size: 0.6875rem;
+  color: var(--config-muted);
+  font-size: 0.625rem;
   font-weight: 600;
   line-height: 1rem;
 }
@@ -189,7 +286,7 @@
 .oq-strategy-config-summary dd {
   min-width: 0;
   margin: 0;
-  color: var(--foreground);
+  color: var(--config-foreground);
   font-size: 0.8125rem;
   font-weight: 650;
   line-height: 1.25rem;
@@ -197,10 +294,12 @@
 }
 
 .oq-sd-dialog.oq-strategy-config-dialog .oq-strategy-config-factors {
-  border: 0;
-  border-radius: 0;
+  margin-top: 16px;
+  overflow: hidden;
+  border: 0.5px solid #f3f3f3;
+  border-radius: 8px;
   background: transparent !important;
-  padding: 16px 0 0;
+  padding: 0;
 }
 
 .oq-strategy-config-section-head {
@@ -209,16 +308,16 @@
   grid-template-columns: minmax(0, 1fr) 64px;
   align-items: center;
   gap: 16px;
-  border-top: 0.75px solid var(--border);
-  border-bottom: 0.75px solid var(--border);
-  background: color-mix(in srgb, var(--muted) 42%, transparent);
+  border-bottom: 0.5px solid #f3f3f3;
+  background: #fbfbfc;
   padding: 0 12px;
+  font-size: 0.625rem;
 }
 
 .oq-sd-dialog.oq-strategy-config-dialog .oq-strategy-config-section-head h3 {
   margin: 0;
-  color: var(--muted-foreground);
-  font-size: 0.6875rem;
+  color: var(--config-muted);
+  font-size: 0.625rem;
   font-weight: 600;
   line-height: 1rem;
 }
@@ -229,7 +328,7 @@
 }
 
 .oq-strategy-config-factor-table {
-  border-bottom: 0.75px solid var(--border);
+  border-bottom: 0;
 }
 
 .oq-strategy-config-factor-row {
@@ -245,7 +344,7 @@
 }
 
 .oq-strategy-config-factor-row + .oq-strategy-config-factor-row {
-  border-top: 0.75px solid var(--border);
+  border-top: 0.5px solid #f3f3f3;
 }
 
 .oq-strategy-config-factor-name {
@@ -255,14 +354,17 @@
 }
 
 .oq-strategy-config-factor-name > span {
-  display: grid;
+  display: flex;
   min-width: 0;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
 }
 
 .oq-strategy-config-factor-name strong {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
-  color: var(--foreground);
+  color: var(--config-foreground);
   font-size: 0.75rem;
   font-weight: 650;
   line-height: 1.125rem;
@@ -271,11 +373,21 @@
 }
 
 .oq-strategy-config-factor-name small {
-  color: var(--muted-foreground);
-  font-family: var(--font-mono);
+  display: inline-flex;
+  width: fit-content;
+  min-height: 0;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: #f1f5f9;
+  padding: 0.25rem 0.5rem;
+  color: var(--config-muted);
+  font-family: var(--font-body);
   font-size: 0.625rem;
-  font-weight: 500;
-  line-height: 0.875rem;
+  font-weight: 600;
+  line-height: 1rem;
+  white-space: nowrap;
 }
 
 .oq-strategy-config-factor-weight {
@@ -286,7 +398,7 @@
 }
 
 .oq-strategy-config-factor-weight output {
-  color: var(--foreground);
+  color: var(--config-foreground);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
@@ -382,8 +494,8 @@
   --version-muted: #8c8378;
   --version-accent: #dc4900;
   display: flex;
-  width: min(680px, calc(100vw - 32px));
-  max-width: min(680px, calc(100vw - 32px));
+  width: min(640px, calc(100vw - 32px));
+  max-width: min(640px, calc(100vw - 32px));
   max-height: min(680px, calc(100dvh - 32px));
   flex-direction: column;
   gap: 0;
@@ -400,9 +512,9 @@
   display: grid;
   flex: 0 0 auto;
   gap: 4px;
-  border-bottom: 0.75px solid var(--version-border);
+  border-bottom: 0;
   background: var(--version-bg);
-  padding: 18px 52px 16px 20px;
+  padding: 20px 52px 10px 24px;
 }
 
 .oq-strategy-version-header h2 {
@@ -420,39 +532,8 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
-  background: color-mix(in srgb, var(--version-bg-soft) 72%, var(--version-bg));
-  padding: 0 20px 20px;
-}
-
-.oq-strategy-version-list-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 0 10px;
-}
-
-.oq-strategy-version-list-head > span {
-  color: var(--version-text-soft);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 18px;
-}
-
-.oq-strategy-version-list-head small {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  color: var(--version-muted);
-  font-size: 10.5px;
-  font-weight: 500;
-}
-
-.oq-strategy-version-list-head small strong {
-  color: var(--version-text);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
+  background: color-mix(in srgb, var(--version-bg-soft) 60%, var(--version-bg));
+  padding: 12px 24px 24px;
 }
 
 .oq-strategy-version-list {
@@ -463,11 +544,14 @@
 .oq-strategy-version-item {
   display: grid;
   min-width: 0;
-  gap: 12px;
+  min-height: 76px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
   border: 0.75px solid var(--version-border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--version-bg);
-  padding: 14px 16px;
+  padding: 13px 14px 13px 16px;
   transition:
     border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
     background-color 160ms cubic-bezier(0.25, 1, 0.5, 1);
@@ -479,79 +563,66 @@
 }
 
 .oq-strategy-version-item.is-default {
-  border-color: color-mix(in srgb, var(--version-accent) 28%, var(--version-border));
-  background: color-mix(in srgb, var(--version-bg-warm) 54%, var(--version-bg));
+  border-color: color-mix(in srgb, var(--version-accent) 36%, var(--version-border));
+  background: color-mix(in srgb, var(--version-bg-warm) 46%, var(--version-bg));
 }
 
 .oq-strategy-version-item.is-pending {
-  border-color: color-mix(in srgb, var(--warning) 22%, var(--version-border));
-  background: color-mix(in srgb, var(--warning) 4%, var(--version-bg));
+  border-color: var(--version-border);
+  background: var(--version-bg);
 }
 
 .oq-strategy-version-content {
   display: grid;
   min-width: 0;
-  gap: 9px;
+  gap: 4px;
 }
 
 .oq-strategy-version-heading {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 12px;
-}
-
-.oq-strategy-version-identity {
   display: flex;
   min-width: 0;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 7px;
+  gap: 8px;
 }
 
-.oq-strategy-version-identity > strong {
+.oq-strategy-version-heading .oq-strategy-version-status {
   flex: 0 0 auto;
-  color: var(--version-text);
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 750;
-  font-variant-numeric: tabular-nums;
-  line-height: 18px;
 }
 
-.oq-strategy-version-identity > small {
-  display: inline-flex;
-  min-height: 18px;
-  align-items: center;
-  border-radius: 4px;
-  background: var(--version-bg-soft);
-  padding: 1px 6px;
-  color: var(--version-muted);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 14px;
+.oq-strategy-version-heading > strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--version-text);
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 19px;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.oq-strategy-version-identity > small.is-default {
-  background: color-mix(in srgb, var(--version-accent) 9%, var(--version-bg));
-  color: var(--version-accent);
-}
-
-.oq-strategy-version-identity > small.is-pending {
-  background: color-mix(in srgb, var(--warning) 10%, var(--version-bg));
-  color: color-mix(in srgb, var(--warning) 72%, var(--version-text));
-}
-
-.oq-strategy-version-heading time {
-  flex: 0 0 auto;
-  padding-top: 1px;
+.oq-strategy-version-meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
   color: var(--version-muted);
-  font-family: var(--font-mono);
   font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
+  font-weight: 500;
   line-height: 16px;
+}
+
+.oq-strategy-version-meta time {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.oq-strategy-version-meta > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -559,7 +630,7 @@
   min-width: 0;
   margin: 0;
   color: var(--version-text-soft);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 550;
   line-height: 18px;
   overflow-wrap: anywhere;
@@ -568,8 +639,8 @@
 .oq-strategy-version-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .oq-strategy-version-actions a,
@@ -580,7 +651,8 @@
   align-items: center;
   gap: 5px;
   border: 0.75px solid var(--version-border-strong);
-  border-radius: 5px;
+  justify-content: center;
+  border-radius: 50px;
   background: var(--version-bg);
   padding: 0 10px;
   color: var(--version-text-soft);
@@ -594,9 +666,70 @@
     color 160ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
+.oq-strategy-version-actions a.is-viewing {
+  border-color: color-mix(in srgb, var(--version-accent) 22%, var(--version-border));
+  background: color-mix(in srgb, var(--version-accent) 7%, var(--version-bg));
+  color: var(--version-accent);
+}
+
+.oq-strategy-version-actions a {
+  border-radius: 50px;
+}
+
+.oq-strategy-version-actions .is-composition,
+.oq-strategy-version-actions .is-view-disabled {
+  border-radius: 50px;
+}
+
+.oq-strategy-version-actions .is-composition {
+  width: 32px;
+  min-width: 32px;
+  gap: 0;
+  padding: 0;
+}
+
+.oq-strategy-version-status {
+  display: inline-flex;
+  width: max-content;
+  min-height: 19px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 749px;
+  padding: 0 8px;
+  font-size: 8.25px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.oq-strategy-version-status.is-pending {
+  background: color-mix(in srgb, var(--warning) 9%, var(--version-bg));
+  color: color-mix(in srgb, var(--warning) 72%, var(--version-text));
+}
+
+.oq-strategy-version-status.is-pending::before {
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 999px;
+  background: currentcolor;
+  content: "";
+}
+
 .oq-strategy-version-actions button {
   border-color: var(--version-border-strong);
   background: var(--version-bg);
+}
+
+.oq-strategy-version-actions button:disabled,
+.oq-strategy-version-actions button:disabled:hover {
+  cursor: not-allowed;
+  border-color: var(--version-border);
+  background: var(--version-bg-soft);
+  color: var(--version-muted);
+  opacity: 0.62;
+  outline: none;
+  box-shadow: none;
 }
 
 .oq-strategy-version-actions a:hover,
@@ -614,6 +747,12 @@
   width: 14px;
   height: 14px;
   flex: 0 0 14px;
+}
+
+.oq-strategy-version-status svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 13px;
 }
 
 .oq-optimizer-mode-field {
@@ -961,6 +1100,17 @@
 }
 
 @media (max-width: 640px) {
+  .oq-strategy-delete-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    padding: 18px 16px !important;
+  }
+
+  .oq-strategy-delete-dialog-button {
+    width: 100%;
+    min-height: 44px;
+  }
+
   .oq-strategy-version-dialog {
     width: calc(100vw - 24px);
     max-width: calc(100vw - 24px);
@@ -978,17 +1128,12 @@
   }
 
   .oq-strategy-version-item {
-    gap: 12px;
+    gap: 10px;
     padding: 14px;
   }
 
-  .oq-strategy-version-heading {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 6px;
-  }
-
   .oq-strategy-version-actions {
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 
   .oq-strategy-version-dialog .oq-strategy-version-actions a,
@@ -998,6 +1143,12 @@
     padding-right: 10px;
     padding-left: 10px;
     font-size: 0.75rem;
+  }
+
+  .oq-strategy-version-dialog .oq-strategy-version-actions button.is-composition {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
   }
 
   .oq-sd-dialog.oq-strategy-config-dialog {
@@ -1083,5 +1234,23 @@
   .oq-optimizer-secondary-fields {
     padding-right: 14px;
     padding-left: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oq-strategy-delete-dialog,
+  .oq-strategy-delete-dialog * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .oq-strategy-version-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-strategy-version-actions {
+    justify-content: flex-start;
   }
 }

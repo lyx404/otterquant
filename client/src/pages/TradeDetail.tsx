@@ -804,13 +804,15 @@ export default function TradeDetail() {
               <StrategyReportDateControl
                 dateLabel={performanceDateLabel}
                 dateOptions={[
+                  tr("Today", "今天"),
+                  tr("Past 7 days", "过去 7 天"),
                   performanceDateLabel,
                   tr("Past 90 days", "过去 90 天"),
                   tr("Past 180 days", "过去 180 天"),
                   tr("Past year", "过去 1 年"),
-                  tr("Custom start date", "自定义起始时间"),
+                  tr("Custom date range", "自定义时间范围"),
                 ]}
-                customDateOption={tr("Custom start date", "自定义起始时间")}
+                customDateOption={tr("Custom date range", "自定义时间范围")}
                 uiLang={uiLang}
                 variant="compact"
                 triggerMode="switch"
