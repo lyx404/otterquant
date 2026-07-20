@@ -27,6 +27,7 @@ import {
 } from "@/lib/tradeData";
 import { getTradeBotsWithDeployments } from "@/lib/tradeDeployments";
 import { ArrowDown, ArrowUp, ArrowUpDown, CircleStop, Play, RefreshCw } from "lucide-react";
+import { StrategyReportDateControl } from "./StrategyReportDateControl";
 import "./Trade.css";
 
 type PendingAction =
@@ -111,10 +112,12 @@ function TradeWorkbench260712() {
   const focusStrategyId = searchParams.get("focusStrategy");
   const focusTradeId = searchParams.get("focusTradeId");
   const tradeSearchQuery = (searchParams.get("q") ?? "").trim().toLowerCase();
+  const todayLabel = tr("Today", "今天");
 
   const [environment, setEnvironment] = useState<TradeEnvironment>(
     envFromQuery === "live" ? "live" : "paper"
   );
+  const [activeSummaryPeriod, setActiveSummaryPeriod] = useState(todayLabel);
   const [focusedBotId, setFocusedBotId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [statusFilter, setStatusFilter] = useState<BotStatusFilter>("all");
@@ -147,6 +150,10 @@ function TradeWorkbench260712() {
       setEnvironment(envFromQuery);
     }
   }, [envFromQuery]);
+
+  useEffect(() => {
+    setActiveSummaryPeriod(todayLabel);
+  }, [todayLabel]);
 
   useEffect(() => {
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -265,11 +272,6 @@ function TradeWorkbench260712() {
     setPendingAction(null);
   };
 
-  const marketLabel = (market: string) => {
-    if (market === "Perp") return tr("Perp", "永续");
-    if (market === "Spot") return tr("Spot", "现货");
-    return market;
-  };
   const formatMetricNumber = (value: number, digits = 2) =>
     value.toLocaleString(undefined, {
       minimumFractionDigits: digits,
@@ -344,66 +346,96 @@ function TradeWorkbench260712() {
     <div
       className={`oq-trade ${environment === "live" ? "is-live" : "is-paper"}`}
     >
-      <div className="oq-trade-summary-grid">
-        <MaybeExplainTooltip
-          enabled={plainExplainEnabled}
-          explanation={metricExplanations.activeBots}
-        >
-          <div className="oq-trade-metric-card">
-            <p className="oq-trade-metric-value">{summary.activeBots}</p>
-            <div className="oq-trade-metric-label">
-              {tr("Running Strategies", "进行中的策略")}
-            </div>
-          </div>
-        </MaybeExplainTooltip>
+      <section className="oq-trade-summary-section" aria-labelledby="trade-summary-period-title">
+        <div className="oq-trade-summary-header">
+          <h2 id="trade-summary-period-title">{activeSummaryPeriod}</h2>
+          <StrategyReportDateControl
+            dateLabel={todayLabel}
+            dateOptions={[
+              todayLabel,
+              tr("Past 7 days", "过去 7 天"),
+              tr("Past 30 days", "过去 30 天"),
+              tr("Past 90 days", "过去 90 天"),
+              tr("Past 180 days", "过去 180 天"),
+              tr("Past year", "过去 1 年"),
+              tr("Custom date range", "自定义时间范围"),
+            ]}
+            customDateOption={tr("Custom date range", "自定义时间范围")}
+            uiLang={uiLang}
+            variant="compact"
+            triggerMode="switch"
+            onSelectionChange={setActiveSummaryPeriod}
+            labels={{
+              selectPeriod: tr("Select summary period", "选择汇总周期"),
+              customRange: tr("Custom date range", "自定义时间范围"),
+              startDate: tr("Start date", "开始日期"),
+              endDate: tr("End date", "结束日期"),
+              switchPeriod: tr("Switch", "切换"),
+            }}
+          />
+        </div>
 
-        <MaybeExplainTooltip
-          enabled={plainExplainEnabled}
-          explanation={metricExplanations.totalEquity}
-        >
-          <div className="oq-trade-metric-card">
-            <p className="oq-trade-metric-value">
-              {summary.totalEquity.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </p>
-            <div className="oq-trade-metric-label">
-              {tr("Total Assets (USDT)", "总资产（USDT）")}
+        <div className="oq-trade-summary-grid">
+          <MaybeExplainTooltip
+            enabled={plainExplainEnabled}
+            explanation={metricExplanations.activeBots}
+          >
+            <div className="oq-trade-metric-card">
+              <p className="oq-trade-metric-value">{summary.activeBots}</p>
+              <div className="oq-trade-metric-label">
+                {tr("Running Strategies", "进行中的策略")}
+              </div>
             </div>
-          </div>
-        </MaybeExplainTooltip>
+          </MaybeExplainTooltip>
 
-        <MaybeExplainTooltip
-          enabled={plainExplainEnabled}
-          explanation={metricExplanations.unrealizedPnl}
-        >
-          <div className="oq-trade-metric-card">
-            <p
-              className={`oq-trade-metric-value ${getTrendClass(summary.totalUnrealized, chartColorMode)}`}
-            >
-              {formatSigned(summary.totalUnrealized)}
-            </p>
-            <div className="oq-trade-metric-label">
-              {tr("PnL (USDT)", "盈亏（USDT）")}
+          <MaybeExplainTooltip
+            enabled={plainExplainEnabled}
+            explanation={metricExplanations.totalEquity}
+          >
+            <div className="oq-trade-metric-card">
+              <p className="oq-trade-metric-value">
+                {summary.totalEquity.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+              <div className="oq-trade-metric-label">
+                {tr("Total Assets (USDT)", "总资产（USDT）")}
+              </div>
             </div>
-          </div>
-        </MaybeExplainTooltip>
+          </MaybeExplainTooltip>
 
-        <MaybeExplainTooltip
-          enabled={plainExplainEnabled}
-          explanation={metricExplanations.avgRoi}
-        >
-          <div className="oq-trade-metric-card">
-            <p className="oq-trade-metric-value">
-              {summary.avgRoi.toFixed(1)}%
-            </p>
-            <div className="oq-trade-metric-label">
-              {tr("Average ROI", "平均收益率")}
+          <MaybeExplainTooltip
+            enabled={plainExplainEnabled}
+            explanation={metricExplanations.unrealizedPnl}
+          >
+            <div className="oq-trade-metric-card">
+              <p
+                className={`oq-trade-metric-value ${getTrendClass(summary.totalUnrealized, chartColorMode)}`}
+              >
+                {formatSigned(summary.totalUnrealized)}
+              </p>
+              <div className="oq-trade-metric-label">
+                {tr("PnL (USDT)", "盈亏（USDT）")}
+              </div>
             </div>
-          </div>
-        </MaybeExplainTooltip>
-      </div>
+          </MaybeExplainTooltip>
+
+          <MaybeExplainTooltip
+            enabled={plainExplainEnabled}
+            explanation={metricExplanations.avgRoi}
+          >
+            <div className="oq-trade-metric-card">
+              <p className="oq-trade-metric-value">
+                {summary.avgRoi.toFixed(1)}%
+              </p>
+              <div className="oq-trade-metric-label">
+                {tr("Average ROI", "平均收益率")}
+              </div>
+            </div>
+          </MaybeExplainTooltip>
+        </div>
+      </section>
 
       <div className="oq-trade-filter-row">
         <div
@@ -531,9 +563,6 @@ function TradeWorkbench260712() {
                   >
                     <div className="oq-trade-bot-identity" role="cell">
                       <div className="oq-trade-bot-title">{bot.name}</div>
-                      <div className="oq-trade-bot-meta">
-                        {bot.symbol} · {marketLabel(bot.market)} · {bot.leverage}
-                      </div>
                     </div>
 
                     <div className="oq-trade-bot-metric-value" role="cell">

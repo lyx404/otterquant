@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useSearch } from "wouter";
-import { strategies } from "@/lib/mockData";
+import { useLocation, useParams, useSearch } from "wouter";
+import { factors, strategies } from "@/lib/mockData";
 import { parsePercent } from "@/lib/strategyUtils";
 import {
   getExchangeVenueMeta,
@@ -15,14 +15,14 @@ import {
   PLAIN_EXPLANATION_STORAGE_KEY,
   positionHistory,
   type ChartColorMode,
-  type StrategyConfigRow,
 } from "./StrategyDetailParts";
 import {
   LiveDeployDialog,
-  OPTIMIZATION_HISTORY_LIMIT,
   OptimizerDialog,
+  STRATEGY_VERSION_HISTORY_LIMIT,
   StrategyConfigDialog,
-  type OptimizedStrategyVersion,
+  StrategyVersionHistoryDialog,
+  type StrategyVersion,
 } from "./StrategyDetailDialogs";
 import {
   StrategyFigmaReport,
@@ -31,12 +31,59 @@ import {
   type ReportPositionRecord,
 } from "./StrategyFigmaReport";
 import {
+  CreateStrategyComposer,
+  type StrategyComposerValues,
+} from "./MyStrategies";
+import {
   ArrowLeft,
+  ArrowUpRight,
+  History,
+  Layers3,
+  MoreHorizontal,
+  Pencil,
+  RotateCcw,
   SlidersHorizontal,
   Star,
+  Trash2,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const SHOW_LIVE_DEPLOY_ACTION = false;
+const DELETED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:deleted-strategies";
+
+function persistDeletedStrategyId(strategyId: string) {
+  try {
+    const raw = window.localStorage.getItem(DELETED_STRATEGIES_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    const ids = new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : []);
+    ids.add(strategyId);
+    window.localStorage.setItem(DELETED_STRATEGIES_STORAGE_KEY, JSON.stringify(Array.from(ids)));
+  } catch {
+    // The navigation still completes when storage is unavailable.
+  }
+}
 
 function readPlainExplanationEnabled() {
   if (typeof window === "undefined") return true;
@@ -63,6 +110,12 @@ function subtractIsoDays(value: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function formatCurrentVersionTimestamp() {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 const strategyDetailCopy: Record<string, UiCopy> = {
   Optimizer: { ja: "オプティマイザー", ko: "옵티마이저", es: "Optimizador", fr: "Optimiseur" },
   "Run Optimizer": {
@@ -71,6 +124,25 @@ const strategyDetailCopy: Record<string, UiCopy> = {
     es: "Ejecutar optimizador",
     fr: "Lancer l'optimiseur",
   },
+  "Optimization Mode": { ja: "最適化モード", ko: "최적화 모드", es: "Modo de optimización", fr: "Mode d'optimisation" },
+  Conservative: { ja: "保守的", ko: "보수적", es: "Conservador", fr: "Prudent" },
+  Balanced: { ja: "バランス", ko: "균형", es: "Equilibrado", fr: "Équilibré" },
+  Aggressive: { ja: "積極的", ko: "공격적", es: "Agresivo", fr: "Agressif" },
+  "Expand Detailed Parameters": {
+    ja: "詳細パラメータを展開",
+    ko: "상세 매개변수 펼치기",
+    es: "Mostrar parámetros detallados",
+    fr: "Afficher les paramètres détaillés",
+  },
+  "Collapse Detailed Parameters": {
+    ja: "詳細パラメータを折りたたむ",
+    ko: "상세 매개변수 접기",
+    es: "Ocultar parámetros detallados",
+    fr: "Masquer les paramètres détaillés",
+  },
+  Note: { ja: "メモ", ko: "메모", es: "Nota", fr: "Note" },
+  Optional: { ja: "任意", ko: "선택", es: "Opcional", fr: "Facultatif" },
+  "Add a note": { ja: "メモを追加", ko: "메모 추가", es: "Añadir una nota", fr: "Ajouter une note" },
   "Optimizer job submitted.": {
     ja: "最適化ジョブを送信しました。",
     ko: "최적화 작업을 제출했습니다.",
@@ -92,6 +164,7 @@ const strategyDetailCopy: Record<string, UiCopy> = {
   Symbol: { ja: "銘柄", ko: "종목", es: "Símbolo", fr: "Symbole" },
   Signal: { ja: "ファクター", ko: "팩터", es: "Factor", fr: "Facteur" },
   "Factor Weights": { ja: "ファクターウェイト", ko: "팩터 가중치", es: "Pesos de factores", fr: "Poids des facteurs" },
+  Weight: { ja: "ウェイト", ko: "가중치", es: "Peso", fr: "Poids" },
   "Stop Loss": { ja: "ストップロス", ko: "손절", es: "Stop loss", fr: "Stop loss" },
   Cooldown: { ja: "クールダウン", ko: "쿨다운", es: "Enfriamiento", fr: "Cooldown" },
   "Strategy Side": { ja: "売買方向", ko: "전략 방향", es: "Lado de estrategia", fr: "Sens de stratégie" },
@@ -118,6 +191,36 @@ const strategyDetailCopy: Record<string, UiCopy> = {
   Starred: { ja: "お気に入り済み", ko: "즐겨찾기됨", es: "Favorito", fr: "Favori" },
   Favorite: { ja: "お気に入り", ko: "즐겨찾기", es: "Favorito", fr: "Favori" },
   "Use Template": { ja: "テンプレートを使用", ko: "템플릿 사용", es: "Usar plantilla", fr: "Utiliser le modèle" },
+  "Strategy Composition": { ja: "戦略構成", ko: "전략 구성", es: "Composición de estrategia", fr: "Composition de la stratégie" },
+  "Version History": { ja: "バージョン履歴", ko: "버전 기록", es: "Historial de versiones", fr: "Historique des versions" },
+  Iterations: { ja: "更新履歴", ko: "반복 기록", es: "Iteraciones", fr: "Itérations" },
+  versions: { ja: "バージョン", ko: "개 버전", es: "versiones", fr: "versions" },
+  "Second edit": { ja: "再編集", ko: "재편집", es: "Edición", fr: "Modification" },
+  "Current Version": { ja: "現在のバージョン", ko: "현재 버전", es: "Versión actual", fr: "Version actuelle" },
+  Processing: { ja: "処理中", ko: "처리 중", es: "Procesando", fr: "Traitement" },
+  Preview: { ja: "プレビュー", ko: "미리보기", es: "Vista previa", fr: "Aperçu" },
+  Rollback: { ja: "ロールバック", ko: "롤백", es: "Revertir", fr: "Restaurer" },
+  "Rolled back to": { ja: "ロールバック先：", ko: "롤백 완료:", es: "Revertido a", fr: "Restauré vers" },
+  "View Latest": { ja: "最新版を表示", ko: "최신 버전 보기", es: "Ver la última", fr: "Voir la plus récente" },
+  "Rollback to This Version": { ja: "このバージョンに戻す", ko: "이 버전으로 롤백", es: "Revertir a esta versión", fr: "Restaurer cette version" },
+  Edit: { ja: "編集", ko: "편집", es: "Editar", fr: "Modifier" },
+  "Edit strategy": { ja: "戦略を編集", ko: "전략 편집", es: "Editar estrategia", fr: "Modifier la stratégie" },
+  "Update factors, weights and direction rules for this strategy.": {
+    ja: "この戦略のファクター、ウェイト、方向ルールを更新します。",
+    ko: "이 전략의 팩터, 가중치 및 방향 규칙을 수정합니다.",
+    es: "Actualiza los factores, ponderaciones y reglas de dirección de esta estrategia.",
+    fr: "Mettez à jour les facteurs, pondérations et règles de direction de cette stratégie.",
+  },
+  "Strategy updated.": { ja: "戦略を更新しました。", ko: "전략이 업데이트되었습니다.", es: "Estrategia actualizada.", fr: "Stratégie mise à jour." },
+  More: { ja: "その他", ko: "더보기", es: "Más", fr: "Plus" },
+  Delete: { ja: "削除", ko: "삭제", es: "Eliminar", fr: "Supprimer" },
+  "Delete Strategy": { ja: "戦略を削除", ko: "전략 삭제", es: "Eliminar estrategia", fr: "Supprimer la stratégie" },
+  "This action permanently removes the strategy from your workspace.": {
+    ja: "この操作により、戦略はワークスペースから完全に削除されます。",
+    ko: "이 작업은 워크스페이스에서 전략을 영구적으로 삭제합니다.",
+    es: "Esta acción elimina permanentemente la estrategia del espacio de trabajo.",
+    fr: "Cette action supprime définitivement la stratégie de votre espace de travail.",
+  },
   "View Paper": { ja: "Paper を表示", ko: "모의 보기", es: "Ver paper", fr: "Voir paper" },
   "Deploy Paper": { ja: "Paper デプロイ", ko: "모의 배포", es: "Desplegar paper", fr: "Déployer paper" },
   Deploying: { ja: "デプロイ中", ko: "배포 중", es: "Desplegando", fr: "Déploiement" },
@@ -188,10 +291,13 @@ export default function StrategyDetail() {
   const tr = (en: string, zh: string, copy: UiCopy = {}) =>
     translateUi(uiLang, en, zh, { ...strategyDetailCopy[en], ...copy });
   const params = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const source = searchParams.get("source");
   const isOfficialLibraryView = source === "official";
+  const historicalVersionId = searchParams.get("version");
+  const isHistoricalVersionView = Boolean(historicalVersionId);
   const customName = searchParams.get("name");
   const strategyFromStore = strategies.find((item) => item.id === params.id);
   const strategyFromGeneratedId = (() => {
@@ -222,6 +328,12 @@ export default function StrategyDetail() {
   const [isPaperDeploying, setIsPaperDeploying] = useState(false);
   const [isLiveDeployOpen, setIsLiveDeployOpen] = useState(false);
   const [isOptimizerOpen, setIsOptimizerOpen] = useState(false);
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isStrategyEditOpen, setIsStrategyEditOpen] = useState(false);
+  const [strategyEditValues, setStrategyEditValues] = useState<StrategyComposerValues | null>(null);
+  const [sessionStrategyVersions, setSessionStrategyVersions] = useState<StrategyVersion[]>([]);
+  const [defaultVersionId, setDefaultVersionId] = useState<string | null>(null);
   const paperDeployTimerRef = useRef<number | null>(null);
   const [connectedExchangeApis, setConnectedExchangeApis] = useState<ExchangeApiConnection[]>(() =>
     readExchangeApiConnections()
@@ -233,26 +345,45 @@ export default function StrategyDetail() {
 
   const strategyName = customName || strategy.name;
   const strategyId = strategy.id;
-  const strategyDisplayName = strategyId === "STR-465"
+  const defaultStrategyDisplayName = strategyId === "STR-465"
     ? "Overnight VRP"
     : strategyId === "STR-486" ? "MEV Protection Factor" : strategyName;
-  const isOptimizedStrategy = Boolean(searchParams.get("optimizedFrom")) || /-OPT-\d+$/.test(strategyId);
+  const strategyDisplayName = strategyEditValues?.strategyName || defaultStrategyDisplayName;
   const createdAt = searchParams.get("createdAt") || strategy.updatedAt;
-  const optimizedVersionCreatedAt = createdAt.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? createdAt;
-  const optimizedVersionNumber = Number(strategyId.replace(/^STR-/, ""));
-  const optimizedVersions: OptimizedStrategyVersion[] = isOptimizedStrategy
-    ? []
-    : Array.from({ length: OPTIMIZATION_HISTORY_LIMIT }, (_, index) => {
-        const number = Number.isFinite(optimizedVersionNumber)
-          ? String(Math.max(1, optimizedVersionNumber - index)).padStart(3, "0")
-          : String(index + 1).padStart(3, "0");
-        return {
-          id: `STR-${number}`,
-          number,
-          createdAt: subtractIsoDays(optimizedVersionCreatedAt, index),
-          status: index === 0 ? "pending" : "ready",
-        };
-      });
+  const versionBaseDate = createdAt.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? createdAt;
+  const baseStrategyVersions: StrategyVersion[] = Array.from(
+    { length: STRATEGY_VERSION_HISTORY_LIMIT },
+    (_, index) => {
+      const number = String(STRATEGY_VERSION_HISTORY_LIMIT - index).padStart(2, "0");
+      const time = `${String(9 + ((index * 2) % 8)).padStart(2, "0")}:${index % 2 === 0 ? "00" : "30"}`;
+      return {
+        id: `${strategyId}-V${number}`,
+        number,
+        createdAt: `${subtractIsoDays(versionBaseDate, index)} ${time}`,
+        source: index % 2 === 0 ? "optimizer" : "edit",
+        note: "",
+        status: index === 0 ? "pending" : "ready",
+      };
+    }
+  );
+  const strategyVersions = [...sessionStrategyVersions, ...baseStrategyVersions]
+    .slice(0, STRATEGY_VERSION_HISTORY_LIMIT);
+  const effectiveDefaultVersionId = defaultVersionId
+    ?? strategyVersions.find((version) => version.status === "ready")?.id
+    ?? null;
+  const historicalVersion = historicalVersionId
+    ? strategyVersions.find((version) => version.id === historicalVersionId) ?? null
+    : null;
+  const latestStrategyUrl = (() => {
+    const latestParams = new URLSearchParams(searchParams);
+    latestParams.delete("version");
+    const latestSearch = latestParams.toString();
+    return `/strategies/${encodeURIComponent(strategyId)}${latestSearch ? `?${latestSearch}` : ""}`;
+  })();
+  useEffect(() => {
+    setSessionStrategyVersions([]);
+    setDefaultVersionId(null);
+  }, [strategyId]);
   const paperDeployment = useMemo(
     () => getStrategyDeployment(strategyId, "paper"),
     [deploymentVersion, strategyId]
@@ -325,15 +456,6 @@ export default function StrategyDetail() {
     }
     return cleaned;
   };
-  const toReadableList = (value: string | null | undefined, splitter: RegExp) => {
-    const normalized = normalizeConfigValue(value);
-    if (!normalized) return null;
-    const items = normalized
-      .split(splitter)
-      .map((item) => item.trim())
-      .filter(Boolean);
-    return items.length > 0 ? items.join(", ") : null;
-  };
   const toReadableItems = (value: string | null | undefined, splitter: RegExp) => {
     const normalized = normalizeConfigValue(value);
     if (!normalized) return [];
@@ -349,27 +471,6 @@ export default function StrategyDetail() {
     return `${match[1]} ${match[2] ?? "00"}:${match[3] ?? "00"}`;
   };
   const formatDecimalWeight = (value: number) => Number(value.toFixed(2)).toString();
-  const formatCooldown = (value: string | null) => {
-    if (!value) return null;
-    const hours = value.match(/[\d.]+/)?.[0];
-    if (!hours) return value;
-    if (uiLang === "zh") return `${hours} 小时`;
-    if (uiLang === "ja") return `${hours} 時間`;
-    if (uiLang === "ko") return `${hours}시간`;
-    if (uiLang === "es") return `${hours} ${Number(hours) === 1 ? "hora" : "horas"}`;
-    if (uiLang === "fr") return `${hours} ${Number(hours) === 1 ? "heure" : "heures"}`;
-    return `${hours} ${Number(hours) === 1 ? "hour" : "hours"}`;
-  };
-  const inferSymbolFromName = (value: string) => {
-    const upperName = value.toUpperCase();
-    if (upperName.includes("BTC")) return "BTCUSDT";
-    if (upperName.includes("ETH")) return "ETHUSDT";
-    return null;
-  };
-
-  const strategyTypeRaw = normalizeConfigValue(
-    searchParams.get("strategyType") ?? searchParams.get("type")
-  );
   const weightingModeRaw = normalizeConfigValue(
     searchParams.get("weightMode") ?? searchParams.get("weights")
   );
@@ -378,28 +479,7 @@ export default function StrategyDetail() {
   );
   const rankValueRaw = normalizeConfigValue(searchParams.get("rankValue"));
   const rankModeRaw = normalizeConfigValue(searchParams.get("rankMode"));
-  const sortingRuleRaw = normalizeConfigValue(searchParams.get("sorting"));
-  const stopLossRaw = normalizeConfigValue(
-    searchParams.get("stopLoss") ?? searchParams.get("risk")
-  );
-  const cooldownRaw = normalizeConfigValue(searchParams.get("cooldown"));
-  const symbolScopeRaw = toReadableList(
-    searchParams.get("symbols") ??
-      searchParams.get("symbolGroup") ??
-      searchParams.get("symbol"),
-    /,/
-  );
   const signalItems = toReadableItems(searchParams.get("factors"), /\|/);
-  const signalSelectionRaw = signalItems.length > 0 ? signalItems.join(", ") : null;
-  const strategyTypeKey = strategyTypeRaw?.toLowerCase().replace(/\s+/g, "-");
-  const isCrossSectionStrategy =
-    strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section";
-  const strategyTypeLabel =
-    strategyTypeKey === "time-series"
-      ? tr("Time Series", "时序策略")
-      : strategyTypeKey === "cross-sectional" || strategyTypeKey === "cross-section"
-        ? tr("Cross Section", "截面策略")
-        : strategyTypeRaw;
   const factorWeightItems = (() => {
     const explicitWeights = normalizeConfigValue(searchParams.get("weights"));
     if (explicitWeights) {
@@ -425,79 +505,62 @@ export default function StrategyDetail() {
 
     return [];
   })();
-  const factorWeightSummary =
-    factorWeightItems.length > 0
-      ? factorWeightItems
-          .map((item) => `${item.label} ${formatDecimalWeight(item.value)}`)
-          .join(" | ")
-      : null;
-  const factorWeightTotal = factorWeightItems.reduce((sum, item) => sum + item.value, 0);
-  const factorWeightColors = ["#ebbc47", "#479ef5", "#29d668", "#f4ae34", "#e44444"];
-  const strategySideValue =
-    executionSideRaw === "long"
-      ? tr("Long-Only", "仅做多")
-      : executionSideRaw === "short"
-        ? tr("Short-Only", "仅做空")
-        : executionSideRaw === "neutral"
-          ? tr("Market-Neutral", "市场中性")
-          : executionSideRaw;
-  const topTailRuleValue =
-    rankValueRaw && isCrossSectionStrategy
-      ? uiLang === "zh"
-        ? `头部/尾部 ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " 个交易对"}`
-        : uiLang === "ja"
-          ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " 銘柄"}`
-          : uiLang === "ko"
-            ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : "개 종목"}`
-            : uiLang === "es"
-              ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instrumentos"}`
-              : uiLang === "fr"
-                ? `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
-                : `Top/Tail ${rankValueRaw}${rankModeRaw === "percent" ? "%" : " instruments"}`
-      : sortingRuleRaw;
-  const stopLossValue = stopLossRaw ? (stopLossRaw.includes("%") ? stopLossRaw : `${stopLossRaw}%`) : null;
-  const cooldownValue = formatCooldown(cooldownRaw);
-  const unsetConfigValue = tr("N/A", "未设置");
-  const factorWeightValue =
-    factorWeightSummary ??
-    (weightingModeRaw?.toLowerCase() === "equal" ? tr("Equal Weight", "等权") : null);
-  const strategyConfigRows: StrategyConfigRow[] = [
-    { key: "strategy-id", label: tr("Strategy ID", "策略 ID"), value: strategyId },
-    { key: "created-date", label: tr("Created Date", "创建时间"), value: formatConfigDate(createdAt) },
-    { key: "strategy-type", label: tr("Strategy Type", "策略类型"), value: strategyTypeLabel ?? unsetConfigValue },
-    {
-      key: "symbol",
-      label: tr("Symbol", "交易对"),
-      value: symbolScopeRaw ?? inferSymbolFromName(strategyName) ?? unsetConfigValue,
-    },
-    { key: "signal", label: tr("Signal", "因子"), value: signalSelectionRaw ?? unsetConfigValue },
-    { key: "factor-weights", label: tr("Factor Weights", "因子权重"), value: factorWeightValue ?? unsetConfigValue },
-    { key: "stop-loss", label: tr("Stop Loss", "止损"), value: stopLossValue ?? unsetConfigValue },
-    { key: "cooldown", label: tr("Cooldown", "冷却时间"), value: cooldownValue ?? unsetConfigValue },
-    { key: "strategy-side", label: tr("Strategy Side", "策略方向"), value: strategySideValue ?? unsetConfigValue },
-    { key: "top-tail-rule", label: tr("Top/Tail Rule", "头尾分层规则"), value: topTailRuleValue ?? unsetConfigValue },
-  ];
-  const getStrategyConfigRow = (key: string) => strategyConfigRows.find((row) => row.key === key);
-  const strategyConfigGroups = [
-    {
-      title: tr("Basic Info", "基础信息"),
-      rows: ["strategy-id", "created-date", "strategy-type"]
-        .map(getStrategyConfigRow)
-        .filter((row): row is StrategyConfigRow => Boolean(row)),
-    },
-    {
-      title: tr("Inputs", "策略输入"),
-      rows: ["symbol", "signal", "factor-weights"]
-        .map(getStrategyConfigRow)
-        .filter((row): row is StrategyConfigRow => Boolean(row)),
-    },
-    {
-      title: tr("Risk & Execution", "风控与执行"),
-      rows: ["stop-loss", "cooldown", "strategy-side", "top-tail-rule"]
-        .map(getStrategyConfigRow)
-        .filter((row): row is StrategyConfigRow => Boolean(row)),
-    },
-  ].filter((group) => group.rows.length > 0);
+  const configuredEditFactorIds = (factorWeightItems.length > 0
+    ? factorWeightItems.map((item) => item.label)
+    : signalItems
+  )
+    .map((label) => factors.find((factor) => factor.id === label || factor.name === label)?.id)
+    .filter((factorId): factorId is string => Boolean(factorId));
+  const defaultEditFactorIds = configuredEditFactorIds.length > 0
+    ? configuredEditFactorIds
+    : ["AF-001", "AF-004", "AF-005"];
+  const configuredEditWeights = factorWeightItems.reduce<Record<string, string>>((weights, item) => {
+    const factorId = factors.find((factor) => factor.id === item.label || factor.name === item.label)?.id;
+    if (factorId) weights[factorId] = item.value.toFixed(2);
+    return weights;
+  }, {});
+  const defaultStrategyEditValues: StrategyComposerValues = {
+    selectedFactorIds: defaultEditFactorIds,
+    customWeights: Object.keys(configuredEditWeights).length > 0
+      ? configuredEditWeights
+      : defaultEditFactorIds.reduce<Record<string, string>>((weights, factorId, index) => {
+          weights[factorId] = index === 0 ? "0.34" : "0.33";
+          return weights;
+        }, {}),
+    direction:
+      executionSideRaw === "long" || executionSideRaw === "short" || executionSideRaw === "neutral"
+        ? executionSideRaw
+        : "neutral",
+    layerUnit: rankModeRaw?.toLowerCase() === "percent" ? "percent" : "N",
+    layerValue: rankValueRaw ?? "5",
+    strategyName: defaultStrategyDisplayName,
+    strategyNote: searchParams.get("note") ?? "",
+  };
+  const effectiveComposition = strategyEditValues ?? defaultStrategyEditValues;
+  const compositionDirection = effectiveComposition.direction === "long"
+    ? tr("Long-Only", "仅做多")
+    : effectiveComposition.direction === "short"
+      ? tr("Short-Only", "仅做空")
+      : tr("Market-Neutral", "多空中性");
+  const compositionTopTailRule = (() => {
+    const value = effectiveComposition.layerValue;
+    const isPercent = effectiveComposition.layerUnit === "percent";
+    if (uiLang === "zh") return `前后${value}${isPercent ? "%" : "名"}`;
+    if (uiLang === "ja") return `上位 / 下位それぞれ ${value}${isPercent ? "%" : " 銘柄"}`;
+    if (uiLang === "ko") return `상위 / 하위 각각 ${value}${isPercent ? "%" : "개 종목"}`;
+    if (uiLang === "es") return `Superior / inferior: ${value}${isPercent ? "%" : " instrumentos"} cada uno`;
+    if (uiLang === "fr") return `Haut / bas : ${value}${isPercent ? "%" : " instruments"} chacun`;
+    return `Top / tail ${value}${isPercent ? "%" : " instruments"} each`;
+  })();
+  const compositionFactorWeightItems = effectiveComposition.selectedFactorIds.map((factorId) => {
+    const factor = factors.find((item) => item.id === factorId);
+    const parsedWeight = Number(effectiveComposition.customWeights[factorId]);
+    return {
+      id: factorId,
+      label: factor?.name ?? factorId,
+      value: Number.isFinite(parsedWeight) ? parsedWeight : 0,
+    };
+  });
 
   const returnRate = parsePercent(strategy.annualReturn);
   const drawdownPct = parsePercent(strategy.maxDrawdown);
@@ -520,7 +583,7 @@ export default function StrategyDetail() {
   ) => {
     deployStrategyToTrade({
       strategyId,
-      strategyName,
+      strategyName: strategyDisplayName,
       market: strategy.market,
       annualReturn: strategy.annualReturn,
       winRate: strategy.winRate,
@@ -750,27 +813,63 @@ export default function StrategyDetail() {
     closed: position.closedAt,
     pnl: position.pnl,
   }));
-  const reportActions = (
+  const toggleFavorite = () => {
+    const nextStarred = !starred;
+    setStarred(nextStarred);
+    toast.success(nextStarred ? tr("Added to favorites", "已加入收藏") : tr("Removed from favorites", "已取消收藏"));
+  };
+  const openStrategyEditor = () => {
+    setIsStrategyEditOpen(true);
+  };
+  const confirmDeleteStrategy = () => {
+    persistDeletedStrategyId(strategyId);
+    window.location.assign("/strategies");
+  };
+  const viewLatestVersion = () => navigate(latestStrategyUrl);
+  const rollbackToHistoricalVersion = () => {
+    if (!historicalVersion || historicalVersion.status !== "ready") return;
+    setDefaultVersionId(historicalVersion.id);
+    toast.success(`${tr("Rolled back to", "已回滚至")} V${historicalVersion.number}`);
+    navigate(latestStrategyUrl);
+  };
+  const appendStrategyVersion = (
+    sourceType: StrategyVersion["source"],
+    note: string,
+    status: StrategyVersion["status"]
+  ) => {
+    setSessionStrategyVersions((current) => {
+      const number = String(STRATEGY_VERSION_HISTORY_LIMIT + current.length + 1).padStart(2, "0");
+      return [
+        {
+          id: `${strategyId}-V${number}`,
+          number,
+          createdAt: formatCurrentVersionTimestamp(),
+          source: sourceType,
+          note,
+          status,
+        },
+        ...current,
+      ];
+    });
+  };
+  const reportActions = isHistoricalVersionView ? (
     <>
-      <button
-        type="button"
-        className="oq-report-action"
-        onClick={() => {
-          setStarred((prev) => !prev);
-          toast.success(starred ? tr("Removed from favorites", "已取消收藏") : tr("Added to favorites", "已加入收藏"));
-        }}
-      >
-        <Star className={`h-3 w-3 ${starred ? "fill-current" : ""}`} />
-        {starred ? tr("Starred", "已收藏") : tr("Favorite", "收藏")}
+      <button type="button" className="oq-report-action" onClick={viewLatestVersion}>
+        <ArrowUpRight aria-hidden="true" />
+        {tr("View Latest", "查看最新")}
       </button>
       <button
         type="button"
-        className="oq-report-action"
-        onClick={() => setIsOptimizerOpen(true)}
+        className="oq-report-action is-primary"
+        disabled={!historicalVersion || historicalVersion.status !== "ready"}
+        onClick={rollbackToHistoricalVersion}
       >
-        <SlidersHorizontal className="h-3 w-3" />
-        {tr("Optimizer", "优化器")}
+        <RotateCcw aria-hidden="true" />
+        {tr("Rollback to This Version", "回滚到此版本")}
       </button>
+    </>
+  ) : (
+    <>
       {isOfficialLibraryView ? (
         <button
           type="button"
@@ -815,6 +914,74 @@ export default function StrategyDetail() {
           ) : null}
         </>
       )}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="oq-report-action is-icon"
+            aria-label={tr("Strategy Composition", "策略构成")}
+            onClick={() => setIsStrategyConfigOpen(true)}
+          >
+            <Layers3 aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tr("Strategy Composition", "策略构成")}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="oq-report-action is-icon"
+            aria-label={tr("Version History", "历史版本")}
+            disabled={strategyVersions.length === 0}
+            onClick={() => setIsVersionHistoryOpen(true)}
+          >
+            <History aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tr("Version History", "历史版本")}</TooltipContent>
+      </Tooltip>
+      <DropdownMenu>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <button type="button" className="oq-report-action is-icon" aria-label={tr("More", "更多")}>
+                <MoreHorizontal aria-hidden="true" />
+              </button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side="top">{tr("More", "更多")}</TooltipContent>
+        </Tooltip>
+        <DropdownMenuContent align="end" sideOffset={8} className="oq-report-more-content">
+          {!isOfficialLibraryView ? (
+            <DropdownMenuItem className="oq-report-more-item" onSelect={openStrategyEditor}>
+              <Pencil aria-hidden="true" />
+              {tr("Edit", "编辑")}
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuItem className="oq-report-more-item" onSelect={() => setIsOptimizerOpen(true)}>
+            <SlidersHorizontal aria-hidden="true" />
+            {tr("Optimizer", "优化器")}
+          </DropdownMenuItem>
+          <DropdownMenuItem className="oq-report-more-item" onSelect={toggleFavorite}>
+            <Star className={starred ? "fill-current" : ""} aria-hidden="true" />
+            {starred ? tr("Starred", "已收藏") : tr("Favorite", "收藏")}
+          </DropdownMenuItem>
+          {!isOfficialLibraryView ? (
+            <>
+              <DropdownMenuSeparator className="oq-report-more-separator" />
+              <DropdownMenuItem
+                className="oq-report-more-item is-destructive"
+                variant="destructive"
+                onSelect={() => setIsDeleteDialogOpen(true)}
+              >
+                <Trash2 aria-hidden="true" />
+                {tr("Delete", "删除")}
+              </DropdownMenuItem>
+            </>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </>
   );
   const reportTitle = strategyDisplayName;
@@ -845,15 +1012,17 @@ export default function StrategyDetail() {
         subtitle={reportSubtitle}
         titleAction={<span className="oq-report-no-badge">NO.{reportNo}</span>}
         topAction={reportTopAction}
+        historicalVersionView={isHistoricalVersionView}
         headerMetrics={reportHeaderMetrics}
         plainExplainEnabled={plainExplainEnabled}
         chartColorMode={chartColorMode}
-        dateLabel={tr("Past 30 days", "过去30天")}
+        metricSectionTitle={tr("Past 30 days", "过去 30 天")}
+        dateLabel={tr("Past 30 days", "过去 30 天")}
         dateOptions={[
-          tr("Past 30 days", "过去30天"),
-          tr("Past 90 days", "过去90天"),
-          tr("Past 180 days", "过去180天"),
-          tr("Past year", "过去1年"),
+          tr("Past 30 days", "过去 30 天"),
+          tr("Past 90 days", "过去 90 天"),
+          tr("Past 180 days", "过去 180 天"),
+          tr("Past year", "过去 1 年"),
           tr("Custom start date", "自定义起始时间"),
         ]}
         customDateOption={tr("Custom start date", "自定义起始时间")}
@@ -882,28 +1051,98 @@ export default function StrategyDetail() {
       <OptimizerDialog
         open={isOptimizerOpen}
         onOpenChange={setIsOptimizerOpen}
-        strategyName={strategyDisplayName}
-        strategyId={strategyId}
-        optimizedVersions={optimizedVersions}
         tr={tr}
-        onSubmit={() => {
+        onSubmit={(_, note) => {
+          appendStrategyVersion("optimizer", note, "pending");
           toast.success(tr("Optimizer job submitted.", "优化任务已提交。"));
           setIsOptimizerOpen(false);
         }}
       />
 
+      <StrategyVersionHistoryDialog
+        open={isVersionHistoryOpen}
+        onOpenChange={setIsVersionHistoryOpen}
+        strategyName={strategyDisplayName}
+        strategyId={strategyId}
+        versions={strategyVersions}
+        defaultVersionId={effectiveDefaultVersionId}
+        onSetDefaultVersion={(version) => {
+          setDefaultVersionId(version.id);
+          toast.success(`${tr("Rolled back to", "已回滚至")} V${version.number}`);
+        }}
+        title={tr("Version History", "历史版本")}
+        tr={tr}
+      />
+
+      <Dialog open={isStrategyEditOpen} onOpenChange={setIsStrategyEditOpen}>
+        <DialogContent className="oq-strategy-create-dialog gap-0 rounded-2xl border-0 p-0 shadow-2xl">
+          <div className="oq-strategy-create-dialog-head">
+            <DialogTitle>{tr("Edit strategy", "编辑策略")}</DialogTitle>
+            <p>{tr("Update factors, weights and direction rules for this strategy.", "修改此策略的因子、权重和方向规则。")}</p>
+          </div>
+          <CreateStrategyComposer
+            key={isStrategyEditOpen ? "open" : "closed"}
+            tr={tr}
+            plainExplainEnabled={plainExplainEnabled}
+            mode="edit"
+            initialValues={strategyEditValues ?? defaultStrategyEditValues}
+            onClose={() => setIsStrategyEditOpen(false)}
+            onSubmit={(values) => {
+              setStrategyEditValues(values);
+              appendStrategyVersion(
+                "edit",
+                values.strategyNote.trim(),
+                "ready"
+              );
+              toast.success(tr("Strategy updated.", "策略已更新。"));
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
       <StrategyConfigDialog
         open={isStrategyConfigOpen}
         onOpenChange={setIsStrategyConfigOpen}
-        strategyName={strategyName}
-        strategyId={strategyId}
+        title={tr("Strategy Composition", "策略构成")}
         tr={tr}
-        strategyConfigGroups={strategyConfigGroups}
-        factorWeightItems={factorWeightItems}
-        factorWeightTotal={factorWeightTotal}
-        factorWeightColors={factorWeightColors}
+        direction={compositionDirection}
+        topTailRule={compositionTopTailRule}
+        factorWeightItems={compositionFactorWeightItems}
         formatDecimalWeight={formatDecimalWeight}
       />
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent className="oq-report-delete-dialog">
+          <AlertDialogHeader className="oq-report-delete-dialog-header">
+            <AlertDialogTitle className="oq-report-delete-dialog-title">
+              {tr("Delete Strategy", "删除策略")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="oq-report-delete-dialog-description">
+              {tr(
+                "Are you sure you want to delete this strategy? It will be permanently removed from your workspace and cannot be restored.",
+                "确认要删除该策略吗？此操作会将其从工作区永久移除，且无法恢复。",
+                {
+                  ja: "このストラテジーを削除しますか？ワークスペースから完全に削除され、復元できません。",
+                  ko: "이 전략을 삭제할까요? 워크스페이스에서 영구적으로 삭제되며 복구할 수 없습니다.",
+                  es: "¿Quieres eliminar esta estrategia? Se retirará permanentemente del espacio de trabajo y no se podrá recuperar.",
+                  fr: "Voulez-vous supprimer cette stratégie ? Elle sera définitivement retirée de l’espace de travail et ne pourra pas être restaurée.",
+                }
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="oq-report-delete-dialog-footer">
+            <AlertDialogCancel className="oq-report-delete-dialog-button">
+              {tr("Cancel", "取消")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="oq-report-delete-dialog-button is-primary"
+              onClick={confirmDeleteStrategy}
+            >
+              {tr("Confirm Delete", "确认删除")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 

@@ -19,13 +19,12 @@ import {
   getExchangeVenueMeta,
   type ExchangeApiConnection,
 } from "@/lib/exchangeApiConnections";
-import { ArrowUpRight, History, RotateCcw, Unplug, X } from "lucide-react";
-import type { StrategyConfigRow } from "./StrategyDetailParts";
+import { ChevronDown, Eye, RotateCcw, Unplug, X } from "lucide-react";
 import "./StrategyDetailDialogs.css";
 
 type Tr = (en: string, zh: string, copy?: Record<string, string>) => string;
 
-export const OPTIMIZATION_HISTORY_LIMIT = 10;
+export const STRATEGY_VERSION_HISTORY_LIMIT = 10;
 
 const optimizerNumericParameters = [
   { key: "wmin", defaultValue: "-0.03", step: "0.01" },
@@ -42,11 +41,14 @@ const optimizerNumericParameters = [
 
 type OptimizerParameterKey = (typeof optimizerNumericParameters)[number]["key"];
 export type OptimizerParameterValues = Record<OptimizerParameterKey, string>;
+type OptimizerMode = "conservative" | "balanced" | "aggressive";
 
-export type OptimizedStrategyVersion = {
+export type StrategyVersion = {
   id: string;
   number: string;
   createdAt: string;
+  source: "edit" | "optimizer";
+  note: string;
   status: "ready" | "pending";
 };
 
@@ -54,166 +56,317 @@ const defaultOptimizerParameterValues = Object.fromEntries(
   optimizerNumericParameters.map((parameter) => [parameter.key, parameter.defaultValue])
 ) as OptimizerParameterValues;
 
-export function OptimizerDialog({
+const optimizerPresetValues: Record<OptimizerMode, OptimizerParameterValues> = {
+  conservative: {
+    wmin: "-0.02",
+    wmax: "0.02",
+    gross_exposure: "0.7",
+    net_exposure_th: "0.02",
+    lambd: "4500.0",
+    cost: "1.5",
+    cov_window: "120",
+    cov_shrinkage: "0.15",
+    beta_neutral_th: "0.01",
+    beta_window: "120",
+  },
+  balanced: { ...defaultOptimizerParameterValues },
+  aggressive: {
+    wmin: "-0.05",
+    wmax: "0.05",
+    gross_exposure: "1.5",
+    net_exposure_th: "0.05",
+    lambd: "2000.0",
+    cost: "1.0",
+    cov_window: "60",
+    cov_shrinkage: "0.08",
+    beta_neutral_th: "0.04",
+    beta_window: "60",
+  },
+};
+
+function StrategyVersionList({
+  strategyName,
+  strategyId,
+  versions,
+  defaultVersionId,
+  onSetDefaultVersion,
+  tr,
+}: {
+  strategyName: string;
+  strategyId: string;
+  versions: StrategyVersion[];
+  defaultVersionId: string | null;
+  onSetDefaultVersion: (version: StrategyVersion) => void;
+  tr: Tr;
+}) {
+  return (
+    <div className="oq-strategy-version-list" role="list">
+      {versions.slice(0, STRATEGY_VERSION_HISTORY_LIMIT).map((version) => {
+        const isDefault = version.id === defaultVersionId;
+        const viewUrl = `/strategies/${encodeURIComponent(strategyId)}?name=${encodeURIComponent(strategyName)}&version=${encodeURIComponent(version.id)}`;
+        const note = version.note.trim();
+        return (
+          <article
+            className={`oq-strategy-version-item${isDefault ? " is-default" : ""}${version.status === "pending" ? " is-pending" : ""}`}
+            key={version.id}
+            role="listitem"
+            aria-current={isDefault ? "true" : undefined}
+          >
+            <div className="oq-strategy-version-content">
+              <div className="oq-strategy-version-heading">
+                <span className="oq-strategy-version-identity">
+                  <strong>{`V${version.number}`}</strong>
+                  <small>{version.source === "edit" ? tr("Second edit", "二次编辑") : tr("Optimizer", "优化器")}</small>
+                  {isDefault ? <small className="is-default">{tr("Current Version", "当前版本")}</small> : null}
+                  {version.status === "pending" ? <small className="is-pending">{tr("Processing", "处理中")}</small> : null}
+                </span>
+                <time dateTime={version.createdAt.replace(" ", "T")}>{version.createdAt}</time>
+              </div>
+
+              {note ? <p className="oq-strategy-version-note">{note}</p> : null}
+            </div>
+
+            {version.status === "ready" ? (
+              <div className="oq-strategy-version-actions">
+                <a href={viewUrl}>
+                  <Eye aria-hidden="true" />
+                  {tr("Preview", "预览")}
+                </a>
+                {isDefault ? null : (
+                  <button type="button" onClick={() => onSetDefaultVersion(version)}>
+                    <RotateCcw aria-hidden="true" />
+                    {tr("Rollback", "回滚")}
+                  </button>
+                )}
+              </div>
+            ) : null}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+export function StrategyVersionHistoryDialog({
   open,
   onOpenChange,
   strategyName,
   strategyId,
-  optimizedVersions,
+  versions,
+  defaultVersionId,
+  onSetDefaultVersion,
+  title,
   tr,
-  onSubmit,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   strategyName: string;
   strategyId: string;
-  optimizedVersions: OptimizedStrategyVersion[];
+  versions: StrategyVersion[];
+  defaultVersionId: string | null;
+  onSetDefaultVersion: (version: StrategyVersion) => void;
+  title: string;
   tr: Tr;
-  onSubmit: (values: OptimizerParameterValues) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="oq-sd-dialog oq-strategy-version-dialog border-border bg-card p-0 text-foreground">
+        <DialogHeader className="oq-strategy-version-header">
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <div className="oq-strategy-version-body">
+          <div className="oq-strategy-version-list-head">
+            <span>{tr("Iterations", "迭代记录")}</span>
+            <small>
+              <strong>{versions.length}</strong>
+              {tr("versions", "个版本")}
+            </small>
+          </div>
+          <StrategyVersionList
+            strategyName={strategyName}
+            strategyId={strategyId}
+            versions={versions}
+            defaultVersionId={defaultVersionId}
+            onSetDefaultVersion={onSetDefaultVersion}
+            tr={tr}
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function OptimizerDialog({
+  open,
+  onOpenChange,
+  tr,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  tr: Tr;
+  onSubmit: (values: OptimizerParameterValues, note: string) => void;
 }) {
   const [values, setValues] = useState<OptimizerParameterValues>(() => ({ ...defaultOptimizerParameterValues }));
-  const [isVersionsOpen, setIsVersionsOpen] = useState(false);
+  const [selectedMode, setSelectedMode] = useState<OptimizerMode | null>("balanced");
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [note, setNote] = useState("");
   const numericValues = optimizerNumericParameters.map((parameter) => Number(values[parameter.key]));
   const isValid = numericValues.every(Number.isFinite) && Number(values.wmin) < Number(values.wmax);
-
-  const versionItems = optimizedVersions.slice(0, OPTIMIZATION_HISTORY_LIMIT).map((version) => {
-    const content = (
-      <>
-        <span className="oq-optimizer-version-summary">
-          <small className="oq-optimizer-version-badge">{`NO.${version.number}`}</small>
-          <span className="oq-optimizer-version-details">
-            <strong>{strategyName}</strong>
-            <small className="oq-optimizer-version-date">
-              {tr("Created", "创建时间")} {version.createdAt}
-            </small>
-          </span>
-        </span>
-        {version.status === "pending" ? (
-          <small className="oq-optimizer-version-status">Pending</small>
-        ) : (
-          <ArrowUpRight aria-hidden="true" />
-        )}
-      </>
-    );
-
-    if (version.status === "pending") {
-      return (
-        <div
-          className="oq-optimizer-version-item is-pending"
-          role="link"
-          aria-disabled="true"
-          key={version.id}
-        >
-          {content}
-        </div>
-      );
-    }
-
-    return (
-      <a
-        className="oq-optimizer-version-item"
-        href={`/strategies/${encodeURIComponent(version.id)}?name=${encodeURIComponent(strategyName)}&optimizedFrom=${encodeURIComponent(strategyId)}`}
-        key={version.id}
-      >
-        {content}
-      </a>
-    );
-  });
+  const modeOptions: Array<{ key: OptimizerMode; label: string }> = [
+    { key: "conservative", label: tr("Conservative", "保守") },
+    { key: "balanced", label: tr("Balanced", "均衡") },
+    { key: "aggressive", label: tr("Aggressive", "激进") },
+  ];
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) setIsVersionsOpen(false);
+    if (!nextOpen) setIsDetailsOpen(false);
     onOpenChange(nextOpen);
   };
 
+  const applyMode = (mode: OptimizerMode) => {
+    setSelectedMode(mode);
+    setValues({ ...optimizerPresetValues[mode] });
+  };
+
   return (
-    <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="oq-sd-dialog oq-optimizer-dialog max-w-[560px] border-border bg-card p-0 text-foreground">
-          <DialogHeader className="oq-optimizer-header">
-            <DialogTitle>{tr("Optimizer", "优化器")}</DialogTitle>
-            {optimizedVersions.length > 0 ? (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="oq-sd-dialog oq-optimizer-dialog border-border bg-card p-0 text-foreground">
+        <DialogHeader className="oq-optimizer-header">
+          <DialogTitle>{tr("Optimizer", "优化器")}</DialogTitle>
+        </DialogHeader>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (isValid) onSubmit(values, note.trim());
+          }}
+        >
+          <fieldset className="oq-optimizer-mode-field" aria-labelledby="optimizer-mode-label">
+            <div className="oq-optimizer-mode-heading">
+              <span id="optimizer-mode-label">{tr("Optimization Mode", "优化模式")}</span>
               <button
                 type="button"
-                className="oq-optimizer-history-trigger"
-                aria-haspopup="dialog"
-                aria-label={tr("Optimization History", "优化历史")}
-                title={tr("Optimization History", "优化历史")}
-                onClick={() => setIsVersionsOpen(true)}
+                className="oq-optimizer-details-toggle"
+                aria-expanded={isDetailsOpen}
+                aria-controls="optimizer-detailed-parameters"
+                onClick={() => setIsDetailsOpen((current) => !current)}
               >
-                <History aria-hidden="true" />
+                <span>
+                  {isDetailsOpen
+                    ? tr("Collapse Detailed Parameters", "收起详细参数")
+                    : tr("Expand Detailed Parameters", "展开详细参数")}
+                </span>
+                <ChevronDown aria-hidden="true" />
               </button>
-            ) : null}
-          </DialogHeader>
+            </div>
+            <div className="oq-optimizer-mode-group" role="radiogroup" aria-labelledby="optimizer-mode-label">
+              {modeOptions.map((mode) => (
+                <button
+                  key={mode.key}
+                  type="button"
+                  className={selectedMode === mode.key ? "is-active" : ""}
+                  role="radio"
+                  aria-checked={selectedMode === mode.key}
+                  tabIndex={selectedMode === mode.key || (selectedMode === null && mode.key === "balanced") ? 0 : -1}
+                  onClick={() => applyMode(mode.key)}
+                  onKeyDown={(event) => {
+                    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+                    event.preventDefault();
+                    const currentIndex = modeOptions.findIndex((item) => item.key === mode.key);
+                    const nextIndex = event.key === "Home"
+                      ? 0
+                      : event.key === "End"
+                        ? modeOptions.length - 1
+                        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+                          ? (currentIndex - 1 + modeOptions.length) % modeOptions.length
+                          : (currentIndex + 1) % modeOptions.length;
+                    applyMode(modeOptions[nextIndex].key);
+                    const modeButtons = event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button[role='radio']");
+                    modeButtons?.[nextIndex]?.focus();
+                  }}
+                >
+                  <strong>{mode.label}</strong>
+                </button>
+              ))}
+            </div>
+          </fieldset>
 
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (isValid) onSubmit(values);
-            }}
-          >
-            <div className="oq-optimizer-parameter-list">
-              {optimizerNumericParameters.map((parameter) => {
-                const isModified = values[parameter.key] !== parameter.defaultValue;
-                const inputId = `optimizer-${parameter.key}`;
-                return (
-                  <div className="oq-optimizer-parameter-row" key={parameter.key}>
-                    <label htmlFor={inputId}><code>{parameter.key}</code></label>
-                    <div className="oq-optimizer-input-wrap">
-                      <input
-                        id={inputId}
-                        type="number"
-                        inputMode="decimal"
-                        step={parameter.step}
-                        value={values[parameter.key]}
-                        onChange={(event) => setValues((current) => ({ ...current, [parameter.key]: event.target.value }))}
-                        aria-label={parameter.key}
-                      />
-                      {isModified ? (
-                        <button
-                          type="button"
-                          className="oq-optimizer-reset-parameter"
-                          aria-label={`${tr("Restore default value", "恢复默认值")} ${parameter.key}`}
-                          title={tr("Restore default value", "恢复默认值")}
-                          onClick={() => setValues((current) => ({ ...current, [parameter.key]: parameter.defaultValue }))}
-                        >
-                          <RotateCcw aria-hidden="true" />
-                        </button>
-                      ) : null}
+          <div className="oq-optimizer-secondary-fields">
+            {isDetailsOpen ? (
+              <div id="optimizer-detailed-parameters" className="oq-optimizer-parameter-list">
+                {optimizerNumericParameters.map((parameter) => {
+                  const isModified = values[parameter.key] !== parameter.defaultValue;
+                  const inputId = `optimizer-${parameter.key}`;
+                  return (
+                    <div className="oq-optimizer-parameter-row" key={parameter.key}>
+                      <label htmlFor={inputId}><code>{parameter.key}</code></label>
+                      <div className="oq-optimizer-input-wrap">
+                        <input
+                          id={inputId}
+                          type="number"
+                          inputMode="decimal"
+                          step={parameter.step}
+                          value={values[parameter.key]}
+                          onChange={(event) => {
+                            setSelectedMode(null);
+                            setValues((current) => ({ ...current, [parameter.key]: event.target.value }));
+                          }}
+                          aria-label={parameter.key}
+                        />
+                        {isModified ? (
+                          <button
+                            type="button"
+                            className="oq-optimizer-reset-parameter"
+                            aria-label={`${tr("Restore default value", "恢复默认值")} ${parameter.key}`}
+                            title={tr("Restore default value", "恢复默认值")}
+                            onClick={() => {
+                              setSelectedMode(null);
+                              setValues((current) => ({ ...current, [parameter.key]: parameter.defaultValue }));
+                            }}
+                          >
+                            <RotateCcw aria-hidden="true" />
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-              <div className="oq-optimizer-parameter-row is-readonly">
-                <code>market_symbol</code>
-                <output>&quot;BTCUSDT&quot;</output>
+                  );
+                })}
+                <div className="oq-optimizer-parameter-row is-readonly">
+                  <code>market_symbol</code>
+                  <output>&quot;BTCUSDT&quot;</output>
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            <div className="oq-optimizer-actions">
-              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-                {tr("Cancel", "取消")}
-              </Button>
-              <Button type="submit" disabled={!isValid}>
-                {tr("Run Optimizer", "运行优化")}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={open && isVersionsOpen} onOpenChange={setIsVersionsOpen}>
-        <DialogContent className="oq-sd-dialog oq-optimizer-history-dialog max-w-[420px] border-border bg-card p-0 text-foreground">
-          <DialogHeader className="oq-optimizer-history-header">
-            <DialogTitle>{tr("Optimization History", "优化历史")}</DialogTitle>
-          </DialogHeader>
-          <div className="oq-optimizer-history-body">
-            <div className="oq-optimizer-version-list">
-              {versionItems}
-            </div>
+            <label className="oq-optimizer-note-field" htmlFor="optimizer-note">
+              <span>{tr("Note", "备注")}</span>
+              <textarea
+                id="optimizer-note"
+                value={note}
+                maxLength={300}
+                placeholder={tr("Add a note", "添加备注")}
+                onChange={(event) => setNote(event.target.value)}
+              />
+            </label>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+
+          <div className="oq-optimizer-actions">
+            <Button
+              type="button"
+              variant="outline"
+              className="oq-optimizer-action-secondary"
+              onClick={() => handleOpenChange(false)}
+            >
+              {tr("Cancel", "取消")}
+            </Button>
+            <Button type="submit" className="oq-optimizer-action-primary" disabled={!isValid}>
+              {tr("Run Optimizer", "运行优化")}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -404,79 +557,67 @@ export function LiveDeployDialog({
 export function StrategyConfigDialog({
   open,
   onOpenChange,
-  strategyName,
-  strategyId,
+  title,
   tr,
-  strategyConfigGroups,
+  direction,
+  topTailRule,
   factorWeightItems,
-  factorWeightTotal,
-  factorWeightColors,
   formatDecimalWeight,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  strategyName: string;
-  strategyId: string;
+  title?: string;
   tr: Tr;
-  strategyConfigGroups: Array<{ title: string; rows: StrategyConfigRow[] }>;
-  factorWeightItems: Array<{ label: string; value: number }>;
-  factorWeightTotal: number;
-  factorWeightColors: string[];
+  direction: string;
+  topTailRule: string;
+  factorWeightItems: Array<{ id: string; label: string; value: number }>;
   formatDecimalWeight: (value: number) => string;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} className="oq-sd-dialog max-w-[680px] border-border bg-card p-0 text-foreground">
-        <DialogClose className="absolute right-4 top-4 rounded-sm text-muted-foreground opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:outline-none focus-visible:ring-0">
+      <DialogContent showCloseButton={false} className="oq-sd-dialog oq-strategy-config-dialog border-border bg-card p-0 text-foreground">
+        <DialogClose className="oq-strategy-config-close">
           <X className="h-4 w-4" />
           <span className="sr-only">{tr("Close", "关闭")}</span>
         </DialogClose>
-        <DialogHeader className="px-5 pb-1 pt-4">
-          <DialogTitle className="text-base">{tr("Strategy Configuration", "策略配置")}</DialogTitle>
-          <p className="mt-1 text-xs text-muted-foreground">{strategyName} · {strategyId}</p>
+        <DialogHeader className="oq-strategy-config-header">
+          <DialogTitle>{title ?? tr("Strategy Configuration", "策略配置")}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-2 px-5 pb-4 pt-1">
-          {strategyConfigGroups.map((group) => (
-            <section key={group.title} className="rounded-xl bg-accent/20 px-3.5 py-2.5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                {group.title}
-              </h3>
-              <div className="mt-1.5 grid grid-cols-1 gap-x-5 gap-y-2 sm:grid-cols-2">
-                {group.rows.map((row) => (
-                  <div key={row.key} className={`min-w-0 ${row.key === "signal" || row.key === "factor-weights" ? "sm:col-span-2" : ""}`}>
-                    <p className="text-[11px] leading-4 text-muted-foreground">{row.label}</p>
-                    <p className="mt-0.5 break-words text-[13px] font-medium leading-5 text-foreground">{row.value}</p>
-                    {row.key === "factor-weights" && factorWeightItems.length > 0 ? (
-                      <div className="space-y-1.5 pt-1.5">
-                        <div className="flex h-1.5 overflow-hidden rounded-full bg-muted/70">
-                          {factorWeightItems.map((item, index) => {
-                            const width = factorWeightTotal > 0 ? Math.max(0, Math.min((item.value / factorWeightTotal) * 100, 100)) : 0;
-                            return (
-                              <div
-                                key={`${item.label}-${index}`}
-                                className="h-full"
-                                style={{ width: `${width}%`, backgroundColor: factorWeightColors[index % factorWeightColors.length] }}
-                                title={`${item.label} ${formatDecimalWeight(item.value)}`}
-                              />
-                            );
-                          })}
-                        </div>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] leading-4 text-muted-foreground">
-                          {factorWeightItems.map((item, index) => (
-                            <span key={`${item.label}-legend-${index}`} className="inline-flex items-center gap-1.5">
-                              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: factorWeightColors[index % factorWeightColors.length] }} />
-                              {item.label} {formatDecimalWeight(item.value)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
+        <div className="oq-strategy-config-body">
+          <dl className="oq-strategy-config-summary">
+            <div>
+              <dt>{tr("Strategy Side", "策略方向")}</dt>
+              <dd>{direction}</dd>
+            </div>
+            <div>
+              <dt>{tr("Top/Tail Rule", "头尾分层规则")}</dt>
+              <dd>{topTailRule}</dd>
+            </div>
+          </dl>
+
+          <section className="oq-strategy-config-factors" aria-labelledby="strategy-config-factor-title">
+            <div className="oq-strategy-config-section-head">
+              <h3 id="strategy-config-factor-title">{tr("Factor Weights", "因子与权重")}</h3>
+              <span>{tr("Weight", "权重")}</span>
+            </div>
+
+            <div className="oq-strategy-config-factor-table" role="list" aria-label={tr("Factor Weights", "因子与权重")}>
+              {factorWeightItems.map((item) => (
+                <div className="oq-strategy-config-factor-row" role="listitem" key={item.id}>
+                  <div className="oq-strategy-config-factor-name">
+                    <span>
+                      <strong>{item.label}</strong>
+                      <small>{item.id}</small>
+                    </span>
                   </div>
-                ))}
-              </div>
-            </section>
-          ))}
+                  <div className="oq-strategy-config-factor-weight">
+                    <output>{formatDecimalWeight(item.value)}</output>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
       </DialogContent>
     </Dialog>

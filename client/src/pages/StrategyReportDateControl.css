@@ -125,6 +125,30 @@
   transform: rotate(180deg);
 }
 
+.oq-report-date-select.oq-report-date-select--compact.oq-report-date-select--switch {
+  width: auto;
+}
+
+.oq-report-date-select.oq-report-date-select--compact.oq-report-date-select--switch > button {
+  width: auto;
+  min-height: 28px;
+  gap: 5px;
+  padding: 4px 8px;
+  color: var(--report-text-soft);
+  font-weight: 600;
+}
+
+.oq-report-date-switch-label {
+  line-height: 1rem;
+  white-space: nowrap;
+}
+
+.oq-report-date-select--switch .oq-report-date-chevron {
+  width: 13px;
+  height: 13px;
+  flex-basis: 13px;
+}
+
 .oq-report-date-select--compact .oq-report-date-menu {
   position: absolute;
   top: calc(100% + 6px);

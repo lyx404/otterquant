@@ -472,12 +472,10 @@ function AccountWorkbench260712() {
             </header>
 
             <div className="oq-settings-list">
-              <div className="oq-account-setting-row">
-                <div className="oq-settings-copy">
-                  <div className="oq-settings-label">{tr("Language", "语言")}</div>
-                  <div className="oq-settings-description">
-                    {tr("Set display language for UI and notifications.", "设置界面与通知的显示语言。")}
-                  </div>
+              <div className="oq-account-setting-row oq-account-language-setting">
+                <div className="oq-settings-label">{tr("Language", "语言")}</div>
+                <div className="oq-settings-description">
+                  {tr("Set display language for UI and notifications.", "设置界面与通知的显示语言。")}
                 </div>
                 <Select value={uiLang} onValueChange={(value) => setUiLang(value as UiLang)}>
                   <SelectTrigger

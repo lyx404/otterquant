@@ -221,6 +221,13 @@
   color: var(--os-risk);
 }
 
+.oq-strategy-form-field > span small {
+  margin-left: 6px;
+  color: var(--os-muted);
+  font-size: 9.5px;
+  font-weight: 500;
+}
+
 .oq-strategy-form-control,
 .oq-strategy-segment-group button,
 .oq-strategy-layer-row button {
@@ -240,6 +247,15 @@
   width: 100%;
   padding: 0 13px;
   outline: none;
+}
+
+.oq-strategy-note-input {
+  height: 38px;
+  min-height: 38px;
+  padding: 9px 13px;
+  font-weight: 700;
+  line-height: 18px;
+  resize: vertical;
 }
 
 .oq-strategy-form-control:focus-visible,
@@ -1371,7 +1387,39 @@
   font-weight: 700;
 }
 
+@media (max-width: 1023px) {
+  .oq-strategy-table-card,
+  .oq-strategy-compare-card {
+    overflow-x: auto;
+  }
+
+  .oq-strategy-table-head,
+  .oq-strategy-table-row,
+  .oq-strategy-table-pagination,
+  .oq-strategy-compare-grid {
+    min-width: 900px;
+  }
+
+  .oq-strategy-compare-grid.is-single {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 960px) {
+  .oq-strategy-create-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-strategy-form-field {
+    grid-column: 1 / -1;
+  }
+
+  .oq-strategy-segment-group.is-three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
   .oq-strategy-workbench {
     width: 100%;
     padding: 0 12px 20px;
@@ -1402,48 +1450,12 @@
     justify-content: flex-start;
   }
 
-  .oq-strategy-create-form {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .oq-strategy-form-field {
-    grid-column: 1 / -1;
-  }
-
-  .oq-strategy-segment-group.is-three {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .oq-strategy-toolbar {
     grid-column: 1;
     grid-row: auto;
     gap: 8px;
   }
 
-  .oq-strategy-table-card,
-  .oq-strategy-compare-card {
-    overflow-x: auto;
-  }
-
-  .oq-strategy-table-head,
-  .oq-strategy-table-row {
-    min-width: 900px;
-  }
-
-  .oq-strategy-table-pagination {
-    min-width: 900px;
-  }
-
-  .oq-strategy-compare-grid {
-    min-width: 900px;
-  }
-
-  .oq-strategy-compare-grid.is-single {
-    min-width: 0;
-  }
-}
-
-@media (max-width: 640px) {
   .oq-strategy-create-dialog,
   .oq-strategy-factor-dialog {
     width: calc(100vw - 20px);
@@ -1467,6 +1479,12 @@
   .oq-strategy-segment-group.is-three {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 7px;
+  }
+
+  .oq-strategy-create-form > label.oq-strategy-form-field.is-wide > .oq-strategy-form-control,
+  .oq-strategy-create-form > fieldset.oq-strategy-form-field.is-wide > .oq-strategy-segment-group,
+  .oq-strategy-layer-row {
+    width: 100%;
   }
 
   .oq-strategy-layer-row {

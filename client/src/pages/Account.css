@@ -503,17 +503,35 @@
 .oq-settings-label {
   color: var(--qa-text);
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.125rem;
 }
 
 .oq-settings-description {
   max-width: 64ch;
   margin-top: 2px;
-  color: var(--qa-muted);
+  color: rgba(13, 13, 13, 0.5);
   font-size: 0.625rem;
   line-height: 0.9375rem;
   text-wrap: pretty;
+}
+
+.oq-account-language-setting {
+  display: grid;
+  grid-template-areas:
+    "label control"
+    "description control";
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 24px;
+}
+
+.oq-account-language-setting .oq-settings-label {
+  grid-area: label;
+}
+
+.oq-account-language-setting .oq-settings-description {
+  grid-area: description;
+  margin-top: 0;
 }
 
 .oq-account-color-options {
@@ -917,6 +935,8 @@
 }
 
 .oq-account .oq-account-language-trigger {
+  grid-area: control;
+  align-self: center;
   width: 148px;
   min-width: 148px;
   height: 36px;
@@ -1129,10 +1149,20 @@
     padding-right: 8px;
   }
 
+  .oq-account-language-setting {
+    grid-template-areas:
+      "label"
+      "description"
+      "control";
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px 0;
+  }
+
   .oq-account .oq-account-language-trigger {
     width: 100%;
     min-width: 0;
     flex-basis: auto;
+    margin-top: 12px;
   }
 
   .oq-account-color-options {

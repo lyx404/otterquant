@@ -72,6 +72,16 @@ type StrategyDirection = "long" | "short" | "neutral";
 type StrategyLayerUnit = "N" | "percent";
 type StrategyFactorSource = "official" | "my";
 
+export type StrategyComposerValues = {
+  selectedFactorIds: string[];
+  customWeights: Record<string, string>;
+  direction: StrategyDirection;
+  layerUnit: StrategyLayerUnit;
+  layerValue: string;
+  strategyName: string;
+  strategyNote: string;
+};
+
 const MAX_STRATEGY_FACTOR_COUNT = 20;
 const MAX_COMPARE_STRATEGY_COUNT = 2;
 
@@ -113,6 +123,9 @@ const strategyCopy: Record<string, UiCopy> = {
   "Enter a percentage from 0 to 50.": { ja: "0より大きく50以下の割合を入力してください。", ko: "0보다 크고 50 이하인 비율을 입력하세요.", es: "Introduce un porcentaje mayor que 0 y hasta 50.", fr: "Saisissez un pourcentage superieur a 0 et inferieur ou egal a 50." },
   "Enter a positive integer.": { ja: "正の整数を入力してください。", ko: "양의 정수를 입력하세요.", es: "Introduce un numero entero positivo.", fr: "Saisissez un entier positif." },
   "Strategy name": { ja: "戦略名", ko: "전략명", es: "Nombre de la estrategia", fr: "Nom de la strategie" },
+  Note: { ja: "メモ", ko: "메모", es: "Nota", fr: "Note" },
+  Optional: { ja: "任意", ko: "선택", es: "Opcional", fr: "Facultatif" },
+  "Add a note": { ja: "メモを追加", ko: "메모 추가", es: "Añadir una nota", fr: "Ajouter une note" },
   Cancel: { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
   "Create strategy": { ja: "戦略を作成", ko: "전략 생성", es: "Crear estrategia", fr: "Creer une strategie" },
   "Select factors": { ja: "ファクターを選択", ko: "팩터 선택", es: "Seleccionar factores", fr: "Selectionner des facteurs" },
@@ -388,6 +401,7 @@ const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 interface CreatedStrategyRecord {
   id: string;
   name: string;
+  note?: string;
   createdAt: string;
   readyAt: number;
 }
@@ -402,6 +416,7 @@ function readCreatedStrategyRecords(): CreatedStrategyRecord[] {
       (record): record is CreatedStrategyRecord =>
         typeof record?.id === "string" &&
         typeof record?.name === "string" &&
+        (record?.note === undefined || typeof record.note === "string") &&
         typeof record?.createdAt === "string" &&
         typeof record?.readyAt === "number"
     );
@@ -823,7 +838,7 @@ function toCreatedStrategyViewRow(record: CreatedStrategyRecord, now: number): S
   return {
     id: record.id,
     name: record.name,
-    description: "Composite strategy created from selected factors.",
+    description: record.note || "Composite strategy created from selected factors.",
     updatedAt: record.createdAt,
     statusLabel: "Not Running",
     executionMode: "idle",
@@ -1034,28 +1049,37 @@ function MetricBox({
   );
 }
 
-function CreateStrategyComposer({
+export function CreateStrategyComposer({
   tr,
   plainExplainEnabled,
+  mode = "create",
+  initialValues,
   onClose,
-  onCreate,
+  onSubmit,
 }: {
   tr: StrategyTr;
   plainExplainEnabled: boolean;
+  mode?: "create" | "edit";
+  initialValues?: Partial<StrategyComposerValues>;
   onClose: () => void;
-  onCreate: (name: string) => void;
+  onSubmit: (values: StrategyComposerValues) => void;
 }) {
-  const [selectedFactorIds, setSelectedFactorIds] = useState<string[]>([]);
-  const [customWeights, setCustomWeights] = useState<Record<string, string>>({});
-  const [direction, setDirection] = useState<StrategyDirection>("neutral");
-  const [layerUnit, setLayerUnit] = useState<StrategyLayerUnit>("percent");
-  const [layerValue, setLayerValue] = useState("10");
-  const [strategyName, setStrategyName] = useState("BTC Alpha Composite");
+  const initialFactorIds = initialValues?.selectedFactorIds ?? [];
+  const [selectedFactorIds, setSelectedFactorIds] = useState<string[]>(initialFactorIds);
+  const [customWeights, setCustomWeights] = useState<Record<string, string>>(
+    initialValues?.customWeights ?? buildStrategyDefaultWeights(initialFactorIds)
+  );
+  const [direction, setDirection] = useState<StrategyDirection>(initialValues?.direction ?? "neutral");
+  const [layerUnit, setLayerUnit] = useState<StrategyLayerUnit>(initialValues?.layerUnit ?? "percent");
+  const [layerValue, setLayerValue] = useState(initialValues?.layerValue ?? "10");
+  const [strategyName, setStrategyName] = useState(initialValues?.strategyName ?? "BTC Alpha Composite");
+  const [strategyNote, setStrategyNote] = useState(initialValues?.strategyNote ?? "");
   const [factorPickerOpen, setFactorPickerOpen] = useState(false);
   const [factorSource, setFactorSource] = useState<StrategyFactorSource>("official");
   const [factorQuery, setFactorQuery] = useState("");
   const [factorCategory, setFactorCategory] = useState("ALL");
   const [showValidation, setShowValidation] = useState(false);
+  const initialWeightEffectRef = useRef(true);
 
   const officialFactors = useMemo(
     () => factors.filter((factor) => factor.category === "official" || factor.category === "graduated"),
@@ -1101,6 +1125,10 @@ function CreateStrategyComposer({
     (layerUnit === "percent" ? layerNumber <= 50 : Number.isInteger(layerNumber));
 
   useEffect(() => {
+    if (initialWeightEffectRef.current) {
+      initialWeightEffectRef.current = false;
+      return;
+    }
     setCustomWeights(buildStrategyDefaultWeights(selectedFactorIds));
   }, [selectedFactorIds]);
 
@@ -1134,9 +1162,16 @@ function CreateStrategyComposer({
         event.preventDefault();
         setShowValidation(true);
         if (selectedFactorIds.length === 0 || !customWeightValid || !layerValueValid) return;
-        const createdStrategyName = strategyName.trim() || tr("Untitled strategy", "未命名策略");
-        onCreate(createdStrategyName);
-        toast.success(formatBacktestSubmitted(createdStrategyName, tr));
+        const submittedStrategyName = strategyName.trim() || tr("Untitled strategy", "未命名策略");
+        onSubmit({
+          selectedFactorIds,
+          customWeights,
+          direction,
+          layerUnit,
+          layerValue,
+          strategyName: submittedStrategyName,
+          strategyNote: strategyNote.trim(),
+        });
         onClose();
       }}
     >
@@ -1298,12 +1333,30 @@ function CreateStrategyComposer({
         />
       </label>
 
+      <label className="oq-strategy-form-field is-wide">
+        <span>{tr("Note", "备注")}</span>
+        <textarea
+          className="oq-strategy-form-control oq-strategy-note-input"
+          value={strategyNote}
+          maxLength={300}
+          placeholder={tr("Add a note", "添加备注")}
+          onChange={(event) => setStrategyNote(event.target.value)}
+        />
+      </label>
+
       <div className="oq-strategy-create-actions">
         <button type="button" className="oq-strategy-form-secondary" onClick={onClose}>
           {tr("Cancel", "取消")}
         </button>
         <button type="submit" className="oq-strategy-form-primary">
-          {tr("Create strategy", "创建策略")}
+          {mode === "edit"
+            ? tr("Save changes", "保存编辑", {
+                ja: "変更を保存",
+                ko: "변경 사항 저장",
+                es: "Guardar cambios",
+                fr: "Enregistrer les modifications",
+              })
+            : tr("Create strategy", "创建策略")}
         </button>
       </div>
 
@@ -1840,7 +1893,7 @@ export default function MyStrategies() {
     });
   };
 
-  const createPendingStrategy = (name: string) => {
+  const createPendingStrategy = (name: string, note: string) => {
     const createdAt = new Date();
     setCreatedStrategies((current) => {
       const nextId = Math.max(
@@ -1851,6 +1904,7 @@ export default function MyStrategies() {
         {
           id: `STR-${nextId}`,
           name,
+          note: note || undefined,
           createdAt: createdAt.toISOString(),
           readyAt: createdAt.getTime() + STRATEGY_BACKTEST_DURATION_MS,
         },
@@ -2000,7 +2054,6 @@ export default function MyStrategies() {
           ) : workbenchRows.map((row, index) => {
             const meta = getWorkbenchMetaForRow(row);
             const localizedTitle = translateWorkbenchTitle(meta.title, tr);
-            const localizedCategory = translateWorkbenchCategory(meta.category, tr);
             const isSelected = selectedStrategyIds.has(row.id);
             const isPending = row.backtestStatus === "pending";
             const isCompareDisabled = isPending || (!isSelected && selectedStrategyIds.size >= MAX_COMPARE_STRATEGY_COUNT);
@@ -2018,7 +2071,6 @@ export default function MyStrategies() {
                 ) : null}
                 <div className="oq-strategy-name-cell">
                   <div>{localizedTitle}</div>
-                  <span>{localizedCategory}</span>
                 </div>
                 <div className="oq-strategy-mono">{meta.sharpe}</div>
                 <div
@@ -2146,7 +2198,10 @@ export default function MyStrategies() {
               tr={tr}
               plainExplainEnabled={shouldShowPlainExplanations}
               onClose={() => setShowCreateStrategy(false)}
-              onCreate={createPendingStrategy}
+              onSubmit={(values) => {
+                createPendingStrategy(values.strategyName, values.strategyNote);
+                toast.success(formatBacktestSubmitted(values.strategyName, tr));
+              }}
             />
           </DialogContent>
         </Dialog>

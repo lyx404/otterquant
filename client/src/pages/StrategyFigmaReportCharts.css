@@ -141,7 +141,9 @@
 }
 
 .oq-report-metric-panel {
+  display: grid;
   overflow: visible;
+  gap: 10px;
   border: var(--report-divider-width) solid var(--report-border);
   border-radius: 12px;
   background: var(--report-bg);
@@ -149,12 +151,31 @@
   box-shadow: var(--report-shadow);
 }
 
+.oq-report-metric-header {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.oq-report-metric-header h2 {
+  min-width: 0;
+  margin: 0;
+  color: var(--report-text);
+  font-family: var(--font-heading);
+  font-size: var(--chart-title-size);
+  font-weight: 750;
+  line-height: 1.25rem;
+}
+
 .oq-report-metric-panel .oq-report-date-select {
   position: relative;
   top: auto;
   right: auto;
   width: min(220px, 100%);
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .oq-report-metric-panel .oq-report-date-select > button {

@@ -502,7 +502,9 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={`flex min-h-screen bg-[#faf8f6] md:min-h-[1024px] md:pl-[var(--sidebar-width)] ${
-        currentPathname.startsWith("/account") || currentPathname.startsWith("/trade")
+        currentPathname.startsWith("/account") ||
+        currentPathname.startsWith("/trade") ||
+        currentPathname.startsWith("/strategies")
           ? "md:min-w-0"
           : "md:min-w-[1440px]"
       }`}

@@ -281,10 +281,12 @@ function classForTone(tone?: "positive" | "negative" | "neutral") {
 export default function TradeDetail() {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const performanceDateLabel = tr("Past 30 days", "过去 30 天");
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const [viewMode] = useState<TradeViewMode>("trading");
+  const [activePerformancePeriod, setActivePerformancePeriod] = useState(performanceDateLabel);
   const [overviewMetric, setOverviewMetric] = useState<OverviewMetric>("return");
   const [activeAllocationAsset, setActiveAllocationAsset] = useState<string | null>(null);
   const [analysisCurveRange, setAnalysisCurveRange] = useState<AnalysisRange>("90D");
@@ -307,6 +309,9 @@ export default function TradeDetail() {
       window.removeEventListener("focus", syncChartColorMode);
     };
   }, []);
+  useEffect(() => {
+    setActivePerformancePeriod(performanceDateLabel);
+  }, [performanceDateLabel]);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
@@ -694,9 +699,7 @@ export default function TradeDetail() {
             </div>
             <div className="oq-trade-detail-meta">
               <span aria-live="polite">{tr("Updated", "更新于")} {displayedUpdatedAt}</span>
-              <span className="oq-trade-detail-market-meta">
-                {trade.symbol} · {trade.market === "Perp" ? tr("Perp", "永续") : tr("Spot", "现货")} · {trade.leverage}
-              </span>
+              <span className="oq-trade-detail-record-id">{trade.recordId ?? trade.id}</span>
               <div className="oq-trade-detail-title-tags">
                 <span className={`oq-trade-detail-mode ${runtimeEnvironment === "paper" ? "is-paper" : "is-live"}`}>
                   {runtimeEnvironment === "paper" ? tr("Paper", "模拟") : tr("Live", "实盘")}
@@ -795,26 +798,32 @@ export default function TradeDetail() {
 
       <section className="oq-trade-overview" aria-label={tr("Strategy overview", "策略概览")}>
         <div className="oq-trade-overview-grid">
-          <article className="oq-trade-overview-card oq-trade-performance-card" aria-label={tr("Strategy Performance", "项目表现")}>
-            <StrategyReportDateControl
-              dateLabel={tr("Past 30 days", "过去30天")}
-              dateOptions={[
-                tr("Past 30 days", "过去30天"),
-                tr("Past 90 days", "过去90天"),
-                tr("Past 180 days", "过去180天"),
-                tr("Past year", "过去1年"),
-                tr("Custom start date", "自定义起始时间"),
-              ]}
-              customDateOption={tr("Custom start date", "自定义起始时间")}
-              uiLang={uiLang}
-              variant="compact"
-              labels={{
-                selectPeriod: tr("Select performance period", "选择表现周期"),
-                customRange: tr("Custom date range", "自定义时间范围"),
-                startDate: tr("Start date", "开始日期"),
-                endDate: tr("End date", "结束日期"),
-              }}
-            />
+          <article className="oq-trade-overview-card oq-trade-performance-card" aria-labelledby="trade-performance-period-title">
+            <div className="oq-trade-performance-header">
+              <h2 id="trade-performance-period-title">{activePerformancePeriod}</h2>
+              <StrategyReportDateControl
+                dateLabel={performanceDateLabel}
+                dateOptions={[
+                  performanceDateLabel,
+                  tr("Past 90 days", "过去 90 天"),
+                  tr("Past 180 days", "过去 180 天"),
+                  tr("Past year", "过去 1 年"),
+                  tr("Custom start date", "自定义起始时间"),
+                ]}
+                customDateOption={tr("Custom start date", "自定义起始时间")}
+                uiLang={uiLang}
+                variant="compact"
+                triggerMode="switch"
+                onSelectionChange={setActivePerformancePeriod}
+                labels={{
+                  selectPeriod: tr("Select performance period", "选择表现周期"),
+                  customRange: tr("Custom date range", "自定义时间范围"),
+                  startDate: tr("Start date", "开始日期"),
+                  endDate: tr("End date", "结束日期"),
+                  switchPeriod: tr("Switch", "切换"),
+                }}
+              />
+            </div>
 
             <dl className="oq-trade-performance-metrics">
               {performanceMetrics.map((metric) => (

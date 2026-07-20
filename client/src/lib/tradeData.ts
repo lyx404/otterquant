@@ -5,6 +5,7 @@ export type TradeMarginMode = "cross" | "isolated";
 
 export type TradeBot = {
   id: string;
+  recordId?: string;
   strategyId?: string;
   strategyOrigin?: "strategy";
   environment: TradeEnvironment;
@@ -66,6 +67,7 @@ export type FillRow = {
 export const tradeBots: TradeBot[] = [
   {
     id: "TRD-101",
+    recordId: "8ade81c02da25b73b656a13bd7fc4379",
     environment: "paper",
     name: "Momentum Basket v2",
     symbol: "BTCUSDT",

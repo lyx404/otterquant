@@ -818,6 +818,7 @@
   --report-panel: #faf8f6;
   --report-panel-deep: #f4f1ed;
   --report-subtle-surface: #fbfbfc;
+  --report-historical-surface: #f7f7f7;
   --report-border: #ece6df;
   --report-border-strong: #ece6df;
   --report-subtle-border: #f3f3f3;
@@ -899,6 +900,11 @@ main:has(.oq-strategy-figma-report) {
   background: var(--report-bg);
   padding: 20px 24px;
   box-shadow: 0 8px 24px rgba(60, 40, 20, 0.06);
+  transition: background-color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-report-top.is-historical-version {
+  background: var(--report-historical-surface);
 }
 
 .oq-report-title-block {
@@ -1245,6 +1251,169 @@ main:has(.oq-strategy-figma-report) {
 .oq-report-action.is-live:hover {
   color: #ffffff;
   filter: saturate(1.04);
+}
+
+.oq-report-action > svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  stroke-width: 1.8;
+}
+
+.oq-report-action.is-icon {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+}
+
+.oq-report-more-content {
+  z-index: 80;
+  min-width: 184px;
+  border-color: #ece6df;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 6px;
+  color: #0d0d0d;
+  box-shadow: 0 12px 30px rgba(60, 40, 20, 0.12);
+}
+
+.oq-report-more-item {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: #2a2622;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  cursor: pointer;
+}
+
+.oq-report-more-item > svg {
+  color: currentColor !important;
+  stroke-width: 1.8;
+}
+
+.oq-report-more-item[data-highlighted] {
+  background: #fef6ef;
+  color: #dc4900;
+}
+
+.oq-report-more-item.is-destructive {
+  color: #dc2626;
+}
+
+.oq-report-more-separator {
+  background: #ece6df;
+}
+
+.oq-report-delete-dialog {
+  --delete-dialog-bg: #ffffff;
+  --delete-dialog-warm: #fef6ef;
+  --delete-dialog-border: #e2dad0;
+  --delete-dialog-text: #0d0d0d;
+  --delete-dialog-text-soft: #4a443d;
+  --delete-dialog-muted: #8c8378;
+  --delete-dialog-accent: #dc4900;
+  width: min(512px, calc(100vw - 32px));
+  max-width: min(512px, calc(100vw - 32px));
+  gap: 16px;
+  border: 1px solid var(--delete-dialog-border) !important;
+  border-radius: 15px !important;
+  background: var(--delete-dialog-bg) !important;
+  color: var(--delete-dialog-text);
+  padding: 20px !important;
+  box-shadow: 0 6px 18px rgba(60, 40, 20, 0.08) !important;
+}
+
+.oq-report-delete-dialog-header {
+  gap: 9px !important;
+  text-align: left !important;
+}
+
+.oq-report-delete-dialog-title {
+  color: var(--delete-dialog-text);
+  font-family: var(--font-heading);
+  font-size: 19.5px;
+  font-weight: 700;
+  line-height: 27px;
+}
+
+.oq-report-delete-dialog-description {
+  color: var(--delete-dialog-muted) !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+
+.oq-report-delete-dialog-footer {
+  gap: 9px !important;
+}
+
+.oq-report-delete-dialog-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-color: var(--delete-dialog-border) !important;
+  border-radius: 37.5px !important;
+  background: var(--delete-dialog-bg) !important;
+  padding: 0 12px !important;
+  color: var(--delete-dialog-text-soft) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 14px !important;
+  box-shadow: none !important;
+  transition:
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-report-delete-dialog-button:hover {
+  border-color: rgba(220, 73, 0, 0.28) !important;
+  background: var(--delete-dialog-warm) !important;
+  color: var(--delete-dialog-accent) !important;
+  transform: translateY(-1px);
+}
+
+.oq-report-delete-dialog-button.is-primary {
+  border-color: rgba(220, 73, 0, 0.2) !important;
+  background: var(--delete-dialog-accent) !important;
+  color: #ffffff !important;
+}
+
+.oq-report-delete-dialog-button.is-primary:hover {
+  background: #e8750c !important;
+  color: #ffffff !important;
+}
+
+.oq-report-delete-dialog :is(button, a):focus-visible {
+  outline: 2px solid rgba(220, 73, 0, 0.28);
+  outline-offset: 2px;
+  box-shadow: none !important;
+}
+
+@media (max-width: 640px) {
+  .oq-report-delete-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    padding: 18px 16px !important;
+  }
+
+  .oq-report-delete-dialog-button {
+    width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oq-report-delete-dialog,
+  .oq-report-delete-dialog * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .oq-report-action.is-deploying,
@@ -2556,12 +2725,16 @@ main:has(.oq-strategy-figma-report) {
     .oq-report-date-menu,
     .oq-report-card,
     .oq-position-card,
-    .oq-report-metrics-table,
     .oq-chart-tooltip,
     .oq-dense-tooltip-card,
     .oq-chart-empty
   ) {
   border-color: var(--report-border);
+  border-width: var(--report-divider-width);
+}
+
+.oq-strategy-figma-report .oq-report-metrics-table {
+  border-color: var(--report-subtle-border);
   border-width: var(--report-divider-width);
 }
 
@@ -2750,6 +2923,14 @@ main:has(.oq-strategy-figma-report) {
 
   .oq-report-action {
     min-height: 44px;
+  }
+
+  .oq-report-action.is-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-self: start;
   }
 
   .oq-report-action.is-live {

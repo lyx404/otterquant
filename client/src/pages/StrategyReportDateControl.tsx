@@ -23,6 +23,8 @@ export function StrategyReportDateControl({
   uiLang,
   labels,
   variant = "default",
+  triggerMode = "default",
+  onSelectionChange,
 }: {
   dateLabel: string;
   dateOptions?: string[];
@@ -33,8 +35,11 @@ export function StrategyReportDateControl({
     customRange: string;
     startDate: string;
     endDate: string;
+    switchPeriod?: string;
   };
   variant?: "default" | "compact";
+  triggerMode?: "default" | "switch";
+  onSelectionChange?: (label: string) => void;
 }) {
   const options = Array.from(new Set(dateOptions && dateOptions.length > 0
     ? dateOptions
@@ -51,8 +56,9 @@ export function StrategyReportDateControl({
   const visibleRange = isCalendarOpen ? draftRange : customRange;
   const visibleStartDate = visibleRange?.from ? formatDate(visibleRange.from) : labels.startDate;
   const visibleEndDate = visibleRange?.to ? formatDate(visibleRange.to) : labels.endDate;
+  const rangeSeparator = uiLang === "zh" ? "至" : "–";
   const selectedDisplay = isCustomRange
-    ? `${visibleStartDate} – ${visibleEndDate}`
+    ? `${visibleStartDate} ${rangeSeparator} ${visibleEndDate}`
     : selectedLabel;
 
   useEffect(() => {
@@ -77,7 +83,7 @@ export function StrategyReportDateControl({
 
   return (
     <div
-      className={`oq-report-date-select oq-report-date-select--${variant}`}
+      className={`oq-report-date-select oq-report-date-select--${variant} oq-report-date-select--${triggerMode}`}
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeOverlays();
       }}
@@ -93,27 +99,33 @@ export function StrategyReportDateControl({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={isMenuOpen || isCalendarOpen}
-        aria-label={selectedDisplay}
+        aria-label={triggerMode === "switch"
+          ? `${labels.switchPeriod ?? labels.selectPeriod}: ${selectedDisplay}`
+          : selectedDisplay}
         onClick={() => {
           setIsCalendarOpen(false);
           setIsMenuOpen(previous => !previous);
         }}
       >
-        <span
-          className={`oq-report-date-trigger-label${isCustomRange ? " is-custom-range" : ""}`}
-          aria-live={isCustomRange ? "polite" : undefined}
-        >
-          <CalendarDays aria-hidden="true" />
-          {isCustomRange ? (
-            <>
-              <span className="oq-report-date-trigger-value">{visibleStartDate}</span>
-              <span className="oq-report-date-trigger-separator" aria-hidden="true">–</span>
-              <span className="oq-report-date-trigger-value">{visibleEndDate}</span>
-            </>
-          ) : (
-            <span className="oq-report-date-trigger-value">{selectedDisplay}</span>
-          )}
-        </span>
+        {triggerMode === "switch" ? (
+          <span className="oq-report-date-switch-label">{labels.switchPeriod ?? labels.selectPeriod}</span>
+        ) : (
+          <span
+            className={`oq-report-date-trigger-label${isCustomRange ? " is-custom-range" : ""}`}
+            aria-live={isCustomRange ? "polite" : undefined}
+          >
+            <CalendarDays aria-hidden="true" />
+            {isCustomRange ? (
+              <>
+                <span className="oq-report-date-trigger-value">{visibleStartDate}</span>
+                <span className="oq-report-date-trigger-separator" aria-hidden="true">{rangeSeparator}</span>
+                <span className="oq-report-date-trigger-value">{visibleEndDate}</span>
+              </>
+            ) : (
+              <span className="oq-report-date-trigger-value">{selectedDisplay}</span>
+            )}
+          </span>
+        )}
         <ChevronDown aria-hidden="true" className="oq-report-date-chevron" />
       </button>
 
@@ -129,7 +141,10 @@ export function StrategyReportDateControl({
               onClick={() => {
                 setSelectedLabel(option);
                 if (option === customDateOption) openCalendar();
-                else closeOverlays();
+                else {
+                  onSelectionChange?.(option);
+                  closeOverlays();
+                }
               }}
             >
               <span>{option}</span>
@@ -155,6 +170,7 @@ export function StrategyReportDateControl({
               setDraftRange(range);
               setCustomRange(range);
               setSelectedLabel(customDateOption ?? selectedLabel);
+              onSelectionChange?.(`${formatDate(from)} ${rangeSeparator} ${formatDate(day)}`);
               setIsCalendarOpen(false);
               requestAnimationFrame(() => triggerRef.current?.focus());
             }}

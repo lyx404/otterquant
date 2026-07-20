@@ -2825,6 +2825,7 @@ export function StrategyFigmaReport({
   title = "20260608_020653",
   subtitle = "combo · x_demedian_y_rank",
   headerMetrics = defaultHeaderMetrics,
+  metricSectionTitle,
   dateLabel = "2020-01-01_2020-12-31",
   dateOptions,
   customDateOption,
@@ -2834,6 +2835,7 @@ export function StrategyFigmaReport({
   topAction,
   titleAction,
   actions,
+  historicalVersionView = false,
   metricRows = navMetrics,
   positions = defaultPositions,
   tr = defaultTr,
@@ -2841,6 +2843,7 @@ export function StrategyFigmaReport({
   title?: string;
   subtitle?: ReactNode;
   headerMetrics?: ReportMetric[];
+  metricSectionTitle?: string;
   dateLabel?: string;
   dateOptions?: string[];
   customDateOption?: string;
@@ -2850,10 +2853,16 @@ export function StrategyFigmaReport({
   topAction?: ReactNode;
   titleAction?: ReactNode;
   actions?: ReactNode;
+  historicalVersionView?: boolean;
   metricRows?: ReportMetricRow[];
   positions?: ReportPositionRecord[];
   tr?: Tr;
 }) {
+  const [activeMetricSectionTitle, setActiveMetricSectionTitle] = useState(metricSectionTitle ?? dateLabel);
+  useEffect(() => {
+    setActiveMetricSectionTitle(metricSectionTitle ?? dateLabel);
+  }, [dateLabel, metricSectionTitle]);
+
   const reportColorVars = (chartColorMode === "redUpGreenDown"
     ? {
         "--report-green": "rgb(244, 63, 94)",
@@ -2867,7 +2876,7 @@ export function StrategyFigmaReport({
   return (
     <div className="oq-strategy-figma-report" style={reportColorVars}>
       {topAction ? <div className="oq-report-top-action">{topAction}</div> : null}
-      <header className="oq-report-top">
+      <header className={`oq-report-top${historicalVersionView ? " is-historical-version" : ""}`}>
         <div className="oq-report-title-block">
           <div className="oq-report-title-row">
             <div className="oq-report-title-copy">
@@ -2883,19 +2892,25 @@ export function StrategyFigmaReport({
       </header>
 
       <section className="oq-report-metric-panel" aria-label={tReport(tr, "Strategy summary metrics", "策略概览指标")}>
-        <StrategyReportDateControl
-          dateLabel={dateLabel}
-          dateOptions={dateOptions}
-          customDateOption={customDateOption}
-          uiLang={uiLang}
-          variant="compact"
-          labels={{
-            selectPeriod: tReport(tr, "Select backtest period", "选择回测周期"),
-            customRange: tReport(tr, "Custom date range", "自定义时间范围"),
-            startDate: tReport(tr, "Start date", "开始日期"),
-            endDate: tReport(tr, "End date", "结束日期"),
-          }}
-        />
+        <div className="oq-report-metric-header">
+          <h2>{activeMetricSectionTitle}</h2>
+          <StrategyReportDateControl
+            dateLabel={dateLabel}
+            dateOptions={dateOptions}
+            customDateOption={customDateOption}
+            uiLang={uiLang}
+            variant="compact"
+            triggerMode="switch"
+            onSelectionChange={setActiveMetricSectionTitle}
+            labels={{
+              selectPeriod: tReport(tr, "Select backtest period", "选择回测周期"),
+              customRange: tReport(tr, "Custom date range", "自定义时间范围"),
+              startDate: tReport(tr, "Start date", "开始日期"),
+              endDate: tReport(tr, "End date", "结束日期"),
+              switchPeriod: tReport(tr, "Switch", "切换"),
+            }}
+          />
+        </div>
         <div className="oq-report-metric-strip">
           {headerMetrics.map(metric => (
             <MaybeExplainTooltip
