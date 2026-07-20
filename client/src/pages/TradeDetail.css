@@ -170,18 +170,23 @@
 
 .oq-trade-detail-action {
   display: inline-flex;
-  width: 28px;
-  min-width: 28px;
-  height: 28px;
-  min-height: 28px;
+  width: auto;
+  min-width: 0;
+  min-height: 38px;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   border: 1px solid var(--td-border);
-  border-radius: 8px;
+  border-radius: 999px;
   background: var(--td-bg);
-  padding: 0;
+  padding: 0 14px;
   color: var(--td-muted-strong);
-  box-shadow: 0 1px 1.5px rgba(60, 40, 20, 0.06);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  box-shadow: none;
   cursor: pointer;
   transition:
     border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
@@ -1463,10 +1468,7 @@
   }
 
   .oq-trade-detail-action {
-    width: 36px;
-    min-width: 36px;
-    height: 36px;
-    min-height: 36px;
+    min-height: 44px;
   }
 
   .oq-trade-trend-selector button {

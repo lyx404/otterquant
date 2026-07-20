@@ -729,6 +729,7 @@ export default function TradeDetail() {
                       }}
                     >
                       <RefreshCw aria-hidden="true" />
+                      <span>{tr("Refresh", "刷新")}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top">{tr("Refresh", "刷新")}</TooltipContent>
@@ -754,6 +755,7 @@ export default function TradeDetail() {
                       }}
                     >
                       <CircleStop aria-hidden="true" />
+                      <span>{tr("Stop", "停止")}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top">{tr("Stop", "停止")}</TooltipContent>
@@ -781,6 +783,7 @@ export default function TradeDetail() {
                     }}
                   >
                     <Play aria-hidden="true" />
+                    <span>{tr("Restart", "重新启动")}</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top">{tr("Restart", "重新启动")}</TooltipContent>

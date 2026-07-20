@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Codex } from "@lobehub/icons";
-import { Check, Copy, FlaskConical, Link2 } from "lucide-react";
+import { Check, Copy, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import claudeMark from "@assets/agent-settings/asset-4.png";
 import openClawMark from "@assets/agent-settings/asset-6.png";
-import codexManualGuide from "@assets/agent-settings/asset-7.png";
+import codexManualGuide from "@assets/agent-settings/codex-manual-install-figma.png";
 
 type AgentId = "codex" | "claude" | "openclaw";
 type Translate = (en: string, zh: string) => string;
@@ -87,15 +87,6 @@ export function AgentSettingsPanel({ tr }: AgentSettingsPanelProps) {
     );
   };
 
-  const handleConnectGuide = (agent: (typeof AGENTS)[number]) => {
-    toast.success(
-      tr(
-        `Showing the ${agent.name} connection guide`,
-        `正在查看 ${agent.name} 连接指引`
-      )
-    );
-  };
-
   return (
     <div className="oq-agent-settings">
       <div className="oq-agent-connection-list">
@@ -133,14 +124,6 @@ export function AgentSettingsPanel({ tr }: AgentSettingsPanelProps) {
                   onClick={() => handleDisconnect(agent)}
                 >
                   <span>{tr("Disconnect", "断开连接")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="oq-agent-control"
-                  onClick={() => handleConnectGuide(agent)}
-                >
-                  <Link2 aria-hidden="true" />
-                  <span>{tr("Connect Guide", "连接指引")}</span>
                 </button>
               </div>
             </article>

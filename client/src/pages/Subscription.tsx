@@ -1650,18 +1650,18 @@ function SubscriptionPlanPage() {
   );
 }
 
-// Switch to true only when restoring "Workbench 260717".
-const SHOW_SUBSCRIPTION_WORKBENCH_260717 = false;
+// Switch to true only when restoring "Workbench 260720".
+const SHOW_SUBSCRIPTION_WORKBENCH_260720 = false;
 
 export default function Subscription() {
-  return <SubscriptionWorkbench260717 />;
+  return <SubscriptionWorkbench260720 />;
 }
 
-function SubscriptionWorkbench260717() {
+function SubscriptionWorkbench260720() {
   const [location] = useLocation();
   const isHostingPage = location === "/subscription/hosting";
 
   if (isHostingPage) return <FixedHostingFeePage />;
 
-  return SHOW_SUBSCRIPTION_WORKBENCH_260717 ? <SubscriptionPlanPage /> : null;
+  return SHOW_SUBSCRIPTION_WORKBENCH_260720 ? <SubscriptionPlanPage /> : null;
 }

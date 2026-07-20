@@ -2463,7 +2463,7 @@ main:has(.oq-strategy-figma-report) {
   border: 0;
   border-radius: 4px;
   background: color-mix(in srgb, var(--report-muted) 8%, var(--report-bg));
-  color: var(--report-text-soft);
+  color: #4a443d;
   font-size: 0.625rem;
   font-weight: 600;
   line-height: 0.75rem;
@@ -2483,8 +2483,8 @@ main:has(.oq-strategy-figma-report) {
 
 .oq-position-symbol .oq-position-status {
   flex-basis: auto;
-  background: color-mix(in srgb, var(--report-green) 8%, var(--report-bg));
-  color: color-mix(in srgb, var(--report-green) 82%, var(--report-text));
+  background: color-mix(in srgb, var(--report-muted) 8%, var(--report-bg));
+  color: #4a443d;
 }
 
 .oq-position-head span:not(:first-child),

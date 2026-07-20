@@ -11,7 +11,7 @@ import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
-  Mail, Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
+  Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -41,9 +41,9 @@ const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementTy
   { id: "agent", labelEn: "Agent Settings", labelZh: "Agent设置", icon: Key },
 ];
 
-// Switch these to true only when restoring "Workbench 260717".
-const SHOW_ACCOUNT_PROFILE_WORKBENCH_260717 = false;
-const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260717 = false;
+// Switch these to true only when restoring "Workbench 260720".
+const SHOW_ACCOUNT_PROFILE_WORKBENCH_260720 = false;
+const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 = false;
 
 const languageOptions: { value: UiLang; label: string }[] = [
   { value: "en", label: "English" },
@@ -463,35 +463,41 @@ function AccountWorkbench260712() {
 
       {/* ═══════════════ General Tab ═══════════════ */}
       {activeTab === "general" && (
-        <div className="space-y-6">
-          <div className="surface-card overflow-hidden">
-            <div className="px-6 pt-5 pb-0">
-              <div className="flex items-center gap-2">
-                <span className="oq-account-section-title font-semibold text-foreground">
-                  {tr("General", "常规")}
-                </span>
-              </div>
-            </div>
+        <div className="oq-account-general">
+          <section className="oq-settings-panel" aria-labelledby="oq-general-settings-title">
+            <header className="oq-settings-panel-header">
+              <h2 id="oq-general-settings-title" className="oq-account-section-title">
+                {tr("General", "常规")}
+              </h2>
+            </header>
 
-            <div className="px-6 pb-6 pt-5 space-y-3">
-              <div className="oq-account-setting-row flex flex-wrap items-center justify-between gap-4 bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("Language", "语言")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
+            <div className="oq-settings-list">
+              <div className="oq-account-setting-row">
+                <div className="oq-settings-copy">
+                  <div className="oq-settings-label">{tr("Language", "语言")}</div>
+                  <div className="oq-settings-description">
                     {tr("Set display language for UI and notifications.", "设置界面与通知的显示语言。")}
                   </div>
                 </div>
                 <Select value={uiLang} onValueChange={(value) => setUiLang(value as UiLang)}>
                   <SelectTrigger
                     size="sm"
-                    className="oq-account-language-trigger h-10 min-w-[148px] rounded-full border-border bg-accent/35 px-3 text-xs shadow-none"
+                    className="oq-account-language-trigger"
                     aria-label={tr("Select language", "选择语言")}
                   >
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent align="end" className="rounded-xl">
+                  <SelectContent
+                    align="end"
+                    sideOffset={6}
+                    className="oq-account-language-content"
+                  >
                     {languageOptions.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
+                      <SelectItem
+                        key={item.value}
+                        value={item.value}
+                        className="oq-account-language-item"
+                      >
                         {item.label}
                       </SelectItem>
                     ))}
@@ -499,14 +505,14 @@ function AccountWorkbench260712() {
                 </Select>
               </div>
 
-              <div className="oq-account-setting-row flex flex-wrap items-center justify-between gap-4 bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{tr("Color Configuration", "颜色配置")}</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
+              <div className="oq-account-setting-row">
+                <div className="oq-settings-copy">
+                  <div className="oq-settings-label">{tr("Color Configuration", "颜色配置")}</div>
+                  <div className="oq-settings-description">
                     {tr("Choose how rising and falling values are colored.", "选择上涨与下跌数值的颜色显示。")}
                   </div>
                 </div>
-                <div className="inline-flex flex-wrap items-center gap-2">
+                <div className="oq-account-color-options">
                   {([
                     { value: "redUpGreenDown", en: "Red up, green down", zh: "红涨绿跌" },
                     { value: "greenUpRedDown", en: "Green up, red down", zh: "绿涨红跌" },
@@ -515,11 +521,7 @@ function AccountWorkbench260712() {
                       key={item.value}
                       type="button"
                       onClick={() => setChartColorMode(item.value)}
-                      className={`inline-flex h-10 items-center gap-2 rounded-full border px-3 text-xs font-medium transition-colors ${
-                        chartColorMode === item.value
-                          ? "border-primary/30 bg-primary/10 text-primary"
-                          : "border-border bg-accent text-muted-foreground hover:text-foreground"
-                      }`}
+                      className={`oq-account-color-option${chartColorMode === item.value ? " is-active" : ""}`}
                     >
                       <span>{tr(item.en, item.zh)}</span>
                       <ChartColorPreview mode={item.value} />
@@ -528,37 +530,35 @@ function AccountWorkbench260712() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="surface-card overflow-hidden">
-            <div className="px-6 pt-5 pb-0">
-              <div className="flex items-center gap-2">
-                <span className="oq-account-section-title font-semibold text-foreground">
-                  {tr("Notifications", "通知")}
-                </span>
-              </div>
-            </div>
-            <div className="px-6 pb-6 pt-5 space-y-3">
-              <div className="oq-account-setting-row flex items-center justify-between gap-5 bg-accent/30 px-5 py-4">
-                <div>
-                  <div className="text-sm font-medium text-foreground">{tr("Interaction Messages", "互动消息")}</div>
-                  <div className="text-xs text-muted-foreground">{tr("Get notified about signal status changes, test results, and performance updates", "接收信号状态变化、回测结果与绩效更新通知")}</div>
+          <section className="oq-settings-panel" aria-labelledby="oq-notification-settings-title">
+            <header className="oq-settings-panel-header">
+              <h2 id="oq-notification-settings-title" className="oq-account-section-title">
+                {tr("Notifications", "通知")}
+              </h2>
+            </header>
+            <div className="oq-settings-list">
+              <div className="oq-account-setting-row is-switch">
+                <div className="oq-settings-copy">
+                  <div className="oq-settings-label">{tr("Interaction Messages", "互动消息")}</div>
+                  <div className="oq-settings-description">{tr("Get notified about signal status changes, test results, and performance updates", "接收信号状态变化、回测结果与绩效更新通知")}</div>
                 </div>
                 <button
                   type="button"
                   role="switch"
                   aria-checked={alphasNotify}
                   aria-label={tr("Interaction Messages", "互动消息")}
-                  className={`oq-account-notification-switch relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${alphasNotify ? "bg-primary" : "bg-muted"}`}
+                  className={`oq-account-notification-switch${alphasNotify ? " is-on" : ""}`}
                   onClick={() => { setAlphasNotify(!alphasNotify); toast.success(alphasNotify ? tr("Interaction messages disabled", "已关闭互动消息") : tr("Interaction messages enabled", "已开启互动消息")); }}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-none transition-transform duration-200 ease-in-out ${alphasNotify ? "translate-x-5" : "translate-x-0"}`} />
+                  <span className="oq-account-notification-thumb" />
                 </button>
               </div>
-              <div className="oq-account-setting-row flex items-center justify-between gap-5 bg-accent/30 px-5 py-4">
-                <div className="pr-6">
-                  <div className="text-sm font-medium text-foreground">{tr("Announcements", "公告")}</div>
-                  <div className="text-xs text-muted-foreground">
+              <div className="oq-account-setting-row is-switch">
+                <div className="oq-settings-copy">
+                  <div className="oq-settings-label">{tr("Announcements", "公告")}</div>
+                  <div className="oq-settings-description">
                     {tr(
                       "Get notified about skill updates, new skills, deprecations, platform announcements, maintenance, and Official Library expansion.",
                       "接收技能更新、新技能发布、废弃公告、平台通知、维护通知与官方库扩展信息。"
@@ -570,38 +570,37 @@ function AccountWorkbench260712() {
                   role="switch"
                   aria-checked={systemNotify}
                   aria-label={tr("Announcements", "公告")}
-                  className={`oq-account-notification-switch relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out ${systemNotify ? "bg-primary" : "bg-muted"}`}
+                  className={`oq-account-notification-switch${systemNotify ? " is-on" : ""}`}
                   onClick={() => { setSystemNotify(!systemNotify); toast.success(systemNotify ? tr("Announcements disabled", "已关闭公告") : tr("Announcements enabled", "已开启公告")); }}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-none transition-transform duration-200 ease-in-out ${systemNotify ? "translate-x-5" : "translate-x-0"}`} />
+                  <span className="oq-account-notification-thumb" />
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       )}
 
       {/* ═══════════════ Profile Tab ═══════════════ */}
-      {activeTab === "profile" && SHOW_ACCOUNT_PROFILE_WORKBENCH_260717 && (
+      {activeTab === "profile" && SHOW_ACCOUNT_PROFILE_WORKBENCH_260720 && (
         <div className="oq-account-profile">
           {/* Account Settings */}
-          <div className="surface-card oq-profile-card pb-6">
-              <div className="oq-profile-card-header">
-                <div className="flex items-center gap-2">
-                  <span className="oq-profile-card-title">{tr("Account Settings", "账户信息")}</span>
-                </div>
-              </div>
+          <section className="oq-profile-card" aria-labelledby="oq-profile-card-title">
+            <header className="oq-profile-card-header">
+              <h2 id="oq-profile-card-title" className="oq-profile-card-title">
+                {tr("Account Settings", "账户信息")}
+              </h2>
+            </header>
 
             {/* 1. Profile (Nickname & Avatar) */}
             <div className="oq-profile-section oq-profile-section-flat">
               <div className="oq-profile-section-header">
                 <div className="oq-section-title">
-                  <User className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">{tr("Profile", "个人资料")}</span>
                 </div>
                 {!editingProfile ? (
                   <button
-                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10"
+                    className="oq-profile-edit-button"
                     onClick={() => { setOriginalNickname(nickname); setEditingProfile(true); }}
                   >
                     <Pencil className="w-3 h-3" />
@@ -609,7 +608,7 @@ function AccountWorkbench260712() {
                   </button>
                 ) : (
                   <button
-                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground"
+                    className="oq-profile-edit-button is-cancel"
                     onClick={handleCancelProfile}
                   >
                     <X className="w-3 h-3" />
@@ -630,7 +629,7 @@ function AccountWorkbench260712() {
                   {editingProfile && (
                     <div className="oq-profile-action-row">
                       <button
-                        className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                        className="oq-profile-save-button"
                         onClick={() => {
                           if (!nickname.trim()) { toast.error(tr("Nickname cannot be empty", "昵称不能为空")); return; }
                           updateUser({ displayName: nickname });
@@ -651,12 +650,11 @@ function AccountWorkbench260712() {
             <div className="oq-profile-section">
               <div className="oq-profile-section-header">
                 <div className="oq-section-title">
-                  <Mail className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">{tr("Change Email", "修改邮箱")}</span>
                 </div>
                 {!editingEmail ? (
                   <button
-                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10"
+                    className="oq-profile-edit-button"
                     onClick={() => setEditingEmail(true)}
                   >
                     <Pencil className="w-3 h-3" />
@@ -664,7 +662,7 @@ function AccountWorkbench260712() {
                   </button>
                 ) : (
                   <button
-                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground"
+                    className="oq-profile-edit-button is-cancel"
                     onClick={handleCancelEmail}
                   >
                     <X className="w-3 h-3" />
@@ -689,7 +687,7 @@ function AccountWorkbench260712() {
                         className={`${activeInputCls} flex-1`}
                       />
                       <button
-                        className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                        className="oq-profile-code-button"
                         onClick={() => { setEmailCodeSent(true); toast.success(tr("Verification code sent to your current email", "验证码已发送至当前邮箱")); }}
                       >
                         <Send className="w-3 h-3" />
@@ -717,7 +715,7 @@ function AccountWorkbench260712() {
               {editingEmail && (
                 <div className="oq-profile-action-row">
                   <button
-                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                    className="oq-profile-save-button"
                     onClick={() => {
                       if (!emailVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
                       if (!newEmail.trim()) { toast.error(tr("Please enter a new email address", "请输入新邮箱地址")); return; }
@@ -739,12 +737,11 @@ function AccountWorkbench260712() {
             <div className="oq-profile-section">
               <div className="oq-profile-section-header">
                 <div className="oq-section-title">
-                  <Key className="w-4 h-4 text-primary" />
                   <span className="text-sm font-semibold text-foreground">{tr("Change Password", "修改密码")}</span>
                 </div>
                 {!editingPassword ? (
                   <button
-                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10"
+                    className="oq-profile-edit-button"
                     onClick={() => setEditingPassword(true)}
                   >
                     <Pencil className="w-3 h-3" />
@@ -752,7 +749,7 @@ function AccountWorkbench260712() {
                   </button>
                 ) : (
                   <button
-                    className="h-7 text-xs px-3 rounded-full flex items-center gap-1.5 transition-all duration-200 ease-in-out border border-border text-muted-foreground hover:text-foreground"
+                    className="oq-profile-edit-button is-cancel"
                     onClick={handleCancelPassword}
                   >
                     <X className="w-3 h-3" />
@@ -777,7 +774,7 @@ function AccountWorkbench260712() {
                         className={`${activeInputCls} flex-1`}
                       />
                       <button
-                        className="h-9 px-4 rounded-full text-xs font-medium transition-all duration-200 ease-in-out border border-primary/20 text-primary hover:bg-primary/10 flex items-center gap-1.5 shrink-0"
+                        className="oq-profile-code-button"
                         onClick={() => { setPasswordCodeSent(true); toast.success(tr("Verification code sent to your email", "验证码已发送至邮箱")); }}
                       >
                         <Send className="w-3 h-3" />
@@ -799,7 +796,7 @@ function AccountWorkbench260712() {
                 </div>
                 <div className="oq-profile-action-row">
                   <button
-                    className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 ease-in-out bg-primary text-primary-foreground hover:brightness-110 btn-bounce"
+                    className="oq-profile-save-button"
                     onClick={() => {
                       if (!passwordVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
                       if (!newPassword.trim()) { toast.error(tr("Please enter a new password", "请输入新密码")); return; }
@@ -815,11 +812,11 @@ function AccountWorkbench260712() {
               </div>
             ) : null}
             </div>
-          </div>
+          </section>
         </div>
       )}
 
-      {activeTab === "agent" && SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260717 && (
+      {activeTab === "agent" && SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 && (
         <AgentSettingsPanel tr={tr} />
       )}
 
@@ -1133,7 +1130,7 @@ function AccountWorkbench260712() {
       )}
 
       {/* ═══════════════ Profile Actions ═══════════════ */}
-      {activeTab === "profile" && SHOW_ACCOUNT_PROFILE_WORKBENCH_260717 && (
+      {activeTab === "profile" && SHOW_ACCOUNT_PROFILE_WORKBENCH_260720 && (
         <div className="oq-account-profile">
           <div className="surface-card oq-logout-card">
             <div className="oq-logout-content">

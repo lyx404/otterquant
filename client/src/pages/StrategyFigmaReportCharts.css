@@ -1483,7 +1483,7 @@ main:has(.oq-strategy-figma-report) {
   .oq-dense-chart.is-turnover-rate
   .oq-dense-lines,
 .oq-strategy-figma-report .oq-attribution-panel .oq-barra-exposure-svg {
-  height: clamp(320px, 30vw, 420px);
+  height: clamp(320px, 30vw, 350px);
 }
 
 .oq-strategy-figma-report .oq-attribution-panel .oq-barra-exposure-chart {

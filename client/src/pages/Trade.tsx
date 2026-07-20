@@ -399,7 +399,7 @@ function TradeWorkbench260712() {
               {summary.avgRoi.toFixed(1)}%
             </p>
             <div className="oq-trade-metric-label">
-              {tr("Average ROI", "平均ROI")}
+              {tr("Average ROI", "平均收益率")}
             </div>
           </div>
         </MaybeExplainTooltip>
@@ -532,8 +532,7 @@ function TradeWorkbench260712() {
                     <div className="oq-trade-bot-identity" role="cell">
                       <div className="oq-trade-bot-title">{bot.name}</div>
                       <div className="oq-trade-bot-meta">
-                        {bot.id} · {bot.symbol} · {marketLabel(bot.market)} ·{" "}
-                        {bot.leverage}
+                        {bot.symbol} · {marketLabel(bot.market)} · {bot.leverage}
                       </div>
                     </div>
 
