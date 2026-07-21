@@ -37,7 +37,6 @@ import {
   ArrowUp,
   ArrowUpDown,
   MoreHorizontal,
-  Pause,
   Play,
   RefreshCw,
   Trash2,
@@ -403,6 +402,7 @@ function TradeWorkbench260712() {
             uiLang={uiLang}
             variant="compact"
             triggerMode="switch"
+            iconOnly
             onSelectionChange={setActiveSummaryPeriod}
             labels={{
               selectPeriod: tr("Select summary period", "选择汇总周期"),
@@ -677,7 +677,16 @@ function TradeWorkbench260712() {
                                 setPendingAction({ type: "stop", botId: bot.id })
                               }
                             >
-                              <Pause aria-hidden="true" />
+                              <svg
+                                aria-hidden="true"
+                                className="oq-trade-stop-icon"
+                                viewBox="-128 -128 1280 1280"
+                              >
+                                <path
+                                  fill="currentColor"
+                                  d="M768 960c-26.24 0-48-21.76-48-48V112c0-26.24 21.76-48 48-48s48 21.76 48 48v800c0 26.24-21.76 48-48 48zM256 960c-26.24 0-48-21.76-48-48V112c0-26.24 21.76-48 48-48s48 21.76 48 48v800c0 26.24-21.76 48-48 48z"
+                                />
+                              </svg>
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="top">{tr("Stop", "停止")}</TooltipContent>

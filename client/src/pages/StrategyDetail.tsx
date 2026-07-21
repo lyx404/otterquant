@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useParams, useSearch } from "wouter";
 import { factors, strategies } from "@/lib/mockData";
 import { parsePercent } from "@/lib/strategyUtils";
@@ -21,6 +21,8 @@ import {
   OptimizerDialog,
   STRATEGY_VERSION_HISTORY_LIMIT,
   buildStrategyVersionHistory,
+  getStrategyVersionDemoRemainingMs,
+  normalizeStrategyVersionHistory,
   StrategyConfigDialog,
   StrategyDeleteDialog,
   StrategyVersionHistoryDialog,
@@ -332,8 +334,10 @@ export default function StrategyDetail() {
   const strategyDisplayName = strategyEditValues?.strategyName || defaultStrategyDisplayName;
   const createdAt = searchParams.get("createdAt") || strategy.updatedAt;
   const baseStrategyVersions = buildStrategyVersionHistory(strategyId, createdAt);
-  const strategyVersions = [...sessionStrategyVersions, ...baseStrategyVersions]
-    .slice(0, STRATEGY_VERSION_HISTORY_LIMIT);
+  const strategyVersions = normalizeStrategyVersionHistory(
+    [...sessionStrategyVersions, ...baseStrategyVersions]
+      .slice(0, STRATEGY_VERSION_HISTORY_LIMIT)
+  );
   const effectiveDefaultVersionId = defaultVersionId
     ?? strategyVersions.find((version) => version.status === "ready")?.id
     ?? null;
@@ -346,10 +350,28 @@ export default function StrategyDetail() {
     const latestSearch = latestParams.toString();
     return `/strategies/${encodeURIComponent(strategyId)}${latestSearch ? `?${latestSearch}` : ""}`;
   })();
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [historicalVersionId, strategyId]);
   useEffect(() => {
     setSessionStrategyVersions([]);
     setDefaultVersionId(null);
   }, [strategyId]);
+  useEffect(() => {
+    const latestVersion = sessionStrategyVersions[0];
+    const remaining = getStrategyVersionDemoRemainingMs(latestVersion);
+    if (remaining === null) return;
+
+    const timer = window.setTimeout(() => {
+      setSessionStrategyVersions((current) => current.map((version) => (
+        version.id === latestVersion.id && getStrategyVersionDemoRemainingMs(version) === 0
+          ? { ...version, status: "ready" }
+          : version
+      )));
+    }, remaining);
+
+    return () => window.clearTimeout(timer);
+  }, [sessionStrategyVersions]);
   const paperDeployment = useMemo(
     () => getStrategyDeployment(strategyId, "paper"),
     [deploymentVersion, strategyId]
@@ -819,6 +841,7 @@ export default function StrategyDetail() {
           source: sourceType,
           note,
           status,
+          demoProcessingStartedAt: status === "pending" ? Date.now() : undefined,
         },
         ...current,
       ];
@@ -1005,31 +1028,36 @@ export default function StrategyDetail() {
 
   return (
     <>
-      <StrategyFigmaReport
-        title={reportTitle}
-        subtitle={reportSubtitle}
-        titleAction={<span className="oq-report-no-badge">NO.{reportNo}</span>}
-        topAction={reportTopAction}
-        historicalVersionView={isHistoricalVersionView}
-        headerMetrics={reportHeaderMetrics}
-        plainExplainEnabled={plainExplainEnabled}
-        chartColorMode={chartColorMode}
-        metricSectionTitle={tr("Past 30 days", "过去 30 天")}
-        dateLabel={tr("Past 30 days", "过去 30 天")}
-        dateOptions={[
-          tr("Past 30 days", "过去 30 天"),
-          tr("Past 90 days", "过去 90 天"),
-          tr("Past 180 days", "过去 180 天"),
-          tr("Past year", "过去 1 年"),
-          tr("Custom start date", "自定义起始时间"),
-        ]}
-        customDateOption={tr("Custom start date", "自定义起始时间")}
-        uiLang={uiLang}
-        actions={reportActions}
-        metricRows={reportMetricRows}
-        positions={reportPositions}
-        tr={tr}
-      />
+      <div
+        className="oq-strategy-detail-transition"
+        key={`${strategyId}:${historicalVersionId ?? "latest"}`}
+      >
+        <StrategyFigmaReport
+          title={reportTitle}
+          subtitle={reportSubtitle}
+          titleAction={<span className="oq-report-no-badge">NO.{reportNo}</span>}
+          topAction={reportTopAction}
+          historicalVersionView={isHistoricalVersionView}
+          headerMetrics={reportHeaderMetrics}
+          plainExplainEnabled={plainExplainEnabled}
+          chartColorMode={chartColorMode}
+          metricSectionTitle={tr("Past 30 days", "过去 30 天")}
+          dateLabel={tr("Past 30 days", "过去 30 天")}
+          dateOptions={[
+            tr("Past 30 days", "过去 30 天"),
+            tr("Past 90 days", "过去 90 天"),
+            tr("Past 180 days", "过去 180 天"),
+            tr("Past year", "过去 1 年"),
+            tr("Custom start date", "自定义起始时间"),
+          ]}
+          customDateOption={tr("Custom start date", "自定义起始时间")}
+          uiLang={uiLang}
+          actions={reportActions}
+          metricRows={reportMetricRows}
+          positions={reportPositions}
+          tr={tr}
+        />
+      </div>
 
       <LiveDeployDialog
         open={isLiveDeployOpen}
@@ -1095,7 +1123,7 @@ export default function StrategyDetail() {
               appendStrategyVersion(
                 "edit",
                 values.strategyNote.trim(),
-                "ready"
+                "pending"
               );
               toast.success(tr("Strategy updated.", "策略已更新。"));
             }}

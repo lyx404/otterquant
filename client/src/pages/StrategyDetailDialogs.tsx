@@ -43,6 +43,7 @@ import "./StrategyDetailDialogs.css";
 type Tr = (en: string, zh: string, copy?: Record<string, string>) => string;
 
 export const STRATEGY_VERSION_HISTORY_LIMIT = 10;
+export const STRATEGY_VERSION_DEMO_PROCESSING_DELAY_MS = 10_000;
 
 const optimizerNumericParameters = [
   { key: "wmin", defaultValue: "-0.03", step: "0.01" },
@@ -68,7 +69,26 @@ export type StrategyVersion = {
   source: "edit" | "optimizer";
   note: string;
   status: "ready" | "pending";
+  demoProcessingStartedAt?: number;
 };
+
+export function getStrategyVersionDemoRemainingMs(
+  version: StrategyVersion | undefined,
+  now = Date.now()
+): number | null {
+  if (version?.status !== "pending" || version.demoProcessingStartedAt === undefined) return null;
+  return Math.max(
+    0,
+    version.demoProcessingStartedAt + STRATEGY_VERSION_DEMO_PROCESSING_DELAY_MS - now
+  );
+}
+
+export function normalizeStrategyVersionHistory(versions: StrategyVersion[]): StrategyVersion[] {
+  return versions.map((version, index) => {
+    if (index === 0 || version.status === "ready") return version;
+    return { ...version, status: "ready" };
+  });
+}
 
 export function buildStrategyVersionHistory(strategyId: string, baseTimestamp: string): StrategyVersion[] {
   const baseDate = baseTimestamp.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? baseTimestamp;
@@ -88,7 +108,7 @@ export function buildStrategyVersionHistory(strategyId: string, baseTimestamp: s
       createdAt: `${subtractDays(index)} ${hour}:${index % 2 === 0 ? "00" : "30"}`,
       source: index % 2 === 0 ? "optimizer" : "edit",
       note: index === 2 ? "调整因子权重，降低组合波动。" : "",
-      status: index === 0 ? "pending" : "ready",
+      status: "ready",
     };
   });
 }
@@ -132,6 +152,7 @@ function StrategyVersionList({
   versions,
   defaultVersionId,
   onViewComposition,
+  onViewVersion,
   onSetDefaultVersion,
   tr,
 }: {
@@ -141,6 +162,7 @@ function StrategyVersionList({
   versions: StrategyVersion[];
   defaultVersionId: string | null;
   onViewComposition: (version: StrategyVersion) => void;
+  onViewVersion: (version: StrategyVersion) => void;
   onSetDefaultVersion: (version: StrategyVersion) => void;
   tr: Tr;
 }) {
@@ -207,7 +229,11 @@ function StrategyVersionList({
               </Tooltip>
               {version.status === "ready" ? (
                 <>
-                  <Link className={isDefault ? "is-viewing" : undefined} href={viewUrl}>
+                  <Link
+                    className={isDefault ? "is-viewing" : undefined}
+                    href={viewUrl}
+                    onClick={() => onViewVersion(version)}
+                  >
                     {isDefault ? tr("Viewing", "查看中") : tr("View", "查看")}
                   </Link>
                   {isLatest ? null : (
@@ -278,6 +304,9 @@ export function StrategyVersionHistoryDialog({
             versions={versions}
             defaultVersionId={defaultVersionId}
             onViewComposition={onViewComposition}
+            onViewVersion={() => {
+              onOpenChange(false);
+            }}
             onSetDefaultVersion={onSetDefaultVersion}
             tr={tr}
           />

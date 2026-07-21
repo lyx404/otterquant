@@ -284,7 +284,7 @@ function classForTone(tone?: "positive" | "negative" | "neutral") {
 export default function TradeDetail() {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
-  const performanceDateLabel = tr("Past 30 days", "过去 30 天");
+  const performanceDateLabel = tr("Today", "今天");
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
@@ -809,9 +809,9 @@ export default function TradeDetail() {
               <StrategyReportDateControl
                 dateLabel={performanceDateLabel}
                 dateOptions={[
-                  tr("Today", "今天"),
-                  tr("Past 7 days", "过去 7 天"),
                   performanceDateLabel,
+                  tr("Past 7 days", "过去 7 天"),
+                  tr("Past 30 days", "过去 30 天"),
                   tr("Past 90 days", "过去 90 天"),
                   tr("Past 180 days", "过去 180 天"),
                   tr("Past year", "过去 1 年"),

@@ -36,6 +36,7 @@ export function StrategyReportDateControl({
   labels,
   variant = "default",
   triggerMode = "default",
+  iconOnly = false,
   onSelectionChange,
 }: {
   dateLabel: string;
@@ -51,6 +52,7 @@ export function StrategyReportDateControl({
   };
   variant?: "default" | "compact";
   triggerMode?: "default" | "switch";
+  iconOnly?: boolean;
   onSelectionChange?: (label: string) => void;
 }) {
   const options = Array.from(new Set(dateOptions && dateOptions.length > 0
@@ -95,7 +97,7 @@ export function StrategyReportDateControl({
 
   return (
     <div
-      className={`oq-report-date-select oq-report-date-select--${variant} oq-report-date-select--${triggerMode}`}
+      className={`oq-report-date-select oq-report-date-select--${variant} oq-report-date-select--${triggerMode}${iconOnly ? " oq-report-date-select--icon-only" : ""}`}
       onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) closeOverlays();
       }}
@@ -119,9 +121,9 @@ export function StrategyReportDateControl({
           setIsMenuOpen(previous => !previous);
         }}
       >
-        {triggerMode === "switch" ? (
+        {triggerMode === "switch" && !iconOnly ? (
           <span className="oq-report-date-switch-label">{labels.switchPeriod ?? labels.selectPeriod}</span>
-        ) : (
+        ) : triggerMode === "default" ? (
           <span
             className={`oq-report-date-trigger-label${isCustomRange ? " is-custom-range" : ""}`}
             aria-live={isCustomRange ? "polite" : undefined}
@@ -137,7 +139,7 @@ export function StrategyReportDateControl({
               <span className="oq-report-date-trigger-value">{selectedDisplay}</span>
             )}
           </span>
-        )}
+        ) : null}
         <ChevronDown aria-hidden="true" className="oq-report-date-chevron" />
       </button>
 

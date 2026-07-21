@@ -50,6 +50,23 @@
   font-family: var(--font-body);
 }
 
+.oq-strategy-detail-transition {
+  min-width: 0;
+  animation: oq-strategy-detail-enter 320ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes oq-strategy-detail-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .oq-strategy-figma-report *,
 .oq-sd-dialog * {
   letter-spacing: 0 !important;
@@ -3041,6 +3058,7 @@ main:has(.oq-strategy-figma-report) {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .oq-strategy-detail-transition,
   .oq-strategy-figma-report *,
   .oq-sd-dialog * {
     animation-duration: 0.01ms !important;

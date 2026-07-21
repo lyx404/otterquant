@@ -38,6 +38,8 @@ import {
   OptimizerDialog,
   STRATEGY_VERSION_HISTORY_LIMIT,
   buildStrategyVersionHistory,
+  getStrategyVersionDemoRemainingMs,
+  normalizeStrategyVersionHistory,
   StrategyConfigDialog,
   StrategyDeleteDialog,
   StrategyVersionHistoryDialog,
@@ -1843,7 +1845,7 @@ export default function MyStrategies() {
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [visibleItems, setVisibleItems] = useState<Record<DisplayItemKey, boolean>>(defaultVisibleItems);
   const [starred, setStarred] = useState<Set<string>>(new Set(["STR-463", "STR-470"]));
-  const [selectedStrategyIds, setSelectedStrategyIds] = useState<Set<string>>(new Set(["STR-463", "STR-465"]));
+  const [selectedStrategyIds, setSelectedStrategyIds] = useState<Set<string>>(() => new Set());
   const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
   const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
   const [showCreateStrategy, setShowCreateStrategy] = useState(false);
@@ -1883,6 +1885,33 @@ export default function MyStrategies() {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  useEffect(() => {
+    const remainingTimes = Object.values(sessionStrategyVersions)
+      .map((versions) => getStrategyVersionDemoRemainingMs(versions[0]))
+      .filter((remaining): remaining is number => remaining !== null);
+    if (remainingTimes.length === 0) return;
+
+    const timer = window.setTimeout(() => {
+      setSessionStrategyVersions((current) => {
+        let changed = false;
+        const next = { ...current };
+        const now = Date.now();
+
+        for (const [strategyId, versions] of Object.entries(current)) {
+          if (getStrategyVersionDemoRemainingMs(versions[0], now) !== 0) continue;
+          next[strategyId] = versions.map((version, index) => (
+            index === 0 ? { ...version, status: "ready" } : version
+          ));
+          changed = true;
+        }
+
+        return changed ? next : current;
+      });
+    }, Math.min(...remainingTimes));
+
+    return () => window.clearTimeout(timer);
+  }, [sessionStrategyVersions]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -2088,6 +2117,7 @@ export default function MyStrategies() {
         source,
         note,
         status,
+        demoProcessingStartedAt: status === "pending" ? Date.now() : undefined,
       };
       return { ...current, [row.id]: [nextVersion, ...rowVersions] };
     });
@@ -2129,11 +2159,10 @@ export default function MyStrategies() {
     };
   });
   const historyVersions = historyStrategy
-    ? [
+    ? normalizeStrategyVersionHistory([
         ...(sessionStrategyVersions[historyStrategy.id] ?? []),
         ...buildStrategyVersionHistory(historyStrategy.id, historyStrategy.updatedAt),
-      ]
-        .slice(0, STRATEGY_VERSION_HISTORY_LIMIT)
+      ].slice(0, STRATEGY_VERSION_HISTORY_LIMIT))
     : [];
   const historyDefaultVersionId = historyStrategy
     ? defaultStrategyVersionIds[historyStrategy.id]
@@ -2537,7 +2566,7 @@ export default function MyStrategies() {
                 onClose={() => setEditingStrategy(null)}
                 onSubmit={(values) => {
                   setStrategyEdits((current) => ({ ...current, [editingStrategy.id]: values }));
-                  appendStrategyVersion(editingStrategy, "edit", values.strategyNote.trim(), "ready");
+                  appendStrategyVersion(editingStrategy, "edit", values.strategyNote.trim(), "pending");
                   toast.success(tr("Strategy updated.", "策略已更新。"));
                 }}
               />

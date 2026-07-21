@@ -442,13 +442,6 @@
   color: var(--qt-risk) !important;
 }
 
-.oq-trade-icon-button.is-stop svg {
-  width: 10px;
-  height: 10px;
-  fill: none;
-  stroke-width: 3.2;
-}
-
 .oq-trade-icon-button.is-stop:hover {
   border-color: color-mix(in srgb, var(--qt-risk) 52%, var(--qt-border)) !important;
   background: color-mix(in srgb, var(--qt-risk) 10%, var(--qt-bg)) !important;
