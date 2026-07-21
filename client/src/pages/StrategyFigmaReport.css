@@ -818,7 +818,7 @@
   --report-panel: #faf8f6;
   --report-panel-deep: #f4f1ed;
   --report-subtle-surface: #fbfbfc;
-  --report-historical-surface: #f7f7f7;
+  --report-historical-surface: #faf8f6;
   --report-border: #ece6df;
   --report-border-strong: #ece6df;
   --report-subtle-border: #f3f3f3;
@@ -904,7 +904,16 @@ main:has(.oq-strategy-figma-report) {
 }
 
 .oq-report-top.is-historical-version {
+  position: sticky;
+  top: 60px;
+  z-index: 9;
   background: var(--report-historical-surface);
+}
+
+@media (max-width: 767px) {
+  .oq-report-top.is-historical-version {
+    top: 48px;
+  }
 }
 
 .oq-report-title-block {

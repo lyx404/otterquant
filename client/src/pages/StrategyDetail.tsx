@@ -38,12 +38,10 @@ import {
 } from "./MyStrategies";
 import {
   ArrowLeft,
-  ArrowUpRight,
   History,
   Layers3,
   MoreHorizontal,
   Pencil,
-  RotateCcw,
   SlidersHorizontal,
   Star,
   Trash2,
@@ -542,7 +540,7 @@ export default function StrategyDetail() {
       focusStrategy: strategyId,
     });
     if (focusTradeId) query.set("focusTradeId", focusTradeId);
-    window.location.assign(`/trade?${query.toString()}`);
+    navigate(`/trade?${query.toString()}`);
   };
 
   const deployStrategy = (
@@ -597,7 +595,7 @@ export default function StrategyDetail() {
 
   const handlePaperDeployment = () => {
     if (paperDeployment) {
-      window.location.assign(`/trade/${encodeURIComponent(paperDeployment.id)}?env=paper`);
+      navigate(`/trade/${encodeURIComponent(paperDeployment.id)}?env=paper`);
       return;
     }
     if (isPaperDeploying) return;
@@ -612,7 +610,7 @@ export default function StrategyDetail() {
 
   const goToExchangeApi = () => {
     setIsLiveDeployOpen(false);
-    window.location.assign("/account?tab=exchangeApi");
+    navigate("/account?tab=exchangeApi");
   };
 
   const submitLiveDeployment = () => {
@@ -791,7 +789,7 @@ export default function StrategyDetail() {
   };
   const confirmDeleteStrategy = () => {
     persistDeletedStrategyId(strategyId);
-    window.location.assign("/strategies");
+    navigate("/strategies");
   };
   const viewLatestVersion = () => navigate(latestStrategyUrl);
   const rollbackToHistoricalVersion = () => {
@@ -829,16 +827,34 @@ export default function StrategyDetail() {
   };
   const reportActions = isHistoricalVersionView ? (
     <>
-      <button
-        type="button"
-        className="oq-report-action"
-        onClick={() => setIsStrategyConfigOpen(true)}
-      >
-        <Layers3 aria-hidden="true" />
-        {tr("Strategy Composition", "策略构成")}
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="oq-report-action is-icon"
+            aria-label={tr("Strategy Composition", "策略构成")}
+            onClick={() => setIsStrategyConfigOpen(true)}
+          >
+            <Layers3 aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tr("Strategy Composition", "策略构成")}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="oq-report-action is-icon"
+            aria-label={tr("Version History", "历史版本")}
+            disabled={strategyVersions.length === 0}
+            onClick={() => setIsVersionHistoryOpen(true)}
+          >
+            <History aria-hidden="true" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">{tr("Version History", "历史版本")}</TooltipContent>
+      </Tooltip>
       <button type="button" className="oq-report-action" onClick={viewLatestVersion}>
-        <ArrowUpRight aria-hidden="true" />
         {tr("View Latest", "查看最新")}
       </button>
       <button
@@ -847,7 +863,6 @@ export default function StrategyDetail() {
         disabled={!historicalVersion || historicalVersion.status !== "ready"}
         onClick={rollbackToHistoricalVersion}
       >
-        <RotateCcw aria-hidden="true" />
         {tr("Rollback to This Version", "回滚到此版本")}
       </button>
     </>
@@ -858,7 +873,7 @@ export default function StrategyDetail() {
           type="button"
           className="oq-report-action is-primary"
           onClick={() =>
-            window.location.assign(
+            navigate(
               `/strategies/new?template=${encodeURIComponent(strategyId)}&creationMode=platform&scale=single`
             )
           }
@@ -970,10 +985,10 @@ export default function StrategyDetail() {
   const reportTitle = strategyDisplayName;
   const reportNo = strategyId.replace(/^STR-/, "") || strategyId;
   const reportHash = "8ade81c02da14b73b656a13bd7fc4379";
-  const reportCreatedDate = formatConfigDate(createdAt).split(" ")[0];
+  const reportUpdatedAt = formatConfigDate(createdAt);
   const reportSubtitle = (
     <>
-      <span>{tr("Created on", "创建于")} {reportCreatedDate}</span>
+      <span>{tr("Updated at", "更新于")} {reportUpdatedAt}</span>
       <span>{reportHash}</span>
     </>
   );
@@ -981,7 +996,7 @@ export default function StrategyDetail() {
     <button
       type="button"
       className="oq-report-back-button"
-      onClick={() => window.location.assign("/strategies")}
+      onClick={() => navigate("/strategies")}
     >
       <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
       <span>{tr("Back to My Strategies", "返回我的策略")}</span>

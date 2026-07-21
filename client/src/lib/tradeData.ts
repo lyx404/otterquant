@@ -104,6 +104,7 @@ export const tradeBots: TradeBot[] = [
   },
   {
     id: "TRD-103",
+    recordId: "8ade81c02da14b73b656a13bd7fc4379",
     environment: "paper",
     name: "Cross Section TopTail",
     symbol: "Top50 Universe",

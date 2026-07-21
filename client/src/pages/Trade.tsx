@@ -16,6 +16,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
@@ -26,16 +32,29 @@ import {
   type BotStatus,
 } from "@/lib/tradeData";
 import { getTradeBotsWithDeployments } from "@/lib/tradeDeployments";
-import { ArrowDown, ArrowUp, ArrowUpDown, CircleStop, Play, RefreshCw } from "lucide-react";
-import { StrategyReportDateControl } from "./StrategyReportDateControl";
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  MoreHorizontal,
+  Pause,
+  Play,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
+import {
+  localizeDateRangeLabel,
+  StrategyReportDateControl,
+} from "./StrategyReportDateControl";
 import "./Trade.css";
 
 type PendingAction =
   | { type: "stop"; botId: string }
+  | { type: "delete"; botId: string }
   | null;
 
 type BotStatusFilter = "all" | "running" | "stop";
-type BotSortKey = "equity" | "unrealizedPnl" | "roi";
+type BotSortKey = "equity" | "unrealizedPnl" | "roi" | "updatedAt";
 type BotSortDirection = "default" | "desc" | "asc";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
@@ -144,6 +163,7 @@ function TradeWorkbench260712() {
     )
   );
   const [refreshedAtById, setRefreshedAtById] = useState<Record<string, string>>({});
+  const [deletedBotIds, setDeletedBotIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     if (envFromQuery === "paper" || envFromQuery === "live") {
@@ -179,14 +199,17 @@ function TradeWorkbench260712() {
   const visibleBots = useMemo(
     () =>
       allTradeBots
-        .filter(bot => bot.environment === environment)
+        .filter(bot => bot.environment === environment && !deletedBotIds.has(bot.id))
         .map(bot => ({
           ...bot,
           status: statusById[bot.id] ?? "running",
           updatedAt: refreshedAtById[bot.id] ?? bot.updatedAt,
         })),
-    [allTradeBots, environment, refreshedAtById, statusById]
+    [allTradeBots, deletedBotIds, environment, refreshedAtById, statusById]
   );
+  const pendingBotName = pendingAction
+    ? allTradeBots.find(bot => bot.id === pendingAction.botId)?.name
+    : undefined;
   const searchFilteredBots = useMemo(() => {
     if (!tradeSearchQuery) return visibleBots;
 
@@ -210,6 +233,10 @@ function TradeWorkbench260712() {
     const sortValue = (bot: (typeof filteredVisibleBots)[number]) => {
       if (botSort.key === "equity") return bot.equity;
       if (botSort.key === "unrealizedPnl") return bot.unrealizedPnl;
+      if (botSort.key === "updatedAt") {
+        const timestamp = Date.parse(bot.updatedAt.replace(" ", "T"));
+        return Number.isFinite(timestamp) ? timestamp : 0;
+      }
       return (bot.unrealizedPnl / Math.max(bot.equity, 1)) * 100;
     };
     const multiplier = botSort.direction === "desc" ? -1 : 1;
@@ -266,9 +293,19 @@ function TradeWorkbench260712() {
     toast.success(tr("Paper trading data refreshed", "模拟盘数据已刷新"));
   };
 
+  const deleteBot = (botId: string) => {
+    setDeletedBotIds(prev => {
+      const next = new Set(prev);
+      next.add(botId);
+      return next;
+    });
+    toast.success(tr("Paper trading deployment deleted", "模拟盘已删除"));
+  };
+
   const confirmPendingAction = () => {
     if (!pendingAction) return;
-    stopBot(pendingAction.botId);
+    if (pendingAction.type === "stop") stopBot(pendingAction.botId);
+    else deleteBot(pendingAction.botId);
     setPendingAction(null);
   };
 
@@ -348,7 +385,9 @@ function TradeWorkbench260712() {
     >
       <section className="oq-trade-summary-section" aria-labelledby="trade-summary-period-title">
         <div className="oq-trade-summary-header">
-          <h2 id="trade-summary-period-title">{activeSummaryPeriod}</h2>
+          <h2 id="trade-summary-period-title">
+            {localizeDateRangeLabel(activeSummaryPeriod, uiLang)}
+          </h2>
           <StrategyReportDateControl
             dateLabel={todayLabel}
             dateOptions={[
@@ -426,7 +465,9 @@ function TradeWorkbench260712() {
             explanation={metricExplanations.avgRoi}
           >
             <div className="oq-trade-metric-card">
-              <p className="oq-trade-metric-value">
+              <p
+                className={`oq-trade-metric-value ${getTrendClass(summary.avgRoi, chartColorMode)}`}
+              >
                 {summary.avgRoi.toFixed(1)}%
               </p>
               <div className="oq-trade-metric-label">
@@ -517,7 +558,17 @@ function TradeWorkbench260712() {
               </button>
             </div>
             <div role="columnheader">{tr("Paper Status", "模拟盘状态")}</div>
-            <div role="columnheader">{tr("Updated", "更新时间")}</div>
+            <div role="columnheader" aria-sort={ariaSortFor("updatedAt")}>
+              <button
+                type="button"
+                className={`oq-trade-sort-button ${sortDirectionFor("updatedAt") !== "default" ? "is-active" : ""}`}
+                onClick={() => cycleBotSort("updatedAt")}
+                aria-label={sortButtonLabel("updatedAt", "updated time", "更新时间")}
+              >
+                <span>{tr("Updated", "更新时间")}</span>
+                {sortIconFor("updatedAt")}
+              </button>
+            </div>
             <div role="columnheader">{tr("Actions", "操作")}</div>
           </div>
 
@@ -577,7 +628,10 @@ function TradeWorkbench260712() {
                     >
                       {formatSigned(bot.unrealizedPnl)} USDT
                     </div>
-                    <div className="oq-trade-bot-metric-value" role="cell">
+                    <div
+                      className={`oq-trade-bot-metric-value ${getTrendClass(bot.unrealizedPnl, chartColorMode)}`}
+                      role="cell"
+                    >
                       {formatBotRoi(bot)}%
                     </div>
 
@@ -623,7 +677,7 @@ function TradeWorkbench260712() {
                                 setPendingAction({ type: "stop", botId: bot.id })
                               }
                             >
-                              <CircleStop aria-hidden="true" />
+                              <Pause aria-hidden="true" />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="top">{tr("Stop", "停止")}</TooltipContent>
@@ -635,7 +689,7 @@ function TradeWorkbench260712() {
                           <Button
                             type="button"
                             variant="outline"
-                            className="oq-trade-icon-button"
+                            className="oq-trade-icon-button is-restart"
                             aria-label={tr("Restart", "重新启动")}
                             onClick={() => restartBot(bot.id)}
                           >
@@ -645,6 +699,38 @@ function TradeWorkbench260712() {
                         <TooltipContent side="top">{tr("Restart", "重新启动")}</TooltipContent>
                       </Tooltip>
                     )}
+
+                    <DropdownMenu>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="oq-trade-icon-button"
+                              aria-label={tr("More", "更多")}
+                            >
+                              <MoreHorizontal aria-hidden="true" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">{tr("More", "更多")}</TooltipContent>
+                      </Tooltip>
+                      <DropdownMenuContent
+                        align="end"
+                        sideOffset={6}
+                        className="oq-trade-action-menu"
+                      >
+                        <DropdownMenuItem
+                          className="oq-trade-action-menu-item is-destructive"
+                          variant="destructive"
+                          onSelect={() => setPendingAction({ type: "delete", botId: bot.id })}
+                        >
+                          <Trash2 aria-hidden="true" />
+                          {tr("Delete", "删除")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               ))
@@ -660,13 +746,20 @@ function TradeWorkbench260712() {
         <AlertDialogContent className="oq-trade-dialog">
           <AlertDialogHeader className="oq-trade-dialog-header">
             <AlertDialogTitle className="oq-trade-dialog-title">
-              {tr("Stop Paper Trading", "停止模拟盘")}
+              {pendingAction?.type === "delete"
+                ? tr("Delete Paper Trading", "删除模拟盘")
+                : tr("Stop Paper Trading", "停止模拟盘")}
             </AlertDialogTitle>
             <AlertDialogDescription className="oq-trade-dialog-description">
-              {tr(
-                "Are you sure you want to stop this paper-trading deployment? Open positions and its configuration will be kept so you can restart it later.",
-                "确认要停止该模拟盘吗？当前持仓与模拟盘配置将保留，之后可以重新启动。"
-              )}
+              {pendingAction?.type === "delete"
+                ? tr(
+                    `Delete the paper-trading deployment for "${pendingBotName ?? "the selected strategy"}"? It will be removed from the current list and cannot be undone on this page.`,
+                    `确认删除策略「${pendingBotName ?? "所选策略"}」的模拟盘吗？删除后将从当前列表中移除，且无法在此页面撤销。`
+                  )
+                : tr(
+                    "Are you sure you want to stop this paper-trading deployment? Open positions and its configuration will be kept so you can restart it later.",
+                    "确认要停止该模拟盘吗？当前持仓与模拟盘配置将保留，之后可以重新启动。"
+                  )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="oq-trade-dialog-footer">
@@ -677,7 +770,9 @@ function TradeWorkbench260712() {
               className="oq-trade-dialog-button is-primary"
               onClick={confirmPendingAction}
             >
-              {tr("Confirm Stop", "确认停止")}
+              {pendingAction?.type === "delete"
+                ? tr("Confirm Delete", "确认删除")
+                : tr("Confirm Stop", "确认停止")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

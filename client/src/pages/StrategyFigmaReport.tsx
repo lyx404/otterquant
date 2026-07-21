@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import type { UiCopy, UiLang } from "@/contexts/AppLanguageContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StrategyReportDateControl } from "./StrategyReportDateControl";
+import {
+  localizeDateRangeLabel,
+  StrategyReportDateControl,
+} from "./StrategyReportDateControl";
 import {
   autocorrDecayDomain,
   autocorrDecayLabels,
@@ -2893,7 +2896,7 @@ export function StrategyFigmaReport({
 
       <section className="oq-report-metric-panel" aria-label={tReport(tr, "Strategy summary metrics", "策略概览指标")}>
         <div className="oq-report-metric-header">
-          <h2>{activeMetricSectionTitle}</h2>
+          <h2>{localizeDateRangeLabel(activeMetricSectionTitle, uiLang)}</h2>
           <StrategyReportDateControl
             dateLabel={dateLabel}
             dateOptions={dateOptions}

@@ -44,10 +44,12 @@
 
 .oq-trade-summary-header {
   display: flex;
+  height: fit-content;
   min-width: 0;
+  min-height: 0;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 8px 12px;
 }
 
 .oq-trade-summary-header h2 {
@@ -55,9 +57,16 @@
   margin: 0;
   color: var(--qt-text);
   font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 750;
-  line-height: 20px;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 32px;
+  letter-spacing: 0;
+}
+
+.oq-trade .oq-report-date-select--compact > button,
+.oq-trade .oq-report-date-select--compact > button:hover,
+.oq-trade .oq-report-date-select--compact > button[aria-expanded="true"] {
+  background: #ffffff;
 }
 
 .oq-trade-metric-card {
@@ -184,7 +193,7 @@
 }
 
 .oq-trade-table-scroll {
-  --oq-trade-table-columns: 208px 128px 128px 80px 96px 152px 72px;
+  --oq-trade-table-columns: 208px 128px 128px 80px 96px 140px 84px;
   overflow-x: auto;
 }
 
@@ -196,13 +205,20 @@
 }
 
 .oq-trade-table-head {
-  min-height: 34px;
+  height: 28px;
+  min-height: 28px;
   border-bottom: 0.75px solid var(--qt-border);
   color: var(--qt-muted);
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 8px;
   font-weight: 500;
   line-height: 12px;
+}
+
+.oq-trade-table-head > [role="columnheader"] {
+  display: flex;
+  height: 100%;
+  align-items: center;
 }
 
 .oq-trade-sort-button {
@@ -256,7 +272,8 @@
 .oq-trade-bot-row {
   position: relative;
   display: grid;
-  min-height: 64px;
+  height: 42px;
+  min-height: 42px;
   grid-template-columns: var(--oq-trade-table-columns);
   align-items: center;
   border-bottom: 0.75px solid var(--qt-border);
@@ -283,7 +300,8 @@
 .oq-trade-row-link {
   display: grid;
   min-width: 0;
-  min-height: 64px;
+  height: 42px;
+  min-height: 42px;
   grid-column: 1 / span 6;
   grid-template-columns: subgrid;
   align-items: center;
@@ -352,16 +370,16 @@
 
 .oq-trade-bot-updated {
   overflow: hidden;
-  color: var(--qt-muted);
+  color: var(--qt-text-soft);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .oq-trade-bot-updated {
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 500;
-  line-height: 13px;
+  line-height: 14px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -412,10 +430,23 @@
   transform: none;
 }
 
+.oq-trade-icon-button[data-state="open"] {
+  border-color: var(--qt-border-strong) !important;
+  background: color-mix(in srgb, var(--qt-surface) 72%, var(--qt-bg)) !important;
+  color: var(--qt-text-soft) !important;
+}
+
 .oq-trade-icon-button.is-stop {
   border-color: color-mix(in srgb, var(--qt-risk) 32%, var(--qt-border)) !important;
   background: color-mix(in srgb, var(--qt-risk) 5%, var(--qt-bg)) !important;
   color: var(--qt-risk) !important;
+}
+
+.oq-trade-icon-button.is-stop svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke-width: 3.2;
 }
 
 .oq-trade-icon-button.is-stop:hover {
@@ -424,9 +455,49 @@
   color: var(--qt-risk) !important;
 }
 
+.oq-trade-icon-button.is-restart {
+  width: auto;
+  flex: 1 1 auto;
+}
+
 .oq-trade-icon-button:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--qt-accent) 28%, transparent);
   outline-offset: 1px;
+}
+
+.oq-trade-action-menu {
+  z-index: 80;
+  min-width: 184px;
+  border-color: #ece6df;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 6px;
+  color: #0d0d0d;
+  box-shadow: 0 12px 30px rgba(60, 40, 20, 0.12);
+}
+
+.oq-trade-action-menu-item {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: #2a2622;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  cursor: pointer;
+}
+
+.oq-trade-action-menu-item > svg {
+  color: currentColor !important;
+  stroke-width: 1.8;
+}
+
+.oq-trade-action-menu-item[data-highlighted] {
+  background: #fef6ef;
+  color: #dc4900;
+}
+
+.oq-trade-action-menu-item.is-destructive {
+  color: #dc2626;
 }
 
 .oq-trade-dialog-button {
@@ -504,9 +575,13 @@
   --qt-accent: #dc4900;
   --qt-shadow-1: 0 1px 1.5px rgba(60, 40, 20, 0.06);
   --qt-shadow-4: 0 6px 18px rgba(60, 40, 20, 0.08);
+  width: min(512px, calc(100vw - 32px));
+  max-width: min(512px, calc(100vw - 32px));
+  gap: 16px;
   border: 1px solid var(--qt-border) !important;
   border-radius: 15px !important;
   background: var(--qt-bg) !important;
+  color: var(--qt-text);
   box-shadow: var(--qt-shadow-4) !important;
   padding: 20px !important;
 }

@@ -446,7 +446,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Bottom Section */}
-      <div className={`shrink-0 border-t border-[#d9d9d9] ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
+      <div className={`shrink-0 border-t-[0.5px] border-[#d9d9d9] ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
         {collapsed && !isMobile ? (
           /* === Collapsed: vertical stack === */
           <div className="flex flex-col items-center gap-2">

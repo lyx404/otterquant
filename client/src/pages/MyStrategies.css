@@ -221,6 +221,46 @@
   color: var(--os-risk);
 }
 
+.oq-strategy-form-explain-trigger {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 3px;
+  cursor: help;
+  outline: none;
+}
+
+.oq-strategy-form-explain-trigger:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--os-accent) 18%, transparent);
+}
+
+.oq-strategy-form-explanation-tooltip {
+  width: min(260px, calc(100vw - 24px));
+  padding: 10px 12px !important;
+}
+
+.oq-strategy-form-explanation-list {
+  display: grid;
+  gap: 6px;
+}
+
+.oq-strategy-form-explanation-list > div {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+}
+
+.oq-strategy-form-explanation-list strong {
+  color: var(--oq-workbench-tooltip-text);
+  font-weight: 700;
+  line-height: 1rem;
+}
+
+.oq-strategy-form-explanation-list span {
+  color: color-mix(in srgb, var(--oq-workbench-tooltip-text) 74%, transparent);
+  line-height: 1rem;
+}
+
 .oq-strategy-form-field > span small {
   margin-left: 6px;
   color: var(--os-muted);

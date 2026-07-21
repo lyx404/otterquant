@@ -8,6 +8,18 @@ import "./StrategyReportDateControl.css";
 
 const calendarLocales = { en: enUS, zh: zhCN, ja, ko, es, fr };
 
+function getRangeSeparator(uiLang: UiLang) {
+  return uiLang === "zh" ? "至" : uiLang === "en" ? "to" : "–";
+}
+
+export function localizeDateRangeLabel(label: string, uiLang: UiLang) {
+  const separator = getRangeSeparator(uiLang);
+  return label.replace(
+    /(\d{4}-\d{2}-\d{2})\s+(?:–|—|to|至)\s+(\d{4}-\d{2}-\d{2})/,
+    `$1 ${separator} $2`
+  );
+}
+
 function formatDate(date?: Date) {
   if (!date) return "";
   const year = date.getFullYear();
@@ -56,10 +68,10 @@ export function StrategyReportDateControl({
   const visibleRange = isCalendarOpen ? draftRange : customRange;
   const visibleStartDate = visibleRange?.from ? formatDate(visibleRange.from) : labels.startDate;
   const visibleEndDate = visibleRange?.to ? formatDate(visibleRange.to) : labels.endDate;
-  const rangeSeparator = uiLang === "zh" ? "至" : "–";
+  const rangeSeparator = getRangeSeparator(uiLang);
   const selectedDisplay = isCustomRange
     ? `${visibleStartDate} ${rangeSeparator} ${visibleEndDate}`
-    : selectedLabel;
+    : localizeDateRangeLabel(selectedLabel, uiLang);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 700px)");

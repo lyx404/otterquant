@@ -14,7 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChartContainer } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StrategyReportDateControl } from "./StrategyReportDateControl";
+import {
+  localizeDateRangeLabel,
+  StrategyReportDateControl,
+} from "./StrategyReportDateControl";
 import {
   Tooltip,
   TooltipContent,
@@ -800,7 +803,9 @@ export default function TradeDetail() {
         <div className="oq-trade-overview-grid">
           <article className="oq-trade-overview-card oq-trade-performance-card" aria-labelledby="trade-performance-period-title">
             <div className="oq-trade-performance-header">
-              <h2 id="trade-performance-period-title">{activePerformancePeriod}</h2>
+              <h2 id="trade-performance-period-title">
+                {localizeDateRangeLabel(activePerformancePeriod, uiLang)}
+              </h2>
               <StrategyReportDateControl
                 dateLabel={performanceDateLabel}
                 dateOptions={[

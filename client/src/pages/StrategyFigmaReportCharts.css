@@ -111,6 +111,10 @@
   line-height: 1.125rem;
 }
 
+.oq-strategy-figma-report .oq-report-title-meta span:first-child {
+  font-weight: 500;
+}
+
 .oq-strategy-figma-report .oq-report-title-meta span:last-child {
   color: color-mix(in srgb, var(--report-muted) 52%, var(--report-border));
   font-family: var(--font-mono);

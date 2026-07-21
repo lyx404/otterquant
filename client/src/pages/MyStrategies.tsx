@@ -1011,10 +1011,12 @@ function readDeletedStrategyIds() {
 function MaybeExplainTooltip({
   enabled,
   explanation,
+  contentClassName,
   children,
 }: {
   enabled?: boolean;
-  explanation: string;
+  explanation: ReactNode;
+  contentClassName?: string;
   children: ReactNode;
 }) {
   if (!enabled) return <>{children}</>;
@@ -1022,10 +1024,31 @@ function MaybeExplainTooltip({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="top" className="oq-plain-explanation-tooltip">
+      <TooltipContent
+        side="top"
+        sideOffset={6}
+        className={`oq-plain-explanation-tooltip${contentClassName ? ` ${contentClassName}` : ""}`}
+      >
         {explanation}
       </TooltipContent>
     </Tooltip>
+  );
+}
+
+function StrategyFormExplanation({
+  items,
+}: {
+  items: Array<{ label: string; description: string }>;
+}) {
+  return (
+    <div className="oq-strategy-form-explanation-list">
+      {items.map((item) => (
+        <div key={item.label}>
+          <strong>{item.label}</strong>
+          <span>{item.description}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -1361,12 +1384,32 @@ export function CreateStrategyComposer({
         <legend>
           <MaybeExplainTooltip
             enabled={plainExplainEnabled}
-            explanation={tr(
-              "Neutral: holds both long and short positions; Long only: holds assets expected to rise; Short only: holds assets expected to fall.",
-              "中性：同时配置多头和空头；仅做多：只持有预期上涨的标的；仅做空：只持有预期下跌的标的。",
-            )}
+            contentClassName="oq-strategy-form-explanation-tooltip"
+            explanation={
+              <StrategyFormExplanation
+                items={[
+                  {
+                    label: tr("Neutral", "中性"),
+                    description: tr("Hold both long and short positions.", "同时配置多头和空头。"),
+                  },
+                  {
+                    label: tr("Long only", "仅做多"),
+                    description: tr("Hold only assets expected to rise.", "只持有预期上涨的标的。"),
+                  },
+                  {
+                    label: tr("Short only", "仅做空"),
+                    description: tr("Hold only assets expected to fall.", "只持有预期下跌的标的。"),
+                  },
+                ]}
+              />
+            }
           >
-            <span tabIndex={plainExplainEnabled ? 0 : undefined}>{tr("Strategy direction", "策略方向")}</span>
+            <span
+              className="oq-strategy-form-explain-trigger"
+              tabIndex={plainExplainEnabled ? 0 : undefined}
+            >
+              {tr("Strategy direction", "策略方向")}
+            </span>
           </MaybeExplainTooltip>
           <b>*</b>
         </legend>
@@ -1389,12 +1432,34 @@ export function CreateStrategyComposer({
         <span>
           <MaybeExplainTooltip
             enabled={plainExplainEnabled}
-            explanation={tr(
-              "The value sets the size selected from each end of the ranking. N selects that many assets from both the top and bottom; % selects that percentage from each end.",
-              "数值表示每端选取的规模；选择 N 时，从排名头部和尾部各选 N 个标的；选择 % 时，从两端各选相同比例的标的。",
-            )}
+            contentClassName="oq-strategy-form-explanation-tooltip"
+            explanation={
+              <StrategyFormExplanation
+                items={[
+                  {
+                    label: "N",
+                    description: tr(
+                      "Select a fixed number of assets from both the top and bottom of the ranking.",
+                      "从排名头部和尾部各选固定数量的标的。",
+                    ),
+                  },
+                  {
+                    label: "%",
+                    description: tr(
+                      "Select the same percentage of assets from each end of the ranking.",
+                      "从排名头部和尾部各选相同比例的标的。",
+                    ),
+                  },
+                ]}
+              />
+            }
           >
-            <span tabIndex={plainExplainEnabled ? 0 : undefined}>{tr("Head/tail grouping rule", "头尾分层规则")}</span>
+            <span
+              className="oq-strategy-form-explain-trigger"
+              tabIndex={plainExplainEnabled ? 0 : undefined}
+            >
+              {tr("Head/tail grouping rule", "头尾分层规则")}
+            </span>
           </MaybeExplainTooltip>
           <b>*</b>
         </span>
@@ -2240,7 +2305,7 @@ export default function MyStrategies() {
             <div>{renderWorkbenchSortHeader("turn", tr("Turn", "换手率"))}</div>
             <div>NAV</div>
             <div>{tr("Paper Status", "模拟盘状态")}</div>
-            <div>{renderWorkbenchSortHeader("updated", tr("Created Date", "创建时间"))}</div>
+            <div>{renderWorkbenchSortHeader("updated", tr("Updated Time", "更新时间"))}</div>
             <div>{tr("Action", "操作")}</div>
           </div>
           {sorted.length === 0 ? (

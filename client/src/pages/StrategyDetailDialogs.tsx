@@ -37,6 +37,7 @@ import {
 } from "@/lib/exchangeApiConnections";
 import { formatStrategyFactorId } from "@/lib/strategyUtils";
 import { ChevronDown, Layers3, RotateCcw, Unplug, X } from "lucide-react";
+import { Link } from "wouter";
 import "./StrategyDetailDialogs.css";
 
 type Tr = (en: string, zh: string, copy?: Record<string, string>) => string;
@@ -147,6 +148,7 @@ function StrategyVersionList({
     <div className="oq-strategy-version-list" role="list">
       {versions.slice(0, STRATEGY_VERSION_HISTORY_LIMIT).map((version, index) => {
         const isDefault = version.id === defaultVersionId;
+        const isLatest = index === 0;
         const viewParams = new URLSearchParams({ name: strategyName, version: version.id });
         if (strategyCreatedAt) viewParams.set("createdAt", strategyCreatedAt);
         const viewUrl = `/strategies/${encodeURIComponent(strategyId)}?${viewParams.toString()}`;
@@ -205,10 +207,10 @@ function StrategyVersionList({
               </Tooltip>
               {version.status === "ready" ? (
                 <>
-                  <a className={isDefault ? "is-viewing" : undefined} href={viewUrl}>
+                  <Link className={isDefault ? "is-viewing" : undefined} href={viewUrl}>
                     {isDefault ? tr("Viewing", "查看中") : tr("View", "查看")}
-                  </a>
-                  {isDefault ? null : (
+                  </Link>
+                  {isLatest ? null : (
                     <button type="button" onClick={() => onSetDefaultVersion(version)}>
                       {tr("Rollback", "回滚")}
                     </button>
@@ -359,6 +361,9 @@ export function OptimizerDialog({
   onSubmit: (values: OptimizerParameterValues, note: string) => void;
 }) {
   const [values, setValues] = useState<OptimizerParameterValues>(() => ({ ...defaultOptimizerParameterValues }));
+  const [baselineValues, setBaselineValues] = useState<OptimizerParameterValues>(() => ({
+    ...defaultOptimizerParameterValues,
+  }));
   const [selectedMode, setSelectedMode] = useState<OptimizerMode | null>("balanced");
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [note, setNote] = useState("");
@@ -376,8 +381,10 @@ export function OptimizerDialog({
   };
 
   const applyMode = (mode: OptimizerMode) => {
+    const presetValues = { ...optimizerPresetValues[mode] };
     setSelectedMode(mode);
-    setValues({ ...optimizerPresetValues[mode] });
+    setBaselineValues(presetValues);
+    setValues(presetValues);
   };
 
   return (
@@ -394,8 +401,39 @@ export function OptimizerDialog({
           }}
         >
           <fieldset className="oq-optimizer-mode-field" aria-labelledby="optimizer-mode-label">
+            <span id="optimizer-mode-description" className="sr-only">
+              {tr(
+                "Conservative prioritizes stability; Balanced balances return, risk, and cost; Aggressive pursues more return potential with higher exposure.",
+                "保守模式优先控制波动；均衡模式兼顾收益、风险和成本；激进模式以更高仓位追求更高收益弹性。"
+              )}
+            </span>
             <div className="oq-optimizer-mode-heading">
-              <span id="optimizer-mode-label">{tr("Optimization Mode", "优化模式")}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span id="optimizer-mode-label" className="oq-optimizer-mode-label">
+                    {tr("Optimization Mode", "优化模式")}
+                    <span className="oq-optimizer-required-mark" aria-hidden="true">*</span>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  sideOffset={6}
+                  className="oq-plain-explanation-tooltip oq-optimizer-mode-tooltip"
+                >
+                  <div>
+                    <strong>{tr("Conservative", "保守")}</strong>
+                    <span>{tr("Lower exposure and tighter risk limits prioritize stability.", "降低仓位并收紧风险限制，优先控制波动。")}</span>
+                  </div>
+                  <div>
+                    <strong>{tr("Balanced", "均衡")}</strong>
+                    <span>{tr("Balances return potential, risk, and trading costs.", "在收益潜力、风险和交易成本之间保持平衡。")}</span>
+                  </div>
+                  <div>
+                    <strong>{tr("Aggressive", "激进")}</strong>
+                    <span>{tr("Higher exposure and looser limits pursue more return potential.", "提高仓位并放宽限制，追求更高收益弹性。")}</span>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
               <button
                 type="button"
                 className="oq-optimizer-details-toggle"
@@ -403,15 +441,19 @@ export function OptimizerDialog({
                 aria-controls="optimizer-detailed-parameters"
                 onClick={() => setIsDetailsOpen((current) => !current)}
               >
-                <span>
-                  {isDetailsOpen
-                    ? tr("Collapse Detailed Parameters", "收起详细参数")
-                    : tr("Expand Detailed Parameters", "展开详细参数")}
-                </span>
-                <ChevronDown aria-hidden="true" />
+                {isDetailsOpen
+                  ? tr("Collapse Detailed Parameters", "收起详细参数")
+                  : tr("Expand Detailed Parameters", "展开详细参数")}
+                <ChevronDown className="oq-optimizer-details-chevron" aria-hidden="true" />
               </button>
             </div>
-            <div className="oq-optimizer-mode-group" role="radiogroup" aria-labelledby="optimizer-mode-label">
+            <div
+              className="oq-optimizer-mode-group"
+              role="radiogroup"
+              aria-labelledby="optimizer-mode-label"
+              aria-describedby="optimizer-mode-description"
+              aria-required="true"
+            >
               {modeOptions.map((mode) => (
                 <button
                   key={mode.key}
@@ -447,7 +489,7 @@ export function OptimizerDialog({
             {isDetailsOpen ? (
               <div id="optimizer-detailed-parameters" className="oq-optimizer-parameter-list">
                 {optimizerNumericParameters.map((parameter) => {
-                  const isModified = values[parameter.key] !== parameter.defaultValue;
+                  const isModified = values[parameter.key] !== baselineValues[parameter.key];
                   const inputId = `optimizer-${parameter.key}`;
                   return (
                     <div className="oq-optimizer-parameter-row" key={parameter.key}>
@@ -472,8 +514,10 @@ export function OptimizerDialog({
                             aria-label={`${tr("Restore default value", "恢复默认值")} ${parameter.key}`}
                             title={tr("Restore default value", "恢复默认值")}
                             onClick={() => {
-                              setSelectedMode(null);
-                              setValues((current) => ({ ...current, [parameter.key]: parameter.defaultValue }));
+                              setValues((current) => ({
+                                ...current,
+                                [parameter.key]: baselineValues[parameter.key],
+                              }));
                             }}
                           >
                             <RotateCcw aria-hidden="true" />
