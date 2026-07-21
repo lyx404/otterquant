@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,7 +171,9 @@ function TradeWorkbench260712() {
     )
   );
   const [refreshedAtById, setRefreshedAtById] = useState<Record<string, string>>({});
+  const [refreshingBotIds, setRefreshingBotIds] = useState<Set<string>>(() => new Set());
   const [deletedBotIds, setDeletedBotIds] = useState<Set<string>>(() => new Set());
+  const refreshTimerByBotRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (envFromQuery === "paper" || envFromQuery === "live") {
@@ -207,6 +209,11 @@ function TradeWorkbench260712() {
       window.removeEventListener("storage", syncPlainExplanation);
       window.removeEventListener("focus", syncPlainExplanation);
     };
+  }, []);
+
+  useEffect(() => () => {
+    refreshTimerByBotRef.current.forEach(timerId => window.clearTimeout(timerId));
+    refreshTimerByBotRef.current.clear();
   }, []);
 
   const visibleBots = useMemo(
@@ -299,11 +306,30 @@ function TradeWorkbench260712() {
   };
 
   const refreshBot = (botId: string) => {
-    setRefreshedAtById(prev => ({
-      ...prev,
-      [botId]: formatRefreshTimestamp(new Date()),
-    }));
-    toast.success(tr("Paper trading data refreshed", "模拟盘数据已刷新"));
+    if (refreshTimerByBotRef.current.has(botId)) return;
+
+    const completeRefresh = () => {
+      setRefreshedAtById(prev => ({
+        ...prev,
+        [botId]: formatRefreshTimestamp(new Date()),
+      }));
+      setRefreshingBotIds(prev => {
+        const next = new Set(prev);
+        next.delete(botId);
+        return next;
+      });
+      refreshTimerByBotRef.current.delete(botId);
+      toast.success(tr("Paper trading data refreshed", "模拟盘数据已刷新"));
+    };
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      completeRefresh();
+      return;
+    }
+
+    setRefreshingBotIds(prev => new Set(prev).add(botId));
+    const timerId = window.setTimeout(completeRefresh, 480);
+    refreshTimerByBotRef.current.set(botId, timerId);
   };
 
   const deleteBot = (botId: string) => {
@@ -620,8 +646,9 @@ function TradeWorkbench260712() {
                 <div
                   key={bot.id}
                   id={`trade-bot-${bot.id}`}
-                  className={`oq-trade-bot-row ${focusedBotId === bot.id ? "is-focused" : ""}`}
+                  className={`oq-trade-bot-row ${focusedBotId === bot.id ? "is-focused" : ""}${refreshingBotIds.has(bot.id) ? " is-refreshing" : ""}`}
                   role="row"
+                  aria-busy={refreshingBotIds.has(bot.id)}
                 >
                   <Link
                     href={`/trade/${bot.id}?env=${bot.environment}&status=${bot.status}`}
@@ -676,14 +703,18 @@ function TradeWorkbench260712() {
                             <Button
                               type="button"
                               variant="outline"
-                              className="oq-trade-icon-button"
-                              aria-label={tr("Refresh", "刷新")}
+                              className={`oq-trade-icon-button${refreshingBotIds.has(bot.id) ? " is-refreshing" : ""}`}
+                              aria-label={refreshingBotIds.has(bot.id) ? tr("Refreshing", "正在刷新") : tr("Refresh", "刷新")}
+                              aria-busy={refreshingBotIds.has(bot.id)}
+                              disabled={refreshingBotIds.has(bot.id)}
                               onClick={() => refreshBot(bot.id)}
                             >
                               <RefreshCw aria-hidden="true" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent side="top">{tr("Refresh", "刷新")}</TooltipContent>
+                          <TooltipContent side="top">
+                            {refreshingBotIds.has(bot.id) ? tr("Refreshing", "正在刷新") : tr("Refresh", "刷新")}
+                          </TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>

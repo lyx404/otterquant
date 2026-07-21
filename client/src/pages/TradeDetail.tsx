@@ -324,9 +324,11 @@ export default function TradeDetail() {
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
   const [pendingAction, setPendingAction] = useState<PendingTradeAction>(null);
   const [isReturningToTrade, setIsReturningToTrade] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [executionStatusOverride, setExecutionStatusOverride] = useState<{ tradeId: string; status: "running" | "paused" } | null>(null);
   const [refreshedAtByTrade, setRefreshedAtByTrade] = useState<Record<string, string>>({});
   const returnNavigationTimerRef = useRef<number | null>(null);
+  const refreshTimerRef = useRef<number | null>(null);
   const tradeId = params?.id ?? "";
   const trade = useMemo(
     () => getTradeBotsWithDeployments(tradeBots).find((item) => item.id === tradeId),
@@ -348,6 +350,9 @@ export default function TradeDetail() {
   useEffect(() => () => {
     if (returnNavigationTimerRef.current !== null) {
       window.clearTimeout(returnNavigationTimerRef.current);
+    }
+    if (refreshTimerRef.current !== null) {
+      window.clearTimeout(refreshTimerRef.current);
     }
   }, []);
   useEffect(() => {
@@ -396,6 +401,28 @@ export default function TradeDetail() {
     ? executionStatusOverride.status
     : queriedStatus;
   const displayedUpdatedAt = refreshedAtByTrade[tradeId] ?? trade.updatedAt;
+  const refreshTrade = () => {
+    if (refreshTimerRef.current !== null) return;
+
+    const updateTimestamp = () => {
+      setRefreshedAtByTrade((current) => ({
+        ...current,
+        [tradeId]: formatRefreshTimestamp(new Date()),
+      }));
+    };
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      updateTimestamp();
+      return;
+    }
+
+    setIsRefreshing(true);
+    refreshTimerRef.current = window.setTimeout(() => {
+      updateTimestamp();
+      setIsRefreshing(false);
+      refreshTimerRef.current = null;
+    }, 620);
+  };
   const returnToTrade = (event: ReactMouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
@@ -757,7 +784,7 @@ export default function TradeDetail() {
     }
   };
   return (
-    <div className={`oq-trade-detail min-w-0${isReturningToTrade ? " is-returning" : ""}`} style={semanticColorVars}>
+    <div className={`oq-trade-detail min-w-0${isReturningToTrade ? " is-returning" : ""}${isRefreshing ? " is-refreshing" : ""}`} style={semanticColorVars}>
       <div className="oq-trade-detail-heading">
         <Link href="/trade" className="oq-trade-detail-back" onClick={returnToTrade}>
           <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
@@ -795,19 +822,18 @@ export default function TradeDetail() {
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="oq-trade-detail-action"
-                      aria-label={tr("Refresh", "刷新")}
-                      onClick={() => {
-                        setRefreshedAtByTrade((current) => ({
-                          ...current,
-                          [tradeId]: formatRefreshTimestamp(new Date()),
-                        }));
-                      }}
+                      className={`oq-trade-detail-action${isRefreshing ? " is-refreshing" : ""}`}
+                      aria-label={isRefreshing ? tr("Refreshing", "正在刷新") : tr("Refresh", "刷新")}
+                      aria-busy={isRefreshing}
+                      disabled={isRefreshing}
+                      onClick={refreshTrade}
                     >
                       <RefreshCw aria-hidden="true" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="top">{tr("Refresh", "刷新")}</TooltipContent>
+                  <TooltipContent side="top">
+                    {isRefreshing ? tr("Refreshing", "正在刷新") : tr("Refresh", "刷新")}
+                  </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
