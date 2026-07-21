@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type ComponentType, type CSSProperties, type ReactNode } from "react";
-import { Link, useParams, useSearch } from "wouter";
+import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSProperties, type MouseEvent as ReactMouseEvent, type ReactNode } from "react";
+import { Link, useLocation, useParams, useSearch } from "wouter";
+import { toast } from "sonner";
 import {
   Area,
   AreaChart,
@@ -18,11 +19,28 @@ import {
   localizeDateRangeLabel,
   StrategyReportDateControl,
 } from "./StrategyReportDateControl";
+import { TRADE_RETURN_TRANSITION_STORAGE_KEY } from "./Trade";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   formatSigned,
   tradeBots,
@@ -31,15 +49,19 @@ import {
   tradePositionRows,
   type TradeEnvironment,
 } from "@/lib/tradeData";
-import { getTradeBotsWithDeployments } from "@/lib/tradeDeployments";
+import {
+  deleteTradeBotDeployment,
+  getTradeBotsWithDeployments,
+} from "@/lib/tradeDeployments";
 import {
   ArrowLeft,
   Activity,
   BarChart3,
-  CircleStop,
+  MoreHorizontal,
   PieChart,
   Play,
   RefreshCw,
+  Trash2,
 } from "lucide-react";
 import { useAppLanguage } from "@/contexts/AppLanguageContext";
 import "./TradeDetail.css";
@@ -112,6 +134,7 @@ type OverviewTrendMetricKey = "returnValue" | "pnlValue";
 type AnalysisRange = "7D" | "30D" | "90D" | "365D";
 type CurvePoint = { x: number; y: number; value: number };
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
+type PendingTradeAction = "stop" | "delete" | null;
 
 const analysisRanges: AnalysisRange[] = ["7D", "30D", "90D", "365D"];
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
@@ -286,6 +309,7 @@ export default function TradeDetail() {
   const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
   const performanceDateLabel = tr("Today", "今天");
   const params = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
   const search = useSearch();
   const searchParams = new URLSearchParams(search);
   const [viewMode] = useState<TradeViewMode>("trading");
@@ -298,10 +322,16 @@ export default function TradeDetail() {
   const [analysisReturnHoverIndex, setAnalysisReturnHoverIndex] = useState<number | null>(null);
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
   const [plainExplainEnabled, setPlainExplainEnabled] = useState(() => readPlainExplanationEnabled());
+  const [pendingAction, setPendingAction] = useState<PendingTradeAction>(null);
+  const [isReturningToTrade, setIsReturningToTrade] = useState(false);
   const [executionStatusOverride, setExecutionStatusOverride] = useState<{ tradeId: string; status: "running" | "paused" } | null>(null);
   const [refreshedAtByTrade, setRefreshedAtByTrade] = useState<Record<string, string>>({});
+  const returnNavigationTimerRef = useRef<number | null>(null);
   const tradeId = params?.id ?? "";
-  const trade = getTradeBotsWithDeployments(tradeBots).find((item) => item.id === tradeId);
+  const trade = useMemo(
+    () => getTradeBotsWithDeployments(tradeBots).find((item) => item.id === tradeId),
+    [tradeId]
+  );
   useEffect(() => {
     if (typeof window === "undefined") return;
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
@@ -315,6 +345,11 @@ export default function TradeDetail() {
   useEffect(() => {
     setActivePerformancePeriod(performanceDateLabel);
   }, [performanceDateLabel]);
+  useEffect(() => () => {
+    if (returnNavigationTimerRef.current !== null) {
+      window.clearTimeout(returnNavigationTimerRef.current);
+    }
+  }, []);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const syncPlainExplanation = () => setPlainExplainEnabled(readPlainExplanationEnabled());
@@ -361,6 +396,41 @@ export default function TradeDetail() {
     ? executionStatusOverride.status
     : queriedStatus;
   const displayedUpdatedAt = refreshedAtByTrade[tradeId] ?? trade.updatedAt;
+  const returnToTrade = (event: ReactMouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    if (returnNavigationTimerRef.current !== null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      navigate("/trade");
+      return;
+    }
+
+    setIsReturningToTrade(true);
+    returnNavigationTimerRef.current = window.setTimeout(() => {
+      window.sessionStorage.setItem(TRADE_RETURN_TRANSITION_STORAGE_KEY, "true");
+      returnNavigationTimerRef.current = null;
+      navigate("/trade");
+    }, 220);
+  };
+  const stopTrade = () => {
+    setExecutionStatusOverride({ tradeId, status: "paused" });
+    const nextSearchParams = new URLSearchParams(window.location.search);
+    nextSearchParams.set("status", "paused");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}?${nextSearchParams.toString()}`
+    );
+  };
+  const confirmPendingAction = () => {
+    if (pendingAction === "stop") stopTrade();
+    if (pendingAction === "delete") {
+      deleteTradeBotDeployment(tradeId);
+      toast.success(tr("Paper trading deployment deleted", "模拟盘已删除"));
+      navigate("/trade");
+    }
+    setPendingAction(null);
+  };
 
   const visiblePositions = tradePositionRows.filter(
     (row) => row.environment === runtimeEnvironment
@@ -687,9 +757,9 @@ export default function TradeDetail() {
     }
   };
   return (
-    <div className="oq-trade-detail min-w-0" style={semanticColorVars}>
+    <div className={`oq-trade-detail min-w-0${isReturningToTrade ? " is-returning" : ""}`} style={semanticColorVars}>
       <div className="oq-trade-detail-heading">
-        <Link href="/trade" className="oq-trade-detail-back">
+        <Link href="/trade" className="oq-trade-detail-back" onClick={returnToTrade}>
           <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
           <span>{tr("Back to Trade", "返回交易")}</span>
         </Link>
@@ -702,7 +772,7 @@ export default function TradeDetail() {
             </div>
             <div className="oq-trade-detail-meta">
               <span aria-live="polite">{tr("Updated", "更新于")} {displayedUpdatedAt}</span>
-              <span className="oq-trade-detail-record-id">{trade.recordId ?? trade.id}</span>
+              <span className="oq-trade-detail-record-id">{trade.recordId}</span>
               <div className="oq-trade-detail-title-tags">
                 <span className={`oq-trade-detail-mode ${runtimeEnvironment === "paper" ? "is-paper" : "is-live"}`}>
                   {runtimeEnvironment === "paper" ? tr("Paper", "模拟") : tr("Live", "实盘")}
@@ -735,7 +805,6 @@ export default function TradeDetail() {
                       }}
                     >
                       <RefreshCw aria-hidden="true" />
-                      <span>{tr("Refresh", "刷新")}</span>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top">{tr("Refresh", "刷新")}</TooltipContent>
@@ -744,24 +813,20 @@ export default function TradeDetail() {
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="oq-trade-detail-action is-stop"
+                      className="oq-trade-detail-action"
                       aria-label={tr("Stop", "停止")}
-                      onClick={() => {
-                        setExecutionStatusOverride({ tradeId, status: "paused" });
-
-                        if (typeof window !== "undefined") {
-                          const nextSearchParams = new URLSearchParams(window.location.search);
-                          nextSearchParams.set("status", "paused");
-                          window.history.replaceState(
-                            window.history.state,
-                            "",
-                            `${window.location.pathname}?${nextSearchParams.toString()}`
-                          );
-                        }
-                      }}
+                      onClick={() => setPendingAction("stop")}
                     >
-                      <CircleStop aria-hidden="true" />
-                      <span>{tr("Stop", "停止")}</span>
+                      <svg
+                        aria-hidden="true"
+                        className="oq-trade-detail-stop-icon"
+                        viewBox="-128 -128 1280 1280"
+                      >
+                        <path
+                          fill="currentColor"
+                          d="M768 960c-26.24 0-48-21.76-48-48V112c0-26.24 21.76-48 48-48s48 21.76 48 48v800c0 26.24-21.76 48-48 48zM256 960c-26.24 0-48-21.76-48-48V112c0-26.24 21.76-48 48-48s48 21.76 48 48v800c0 26.24-21.76 48-48 48z"
+                        />
+                      </svg>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="top">{tr("Stop", "停止")}</TooltipContent>
@@ -789,12 +854,42 @@ export default function TradeDetail() {
                     }}
                   >
                     <Play aria-hidden="true" />
-                    <span>{tr("Restart", "重新启动")}</span>
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="top">{tr("Restart", "重新启动")}</TooltipContent>
               </Tooltip>
             )}
+
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="oq-trade-detail-action"
+                      aria-label={tr("More", "更多")}
+                    >
+                      <MoreHorizontal aria-hidden="true" />
+                    </button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">{tr("More", "更多")}</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent
+                align="end"
+                sideOffset={8}
+                className="oq-trade-detail-action-menu"
+              >
+                <DropdownMenuItem
+                  className="oq-trade-detail-action-menu-item is-destructive"
+                  variant="destructive"
+                  onSelect={() => setPendingAction("delete")}
+                >
+                  <Trash2 aria-hidden="true" />
+                  {tr("Delete", "删除")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
       </div>
@@ -1650,6 +1745,45 @@ export default function TradeDetail() {
 
         </>
       ) : null}
+
+      <AlertDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => !open && setPendingAction(null)}
+      >
+        <AlertDialogContent className="oq-trade-detail-dialog">
+          <AlertDialogHeader className="oq-trade-detail-dialog-header">
+            <AlertDialogTitle className="oq-trade-detail-dialog-title">
+              {pendingAction === "delete"
+                ? tr("Delete Paper Trading", "删除模拟盘")
+                : tr("Stop Paper Trading", "停止模拟盘")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="oq-trade-detail-dialog-description">
+              {pendingAction === "delete"
+                ? tr(
+                    `Delete the paper-trading deployment for "${trade.name}"? It will be removed from the current list and cannot be undone on this page.`,
+                    `确认删除策略「${trade.name}」的模拟盘吗？删除后将从当前列表中移除，且无法在此页面撤销。`
+                  )
+                : tr(
+                    "Are you sure you want to stop this paper-trading deployment? Open positions and its configuration will be kept so you can restart it later.",
+                    "确认要停止该模拟盘吗？当前持仓与模拟盘配置将保留，之后可以重新启动。"
+                  )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="oq-trade-detail-dialog-footer">
+            <AlertDialogCancel className="oq-trade-detail-dialog-button">
+              {tr("Cancel", "取消")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="oq-trade-detail-dialog-button is-primary"
+              onClick={confirmPendingAction}
+            >
+              {pendingAction === "delete"
+                ? tr("Confirm Delete", "确认删除")
+                : tr("Confirm Stop", "确认停止")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

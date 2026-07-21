@@ -27,10 +27,40 @@
   --td-chart-grid: color-mix(in srgb, var(--td-border) 68%, transparent);
   display: grid;
   width: min(100%, 900px);
-  gap: 24px;
+  gap: 18px;
   margin: 0 auto;
   color: var(--td-text);
   font-family: var(--font-body);
+  animation: oq-trade-detail-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.oq-trade-detail.is-returning {
+  animation: oq-trade-detail-exit 220ms cubic-bezier(0.5, 0, 0.75, 0) both;
+  pointer-events: none;
+}
+
+@keyframes oq-trade-detail-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes oq-trade-detail-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(10px);
+  }
 }
 
 .oq-trade-detail-heading {
@@ -168,33 +198,29 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
 }
 
 .oq-trade-detail-action {
   display: inline-flex;
-  width: auto;
-  min-width: 0;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
   min-height: 38px;
   align-items: center;
   justify-content: center;
-  gap: 6px;
   border: 1px solid var(--td-border);
-  border-radius: 999px;
+  border-radius: 749px;
   background: var(--td-bg);
-  padding: 0 14px;
+  padding: 0;
   color: var(--td-muted-strong);
-  font-family: var(--font-body);
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
-  white-space: nowrap;
-  box-shadow: none;
+  box-shadow: 0 1px 1.5px rgba(60, 40, 20, 0.06);
   cursor: pointer;
   transition:
     border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
     background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
-    color 160ms cubic-bezier(0.25, 1, 0.5, 1);
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .oq-trade-detail-action svg {
@@ -205,26 +231,21 @@
 }
 
 .oq-trade-detail-action:hover:not(:disabled) {
-  border-color: var(--td-border-strong);
-  background: color-mix(in srgb, var(--td-surface) 72%, var(--td-bg));
-  color: var(--td-text-soft);
+  border-color: var(--td-accent);
+  background: var(--td-bg-warm);
+  color: var(--td-accent);
+  transform: translateY(-1px);
+}
+
+.oq-trade-detail-action[data-state="open"] {
+  border-color: var(--td-accent);
+  background: var(--td-bg-warm);
+  color: var(--td-accent);
 }
 
 .oq-trade-detail-action:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--td-accent) 32%, transparent);
   outline-offset: 2px;
-}
-
-.oq-trade-detail-action.is-stop {
-  border-color: color-mix(in srgb, var(--td-risk) 32%, var(--td-border));
-  background: color-mix(in srgb, var(--td-risk) 5%, var(--td-bg));
-  color: var(--td-risk);
-}
-
-.oq-trade-detail-action.is-stop:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--td-risk) 52%, var(--td-border));
-  background: color-mix(in srgb, var(--td-risk) 10%, var(--td-bg));
-  color: var(--td-risk);
 }
 
 .oq-trade-detail-action:disabled {
@@ -233,6 +254,129 @@
   color: var(--td-muted);
   cursor: not-allowed;
   opacity: 0.72;
+}
+
+.oq-trade-detail-action-menu {
+  z-index: 80;
+  min-width: 184px;
+  border-color: #ece6df;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 6px;
+  color: #0d0d0d;
+  box-shadow: 0 12px 30px rgba(60, 40, 20, 0.12);
+}
+
+.oq-trade-detail-action-menu-item {
+  min-height: 34px;
+  border-radius: 6px;
+  padding: 7px 9px;
+  color: #2a2622;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  cursor: pointer;
+}
+
+.oq-trade-detail-action-menu-item > svg {
+  color: currentColor !important;
+  stroke-width: 1.8;
+}
+
+.oq-trade-detail-action-menu-item[data-highlighted] {
+  background: var(--td-bg-warm);
+  color: var(--td-accent);
+}
+
+.oq-trade-detail-action-menu-item.is-destructive {
+  color: #dc2626;
+}
+
+.oq-trade-detail-dialog {
+  --td-bg: #ffffff;
+  --td-bg-warm: #fef6ef;
+  --td-border: #e2dad0;
+  --td-text: #0d0d0d;
+  --td-text-soft: #4a443d;
+  --td-muted: #8c8378;
+  --td-accent: #dc4900;
+  width: min(512px, calc(100vw - 32px));
+  max-width: min(512px, calc(100vw - 32px));
+  gap: 16px;
+  border: 1px solid var(--td-border) !important;
+  border-radius: 15px !important;
+  background: var(--td-bg) !important;
+  color: var(--td-text);
+  box-shadow: 0 6px 18px rgba(60, 40, 20, 0.08) !important;
+  padding: 20px !important;
+}
+
+.oq-trade-detail-dialog-header {
+  gap: 9px !important;
+  text-align: left !important;
+}
+
+.oq-trade-detail-dialog-title {
+  color: var(--td-text);
+  font-family: var(--font-heading);
+  font-size: 19.5px;
+  font-weight: 700;
+  line-height: 27px;
+}
+
+.oq-trade-detail-dialog-description {
+  color: var(--td-muted) !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+
+.oq-trade-detail-dialog-footer {
+  gap: 9px !important;
+}
+
+.oq-trade-detail-dialog-button {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-color: var(--td-border) !important;
+  border-radius: 37.5px !important;
+  background: var(--td-bg) !important;
+  padding: 0 12px !important;
+  color: var(--td-text-soft) !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 14px !important;
+  box-shadow: none !important;
+  transition:
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    transform 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-trade-detail-dialog-button:hover {
+  border-color: rgba(220, 73, 0, 0.28) !important;
+  background: var(--td-bg-warm) !important;
+  color: var(--td-accent) !important;
+  transform: translateY(-1px);
+}
+
+.oq-trade-detail-dialog-button.is-primary {
+  border-color: rgba(220, 73, 0, 0.2) !important;
+  background: var(--td-accent) !important;
+  color: #ffffff !important;
+}
+
+.oq-trade-detail-dialog-button.is-primary:hover {
+  background: #e8750c !important;
+  color: #ffffff !important;
+}
+
+.oq-trade-detail-dialog :is(button, a):focus-visible {
+  outline: 2px solid rgba(220, 73, 0, 0.28);
+  outline-offset: 2px;
+  box-shadow: none !important;
 }
 
 .oq-trade-detail-status {
@@ -292,7 +436,7 @@
 .oq-trade-overview {
   display: grid;
   min-width: 0;
-  gap: 16px;
+  gap: 18px;
 }
 
 .oq-trade-overview-grid {
@@ -303,7 +447,7 @@
     "trend allocation";
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
-  gap: 16px;
+  gap: 18px;
 }
 
 .oq-trade-overview-card {
@@ -1459,6 +1603,17 @@
 }
 
 @media (max-width: 720px) {
+  .oq-trade-detail-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    padding: 18px 16px !important;
+  }
+
+  .oq-trade-detail-dialog-button {
+    width: 100%;
+    min-height: 44px;
+  }
+
   .oq-trade-detail {
     width: 100%;
     gap: 18px;
@@ -1489,6 +1644,9 @@
   }
 
   .oq-trade-detail-action {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
     min-height: 44px;
   }
 
@@ -1594,6 +1752,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .oq-trade-detail-dialog,
+  .oq-trade-detail-dialog * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .oq-trade-detail {
+    animation: none;
+  }
+
   .oq-trade-detail-back {
     transition-duration: 0.01ms;
   }

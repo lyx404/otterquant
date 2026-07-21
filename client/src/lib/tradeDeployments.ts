@@ -1,8 +1,10 @@
 import type { TradeBot, TradeEnvironment } from "@/lib/tradeData";
 
 type StrategyMarket = "CEX" | "DEX" | "Mixed";
+type TradeBotWithRecordId = TradeBot & { recordId: string };
 
 const STORAGE_KEY = "otter_trade_strategy_deployments_v1";
+const deletedTradeBotIds = new Set<string>();
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -29,6 +31,28 @@ function inferSymbol(name: string) {
   return "TOP50-USDT";
 }
 
+function hashRecordIdPart(value: string, seed: number) {
+  let hash = seed >>> 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = Math.imul(hash ^ value.charCodeAt(index), 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+function createTradeRecordId(tradeId: string) {
+  const source = `otterquant:${tradeId.toLowerCase()}`;
+  return [0x811c9dc5, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35]
+    .map((seed, index) => hashRecordIdPart(`${source}:${index}`, seed))
+    .join("");
+}
+
+function ensureTradeRecordId(item: TradeBot): TradeBotWithRecordId {
+  return {
+    ...item,
+    recordId: item.recordId ?? createTradeRecordId(item.id),
+  };
+}
+
 function readDeployments(): TradeBot[] {
   if (!canUseStorage()) return [];
   try {
@@ -47,11 +71,20 @@ function writeDeployments(items: TradeBot[]) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
 
-export function getTradeBotsWithDeployments(baseBots: TradeBot[]) {
+export function getTradeBotsWithDeployments(baseBots: TradeBot[]): TradeBotWithRecordId[] {
   const deployments = readDeployments();
   const baseIds = new Set(baseBots.map((item) => item.id));
   const extra = deployments.filter((item) => !baseIds.has(item.id));
-  return [...baseBots, ...extra];
+  return [...baseBots, ...extra]
+    .filter((item) => !deletedTradeBotIds.has(item.id))
+    .map(ensureTradeRecordId);
+}
+
+export function deleteTradeBotDeployment(tradeId: string) {
+  deletedTradeBotIds.add(tradeId);
+  const deployments = readDeployments();
+  const remaining = deployments.filter((item) => item.id !== tradeId);
+  if (remaining.length !== deployments.length) writeDeployments(remaining);
 }
 
 export function getStrategyDeployment(strategyId: string, environment: TradeEnvironment) {
@@ -83,8 +116,10 @@ export function deployStrategyToTrade(params: {
   const nextEquity = baseEquity * (1 + roi / 100);
   const nextUnrealized = (params.environment === "live" ? 1 : 0.65) * (nextEquity * 0.012);
 
+  const nextBotId = existing?.id ?? `TRD-${params.strategyId.replace("STR-", "")}-${params.environment === "paper" ? "P" : "L"}`;
   const nextBot: TradeBot = {
-    id: existing?.id ?? `TRD-${params.strategyId.replace("STR-", "")}-${params.environment === "paper" ? "P" : "L"}`,
+    id: nextBotId,
+    recordId: existing?.recordId ?? createTradeRecordId(nextBotId),
     strategyId: params.strategyId,
     strategyOrigin: "strategy",
     environment: params.environment,
@@ -101,6 +136,7 @@ export function deployStrategyToTrade(params: {
   const next = existing
     ? current.map((item) => (item.id === existing.id ? nextBot : item))
     : [...current, nextBot];
+  deletedTradeBotIds.delete(nextBot.id);
   writeDeployments(next);
   return nextBot;
 }

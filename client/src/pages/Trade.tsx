@@ -31,7 +31,10 @@ import {
   type TradeEnvironment,
   type BotStatus,
 } from "@/lib/tradeData";
-import { getTradeBotsWithDeployments } from "@/lib/tradeDeployments";
+import {
+  deleteTradeBotDeployment,
+  getTradeBotsWithDeployments,
+} from "@/lib/tradeDeployments";
 import {
   ArrowDown,
   ArrowUp,
@@ -51,6 +54,8 @@ type PendingAction =
   | { type: "stop"; botId: string }
   | { type: "delete"; botId: string }
   | null;
+
+export const TRADE_RETURN_TRANSITION_STORAGE_KEY = "otterquant:trade-return-transition";
 
 type BotStatusFilter = "all" | "running" | "stop";
 type BotSortKey = "equity" | "unrealizedPnl" | "roi" | "updatedAt";
@@ -136,6 +141,10 @@ function TradeWorkbench260712() {
     envFromQuery === "live" ? "live" : "paper"
   );
   const [activeSummaryPeriod, setActiveSummaryPeriod] = useState(todayLabel);
+  const [isReturningFromDetail] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem(TRADE_RETURN_TRANSITION_STORAGE_KEY) === "true";
+  });
   const [focusedBotId, setFocusedBotId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [statusFilter, setStatusFilter] = useState<BotStatusFilter>("all");
@@ -169,6 +178,11 @@ function TradeWorkbench260712() {
       setEnvironment(envFromQuery);
     }
   }, [envFromQuery]);
+
+  useEffect(() => {
+    if (!isReturningFromDetail) return;
+    window.sessionStorage.removeItem(TRADE_RETURN_TRANSITION_STORAGE_KEY);
+  }, [isReturningFromDetail]);
 
   useEffect(() => {
     setActiveSummaryPeriod(todayLabel);
@@ -293,6 +307,7 @@ function TradeWorkbench260712() {
   };
 
   const deleteBot = (botId: string) => {
+    deleteTradeBotDeployment(botId);
     setDeletedBotIds(prev => {
       const next = new Set(prev);
       next.add(botId);
@@ -344,22 +359,26 @@ function TradeWorkbench260712() {
     if (direction === "asc") return <ArrowUp aria-hidden="true" />;
     return <ArrowUpDown aria-hidden="true" />;
   };
+  const summaryPeriodLabel = localizeDateRangeLabel(activeSummaryPeriod, uiLang);
+  const summaryPeriodContext = activeSummaryPeriod === todayLabel
+    ? tr("today", "今天")
+    : tr(`during ${summaryPeriodLabel.toLowerCase()}`, `${summaryPeriodLabel}内`);
   const metricExplanations = {
     activeBots: tr(
-      "Number of strategies currently trading automatically.",
-      "当前正在自动交易的策略数量。"
+      `Number of strategies trading automatically ${summaryPeriodContext}.`,
+      `${summaryPeriodContext}正在自动交易的策略数量。`
     ),
     totalEquity: tr(
-      "Combined account assets of all visible strategies.",
-      "所有可见策略的账户资产合计。"
+      `Combined account assets across all visible strategies ${summaryPeriodContext}.`,
+      `${summaryPeriodContext}所有可见策略的账户资产合计。`
     ),
     unrealizedPnl: tr(
-      "Combined PnL across all visible strategies.",
-      "当前可见策略的盈亏金额合计。"
+      `Combined PnL across all visible strategies ${summaryPeriodContext}.`,
+      `${summaryPeriodContext}所有可见策略的盈亏金额合计。`
     ),
     avgRoi: tr(
-      "Average return across visible strategies.",
-      "当前可见策略收益率的平均值。"
+      `Average return across all visible strategies ${summaryPeriodContext}.`,
+      `${summaryPeriodContext}所有可见策略收益率的平均值。`
     ),
   };
 
@@ -380,12 +399,12 @@ function TradeWorkbench260712() {
 
   return (
     <div
-      className={`oq-trade ${environment === "live" ? "is-live" : "is-paper"}`}
+      className={`oq-trade ${environment === "live" ? "is-live" : "is-paper"}${isReturningFromDetail ? " is-returning-from-detail" : ""}`}
     >
       <section className="oq-trade-summary-section" aria-labelledby="trade-summary-period-title">
         <div className="oq-trade-summary-header">
           <h2 id="trade-summary-period-title">
-            {localizeDateRangeLabel(activeSummaryPeriod, uiLang)}
+            {summaryPeriodLabel}
           </h2>
           <StrategyReportDateControl
             dateLabel={todayLabel}
@@ -671,7 +690,7 @@ function TradeWorkbench260712() {
                             <Button
                               type="button"
                               variant="outline"
-                              className="oq-trade-icon-button is-stop"
+                              className="oq-trade-icon-button"
                               aria-label={tr("Stop", "停止")}
                               onClick={() =>
                                 setPendingAction({ type: "stop", botId: bot.id })

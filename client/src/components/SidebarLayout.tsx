@@ -76,8 +76,8 @@ const pageHeaders = [
     match: (path: string) => path.startsWith("/strategies"),
     titleEn: "My Strategy",
     titleZh: "我的策略",
-    subtitleEn: "Build and monitor strategy workflows",
-    subtitleZh: "构建与监控策略工作流",
+    subtitleEn: "Review performance and manage paper status & versions",
+    subtitleZh: "查看策略表现，管理模拟盘状态与版本记录",
   },
   {
     match: (path: string) => /^\/trade\/[^/]+$/.test(path),
@@ -90,8 +90,8 @@ const pageHeaders = [
     match: (path: string) => path.startsWith("/trade"),
     titleEn: "Trade",
     titleZh: "交易",
-    subtitleEn: "Monitor executions and trading status",
-    subtitleZh: "监控执行与交易状态",
+    subtitleEn: "Review assets, PnL & strategy status",
+    subtitleZh: "查看资产、盈亏与策略运行状态",
   },
   {
     match: (path: string) => path.startsWith("/subscription"),
@@ -104,8 +104,8 @@ const pageHeaders = [
     match: (path: string) => path.startsWith("/account"),
     titleEn: "Settings",
     titleZh: "设置",
-    subtitleEn: "Profile, billing, security & API access",
-    subtitleZh: "资料、账单、安全与 API 访问",
+    subtitleEn: "Manage preferences, profile & Agent settings",
+    subtitleZh: "管理通用偏好、个人资料与 Agent 设置",
   },
 ];
 
@@ -123,6 +123,12 @@ const sidebarCopy: Record<string, UiCopy> = {
     ko: "전략 워크플로를 구축하고 모니터링",
     es: "Crea y supervisa flujos de estrategia",
     fr: "Construire et surveiller les workflows de stratégie",
+  },
+  "Review performance and manage paper status & versions": {
+    ja: "パフォーマンスを確認し、ペーパートレード状況とバージョンを管理",
+    ko: "성과를 검토하고 모의 거래 상태와 버전을 관리",
+    es: "Revisa el rendimiento y gestiona el estado de paper trading y las versiones",
+    fr: "Analyser les performances et gérer le statut du paper trading et les versions",
   },
   "Overview of factors, strategies, and account status": {
     ja: "ファクター、ストラテジー、アカウント状況の概要",
@@ -142,17 +148,23 @@ const sidebarCopy: Record<string, UiCopy> = {
     es: "Supervisa ejecuciones y estado de trading",
     fr: "Surveiller les exécutions et le statut de trading",
   },
+  "Review assets, PnL & strategy status": {
+    ja: "資産、損益、ストラテジー稼働状況を確認",
+    ko: "자산, 손익 및 전략 실행 상태 확인",
+    es: "Revisa activos, PnL y estado de las estrategias",
+    fr: "Consulter les actifs, le PnL et le statut des stratégies",
+  },
   "Manage your plan and renewal status": {
     ja: "プランと更新状況を管理",
     ko: "플랜 및 갱신 상태 관리",
     es: "Gestiona tu plan y el estado de renovación",
     fr: "Gérer l’offre et le statut de renouvellement",
   },
-  "Profile, billing, security & API access": {
-    ja: "プロフィール、請求、セキュリティ、API アクセス",
-    ko: "프로필, 결제, 보안 및 API 접근",
-    es: "Perfil, facturación, seguridad y acceso API",
-    fr: "Profil, facturation, sécurité et accès API",
+  "Manage preferences, profile & Agent settings": {
+    ja: "一般設定、プロフィール、Agent 設定を管理",
+    ko: "일반 환경설정, 프로필 및 Agent 설정 관리",
+    es: "Gestiona las preferencias, el perfil y la configuración del Agent",
+    fr: "Gérer les préférences, le profil et les paramètres de l’Agent",
   },
   "Back to strategies": { ja: "ストラテジー一覧に戻る", ko: "전략 목록으로 돌아가기", es: "Volver a estrategias", fr: "Retour aux stratégies" },
   Back: { ja: "戻る", ko: "뒤로", es: "Atrás", fr: "Retour" },

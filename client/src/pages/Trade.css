@@ -28,6 +28,35 @@
   margin: 0 auto;
   color: var(--qt-text);
   font-family: var(--font-body);
+  animation: oq-trade-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.oq-trade.is-returning-from-detail {
+  animation: oq-trade-return 260ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@keyframes oq-trade-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes oq-trade-return {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .oq-trade-summary-grid {
@@ -57,7 +86,7 @@
   margin: 0;
   color: var(--qt-text);
   font-family: var(--font-heading);
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   line-height: 32px;
   letter-spacing: 0;
@@ -436,18 +465,6 @@
   color: var(--qt-text-soft) !important;
 }
 
-.oq-trade-icon-button.is-stop {
-  border-color: color-mix(in srgb, var(--qt-risk) 32%, var(--qt-border)) !important;
-  background: color-mix(in srgb, var(--qt-risk) 5%, var(--qt-bg)) !important;
-  color: var(--qt-risk) !important;
-}
-
-.oq-trade-icon-button.is-stop:hover {
-  border-color: color-mix(in srgb, var(--qt-risk) 52%, var(--qt-border)) !important;
-  background: color-mix(in srgb, var(--qt-risk) 10%, var(--qt-bg)) !important;
-  color: var(--qt-risk) !important;
-}
-
 .oq-trade-icon-button.is-restart {
   width: auto;
   flex: 1 1 auto;
@@ -696,6 +713,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .oq-trade {
+    animation: none;
+  }
+
   .oq-trade *,
   .oq-trade *::before,
   .oq-trade *::after,
