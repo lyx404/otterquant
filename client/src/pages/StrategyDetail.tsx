@@ -36,6 +36,7 @@ import {
 } from "./StrategyFigmaReport";
 import {
   CreateStrategyComposer,
+  STRATEGY_RETURN_TRANSITION_STORAGE_KEY,
   type StrategyComposerValues,
 } from "./MyStrategies";
 import {
@@ -318,7 +319,9 @@ export default function StrategyDetail() {
   const [strategyEditValues, setStrategyEditValues] = useState<StrategyComposerValues | null>(null);
   const [sessionStrategyVersions, setSessionStrategyVersions] = useState<StrategyVersion[]>([]);
   const [defaultVersionId, setDefaultVersionId] = useState<string | null>(null);
+  const [isReturningToStrategies, setIsReturningToStrategies] = useState(false);
   const paperDeployTimerRef = useRef<number | null>(null);
+  const returnNavigationTimerRef = useRef<number | null>(null);
   const [connectedExchangeApis, setConnectedExchangeApis] = useState<ExchangeApiConnection[]>(() =>
     readExchangeApiConnections()
   );
@@ -405,6 +408,9 @@ export default function StrategyDetail() {
   useEffect(() => () => {
     if (paperDeployTimerRef.current !== null) {
       window.clearTimeout(paperDeployTimerRef.current);
+    }
+    if (returnNavigationTimerRef.current !== null) {
+      window.clearTimeout(returnNavigationTimerRef.current);
     }
   }, []);
   useEffect(() => {
@@ -809,8 +815,23 @@ export default function StrategyDetail() {
   const openStrategyEditor = () => {
     setIsStrategyEditOpen(true);
   };
+  const returnToMyStrategies = () => {
+    if (returnNavigationTimerRef.current !== null) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      navigate("/strategies");
+      return;
+    }
+
+    setIsReturningToStrategies(true);
+    returnNavigationTimerRef.current = window.setTimeout(() => {
+      window.sessionStorage.setItem(STRATEGY_RETURN_TRANSITION_STORAGE_KEY, "true");
+      returnNavigationTimerRef.current = null;
+      navigate("/strategies");
+    }, 220);
+  };
   const confirmDeleteStrategy = () => {
     persistDeletedStrategyId(strategyId);
+    toast.success(tr("Strategy deleted successfully.", "策略删除成功。"));
     navigate("/strategies");
   };
   const viewLatestVersion = () => navigate(latestStrategyUrl);
@@ -1019,7 +1040,7 @@ export default function StrategyDetail() {
     <button
       type="button"
       className="oq-report-back-button"
-      onClick={() => navigate("/strategies")}
+      onClick={returnToMyStrategies}
     >
       <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
       <span>{tr("Back to My Strategies", "返回我的策略")}</span>
@@ -1029,7 +1050,7 @@ export default function StrategyDetail() {
   return (
     <>
       <div
-        className="oq-strategy-detail-transition"
+        className={`oq-strategy-detail-transition${isReturningToStrategies ? " is-returning" : ""}`}
         key={`${strategyId}:${historicalVersionId ?? "latest"}`}
       >
         <StrategyFigmaReport

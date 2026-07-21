@@ -22,6 +22,29 @@
   font-family: var(--font-body);
 }
 
+.oq-strategy-workbench.is-returning-from-detail {
+  animation: oq-strategy-workbench-return 260ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@keyframes oq-strategy-workbench-return {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .oq-strategy-workbench.is-returning-from-detail {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 .oq-strategy-sync {
   display: grid;
   min-height: 51px;

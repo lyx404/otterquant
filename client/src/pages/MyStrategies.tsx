@@ -396,6 +396,7 @@ interface StrategyViewRow {
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 const DELETED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:deleted-strategies";
 const CREATED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:created-strategies";
+export const STRATEGY_RETURN_TRANSITION_STORAGE_KEY = "otterquant:strategy-return-transition";
 const STRATEGY_BACKTEST_DURATION_MS = 3.5 * 60 * 1000;
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
@@ -1860,6 +1861,10 @@ export default function MyStrategies() {
   const [strategyEdits, setStrategyEdits] = useState<Record<string, StrategyComposerValues>>({});
   const [sessionStrategyVersions, setSessionStrategyVersions] = useState<Record<string, StrategyVersion[]>>({});
   const [defaultStrategyVersionIds, setDefaultStrategyVersionIds] = useState<Record<string, string>>({});
+  const [isReturningFromDetail] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.sessionStorage.getItem(STRATEGY_RETURN_TRANSITION_STORAGE_KEY) === "true";
+  });
   const tr = makeStrategyTranslator(uiLang);
   const shouldShowPlainExplanations = plainExplainEnabled;
   const chartColors = useMemo(() => getChartColorTokens(chartColorMode), [chartColorMode]);
@@ -1867,6 +1872,11 @@ export default function MyStrategies() {
   const filterMenuRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isReturningFromDetail) return;
+    window.sessionStorage.removeItem(STRATEGY_RETURN_TRANSITION_STORAGE_KEY);
+  }, [isReturningFromDetail]);
 
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
@@ -2227,6 +2237,7 @@ export default function MyStrategies() {
     });
     setPendingDeleteStrategy(null);
     setPage(1);
+    toast.success(tr("Strategy deleted successfully.", "策略删除成功。"));
   };
 
   const topStats = [
@@ -2272,7 +2283,7 @@ export default function MyStrategies() {
 
   if (useFigmaWorkbenchLayout) {
     return (
-      <div className="oq-strategy-workbench">
+      <div className={`oq-strategy-workbench${isReturningFromDetail ? " is-returning-from-detail" : ""}`}>
         <section className="oq-strategy-sync">
           <div className="oq-strategy-sync-icon"><RefreshCw className="h-3.5 w-3.5" /></div>
           <div className="oq-strategy-sync-copy">
