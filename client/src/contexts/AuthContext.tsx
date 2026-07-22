@@ -7,8 +7,10 @@ import { createContext, useContext, useState, useEffect, useCallback } from "rea
 
 export interface User {
   email: string;
+  username?: string;
   displayName: string;
   avatar?: string;
+  bio?: string;
 }
 
 interface AuthContextType {

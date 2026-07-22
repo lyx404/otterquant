@@ -4,6 +4,7 @@
  */
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +12,7 @@ import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
-  Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut,
+  Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut, Camera,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -37,13 +38,14 @@ type TabId = "general" | "profile" | "agent" | "exchangeApi" | "api";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementType }[] = [
   { id: "general", labelEn: "General", labelZh: "通用", icon: Shield },
-  { id: "profile", labelEn: "Profile", labelZh: "资料", icon: User },
+  { id: "profile", labelEn: "Profile", labelZh: "个人资料", icon: User },
   { id: "agent", labelEn: "Agent Settings", labelZh: "Agent设置", icon: Key },
 ];
 
 // Switch these to true only when restoring "Workbench 260720".
-const SHOW_ACCOUNT_PROFILE_WORKBENCH_260720 = false;
-const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 = false;
+const SHOW_ACCOUNT_PROFILE_WORKBENCH_260720 = true;
+const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 = true;
+const ENABLE_LOGIN_EMAIL_EDITING = false;
 
 const languageOptions: { value: UiLang; label: string }[] = [
   { value: "en", label: "English" },
@@ -56,6 +58,80 @@ const languageOptions: { value: UiLang; label: string }[] = [
 
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024;
+const AVATAR_OUTPUT_SIZE = 512;
+const ALLOWED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const USERNAME_PATTERN = /^[a-z][a-z0-9_]{2,19}$/;
+
+function createUsernameSeed(value: string): string {
+  const normalized = value
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 20);
+
+  return USERNAME_PATTERN.test(normalized) ? normalized : "user";
+}
+
+function readBlobAsDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Unable to read avatar"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+function cropAvatarToSquare(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const sourceSize = Math.min(image.naturalWidth, image.naturalHeight);
+      const outputSize = Math.min(sourceSize, AVATAR_OUTPUT_SIZE);
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context || outputSize === 0) {
+        reject(new Error("Unable to process avatar"));
+        return;
+      }
+
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      context.drawImage(
+        image,
+        (image.naturalWidth - sourceSize) / 2,
+        (image.naturalHeight - sourceSize) / 2,
+        sourceSize,
+        sourceSize,
+        0,
+        0,
+        outputSize,
+        outputSize
+      );
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("Unable to process avatar"));
+            return;
+          }
+          readBlobAsDataUrl(blob).then(resolve, reject);
+        },
+        file.type,
+        file.type === "image/png" ? undefined : 0.9
+      );
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("Unable to decode avatar"));
+    };
+    image.src = objectUrl;
+  });
+}
 
 /* ── API Key data model ── */
 interface ApiKeyItem {
@@ -190,9 +266,13 @@ function AccountWorkbench260712() {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
-  const [username, setUsername] = useState(user?.displayName || "");
-  const [email, setEmail] = useState(user?.email || "");
-  const [nickname, setNickname] = useState(user?.displayName || "AlphaTrader");
+  const [username, setUsername] = useState(() =>
+    user?.username ?? createUsernameSeed(user?.email?.split("@")[0] || user?.displayName || "user")
+  );
+  const [email, setEmail] = useState("alpha.trader@example.com");
+  const [displayName, setDisplayName] = useState(user?.displayName || "AlphaTrader");
+  const [avatar, setAvatar] = useState(user?.avatar || "");
+  const [bio, setBio] = useState(user?.bio || "");
   const [passwordVerCode, setPasswordVerCode] = useState("");
   const [passwordCodeSent, setPasswordCodeSent] = useState(false);
   const [emailVerCode, setEmailVerCode] = useState("");
@@ -224,9 +304,15 @@ function AccountWorkbench260712() {
 
   // Edit mode states for each subsection
   const [editingProfile, setEditingProfile] = useState(false);
+  const [profileValidationRequested, setProfileValidationRequested] = useState(false);
   const [editingEmail, setEditingEmail] = useState(false);
   const [editingPassword, setEditingPassword] = useState(false);
-  const [originalNickname, setOriginalNickname] = useState(nickname);
+  const [originalUsername, setOriginalUsername] = useState(username);
+  const [originalDisplayName, setOriginalDisplayName] = useState(displayName);
+  const [originalAvatar, setOriginalAvatar] = useState(avatar);
+  const [originalBio, setOriginalBio] = useState(bio);
+  const [processingAvatar, setProcessingAvatar] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // API Keys state
   const [apiKeys, setApiKeys] = useState<ApiKeyItem[]>(INITIAL_KEYS);
@@ -309,11 +395,64 @@ function AccountWorkbench260712() {
   };
 
   const handleCancelProfile = () => {
-    setNickname(originalNickname);
+    setUsername(originalUsername);
+    setDisplayName(originalDisplayName);
+    setAvatar(originalAvatar);
+    setBio(originalBio);
+    setProfileValidationRequested(false);
+    if (avatarInputRef.current) avatarInputRef.current.value = "";
     setEditingProfile(false);
   };
 
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!ALLOWED_AVATAR_TYPES.has(file.type)) {
+      toast.error(tr("Use a JPEG, PNG, or WebP image", "请选择 JPEG、PNG 或 WebP 图片"));
+      return;
+    }
+    if (file.size > MAX_AVATAR_FILE_SIZE) {
+      toast.error(tr("Avatar must be 5 MB or smaller", "头像文件不能超过 5 MB"));
+      return;
+    }
+
+    setProcessingAvatar(true);
+    try {
+      setAvatar(await cropAvatarToSquare(file));
+      toast.success(tr("Avatar ready to save", "头像已裁剪，请保存资料"));
+    } catch {
+      toast.error(tr("Unable to process this image", "无法处理该图片，请更换后重试"));
+    } finally {
+      setProcessingAvatar(false);
+    }
+  };
+
   const handleCancelEmail = () => {
+    setEmailVerCode("");
+    setEmailCodeSent(false);
+    setNewEmail("");
+    setEditingEmail(false);
+  };
+
+  const handleSaveEmail = () => {
+    if (!emailVerCode.trim()) {
+      toast.error(tr("Please enter the verification code", "请输入验证码"));
+      return;
+    }
+    if (!newEmail.trim()) {
+      toast.error(tr("Please enter a new email address", "请输入新邮箱地址"));
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      toast.error(tr("Please enter a valid email address", "请输入有效的邮箱地址"));
+      return;
+    }
+
+    toast.success(tr("Email updated successfully", "邮箱更新成功"));
+    setEmail(newEmail);
+    updateUser({ email: newEmail });
     setEmailVerCode("");
     setEmailCodeSent(false);
     setNewEmail("");
@@ -437,6 +576,16 @@ function AccountWorkbench260712() {
 
   const disabledInputCls = "oq-input oq-input-disabled";
   const activeInputCls = "oq-input";
+  const usernameCharacterCount = Array.from(username).length;
+  const displayNameCharacterCount = Array.from(displayName).length;
+  const bioCharacterCount = Array.from(bio).length;
+  const usernameLengthInvalid = usernameCharacterCount < 3 || usernameCharacterCount > 20;
+  const displayNameLengthInvalid = displayNameCharacterCount > 50;
+  const bioLengthInvalid = bioCharacterCount > 160;
+  const usernameInvalid = !USERNAME_PATTERN.test(username.trim());
+  const showUsernameError = profileValidationRequested && usernameInvalid;
+  const showDisplayNameError = profileValidationRequested && displayNameLengthInvalid;
+  const showBioError = profileValidationRequested && bioLengthInvalid;
 
   return (
     <div className="oq-account">
@@ -582,233 +731,423 @@ function AccountWorkbench260712() {
       {/* ═══════════════ Profile Tab ═══════════════ */}
       {activeTab === "profile" && SHOW_ACCOUNT_PROFILE_WORKBENCH_260720 && (
         <div className="oq-account-profile">
-          {/* Account Settings */}
-          <section className="oq-profile-card" aria-labelledby="oq-profile-card-title">
-            <header className="oq-profile-card-header">
-              <h2 id="oq-profile-card-title" className="oq-profile-card-title">
-                {tr("Account Settings", "账户信息")}
-              </h2>
-            </header>
-
-            {/* 1. Profile (Nickname & Avatar) */}
+          {/* Profile identity and avatar */}
+          <section
+            className="oq-profile-card oq-profile-identity-card"
+            aria-label={tr("Personal Profile", "个人资料")}
+          >
             <div className="oq-profile-section oq-profile-section-flat">
-              <div className="oq-profile-section-header">
-                <div className="oq-section-title">
-                  <span className="text-sm font-semibold text-foreground">{tr("Profile", "个人资料")}</span>
-                </div>
-                {!editingProfile ? (
-                  <button
-                    className="oq-profile-edit-button"
-                    onClick={() => { setOriginalNickname(nickname); setEditingProfile(true); }}
-                  >
-                    <Pencil className="w-3 h-3" />
-                    {tr("Edit", "编辑")}
-                  </button>
-                ) : (
-                  <button
-                    className="oq-profile-edit-button is-cancel"
-                    onClick={handleCancelProfile}
-                  >
-                    <X className="w-3 h-3" />
-                    {tr("Cancel", "取消")}
-                  </button>
-                )}
-              </div>
-              <div className="oq-profile-section-body">
-                <div className="oq-field-stack">
-                  <Label className="label-upper">{tr("Nickname", "昵称")}</Label>
-                  <Input
-                    placeholder={tr("Enter your nickname", "请输入昵称")}
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    disabled={!editingProfile}
-                    className={`${editingProfile ? activeInputCls : disabledInputCls} md:max-w-md`}
-                  />
-                  {editingProfile && (
-                    <div className="oq-profile-action-row">
-                      <button
-                        className="oq-profile-save-button"
-                        onClick={() => {
-                          if (!nickname.trim()) { toast.error(tr("Nickname cannot be empty", "昵称不能为空")); return; }
-                          updateUser({ displayName: nickname });
-                          setOriginalNickname(nickname);
-                          toast.success(tr("Profile updated successfully", "资料更新成功"));
-                          setEditingProfile(false);
-                        }}
-                      >
-                        {tr("Save Profile", "保存资料")}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Change Email */}
-            <div className="oq-profile-section">
-              <div className="oq-profile-section-header">
-                <div className="oq-section-title">
-                  <span className="text-sm font-semibold text-foreground">{tr("Change Email", "修改邮箱")}</span>
-                </div>
-                {!editingEmail ? (
-                  <button
-                    className="oq-profile-edit-button"
-                    onClick={() => setEditingEmail(true)}
-                  >
-                    <Pencil className="w-3 h-3" />
-                    {tr("Edit", "编辑")}
-                  </button>
-                ) : (
-                  <button
-                    className="oq-profile-edit-button is-cancel"
-                    onClick={handleCancelEmail}
-                  >
-                    <X className="w-3 h-3" />
-                    {tr("Cancel", "取消")}
-                  </button>
-                )}
-              </div>
-              <div className="oq-profile-section-body">
-              <div className="oq-form-grid">
-                <div className="oq-field-stack">
-                  <Label className="label-upper">{tr("Current Email", "当前邮箱")}</Label>
-                  <Input value={email} disabled className={disabledInputCls} />
-                </div>
-                {editingEmail && (
-                  <div className="oq-field-stack">
-                    <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
-                    <div className="oq-inline-control">
-                      <Input
-                        placeholder={tr("Enter verification code", "请输入验证码")}
-                        value={emailVerCode}
-                        onChange={(e) => setEmailVerCode(e.target.value)}
-                        className={`${activeInputCls} flex-1`}
-                      />
-                      <button
-                        className="oq-profile-code-button"
-                        onClick={() => { setEmailCodeSent(true); toast.success(tr("Verification code sent to your current email", "验证码已发送至当前邮箱")); }}
-                      >
-                        <Send className="w-3 h-3" />
-                        {emailCodeSent ? tr("Resend Code", "重新发送") : tr("Send Code", "发送验证码")}
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {editingEmail && (
-                  <div className="oq-field-stack oq-form-span">
-                    <Label className="label-upper">{tr("New Email", "新邮箱")}</Label>
-                    <Input
-                      type="email"
-                      placeholder={tr("Enter new email address", "请输入新邮箱地址")}
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
-                      className={`${activeInputCls} md:max-w-md`}
-                    />
-                    {newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) && (
-                      <p className="text-xs text-destructive">{tr("Please enter a valid email address", "请输入有效的邮箱地址")}</p>
+              {!editingProfile && (
+                <div className="oq-profile-summary">
+                  <div className="oq-avatar-preview" aria-label={tr("Avatar preview", "头像预览")}>
+                    {avatar ? (
+                      <img src={avatar} alt="" />
+                    ) : (
+                      <span>{(displayName.trim() || username).charAt(0).toUpperCase() || "U"}</span>
                     )}
                   </div>
-                )}
-              </div>
-              {editingEmail && (
-                <div className="oq-profile-action-row">
+                  <div className="oq-profile-summary-copy">
+                    <strong title={displayName.trim() || `@${username}`}>
+                      {displayName.trim() || `@${username}`}
+                    </strong>
+                    <span>@{username}</span>
+                  </div>
                   <button
-                    className="oq-profile-save-button"
+                    className="oq-profile-edit-button oq-profile-summary-action"
                     onClick={() => {
-                      if (!emailVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
-                      if (!newEmail.trim()) { toast.error(tr("Please enter a new email address", "请输入新邮箱地址")); return; }
-                      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) { toast.error(tr("Please enter a valid email address", "请输入有效的邮箱地址")); return; }
-                      toast.success(tr("Email updated successfully", "邮箱更新成功"));
-                      setEmail(newEmail);
-                      updateUser({ email: newEmail });
-                      setEmailVerCode(""); setEmailCodeSent(false); setNewEmail(""); setEditingEmail(false);
+                      setOriginalUsername(username);
+                      setOriginalDisplayName(displayName);
+                      setOriginalAvatar(avatar);
+                      setOriginalBio(bio);
+                      setProfileValidationRequested(false);
+                      setEditingProfile(true);
                     }}
                   >
-                    {tr("Save Email", "保存邮箱")}
+                    <Pencil className="w-3 h-3" />
+                    {tr("Edit", "编辑")}
                   </button>
                 </div>
               )}
-            </div>
-            </div>
 
-            {/* 3. Change Password */}
-            <div className="oq-profile-section">
-              <div className="oq-profile-section-header">
-                <div className="oq-section-title">
-                  <span className="text-sm font-semibold text-foreground">{tr("Change Password", "修改密码")}</span>
+              {editingProfile && (
+                <div className="oq-profile-editor">
+                  <div className="oq-avatar-editor-field">
+                    <Label className="label-upper">{tr("User avatar", "用户头像")}</Label>
+                    <div className="oq-avatar-editor">
+                      <div className="oq-avatar-preview" aria-label={tr("Avatar preview", "头像预览")}>
+                        {avatar ? (
+                          <img src={avatar} alt="" />
+                        ) : (
+                          <span>{(displayName.trim() || username).charAt(0).toUpperCase() || "U"}</span>
+                        )}
+                      </div>
+                      <div className="oq-avatar-editor-controls">
+                        <div className="oq-avatar-actions">
+                          <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="sr-only"
+                            tabIndex={-1}
+                            aria-hidden="true"
+                            onChange={handleAvatarChange}
+                          />
+                          <button
+                            type="button"
+                            className="oq-avatar-upload-button"
+                            disabled={processingAvatar}
+                            onClick={() => avatarInputRef.current?.click()}
+                          >
+                            <Camera />
+                            {processingAvatar
+                              ? tr("Processing...", "处理中...")
+                              : avatar
+                                ? tr("Change avatar", "更换头像")
+                                : tr("Upload avatar", "上传头像")}
+                          </button>
+                          {avatar && (
+                            <button
+                              type="button"
+                              className="oq-avatar-remove-button"
+                              onClick={() => setAvatar("")}
+                            >
+                              {tr("Remove", "移除")}
+                            </button>
+                          )}
+                        </div>
+                        <p>{tr("JPEG, PNG, or WebP up to 5 MB. Cropped to a square.", "支持 JPEG、PNG、WebP，最大 5 MB，将裁剪为正方形。")}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="oq-profile-identity-fields">
+                    <div className="oq-field-stack">
+                      <Label className="label-upper" htmlFor="oq-profile-username">
+                        {tr("Username", "用户名")}
+                      </Label>
+                      <div className="oq-profile-counted-control">
+                        <Input
+                          id="oq-profile-username"
+                          aria-describedby={`oq-profile-username-count${showUsernameError ? " oq-profile-username-error" : ""}`}
+                          aria-invalid={showUsernameError}
+                          placeholder={tr(
+                            "Use lowercase letters, numbers, and underscores",
+                            "可用小写字母、数字和下划线"
+                          )}
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          className={activeInputCls}
+                        />
+                        <span
+                          id="oq-profile-username-count"
+                          className={`oq-profile-character-count oq-profile-input-count ${usernameLengthInvalid ? "is-invalid" : ""}`}
+                        >
+                          {usernameCharacterCount} / 20
+                        </span>
+                      </div>
+                      {showUsernameError && (
+                        <p id="oq-profile-username-error" className="oq-profile-field-error" role="alert">
+                          {tr(
+                            "Use 3-20 lowercase letters, numbers, or underscores, starting with a letter.",
+                            "用户名需为 3-20 个字符，以小写字母开头，且仅含小写字母、数字或下划线。"
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="oq-field-stack">
+                      <Label className="label-upper" htmlFor="oq-profile-display-name">
+                        {tr("Display name", "显示名称")}
+                      </Label>
+                      <div className="oq-profile-counted-control">
+                        <Input
+                          id="oq-profile-display-name"
+                          aria-describedby={`oq-profile-display-name-count${showDisplayNameError ? " oq-profile-display-name-error" : ""}`}
+                          aria-invalid={showDisplayNameError}
+                          placeholder={tr(
+                            "Shown across Quandora. Leave blank to use your @username",
+                            "在 Quandora 各处展示的昵称，留空则使用你的 @用户名"
+                          )}
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          className={activeInputCls}
+                        />
+                        <span
+                          id="oq-profile-display-name-count"
+                          className={`oq-profile-character-count oq-profile-input-count ${displayNameLengthInvalid ? "is-invalid" : ""}`}
+                        >
+                          {displayNameCharacterCount} / 50
+                        </span>
+                      </div>
+                      {showDisplayNameError && (
+                        <p id="oq-profile-display-name-error" className="oq-profile-field-error" role="alert">
+                          {tr(
+                            "Display name must be 50 characters or fewer.",
+                            "显示名称不能超过 50 个字符。"
+                          )}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="oq-field-stack">
+                      <Label className="label-upper" htmlFor="oq-profile-bio">
+                        {tr("Bio", "简介")}
+                      </Label>
+                      <div className="oq-profile-bio-control">
+                        <Textarea
+                          id="oq-profile-bio"
+                          aria-describedby={`oq-profile-bio-count${showBioError ? " oq-profile-bio-error" : ""}`}
+                          aria-invalid={showBioError}
+                          placeholder={tr("Tell us a little about yourself...", "简单介绍一下你自己......")}
+                          value={bio}
+                          onChange={(e) => setBio(e.target.value)}
+                          rows={4}
+                          className="oq-input oq-profile-bio-input"
+                        />
+                        <span
+                          id="oq-profile-bio-count"
+                          className={`oq-profile-character-count oq-profile-bio-count ${bioLengthInvalid ? "is-invalid" : ""}`}
+                        >
+                          {bioCharacterCount} / 160
+                        </span>
+                      </div>
+                      {showBioError && (
+                        <p id="oq-profile-bio-error" className="oq-profile-field-error" role="alert">
+                          {tr("Bio must be 160 characters or fewer.", "简介不能超过 160 个字符。")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="oq-profile-editor-actions">
+                    <button
+                      type="button"
+                      className="oq-profile-edit-button oq-profile-cancel-button is-cancel"
+                      onClick={handleCancelProfile}
+                    >
+                      <X aria-hidden="true" />
+                      {tr("Cancel", "取消")}
+                    </button>
+                    <button
+                      type="button"
+                      className="oq-profile-save-button"
+                      onClick={() => {
+                        const nextUsername = username.trim();
+                        const nextDisplayName = displayName.trim();
+                        const nextBio = bio.trim();
+                        setProfileValidationRequested(true);
+                        if (usernameInvalid || displayNameLengthInvalid || bioLengthInvalid) {
+                          return;
+                        }
+                        setProfileValidationRequested(false);
+                        updateUser({
+                          username: nextUsername,
+                          displayName: nextDisplayName,
+                          avatar: avatar || undefined,
+                          bio: nextBio,
+                        });
+                        setUsername(nextUsername);
+                        setDisplayName(nextDisplayName);
+                        setBio(nextBio);
+                        setOriginalUsername(nextUsername);
+                        setOriginalDisplayName(nextDisplayName);
+                        setOriginalAvatar(avatar);
+                        setOriginalBio(nextBio);
+                        toast.success(tr("Profile updated successfully", "资料更新成功"));
+                        setEditingProfile(false);
+                      }}
+                    >
+                      {tr("Save changes", "保存修改")}
+                    </button>
+                  </div>
                 </div>
-                {!editingPassword ? (
-                  <button
-                    className="oq-profile-edit-button"
-                    onClick={() => setEditingPassword(true)}
-                  >
-                    <Pencil className="w-3 h-3" />
-                    {tr("Edit", "编辑")}
-                  </button>
-                ) : (
-                  <button
-                    className="oq-profile-edit-button is-cancel"
-                    onClick={handleCancelPassword}
-                  >
-                    <X className="w-3 h-3" />
-                    {tr("Cancel", "取消")}
-                  </button>
+              )}
+            </div>
+          </section>
+
+          {/* Security and Login */}
+          <section className="oq-profile-card oq-security-login-card" aria-labelledby="oq-security-login-title">
+            <header className="oq-settings-panel-header">
+              <h2 id="oq-security-login-title" className="oq-account-section-title">
+                {tr("Security & Login", "安全性与登录")}
+              </h2>
+            </header>
+
+            <div className="oq-settings-list oq-security-settings-list">
+              <div className="oq-security-setting-section">
+                <div className="oq-account-setting-row">
+                  <div className="oq-settings-copy">
+                    <div className="oq-settings-label">{tr("Login Email", "登录邮箱")}</div>
+                    {(!ENABLE_LOGIN_EMAIL_EDITING || !editingEmail) && (
+                      <div className="oq-settings-description">{email}</div>
+                    )}
+                  </div>
+                  {ENABLE_LOGIN_EMAIL_EDITING && (
+                    !editingEmail ? (
+                      <button
+                        className="oq-profile-edit-button"
+                        onClick={() => setEditingEmail(true)}
+                      >
+                        <Pencil className="w-3 h-3" />
+                        {tr("Edit", "编辑")}
+                      </button>
+                    ) : (
+                      <div className="oq-security-setting-actions">
+                        <button
+                          type="button"
+                          className="oq-profile-edit-button is-cancel"
+                          onClick={handleCancelEmail}
+                        >
+                          <X className="w-3 h-3" />
+                          {tr("Cancel", "取消")}
+                        </button>
+                        <button
+                          type="button"
+                          className="oq-profile-edit-button is-primary"
+                          onClick={handleSaveEmail}
+                        >
+                          {tr("Save", "保存")}
+                        </button>
+                      </div>
+                    )
+                  )}
+                </div>
+                {ENABLE_LOGIN_EMAIL_EDITING && editingEmail && (
+                  <div className="oq-profile-section-body oq-security-setting-editor">
+                    <div className="oq-form-grid">
+                      <div className="oq-field-stack">
+                        <Label className="label-upper" htmlFor="oq-profile-current-email">
+                          {tr("Current Email", "当前邮箱")}
+                        </Label>
+                        <Input
+                          id="oq-profile-current-email"
+                          value={email}
+                          disabled
+                          className={disabledInputCls}
+                        />
+                      </div>
+                      <div className="oq-field-stack">
+                        <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
+                        <div className="oq-inline-control">
+                          <Input
+                            placeholder={tr("Enter verification code", "请输入验证码")}
+                            value={emailVerCode}
+                            onChange={(e) => setEmailVerCode(e.target.value)}
+                            className={`${activeInputCls} flex-1`}
+                          />
+                          <button
+                            className="oq-profile-code-button"
+                            onClick={() => { setEmailCodeSent(true); toast.success(tr("Verification code sent to your current email", "验证码已发送至当前邮箱")); }}
+                          >
+                            <Send className="w-3 h-3" />
+                            {emailCodeSent ? tr("Resend Code", "重新发送") : tr("Send Code", "发送验证码")}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="oq-field-stack">
+                        <Label className="label-upper">{tr("New Email", "新邮箱")}</Label>
+                        <Input
+                          type="email"
+                          placeholder={tr("Enter new email address", "请输入新邮箱地址")}
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          className={activeInputCls}
+                        />
+                        {newEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) && (
+                          <p className="text-xs text-destructive">{tr("Please enter a valid email address", "请输入有效的邮箱地址")}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-            {editingPassword ? (
-              <div className="oq-profile-section-body">
-                <div className="oq-form-grid">
-                  <div className="oq-field-stack">
-                    <Label className="label-upper">{tr("Email", "邮箱")}</Label>
-                    <Input value={email} disabled className={disabledInputCls} />
+
+              <div className="oq-security-setting-section">
+                <div className="oq-account-setting-row">
+                  <div className="oq-settings-copy">
+                    <div className="oq-settings-label">{tr("Change Password", "修改密码")}</div>
+                    {!editingPassword && (
+                      <div className="oq-settings-description">
+                        {tr("Last changed: 2026-07-20 14:30", "上次更改时间：2026-07-20 14:30")}
+                      </div>
+                    )}
                   </div>
-                  <div className="oq-field-stack">
-                    <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
-                    <div className="oq-inline-control">
-                      <Input
-                        placeholder={tr("Enter verification code", "请输入验证码")}
-                        value={passwordVerCode}
-                        onChange={(e) => setPasswordVerCode(e.target.value)}
-                        className={`${activeInputCls} flex-1`}
-                      />
+                  {!editingPassword && (
+                    <button
+                      className="oq-profile-edit-button"
+                      onClick={() => setEditingPassword(true)}
+                    >
+                      <Pencil className="w-3 h-3" />
+                      {tr("Edit", "编辑")}
+                    </button>
+                  )}
+                </div>
+                {editingPassword ? (
+                  <div className="oq-profile-section-body oq-security-setting-editor">
+                    <div className="oq-form-grid oq-password-form-grid">
+                      <div className="oq-field-stack">
+                        <Label className="label-upper">{tr("Email", "邮箱")}</Label>
+                        <Input value={email} disabled className={disabledInputCls} />
+                      </div>
+                      <div className="oq-field-stack">
+                        <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
+                        <div className="oq-inline-control">
+                          <Input
+                            placeholder={tr("Enter verification code", "请输入验证码")}
+                            value={passwordVerCode}
+                            onChange={(e) => setPasswordVerCode(e.target.value)}
+                            className={`${activeInputCls} flex-1`}
+                          />
+                          <button
+                            className="oq-profile-code-button"
+                            onClick={() => { setPasswordCodeSent(true); toast.success(tr("Verification code sent to your email", "验证码已发送至邮箱")); }}
+                          >
+                            <Send className="w-3 h-3" />
+                            {passwordCodeSent ? tr("Resend Code", "重新发送") : tr("Send Code", "发送验证码")}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="oq-field-stack">
+                        <Label className="label-upper">{tr("New Password", "新密码")}</Label>
+                        <Input type="password" placeholder={tr("Enter new password", "请输入新密码")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={activeInputCls} />
+                      </div>
+                      <div className="oq-field-stack">
+                        <Label className="label-upper">{tr("Confirm New Password", "确认新密码")}</Label>
+                        <Input type="password" placeholder={tr("Re-enter new password", "请再次输入新密码")} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={activeInputCls} />
+                        {confirmPassword && newPassword !== confirmPassword && (
+                          <p className="text-xs text-destructive">{tr("Passwords do not match", "两次输入密码不一致")}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="oq-profile-editor-actions">
                       <button
-                        className="oq-profile-code-button"
-                        onClick={() => { setPasswordCodeSent(true); toast.success(tr("Verification code sent to your email", "验证码已发送至邮箱")); }}
+                        type="button"
+                        className="oq-profile-edit-button oq-profile-cancel-button is-cancel"
+                        onClick={handleCancelPassword}
                       >
-                        <Send className="w-3 h-3" />
-                        {passwordCodeSent ? tr("Resend Code", "重新发送") : tr("Send Code", "发送验证码")}
+                        <X aria-hidden="true" />
+                        {tr("Cancel", "取消")}
+                      </button>
+                      <button
+                        type="button"
+                        className="oq-profile-save-button"
+                        onClick={() => {
+                          if (!passwordVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
+                          if (!newPassword.trim()) { toast.error(tr("Please enter a new password", "请输入新密码")); return; }
+                          if (newPassword.length < 8) { toast.error(tr("Password must be at least 8 characters", "密码至少为 8 位")); return; }
+                          if (newPassword !== confirmPassword) { toast.error(tr("Passwords do not match", "两次输入密码不一致")); return; }
+                          toast.success(tr("Password updated successfully", "密码更新成功"));
+                          setPasswordVerCode(""); setPasswordCodeSent(false); setNewPassword(""); setConfirmPassword(""); setEditingPassword(false);
+                        }}
+                      >
+                        {tr("Save Password", "保存密码")}
                       </button>
                     </div>
                   </div>
-                  <div className="oq-field-stack">
-                    <Label className="label-upper">{tr("New Password", "新密码")}</Label>
-                    <Input type="password" placeholder={tr("Enter new password", "请输入新密码")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={activeInputCls} />
-                  </div>
-                  <div className="oq-field-stack">
-                    <Label className="label-upper">{tr("Confirm New Password", "确认新密码")}</Label>
-                    <Input type="password" placeholder={tr("Re-enter new password", "请再次输入新密码")} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={activeInputCls} />
-                    {confirmPassword && newPassword !== confirmPassword && (
-                      <p className="text-xs text-destructive">{tr("Passwords do not match", "两次输入密码不一致")}</p>
-                    )}
-                  </div>
-                </div>
-                <div className="oq-profile-action-row">
-                  <button
-                    className="oq-profile-save-button"
-                    onClick={() => {
-                      if (!passwordVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
-                      if (!newPassword.trim()) { toast.error(tr("Please enter a new password", "请输入新密码")); return; }
-                      if (newPassword.length < 8) { toast.error(tr("Password must be at least 8 characters", "密码至少为 8 位")); return; }
-                      if (newPassword !== confirmPassword) { toast.error(tr("Passwords do not match", "两次输入密码不一致")); return; }
-                      toast.success(tr("Password updated successfully", "密码更新成功"));
-                      setPasswordVerCode(""); setPasswordCodeSent(false); setNewPassword(""); setConfirmPassword(""); setEditingPassword(false);
-                    }}
-                  >
-                    {tr("Save Password", "保存密码")}
-                  </button>
-                </div>
+                ) : null}
               </div>
-            ) : null}
             </div>
           </section>
         </div>
@@ -1134,7 +1473,7 @@ function AccountWorkbench260712() {
             <div className="oq-logout-content">
               <div>
                 <div className="oq-logout-title">{tr("Log Out", "退出登录")}</div>
-                <div className="oq-logout-copy">{tr("Sign out of your current account and return to the landing page.", "退出当前账户并返回落地页。")}</div>
+                <div className="oq-logout-copy">{tr("After you log out, you'll return to the home page.", "退出后，你将返回首页。")}</div>
               </div>
               <Button
                 className="rounded-full gap-1.5 self-start sm:self-auto bg-destructive text-destructive-foreground hover:brightness-110"

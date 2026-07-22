@@ -247,9 +247,13 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
   const tr = (en: string, zh: string) => translateUi(uiLang, en, zh, sidebarCopy[en]);
-  const displayName = user?.displayName || "Nicole Ong";
-  const userHandle = user?.email ? `@${user.email.split("@")[0]}` : "@nicoleo";
-  const avatarInitial = displayName
+  const displayName = user?.displayName || (user?.username ? `@${user.username}` : "Nicole Ong");
+  const userHandle = user?.username
+    ? `@${user.username}`
+    : user?.email
+      ? `@${user.email.split("@")[0]}`
+      : "@nicoleo";
+  const avatarInitial = (user?.displayName || user?.username || "Nicole Ong")
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
