@@ -1127,12 +1127,11 @@ function AccountWorkbench260712() {
                         className="oq-profile-edit-button oq-profile-cancel-button is-cancel"
                         onClick={handleCancelPassword}
                       >
-                        <X aria-hidden="true" />
                         {tr("Cancel", "取消")}
                       </button>
                       <button
                         type="button"
-                        className="oq-profile-save-button"
+                        className="oq-profile-save-button oq-password-save-button"
                         onClick={() => {
                           if (!passwordVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
                           if (!newPassword.trim()) { toast.error(tr("Please enter a new password", "请输入新密码")); return; }
@@ -1142,7 +1141,7 @@ function AccountWorkbench260712() {
                           setPasswordVerCode(""); setPasswordCodeSent(false); setNewPassword(""); setConfirmPassword(""); setEditingPassword(false);
                         }}
                       >
-                        {tr("Save Password", "保存密码")}
+                        {tr("Save", "保存")}
                       </button>
                     </div>
                   </div>
