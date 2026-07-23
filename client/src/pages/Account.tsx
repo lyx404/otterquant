@@ -8,7 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
+import {
+  translateUi,
+  useAppLanguage,
+  type UiCopy,
+  type UiLang,
+} from "@/contexts/AppLanguageContext";
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
@@ -44,7 +49,7 @@ const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementTy
 
 // Switch these to true only when restoring "Workbench 260720".
 const SHOW_ACCOUNT_PROFILE_WORKBENCH_260720 = true;
-const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 = true;
+const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 = false;
 const ENABLE_LOGIN_EMAIL_EDITING = false;
 
 const languageOptions: { value: UiLang; label: string }[] = [
@@ -55,6 +60,154 @@ const languageOptions: { value: UiLang; label: string }[] = [
   { value: "es", label: "Español" },
   { value: "fr", label: "Français" },
 ];
+
+const accountCopy: Record<string, UiCopy> = {
+  "General": { ja: "一般", ko: "일반", es: "General", fr: "Général" },
+  "Profile": { ja: "プロフィール", ko: "프로필", es: "Perfil", fr: "Profil" },
+  "Agent Settings": { ja: "Agent 設定", ko: "Agent 설정", es: "Ajustes del Agent", fr: "Paramètres de l’Agent" },
+  "Already on the latest version": { ja: "すでに最新バージョンです", ko: "이미 최신 버전입니다", es: "Ya tienes la última versión", fr: "Vous utilisez déjà la dernière version" },
+  "Exchange connection updated": { ja: "取引所の接続状態を更新しました", ko: "거래소 연결 상태를 업데이트했습니다", es: "Conexión con el exchange actualizada", fr: "Connexion à la plateforme mise à jour" },
+  "Use a JPEG, PNG, or WebP image": { ja: "JPEG、PNG、WebP の画像を選択してください", ko: "JPEG, PNG 또는 WebP 이미지를 선택하세요", es: "Usa una imagen JPEG, PNG o WebP", fr: "Utilisez une image JPEG, PNG ou WebP" },
+  "Avatar must be 5 MB or smaller": { ja: "アバターは 5 MB 以下にしてください", ko: "아바타는 5MB 이하여야 합니다", es: "El avatar debe pesar 5 MB o menos", fr: "L’avatar doit faire 5 Mo maximum" },
+  "Avatar ready to save": { ja: "アバターを切り抜きました。プロフィールを保存してください", ko: "아바타를 잘랐습니다. 프로필을 저장하세요", es: "El avatar está listo. Guarda el perfil", fr: "L’avatar est prêt. Enregistrez le profil" },
+  "Unable to process this image": { ja: "この画像を処理できません。別の画像をお試しください", ko: "이미지를 처리할 수 없습니다. 다른 이미지로 다시 시도하세요", es: "No se pudo procesar la imagen. Prueba con otra", fr: "Impossible de traiter cette image. Essayez-en une autre" },
+  "Please enter the verification code": { ja: "認証コードを入力してください", ko: "인증 코드를 입력하세요", es: "Introduce el código de verificación", fr: "Saisissez le code de vérification" },
+  "Please enter a new email address": { ja: "新しいメールアドレスを入力してください", ko: "새 이메일 주소를 입력하세요", es: "Introduce una nueva dirección de correo", fr: "Saisissez une nouvelle adresse e-mail" },
+  "Please enter a valid email address": { ja: "有効なメールアドレスを入力してください", ko: "유효한 이메일 주소를 입력하세요", es: "Introduce una dirección de correo válida", fr: "Saisissez une adresse e-mail valide" },
+  "Email updated successfully": { ja: "メールアドレスを更新しました", ko: "이메일 주소를 업데이트했습니다", es: "Correo actualizado correctamente", fr: "Adresse e-mail mise à jour" },
+  "Please complete all required fields.": { ja: "必須項目をすべて入力してください。", ko: "필수 항목을 모두 입력하세요.", es: "Completa todos los campos obligatorios.", fr: "Remplissez tous les champs obligatoires." },
+  "Name cannot be empty": { ja: "名前を入力してください", ko: "이름을 입력하세요", es: "El nombre no puede estar vacío", fr: "Le nom ne peut pas être vide" },
+  "Exchange account name updated": { ja: "取引所アカウント名を更新しました", ko: "거래소 계정 이름을 업데이트했습니다", es: "Nombre de la cuenta del exchange actualizado", fr: "Nom du compte de la plateforme mis à jour" },
+  "Exchange API deleted": { ja: "取引所 API を削除しました", ko: "거래소 API를 삭제했습니다", es: "API del exchange eliminada", fr: "API de la plateforme supprimée" },
+  "Please enter an API name": { ja: "API 名を入力してください", ko: "API 이름을 입력하세요", es: "Introduce un nombre para la API", fr: "Saisissez un nom pour l’API" },
+  "API key created successfully": { ja: "API キーを作成しました", ko: "API 키를 생성했습니다", es: "Clave API creada correctamente", fr: "Clé API créée" },
+  "API key deleted": { ja: "API キーを削除しました", ko: "API 키를 삭제했습니다", es: "Clave API eliminada", fr: "Clé API supprimée" },
+  "API name updated": { ja: "API 名を更新しました", ko: "API 이름을 업데이트했습니다", es: "Nombre de la API actualizado", fr: "Nom de l’API mis à jour" },
+  "Account settings": { ja: "アカウント設定", ko: "계정 설정", es: "Ajustes de la cuenta", fr: "Paramètres du compte" },
+  "Language": { ja: "言語", ko: "언어", es: "Idioma", fr: "Langue" },
+  "Set display language for UI and notifications.": { ja: "画面と通知の表示言語を設定します。", ko: "화면과 알림의 표시 언어를 설정합니다.", es: "Configura el idioma de la interfaz y las notificaciones.", fr: "Définissez la langue de l’interface et des notifications." },
+  "Select language": { ja: "言語を選択", ko: "언어 선택", es: "Seleccionar idioma", fr: "Sélectionner la langue" },
+  "Color Configuration": { ja: "カラー設定", ko: "색상 설정", es: "Configuración de color", fr: "Configuration des couleurs" },
+  "Choose how rising and falling values are colored.": { ja: "上昇値と下落値の色を選択します。", ko: "상승 및 하락 값의 색상 표시 방식을 선택합니다.", es: "Elige los colores para las subidas y bajadas.", fr: "Choisissez les couleurs des hausses et des baisses." },
+  "Red up, green down": { ja: "上昇は赤、下落は緑", ko: "상승 빨강, 하락 초록", es: "Subida roja, bajada verde", fr: "Hausse en rouge, baisse en vert" },
+  "Green up, red down": { ja: "上昇は緑、下落は赤", ko: "상승 초록, 하락 빨강", es: "Subida verde, bajada roja", fr: "Hausse en vert, baisse en rouge" },
+  "Notifications": { ja: "通知", ko: "알림", es: "Notificaciones", fr: "Notifications" },
+  "Interaction Messages": { ja: "運用通知", ko: "운영 알림", es: "Mensajes operativos", fr: "Notifications opérationnelles" },
+  "Get notified about signal status changes, test results, and performance updates": { ja: "シグナルの状態変更、バックテスト結果、パフォーマンス更新を通知します", ko: "시그널 상태 변경, 백테스트 결과 및 성과 업데이트 알림을 받습니다", es: "Recibe avisos sobre cambios de señales, backtests y rendimiento", fr: "Recevez les changements de signaux, résultats de backtest et mises à jour de performance" },
+  "Interaction messages disabled": { ja: "運用通知をオフにしました", ko: "운영 알림을 껐습니다", es: "Mensajes operativos desactivados", fr: "Notifications opérationnelles désactivées" },
+  "Interaction messages enabled": { ja: "運用通知をオンにしました", ko: "운영 알림을 켰습니다", es: "Mensajes operativos activados", fr: "Notifications opérationnelles activées" },
+  "Announcements": { ja: "お知らせ", ko: "공지", es: "Anuncios", fr: "Annonces" },
+  "Get notified about skill updates, new skills, deprecations, platform announcements, maintenance, and Official Library expansion.": { ja: "Skill の更新、新しい Skill、廃止予定、プラットフォームのお知らせ、メンテナンス、公式ライブラリの拡張を通知します。", ko: "Skill 업데이트, 신규 Skill, 지원 종료, 플랫폼 공지, 유지보수 및 공식 라이브러리 확장 알림을 받습니다.", es: "Recibe avisos sobre actualizaciones y nuevos Skills, funciones obsoletas, anuncios, mantenimiento y ampliaciones de la biblioteca oficial.", fr: "Recevez les mises à jour et nouveaux Skills, dépréciations, annonces, maintenances et extensions de la bibliothèque officielle." },
+  "Announcements disabled": { ja: "お知らせをオフにしました", ko: "공지를 껐습니다", es: "Anuncios desactivados", fr: "Annonces désactivées" },
+  "Announcements enabled": { ja: "お知らせをオンにしました", ko: "공지를 켰습니다", es: "Anuncios activados", fr: "Annonces activées" },
+  "Personal Profile": { ja: "個人プロフィール", ko: "개인 프로필", es: "Perfil personal", fr: "Profil personnel" },
+  "Avatar preview": { ja: "アバターのプレビュー", ko: "아바타 미리보기", es: "Vista previa del avatar", fr: "Aperçu de l’avatar" },
+  "Edit": { ja: "編集", ko: "편집", es: "Editar", fr: "Modifier" },
+  "User avatar": { ja: "ユーザーアバター", ko: "사용자 아바타", es: "Avatar de usuario", fr: "Avatar utilisateur" },
+  "Processing...": { ja: "処理中...", ko: "처리 중...", es: "Procesando...", fr: "Traitement..." },
+  "Change avatar": { ja: "アバターを変更", ko: "아바타 변경", es: "Cambiar avatar", fr: "Changer l’avatar" },
+  "Upload avatar": { ja: "アバターをアップロード", ko: "아바타 업로드", es: "Subir avatar", fr: "Importer un avatar" },
+  "Remove": { ja: "削除", ko: "제거", es: "Quitar", fr: "Retirer" },
+  "JPEG, PNG, or WebP up to 5 MB. Cropped to a square.": { ja: "JPEG、PNG、WebP（最大 5 MB）。正方形に切り抜かれます。", ko: "JPEG, PNG 또는 WebP, 최대 5MB. 정사각형으로 잘립니다.", es: "JPEG, PNG o WebP de hasta 5 MB. Se recortará en formato cuadrado.", fr: "JPEG, PNG ou WebP jusqu’à 5 Mo. L’image sera recadrée au format carré." },
+  "Username": { ja: "ユーザー名", ko: "사용자 이름", es: "Nombre de usuario", fr: "Nom d’utilisateur" },
+  "Use lowercase letters, numbers, and underscores": { ja: "英小文字、数字、アンダースコアを使用", ko: "영문 소문자, 숫자 및 밑줄 사용", es: "Usa minúsculas, números y guiones bajos", fr: "Utilisez des minuscules, chiffres et traits de soulignement" },
+  "Use 3-20 lowercase letters, numbers, or underscores, starting with a letter.": { ja: "英字で始まる 3〜20 文字の英小文字、数字、アンダースコアを使用してください。", ko: "영문자로 시작하는 3~20자의 영문 소문자, 숫자 또는 밑줄을 사용하세요.", es: "Usa entre 3 y 20 minúsculas, números o guiones bajos, empezando por una letra.", fr: "Utilisez 3 à 20 minuscules, chiffres ou traits de soulignement, en commençant par une lettre." },
+  "Display name": { ja: "表示名", ko: "표시 이름", es: "Nombre visible", fr: "Nom affiché" },
+  "Shown across Quandora. Leave blank to use your @username": { ja: "Quandora 全体に表示されます。空欄の場合は @ユーザー名を使用します", ko: "Quandora 전체에 표시됩니다. 비워 두면 @사용자이름을 사용합니다", es: "Se muestra en Quandora. Déjalo vacío para usar tu @usuario", fr: "Affiché dans Quandora. Laissez vide pour utiliser votre @identifiant" },
+  "Display name must be 50 characters or fewer.": { ja: "表示名は 50 文字以内にしてください。", ko: "표시 이름은 50자 이하여야 합니다.", es: "El nombre visible debe tener 50 caracteres o menos.", fr: "Le nom affiché doit contenir 50 caractères maximum." },
+  "Bio": { ja: "自己紹介", ko: "소개", es: "Biografía", fr: "Bio" },
+  "Tell us a little about yourself...": { ja: "自己紹介を入力...", ko: "간단한 소개를 입력하세요...", es: "Cuéntanos algo sobre ti...", fr: "Présentez-vous en quelques mots..." },
+  "Bio must be 160 characters or fewer.": { ja: "自己紹介は 160 文字以内にしてください。", ko: "소개는 160자 이하여야 합니다.", es: "La biografía debe tener 160 caracteres o menos.", fr: "La bio doit contenir 160 caractères maximum." },
+  "Cancel": { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
+  "Profile updated successfully": { ja: "プロフィールを更新しました", ko: "프로필을 업데이트했습니다", es: "Perfil actualizado correctamente", fr: "Profil mis à jour" },
+  "Save changes": { ja: "変更を保存", ko: "변경 사항 저장", es: "Guardar cambios", fr: "Enregistrer les modifications" },
+  "Security & Login": { ja: "セキュリティとログイン", ko: "보안 및 로그인", es: "Seguridad e inicio de sesión", fr: "Sécurité et connexion" },
+  "Login Email": { ja: "ログイン用メール", ko: "로그인 이메일", es: "Correo de acceso", fr: "E-mail de connexion" },
+  "Save": { ja: "保存", ko: "저장", es: "Guardar", fr: "Enregistrer" },
+  "Current Email": { ja: "現在のメールアドレス", ko: "현재 이메일", es: "Correo actual", fr: "Adresse e-mail actuelle" },
+  "Verification Code": { ja: "認証コード", ko: "인증 코드", es: "Código de verificación", fr: "Code de vérification" },
+  "Enter verification code": { ja: "認証コードを入力", ko: "인증 코드 입력", es: "Introduce el código de verificación", fr: "Saisissez le code de vérification" },
+  "Verification code sent to your current email": { ja: "現在のメールアドレスに認証コードを送信しました", ko: "현재 이메일로 인증 코드를 보냈습니다", es: "Código enviado a tu correo actual", fr: "Code envoyé à votre adresse e-mail actuelle" },
+  "Resend Code": { ja: "再送信", ko: "코드 재전송", es: "Reenviar código", fr: "Renvoyer le code" },
+  "Send Code": { ja: "コードを送信", ko: "코드 전송", es: "Enviar código", fr: "Envoyer le code" },
+  "New Email": { ja: "新しいメールアドレス", ko: "새 이메일", es: "Nuevo correo", fr: "Nouvelle adresse e-mail" },
+  "Enter new email address": { ja: "新しいメールアドレスを入力", ko: "새 이메일 주소 입력", es: "Introduce el nuevo correo", fr: "Saisissez la nouvelle adresse e-mail" },
+  "Change Password": { ja: "パスワードを変更", ko: "비밀번호 변경", es: "Cambiar contraseña", fr: "Modifier le mot de passe" },
+  "Last changed: 2026-07-20 14:30": { ja: "最終変更：2026-07-20 14:30", ko: "마지막 변경: 2026-07-20 14:30", es: "Último cambio: 2026-07-20 14:30", fr: "Dernière modification : 2026-07-20 14:30" },
+  "Email": { ja: "メール", ko: "이메일", es: "Correo", fr: "E-mail" },
+  "Verification code sent to your email": { ja: "メールに認証コードを送信しました", ko: "이메일로 인증 코드를 보냈습니다", es: "Código enviado a tu correo", fr: "Code envoyé à votre adresse e-mail" },
+  "New Password": { ja: "新しいパスワード", ko: "새 비밀번호", es: "Nueva contraseña", fr: "Nouveau mot de passe" },
+  "Enter new password": { ja: "新しいパスワードを入力", ko: "새 비밀번호 입력", es: "Introduce la nueva contraseña", fr: "Saisissez le nouveau mot de passe" },
+  "Confirm New Password": { ja: "新しいパスワードを確認", ko: "새 비밀번호 확인", es: "Confirmar nueva contraseña", fr: "Confirmer le nouveau mot de passe" },
+  "Re-enter new password": { ja: "新しいパスワードを再入力", ko: "새 비밀번호 다시 입력", es: "Vuelve a introducir la contraseña", fr: "Saisissez à nouveau le mot de passe" },
+  "Passwords do not match": { ja: "パスワードが一致しません", ko: "비밀번호가 일치하지 않습니다", es: "Las contraseñas no coinciden", fr: "Les mots de passe ne correspondent pas" },
+  "Please enter a new password": { ja: "新しいパスワードを入力してください", ko: "새 비밀번호를 입력하세요", es: "Introduce una nueva contraseña", fr: "Saisissez un nouveau mot de passe" },
+  "Password must be at least 8 characters": { ja: "パスワードは 8 文字以上にしてください", ko: "비밀번호는 8자 이상이어야 합니다", es: "La contraseña debe tener al menos 8 caracteres", fr: "Le mot de passe doit contenir au moins 8 caractères" },
+  "Password updated successfully": { ja: "パスワードを更新しました", ko: "비밀번호를 업데이트했습니다", es: "Contraseña actualizada correctamente", fr: "Mot de passe mis à jour" },
+  "Connected Exchanges": { ja: "接続済み取引所", ko: "연결된 거래소", es: "Exchanges conectados", fr: "Plateformes connectées" },
+  "New Exchange API": { ja: "新しい取引所 API", ko: "새 거래소 API", es: "Nueva API de exchange", fr: "Nouvelle API de plateforme" },
+  "No exchange API connected": { ja: "取引所 API は未接続です", ko: "연결된 거래소 API가 없습니다", es: "No hay ninguna API de exchange conectada", fr: "Aucune API de plateforme connectée" },
+  "Add a venue connection to enable live execution and account sync.": { ja: "取引所を接続すると、実運用とアカウント同期を利用できます。", ko: "거래소를 연결하면 실거래 실행 및 계정 동기화를 사용할 수 있습니다.", es: "Conecta un exchange para habilitar la ejecución en real y la sincronización de la cuenta.", fr: "Connectez une plateforme pour activer l’exécution réelle et la synchronisation du compte." },
+  "More options": { ja: "その他の操作", ko: "추가 옵션", es: "Más opciones", fr: "Plus d’options" },
+  "Delete Exchange API": { ja: "取引所 API を削除", ko: "거래소 API 삭제", es: "Eliminar API del exchange", fr: "Supprimer l’API de la plateforme" },
+  "Venue": { ja: "取引所", ko: "거래소", es: "Exchange", fr: "Plateforme" },
+  "API Key": { ja: "API キー", ko: "API 키", es: "Clave API", fr: "Clé API" },
+  "Hide API Key": { ja: "API キーを隠す", ko: "API 키 숨기기", es: "Ocultar clave API", fr: "Masquer la clé API" },
+  "Show API Key": { ja: "API キーを表示", ko: "API 키 표시", es: "Mostrar clave API", fr: "Afficher la clé API" },
+  "Agent API": { ja: "Agent API", ko: "Agent API", es: "API del Agent", fr: "API de l’Agent" },
+  "New API Key": { ja: "新しい API キー", ko: "새 API 키", es: "Nueva clave API", fr: "Nouvelle clé API" },
+  "No API keys yet": { ja: "API キーはまだありません", ko: "아직 API 키가 없습니다", es: "Aún no hay claves API", fr: "Aucune clé API pour le moment" },
+  "Create your first API key to connect your AI agent": { ja: "最初の API キーを作成して AI Agent を接続しましょう", ko: "첫 API 키를 생성하여 AI Agent를 연결하세요", es: "Crea tu primera clave API para conectar tu Agent de IA", fr: "Créez votre première clé API pour connecter votre Agent IA" },
+  "Delete API Key": { ja: "API キーを削除", ko: "API 키 삭제", es: "Eliminar clave API", fr: "Supprimer la clé API" },
+  "Skill": { ja: "Skill", ko: "Skill", es: "Skill", fr: "Skill" },
+  "Updated": { ja: "更新日", ko: "업데이트", es: "Actualizado", fr: "Mis à jour" },
+  "Check for skill updates": { ja: "Skill の更新を確認", ko: "Skill 업데이트 확인", es: "Buscar actualizaciones del Skill", fr: "Rechercher les mises à jour du Skill" },
+  "Launch Guide": { ja: "起動ガイド", ko: "시작 가이드", es: "Guía de inicio", fr: "Guide de démarrage" },
+  "Log Out": { ja: "ログアウト", ko: "로그아웃", es: "Cerrar sesión", fr: "Se déconnecter" },
+  "After you log out, you'll return to the home page.": { ja: "ログアウトするとホームページに戻ります。", ko: "로그아웃하면 홈 페이지로 돌아갑니다.", es: "Al cerrar sesión, volverás a la página de inicio.", fr: "Après la déconnexion, vous reviendrez à l’accueil." },
+  "Add Exchange API": { ja: "取引所 API を追加", ko: "거래소 API 추가", es: "Añadir API de exchange", fr: "Ajouter une API de plateforme" },
+  "Configure API Credentials": { ja: "API 認証情報を設定", ko: "API 인증 정보 설정", es: "Configurar credenciales API", fr: "Configurer les identifiants API" },
+  "Select Venue": { ja: "取引所を選択", ko: "거래소 선택", es: "Seleccionar exchange", fr: "Sélectionner une plateforme" },
+  "API Configuration": { ja: "API 設定", ko: "API 설정", es: "Configuración de API", fr: "Configuration de l’API" },
+  "Choose an exchange venue to connect your trading account.": { ja: "取引口座を接続する取引所を選択してください。", ko: "거래 계정을 연결할 거래소를 선택하세요.", es: "Elige el exchange al que conectar tu cuenta de trading.", fr: "Choisissez la plateforme à connecter à votre compte de trading." },
+  "Continue": { ja: "続行", ko: "계속", es: "Continuar", fr: "Continuer" },
+  "Account Name": { ja: "アカウント名", ko: "계정 이름", es: "Nombre de la cuenta", fr: "Nom du compte" },
+  "e.g., Primary Futures Account": { ja: "例：メイン先物口座", ko: "예: 주 선물 계정", es: "p. ej., Cuenta principal de futuros", fr: "ex. : Compte Futures principal" },
+  "Enter your API key": { ja: "API キーを入力", ko: "API 키 입력", es: "Introduce tu clave API", fr: "Saisissez votre clé API" },
+  "API Secret": { ja: "API シークレット", ko: "API 시크릿", es: "Secreto API", fr: "Secret API" },
+  "Enter your API secret": { ja: "API シークレットを入力", ko: "API 시크릿 입력", es: "Introduce tu secreto API", fr: "Saisissez votre secret API" },
+  "Security Best Practices": { ja: "セキュリティのベストプラクティス", ko: "보안 권장 사항", es: "Buenas prácticas de seguridad", fr: "Bonnes pratiques de sécurité" },
+  "API credentials are encrypted at rest. Do not enable withdrawal permissions. Trade and read-only scopes are sufficient for strategy execution and monitoring.": { ja: "API 認証情報は保存時に暗号化されます。出金権限は有効にしないでください。戦略の実行と監視には、取引権限と読み取り専用権限で十分です。", ko: "API 인증 정보는 저장 시 암호화됩니다. 출금 권한을 활성화하지 마세요. 전략 실행과 모니터링에는 거래 및 읽기 전용 권한이면 충분합니다.", es: "Las credenciales API se cifran en reposo. No habilites permisos de retirada. Los permisos de trading y solo lectura bastan para ejecutar y supervisar estrategias.", fr: "Les identifiants API sont chiffrés au repos. N’activez pas les retraits. Les droits de trading et de lecture seule suffisent pour exécuter et surveiller les stratégies." },
+  "Disable withdrawal permissions.": { ja: "出金権限を無効にしてください。", ko: "출금 권한을 비활성화하세요.", es: "Desactiva los permisos de retirada.", fr: "Désactivez les droits de retrait." },
+  "Restrict API access by IP whitelist.": { ja: "IP ホワイトリストで API アクセスを制限してください。", ko: "IP 허용 목록으로 API 액세스를 제한하세요.", es: "Restringe el acceso a la API con una lista blanca de IP.", fr: "Limitez l’accès à l’API avec une liste blanche d’IP." },
+  "Rotate API credentials periodically.": { ja: "API 認証情報を定期的に更新してください。", ko: "API 인증 정보를 주기적으로 교체하세요.", es: "Rota las credenciales API periódicamente.", fr: "Renouvelez régulièrement les identifiants API." },
+  "Back": { ja: "戻る", ko: "뒤로", es: "Atrás", fr: "Retour" },
+  "Are you sure you want to delete": { ja: "削除しますか：", ko: "삭제하시겠습니까:", es: "¿Seguro que quieres eliminar", fr: "Voulez-vous vraiment supprimer" },
+  "This action cannot be undone and this exchange account will no longer be available for trading deployment.": { ja: "この操作は取り消せません。この取引所アカウントは戦略の実運用に使用できなくなります。", ko: "이 작업은 취소할 수 없으며 이 거래소 계정은 더 이상 전략 실거래에 사용할 수 없습니다.", es: "Esta acción no se puede deshacer y la cuenta dejará de estar disponible para desplegar estrategias.", fr: "Cette action est irréversible et ce compte ne pourra plus servir au déploiement de stratégies." },
+  "Delete": { ja: "削除", ko: "삭제", es: "Eliminar", fr: "Supprimer" },
+  "This action cannot be undone and any agents using this key will lose access.": { ja: "この操作は取り消せません。このキーを使用している Agent はアクセスできなくなります。", ko: "이 작업은 취소할 수 없으며 이 키를 사용하는 Agent는 액세스 권한을 잃게 됩니다.", es: "Esta acción no se puede deshacer y cualquier Agent que use la clave perderá el acceso.", fr: "Cette action est irréversible et tout Agent utilisant cette clé perdra l’accès." },
+  "Confirm Log Out": { ja: "ログアウトの確認", ko: "로그아웃 확인", es: "Confirmar cierre de sesión", fr: "Confirmer la déconnexion" },
+  "Are you sure you want to log out of your current account?": { ja: "現在のアカウントからログアウトしますか？", ko: "현재 계정에서 로그아웃하시겠습니까?", es: "¿Seguro que quieres cerrar la sesión actual?", fr: "Voulez-vous vraiment vous déconnecter du compte actuel ?" },
+  "Create New API Key": { ja: "新しい API キーを作成", ko: "새 API 키 생성", es: "Crear nueva clave API", fr: "Créer une nouvelle clé API" },
+  "Your API Key is Ready": { ja: "API キーを作成しました", ko: "API 키가 준비되었습니다", es: "Tu clave API está lista", fr: "Votre clé API est prête" },
+  "Generate API": { ja: "API を生成", ko: "API 생성", es: "Generar API", fr: "Générer l’API" },
+  "Paste to Agent": { ja: "Agent に貼り付け", ko: "Agent에 붙여넣기", es: "Pegar en el Agent", fr: "Coller dans l’Agent" },
+  "Give your API key a name to identify it later.": { ja: "後で識別できるように API キーに名前を付けてください。", ko: "나중에 식별할 수 있도록 API 키에 이름을 지정하세요.", es: "Asigna un nombre a la clave API para identificarla después.", fr: "Nommez la clé API pour pouvoir l’identifier plus tard." },
+  "API Name": { ja: "API 名", ko: "API 이름", es: "Nombre de la API", fr: "Nom de l’API" },
+  "e.g., My Trading Bot, Research Agent...": { ja: "例：取引 Bot、リサーチ Agent...", ko: "예: 트레이딩 봇, 리서치 Agent...", es: "p. ej., Bot de trading, Agent de investigación...", fr: "ex. : Bot de trading, Agent de recherche..." },
+  "Create API Key": { ja: "API キーを作成", ko: "API 키 생성", es: "Crear clave API", fr: "Créer la clé API" },
+  "Copy the prompt below and paste it into your AI agent (ChatGPT / Claude / DeepSeek) to start using Quandora Trading.": { ja: "下のプロンプトをコピーして AI Agent（ChatGPT / Claude / DeepSeek）に貼り付けると、Quandora Trading を利用できます。", ko: "아래 프롬프트를 복사하여 AI Agent(ChatGPT / Claude / DeepSeek)에 붙여넣으면 Quandora Trading을 사용할 수 있습니다.", es: "Copia el prompt y pégalo en tu Agent de IA (ChatGPT / Claude / DeepSeek) para empezar a usar Quandora Trading.", fr: "Copiez le prompt ci-dessous dans votre Agent IA (ChatGPT / Claude / DeepSeek) pour commencer à utiliser Quandora Trading." },
+  "Copied to clipboard": { ja: "クリップボードにコピーしました", ko: "클립보드에 복사했습니다", es: "Copiado al portapapeles", fr: "Copié dans le presse-papiers" },
+  "Updated to latest skill & prompt copied": { ja: "最新の Skill に更新し、プロンプトをコピーしました", ko: "최신 Skill로 업데이트하고 프롬프트를 복사했습니다", es: "Skill actualizado y prompt copiado", fr: "Skill mis à jour et prompt copié" },
+  "Prompt copied to clipboard": { ja: "プロンプトをクリップボードにコピーしました", ko: "프롬프트를 클립보드에 복사했습니다", es: "Prompt copiado al portapapeles", fr: "Prompt copié dans le presse-papiers" },
+  "Copied": { ja: "コピー済み", ko: "복사됨", es: "Copiado", fr: "Copié" },
+  "Copy Latest Prompt": { ja: "最新プロンプトをコピー", ko: "최신 프롬프트 복사", es: "Copiar último prompt", fr: "Copier le dernier prompt" },
+  "Copy Prompt": { ja: "プロンプトをコピー", ko: "프롬프트 복사", es: "Copiar prompt", fr: "Copier le prompt" },
+};
+
+function accountTr(uiLang: UiLang, en: string, zh: string, copy: UiCopy = {}) {
+  return translateUi(uiLang, en, zh, { ...accountCopy[en], ...copy });
+}
 
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
@@ -152,8 +305,9 @@ function generateApiKey(): string {
 
 const SKILL_LATEST = "v2.4.1";
 
-function buildPrompt(apiKey: string, skillVersion: string): string {
-  return `# Quandora Trading Skill Configuration
+function buildPrompt(apiKey: string, skillVersion: string, uiLang: UiLang = "en"): string {
+  const prompts: Record<UiLang, string> = {
+    en: `# Quandora Trading Skill Configuration
 
 ## API Key
 \`${apiKey}\`
@@ -174,7 +328,120 @@ Your agent will be able to:
 https://api.quandora.trade/v1/agent
 
 ## Authentication
-Include the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`;
+Include the API key in your agent's system prompt or environment configuration. The agent will automatically authenticate when making requests.`,
+    zh: `# Quandora Trading Skill 配置
+
+## API 密钥
+\`${apiKey}\`
+
+## Skill 版本
+${skillVersion}
+
+## 配置说明
+将整段提示词粘贴到你的 AI Agent（ChatGPT / Claude / DeepSeek）中，即可启用 Quandora Trading 能力。
+
+你的 Agent 将能够：
+- 自动挖掘并回测 Alpha 因子
+- 访问实时市场数据（CEX 与 DEX）
+- 向 Quandora Arena 提交策略
+- 监控投资组合表现
+
+## 连接端点
+https://api.quandora.trade/v1/agent
+
+## 身份验证
+将 API 密钥加入 Agent 的系统提示词或环境配置。Agent 发起请求时将自动完成身份验证。`,
+    ja: `# Quandora Trading Skill 設定
+
+## API キー
+\`${apiKey}\`
+
+## Skill バージョン
+${skillVersion}
+
+## 設定手順
+このプロンプト全体を AI Agent（ChatGPT / Claude / DeepSeek）に貼り付けると、Quandora Trading の機能が有効になります。
+
+Agent で利用できる機能：
+- Alpha ファクターの自動マイニングとバックテスト
+- リアルタイム市場データ（CEX・DEX）へのアクセス
+- Quandora Arena への戦略提出
+- ポートフォリオのパフォーマンス監視
+
+## 接続エンドポイント
+https://api.quandora.trade/v1/agent
+
+## 認証
+API キーを Agent のシステムプロンプトまたは環境設定に追加してください。リクエスト時に自動認証されます。`,
+    ko: `# Quandora Trading Skill 설정
+
+## API 키
+\`${apiKey}\`
+
+## Skill 버전
+${skillVersion}
+
+## 설정 안내
+이 프롬프트 전체를 AI Agent(ChatGPT / Claude / DeepSeek)에 붙여넣으면 Quandora Trading 기능이 활성화됩니다.
+
+Agent에서 사용할 수 있는 기능:
+- Alpha 팩터 자동 마이닝 및 백테스트
+- 실시간 시장 데이터(CEX 및 DEX) 액세스
+- Quandora Arena에 전략 제출
+- 포트폴리오 성과 모니터링
+
+## 연결 엔드포인트
+https://api.quandora.trade/v1/agent
+
+## 인증
+API 키를 Agent의 시스템 프롬프트 또는 환경 설정에 추가하세요. 요청 시 자동으로 인증됩니다.`,
+    es: `# Configuración del Skill de Quandora Trading
+
+## Clave API
+\`${apiKey}\`
+
+## Versión del Skill
+${skillVersion}
+
+## Configuración
+Pega este prompt completo en tu Agent de IA (ChatGPT / Claude / DeepSeek) para activar Quandora Trading.
+
+Tu Agent podrá:
+- Extraer y someter a backtest factores Alpha automáticamente
+- Acceder a datos de mercado en tiempo real (CEX y DEX)
+- Enviar estrategias a Quandora Arena
+- Supervisar el rendimiento de la cartera
+
+## Endpoint de conexión
+https://api.quandora.trade/v1/agent
+
+## Autenticación
+Incluye la clave API en el prompt del sistema o la configuración del entorno de tu Agent. Las solicitudes se autenticarán automáticamente.`,
+    fr: `# Configuration du Skill Quandora Trading
+
+## Clé API
+\`${apiKey}\`
+
+## Version du Skill
+${skillVersion}
+
+## Configuration
+Collez ce prompt complet dans votre Agent IA (ChatGPT / Claude / DeepSeek) pour activer Quandora Trading.
+
+Votre Agent pourra :
+- Rechercher et backtester automatiquement des facteurs Alpha
+- Accéder aux données de marché en temps réel (CEX et DEX)
+- Soumettre des stratégies à Quandora Arena
+- Surveiller la performance du portefeuille
+
+## Endpoint de connexion
+https://api.quandora.trade/v1/agent
+
+## Authentification
+Ajoutez la clé API au prompt système ou à la configuration d’environnement de votre Agent. Les requêtes seront authentifiées automatiquement.`,
+  };
+
+  return prompts[uiLang];
 }
 
 const INITIAL_KEYS: ApiKeyItem[] = [
@@ -202,7 +469,7 @@ function CopyBtn({ text, uiLang = "en" }: { text: string; uiLang?: UiLang }) {
   const handleCopy = () => {
     navigator.clipboard.writeText(text);
     setCopied(true);
-    toast.success(uiLang === "zh" ? "已复制到剪贴板" : "Copied to clipboard");
+    toast.success(accountTr(uiLang, "Copied to clipboard", "已复制到剪贴板"));
     setTimeout(() => setCopied(false), 2000);
   };
   return (
@@ -217,12 +484,12 @@ function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion, uiLang = "en" }
   const [copied, setCopied] = useState(false);
   const needsUpdate = itemSkillVersion !== skillVersion;
   const handleCopy = () => {
-    navigator.clipboard.writeText(buildPrompt(apiKey, skillVersion));
+    navigator.clipboard.writeText(buildPrompt(apiKey, skillVersion, uiLang));
     setCopied(true);
     toast.success(
       needsUpdate
-        ? (uiLang === "zh" ? "已更新至最新 Skill 并复制提示词" : "Updated to latest skill & prompt copied")
-        : (uiLang === "zh" ? "提示词已复制到剪贴板" : "Prompt copied to clipboard")
+        ? accountTr(uiLang, "Updated to latest skill & prompt copied", "已更新至最新 Skill 并复制提示词")
+        : accountTr(uiLang, "Prompt copied to clipboard", "提示词已复制到剪贴板")
     );
     setTimeout(() => setCopied(false), 2000);
   };
@@ -234,7 +501,11 @@ function CopyPromptBtn({ apiKey, skillVersion, itemSkillVersion, uiLang = "en" }
       }`}
     >
       {copied ? <Check className="w-3 h-3" /> : <FileText className="w-3 h-3" />}
-      {copied ? (uiLang === "zh" ? "已复制" : "Copied") : needsUpdate ? (uiLang === "zh" ? "复制最新提示词" : "Copy Latest Prompt") : (uiLang === "zh" ? "复制提示词" : "Copy Prompt")}
+      {copied
+        ? accountTr(uiLang, "Copied", "已复制")
+        : needsUpdate
+          ? accountTr(uiLang, "Copy Latest Prompt", "复制最新提示词")
+          : accountTr(uiLang, "Copy Prompt", "复制提示词")}
     </button>
   );
 }
@@ -327,7 +598,10 @@ function AccountWorkbench260712() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [moreMenuId, setMoreMenuId] = useState<string | null>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const tr = useCallback(
+    (en: string, zh: string, copy: UiCopy = {}) => accountTr(uiLang, en, zh, copy),
+    [uiLang]
+  );
 
   // Close more menu on outside click
   useEffect(() => {
@@ -373,7 +647,16 @@ function AccountWorkbench260712() {
           toast.success(tr("Already on the latest version", "当前已是最新版本"));
           return k;
         }
-        toast.success(tr(`Skill updated to ${SKILL_LATEST}`, `Skill 已更新到 ${SKILL_LATEST}`));
+        toast.success(tr(
+          `Skill updated to ${SKILL_LATEST}`,
+          `Skill 已更新到 ${SKILL_LATEST}`,
+          {
+            ja: `Skill を ${SKILL_LATEST} に更新しました`,
+            ko: `Skill을 ${SKILL_LATEST}(으)로 업데이트했습니다`,
+            es: `Skill actualizado a ${SKILL_LATEST}`,
+            fr: `Skill mis à jour vers ${SKILL_LATEST}`,
+          }
+        ));
         return { ...k, skillVersion: SKILL_LATEST, updatedAt: now };
       })
     );
@@ -497,11 +780,17 @@ function AccountWorkbench260712() {
     setExchangeApiItems((prev) => [newExchangeItem, ...prev]);
     setShowCreateExchangeModal(false);
     resetExchangeCreateFlow();
-    toast.success(
-      uiLang === "zh"
-        ? `${selectedExchangeVenue.toUpperCase()} API 已连接成功。`
-        : `${selectedExchangeVenue.toUpperCase()} API connected successfully.`
-    );
+    const venueName = selectedExchangeVenue.toUpperCase();
+    toast.success(tr(
+      `${venueName} API connected successfully.`,
+      `${venueName} API 已连接成功。`,
+      {
+        ja: `${venueName} API に接続しました。`,
+        ko: `${venueName} API에 연결했습니다.`,
+        es: `API de ${venueName} conectada correctamente.`,
+        fr: `API ${venueName} connectée.`,
+      }
+    ));
   }, [exchangeAccountName, exchangeApiKey, exchangeApiSecret, resetExchangeCreateFlow, selectedExchangeVenue, tr, uiLang]);
 
   const handleSaveExchangeName = useCallback((id: string) => {
@@ -602,7 +891,7 @@ function AccountWorkbench260712() {
                 onClick={() => setActiveTab(tab.id)}
               >
                 <Icon className="h-[13px] w-[13px] shrink-0" strokeWidth={1.6} />
-                <span>{tr(tab.labelEn, tab.labelZh)}</span>
+                <span>{tr(tab.labelEn, tab.labelZh, accountCopy[tab.labelEn])}</span>
               </button>
             );
           })}
@@ -670,7 +959,7 @@ function AccountWorkbench260712() {
                       onClick={() => setChartColorMode(item.value)}
                       className={`oq-account-color-option${chartColorMode === item.value ? " is-active" : ""}`}
                     >
-                      <span>{tr(item.en, item.zh)}</span>
+                      <span>{tr(item.en, item.zh, accountCopy[item.en])}</span>
                       <ChartColorPreview mode={item.value} />
                     </button>
                   ))}
@@ -927,7 +1216,6 @@ function AccountWorkbench260712() {
                       className="oq-profile-edit-button oq-profile-cancel-button is-cancel"
                       onClick={handleCancelProfile}
                     >
-                      <X aria-hidden="true" />
                       {tr("Cancel", "取消")}
                     </button>
                     <button
@@ -1429,7 +1717,18 @@ function AccountWorkbench260712() {
                             <span className="uppercase tracking-wider font-medium">{tr("Skill", "Skill")}</span>
                             <span className="text-primary font-semibold">{item.skillVersion}</span>
                             {item.skillVersion !== SKILL_LATEST && (
-                              <span className="text-amber-500 ml-0.5">{tr(`(update available: ${SKILL_LATEST})`, `（可更新至：${SKILL_LATEST}）`)}</span>
+                              <span className="text-amber-500 ml-0.5">
+                                {tr(
+                                  `(update available: ${SKILL_LATEST})`,
+                                  `（可更新至：${SKILL_LATEST}）`,
+                                  {
+                                    ja: `（更新可能：${SKILL_LATEST}）`,
+                                    ko: `(업데이트 가능: ${SKILL_LATEST})`,
+                                    es: `(actualización disponible: ${SKILL_LATEST})`,
+                                    fr: `(mise à jour disponible : ${SKILL_LATEST})`,
+                                  }
+                                )}
+                              </span>
                             )}
                           </span>
                           <span className="flex items-center gap-1.5">
@@ -1836,7 +2135,7 @@ function AccountWorkbench260712() {
                 <div>
                   <div className="p-4 rounded-xl bg-accent border border-border max-h-64 overflow-y-auto">
                     <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
-                      {buildPrompt(createdApiKey, SKILL_LATEST)}
+                      {buildPrompt(createdApiKey, SKILL_LATEST, uiLang)}
                     </pre>
                   </div>
                 </div>
@@ -1845,7 +2144,7 @@ function AccountWorkbench260712() {
                   <button
                     className="h-9 px-6 rounded-full text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground hover:brightness-110 btn-bounce flex items-center gap-2"
                     onClick={() => {
-                      navigator.clipboard.writeText(buildPrompt(createdApiKey, SKILL_LATEST));
+                      navigator.clipboard.writeText(buildPrompt(createdApiKey, SKILL_LATEST, uiLang));
                       toast.success(tr("Prompt copied to clipboard", "提示词已复制到剪贴板"));
                     }}
                   >

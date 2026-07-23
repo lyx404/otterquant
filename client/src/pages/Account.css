@@ -847,9 +847,10 @@
 
 .oq-profile-summary-copy > span {
   overflow: hidden;
-  color: var(--qa-muted-strong);
+  color: #000000;
   font-size: 12px;
   line-height: 16px;
+  opacity: 0.6;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -911,7 +912,7 @@
 
 .oq-profile-identity-fields {
   display: grid;
-  width: 50%;
+  width: 100%;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
@@ -923,9 +924,13 @@
 .oq-profile-editor-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
   gap: 8px;
   padding-top: 16px;
+}
+
+.oq-profile-editor > .oq-profile-editor-actions {
+  padding-top: 0;
 }
 
 .oq-password-save-button {
@@ -1154,7 +1159,7 @@
 }
 
 .oq-password-form-grid {
-  width: 50%;
+  width: 100%;
   grid-template-columns: minmax(0, 1fr);
 }
 
@@ -1288,9 +1293,9 @@
 }
 
 .oq-account .oq-profile-card .oq-profile-editor .label-upper {
-  color: var(--qa-text);
+  color: var(--qa-muted);
   font-size: 10px;
-  font-weight: 400;
+  font-weight: 600;
   line-height: 15px;
 }
 
@@ -1421,6 +1426,13 @@
   color: #686868;
   cursor: not-allowed;
   opacity: 0.76;
+}
+
+.oq-account .oq-password-form-grid .label-upper,
+.oq-account .oq-password-form-grid .oq-input,
+.oq-account .oq-password-form-grid .oq-profile-code-button {
+  font-size: 10px;
+  line-height: 15px;
 }
 
 .oq-account input:focus,

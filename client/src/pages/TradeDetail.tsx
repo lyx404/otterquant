@@ -19,7 +19,7 @@ import {
   localizeDateRangeLabel,
   StrategyReportDateControl,
 } from "./StrategyReportDateControl";
-import { TRADE_RETURN_TRANSITION_STORAGE_KEY } from "./Trade";
+import { TRADE_RETURN_TRANSITION_STORAGE_KEY, tradeCopy } from "./Trade";
 import {
   Tooltip,
   TooltipContent,
@@ -63,8 +63,148 @@ import {
   RefreshCw,
   Trash2,
 } from "lucide-react";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import {
+  translateUi,
+  type UiCopy,
+  useAppLanguage,
+} from "@/contexts/AppLanguageContext";
 import "./TradeDetail.css";
+
+const tradeDetailCopy: Record<string, UiCopy> = {
+  "Back to Trade": { ja: "取引一覧に戻る", ko: "거래로 돌아가기", es: "Volver a Trading", fr: "Retour au trading" },
+  "Paper trading deployment not found": { ja: "ペーパートレードが見つかりません", ko: "모의 거래 배포를 찾을 수 없습니다", es: "No se encontró el despliegue de paper trading", fr: "Déploiement de paper trading introuvable" },
+  "The selected trade id does not exist in the current workspace.": {
+    ja: "選択した取引 ID は現在のワークスペースに存在しません。",
+    ko: "선택한 거래 ID가 현재 워크스페이스에 없습니다.",
+    es: "El ID de operación seleccionado no existe en el espacio de trabajo actual.",
+    fr: "L'ID de transaction sélectionné n'existe pas dans l'espace de travail actuel.",
+  },
+  "Assets (USDT)": { ja: "資産（USDT）", ko: "자산(USDT)", es: "Activos (USDT)", fr: "Actifs (USDT)" },
+  "Shows the current total assets in this strategy account.": {
+    ja: "このストラテジー口座の現在の総資産を示します。",
+    ko: "이 전략 계정의 현재 총자산을 나타냅니다.",
+    es: "Muestra los activos totales actuales de esta cuenta de estrategia.",
+    fr: "Indique le total actuel des actifs de ce compte de stratégie.",
+  },
+  "Shows the total profit or loss over the selected period.": {
+    ja: "選択期間の合計損益を示します。",
+    ko: "선택한 기간의 총손익을 나타냅니다.",
+    es: "Muestra el beneficio o la pérdida total del periodo seleccionado.",
+    fr: "Indique le profit ou la perte totale sur la période sélectionnée.",
+  },
+  "Shows cumulative return over the selected period.": {
+    ja: "選択期間の累積リターンを示します。",
+    ko: "선택한 기간의 누적 수익률을 나타냅니다.",
+    es: "Muestra el retorno acumulado del periodo seleccionado.",
+    fr: "Indique le rendement cumulé sur la période sélectionnée.",
+  },
+  "Sharpe Ratio": { ja: "シャープレシオ", ko: "샤프 비율", es: "Ratio de Sharpe", fr: "Ratio de Sharpe" },
+  "Measures return stability. Higher values generally indicate steadier performance.": {
+    ja: "リターンの安定性を示します。一般に値が高いほどパフォーマンスは安定しています。",
+    ko: "수익 안정성을 나타냅니다. 일반적으로 값이 높을수록 성과가 안정적입니다.",
+    es: "Mide la estabilidad del retorno. Los valores más altos suelen indicar un rendimiento más estable.",
+    fr: "Mesure la stabilité du rendement. Une valeur élevée indique généralement une performance plus stable.",
+  },
+  "Max Drawdown": { ja: "最大ドローダウン", ko: "최대 낙폭", es: "Máximo drawdown", fr: "Drawdown maximal" },
+  "Shows the largest historical decline. Lower values indicate less downside risk.": {
+    ja: "過去最大の下落幅を示します。値が小さいほどダウンサイドリスクが低いことを示します。",
+    ko: "과거 최대 하락 폭을 나타냅니다. 값이 낮을수록 하방 위험이 작습니다.",
+    es: "Muestra la mayor caída histórica. Los valores más bajos indican un menor riesgo bajista.",
+    fr: "Indique la plus forte baisse historique. Une valeur faible signale un risque baissier moindre.",
+  },
+  "Win Rate": { ja: "勝率", ko: "승률", es: "Tasa de acierto", fr: "Taux de réussite" },
+  "Shows the percentage of profitable positions.": {
+    ja: "利益となったポジションの割合を示します。",
+    ko: "수익 포지션의 비율을 나타냅니다.",
+    es: "Muestra el porcentaje de posiciones rentables.",
+    fr: "Indique le pourcentage de positions rentables.",
+  },
+  "Profitable Positions": { ja: "利益ポジション", ko: "수익 포지션", es: "Posiciones rentables", fr: "Positions rentables" },
+  "Shows the number of profitable positions in the selected range.": {
+    ja: "選択範囲内の利益ポジション数を示します。",
+    ko: "선택한 범위의 수익 포지션 수를 나타냅니다.",
+    es: "Muestra el número de posiciones rentables en el rango seleccionado.",
+    fr: "Indique le nombre de positions rentables dans la plage sélectionnée.",
+  },
+  "Total Positions": { ja: "総ポジション数", ko: "총 포지션 수", es: "Posiciones totales", fr: "Nombre total de positions" },
+  "Shows the total number of positions in the selected range.": {
+    ja: "選択範囲内の総ポジション数を示します。",
+    ko: "선택한 범위의 총 포지션 수를 나타냅니다.",
+    es: "Muestra el número total de posiciones en el rango seleccionado.",
+    fr: "Indique le nombre total de positions dans la plage sélectionnée.",
+  },
+  Paper: { ja: "ペーパー", ko: "모의", es: "Paper", fr: "Paper" },
+  Live: { ja: "ライブ", ko: "실거래", es: "Live", fr: "Live" },
+  "Trade controls": { ja: "取引操作", ko: "거래 제어", es: "Controles de trading", fr: "Contrôles de trading" },
+  "Strategy overview": { ja: "ストラテジー概要", ko: "전략 개요", es: "Resumen de estrategia", fr: "Vue d'ensemble de la stratégie" },
+  "Select performance period": { ja: "パフォーマンス期間を選択", ko: "성과 기간 선택", es: "Seleccionar periodo de rendimiento", fr: "Sélectionner la période de performance" },
+  "Performance Trend": { ja: "パフォーマンス推移", ko: "성과 추이", es: "Tendencia de rendimiento", fr: "Évolution de la performance" },
+  "Trend metric": { ja: "推移指標", ko: "추이 지표", es: "Métrica de tendencia", fr: "Indicateur de tendance" },
+  "Asset Preference": { ja: "資産配分", ko: "자산 배분", es: "Asignación de activos", fr: "Allocation des actifs" },
+  Allocation: { ja: "配分", ko: "배분", es: "Asignación", fr: "Allocation" },
+  Other: { ja: "その他", ko: "기타", es: "Otros", fr: "Autres" },
+  assets: { ja: "資産", ko: "자산", es: "activos", fr: "actifs" },
+  "Asset allocation details": { ja: "資産配分の詳細", ko: "자산 배분 상세", es: "Detalles de asignación de activos", fr: "Détails de l'allocation des actifs" },
+  "No open positions": { ja: "オープンポジションなし", ko: "미결제 포지션 없음", es: "No hay posiciones abiertas", fr: "Aucune position ouverte" },
+  "No open positions to allocate.": { ja: "配分対象のオープンポジションがありません。", ko: "배분할 미결제 포지션이 없습니다.", es: "No hay posiciones abiertas para asignar.", fr: "Aucune position ouverte à allouer." },
+  "Allocation will appear after a position is opened.": { ja: "ポジションを建てると資産配分が表示されます。", ko: "포지션을 개설하면 자산 배분이 표시됩니다.", es: "La asignación aparecerá al abrir una posición.", fr: "L'allocation apparaîtra après l'ouverture d'une position." },
+  "Position workspace": { ja: "ポジションワークスペース", ko: "포지션 워크스페이스", es: "Espacio de posiciones", fr: "Espace des positions" },
+  "Position views": { ja: "ポジション表示", ko: "포지션 보기", es: "Vistas de posiciones", fr: "Vues des positions" },
+  "Current Positions": { ja: "現在のポジション", ko: "현재 포지션", es: "Posiciones actuales", fr: "Positions actuelles" },
+  "Position History": { ja: "ポジション履歴", ko: "포지션 내역", es: "Historial de posiciones", fr: "Historique des positions" },
+  "Activity Log": { ja: "取引履歴", ko: "활동 기록", es: "Registro de actividad", fr: "Journal d'activité" },
+  "Current positions": { ja: "現在のポジション", ko: "현재 포지션", es: "Posiciones actuales", fr: "Positions actuelles" },
+  Symbol: { ja: "銘柄", ko: "종목", es: "Símbolo", fr: "Symbole" },
+  Size: { ja: "数量", ko: "수량", es: "Tamaño", fr: "Taille" },
+  Entry: { ja: "エントリー価格", ko: "진입가", es: "Entrada", fr: "Entrée" },
+  Mark: { ja: "マーク価格", ko: "표시 가격", es: "Precio de marca", fr: "Prix repère" },
+  Margin: { ja: "証拠金", ko: "증거금", es: "Margen", fr: "Marge" },
+  "Unrealized PnL (USDT)": { ja: "未実現 PnL（USDT）", ko: "미실현 PnL(USDT)", es: "PnL no realizado (USDT)", fr: "PnL latent (USDT)" },
+  "No current positions": { ja: "現在のポジションはありません", ko: "현재 포지션이 없습니다", es: "No hay posiciones actuales", fr: "Aucune position actuelle" },
+  Long: { ja: "ロング", ko: "롱", es: "Largo", fr: "Long" },
+  Short: { ja: "ショート", ko: "숏", es: "Corto", fr: "Short" },
+  Perp: { ja: "無期限", ko: "무기한", es: "Perpetuo", fr: "Perpétuel" },
+  Cross: { ja: "クロス", ko: "교차", es: "Cruzado", fr: "Cross" },
+  Isolated: { ja: "分離", ko: "격리", es: "Aislado", fr: "Isolée" },
+  "Position history": { ja: "ポジション履歴", ko: "포지션 내역", es: "Historial de posiciones", fr: "Historique des positions" },
+  "Opened At": { ja: "開始日時", ko: "개시 시간", es: "Apertura", fr: "Ouverture" },
+  "Entry Price": { ja: "エントリー価格", ko: "진입가", es: "Precio de entrada", fr: "Prix d'entrée" },
+  "Closed At": { ja: "決済日時", ko: "종료 시간", es: "Cierre", fr: "Clôture" },
+  "Maximum Position Size": { ja: "最大ポジションサイズ", ko: "최대 포지션 규모", es: "Tamaño máximo de posición", fr: "Taille maximale de position" },
+  "Exit Average": { ja: "平均決済価格", ko: "평균 청산가", es: "Precio medio de salida", fr: "Prix moyen de sortie" },
+  "Realized PnL": { ja: "実現 PnL", ko: "실현 PnL", es: "PnL realizado", fr: "PnL réalisé" },
+  "No position history": { ja: "ポジション履歴はありません", ko: "포지션 내역이 없습니다", es: "No hay historial de posiciones", fr: "Aucun historique de positions" },
+  Spot: { ja: "現物", ko: "현물", es: "Spot", fr: "Spot" },
+  Closed: { ja: "決済済み", ko: "청산됨", es: "Cerrada", fr: "Clôturée" },
+  "Activity log": { ja: "取引履歴", ko: "활동 기록", es: "Registro de actividad", fr: "Journal d'activité" },
+  "Open Long": { ja: "ロングを建てる", ko: "롱 진입", es: "Abrir largo", fr: "Ouvrir un long" },
+  "Close Long": { ja: "ロングを決済", ko: "롱 청산", es: "Cerrar largo", fr: "Fermer le long" },
+  "Open Short": { ja: "ショートを建てる", ko: "숏 진입", es: "Abrir corto", fr: "Ouvrir un short" },
+  "Close Short": { ja: "ショートを決済", ko: "숏 청산", es: "Cerrar corto", fr: "Fermer le short" },
+  "No activity records": { ja: "取引履歴はありません", ko: "활동 기록이 없습니다", es: "No hay registros de actividad", fr: "Aucun journal d'activité" },
+  "Asset Curve": { ja: "資産曲線", ko: "자산 곡선", es: "Curva de activos", fr: "Courbe des actifs" },
+  Strategy: { ja: "ストラテジー", ko: "전략", es: "Estrategia", fr: "Stratégie" },
+  Benchmark: { ja: "ベンチマーク", ko: "벤치마크", es: "Benchmark", fr: "Benchmark" },
+  "Strategy return over the selected period.": { ja: "選択期間におけるストラテジーのリターン。", ko: "선택한 기간의 전략 수익률입니다.", es: "Retorno de la estrategia durante el periodo seleccionado.", fr: "Rendement de la stratégie sur la période sélectionnée." },
+  "Benchmark return over the selected period.": { ja: "選択期間におけるベンチマークのリターン。", ko: "선택한 기간의 벤치마크 수익률입니다.", es: "Retorno del benchmark durante el periodo seleccionado.", fr: "Rendement du benchmark sur la période sélectionnée." },
+  Excess: { ja: "超過リターン", ko: "초과수익", es: "Exceso", fr: "Surperformance" },
+  "Return above the benchmark. Excess return = strategy return - benchmark return.": {
+    ja: "ベンチマークを上回るリターンです。超過リターン = ストラテジーリターン - ベンチマークリターン。",
+    ko: "벤치마크를 초과한 수익입니다. 초과수익 = 전략 수익률 - 벤치마크 수익률.",
+    es: "Retorno por encima del benchmark. Retorno excedente = retorno de estrategia - retorno del benchmark.",
+    fr: "Rendement supérieur au benchmark. Surperformance = rendement de la stratégie - rendement du benchmark.",
+  },
+  "Asset Preferences": { ja: "資産配分", ko: "자산 배분", es: "Asignación de activos", fr: "Allocation des actifs" },
+  "Top Asset": { ja: "主要資産", ko: "주요 자산", es: "Activo principal", fr: "Actif principal" },
+  allocation: { ja: "配分", ko: "배분", es: "asignación", fr: "allocation" },
+  "Daily Returns": { ja: "日次リターン", ko: "일간 수익률", es: "Retornos diarios", fr: "Rendements quotidiens" },
+  Avg: { ja: "平均", ko: "평균", es: "Media", fr: "Moy." },
+  "Average daily return in the selected period.": { ja: "選択期間の日次平均リターン。", ko: "선택한 기간의 일평균 수익률입니다.", es: "Retorno diario medio del periodo seleccionado.", fr: "Rendement quotidien moyen sur la période sélectionnée." },
+  "Number of days with positive returns in the selected period.": { ja: "選択期間内でリターンがプラスとなった日数。", ko: "선택한 기간에 수익률이 양수인 일수입니다.", es: "Número de días con retornos positivos en el periodo seleccionado.", fr: "Nombre de jours avec un rendement positif sur la période sélectionnée." },
+  "Number of days with negative returns in the selected period.": { ja: "選択期間内でリターンがマイナスとなった日数。", ko: "선택한 기간에 수익률이 음수인 일수입니다.", es: "Número de días con retornos negativos en el periodo seleccionado.", fr: "Nombre de jours avec un rendement négatif sur la période sélectionnée." },
+  W: { ja: "勝", ko: "승", es: "G", fr: "G" },
+  L: { ja: "敗", ko: "패", es: "P", fr: "P" },
+};
 
 const MAX_VISIBLE_ALLOCATION_ASSETS = 10;
 
@@ -306,7 +446,12 @@ function classForTone(tone?: "positive" | "negative" | "neutral") {
 
 export default function TradeDetail() {
   const { uiLang } = useAppLanguage();
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const tr = (en: string, zh: string, copy: UiCopy = {}) =>
+    translateUi(uiLang, en, zh, {
+      ...tradeCopy[en],
+      ...tradeDetailCopy[en],
+      ...copy,
+    });
   const performanceDateLabel = tr("Today", "今天");
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
@@ -639,7 +784,21 @@ export default function TradeDetail() {
             .join(", ")}.`,
           `资产偏好包含 ${overviewAllocation.assetCount} 个资产：${overviewAllocationData
             .map((item) => `${item.asset} ${item.percent.toFixed(2)}%`)
-            .join("，")}。`
+            .join("，")}。`,
+          {
+            ja: `資産配分は ${overviewAllocation.assetCount} 資産：${overviewAllocationData
+              .map((item) => `${item.isOther ? "その他" : item.asset} ${item.percent.toFixed(2)}%`)
+              .join("、")}。`,
+            ko: `자산 배분은 ${overviewAllocation.assetCount}개 자산으로 구성됩니다: ${overviewAllocationData
+              .map((item) => `${item.isOther ? "기타" : item.asset} ${item.percent.toFixed(2)}%`)
+              .join(", ")}.`,
+            es: `La asignación abarca ${overviewAllocation.assetCount} activos: ${overviewAllocationData
+              .map((item) => `${item.isOther ? "Otros" : item.asset} ${item.percent.toFixed(2)}%`)
+              .join(", ")}.`,
+            fr: `L'allocation couvre ${overviewAllocation.assetCount} actifs : ${overviewAllocationData
+              .map((item) => `${item.isOther ? "Autres" : item.asset} ${item.percent.toFixed(2)} %`)
+              .join(", ")}.`,
+          }
         )
     : tr(
         `Current margin is allocated across ${overviewAllocation.assetCount} assets: ${overviewAllocationData
@@ -647,7 +806,21 @@ export default function TradeDetail() {
           .join(", ")}.`,
         `当前保证金分布于 ${overviewAllocation.assetCount} 个资产：${overviewAllocationData
           .map((item) => `${item.isOther ? "其他" : item.asset} ${item.value.toFixed(2)} USDT，占比 ${item.percent.toFixed(2)}%`)
-          .join("，")}。`
+          .join("，")}。`,
+        {
+          ja: `現在の証拠金は ${overviewAllocation.assetCount} 資産に配分されています：${overviewAllocationData
+            .map((item) => `${item.isOther ? "その他" : item.asset} ${item.value.toFixed(2)} USDT、${item.percent.toFixed(2)}%`)
+            .join("、")}。`,
+          ko: `현재 증거금은 ${overviewAllocation.assetCount}개 자산에 배분되어 있습니다: ${overviewAllocationData
+            .map((item) => `${item.isOther ? "기타" : item.asset} ${item.value.toFixed(2)} USDT, ${item.percent.toFixed(2)}%`)
+            .join(", ")}.`,
+          es: `El margen actual se distribuye entre ${overviewAllocation.assetCount} activos: ${overviewAllocationData
+            .map((item) => `${item.isOther ? "Otros" : item.asset} ${item.value.toFixed(2)} USDT, ${item.percent.toFixed(2)}%`)
+            .join(", ")}.`,
+          fr: `La marge actuelle est répartie sur ${overviewAllocation.assetCount} actifs : ${overviewAllocationData
+            .map((item) => `${item.isOther ? "Autres" : item.asset} ${item.value.toFixed(2)} USDT, ${item.percent.toFixed(2)} %`)
+            .join(", ")}.`,
+        }
       );
 
   const overviewMetricKey: OverviewTrendMetricKey = overviewMetric === "return" ? "returnValue" : "pnlValue";
@@ -750,23 +923,15 @@ export default function TradeDetail() {
     ];
   }, [trade.symbol]);
   const translateMonthLabel = (label: string) => {
-    if (uiLang !== "zh") return label;
-    switch (label) {
-      case "May":
-        return "5月";
-      case "Jul":
-        return "7月";
-      case "Sep":
-        return "9月";
-      case "Nov":
-        return "11月";
-      case "Jan":
-        return "1月";
-      case "Mar":
-        return "3月";
-      default:
-        return label;
-    }
+    const monthLabels: Record<string, UiCopy> = {
+      May: { zh: "5月", ja: "5月", ko: "5월", es: "may.", fr: "mai" },
+      Jul: { zh: "7月", ja: "7月", ko: "7월", es: "jul.", fr: "juil." },
+      Sep: { zh: "9月", ja: "9月", ko: "9월", es: "sept.", fr: "sept." },
+      Nov: { zh: "11月", ja: "11月", ko: "11월", es: "nov.", fr: "nov." },
+      Jan: { zh: "1月", ja: "1月", ko: "1월", es: "ene.", fr: "janv." },
+      Mar: { zh: "3月", ja: "3月", ko: "3월", es: "mar.", fr: "mars" },
+    };
+    return monthLabels[label]?.[uiLang] ?? label;
   };
   const translatePreferenceLabel = (label: string) => (label === "Other" ? tr("Other", "其他") : label);
   const translateFillAction = (action: string) => {
@@ -782,6 +947,17 @@ export default function TradeDetail() {
       default:
         return action;
     }
+  };
+  const renderFillSummary = (row: (typeof visibleFills)[number]) => {
+    const parts: Record<string, ReactNode> = {
+      en: <>Filled at an average price of <strong>{row.price} USDT</strong>, quantity <strong>{row.qty}</strong>, value <strong>{row.value}</strong></>,
+      zh: <>以均价 <strong>{row.price} USDT</strong> 成交，数量 <strong>{row.qty}</strong>，成交额 <strong>{row.value}</strong></>,
+      ja: <>平均価格 <strong>{row.price} USDT</strong> で約定、数量 <strong>{row.qty}</strong>、約定代金 <strong>{row.value}</strong></>,
+      ko: <>평균 가격 <strong>{row.price} USDT</strong>에 체결, 수량 <strong>{row.qty}</strong>, 체결 금액 <strong>{row.value}</strong></>,
+      es: <>Ejecutada a un precio medio de <strong>{row.price} USDT</strong>, cantidad <strong>{row.qty}</strong>, valor <strong>{row.value}</strong></>,
+      fr: <>Exécutée au prix moyen de <strong>{row.price} USDT</strong>, quantité <strong>{row.qty}</strong>, valeur <strong>{row.value}</strong></>,
+    };
+    return parts[uiLang];
   };
   return (
     <div className={`oq-trade-detail min-w-0${isReturningToTrade ? " is-returning" : ""}${isRefreshing ? " is-refreshing" : ""}`} style={semanticColorVars}>
@@ -1004,8 +1180,26 @@ export default function TradeDetail() {
                 role="img"
                 aria-label={
                   overviewMetric === "return"
-                    ? tr(`30-day return trend ending at ${formatSigned(roi)}%.`, `近 30 天收益率走势，期末为 ${formatSigned(roi)}%。`)
-                    : tr(`30-day PnL trend ending at ${formatSigned(totalPnl)} USDT.`, `近 30 天盈亏走势，期末为 ${formatSigned(totalPnl)} USDT。`)
+                    ? tr(
+                        `30-day return trend ending at ${formatSigned(roi)}%.`,
+                        `近 30 天收益率走势，期末为 ${formatSigned(roi)}%。`,
+                        {
+                          ja: `30 日間のリターン推移。期末値は ${formatSigned(roi)}%。`,
+                          ko: `30일 수익률 추이, 기말 값 ${formatSigned(roi)}%.`,
+                          es: `Tendencia del retorno a 30 días, con valor final de ${formatSigned(roi)}%.`,
+                          fr: `Évolution du rendement sur 30 jours, valeur finale ${formatSigned(roi)} %.`,
+                        }
+                      )
+                    : tr(
+                        `30-day PnL trend ending at ${formatSigned(totalPnl)} USDT.`,
+                        `近 30 天盈亏走势，期末为 ${formatSigned(totalPnl)} USDT。`,
+                        {
+                          ja: `30 日間の PnL 推移。期末値は ${formatSigned(totalPnl)} USDT。`,
+                          ko: `30일 PnL 추이, 기말 값 ${formatSigned(totalPnl)} USDT.`,
+                          es: `Tendencia del PnL a 30 días, con valor final de ${formatSigned(totalPnl)} USDT.`,
+                          fr: `Évolution du PnL sur 30 jours, valeur finale ${formatSigned(totalPnl)} USDT.`,
+                        }
+                      )
                 }
               >
                 <AreaChart data={overviewTrendData} accessibilityLayer margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
@@ -1325,15 +1519,7 @@ export default function TradeDetail() {
 
                         <p className="oq-trade-activity-summary">
                           <span className="oq-trade-activity-fill-detail">
-                            {uiLang === "zh" ? (
-                              <>
-                                以均价 <strong>{row.price} USDT</strong> 成交，数量 <strong>{row.qty}</strong>，成交额 <strong>{row.value}</strong>
-                              </>
-                            ) : (
-                              <>
-                                Filled at an average price of <strong>{row.price} USDT</strong>, quantity <strong>{row.qty}</strong>, value <strong>{row.value}</strong>
-                              </>
-                            )}
+                            {renderFillSummary(row)}
                           </span>
                           {row.realizedPnl !== undefined ? (
                             <span className={`oq-trade-activity-pnl ${row.realizedPnl >= 0 ? "is-positive" : "is-negative"}`}>
@@ -1787,7 +1973,13 @@ export default function TradeDetail() {
               {pendingAction === "delete"
                 ? tr(
                     `Delete the paper-trading deployment for "${trade.name}"? It will be removed from the current list and cannot be undone on this page.`,
-                    `确认删除策略「${trade.name}」的模拟盘吗？删除后将从当前列表中移除，且无法在此页面撤销。`
+                    `确认删除策略「${trade.name}」的模拟盘吗？删除后将从当前列表中移除，且无法在此页面撤销。`,
+                    {
+                      ja: `「${trade.name}」のペーパートレードを削除しますか？現在の一覧から削除され、このページでは元に戻せません。`,
+                      ko: `「${trade.name}」의 모의 거래 배포를 삭제할까요? 현재 목록에서 제거되며 이 페이지에서는 되돌릴 수 없습니다.`,
+                      es: `¿Eliminar el despliegue de paper trading de «${trade.name}»? Se quitará de la lista actual y no podrá deshacerse en esta página.`,
+                      fr: `Supprimer le déploiement de paper trading de « ${trade.name} » ? Il sera retiré de la liste actuelle et cette action ne pourra pas être annulée sur cette page.`,
+                    }
                   )
                 : tr(
                     "Are you sure you want to stop this paper-trading deployment? Open positions and its configuration will be kept so you can restart it later.",

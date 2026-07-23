@@ -23,7 +23,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { useAppLanguage } from "@/contexts/AppLanguageContext";
+import {
+  translateUi,
+  type UiCopy,
+  type UiLang,
+  useAppLanguage,
+} from "@/contexts/AppLanguageContext";
 import {
   tradeBots,
   tradePositionRows,
@@ -63,6 +68,68 @@ type BotSortDirection = "default" | "desc" | "asc";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+
+export const tradeCopy: Record<string, UiCopy> = {
+  Today: { ja: "今日", ko: "오늘", es: "Hoy", fr: "Aujourd'hui" },
+  "Past 7 days": { ja: "過去 7 日", ko: "지난 7일", es: "Últimos 7 días", fr: "7 derniers jours" },
+  "Past 30 days": { ja: "過去 30 日", ko: "지난 30일", es: "Últimos 30 días", fr: "30 derniers jours" },
+  "Past 90 days": { ja: "過去 90 日", ko: "지난 90일", es: "Últimos 90 días", fr: "90 derniers jours" },
+  "Past 180 days": { ja: "過去 180 日", ko: "지난 180일", es: "Últimos 180 días", fr: "180 derniers jours" },
+  "Past year": { ja: "過去 1 年", ko: "지난 1년", es: "Último año", fr: "Année écoulée" },
+  "Custom date range": { ja: "カスタム期間", ko: "사용자 지정 기간", es: "Rango personalizado", fr: "Période personnalisée" },
+  "Select summary period": { ja: "集計期間を選択", ko: "요약 기간 선택", es: "Seleccionar periodo de resumen", fr: "Sélectionner la période de synthèse" },
+  "Start date": { ja: "開始日", ko: "시작일", es: "Fecha de inicio", fr: "Date de début" },
+  "End date": { ja: "終了日", ko: "종료일", es: "Fecha de fin", fr: "Date de fin" },
+  Switch: { ja: "切り替え", ko: "전환", es: "Cambiar", fr: "Changer" },
+  "Running Strategies": { ja: "稼働中のストラテジー", ko: "실행 중인 전략", es: "Estrategias en ejecución", fr: "Stratégies en cours" },
+  "Total Assets (USDT)": { ja: "総資産（USDT）", ko: "총자산(USDT)", es: "Activos totales (USDT)", fr: "Actifs totaux (USDT)" },
+  "PnL (USDT)": { ja: "PnL（USDT）", ko: "PnL(USDT)", es: "PnL (USDT)", fr: "PnL (USDT)" },
+  "Average ROI": { ja: "平均 ROI", ko: "평균 ROI", es: "ROI medio", fr: "ROI moyen" },
+  "Filter strategy status": { ja: "ストラテジー状態を絞り込む", ko: "전략 상태 필터", es: "Filtrar estado de estrategia", fr: "Filtrer l'état des stratégies" },
+  All: { ja: "すべて", ko: "전체", es: "Todo", fr: "Tout" },
+  Running: { ja: "稼働中", ko: "실행 중", es: "En ejecución", fr: "En cours" },
+  Stopped: { ja: "停止済み", ko: "중지됨", es: "Detenidas", fr: "Arrêtées" },
+  "Trading strategies": { ja: "取引ストラテジー", ko: "거래 전략", es: "Estrategias de trading", fr: "Stratégies de trading" },
+  Strategy: { ja: "ストラテジー", ko: "전략", es: "Estrategia", fr: "Stratégie" },
+  Assets: { ja: "資産", ko: "자산", es: "Activos", fr: "Actifs" },
+  PnL: { ja: "PnL", ko: "PnL", es: "PnL", fr: "PnL" },
+  Return: { ja: "リターン", ko: "수익률", es: "Retorno", fr: "Rendement" },
+  "Paper Status": { ja: "ペーパートレード状態", ko: "모의 거래 상태", es: "Estado de paper trading", fr: "Statut du paper trading" },
+  Updated: { ja: "更新日時", ko: "업데이트", es: "Actualizado", fr: "Mis à jour" },
+  Actions: { ja: "操作", ko: "작업", es: "Acciones", fr: "Actions" },
+  Refresh: { ja: "更新", ko: "새로고침", es: "Actualizar", fr: "Actualiser" },
+  Refreshing: { ja: "更新中", ko: "새로고침 중", es: "Actualizando", fr: "Actualisation" },
+  Stop: { ja: "停止", ko: "중지", es: "Detener", fr: "Arrêter" },
+  Restart: { ja: "再開", ko: "재시작", es: "Reiniciar", fr: "Redémarrer" },
+  More: { ja: "その他", ko: "더보기", es: "Más", fr: "Plus" },
+  Delete: { ja: "削除", ko: "삭제", es: "Eliminar", fr: "Supprimer" },
+  "Paper trading stopped": { ja: "ペーパートレードを停止しました", ko: "모의 거래가 중지되었습니다", es: "Paper trading detenido", fr: "Paper trading arrêté" },
+  "Paper trading restarted": { ja: "ペーパートレードを再開しました", ko: "모의 거래가 재시작되었습니다", es: "Paper trading reiniciado", fr: "Paper trading redémarré" },
+  "Paper trading data refreshed": { ja: "ペーパートレードデータを更新しました", ko: "모의 거래 데이터를 새로고침했습니다", es: "Datos de paper trading actualizados", fr: "Données du paper trading actualisées" },
+  "Paper trading deployment deleted": { ja: "ペーパートレードのデプロイを削除しました", ko: "모의 거래 배포가 삭제되었습니다", es: "Despliegue de paper trading eliminado", fr: "Déploiement de paper trading supprimé" },
+  "No matching paper-trading deployments": { ja: "一致するペーパートレードがありません", ko: "일치하는 모의 거래 배포가 없습니다", es: "No hay despliegues de paper trading coincidentes", fr: "Aucun déploiement de paper trading correspondant" },
+  "No paper-trading deployments in this status": { ja: "この状態のペーパートレードはありません", ko: "이 상태의 모의 거래 배포가 없습니다", es: "No hay despliegues de paper trading con este estado", fr: "Aucun déploiement de paper trading avec ce statut" },
+  "Adjust the keyword or status filter.": { ja: "キーワードまたは状態フィルターを調整してください。", ko: "키워드 또는 상태 필터를 조정하세요.", es: "Ajusta la palabra clave o el filtro de estado.", fr: "Modifiez le mot-clé ou le filtre d'état." },
+  "Switch the status filter.": { ja: "状態フィルターを切り替えてください。", ko: "상태 필터를 전환하세요.", es: "Cambia el filtro de estado.", fr: "Changez le filtre d'état." },
+  "Delete Paper Trading": { ja: "ペーパートレードを削除", ko: "모의 거래 삭제", es: "Eliminar paper trading", fr: "Supprimer le paper trading" },
+  "Stop Paper Trading": { ja: "ペーパートレードを停止", ko: "모의 거래 중지", es: "Detener paper trading", fr: "Arrêter le paper trading" },
+  "Are you sure you want to stop this paper-trading deployment? Open positions and its configuration will be kept so you can restart it later.": {
+    ja: "このペーパートレードを停止しますか？後で再開できるよう、オープンポジションと設定は保持されます。",
+    ko: "이 모의 거래 배포를 중지할까요? 나중에 재시작할 수 있도록 미결제 포지션과 설정은 유지됩니다.",
+    es: "¿Quieres detener este despliegue de paper trading? Se conservarán las posiciones abiertas y la configuración para poder reiniciarlo más tarde.",
+    fr: "Voulez-vous arrêter ce déploiement de paper trading ? Les positions ouvertes et sa configuration seront conservées afin de pouvoir le redémarrer ultérieurement.",
+  },
+  Cancel: { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
+  "Confirm Delete": { ja: "削除を確認", ko: "삭제 확인", es: "Confirmar eliminación", fr: "Confirmer la suppression" },
+  "Confirm Stop": { ja: "停止を確認", ko: "중지 확인", es: "Confirmar detención", fr: "Confirmer l'arrêt" },
+};
+
+const tradeSortLabels: Record<BotSortKey, Record<UiLang, string>> = {
+  equity: { en: "assets", zh: "资产", ja: "資産", ko: "자산", es: "activos", fr: "actifs" },
+  unrealizedPnl: { en: "PnL", zh: "盈亏", ja: "PnL", ko: "PnL", es: "PnL", fr: "PnL" },
+  roi: { en: "return", zh: "收益率", ja: "リターン", ko: "수익률", es: "retorno", fr: "rendement" },
+  updatedAt: { en: "updated time", zh: "更新时间", ja: "更新日時", ko: "업데이트 시간", es: "hora de actualización", fr: "heure de mise à jour" },
+};
 
 function readChartColorMode(): ChartColorMode {
   if (typeof window === "undefined") return "greenUpRedDown";
@@ -128,7 +195,8 @@ export default function Trade() {
 
 function TradeWorkbench260712() {
   const { uiLang } = useAppLanguage();
-  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const tr = (en: string, zh: string, copy: UiCopy = {}) =>
+    translateUi(uiLang, en, zh, { ...tradeCopy[en], ...copy });
   const search = useSearch();
   const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const envFromQuery = searchParams.get("env");
@@ -373,11 +441,36 @@ function TradeWorkbench260712() {
     if (direction === "asc") return "ascending";
     return "none";
   };
-  const sortButtonLabel = (key: BotSortKey, enLabel: string, zhLabel: string) => {
+  const sortButtonLabel = (key: BotSortKey) => {
     const direction = sortDirectionFor(key);
-    if (direction === "default") return tr(`Sort ${enLabel} descending`, `${zhLabel}按降序排列`);
-    if (direction === "desc") return tr(`Sort ${enLabel} ascending`, `${zhLabel}按升序排列`);
-    return tr(`Restore default ${enLabel} order`, `恢复${zhLabel}默认顺序`);
+    const label = tradeSortLabels[key];
+    const labelsByDirection: Record<BotSortDirection, Record<UiLang, string>> = {
+      default: {
+        en: `Sort ${label.en} descending`,
+        zh: `${label.zh}按降序排列`,
+        ja: `${label.ja}を降順に並べ替え`,
+        ko: `${label.ko} 내림차순 정렬`,
+        es: `Ordenar ${label.es} de forma descendente`,
+        fr: `Trier ${label.fr} par ordre décroissant`,
+      },
+      desc: {
+        en: `Sort ${label.en} ascending`,
+        zh: `${label.zh}按升序排列`,
+        ja: `${label.ja}を昇順に並べ替え`,
+        ko: `${label.ko} 오름차순 정렬`,
+        es: `Ordenar ${label.es} de forma ascendente`,
+        fr: `Trier ${label.fr} par ordre croissant`,
+      },
+      asc: {
+        en: `Restore default ${label.en} order`,
+        zh: `恢复${label.zh}默认顺序`,
+        ja: `${label.ja}のデフォルト順序に戻す`,
+        ko: `${label.ko} 기본 순서 복원`,
+        es: `Restaurar el orden predeterminado de ${label.es}`,
+        fr: `Rétablir l'ordre par défaut des ${label.fr}`,
+      },
+    };
+    return labelsByDirection[direction][uiLang];
   };
   const sortIconFor = (key: BotSortKey) => {
     const direction = sortDirectionFor(key);
@@ -386,25 +479,72 @@ function TradeWorkbench260712() {
     return <ArrowUpDown aria-hidden="true" />;
   };
   const summaryPeriodLabel = localizeDateRangeLabel(activeSummaryPeriod, uiLang);
-  const summaryPeriodContext = activeSummaryPeriod === todayLabel
-    ? tr("today", "今天")
-    : tr(`during ${summaryPeriodLabel.toLowerCase()}`, `${summaryPeriodLabel}内`);
+  const isTodaySummaryPeriod = activeSummaryPeriod === todayLabel;
+  const summaryPeriodContextCopy: Record<UiLang, string> = isTodaySummaryPeriod
+    ? {
+        en: "today",
+        zh: "今天",
+        ja: "本日",
+        ko: "오늘",
+        es: "hoy",
+        fr: "aujourd'hui",
+      }
+    : {
+        en: `during ${summaryPeriodLabel.toLowerCase()}`,
+        zh: `${summaryPeriodLabel}内`,
+        ja: `${summaryPeriodLabel}の期間中`,
+        ko: `${summaryPeriodLabel} 동안`,
+        es: `durante ${summaryPeriodLabel.toLowerCase()}`,
+        fr: `sur ${summaryPeriodLabel.toLowerCase()}`,
+      };
   const metricExplanations = {
     activeBots: tr(
-      `Number of strategies trading automatically ${summaryPeriodContext}.`,
-      `${summaryPeriodContext}正在自动交易的策略数量。`
+      `Number of strategies trading automatically ${summaryPeriodContextCopy.en}.`,
+      `${summaryPeriodContextCopy.zh}正在自动交易的策略数量。`,
+      {
+        ja: isTodaySummaryPeriod
+          ? "本日、自動取引を行っているストラテジー数。"
+          : `${summaryPeriodLabel}に自動取引を行っているストラテジー数。`,
+        ko: `${summaryPeriodContextCopy.ko} 자동 거래 중인 전략 수입니다.`,
+        es: `Número de estrategias que operan automáticamente ${summaryPeriodContextCopy.es}.`,
+        fr: `Nombre de stratégies exécutant des transactions automatiquement ${summaryPeriodContextCopy.fr}.`,
+      }
     ),
     totalEquity: tr(
-      `Combined account assets across all visible strategies ${summaryPeriodContext}.`,
-      `${summaryPeriodContext}所有可见策略的账户资产合计。`
+      `Combined account assets across all visible strategies ${summaryPeriodContextCopy.en}.`,
+      `${summaryPeriodContextCopy.zh}所有可见策略的账户资产合计。`,
+      {
+        ja: isTodaySummaryPeriod
+          ? "本日時点で表示されている全ストラテジーの口座資産合計。"
+          : `${summaryPeriodLabel}に表示された全ストラテジーの口座資産合計。`,
+        ko: `${summaryPeriodContextCopy.ko} 표시된 모든 전략의 계정 자산 합계입니다.`,
+        es: `Activos combinados de todas las estrategias visibles ${summaryPeriodContextCopy.es}.`,
+        fr: `Total des actifs des comptes de toutes les stratégies visibles ${summaryPeriodContextCopy.fr}.`,
+      }
     ),
     unrealizedPnl: tr(
-      `Combined PnL across all visible strategies ${summaryPeriodContext}.`,
-      `${summaryPeriodContext}所有可见策略的盈亏金额合计。`
+      `Combined PnL across all visible strategies ${summaryPeriodContextCopy.en}.`,
+      `${summaryPeriodContextCopy.zh}所有可见策略的盈亏金额合计。`,
+      {
+        ja: isTodaySummaryPeriod
+          ? "本日時点で表示されている全ストラテジーの合計 PnL。"
+          : `${summaryPeriodLabel}に表示された全ストラテジーの合計 PnL。`,
+        ko: `${summaryPeriodContextCopy.ko} 표시된 모든 전략의 합산 PnL입니다.`,
+        es: `PnL combinado de todas las estrategias visibles ${summaryPeriodContextCopy.es}.`,
+        fr: `PnL cumulé de toutes les stratégies visibles ${summaryPeriodContextCopy.fr}.`,
+      }
     ),
     avgRoi: tr(
-      `Average return across all visible strategies ${summaryPeriodContext}.`,
-      `${summaryPeriodContext}所有可见策略收益率的平均值。`
+      `Average return across all visible strategies ${summaryPeriodContextCopy.en}.`,
+      `${summaryPeriodContextCopy.zh}所有可见策略收益率的平均值。`,
+      {
+        ja: isTodaySummaryPeriod
+          ? "本日時点で表示されている全ストラテジーの平均リターン。"
+          : `${summaryPeriodLabel}に表示された全ストラテジーの平均リターン。`,
+        ko: `${summaryPeriodContextCopy.ko} 표시된 모든 전략의 평균 수익률입니다.`,
+        es: `Retorno medio de todas las estrategias visibles ${summaryPeriodContextCopy.es}.`,
+        fr: `Rendement moyen de toutes les stratégies visibles ${summaryPeriodContextCopy.fr}.`,
+      }
     ),
   };
 
@@ -574,7 +714,7 @@ function TradeWorkbench260712() {
                 type="button"
                 className={`oq-trade-sort-button ${sortDirectionFor("equity") !== "default" ? "is-active" : ""}`}
                 onClick={() => cycleBotSort("equity")}
-                aria-label={sortButtonLabel("equity", "assets", "资产")}
+                aria-label={sortButtonLabel("equity")}
               >
                 <span>{tr("Assets", "资产")}</span>
                 {sortIconFor("equity")}
@@ -585,7 +725,7 @@ function TradeWorkbench260712() {
                 type="button"
                 className={`oq-trade-sort-button ${sortDirectionFor("unrealizedPnl") !== "default" ? "is-active" : ""}`}
                 onClick={() => cycleBotSort("unrealizedPnl")}
-                aria-label={sortButtonLabel("unrealizedPnl", "PnL", "盈亏")}
+                aria-label={sortButtonLabel("unrealizedPnl")}
               >
                 <span>{tr("PnL", "盈亏")}</span>
                 {sortIconFor("unrealizedPnl")}
@@ -596,7 +736,7 @@ function TradeWorkbench260712() {
                 type="button"
                 className={`oq-trade-sort-button ${sortDirectionFor("roi") !== "default" ? "is-active" : ""}`}
                 onClick={() => cycleBotSort("roi")}
-                aria-label={sortButtonLabel("roi", "return", "收益率")}
+                aria-label={sortButtonLabel("roi")}
               >
                 <span>{tr("Return", "收益率")}</span>
                 {sortIconFor("roi")}
@@ -608,7 +748,7 @@ function TradeWorkbench260712() {
                 type="button"
                 className={`oq-trade-sort-button ${sortDirectionFor("updatedAt") !== "default" ? "is-active" : ""}`}
                 onClick={() => cycleBotSort("updatedAt")}
-                aria-label={sortButtonLabel("updatedAt", "updated time", "更新时间")}
+                aria-label={sortButtonLabel("updatedAt")}
               >
                 <span>{tr("Updated", "更新时间")}</span>
                 {sortIconFor("updatedAt")}
@@ -655,7 +795,13 @@ function TradeWorkbench260712() {
                     className="oq-trade-row-link"
                     aria-label={tr(
                       `Open ${bot.name} details`,
-                      `打开 ${bot.name} 详情`
+                      `打开 ${bot.name} 详情`,
+                      {
+                        ja: `${bot.name} の詳細を開く`,
+                        ko: `${bot.name} 상세 열기`,
+                        es: `Abrir detalles de ${bot.name}`,
+                        fr: `Ouvrir les détails de ${bot.name}`,
+                      }
                     )}
                   >
                     <div className="oq-trade-bot-identity" role="cell">
@@ -813,7 +959,13 @@ function TradeWorkbench260712() {
               {pendingAction?.type === "delete"
                 ? tr(
                     `Delete the paper-trading deployment for "${pendingBotName ?? "the selected strategy"}"? It will be removed from the current list and cannot be undone on this page.`,
-                    `确认删除策略「${pendingBotName ?? "所选策略"}」的模拟盘吗？删除后将从当前列表中移除，且无法在此页面撤销。`
+                    `确认删除策略「${pendingBotName ?? "所选策略"}」的模拟盘吗？删除后将从当前列表中移除，且无法在此页面撤销。`,
+                    {
+                      ja: `「${pendingBotName ?? "選択したストラテジー"}」のペーパートレードを削除しますか？現在の一覧から削除され、このページでは元に戻せません。`,
+                      ko: `「${pendingBotName ?? "선택한 전략"}」의 모의 거래 배포를 삭제할까요? 현재 목록에서 제거되며 이 페이지에서는 되돌릴 수 없습니다.`,
+                      es: `¿Eliminar el despliegue de paper trading de «${pendingBotName ?? "la estrategia seleccionada"}»? Se quitará de la lista actual y no podrá deshacerse en esta página.`,
+                      fr: `Supprimer le déploiement de paper trading de « ${pendingBotName ?? "la stratégie sélectionnée"} » ? Il sera retiré de la liste actuelle et cette action ne pourra pas être annulée sur cette page.`,
+                    }
                   )
                 : tr(
                     "Are you sure you want to stop this paper-trading deployment? Open positions and its configuration will be kept so you can restart it later.",
