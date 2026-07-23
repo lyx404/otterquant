@@ -937,6 +937,10 @@
   width: 84px;
 }
 
+.oq-profile-identity-save-button {
+  min-width: 84px;
+}
+
 .oq-profile-edit-button.oq-profile-cancel-button {
   min-height: 38px;
   border-radius: 999px;
@@ -988,7 +992,7 @@
 .oq-profile-bio-count {
   position: absolute;
   bottom: 8px;
-  right: 24px;
+  right: 12px;
   pointer-events: none;
 }
 
@@ -1455,6 +1459,10 @@
 .oq-account button.bg-primary,
 .oq-account button.bg-destructive {
   box-shadow: 0 7.5px 21px rgba(221, 90, 12, 0.24);
+}
+
+.oq-account button.oq-logout-confirm-button {
+  box-shadow: none;
 }
 
 .oq-account .btn-bounce {

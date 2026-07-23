@@ -120,7 +120,6 @@ const accountCopy: Record<string, UiCopy> = {
   "Bio must be 160 characters or fewer.": { ja: "自己紹介は 160 文字以内にしてください。", ko: "소개는 160자 이하여야 합니다.", es: "La biografía debe tener 160 caracteres o menos.", fr: "La bio doit contenir 160 caractères maximum." },
   "Cancel": { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
   "Profile updated successfully": { ja: "プロフィールを更新しました", ko: "프로필을 업데이트했습니다", es: "Perfil actualizado correctamente", fr: "Profil mis à jour" },
-  "Save changes": { ja: "変更を保存", ko: "변경 사항 저장", es: "Guardar cambios", fr: "Enregistrer les modifications" },
   "Security & Login": { ja: "セキュリティとログイン", ko: "보안 및 로그인", es: "Seguridad e inicio de sesión", fr: "Sécurité et connexion" },
   "Login Email": { ja: "ログイン用メール", ko: "로그인 이메일", es: "Correo de acceso", fr: "E-mail de connexion" },
   "Save": { ja: "保存", ko: "저장", es: "Guardar", fr: "Enregistrer" },
@@ -142,6 +141,7 @@ const accountCopy: Record<string, UiCopy> = {
   "Re-enter new password": { ja: "新しいパスワードを再入力", ko: "새 비밀번호 다시 입력", es: "Vuelve a introducir la contraseña", fr: "Saisissez à nouveau le mot de passe" },
   "Passwords do not match": { ja: "パスワードが一致しません", ko: "비밀번호가 일치하지 않습니다", es: "Las contraseñas no coinciden", fr: "Les mots de passe ne correspondent pas" },
   "Please enter a new password": { ja: "新しいパスワードを入力してください", ko: "새 비밀번호를 입력하세요", es: "Introduce una nueva contraseña", fr: "Saisissez un nouveau mot de passe" },
+  "Please confirm your new password": { ja: "新しいパスワードをもう一度入力してください", ko: "새 비밀번호를 다시 입력하세요", es: "Confirma la nueva contraseña", fr: "Confirmez le nouveau mot de passe" },
   "Password must be at least 8 characters": { ja: "パスワードは 8 文字以上にしてください", ko: "비밀번호는 8자 이상이어야 합니다", es: "La contraseña debe tener al menos 8 caracteres", fr: "Le mot de passe doit contenir au moins 8 caractères" },
   "Password updated successfully": { ja: "パスワードを更新しました", ko: "비밀번호를 업데이트했습니다", es: "Contraseña actualizada correctamente", fr: "Mot de passe mis à jour" },
   "Connected Exchanges": { ja: "接続済み取引所", ko: "연결된 거래소", es: "Exchanges conectados", fr: "Plateformes connectées" },
@@ -186,7 +186,6 @@ const accountCopy: Record<string, UiCopy> = {
   "This action cannot be undone and this exchange account will no longer be available for trading deployment.": { ja: "この操作は取り消せません。この取引所アカウントは戦略の実運用に使用できなくなります。", ko: "이 작업은 취소할 수 없으며 이 거래소 계정은 더 이상 전략 실거래에 사용할 수 없습니다.", es: "Esta acción no se puede deshacer y la cuenta dejará de estar disponible para desplegar estrategias.", fr: "Cette action est irréversible et ce compte ne pourra plus servir au déploiement de stratégies." },
   "Delete": { ja: "削除", ko: "삭제", es: "Eliminar", fr: "Supprimer" },
   "This action cannot be undone and any agents using this key will lose access.": { ja: "この操作は取り消せません。このキーを使用している Agent はアクセスできなくなります。", ko: "이 작업은 취소할 수 없으며 이 키를 사용하는 Agent는 액세스 권한을 잃게 됩니다.", es: "Esta acción no se puede deshacer y cualquier Agent que use la clave perderá el acceso.", fr: "Cette action est irréversible et tout Agent utilisant cette clé perdra l’accès." },
-  "Confirm Log Out": { ja: "ログアウトの確認", ko: "로그아웃 확인", es: "Confirmar cierre de sesión", fr: "Confirmer la déconnexion" },
   "Are you sure you want to log out of your current account?": { ja: "現在のアカウントからログアウトしますか？", ko: "현재 계정에서 로그아웃하시겠습니까?", es: "¿Seguro que quieres cerrar la sesión actual?", fr: "Voulez-vous vraiment vous déconnecter du compte actuel ?" },
   "Create New API Key": { ja: "新しい API キーを作成", ko: "새 API 키 생성", es: "Crear nueva clave API", fr: "Créer une nouvelle clé API" },
   "Your API Key is Ready": { ja: "API キーを作成しました", ko: "API 키가 준비되었습니다", es: "Tu clave API está lista", fr: "Votre clé API est prête" },
@@ -546,6 +545,7 @@ function AccountWorkbench260712() {
   const [bio, setBio] = useState(user?.bio || "");
   const [passwordVerCode, setPasswordVerCode] = useState("");
   const [passwordCodeSent, setPasswordCodeSent] = useState(false);
+  const [passwordValidationRequested, setPasswordValidationRequested] = useState(false);
   const [emailVerCode, setEmailVerCode] = useState("");
   const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [newEmail, setNewEmail] = useState("");
@@ -745,6 +745,7 @@ function AccountWorkbench260712() {
   const handleCancelPassword = () => {
     setPasswordVerCode("");
     setPasswordCodeSent(false);
+    setPasswordValidationRequested(false);
     setNewPassword("");
     setConfirmPassword("");
     setEditingPassword(false);
@@ -875,6 +876,23 @@ function AccountWorkbench260712() {
   const showUsernameError = profileValidationRequested && usernameInvalid;
   const showDisplayNameError = profileValidationRequested && displayNameLengthInvalid;
   const showBioError = profileValidationRequested && bioLengthInvalid;
+  const passwordCodeError = passwordValidationRequested && !passwordVerCode.trim()
+    ? tr("Please enter the verification code", "请输入验证码")
+    : null;
+  const newPasswordError = passwordValidationRequested
+    ? !newPassword.trim()
+      ? tr("Please enter a new password", "请输入新密码")
+      : newPassword.length < 8
+        ? tr("Password must be at least 8 characters", "密码至少为 8 位")
+        : null
+    : null;
+  const confirmPasswordError = passwordValidationRequested
+    ? !confirmPassword.trim()
+      ? tr("Please confirm your new password", "请再次输入新密码")
+      : newPassword !== confirmPassword
+        ? tr("Passwords do not match", "两次输入密码不一致")
+        : null
+    : null;
 
   return (
     <div className="oq-account">
@@ -1220,7 +1238,7 @@ function AccountWorkbench260712() {
                     </button>
                     <button
                       type="button"
-                      className="oq-profile-save-button"
+                      className="oq-profile-save-button oq-profile-identity-save-button"
                       onClick={() => {
                         const nextUsername = username.trim();
                         const nextDisplayName = displayName.trim();
@@ -1247,7 +1265,7 @@ function AccountWorkbench260712() {
                         setEditingProfile(false);
                       }}
                     >
-                      {tr("Save changes", "保存修改")}
+                      {tr("Save", "保存")}
                     </button>
                   </div>
                 </div>
@@ -1365,7 +1383,10 @@ function AccountWorkbench260712() {
                   {!editingPassword && (
                     <button
                       className="oq-profile-edit-button"
-                      onClick={() => setEditingPassword(true)}
+                      onClick={() => {
+                        setPasswordValidationRequested(false);
+                        setEditingPassword(true);
+                      }}
                     >
                       <Pencil className="w-3 h-3" />
                       {tr("Edit", "编辑")}
@@ -1380,9 +1401,12 @@ function AccountWorkbench260712() {
                         <Input value={email} disabled className={disabledInputCls} />
                       </div>
                       <div className="oq-field-stack">
-                        <Label className="label-upper">{tr("Verification Code", "验证码")}</Label>
+                        <Label className="label-upper" htmlFor="oq-password-verification-code">{tr("Verification Code", "验证码")}</Label>
                         <div className="oq-inline-control">
                           <Input
+                            id="oq-password-verification-code"
+                            aria-describedby={passwordCodeError ? "oq-password-verification-code-error" : undefined}
+                            aria-invalid={Boolean(passwordCodeError)}
                             placeholder={tr("Enter verification code", "请输入验证码")}
                             value={passwordVerCode}
                             onChange={(e) => setPasswordVerCode(e.target.value)}
@@ -1396,16 +1420,46 @@ function AccountWorkbench260712() {
                             {passwordCodeSent ? tr("Resend Code", "重新发送") : tr("Send Code", "发送验证码")}
                           </button>
                         </div>
+                        {passwordCodeError && (
+                          <p id="oq-password-verification-code-error" className="oq-profile-field-error" role="alert">
+                            {passwordCodeError}
+                          </p>
+                        )}
                       </div>
                       <div className="oq-field-stack">
-                        <Label className="label-upper">{tr("New Password", "新密码")}</Label>
-                        <Input type="password" placeholder={tr("Enter new password", "请输入新密码")} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className={activeInputCls} />
+                        <Label className="label-upper" htmlFor="oq-new-password">{tr("New Password", "新密码")}</Label>
+                        <Input
+                          id="oq-new-password"
+                          type="password"
+                          aria-describedby={newPasswordError ? "oq-new-password-error" : undefined}
+                          aria-invalid={Boolean(newPasswordError)}
+                          placeholder={tr("Enter new password", "请输入新密码")}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className={activeInputCls}
+                        />
+                        {newPasswordError && (
+                          <p id="oq-new-password-error" className="oq-profile-field-error" role="alert">
+                            {newPasswordError}
+                          </p>
+                        )}
                       </div>
                       <div className="oq-field-stack">
-                        <Label className="label-upper">{tr("Confirm New Password", "确认新密码")}</Label>
-                        <Input type="password" placeholder={tr("Re-enter new password", "请再次输入新密码")} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={activeInputCls} />
-                        {confirmPassword && newPassword !== confirmPassword && (
-                          <p className="text-xs text-destructive">{tr("Passwords do not match", "两次输入密码不一致")}</p>
+                        <Label className="label-upper" htmlFor="oq-confirm-new-password">{tr("Confirm New Password", "确认新密码")}</Label>
+                        <Input
+                          id="oq-confirm-new-password"
+                          type="password"
+                          aria-describedby={confirmPasswordError ? "oq-confirm-new-password-error" : undefined}
+                          aria-invalid={Boolean(confirmPasswordError)}
+                          placeholder={tr("Re-enter new password", "请再次输入新密码")}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className={activeInputCls}
+                        />
+                        {confirmPasswordError && (
+                          <p id="oq-confirm-new-password-error" className="oq-profile-field-error" role="alert">
+                            {confirmPasswordError}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -1421,12 +1475,16 @@ function AccountWorkbench260712() {
                         type="button"
                         className="oq-profile-save-button oq-password-save-button"
                         onClick={() => {
-                          if (!passwordVerCode.trim()) { toast.error(tr("Please enter the verification code", "请输入验证码")); return; }
-                          if (!newPassword.trim()) { toast.error(tr("Please enter a new password", "请输入新密码")); return; }
-                          if (newPassword.length < 8) { toast.error(tr("Password must be at least 8 characters", "密码至少为 8 位")); return; }
-                          if (newPassword !== confirmPassword) { toast.error(tr("Passwords do not match", "两次输入密码不一致")); return; }
+                          setPasswordValidationRequested(true);
+                          if (
+                            !passwordVerCode.trim()
+                            || !newPassword.trim()
+                            || newPassword.length < 8
+                            || !confirmPassword.trim()
+                            || newPassword !== confirmPassword
+                          ) return;
                           toast.success(tr("Password updated successfully", "密码更新成功"));
-                          setPasswordVerCode(""); setPasswordCodeSent(false); setNewPassword(""); setConfirmPassword(""); setEditingPassword(false);
+                          setPasswordVerCode(""); setPasswordCodeSent(false); setPasswordValidationRequested(false); setNewPassword(""); setConfirmPassword(""); setEditingPassword(false);
                         }}
                       >
                         {tr("Save", "保存")}
@@ -2035,10 +2093,9 @@ function AccountWorkbench260712() {
               <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
                 <LogOut className="w-5 h-5 text-destructive" />
               </div>
-              <h3 className="text-base font-semibold text-foreground">{tr("Confirm Log Out", "确认退出登录")}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <h3 className="text-base font-semibold text-foreground">
                 {tr("Are you sure you want to log out of your current account?", "确认退出当前账户吗？")}
-              </p>
+              </h3>
             </div>
             <div className="flex items-center justify-center gap-3 mt-5">
               <button
@@ -2048,7 +2105,7 @@ function AccountWorkbench260712() {
                 {tr("Cancel", "取消")}
               </button>
               <button
-                className="h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-destructive text-destructive-foreground hover:brightness-110"
+                className="oq-logout-confirm-button h-9 px-5 rounded-full text-sm font-medium transition-all duration-200 bg-destructive text-destructive-foreground hover:brightness-110"
                 onClick={() => {
                   setShowLogoutConfirm(false);
                   logout();
