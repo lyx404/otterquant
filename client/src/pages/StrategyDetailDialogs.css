@@ -1285,3 +1285,105 @@
     justify-content: flex-start;
   }
 }
+
+.dark.oq-strategies-active .oq-sd-dialog {
+  --sd-bg: var(--oq-strategy-surface-1);
+  --sd-bg-soft: var(--oq-strategy-surface-2);
+  --sd-bg-warm: var(--oq-strategy-surface-warm);
+  --sd-border: var(--oq-strategy-border);
+  --sd-text: var(--oq-strategy-text);
+  --sd-muted: var(--oq-strategy-muted);
+  --sd-accent: var(--oq-strategy-accent);
+  --sd-risk: var(--oq-strategy-risk);
+  --background: var(--sd-bg);
+  --foreground: var(--sd-text);
+  --card: var(--sd-bg);
+  --card-foreground: var(--sd-text);
+  --popover: var(--sd-bg-soft);
+  --popover-foreground: var(--sd-text);
+  --primary: var(--sd-accent);
+  --primary-foreground: var(--oq-strategy-canvas);
+  --muted: var(--sd-bg-soft);
+  --muted-foreground: var(--sd-muted);
+  --accent: var(--sd-bg-warm);
+  --accent-foreground: var(--sd-text);
+  --border: var(--sd-border);
+  --input: var(--sd-border);
+  border-color: var(--sd-border) !important;
+  background: var(--sd-bg) !important;
+  color: var(--sd-text) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52);
+}
+
+.dark.oq-strategies-active .oq-strategy-delete-dialog {
+  --delete-dialog-bg: var(--oq-strategy-surface-1);
+  --delete-dialog-warm: var(--oq-strategy-surface-warm);
+  --delete-dialog-border: var(--oq-strategy-border);
+  --delete-dialog-text: var(--oq-strategy-text);
+  --delete-dialog-text-soft: var(--oq-strategy-text-soft);
+  --delete-dialog-muted: var(--oq-strategy-muted);
+  --delete-dialog-accent: var(--oq-strategy-accent);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-strategies-active .oq-strategy-delete-dialog-button.is-primary:hover {
+  background: oklch(0.78 0.15 51) !important;
+}
+
+.dark.oq-strategies-active .oq-strategy-delete-dialog-button.is-primary {
+  color: var(--oq-strategy-canvas) !important;
+}
+
+.dark.oq-strategies-active .oq-optimizer-dialog {
+  --os-bg: var(--oq-strategy-surface-1);
+  --os-bg-soft: var(--oq-strategy-surface-2);
+  --os-bg-warm: var(--oq-strategy-surface-warm);
+  --os-border: var(--oq-strategy-border);
+  --os-border-strong: var(--oq-strategy-border-strong);
+  --os-text: var(--oq-strategy-text);
+  --os-text-soft: var(--oq-strategy-text-soft);
+  --os-muted: var(--oq-strategy-muted);
+  --os-accent: var(--oq-strategy-accent);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52);
+}
+
+.dark.oq-strategies-active .oq-optimizer-actions .oq-optimizer-action-primary {
+  color: var(--oq-strategy-canvas);
+}
+
+.dark.oq-strategies-active .oq-strategy-version-dialog {
+  --version-bg: var(--oq-strategy-surface-1);
+  --version-body-bg: var(--oq-strategy-surface-2);
+  --version-bg-soft: var(--oq-strategy-surface-2);
+  --version-bg-warm: var(--oq-strategy-surface-warm);
+  --version-border: var(--oq-strategy-border);
+  --version-border-strong: var(--oq-strategy-border-strong);
+  --version-text: var(--oq-strategy-text);
+  --version-text-soft: var(--oq-strategy-text-soft);
+  --version-muted: var(--oq-strategy-muted);
+  --version-accent: var(--oq-strategy-accent);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52);
+}
+
+.dark.oq-strategies-active .oq-sd-dialog.oq-strategy-config-dialog {
+  --config-foreground: var(--oq-strategy-text);
+  --config-muted: var(--oq-strategy-muted);
+  background: var(--oq-strategy-surface-1) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52);
+}
+
+.dark.oq-strategies-active .oq-strategy-config-summary > div,
+.dark.oq-strategies-active .oq-sd-dialog.oq-strategy-config-dialog .oq-strategy-config-factors,
+.dark.oq-strategies-active .oq-strategy-config-section-head {
+  border-color: var(--oq-strategy-border);
+  background: var(--oq-strategy-surface-2) !important;
+}
+
+.dark.oq-strategies-active .oq-strategy-config-factor-row + .oq-strategy-config-factor-row {
+  border-color: var(--oq-strategy-border);
+}
+
+.dark.oq-strategies-active .oq-strategy-config-factor-name small {
+  background: var(--oq-strategy-surface-3);
+  color: var(--oq-strategy-muted-strong);
+}

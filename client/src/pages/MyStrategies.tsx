@@ -2016,6 +2016,11 @@ export default function MyStrategies() {
   const columnMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    document.documentElement.classList.add("oq-strategies-active");
+    return () => document.documentElement.classList.remove("oq-strategies-active");
+  }, []);
+
+  useEffect(() => {
     if (!isReturningFromDetail) return;
     window.sessionStorage.removeItem(STRATEGY_RETURN_TRANSITION_STORAGE_KEY);
   }, [isReturningFromDetail]);

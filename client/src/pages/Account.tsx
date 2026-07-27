@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   translateUi,
   useAppLanguage,
@@ -17,7 +18,7 @@ import {
 import {
   User, Key, Link2, Shield, Copy, Check,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
-  Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut, Camera,
+  Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut, Camera, Sun, Moon, Monitor,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,11 @@ const accountCopy: Record<string, UiCopy> = {
   "Choose how rising and falling values are colored.": { ja: "上昇値と下落値の色を選択します。", ko: "상승 및 하락 값의 색상 표시 방식을 선택합니다.", es: "Elige los colores para las subidas y bajadas.", fr: "Choisissez les couleurs des hausses et des baisses." },
   "Red up, green down": { ja: "上昇は赤、下落は緑", ko: "상승 빨강, 하락 초록", es: "Subida roja, bajada verde", fr: "Hausse en rouge, baisse en vert" },
   "Green up, red down": { ja: "上昇は緑、下落は赤", ko: "상승 초록, 하락 빨강", es: "Subida verde, bajada roja", fr: "Hausse en vert, baisse en rouge" },
+  "Appearance": { ja: "表示モード", ko: "화면 모드", es: "Apariencia", fr: "Apparence" },
+  "Choose light or dark colors, or match your system setting.": { ja: "ライト、ダーク、またはシステム設定に合わせて表示を選択します。", ko: "라이트, 다크 또는 시스템 설정에 맞춰 표시를 선택합니다.", es: "Elige colores claros, oscuros o sigue la configuración del sistema.", fr: "Choisissez le mode clair, sombre ou les réglages du système." },
+  "Light": { ja: "ライト", ko: "라이트", es: "Claro", fr: "Clair" },
+  "Dark": { ja: "ダーク", ko: "다크", es: "Oscuro", fr: "Sombre" },
+  "System": { ja: "システム", ko: "시스템", es: "Sistema", fr: "Système" },
   "Notifications": { ja: "通知", ko: "알림", es: "Notificaciones", fr: "Notifications" },
   "Interaction Messages": { ja: "運用通知", ko: "운영 알림", es: "Mensajes operativos", fr: "Notifications opérationnelles" },
   "Get notified about signal status changes, test results, and performance updates": { ja: "シグナルの状態変更、バックテスト結果、パフォーマンス更新を通知します", ko: "시그널 상태 변경, 백테스트 결과 및 성과 업데이트 알림을 받습니다", es: "Recibe avisos sobre cambios de señales, backtests y rendimiento", fr: "Recevez les changements de signaux, résultats de backtest et mises à jour de performance" },
@@ -532,8 +538,15 @@ export default function Account() {
 
 function AccountWorkbench260712() {
   const { user, updateUser, logout } = useAuth();
+  const { themePreference, setThemePreference } = useTheme();
   const { uiLang, setUiLang } = useAppLanguage();
   const [, navigate] = useLocation();
+
+  useEffect(() => {
+    document.documentElement.classList.add("oq-account-active");
+    return () => document.documentElement.classList.remove("oq-account-active");
+  }, []);
+
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
   const [username, setUsername] = useState(() =>
@@ -966,7 +979,11 @@ function AccountWorkbench260712() {
                     {tr("Choose how rising and falling values are colored.", "选择上涨与下跌数值的颜色显示。")}
                   </div>
                 </div>
-                <div className="oq-account-color-options">
+                <div
+                  className="oq-account-color-options"
+                  role="group"
+                  aria-label={tr("Color Configuration", "颜色配置")}
+                >
                   {([
                     { value: "redUpGreenDown", en: "Red up, green down", zh: "红涨绿跌" },
                     { value: "greenUpRedDown", en: "Green up, red down", zh: "绿涨红跌" },
@@ -974,6 +991,7 @@ function AccountWorkbench260712() {
                     <button
                       key={item.value}
                       type="button"
+                      aria-pressed={chartColorMode === item.value}
                       onClick={() => setChartColorMode(item.value)}
                       className={`oq-account-color-option${chartColorMode === item.value ? " is-active" : ""}`}
                     >
@@ -981,6 +999,37 @@ function AccountWorkbench260712() {
                       <ChartColorPreview mode={item.value} />
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="oq-account-setting-row">
+                <div className="oq-settings-copy">
+                  <div className="oq-settings-label">{tr("Appearance", "模式选择")}</div>
+                  <div className="oq-settings-description">
+                    {tr("Choose light or dark colors, or match your system setting.", "选择浅色、深色，或跟随系统的外观设置。")}
+                  </div>
+                </div>
+                <div className="oq-account-theme-options" role="group" aria-label={tr("Appearance", "模式选择")}>
+                  {([
+                    { value: "light", en: "Light", zh: "浅色", icon: Sun },
+                    { value: "dark", en: "Dark", zh: "深色", icon: Moon },
+                    { value: "system", en: "System", zh: "跟随系统", icon: Monitor },
+                  ] as const).map((item) => {
+                    const Icon = item.icon;
+                    const isActive = themePreference === item.value;
+                    return (
+                      <button
+                        key={item.value}
+                        type="button"
+                        aria-pressed={isActive}
+                        onClick={() => setThemePreference?.(item.value)}
+                        className={`oq-account-theme-option${isActive ? " is-active" : ""}`}
+                      >
+                        <Icon aria-hidden="true" size={13} strokeWidth={1.7} />
+                        <span>{tr(item.en, item.zh, accountCopy[item.en])}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>

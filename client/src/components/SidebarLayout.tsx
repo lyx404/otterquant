@@ -26,6 +26,7 @@ import {
   Rocket,
   CandlestickChart,
   CreditCard,
+  Search,
 } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 
@@ -333,7 +334,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const shellStyle = { "--sidebar-width": `${sidebarWidth}px` } as CSSProperties;
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className={`flex flex-col bg-white text-black ${isMobile ? "h-full" : "h-[100dvh]"}`}>
+    <div className={`flex flex-col bg-white text-black dark:bg-[#14110f] dark:text-[#f7f1ea] ${isMobile ? "h-full" : "h-[100dvh]"}`}>
       {/* Logo + Collapse Toggle */}
       <div
         className={`flex shrink-0 items-center ${
@@ -362,7 +363,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         {isMobile && (
           <button
             onClick={() => setMobileOpen(false)}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-black/50 hover:text-black"
+            className="flex h-6 w-6 items-center justify-center rounded-md text-black/50 hover:text-black dark:text-[#b2a69b] dark:hover:text-[#fff7ef]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -396,8 +397,8 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                       ? "justify-center p-1.5"
                       : "gap-1.5 p-1.5"
                   } ${parentHighlighted
-                    ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900]"
-                    : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900]"
+                    ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
+                    : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
                   }`}
                   title={collapsed && !isMobile ? tr(item.labelEn, item.labelZh) : undefined}
                 >
@@ -423,8 +424,8 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                           onClick={() => navigate(child.path)}
                           className={`flex w-full items-center gap-1.5 rounded-[6px] px-2 py-1.5 text-[12px] font-normal transition-all duration-200 ease-in-out ${
                             childActive
-                              ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900]"
-                              : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900]"
+                              ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
+                              : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
                           }`}
                         >
                           <ChildIcon className="h-[13px] w-[13px] shrink-0" strokeWidth={1.5} />
@@ -449,8 +450,8 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   : "gap-1.5 p-1.5"
               } ${
                 active
-                  ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900]"
-                  : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900]"
+                  ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
+                  : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
               }`}
               title={collapsed && !isMobile ? tr(item.labelEn, item.labelZh) : undefined}
             >
@@ -462,7 +463,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Bottom Section */}
-      <div className={`shrink-0 border-t-[0.5px] border-[#d9d9d9] ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
+      <div className={`shrink-0 border-t-[0.5px] border-[#d9d9d9] dark:border-[#4b4036] ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
         {collapsed && !isMobile ? (
           /* === Collapsed: vertical stack === */
           <div className="flex flex-col items-center gap-2">
@@ -486,7 +487,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => navigate("/account")}
-                className="flex min-w-0 flex-1 items-center gap-1.5 rounded-[6px] transition-all duration-200 ease-in-out hover:bg-[#fef6ef]"
+                className="flex min-w-0 flex-1 items-center gap-1.5 rounded-[6px] transition-all duration-200 ease-in-out hover:bg-[#fef6ef] dark:hover:bg-[#1b1511]"
               >
                 <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-b from-[#d99100] to-[#dc4900] text-[9px] font-semibold text-white">
                   {user?.avatar ? (
@@ -496,15 +497,15 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <span className="flex w-[72px] min-w-0 flex-col items-start gap-[3px] text-left leading-none">
-                  <span className="w-full truncate text-[12px] font-medium text-black">{displayName}</span>
-                  <span className="w-full truncate text-[10px] font-normal text-black/60">{userHandle}</span>
+                  <span className="w-full truncate text-[12px] font-medium text-black dark:text-[#f7f1ea]">{displayName}</span>
+                  <span className="w-full truncate text-[10px] font-normal text-black/60 dark:text-[#b2a69b]">{userHandle}</span>
                 </span>
               </button>
             </div>
             <button
               type="button"
               onClick={() => navigate("/subscription")}
-              className="flex w-full items-center gap-[7.5px] rounded-[3px] bg-[#fef6ef] px-[7.5px] py-1.5 text-left text-[12px] font-medium text-[#dc4900] transition-colors hover:bg-[#fde9dc]"
+              className="flex w-full items-center gap-[7.5px] rounded-[3px] bg-[#fef6ef] px-[7.5px] py-1.5 text-left text-[12px] font-medium text-[#dc4900] transition-colors hover:bg-[#fde9dc] dark:bg-[#1b1511] dark:text-[#ff6a1a] dark:hover:bg-[#2d2113]"
             >
               <img src="/sidebar-pro-icon.svg" alt="" className="h-[15px] w-[15px] shrink-0" />
               <span>{tr("Pro plan", "Pro plan")}</span>
@@ -517,7 +518,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={`flex min-h-screen bg-[#faf8f6] md:min-h-[1024px] md:pl-[var(--sidebar-width)] ${
+      className={`flex min-h-screen bg-[#faf8f6] dark:bg-[#14110f] md:min-h-[1024px] md:pl-[var(--sidebar-width)] ${
         currentPathname.startsWith("/account") ||
         currentPathname.startsWith("/trade") ||
         currentPathname.startsWith("/strategies")
@@ -528,7 +529,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     >
       {/* Desktop Sidebar */}
       <aside
-        className="fixed bottom-0 left-0 top-0 z-20 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r border-[#eef0f4] bg-white transition-all duration-300 ease-in-out md:flex"
+        className="fixed bottom-0 left-0 top-0 z-20 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r-[0.5px] border-[#eef0f4] bg-white transition-all duration-300 ease-in-out dark:border-[#4b4036] dark:bg-[#14110f] md:flex"
         style={{ width: sidebarWidth }}
       >
         <SidebarContent />
@@ -544,7 +545,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full border-r border-[#eef0f4] bg-white transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed left-0 top-0 z-50 h-full border-r-[0.5px] border-[#eef0f4] bg-white transition-transform duration-300 ease-in-out dark:border-[#4b4036] dark:bg-[#14110f] md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{ width: SIDEBAR_W }}
@@ -553,28 +554,26 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <div className="flex min-w-0 flex-1 flex-col bg-[#faf8f6]">
+      <div className="oq-app-main-column flex min-w-0 flex-1 flex-col bg-[#faf8f6] dark:bg-[#14110f]">
         <header
-          className="fixed left-[var(--sidebar-width)] right-0 top-0 z-10 hidden shrink-0 items-center justify-between border-b border-[#ece6df] bg-[#faf8f6]/85 backdrop-blur-[4.5px] md:flex"
+          className="fixed left-[var(--sidebar-width)] right-0 top-0 z-10 hidden shrink-0 items-center justify-between border-b-[0.5px] border-[#ece6df] bg-[#faf8f6]/85 backdrop-blur-[4.5px] dark:border-[#4b4036] dark:bg-[#14110f]/85 md:flex"
           style={{ height: FIGMA_HEADER_H }}
         >
           <div className="ml-[21px] flex h-[35px] items-start gap-[9px]">
             <div className="flex min-w-0 flex-col justify-start">
-              <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d]">
+              <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d] dark:text-[#fff7ef]">
                 {tr(pageHeader.titleEn, pageHeader.titleZh)}
               </h1>
-              <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378]">
+              <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378] dark:text-[#b2a69b]">
                 {tr(pageHeader.subtitleEn, pageHeader.subtitleZh)}
               </p>
             </div>
           </div>
           <div className="mr-[21px] flex h-[30px] items-center gap-[20px]">
             {hasHeaderSearch && (
-              <label className="flex h-[27.75px] w-[180px] shrink-0 items-center gap-[6px] rounded-[749.25px] border-[0.75px] border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] transition-colors focus-within:border-[#dc4900]/45 focus-within:ring-2 focus-within:ring-[#dc4900]/10">
-                <img
-                  src="/header-search.svg"
-                  alt=""
-                  className="h-[11.25px] w-[10.078px] shrink-0"
+              <label className="flex h-[27.75px] w-[180px] shrink-0 items-center gap-[6px] rounded-[749.25px] border-[0.75px] border-[#e2dad0] bg-white px-[10.5px] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] transition-colors focus-within:border-[#dc4900]/45 focus-within:ring-2 focus-within:ring-[#dc4900]/10 dark:border-[#4b4036] dark:bg-[#241e18] dark:focus-within:border-[#ff6a1a]/60 dark:focus-within:ring-[#ff6a1a]/10">
+                <Search
+                  className="h-[11.25px] w-[10.078px] shrink-0 text-black dark:text-[oklch(0.8_0.022_65)]"
                   aria-hidden="true"
                 />
                 <input
@@ -583,14 +582,14 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   onChange={(event) => updateHeaderSearch(event.target.value)}
                   placeholder={tr("Search strategies, IDs, or symbols", "搜索策略、ID 或交易对")}
                   aria-label={tr("Search strategies, IDs, or symbols", "搜索策略、ID 或交易对")}
-                  className="min-w-0 flex-1 bg-transparent p-0 text-[9.75px] font-normal leading-[1.2] text-[#0d0d0d] outline-none placeholder:text-[#b5aba0] [&::-webkit-search-cancel-button]:hidden"
+                  className="min-w-0 flex-1 bg-transparent p-0 text-[9.75px] font-normal leading-[1.2] text-[#0d0d0d] outline-none placeholder:text-[#b5aba0] dark:text-[#f7f1ea] dark:placeholder:text-[#8c8176] [&::-webkit-search-cancel-button]:hidden"
                 />
                 {headerSearchQuery && (
                   <button
                     type="button"
                     onClick={() => updateHeaderSearch("")}
                     aria-label={tr("Clear search", "清空搜索")}
-                    className="-mr-[7px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#8c8378] transition-colors hover:bg-[#f5f0eb] hover:text-[#0d0d0d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25"
+                    className="-mr-[7px] flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[#8c8378] transition-colors hover:bg-[#f5f0eb] hover:text-[#0d0d0d] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:text-[oklch(0.68_0.021_67)] dark:hover:bg-[oklch(0.295_0.014_65)] dark:hover:text-[oklch(0.95_0.014_68)]"
                   >
                     <X className="h-[10px] w-[10px]" aria-hidden="true" />
                   </button>
@@ -598,9 +597,8 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               </label>
             )}
             <NotificationPanel
-              triggerClassName="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]"
-              iconSrc="/header-bell.svg"
-              iconClassName="h-[12.75px] w-[12.75px]"
+              triggerClassName="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] dark:border-[#4b4036] dark:bg-[#241e18]"
+              iconClassName="h-[12.75px] w-[12.75px] text-[var(--oq-text-soft)]"
               panelStyle={{ position: "fixed", top: "52px", right: "21px", width: "380px" }}
               showBadge={false}
             />
@@ -627,8 +625,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           <div className="ml-auto">
             <NotificationPanel
               triggerClassName="oq-notification-mobile-trigger relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]"
-              iconSrc="/header-bell.svg"
-              iconClassName="h-[13px] w-[13px]"
+              iconClassName="h-[13px] w-[13px] text-[var(--oq-text-soft)]"
               panelStyle={{ position: "fixed", top: "56px", right: "12px", width: "390px" }}
               showBadge={false}
             />

@@ -1657,3 +1657,285 @@ main:has(.oq-strategy-figma-report) {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Strategy detail dark mode: Workbench Design.md OKLCH surface ladder. */
+.dark.oq-strategies-active .oq-strategy-figma-report {
+  --report-bg: var(--oq-strategy-surface-1);
+  --report-panel: var(--oq-strategy-surface-2);
+  --report-panel-deep: var(--oq-strategy-surface-3);
+  --report-subtle-surface: var(--oq-strategy-surface-2);
+  --report-historical-surface: var(--oq-strategy-surface-2);
+  --report-border: var(--oq-strategy-border);
+  --report-border-strong: var(--oq-strategy-border-strong);
+  --report-subtle-border: var(--oq-strategy-border);
+  --report-gold: var(--oq-strategy-accent);
+  --report-gold-soft: var(--oq-strategy-border-emphasis);
+  --report-blue: oklch(0.72 0.13 250);
+  --report-green: var(--oq-strategy-success);
+  --report-red: var(--oq-strategy-risk);
+  --report-text: var(--oq-strategy-text);
+  --report-text-soft: var(--oq-strategy-text-soft);
+  --report-muted: var(--oq-strategy-muted);
+  --report-warm: var(--oq-strategy-surface-warm);
+  --report-teal: oklch(0.75 0.1 190);
+  --report-warning: var(--oq-strategy-accent-2);
+  --report-shadow: 0 8px 22px oklch(0 0 0 / 0.3);
+  --report-shadow-lift: 0 16px 38px oklch(0 0 0 / 0.52);
+  --background: var(--report-bg);
+  --foreground: var(--report-text);
+  --card: var(--report-bg);
+  --card-foreground: var(--report-text);
+  --popover: var(--report-panel);
+  --popover-foreground: var(--report-text);
+  --primary: var(--report-gold);
+  --primary-foreground: var(--oq-strategy-canvas);
+  --secondary: var(--report-teal);
+  --secondary-foreground: var(--oq-strategy-canvas);
+  --muted: var(--report-panel);
+  --muted-foreground: var(--report-muted);
+  --accent: var(--report-warm);
+  --accent-foreground: var(--report-text);
+  --destructive: var(--report-red);
+  --destructive-foreground: var(--report-text);
+  --border: var(--report-border);
+  --input: var(--report-border-strong);
+  --ring: var(--report-gold);
+  --chart-axis-color: var(--oq-strategy-muted-strong);
+  --chart-grid-color: color-mix(in oklch, var(--report-border) 76%, transparent);
+  --chart-zero-color: var(--report-border-strong);
+}
+
+.dark.oq-strategies-active main:has(.oq-strategy-figma-report) {
+  color: var(--oq-strategy-text);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-top, .oq-report-metric-panel, .oq-report-card, .oq-position-card) {
+  border-color: var(--report-border);
+  background: var(--report-bg);
+  background-image: none;
+  box-shadow: var(--report-shadow);
+}
+
+.dark.oq-strategies-active .oq-strategy-figma-report .oq-report-top {
+  box-shadow: 0 12px 30px oklch(0 0 0 / 0.34);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-metric, .oq-report-metrics-table, .oq-position-head) {
+  border-color: var(--report-subtle-border);
+  background: var(--report-subtle-surface);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-metric, .oq-report-card, .oq-position-card) {
+  color: var(--report-text);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-back-button, .oq-report-action, .oq-report-date-select > button) {
+  border-color: var(--report-border-strong);
+  background: var(--report-bg);
+  color: var(--report-text-soft);
+  box-shadow: none;
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-back-button, .oq-report-action, .oq-report-date-select > button):hover,
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-report-date-select
+  > button[aria-expanded="true"] {
+  border-color: var(--report-gold);
+  background: var(--report-warm);
+  color: var(--report-gold);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-action.is-primary, .oq-report-action.is-live) {
+  border-color: var(--report-gold);
+  background: var(--report-gold);
+  color: var(--oq-strategy-canvas);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-action.is-primary, .oq-report-action.is-live):hover {
+  border-color: var(--report-gold-soft);
+  background: var(--report-gold-soft);
+  color: var(--oq-strategy-canvas);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-date-menu, .oq-report-date-calendar-panel) {
+  border-color: var(--report-border-strong);
+  background: var(--report-panel);
+  color: var(--report-text);
+  box-shadow: var(--report-shadow-lift);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-report-date-menu
+  button:hover,
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-report-date-menu
+  button:focus-visible,
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-report-date-menu
+  button[aria-selected="true"] {
+  background: var(--report-warm);
+  color: var(--report-gold);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-chart-tooltip, .oq-dense-tooltip-card) {
+  border-color: var(--report-border-strong);
+  background: var(--oq-strategy-surface-3);
+  color: var(--report-text-soft);
+  box-shadow: var(--report-shadow-lift);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-chart-grid line, .oq-dense-lines line) {
+  stroke: var(--chart-grid-color);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-legend-item.is-interactive, .oq-symbol-rank-legend button, .oq-attribution-switch button):hover,
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-report-legend-item.is-interactive, .oq-symbol-rank-legend button)[aria-pressed="true"],
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-attribution-switch
+  button[aria-selected="true"],
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-attribution-switch
+  button[data-state="active"] {
+  border-color: var(--report-border-strong);
+  background: var(--report-panel-deep);
+  color: var(--report-text);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-position-table
+  article:hover {
+  background: var(--report-warm);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  :is(.oq-position-symbol span, .oq-position-symbol small, .oq-position-symbol .oq-position-status) {
+  background: var(--report-panel-deep);
+  color: var(--report-text-soft);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-position-symbol
+  .oq-position-direction.is-long {
+  background: color-mix(
+    in oklch,
+    var(--report-green) 22%,
+    oklch(from var(--report-panel-deep) l 0 none)
+  );
+  color: var(--report-green);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklch, var(--report-green) 48%, transparent);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-position-symbol
+  .oq-position-direction.is-short {
+  background: color-mix(
+    in oklch,
+    var(--report-red) 22%,
+    oklch(from var(--report-panel-deep) l 0 none)
+  );
+  color: var(--report-red);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklch, var(--report-red) 48%, transparent);
+}
+
+.dark.oq-strategies-active .oq-report-more-content {
+  border-color: var(--oq-strategy-border-strong);
+  background: var(--oq-strategy-surface-2);
+  color: var(--oq-strategy-text);
+  box-shadow: 0 16px 38px oklch(0 0 0 / 0.52);
+}
+
+.dark.oq-strategies-active .oq-report-more-item {
+  color: var(--oq-strategy-text-warm);
+}
+
+.dark.oq-strategies-active .oq-report-more-item[data-highlighted] {
+  background: var(--oq-strategy-surface-warm);
+  color: var(--oq-strategy-accent);
+}
+
+.dark.oq-strategies-active .oq-report-more-item.is-destructive {
+  color: var(--oq-strategy-risk);
+}
+
+.dark.oq-strategies-active .oq-report-more-separator {
+  background: var(--oq-strategy-border);
+}
+
+.dark.oq-strategies-active
+  .oq-strategy-figma-report
+  .oq-report-date-select.oq-report-date-select--compact {
+  --report-bg: var(--oq-strategy-surface-2);
+  --report-panel: var(--oq-strategy-surface-3);
+  --report-subtle-surface: var(--oq-strategy-surface-2);
+  --report-border: var(--oq-strategy-border-strong);
+  --report-subtle-border: var(--oq-strategy-border-strong);
+  --report-gold: var(--oq-strategy-accent);
+  --report-text: var(--oq-strategy-text);
+  --report-text-soft: var(--oq-strategy-text-soft);
+  --report-muted: var(--oq-strategy-muted);
+  --report-warm: var(--oq-strategy-surface-warm);
+  --report-shadow: 0 12px 30px oklch(0 0 0 / 0.46);
+  --report-shadow-lift: 0 16px 38px oklch(0 0 0 / 0.52);
+  --primary-foreground: var(--oq-strategy-canvas);
+  --ring: var(--oq-strategy-accent);
+}
+
+.dark.oq-strategies-active [data-sonner-toast][data-type="success"] {
+  border-color: var(--oq-toast-success-border) !important;
+  background: var(--oq-toast-success-bg) !important;
+  color: var(--oq-toast-success-text) !important;
+}
+
+.dark.oq-strategies-active
+  [data-sonner-toast][data-type="success"]
+  [data-icon] {
+  color: var(--oq-strategy-success) !important;
+}
+
+.dark.oq-strategies-active [data-sonner-toast][data-type="error"] {
+  border-color: var(--oq-toast-error-border) !important;
+  background: var(--oq-toast-error-bg) !important;
+  color: var(--oq-toast-error-text) !important;
+}
+
+.dark.oq-strategies-active
+  [data-sonner-toast][data-type="error"]
+  [data-icon] {
+  color: var(--oq-strategy-risk) !important;
+}

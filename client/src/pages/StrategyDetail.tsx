@@ -468,6 +468,11 @@ export default function StrategyDetail() {
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isStrategyEditOpen, setIsStrategyEditOpen] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.classList.add("oq-strategies-active");
+    return () => document.documentElement.classList.remove("oq-strategies-active");
+  }, []);
   const [strategyEditValues, setStrategyEditValues] = useState<StrategyComposerValues | null>(null);
   const [sessionStrategyVersions, setSessionStrategyVersions] = useState<StrategyVersion[]>([]);
   const [defaultVersionId, setDefaultVersionId] = useState<string | null>(null);
