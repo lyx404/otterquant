@@ -354,7 +354,12 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                 <img
                   src="/quandora-wordmark.png"
                   alt="Quandora"
-                  className="h-[13px] w-24 shrink-0 object-contain object-left"
+                  className="h-[13px] w-24 shrink-0 object-contain object-left dark:hidden"
+                />
+                <img
+                  src="/quandora-wordmark-dark.svg"
+                  alt="Quandora"
+                  className="hidden h-[13px] w-24 shrink-0 object-contain object-left dark:block"
                 />
               </div>
             </Link>
@@ -618,7 +623,12 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <img
                 src="/quandora-wordmark.png"
                 alt="Quandora"
-                className="h-[13px] w-24 object-contain object-left"
+                className="h-[13px] w-24 object-contain object-left dark:hidden"
+              />
+              <img
+                src="/quandora-wordmark-dark.svg"
+                alt="Quandora"
+                className="hidden h-[13px] w-24 object-contain object-left dark:block"
               />
             </div>
           </Link>

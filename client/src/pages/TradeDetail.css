@@ -34,6 +34,214 @@
   animation: oq-trade-detail-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Route scope keeps portal-based dialogs, menus, tooltips and toasts on the same palette. */
+.dark.oq-trade-detail-active {
+  --oq-trade-detail-canvas: oklch(0.155 0.006 57.433);
+  --oq-trade-detail-surface-1: oklch(0.215 0.009 57);
+  --oq-trade-detail-surface-2: oklch(0.255 0.012 60);
+  --oq-trade-detail-surface-warm: oklch(0.235 0.025 55);
+  --oq-trade-detail-surface-3: oklch(0.295 0.014 65);
+  --oq-trade-detail-surface-4: oklch(0.345 0.016 65);
+  --oq-trade-detail-border: oklch(0.34 0.016 67);
+  --oq-trade-detail-border-strong: oklch(0.51 0.023 67);
+  --oq-trade-detail-text: oklch(0.95 0.014 68);
+  --oq-trade-detail-text-warm: oklch(0.89 0.019 68);
+  --oq-trade-detail-text-soft: oklch(0.8 0.022 65);
+  --oq-trade-detail-muted: oklch(0.68 0.021 67);
+  --oq-trade-detail-muted-strong: oklch(0.75 0.021 65);
+  --oq-trade-detail-accent: oklch(0.72 0.185 47);
+  --oq-trade-detail-accent-hover: oklch(0.81 0.13 58);
+  --oq-trade-detail-success: oklch(0.75 0.12 155);
+  --oq-trade-detail-success-bg: oklch(0.235 0.04 155);
+  --oq-trade-detail-risk: oklch(0.72 0.17 25);
+  --oq-trade-detail-risk-bg: oklch(0.235 0.045 25);
+  --background: var(--oq-trade-detail-canvas);
+  --foreground: var(--oq-trade-detail-text);
+  --card: var(--oq-trade-detail-surface-1);
+  --card-foreground: var(--oq-trade-detail-text);
+  --popover: var(--oq-trade-detail-surface-1);
+  --popover-foreground: var(--oq-trade-detail-text);
+  --primary: var(--oq-trade-detail-accent);
+  --primary-foreground: var(--oq-trade-detail-canvas);
+  --secondary: var(--oq-trade-detail-surface-2);
+  --secondary-foreground: var(--oq-trade-detail-text-soft);
+  --muted: var(--oq-trade-detail-surface-3);
+  --muted-foreground: var(--oq-trade-detail-muted-strong);
+  --accent: var(--oq-trade-detail-surface-3);
+  --accent-foreground: var(--oq-trade-detail-text);
+  --destructive: var(--oq-trade-detail-risk);
+  --destructive-foreground: var(--oq-trade-detail-canvas);
+  --border: var(--oq-trade-detail-border);
+  --input: var(--oq-trade-detail-border-strong);
+  --ring: var(--oq-trade-detail-accent);
+  --success: var(--oq-trade-detail-success);
+  --oq-workbench-tooltip-bg: var(--oq-trade-detail-surface-3);
+  --oq-workbench-tooltip-border: var(--oq-trade-detail-border-strong);
+  --oq-workbench-tooltip-text: var(--oq-trade-detail-text-soft);
+  --oq-workbench-tooltip-shadow: 0 6px 18px oklch(0 0 0 / 0.28);
+  --oq-toast-success-bg: var(--oq-trade-detail-success-bg);
+  --oq-toast-success-text: var(--oq-trade-detail-text);
+  --oq-toast-success-border: oklch(0.55 0.08 155);
+  --oq-toast-error-bg: var(--oq-trade-detail-risk-bg);
+  --oq-toast-error-text: var(--oq-trade-detail-text);
+  --oq-toast-error-border: oklch(0.55 0.1 25);
+}
+
+.dark.oq-trade-detail-active .oq-app-main-column {
+  background: var(--oq-trade-detail-canvas);
+  color: var(--oq-trade-detail-text);
+}
+
+.dark.oq-trade-detail-active .oq-app-main-column > header {
+  border-color: var(--oq-trade-detail-border);
+  background: color-mix(in oklch, var(--oq-trade-detail-canvas) 88%, transparent);
+}
+
+.dark.oq-trade-detail-active .oq-app-main-column > header h1 {
+  color: var(--oq-trade-detail-text);
+}
+
+.dark.oq-trade-detail-active .oq-app-main-column > header p {
+  color: var(--oq-trade-detail-muted);
+}
+
+.dark.oq-trade-detail-active .oq-app-main-column > header label,
+.dark.oq-trade-detail-active .oq-app-main-column > header [data-slot="popover-trigger"] {
+  border-color: var(--oq-trade-detail-border-strong);
+  background: var(--oq-trade-detail-surface-1);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail {
+  --td-bg: var(--oq-trade-detail-surface-1);
+  --td-bg-warm: var(--oq-trade-detail-surface-warm);
+  --td-surface: var(--oq-trade-detail-surface-3);
+  --td-border: var(--oq-trade-detail-border);
+  --td-border-strong: var(--oq-trade-detail-border-strong);
+  --td-text: var(--oq-trade-detail-text);
+  --td-text-soft: var(--oq-trade-detail-text-soft);
+  --td-muted: var(--oq-trade-detail-muted);
+  --td-muted-strong: var(--oq-trade-detail-muted-strong);
+  --td-accent: var(--oq-trade-detail-accent);
+  --td-success: var(--oq-trade-detail-success);
+  --td-warning: var(--oq-trade-detail-accent-hover);
+  --td-chart-other: var(--oq-trade-detail-muted);
+  --td-risk: var(--oq-trade-detail-risk);
+}
+
+.dark.oq-trade-detail-active .oq-trade-performance-metrics > div {
+  border-color: var(--oq-trade-detail-border);
+  background: var(--oq-trade-detail-surface-2);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-status.is-running {
+  background: var(--oq-trade-detail-success-bg);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-status.is-paused {
+  background: var(--oq-trade-detail-surface-3);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail .oq-report-date-select.oq-report-date-select--compact {
+  --report-bg: var(--oq-trade-detail-surface-1);
+  --report-panel: var(--oq-trade-detail-surface-3);
+  --report-subtle-surface: var(--oq-trade-detail-surface-2);
+  --report-border: var(--oq-trade-detail-border-strong);
+  --report-subtle-border: var(--oq-trade-detail-border-strong);
+  --report-gold: var(--oq-trade-detail-accent);
+  --report-text: var(--oq-trade-detail-text);
+  --report-text-soft: var(--oq-trade-detail-text-soft);
+  --report-muted: var(--oq-trade-detail-muted);
+  --report-warm: var(--oq-trade-detail-surface-warm);
+  --report-shadow: 0 1.5px 6px oklch(0 0 0 / 0.24);
+  --report-shadow-lift: 0 6px 18px oklch(0 0 0 / 0.28);
+  --primary-foreground: var(--oq-trade-detail-canvas);
+  --ring: var(--oq-trade-detail-accent);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-action-menu {
+  border-color: var(--oq-trade-detail-border-strong);
+  background: var(--oq-trade-detail-surface-1);
+  color: var(--oq-trade-detail-text);
+  box-shadow: 0 12px 30px oklch(0 0 0 / 0.46);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-action-menu-item {
+  color: var(--oq-trade-detail-text-warm);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-action-menu-item[data-highlighted] {
+  background: var(--oq-trade-detail-surface-warm);
+  color: var(--oq-trade-detail-accent-hover);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-action-menu-item.is-destructive {
+  color: var(--oq-trade-detail-risk);
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-dialog {
+  --td-bg: var(--oq-trade-detail-surface-1);
+  --td-bg-warm: var(--oq-trade-detail-surface-warm);
+  --td-border: var(--oq-trade-detail-border-strong);
+  --td-text: var(--oq-trade-detail-text);
+  --td-text-soft: var(--oq-trade-detail-text-soft);
+  --td-muted: var(--oq-trade-detail-muted);
+  --td-accent: var(--oq-trade-detail-accent);
+  box-shadow: 0 6px 18px oklch(0 0 0 / 0.28) !important;
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-dialog-button.is-primary {
+  border-color: var(--oq-trade-detail-accent) !important;
+  color: var(--oq-trade-detail-canvas) !important;
+}
+
+.dark.oq-trade-detail-active .oq-trade-detail-dialog-button.is-primary:hover {
+  background: var(--oq-trade-detail-accent-hover) !important;
+  color: var(--oq-trade-detail-canvas) !important;
+}
+
+.dark.oq-trade-detail-active .oq-notification {
+  --oq-bg: var(--oq-trade-detail-surface-1);
+  --oq-bg-soft: var(--oq-trade-detail-surface-2);
+  --oq-bg-warm: var(--oq-trade-detail-surface-warm);
+  --oq-surface: var(--oq-trade-detail-surface-3);
+  --oq-surface-strong: var(--oq-trade-detail-surface-2);
+  --oq-border: var(--oq-trade-detail-border);
+  --oq-border-strong: var(--oq-trade-detail-border-strong);
+  --oq-text: var(--oq-trade-detail-text);
+  --oq-text-soft: var(--oq-trade-detail-text-soft);
+  --oq-muted: var(--oq-trade-detail-muted);
+  --oq-muted-strong: var(--oq-trade-detail-muted-strong);
+  --oq-accent: var(--oq-trade-detail-accent);
+  --oq-success: var(--oq-trade-detail-success);
+  --oq-success-bg: var(--oq-trade-detail-success-bg);
+  --oq-risk: var(--oq-trade-detail-risk);
+  --oq-risk-bg: var(--oq-trade-detail-risk-bg);
+}
+
+.dark.oq-trade-detail-active [data-sonner-toast] {
+  border-color: var(--oq-trade-detail-border-strong) !important;
+  background: var(--oq-trade-detail-surface-1) !important;
+  color: var(--oq-trade-detail-text) !important;
+}
+
+.dark.oq-trade-detail-active [data-sonner-toast][data-type="success"] {
+  border-color: var(--oq-toast-success-border) !important;
+  background: var(--oq-toast-success-bg) !important;
+}
+
+.dark.oq-trade-detail-active [data-sonner-toast][data-type="success"] [data-icon] {
+  color: var(--oq-trade-detail-success) !important;
+}
+
+.dark.oq-trade-detail-active [data-sonner-toast][data-type="error"] {
+  border-color: var(--oq-toast-error-border) !important;
+  background: var(--oq-toast-error-bg) !important;
+}
+
+.dark.oq-trade-detail-active [data-sonner-toast][data-type="error"] [data-icon] {
+  color: var(--oq-trade-detail-risk) !important;
+}
+
 .oq-trade-detail.is-returning {
   animation: oq-trade-detail-exit 220ms cubic-bezier(0.5, 0, 0.75, 0) both;
   pointer-events: none;

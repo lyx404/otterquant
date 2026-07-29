@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { Moon, Sun } from "lucide-react";
 import { flushSync } from "react-dom";
 import { cn } from "@/lib/utils";
@@ -7,23 +7,32 @@ import { useTheme } from "@/contexts/ThemeContext";
 interface AnimatedThemeTogglerProps
   extends Omit<React.ComponentPropsWithoutRef<"button">, "onClick"> {
   duration?: number;
+  onThemeChange?: () => void;
 }
 
 export const AnimatedThemeToggler = ({
+  children,
   className,
   duration = 400,
+  onThemeChange,
   ...props
 }: AnimatedThemeTogglerProps) => {
   const { theme, toggleTheme, switchable } = useTheme();
   const isDark = theme === "dark";
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const changeTheme = onThemeChange ?? toggleTheme;
 
   const handleToggle = useCallback(() => {
-    if (!toggleTheme) return;
+    if (!changeTheme) return;
 
     const button = buttonRef.current;
     if (!button) {
-      toggleTheme();
+      changeTheme();
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      changeTheme();
       return;
     }
 
@@ -42,13 +51,13 @@ export const AnimatedThemeToggler = ({
 
     // Fallback for browsers without View Transition API
     if (typeof (document as any).startViewTransition !== "function") {
-      toggleTheme();
+      changeTheme();
       return;
     }
 
     const transition = (document as any).startViewTransition(() => {
       flushSync(() => {
-        toggleTheme();
+        changeTheme();
       });
     });
 
@@ -64,13 +73,13 @@ export const AnimatedThemeToggler = ({
           },
           {
             duration,
-            easing: "ease-in-out",
+            easing: "cubic-bezier(0.25, 1, 0.5, 1)",
             pseudoElement: "::view-transition-new(root)",
           }
         );
       });
     }
-  }, [toggleTheme, duration]);
+  }, [changeTheme, duration]);
 
   if (!switchable) return null;
 
@@ -80,17 +89,23 @@ export const AnimatedThemeToggler = ({
       ref={buttonRef}
       onClick={handleToggle}
       className={cn(
-        "relative inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground",
+        children == null
+          ? "relative inline-flex items-center justify-center rounded-full p-2 text-muted-foreground transition-colors hover:text-foreground"
+          : undefined,
         className
       )}
       {...props}
     >
-      {isDark ? (
-        <Sun className="h-3.5 w-3.5 transition-colors" />
-      ) : (
-        <Moon className="h-3.5 w-3.5 transition-colors" />
+      {children ?? (
+        <>
+          {isDark ? (
+            <Sun className="h-3.5 w-3.5 transition-colors" />
+          ) : (
+            <Moon className="h-3.5 w-3.5 transition-colors" />
+          )}
+          <span className="sr-only">Toggle theme</span>
+        </>
       )}
-      <span className="sr-only">Toggle theme</span>
     </button>
   );
 };

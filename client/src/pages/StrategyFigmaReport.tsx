@@ -2866,10 +2866,10 @@ function PositionHistory({ rows = defaultPositions, tr = defaultTr }: { rows?: R
             <article key={position.symbol}>
               <div className="oq-position-symbol">
                 <strong>{position.symbol}</strong>
-                <span className="oq-position-contract">{tReport(tr, "Perp", "永续")}</span>
                 <span className={`oq-position-direction is-${isLong ? "long" : "short"}`}>
                   {tReport(tr, position.side, isLong ? "全仓做多" : "全仓做空")}
                 </span>
+                <span className="oq-position-contract">{tReport(tr, "Perp", "永续")}</span>
                 <small className="oq-position-status">{tReport(tr, "Closed", "已平仓")}</small>
               </div>
               <span>{position.entry}</span>

@@ -480,6 +480,10 @@ export default function TradeDetail() {
     [tradeId]
   );
   useEffect(() => {
+    document.documentElement.classList.add("oq-trade-detail-active");
+    return () => document.documentElement.classList.remove("oq-trade-detail-active");
+  }, []);
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const syncChartColorMode = () => setChartColorMode(readChartColorMode());
     window.addEventListener("storage", syncChartColorMode);

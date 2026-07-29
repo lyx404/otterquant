@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
   Select,
   SelectContent,
@@ -1018,16 +1019,15 @@ function AccountWorkbench260712() {
                     const Icon = item.icon;
                     const isActive = themePreference === item.value;
                     return (
-                      <button
+                      <AnimatedThemeToggler
                         key={item.value}
-                        type="button"
                         aria-pressed={isActive}
-                        onClick={() => setThemePreference?.(item.value)}
+                        onThemeChange={() => setThemePreference?.(item.value)}
                         className={`oq-account-theme-option${isActive ? " is-active" : ""}`}
                       >
                         <Icon aria-hidden="true" size={13} strokeWidth={1.7} />
                         <span>{tr(item.en, item.zh, accountCopy[item.en])}</span>
-                      </button>
+                      </AnimatedThemeToggler>
                     );
                   })}
                 </div>

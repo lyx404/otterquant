@@ -244,6 +244,11 @@ function TradeWorkbench260712() {
   const refreshTimerByBotRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
+    document.documentElement.classList.add("oq-trade-active");
+    return () => document.documentElement.classList.remove("oq-trade-active");
+  }, []);
+
+  useEffect(() => {
     if (envFromQuery === "paper" || envFromQuery === "live") {
       setEnvironment(envFromQuery);
     }
