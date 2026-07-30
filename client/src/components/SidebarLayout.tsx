@@ -25,8 +25,9 @@ import {
   ChevronDown,
   Rocket,
   CandlestickChart,
-  CreditCard,
+  ChartNetwork,
   Search,
+  SquarePen,
 } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 
@@ -44,10 +45,18 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { path: "/", labelEn: "Dashboard", labelZh: "仪表盘", icon: LayoutDashboard },
-  { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FlaskConical },
-  { path: "/strategies", labelEn: "My Strategy", labelZh: "我的策略", icon: Rocket },
+  {
+    path: "/alphas",
+    labelEn: "Create",
+    labelZh: "创建",
+    icon: SquarePen,
+    children: [
+      { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FlaskConical },
+      { path: "/strategies", labelEn: "My Strategy", labelZh: "我的策略", icon: Rocket },
+    ],
+  },
   { path: "/trade", labelEn: "Trade", labelZh: "交易", icon: CandlestickChart },
-  { path: "/subscription", labelEn: "Subscription", labelZh: "订阅", icon: CreditCard },
+  { path: "/marketplace", labelEn: "Marketplace", labelZh: "广场", icon: ChartNetwork },
   { path: "/account", labelEn: "Settings", labelZh: "设置", icon: Settings2 },
 ];
 
@@ -95,6 +104,13 @@ const pageHeaders = [
     subtitleZh: "查看资产、盈亏与策略运行状态",
   },
   {
+    match: (path: string) => path.startsWith("/marketplace"),
+    titleEn: "Marketplace",
+    titleZh: "广场",
+    subtitleEn: "Connect with the quantitative finance community",
+    subtitleZh: "连接量化金融社区",
+  },
+  {
     match: (path: string) => path.startsWith("/subscription"),
     titleEn: "Subscription",
     titleZh: "订阅",
@@ -112,9 +128,11 @@ const pageHeaders = [
 
 const sidebarCopy: Record<string, UiCopy> = {
   Dashboard: { ja: "ダッシュボード", ko: "대시보드", es: "Panel", fr: "Tableau de bord" },
+  Create: { ja: "作成", ko: "만들기", es: "Crear", fr: "Créer" },
   "My Factors": { ja: "マイファクター", ko: "내 팩터", es: "Mis factores", fr: "Mes facteurs" },
   "My Strategy": { ja: "マイストラテジー", ko: "내 전략", es: "Mis estrategias", fr: "Mes stratégies" },
   Trade: { ja: "取引", ko: "거래", es: "Trading", fr: "Trading" },
+  Marketplace: { ja: "マーケット", ko: "마켓", es: "Mercado", fr: "Marché" },
   Subscription: { ja: "サブスクリプション", ko: "구독", es: "Suscripción", fr: "Abonnement" },
   Settings: { ja: "設定", ko: "설정", es: "Configuración", fr: "Paramètres" },
   "Strategy Detail": { ja: "ストラテジー詳細", ko: "전략 상세", es: "Detalle de estrategia", fr: "Détail de la stratégie" },
@@ -154,6 +172,12 @@ const sidebarCopy: Record<string, UiCopy> = {
     ko: "자산, 손익 및 전략 실행 상태 확인",
     es: "Revisa activos, PnL y estado de las estrategias",
     fr: "Consulter les actifs, le PnL et le statut des stratégies",
+  },
+  "Connect with the quantitative finance community": {
+    ja: "クオンツ金融コミュニティとつながる",
+    ko: "퀀트 금융 커뮤니티와 연결",
+    es: "Conecta con la comunidad de finanzas cuantitativas",
+    fr: "Rejoindre la communauté de finance quantitative",
   },
   "Manage your plan and renewal status": {
     ja: "プランと更新状況を管理",
@@ -202,13 +226,15 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     "/alphas": false,
-    "/strategies": false,
   });
   const currentPathname = location.split("?")[0];
   const currentSearch = search
     ? `?${search.replace(/^\?/, "")}`
     : "";
-  const hasHeaderSearch = currentPathname === "/trade" || currentPathname === "/strategies";
+  const hasHeaderSearch =
+    currentPathname === "/trade" ||
+    currentPathname === "/strategies" ||
+    currentPathname === "/marketplace";
   const headerSearchQuery = new URLSearchParams(currentSearch).get("q") ?? "";
   const isOfficialAlphaDetail =
     currentPathname.startsWith("/alphas/") &&
@@ -240,10 +266,10 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   };
 
   const isSectionActive = (sectionPath: string) => {
-    if (currentPathname === sectionPath || currentPathname.startsWith(`${sectionPath}/`)) return true;
-
     const section = navItems.find((item) => item.path === sectionPath);
-    return Boolean(section?.children?.some((child) => isActive(child.path)));
+    if (!section) return false;
+    if (section.children?.length) return section.children.some((child) => isActive(child.path));
+    return isActive(section.path);
   };
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
@@ -392,9 +418,10 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                 {/* Parent item */}
                 <button
                   onClick={() => {
-                    navigate(item.path);
                     if (!collapsed || isMobile) {
-                      setExpandedSections((prev) => ({ ...prev, [item.path]: true }));
+                      setExpandedSections((prev) => ({ ...prev, [item.path]: !prev[item.path] }));
+                    } else {
+                      navigate(item.children![0].path);
                     }
                   }}
                   className={`flex w-full items-center rounded-[6px] text-[12px] font-normal transition-all duration-200 ease-in-out ${
@@ -510,6 +537,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => navigate("/subscription")}
+              aria-label={tr("Subscription", "订阅")}
               className="flex w-full items-center gap-[7.5px] rounded-[3px] bg-[#fef6ef] px-[7.5px] py-1.5 text-left text-[12px] font-medium text-[#dc4900] transition-colors hover:bg-[#fde9dc] dark:bg-[#1b1511] dark:text-[#ff6a1a] dark:hover:bg-[#2d2113]"
             >
               <img src="/sidebar-pro-icon.svg" alt="" className="h-[15px] w-[15px] shrink-0" />
@@ -525,6 +553,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     <div
       className={`flex min-h-screen bg-[#faf8f6] dark:bg-[#14110f] md:min-h-[1024px] md:pl-[var(--sidebar-width)] ${
         currentPathname.startsWith("/account") ||
+        currentPathname.startsWith("/marketplace") ||
         currentPathname.startsWith("/trade") ||
         currentPathname.startsWith("/strategies")
           ? "md:min-w-0"

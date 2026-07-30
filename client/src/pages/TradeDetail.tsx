@@ -57,10 +57,12 @@ import {
   ArrowLeft,
   Activity,
   BarChart3,
+  Check,
   MoreHorizontal,
   PieChart,
   Play,
   RefreshCw,
+  Send,
   Trash2,
 } from "lucide-react";
 import {
@@ -444,7 +446,12 @@ function classForTone(tone?: "positive" | "negative" | "neutral") {
   return "text-foreground";
 }
 
-export default function TradeDetail() {
+type TradeDetailProps = {
+  mode?: "trade" | "marketplace";
+  tradeOverride?: (typeof tradeBots)[number] | null;
+};
+
+export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDetailProps = {}) {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string, copy: UiCopy = {}) =>
     translateUi(uiLang, en, zh, {
@@ -470,14 +477,16 @@ export default function TradeDetail() {
   const [pendingAction, setPendingAction] = useState<PendingTradeAction>(null);
   const [isReturningToTrade, setIsReturningToTrade] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [executionStatusOverride, setExecutionStatusOverride] = useState<{ tradeId: string; status: "running" | "paused" } | null>(null);
   const [refreshedAtByTrade, setRefreshedAtByTrade] = useState<Record<string, string>>({});
   const returnNavigationTimerRef = useRef<number | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
   const tradeId = params?.id ?? "";
+  const isMarketplaceDetail = mode === "marketplace";
   const trade = useMemo(
-    () => getTradeBotsWithDeployments(tradeBots).find((item) => item.id === tradeId),
-    [tradeId]
+    () => tradeOverride ?? getTradeBotsWithDeployments(tradeBots).find((item) => item.id === tradeId),
+    [tradeId, tradeOverride]
   );
   useEffect(() => {
     document.documentElement.classList.add("oq-trade-detail-active");
@@ -532,9 +541,9 @@ export default function TradeDetail() {
           <p className="mt-2 text-sm text-muted-foreground">
             {tr("The selected trade id does not exist in the current workspace.", "当前工作区中不存在所选交易 ID。")}
           </p>
-          <Link href="/trade">
+          <Link href={isMarketplaceDetail ? "/marketplace" : "/trade"}>
             <Button className="mt-4 h-8 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90">
-              {tr("Back to Trade", "返回交易页")}
+              {isMarketplaceDetail ? tr("Back to Marketplace", "返回广场") : tr("Back to Trade", "返回交易页")}
             </Button>
           </Link>
         </div>
@@ -574,6 +583,7 @@ export default function TradeDetail() {
   };
   const returnToTrade = (event: ReactMouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (isMarketplaceDetail) return;
     event.preventDefault();
     if (returnNavigationTimerRef.current !== null) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -587,6 +597,15 @@ export default function TradeDetail() {
       returnNavigationTimerRef.current = null;
       navigate("/trade");
     }, 220);
+  };
+  const toggleMarketplaceSubscription = () => {
+    const nextSubscribed = !isSubscribed;
+    setIsSubscribed(nextSubscribed);
+    toast.success(
+      nextSubscribed
+        ? tr(`Telegram updates enabled for ${trade.name}.`, `已通过 Telegram 订阅「${trade.name}」交易动态。`)
+        : tr(`Telegram updates disabled for ${trade.name}.`, `已取消「${trade.name}」的 Telegram 交易动态。`)
+    );
   };
   const stopTrade = () => {
     setExecutionStatusOverride({ tradeId, status: "paused" });
@@ -966,9 +985,9 @@ export default function TradeDetail() {
   return (
     <div className={`oq-trade-detail min-w-0${isReturningToTrade ? " is-returning" : ""}${isRefreshing ? " is-refreshing" : ""}`} style={semanticColorVars}>
       <div className="oq-trade-detail-heading">
-        <Link href="/trade" className="oq-trade-detail-back" onClick={returnToTrade}>
+        <Link href={isMarketplaceDetail ? "/marketplace" : "/trade"} className="oq-trade-detail-back" onClick={returnToTrade}>
           <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
-          <span>{tr("Back to Trade", "返回交易")}</span>
+          <span>{isMarketplaceDetail ? tr("Back to Marketplace", "返回广场") : tr("Back to Trade", "返回交易")}</span>
         </Link>
 
         <header className="oq-trade-detail-hero">
@@ -996,7 +1015,18 @@ export default function TradeDetail() {
           </div>
 
           <div className="oq-trade-detail-statuses" aria-label={tr("Trade controls", "交易控制")}>
-            {runtimeStatus === "running" ? (
+            {isMarketplaceDetail ? (
+              <button
+                type="button"
+                className={`oq-trade-detail-subscribe${isSubscribed ? " is-subscribed" : ""}`}
+                aria-pressed={isSubscribed}
+                aria-label={isSubscribed ? tr("Subscribed on Telegram", "已通过 Telegram 订阅") : tr("Subscribe on Telegram", "通过 Telegram 订阅")}
+                onClick={toggleMarketplaceSubscription}
+              >
+                {isSubscribed ? <Check aria-hidden="true" /> : <Send aria-hidden="true" />}
+                {isSubscribed ? tr("Subscribed", "已订阅") : tr("Subscribe", "订阅")}
+              </button>
+            ) : runtimeStatus === "running" ? (
               <>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1066,7 +1096,7 @@ export default function TradeDetail() {
               </Tooltip>
             )}
 
-            <DropdownMenu>
+            {!isMarketplaceDetail ? <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <DropdownMenuTrigger asChild>
@@ -1095,7 +1125,7 @@ export default function TradeDetail() {
                   {tr("Delete", "删除")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> : null}
           </div>
         </header>
       </div>
@@ -1962,7 +1992,7 @@ export default function TradeDetail() {
         </>
       ) : null}
 
-      <AlertDialog
+      {!isMarketplaceDetail ? <AlertDialog
         open={pendingAction !== null}
         onOpenChange={(open) => !open && setPendingAction(null)}
       >
@@ -2005,7 +2035,7 @@ export default function TradeDetail() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog> : null}
     </div>
   );
 }

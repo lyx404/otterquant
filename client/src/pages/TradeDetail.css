@@ -426,6 +426,49 @@
   gap: 10px;
 }
 
+.oq-trade-detail-subscribe {
+  display: inline-flex;
+  min-width: 88px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--td-accent);
+  border-radius: 6px;
+  background: var(--td-accent);
+  padding: 0 14px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.oq-trade-detail-subscribe svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  stroke-width: 1.8;
+}
+
+.oq-trade-detail-subscribe:hover {
+  border-color: color-mix(in srgb, var(--td-accent) 86%, #000000);
+  background: color-mix(in srgb, var(--td-accent) 86%, #000000);
+  transform: translateY(-1px);
+}
+
+.oq-trade-detail-subscribe:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--td-accent) 32%, transparent);
+  outline-offset: 2px;
+}
+
+.oq-trade-detail-subscribe.is-subscribed {
+  border-color: color-mix(in srgb, var(--semantic-up) 34%, var(--td-border));
+  background: color-mix(in srgb, var(--semantic-up) 10%, var(--td-bg));
+  color: var(--semantic-up);
+}
+
 .oq-trade-detail-action {
   display: inline-flex;
   width: 38px;
