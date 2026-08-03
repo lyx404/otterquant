@@ -983,7 +983,7 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
     return parts[uiLang];
   };
   return (
-    <div className={`oq-trade-detail min-w-0${isReturningToTrade ? " is-returning" : ""}${isRefreshing ? " is-refreshing" : ""}`} style={semanticColorVars}>
+    <div className={`oq-trade-detail min-w-0${isMarketplaceDetail ? " is-marketplace-detail" : ""}${isReturningToTrade ? " is-returning" : ""}${isRefreshing ? " is-refreshing" : ""}`} style={semanticColorVars}>
       <div className="oq-trade-detail-heading">
         <Link href={isMarketplaceDetail ? "/marketplace" : "/trade"} className="oq-trade-detail-back" onClick={returnToTrade}>
           <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
@@ -993,13 +993,13 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
         <header className="oq-trade-detail-hero">
           <div className="oq-trade-detail-title-copy">
             <div className="oq-trade-detail-title-line">
-              <span className="oq-trade-detail-id">{trade.id}</span>
+              {!isMarketplaceDetail ? <span className="oq-trade-detail-id">{trade.id}</span> : null}
               <h1>{trade.name}</h1>
             </div>
             <div className="oq-trade-detail-meta">
               <span aria-live="polite">{tr("Updated", "更新于")} {displayedUpdatedAt}</span>
               <span className="oq-trade-detail-record-id">{trade.recordId}</span>
-              <div className="oq-trade-detail-title-tags">
+              {!isMarketplaceDetail ? <div className="oq-trade-detail-title-tags">
                 <span className={`oq-trade-detail-mode ${runtimeEnvironment === "paper" ? "is-paper" : "is-live"}`}>
                   {runtimeEnvironment === "paper" ? tr("Paper", "模拟") : tr("Live", "实盘")}
                 </span>
@@ -1010,7 +1010,7 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
                   <span aria-hidden="true" />
                   {runtimeStatus === "running" ? tr("Running", "运行中") : tr("Stopped", "已停止")}
                 </span>
-              </div>
+              </div> : null}
             </div>
           </div>
 
@@ -1130,7 +1130,21 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
         </header>
       </div>
 
-      <section className="oq-trade-overview" aria-label={tr("Strategy overview", "策略概览")}>
+      <Tabs defaultValue="trade" className="oq-trade-detail-view">
+        {isMarketplaceDetail ? (
+          <div className="oq-marketplace-detail-tabs-bar">
+            <TabsList
+              className="oq-marketplace-detail-tabs-list"
+              aria-label={tr("Strategy detail views", "策略详情视图")}
+            >
+              <TabsTrigger value="trade">{tr("Trading", "交易")}</TabsTrigger>
+              <TabsTrigger value="backtest">{tr("Backtest", "回测")}</TabsTrigger>
+            </TabsList>
+          </div>
+        ) : null}
+
+        <TabsContent value="trade" className="oq-trade-detail-view-content">
+          <section className="oq-trade-overview" aria-label={tr("Strategy overview", "策略概览")}>
         <div className="oq-trade-overview-grid">
           <article className="oq-trade-overview-card oq-trade-performance-card" aria-labelledby="trade-performance-period-title">
             <div className="oq-trade-performance-header">
@@ -1991,6 +2005,16 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
 
         </>
       ) : null}
+        </TabsContent>
+
+        {isMarketplaceDetail ? (
+          <TabsContent
+            value="backtest"
+            className="oq-marketplace-detail-backtest"
+            aria-label={tr("Backtest", "回测")}
+          />
+        ) : null}
+      </Tabs>
 
       {!isMarketplaceDetail ? <AlertDialog
         open={pendingAction !== null}

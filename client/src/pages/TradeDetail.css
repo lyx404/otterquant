@@ -34,6 +34,10 @@
   animation: oq-trade-detail-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.oq-trade-detail.is-marketplace-detail {
+  width: 100%;
+}
+
 /* Route scope keeps portal-based dialogs, menus, tooltips and toasts on the same palette. */
 .dark.oq-trade-detail-active {
   --oq-trade-detail-canvas: oklch(0.155 0.006 57.433);
@@ -293,6 +297,10 @@
   gap: 16px;
 }
 
+.oq-trade-detail.is-marketplace-detail .oq-trade-detail-heading {
+  width: 100%;
+}
+
 .oq-trade-detail-back {
   display: inline-flex;
   width: max-content;
@@ -347,6 +355,105 @@
   background: var(--td-bg);
   padding: 20px 24px;
   box-shadow: 0 8px 24px rgba(60, 40, 20, 0.06);
+}
+
+.oq-trade-detail.is-marketplace-detail .oq-trade-detail-hero {
+  min-height: 132px;
+  border-radius: 0;
+  padding: 28px clamp(24px, 3vw, 44px);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--td-border) 76%, transparent);
+}
+
+.oq-trade-detail-view {
+  min-width: 0;
+  gap: 18px;
+}
+
+.oq-trade-detail-view-content {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+  margin: 0;
+}
+
+.oq-trade-detail.is-marketplace-detail .oq-trade-detail-view {
+  gap: 24px;
+}
+
+.oq-marketplace-detail-tabs-bar {
+  display: flex;
+  min-width: 0;
+  border-bottom: 0.75px solid var(--td-border);
+  background: transparent;
+}
+
+.oq-marketplace-detail-tabs-list {
+  display: flex;
+  width: min(100%, 900px);
+  height: 52px;
+  justify-content: flex-start;
+  gap: 32px;
+  margin: 0 auto;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.oq-marketplace-detail-tabs-list > button {
+  position: relative;
+  height: 52px;
+  min-width: 52px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0 2px;
+  color: var(--td-muted-strong);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 20px;
+  box-shadow: none;
+}
+
+.oq-marketplace-detail-tabs-list > button::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  background: transparent;
+  content: "";
+}
+
+.oq-marketplace-detail-tabs-list > button:hover:not([data-state="active"]) {
+  color: var(--td-text-soft);
+}
+
+.oq-marketplace-detail-tabs-list > button[data-state="active"] {
+  background: transparent;
+  color: var(--td-text);
+  box-shadow: none;
+}
+
+.oq-marketplace-detail-tabs-list > button[data-state="active"]::after {
+  background: var(--td-accent);
+}
+
+.oq-marketplace-detail-tabs-list > button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--td-accent) 32%, transparent);
+  outline-offset: -4px;
+}
+
+.oq-trade-detail.is-marketplace-detail .oq-trade-detail-view-content,
+.oq-marketplace-detail-backtest {
+  width: min(100%, 900px);
+  margin: 0 auto;
+}
+
+.oq-marketplace-detail-backtest {
+  min-height: min(520px, 58vh);
+  outline: none;
 }
 
 .oq-trade-detail-title-copy {
@@ -1905,6 +2012,29 @@
     width: 100%;
     gap: 18px;
     padding: 0 12px 20px;
+  }
+
+  .oq-trade-detail.is-marketplace-detail {
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .oq-trade-detail.is-marketplace-detail .oq-trade-detail-back {
+    margin-left: 12px;
+  }
+
+  .oq-trade-detail.is-marketplace-detail .oq-trade-detail-hero {
+    min-height: 0;
+    padding: 22px 18px;
+  }
+
+  .oq-marketplace-detail-tabs-list,
+  .oq-trade-detail.is-marketplace-detail .oq-trade-detail-view-content {
+    width: calc(100% - 24px);
+  }
+
+  .oq-marketplace-detail-tabs-list {
+    gap: 24px;
   }
 
   .oq-trade-detail-hero {

@@ -99,9 +99,9 @@ export const AnimatedThemeToggler = ({
       {children ?? (
         <>
           {isDark ? (
-            <Sun className="h-3.5 w-3.5 transition-colors" />
+            <Sun className="h-[13px] w-[13px] transition-colors" strokeWidth={1.7} aria-hidden="true" />
           ) : (
-            <Moon className="h-3.5 w-3.5 transition-colors" />
+            <Moon className="h-[13px] w-[13px] transition-colors" strokeWidth={1.7} aria-hidden="true" />
           )}
           <span className="sr-only">Toggle theme</span>
         </>

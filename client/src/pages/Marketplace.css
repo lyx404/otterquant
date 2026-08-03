@@ -1,36 +1,52 @@
 .oq-marketplace {
   --oq-market-primary: #dc4900;
-  --oq-market-secondary: #41a5a1;
+  --oq-market-positive: #1f8a5b;
   --oq-market-surface: #ffffff;
   --oq-market-border: #e2dad0;
   --oq-market-border-soft: #eee8e1;
   --oq-market-text: #0d0d0d;
   --oq-market-text-soft: #4a443d;
   --oq-market-muted: #8c8378;
+  width: 100%;
   gap: 16px;
+  margin: 0;
 }
 
 .oq-marketplace-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
+}
+
+.oq-marketplace-card-link {
+  display: block;
+  min-width: 0;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.oq-marketplace-card-link:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--oq-market-primary) 34%, transparent);
+  outline-offset: 3px;
 }
 
 .oq-marketplace-card {
   display: flex;
   min-width: 0;
-  min-height: 428px;
+  height: 100%;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--oq-market-border);
+  border: 0.5px solid var(--oq-market-border);
   border-radius: 8px;
   background: var(--oq-market-surface);
-  padding: 18px 18px 0;
+  min-height: 310px;
+  padding: 20px;
   box-shadow: 0 1.5px 6px rgba(60, 40, 20, 0.06);
   transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
-.oq-marketplace-card:hover {
+.oq-marketplace-card-link:hover .oq-marketplace-card {
   border-color: #d2c8bc;
   box-shadow: 0 6px 18px rgba(60, 40, 20, 0.08);
   transform: translateY(-1px);
@@ -38,7 +54,7 @@
 
 .oq-marketplace-card-header {
   display: grid;
-  gap: 4px;
+  gap: 5px;
 }
 
 .oq-marketplace-card-title-row {
@@ -55,9 +71,9 @@
   margin: 0;
   color: var(--oq-market-text);
   font-family: var(--font-heading);
-  font-size: 16px;
-  font-weight: 650;
-  line-height: 22px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 21px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -70,43 +86,87 @@
   font-variant-numeric: tabular-nums;
 }
 
-.oq-marketplace-official {
+.oq-marketplace-subscribers {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
-  gap: 4px;
-  border: 1px solid rgba(220, 73, 0, 0.16);
-  border-radius: 999px;
-  background: #fef6ef;
-  padding: 3px 7px;
-  color: var(--oq-market-primary);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 13px;
-}
-
-.oq-marketplace-official svg {
-  width: 11px;
-  height: 11px;
-}
-
-.oq-marketplace-description {
-  display: -webkit-box;
-  min-height: 42px;
-  overflow: hidden;
-  margin: 12px 0 0;
+  gap: 5px;
   color: var(--oq-market-text-soft);
-  font-size: 11px;
-  line-height: 21px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 13px;
+  white-space: nowrap;
+}
+
+.oq-marketplace-subscribers svg {
+  width: 12px;
+  height: 12px;
+  stroke-width: 1.8;
+}
+
+.oq-marketplace-card-description {
+  display: -webkit-box;
+  min-height: 34px;
+  overflow: hidden;
+  margin-top: 5px;
+  color: var(--oq-market-text-soft) !important;
+  font-size: 10px !important;
+  font-weight: 400;
+  line-height: 17px !important;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
+.oq-marketplace-performance {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(124px, 0.9fr) minmax(0, 1.1fr);
+  align-items: end;
+  gap: 12px;
+  margin-top: 17px;
+  border-top: 1px solid var(--oq-market-border-soft);
+  padding-top: 17px;
+}
+
+.oq-marketplace-return {
+  display: grid;
+  min-width: 0;
+  align-content: end;
+  gap: 4px;
+}
+
+.oq-marketplace-return > span {
+  color: var(--oq-market-muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.oq-marketplace-return > strong {
+  overflow: hidden;
+  color: var(--oq-market-positive);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 34px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-marketplace-return > small {
+  color: var(--oq-market-text-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 550;
+  line-height: 15px;
+}
+
 .oq-marketplace-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: auto;
+  border-top: 1px solid var(--oq-market-border-soft);
+  padding-top: 15px;
 }
 
 .oq-marketplace-metric {
@@ -119,15 +179,15 @@
   overflow: hidden;
   color: var(--oq-market-text);
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 650;
   line-height: 21px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.oq-marketplace-metric strong.is-accent {
-  color: var(--oq-market-primary);
+.oq-marketplace-metric strong.is-positive {
+  color: var(--oq-market-positive);
 }
 
 .oq-marketplace-metric strong.is-risk {
@@ -145,158 +205,22 @@
 
 .oq-marketplace-chart-block {
   min-width: 0;
-  margin-top: 17px;
-  border-top: 1px solid var(--oq-market-border-soft);
-  padding-top: 11px;
-}
-
-.oq-marketplace-chart-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  color: var(--oq-market-muted);
-  font-size: 9px;
-  line-height: 13px;
-}
-
-.oq-marketplace-chart-legend {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.oq-marketplace-chart-legend > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-}
-
-.oq-marketplace-chart-legend i {
-  width: 10px;
-  height: 2px;
-  border-radius: 999px;
-  background: var(--oq-market-secondary);
-}
-
-.oq-marketplace-chart-legend i.is-strategy {
-  background: var(--oq-market-primary);
 }
 
 .oq-marketplace-chart-block svg {
   display: block;
   width: 100%;
-  height: 130px;
-  margin-top: 3px;
+  height: 92px;
   overflow: visible;
 }
 
-.oq-marketplace-chart-grid {
-  stroke: var(--oq-market-border-soft);
-  stroke-width: 1;
-}
-
-.oq-marketplace-chart-strategy,
-.oq-marketplace-chart-benchmark {
+.oq-marketplace-chart-strategy {
   fill: none;
+  stroke: var(--oq-market-positive);
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 2.2;
+  stroke-width: 2.4;
   vector-effect: non-scaling-stroke;
-}
-
-.oq-marketplace-chart-strategy {
-  stroke: var(--oq-market-primary);
-}
-
-.oq-marketplace-chart-benchmark {
-  stroke: var(--oq-market-secondary);
-  stroke-width: 1.7;
-}
-
-.oq-marketplace-chart-block text {
-  fill: var(--oq-market-muted);
-  font-family: var(--font-body);
-  font-size: 8px;
-}
-
-.oq-marketplace-card-actions {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: auto -18px 0;
-  border-top: 1px solid var(--oq-market-border-soft);
-  padding: 11px 18px;
-}
-
-.oq-marketplace-card-actions > span {
-  overflow: hidden;
-  color: var(--oq-market-muted);
-  font-size: 9px;
-  line-height: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.oq-marketplace-card-actions > div {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 7px;
-}
-
-.oq-marketplace-view-button,
-.oq-marketplace-subscribe-button {
-  display: inline-flex;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border-radius: 6px;
-  padding: 0 10px;
-  font-family: var(--font-body);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 14px;
-  cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
-}
-
-.oq-marketplace-view-button {
-  border: 1px solid var(--oq-market-border);
-  background: transparent;
-  color: var(--oq-market-text-soft);
-}
-
-.oq-marketplace-view-button:hover {
-  border-color: #d2c8bc;
-  background: #faf8f6;
-  color: var(--oq-market-text);
-}
-
-.oq-marketplace-subscribe-button {
-  border: 1px solid var(--oq-market-primary);
-  background: var(--oq-market-primary);
-  color: #ffffff;
-}
-
-.oq-marketplace-subscribe-button:hover {
-  background: #c74100;
-}
-
-.oq-marketplace-subscribe-button.is-subscribed {
-  border-color: rgba(65, 165, 161, 0.35);
-  background: rgba(65, 165, 161, 0.1);
-  color: var(--oq-market-secondary);
-}
-
-.oq-marketplace-view-button svg,
-.oq-marketplace-subscribe-button svg {
-  width: 12px;
-  height: 12px;
 }
 
 .oq-marketplace-empty {
@@ -308,7 +232,7 @@
 
 .dark.oq-trade-active .oq-marketplace {
   --oq-market-primary: var(--oq-trade-accent);
-  --oq-market-secondary: var(--oq-trade-text-soft);
+  --oq-market-positive: var(--oq-trade-success);
   --oq-market-surface: var(--oq-trade-surface-1);
   --oq-market-border: var(--oq-trade-border);
   --oq-market-border-soft: var(--oq-trade-border);
@@ -317,34 +241,9 @@
   --oq-market-muted: var(--oq-trade-muted);
 }
 
-.dark.oq-trade-active .oq-marketplace-official {
-  border-color: color-mix(in oklch, var(--oq-market-primary) 32%, transparent);
-  background: var(--oq-trade-surface-warm);
-}
-
-.dark.oq-trade-active .oq-marketplace-view-button:hover {
-  border-color: var(--oq-trade-border-strong);
-  background: var(--oq-trade-surface-3);
-}
-
-@media (min-width: 1181px) {
-  .oq-marketplace-card h3 {
-    font-size: 15px;
-  }
-
-  .oq-marketplace-metric strong {
-    font-size: 14px;
-  }
-
-  .oq-marketplace-chart-legend {
-    gap: 6px;
-  }
-
-  .oq-marketplace-view-button,
-  .oq-marketplace-subscribe-button {
-    padding-right: 8px;
-    padding-left: 8px;
-    font-size: 9.5px;
+@media (max-width: 1440px) {
+  .oq-marketplace-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -362,35 +261,17 @@
 
 @media (max-width: 560px) {
   .oq-marketplace-card {
-    min-height: 0;
+    min-height: 300px;
     padding-right: 14px;
     padding-left: 14px;
+  }
+
+  .oq-marketplace-performance {
+    grid-template-columns: minmax(0, 0.9fr) minmax(120px, 1.1fr);
   }
 
   .oq-marketplace-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px 16px;
-  }
-
-  .oq-marketplace-card-actions {
-    align-items: flex-start;
-    margin-right: -14px;
-    margin-left: -14px;
-    padding-right: 14px;
-    padding-left: 14px;
-  }
-
-  .oq-marketplace-card-actions > span {
-    display: none;
-  }
-
-  .oq-marketplace-card-actions > div {
-    width: 100%;
-  }
-
-  .oq-marketplace-card-actions a,
-  .oq-marketplace-view-button,
-  .oq-marketplace-subscribe-button {
-    flex: 1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
   }
 }

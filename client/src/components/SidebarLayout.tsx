@@ -9,6 +9,7 @@
 import { Link, useLocation, useSearch } from "wouter";
 import { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { type UiCopy, translateUi, useAppLanguage } from "@/contexts/AppLanguageContext";
 import {
   AlphaViewModeProvider,
@@ -17,7 +18,6 @@ import {
   replaceAlphaTerms,
 } from "@/contexts/AlphaViewModeContext";
 import {
-  LayoutDashboard,
   FlaskConical,
   Settings2,
   Menu,
@@ -30,6 +30,7 @@ import {
   SquarePen,
 } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 
 const SIDEBAR_W = 186;
 const SIDEBAR_COLLAPSED_W = 64;
@@ -44,7 +45,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { path: "/", labelEn: "Dashboard", labelZh: "仪表盘", icon: LayoutDashboard },
+  { path: "/marketplace", labelEn: "Marketplace", labelZh: "广场", icon: ChartNetwork },
   {
     path: "/alphas",
     labelEn: "Create",
@@ -53,10 +54,9 @@ const navItems: NavItem[] = [
     children: [
       { path: "/alphas", labelEn: "My Factors", labelZh: "我的因子", icon: FlaskConical },
       { path: "/strategies", labelEn: "My Strategy", labelZh: "我的策略", icon: Rocket },
+      { path: "/trade", labelEn: "Paper Trading", labelZh: "模拟交易", icon: CandlestickChart },
     ],
   },
-  { path: "/trade", labelEn: "Trade", labelZh: "交易", icon: CandlestickChart },
-  { path: "/marketplace", labelEn: "Marketplace", labelZh: "广场", icon: ChartNetwork },
   { path: "/account", labelEn: "Settings", labelZh: "设置", icon: Settings2 },
 ];
 
@@ -131,6 +131,7 @@ const sidebarCopy: Record<string, UiCopy> = {
   Create: { ja: "作成", ko: "만들기", es: "Crear", fr: "Créer" },
   "My Factors": { ja: "マイファクター", ko: "내 팩터", es: "Mis factores", fr: "Mes facteurs" },
   "My Strategy": { ja: "マイストラテジー", ko: "내 전략", es: "Mis estrategias", fr: "Mes stratégies" },
+  "Paper Trading": { ja: "ペーパートレード", ko: "모의 거래", es: "Trading simulado", fr: "Trading simulé" },
   Trade: { ja: "取引", ko: "거래", es: "Trading", fr: "Trading" },
   Marketplace: { ja: "マーケット", ko: "마켓", es: "Mercado", fr: "Marché" },
   Subscription: { ja: "サブスクリプション", ko: "구독", es: "Suscripción", fr: "Abonnement" },
@@ -221,6 +222,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const search = useSearch();
   const { user } = useAuth();
   const { uiLang } = useAppLanguage();
+  const { theme } = useTheme();
   const { alphaViewMode } = useAlphaViewMode();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -233,8 +235,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     : "";
   const hasHeaderSearch =
     currentPathname === "/trade" ||
-    currentPathname === "/strategies" ||
-    currentPathname === "/marketplace";
+    currentPathname === "/strategies";
   const headerSearchQuery = new URLSearchParams(currentSearch).get("q") ?? "";
   const isOfficialAlphaDetail =
     currentPathname.startsWith("/alphas/") &&
@@ -630,12 +631,20 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                 )}
               </label>
             )}
-            <NotificationPanel
-              triggerClassName="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] dark:border-[#4b4036] dark:bg-[#241e18]"
-              iconClassName="h-[12.75px] w-[12.75px] text-[var(--oq-text-soft)]"
-              panelStyle={{ position: "fixed", top: "52px", right: "21px", width: "380px" }}
-              showBadge={false}
-            />
+            <div className="flex items-center gap-[9px]">
+              <AnimatedThemeToggler
+                aria-label={theme === "dark" ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}
+                aria-pressed={theme === "dark"}
+                title={theme === "dark" ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}
+                className="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white p-0 text-[var(--oq-text-soft)] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] transition-colors hover:border-[#d2c8bc] hover:bg-[#fef6ef] hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:border-[#4b4036] dark:bg-[#241e18] dark:hover:border-[#6a5b4d] dark:hover:bg-[#2d2113] dark:hover:text-[#ff6a1a]"
+              />
+              <NotificationPanel
+                triggerClassName="relative flex h-[30px] w-[30px] items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] dark:border-[#4b4036] dark:bg-[#241e18]"
+                iconClassName="h-[12.75px] w-[12.75px] text-[var(--oq-text-soft)]"
+                panelStyle={{ position: "fixed", top: "52px", right: "21px", width: "380px" }}
+                showBadge={false}
+              />
+            </div>
           </div>
         </header>
 
@@ -661,9 +670,15 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               />
             </div>
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <AnimatedThemeToggler
+              aria-label={theme === "dark" ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}
+              aria-pressed={theme === "dark"}
+              title={theme === "dark" ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}
+              className="relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-white p-0 text-[var(--oq-text-soft)] shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] transition-colors hover:bg-[#fef6ef] hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:border-[#4b4036] dark:bg-[#241e18] dark:hover:bg-[#2d2113] dark:hover:text-[#ff6a1a]"
+            />
             <NotificationPanel
-              triggerClassName="oq-notification-mobile-trigger relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)]"
+              triggerClassName="oq-notification-mobile-trigger relative flex h-11 w-11 items-center justify-center rounded-full border border-[#e2dad0] bg-white shadow-[0_0.75px_0.75px_rgba(60,40,20,0.06)] dark:border-[#4b4036] dark:bg-[#241e18]"
               iconClassName="h-[13px] w-[13px] text-[var(--oq-text-soft)]"
               panelStyle={{ position: "fixed", top: "56px", right: "12px", width: "390px" }}
               showBadge={false}
@@ -672,7 +687,13 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="mx-auto w-full max-w-[1100px] flex-1 px-0 py-6 md:pt-[calc(60px+1.5rem)] lg:pb-8 lg:pt-[calc(60px+2rem)]">
+        <main
+          className={`mx-auto w-full flex-1 py-6 md:pt-[calc(60px+1.5rem)] lg:pb-8 lg:pt-[calc(60px+2rem)] ${
+            currentPathname.startsWith("/marketplace")
+              ? "max-w-none px-4 md:px-6 lg:px-8"
+              : "max-w-[1100px] px-0"
+          }`}
+        >
           {children}
         </main>
       </div>
