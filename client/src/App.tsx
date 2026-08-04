@@ -25,6 +25,7 @@ const Trade = lazy(() => import("@/pages/Trade"));
 const TradeDetail = lazy(() => import("@/pages/TradeDetail"));
 const Marketplace = lazy(() => import("@/pages/Marketplace"));
 const MarketplaceDetail = lazy(() => import("@/pages/MarketplaceDetail"));
+const MarketplaceUserProfile = lazy(() => import("@/pages/MarketplaceUserProfile"));
 const LazySubscription = lazy(() => import("@/pages/Subscription"));
 const LinkCheckout = lazy(() => import("@/pages/LinkCheckout"));
 
@@ -118,6 +119,9 @@ function Router() {
         </Route>
         <Route path="/trade">
           <ProtectedRoute component={Trade} />
+        </Route>
+        <Route path="/marketplace/users/:id">
+          <ProtectedRoute component={MarketplaceUserProfile} />
         </Route>
         <Route path="/marketplace/:id">
           <ProtectedRoute component={MarketplaceDetail} />

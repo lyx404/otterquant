@@ -1,6 +1,12 @@
-import { useEffect, useId, useMemo } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link, useSearch } from "wouter";
-import { ClipboardList, ListChecks, Users } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
+  ClipboardList,
+  ListChecks,
+} from "lucide-react";
 import {
   translateUi,
   useAppLanguage,
@@ -14,8 +20,9 @@ import {
 import "./Trade.css";
 import "./Marketplace.css";
 
-// 260804 snapshot: keep the strategy marketplace implementation in place for a later restore.
-const SHOW_MARKETPLACE_CONTENT = false;
+const SHOW_MARKETPLACE_CONTENT = true;
+
+type AvatarTone = "orange" | "teal" | "violet" | "blue" | "green" | "rose";
 
 type MarketplaceCardView = {
   author: string;
@@ -29,7 +36,7 @@ type MarketplaceCardView = {
   maxDrawdown: string;
   sharpe: string;
   winRate: string;
-  avatarTone: "orange" | "teal" | "violet" | "blue" | "green" | "rose";
+  avatarTone: AvatarTone;
 };
 
 const marketplaceCardViews: Record<string, MarketplaceCardView> = {
@@ -44,9 +51,47 @@ const marketplaceCardViews: Record<string, MarketplaceCardView> = {
   "STR-011": { author: "链上观察员", avatar: "链", subscribers: 93, capacity: 120, status: "跟单", title: "链上流动性脉冲", return30d: "+17.10%", pnl30d: "+855.00 USDT", maxDrawdown: "-2.4%", sharpe: "4.26", winRate: "51%", avatarTone: "violet" },
 };
 
+type RankingRow = {
+  rank: number;
+  name: string;
+  profileId: string;
+  country: string;
+  avatar: string;
+  avatarSrc?: string;
+  avatarTone: AvatarTone;
+  returnValue: string;
+  returnRate: string;
+  drawdown: string;
+  assets: string;
+  strategyId: string;
+  series: number[];
+  tone: "positive" | "risk";
+};
+
+const countryFlags: Record<string, string> = {
+  CN: "🇨🇳",
+  FR: "🇫🇷",
+  JP: "🇯🇵",
+  KR: "🇰🇷",
+  SG: "🇸🇬",
+  US: "🇺🇸",
+};
+
+const rankingRows: RankingRow[] = [
+  { rank: 1, name: "Evan Lim", profileId: "evan-lim", country: "SG", avatar: "E", avatarSrc: "/marketplace-avatar.png", avatarTone: "teal", returnValue: "+10,000.00 USDT", returnRate: "+10.2%", drawdown: "-1.8%", assets: "130,000.00 USDT", strategyId: "STR-002", series: [2, 2, 2, 5, 4, 9, 9, 12], tone: "positive" },
+  { rank: 2, name: "AlphaAgent", profileId: "alpha-agent", country: "US", avatar: "A", avatarTone: "orange", returnValue: "+9,000.00 USDT", returnRate: "+8.2%", drawdown: "-3.3%", assets: "32,600.00 USDT", strategyId: "STR-001", series: [3, 3, 3, 3, 2, 2, 8, 10], tone: "positive" },
+  { rank: 3, name: "林岚", profileId: "lin-lan", country: "CN", avatar: "林", avatarTone: "blue", returnValue: "+9,000.00 USDT", returnRate: "+8.2%", drawdown: "-3.3%", assets: "32,600.00 USDT", strategyId: "STR-009", series: [5, 6, 4, 5, 7, 4, 3, 5], tone: "positive" },
+  { rank: 4, name: "Kaito Mori", profileId: "kaito-mori", country: "JP", avatar: "K", avatarTone: "violet", returnValue: "+9,000.00 USDT", returnRate: "+8.2%", drawdown: "-3.3%", assets: "32,600.00 USDT", strategyId: "STR-005", series: [3, 5, 3, 4, 5, 6, 5, 9], tone: "positive" },
+  { rank: 5, name: "Minseo Park", profileId: "minseo-park", country: "KR", avatar: "M", avatarTone: "green", returnValue: "+9,000.00 USDT", returnRate: "+8.2%", drawdown: "-3.3%", assets: "32,600.00 USDT", strategyId: "STR-007", series: [6, 4, 5, 3, 4, 6, 7, 8], tone: "positive" },
+  { rank: 6, name: "Camille Laurent", profileId: "camille-laurent", country: "FR", avatar: "C", avatarTone: "teal", returnValue: "+9,000.00 USDT", returnRate: "+8.2%", drawdown: "-3.3%", assets: "32,600.00 USDT", strategyId: "STR-008", series: [3, 4, 2, 3, 5, 6, 6, 8], tone: "positive" },
+  { rank: 7, name: "Theo Martin", profileId: "theo-martin", country: "FR", avatar: "T", avatarTone: "blue", returnValue: "+9,000.00 USDT", returnRate: "+8.2%", drawdown: "-3.3%", assets: "32,600.00 USDT", strategyId: "STR-010", series: [2, 3, 8, 3, 3, 3, 3, 3], tone: "positive" },
+  { rank: 8, name: "Jules Bernard", profileId: "jules-bernard", country: "FR", avatar: "J", avatarTone: "orange", returnValue: "+9,000.00 USDT", returnRate: "+8.2%", drawdown: "-3.3%", assets: "32,600.00 USDT", strategyId: "STR-011", series: [2, 2, 2, 3, 3, 7, 7, 7], tone: "positive" },
+  { rank: 9, name: "Sofia Rossi", profileId: "sofia-rossi", country: "US", avatar: "S", avatarTone: "rose", returnValue: "+8,420.00 USDT", returnRate: "+7.6%", drawdown: "-2.1%", assets: "28,400.00 USDT", strategyId: "STR-003", series: [2, 2, 4, 4, 5, 6, 8, 9], tone: "positive" },
+  { rank: 10, name: "Noah Williams", profileId: "noah-williams", country: "US", avatar: "N", avatarTone: "green", returnValue: "+7,860.00 USDT", returnRate: "+7.1%", drawdown: "-2.8%", assets: "25,900.00 USDT", strategyId: "STR-007", series: [2, 3, 3, 5, 4, 6, 7, 8], tone: "positive" },
+];
+
 function buildChartPath(values: number[], min: number, max: number) {
-  const width = 520;
-  const top = 14;
+  const top = 12;
   const bottom = 116;
   const left = 12;
   const right = 508;
@@ -72,7 +117,7 @@ function PerformanceChart({
   const values = details.strategySeries;
   const min = Math.min(...values) - 1;
   const max = Math.max(...values) + 1;
-  const strategyPath = buildChartPath(details.strategySeries, min, max);
+  const strategyPath = buildChartPath(values, min, max);
   const areaPath = `${strategyPath} L 508 124 L 12 124 Z`;
 
   return (
@@ -83,12 +128,33 @@ function PerformanceChart({
         <path d={strategyPath} className="oq-marketplace-chart-strategy" />
         <defs>
           <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--oq-market-positive)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--oq-market-primary)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--oq-market-positive)" stopOpacity="0.24" />
+            <stop offset="100%" stopColor="var(--oq-market-positive)" stopOpacity="0" />
           </linearGradient>
         </defs>
       </svg>
     </div>
+  );
+}
+
+function RankingSparkline({ values, label, tone }: { values: number[]; label: string; tone: "positive" | "risk" }) {
+  const gradientId = useId().replace(/:/g, "");
+  const min = Math.min(...values) - 1;
+  const max = Math.max(...values) + 1;
+  const linePath = buildChartPath(values, min, max);
+  const areaPath = `${linePath} L 508 124 L 12 124 Z`;
+  return (
+    <svg className={`oq-marketplace-ranking-sparkline is-${tone}`} viewBox="0 0 520 140" role="img" aria-label={label}>
+      <title>{label}</title>
+      <path className="oq-marketplace-ranking-sparkline-area" d={areaPath} fill={`url(#${gradientId})`} />
+      <path className="oq-marketplace-ranking-sparkline-line" d={linePath} />
+      <defs>
+        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={tone === "risk" ? "var(--oq-market-risk)" : "var(--oq-market-positive)"} stopOpacity="0.24" />
+          <stop offset="100%" stopColor={tone === "risk" ? "var(--oq-market-risk)" : "var(--oq-market-positive)"} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+    </svg>
   );
 }
 
@@ -116,14 +182,14 @@ function MarketplaceSummary({ tr }: { tr: (en: string, zh: string) => string }) 
         </div>
       </div>
       <div className="oq-marketplace-summary-actions">
-        <button type="button" className="oq-marketplace-action-button">
+        <Link href="/strategies" className="oq-marketplace-action-button">
           <ListChecks aria-hidden="true" />
-          {tr("Lead management", "带单管理")}
-        </button>
-        <button type="button" className="oq-marketplace-action-button">
+          {tr("Lead management", "我的带单")}
+        </Link>
+        <Link href="/trade" className="oq-marketplace-action-button">
           <ClipboardList aria-hidden="true" />
-          {tr("Copy management", "跟单管理")}
-        </button>
+          {tr("Copy management", "我的跟单")}
+        </Link>
       </div>
     </section>
   );
@@ -139,6 +205,10 @@ function TradingCard({
   tr: (en: string, zh: string) => string;
 }) {
   const description = tr(strategy.description, details.descriptionZh);
+  const bio = tr(
+    "A concise, data-led approach to disciplined market execution.",
+    "以数据驱动策略，专注稳健执行，持续跟踪市场波动与风险管理。",
+  );
   const view = marketplaceCardViews[strategy.id];
   if (!view) return null;
 
@@ -150,22 +220,23 @@ function TradingCard({
     >
       <article className="oq-marketplace-card">
         <div className="oq-marketplace-card-header">
-          <div className="oq-marketplace-card-title-row">
+          <div className="oq-marketplace-card-author-row">
             <div className="oq-marketplace-author">
               <span className={`oq-marketplace-avatar is-${view.avatarTone}`} aria-hidden="true">{view.avatar}</span>
               <div>
                 <h3 id={`marketplace-card-title-${strategy.id}`}>{view.author}</h3>
-                <span className="oq-marketplace-subscribers" aria-label={tr(`${view.subscribers} of ${view.capacity} subscribers`, `${view.subscribers}/${view.capacity} 人订阅`)}>
-                  <Users aria-hidden="true" />
-                  {view.subscribers}/{view.capacity}
-                </span>
+                <p className="oq-marketplace-author-bio" title={bio}>{bio}</p>
               </div>
+            </div>
+          </div>
+          <div className="oq-marketplace-card-strategy-row">
+            <div className="oq-marketplace-strategy-copy">
+              <p className="oq-marketplace-card-description" title={description}>{view.title}</p>
             </div>
             <span className={`oq-marketplace-status is-${view.status === "满员" ? "full" : "open"}`}>
               {view.status}
             </span>
           </div>
-          <p className="oq-marketplace-card-description" title={description}>{view.title}</p>
         </div>
 
         <div className="oq-marketplace-performance-panel">
@@ -191,11 +262,203 @@ function TradingCard({
   );
 }
 
+type StrategyCarouselProps = {
+  title: string;
+  titleZh: string;
+  description: string;
+  descriptionZh: string;
+  strategies: Strategy[];
+  tr: (en: string, zh: string) => string;
+};
+
+function StrategyCarousel({
+  title,
+  titleZh,
+  description,
+  descriptionZh,
+  strategies,
+  tr,
+}: StrategyCarouselProps) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const showControls = strategies.length > 4;
+
+  const scrollStrategies = (direction: number) => {
+    const list = listRef.current;
+    if (!list) return;
+    list.scrollBy({ left: direction * Math.max(280, list.clientWidth * 0.82), behavior: "smooth" });
+  };
+
+  return (
+    <section className="oq-marketplace-strategy-group" aria-labelledby={`marketplace-strategy-group-${title}`}>
+      <header className="oq-marketplace-ranking-board-heading oq-marketplace-strategy-group-heading">
+        <div>
+          <h3 id={`marketplace-strategy-group-${title}`}>{tr(title, titleZh)}</h3>
+          <p>{tr(description, descriptionZh)}</p>
+        </div>
+        {showControls && (
+          <div className="oq-marketplace-carousel-controls" aria-label={tr("Strategy carousel controls", "策略横向浏览")}>
+            <button
+              type="button"
+              aria-label={tr(`Previous ${title}`, `查看上一组${titleZh}`)}
+              title={tr("Previous", "向左")}
+              onClick={() => scrollStrategies(-1)}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label={tr(`Next ${title}`, `查看下一组${titleZh}`)}
+              title={tr("Next", "向右")}
+              onClick={() => scrollStrategies(1)}
+            >
+              <ChevronRight aria-hidden="true" />
+            </button>
+          </div>
+        )}
+      </header>
+      <div className="oq-marketplace-carousel-viewport">
+        <div ref={listRef} className="oq-marketplace-carousel-list">
+          {strategies.map((strategy) => (
+            <TradingCard
+              key={strategy.id}
+              strategy={strategy}
+              details={marketplaceCardDetails[strategy.id]}
+              tr={tr}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type RankingMetric = "returnRate" | "assets" | "returnValue";
+
+type RankingBoardDefinition = {
+  id: string;
+  title: string;
+  titleZh: string;
+  description: string;
+  descriptionZh: string;
+  metric: RankingMetric;
+  metricLabel: string;
+  metricLabelZh: string;
+  rows: RankingRow[];
+};
+
+function metricNumber(value: string) {
+  return Number(value.replace(/[^\d.-]/g, ""));
+}
+
+const rankingBoards: RankingBoardDefinition[] = [
+  {
+    id: "managers",
+    title: "Best fund managers",
+    titleZh: "最佳基金管理员",
+    description: "Who grew followers' simulated capital",
+    descriptionZh: "谁提升了跟单者的模拟资金",
+    metric: "returnRate",
+    metricLabel: "30-day return",
+    metricLabelZh: "近30天收益率",
+    rows: [...rankingRows].sort((a, b) => metricNumber(b.returnRate) - metricNumber(a.returnRate)),
+  },
+  {
+    id: "investors",
+    title: "Best investors",
+    titleZh: "最佳投资者",
+    description: "Steady results across the latest cycle",
+    descriptionZh: "在最近一轮市场周期中保持稳定",
+    metric: "assets",
+    metricLabel: "Assets",
+    metricLabelZh: "资产规模",
+    rows: [...rankingRows].sort((a, b) => metricNumber(b.assets) - metricNumber(a.assets)),
+  },
+  {
+    id: "returns",
+    title: "Highest returns",
+    titleZh: "最高收益",
+    description: "The strongest return among open strategies",
+    descriptionZh: "公开策略中的最高收益",
+    metric: "returnValue",
+    metricLabel: "Total return",
+    metricLabelZh: "累计收益",
+    rows: [...rankingRows].sort((a, b) => metricNumber(b.returnValue) - metricNumber(a.returnValue)),
+  },
+];
+
+function rankingMetricValue(row: RankingRow, metric: RankingMetric) {
+  return row[metric];
+}
+
+function RankingBoards({ tr }: { tr: (en: string, zh: string) => string }) {
+  const [showAll, setShowAll] = useState(false);
+  const visibleCount = showAll ? rankingRows.length : 5;
+
+  return (
+    <>
+      <div className="oq-marketplace-ranking-boards">
+        {rankingBoards.map((board) => (
+          <section key={board.id} className="oq-marketplace-ranking-board" aria-labelledby={`marketplace-ranking-board-${board.id}`}>
+            <header className="oq-marketplace-ranking-board-heading">
+              <div>
+                <h3 id={`marketplace-ranking-board-${board.id}`}>{tr(board.title, board.titleZh)}</h3>
+                <p>{tr(board.description, board.descriptionZh)}</p>
+              </div>
+            </header>
+            <div className="oq-marketplace-ranking-list">
+              {board.rows.slice(0, visibleCount).map((row, index) => (
+                <Link
+                  key={`${board.id}-${row.profileId}`}
+                  href={`/marketplace/users/${row.profileId}`}
+                  className="oq-marketplace-ranking-item"
+                  aria-label={tr(`View ${row.name}'s profile`, `查看 ${row.name} 的主页`)}
+                >
+                  <span className={`oq-marketplace-avatar is-${row.avatarTone}`} aria-hidden="true">
+                    {row.avatarSrc ? <img src={row.avatarSrc} alt="" /> : row.avatar}
+                  </span>
+                  <span className="oq-marketplace-ranking-item-copy">
+                    <span className="oq-marketplace-ranking-item-name">
+                      <strong>{row.name}</strong>
+                      <span className="oq-marketplace-country-flag" aria-label={tr(`Region: ${row.country}`, `所在地区：${row.country}`)}>
+                        <span aria-hidden="true">{countryFlags[row.country]}</span>
+                      </span>
+                    </span>
+                    <small aria-label={tr(`Rank ${index + 1}, ${rankingMetricValue(row, board.metric)}`, `排名 ${index + 1}，${rankingMetricValue(row, board.metric)}`)}>
+                      {tr(`Rank ${index + 1}`, `排名 ${index + 1}`)}
+                    </small>
+                  </span>
+                  <span className="oq-marketplace-ranking-item-stat">
+                    <strong>{rankingMetricValue(row, board.metric)}</strong>
+                    <small>{tr(board.metricLabel, board.metricLabelZh)}</small>
+                  </span>
+                  <RankingSparkline
+                    values={row.series}
+                    tone={row.tone}
+                    label={`${row.name} ${tr("return curve", "收益曲线")}`}
+                  />
+                  <ChevronRight aria-hidden="true" />
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="oq-marketplace-ranking-more"
+        aria-expanded={showAll}
+        onClick={() => setShowAll((current) => !current)}
+      >
+        {showAll ? tr("Show less", "收起") : tr("More", "更多")}
+      </button>
+    </>
+  );
+}
+
 export default function Marketplace() {
   const { uiLang } = useAppLanguage();
   const search = useSearch();
-  const tr = (en: string, zh: string) =>
-    translateUi(uiLang, en, zh);
+  const tr = (en: string, zh: string) => translateUi(uiLang, en, zh);
   const query = new URLSearchParams(search).get("q")?.trim().toLowerCase() ?? "";
   const activeTab = new URLSearchParams(search).get("tab") ?? "marketplace";
   const visibleStrategies = useMemo(() => {
@@ -208,33 +471,89 @@ export default function Marketplace() {
       return searchable.includes(query);
     });
   }, [query]);
+  const carouselStrategies = useMemo(() => {
+    const available = visibleStrategies.filter((strategy) => marketplaceCardViews[strategy.id]);
+    return available.length > 8 && !query ? available.slice(0, 8) : available;
+  }, [query, visibleStrategies]);
+  const strategyGroups = useMemo(() => [
+    {
+      id: "highest-return",
+      title: "Highest returns",
+      titleZh: "最高收益率",
+      description: "The strongest 30-day return",
+      descriptionZh: "近30天收益率最高的策略",
+      strategies: [...carouselStrategies].sort((a, b) => (
+        metricNumber(marketplaceCardViews[b.id].return30d) - metricNumber(marketplaceCardViews[a.id].return30d)
+      )),
+    },
+    {
+      id: "lowest-drawdown",
+      title: "Lowest drawdown",
+      titleZh: "最低回撤",
+      description: "The most stable risk profile",
+      descriptionZh: "风险控制最稳健的策略",
+      strategies: [...carouselStrategies].sort((a, b) => (
+        Math.abs(metricNumber(marketplaceCardViews[a.id].maxDrawdown)) - Math.abs(metricNumber(marketplaceCardViews[b.id].maxDrawdown))
+      )),
+    },
+  ], [carouselStrategies]);
 
   useEffect(() => {
-    document.documentElement.classList.add("oq-trade-active");
-    return () => document.documentElement.classList.remove("oq-trade-active");
+    document.documentElement.classList.add("oq-marketplace-active");
+    return () => {
+      document.documentElement.classList.remove("oq-marketplace-active");
+    };
   }, []);
 
-  if (!SHOW_MARKETPLACE_CONTENT || activeTab !== "marketplace") {
-    return null;
-  }
+  if (!SHOW_MARKETPLACE_CONTENT || activeTab !== "marketplace") return null;
 
   return (
     <div className="oq-trade oq-marketplace">
-      <MarketplaceSummary tr={tr} />
-      {visibleStrategies.length > 0 ? (
-        <section className="oq-marketplace-grid" aria-label={tr("Official trading strategies", "官方交易策略")}>
-          {visibleStrategies.map((strategy) => (
-            <TradingCard
-              key={strategy.id}
-              strategy={strategy}
-              details={marketplaceCardDetails[strategy.id]}
-              tr={tr}
-            />
-          ))}
-        </section>
-      ) : (
-        <p className="oq-marketplace-empty">{tr("No official strategies match your search.", "没有匹配搜索条件的官方交易策略。")}</p>
-      )}
+      <section className="oq-marketplace-hero" aria-labelledby="oq-marketplace-hero-title">
+        <div className="oq-marketplace-hero-inner">
+          <header className="oq-marketplace-hero-heading">
+            <h1 id="oq-marketplace-hero-title">{tr("Follow fund managers, trade with clarity", "跟随基金管理员，轻松进行交易")}</h1>
+          </header>
+          <MarketplaceSummary tr={tr} />
+          <section className="oq-marketplace-strategy-groups" aria-label={tr("Official trading strategies", "官方交易策略")}>
+            {strategyGroups.map((group) => (
+              <StrategyCarousel
+                key={group.id}
+                title={group.title}
+                titleZh={group.titleZh}
+                description={group.description}
+                descriptionZh={group.descriptionZh}
+                strategies={group.strategies}
+                tr={tr}
+              />
+            ))}
+          </section>
+        </div>
+      </section>
+
+      <section className="oq-marketplace-rankings" aria-labelledby="oq-marketplace-ranking-title">
+        <div className="oq-marketplace-ranking-inner">
+          <header className="oq-marketplace-section-heading">
+            <div>
+              <h2 id="oq-marketplace-ranking-title">{tr("Fund manager performance rankings", "基金管理员表现排名")}</h2>
+            </div>
+          </header>
+          <RankingBoards tr={tr} />
+        </div>
+      </section>
+
+      <section className="oq-marketplace-cta" aria-labelledby="oq-marketplace-cta-title">
+        <div className="oq-marketplace-cta-inner">
+          <div>
+            <h2 id="oq-marketplace-cta-title">{tr("Become a fund manager and earn copy trading income", "成为基金管理员，赚取带单收入")}</h2>
+            <p>{tr("Earn up to 31% in lead trading income.", "赚取最高 31% 带单收入")}</p>
+          </div>
+          <Link href="/strategies/new" className="oq-marketplace-cta-button">
+            {tr("Create fund", "创建基金")}
+            <ArrowUpRight aria-hidden="true" />
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
