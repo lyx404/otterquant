@@ -22,10 +22,13 @@ import {
   Settings2,
   Menu,
   X,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   Rocket,
   CandlestickChart,
-  ChartNetwork,
+  Compass,
   Search,
   SquarePen,
 } from "lucide-react";
@@ -45,7 +48,7 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { path: "/marketplace", labelEn: "Marketplace", labelZh: "广场", icon: ChartNetwork },
+  { path: "/marketplace", labelEn: "Explore", labelZh: "探索", icon: Compass },
   {
     path: "/alphas",
     labelEn: "Create",
@@ -59,6 +62,12 @@ const navItems: NavItem[] = [
   },
   { path: "/account", labelEn: "Settings", labelZh: "设置", icon: Settings2 },
 ];
+
+const exploreTabs = [
+  { key: "marketplace", href: "/marketplace", labelEn: "Explore", labelZh: "探索" },
+  { key: "leaderboard", href: "/marketplace?tab=leaderboard", labelEn: "Leaderboard", labelZh: "排行榜" },
+  { key: "mine", href: "/marketplace?tab=mine", labelEn: "My", labelZh: "我的" },
+].filter((tab) => tab.key !== "leaderboard");
 
 const pageHeaders = [
   {
@@ -133,6 +142,10 @@ const sidebarCopy: Record<string, UiCopy> = {
   "My Strategy": { ja: "マイストラテジー", ko: "내 전략", es: "Mis estrategias", fr: "Mes stratégies" },
   "Paper Trading": { ja: "ペーパートレード", ko: "모의 거래", es: "Trading simulado", fr: "Trading simulé" },
   Trade: { ja: "取引", ko: "거래", es: "Trading", fr: "Trading" },
+  Explore: { ja: "探索", ko: "탐색", es: "Explorar", fr: "Explorer" },
+  "Strategy Marketplace": { ja: "ストラテジーマーケット", ko: "전략 마켓", es: "Mercado de estrategias", fr: "Marché des stratégies" },
+  Leaderboard: { ja: "ランキング", ko: "리더보드", es: "Clasificación", fr: "Classement" },
+  My: { ja: "マイ", ko: "내 항목", es: "Mío", fr: "Mes éléments" },
   Marketplace: { ja: "マーケット", ko: "마켓", es: "Mercado", fr: "Marché" },
   Subscription: { ja: "サブスクリプション", ko: "구독", es: "Suscripción", fr: "Abonnement" },
   Settings: { ja: "設定", ko: "설정", es: "Configuración", fr: "Paramètres" },
@@ -195,6 +208,8 @@ const sidebarCopy: Record<string, UiCopy> = {
   "Back to strategies": { ja: "ストラテジー一覧に戻る", ko: "전략 목록으로 돌아가기", es: "Volver a estrategias", fr: "Retour aux stratégies" },
   Back: { ja: "戻る", ko: "뒤로", es: "Atrás", fr: "Retour" },
   "Pro plan": { ja: "Pro プラン", ko: "Pro 플랜", es: "Plan Pro", fr: "Offre Pro" },
+  "Collapse sidebar": { ja: "サイドバーを折りたたむ", ko: "사이드바 접기", es: "Contraer barra lateral", fr: "Réduire la barre latérale" },
+  "Expand sidebar": { ja: "サイドバーを展開", ko: "사이드바 펼치기", es: "Expandir barra lateral", fr: "Déployer la barre latérale" },
   "Search strategies, IDs, or symbols": {
     ja: "ストラテジー、ID、取引ペアを検索",
     ko: "전략, ID 또는 거래쌍 검색",
@@ -226,13 +241,15 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const { alphaViewMode } = useAlphaViewMode();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    "/alphas": false,
-  });
+  const [secondarySection, setSecondarySection] = useState<string | null>(null);
+  const [navTransition, setNavTransition] = useState<"primary" | "secondary" | null>(null);
   const currentPathname = location.split("?")[0];
   const currentSearch = search
     ? `?${search.replace(/^\?/, "")}`
     : "";
+  const showExploreTabs = currentPathname === "/marketplace";
+  const activeExploreTab = new URLSearchParams(currentSearch).get("tab") ?? "marketplace";
+  const isExploreTabActive = (key: string) => showExploreTabs && activeExploreTab === key;
   const hasHeaderSearch =
     currentPathname === "/trade" ||
     currentPathname === "/strategies";
@@ -249,6 +266,21 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMobileOpen(false);
   }, [location]);
+
+  useEffect(() => {
+    const matchingSection = navItems.find((item) =>
+      item.children?.some((child) =>
+        currentPathname === child.path || currentPathname.startsWith(`${child.path}/`)
+      )
+    );
+    setSecondarySection(matchingSection?.path ?? null);
+  }, [currentPathname]);
+
+  useEffect(() => {
+    if (!navTransition) return;
+    const timeout = window.setTimeout(() => setNavTransition(null), 180);
+    return () => window.clearTimeout(timeout);
+  }, [navTransition]);
 
   const isActive = (path: string) => {
     if (path === "/") return currentPathname === "/";
@@ -369,11 +401,26 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         }`}
       >
         {collapsed && !isMobile ? (
-          <Link href="/">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#fef6ef] text-[11px] font-semibold text-[#dc4900]">
-              Q
-            </div>
-          </Link>
+          <button
+            type="button"
+            data-testid="sidebar-toggle"
+            onClick={() => setCollapsed(false)}
+            aria-expanded={false}
+            aria-label={tr("Expand sidebar", "展开导航栏")}
+            title={tr("Expand sidebar", "展开导航栏")}
+            className="group relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-black/55 transition-colors hover:bg-[#fef6ef] hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:text-[#b2a69b] dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
+          >
+            <img
+              src="/quandora-single-logo.svg"
+              alt="Quandora"
+              className="h-6 w-6 object-contain transition-opacity duration-150 group-hover:opacity-0 group-focus-visible:opacity-0"
+            />
+            <PanelLeftOpen
+              className="pointer-events-none absolute h-4 w-4 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+              strokeWidth={1.8}
+              aria-hidden="true"
+            />
+          </button>
         ) : (
           <>
             <Link href="/">
@@ -392,6 +439,21 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             </Link>
           </>
         )}
+        {!isMobile && !collapsed && (
+          <button
+            type="button"
+            data-testid="sidebar-toggle"
+            onClick={() => setCollapsed((value) => !value)}
+            aria-expanded={!collapsed}
+            aria-label={collapsed ? tr("Expand sidebar", "展开导航栏") : tr("Collapse sidebar", "折叠导航栏")}
+            title={collapsed ? tr("Expand sidebar", "展开导航栏") : tr("Collapse sidebar", "折叠导航栏")}
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-black/45 transition-colors hover:bg-[#fef6ef] hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:text-[#b2a69b] dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a] ${
+              collapsed ? "" : "-mt-[5px]"
+            }`}
+          >
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" /> : <PanelLeftClose className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />}
+          </button>
+        )}
         {isMobile && (
           <button
             onClick={() => setMobileOpen(false)}
@@ -406,12 +468,53 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Navigation */}
       <nav className={`min-h-0 flex-1 space-y-3 overflow-y-auto ${collapsed && !isMobile ? "px-2 pt-[27px]" : "px-3 pt-[27px]"}`}>
-        {navItems.map((item) => {
+        {secondarySection && (!collapsed || isMobile) ? (() => {
+          const secondaryItem = navItems.find((item) => item.path === secondarySection);
+          if (!secondaryItem) return null;
+          return (
+            <div className={`oq-sidebar-nav-page space-y-3 ${navTransition === "secondary" ? "oq-sidebar-nav-page-secondary" : ""}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setNavTransition("primary");
+                  setSecondarySection(null);
+                }}
+                className="flex w-full items-center gap-2 rounded-[6px] px-1.5 py-1.5 text-left text-[12px] font-medium text-black transition-colors hover:bg-[#fef6ef] hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:text-[#f7f1ea] dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
+                aria-label={tr("Back", "返回")}
+              >
+                <ChevronLeft className="h-3 w-3 shrink-0" strokeWidth={1.7} aria-hidden="true" />
+                <span>{tr(secondaryItem.labelEn, secondaryItem.labelZh)}</span>
+              </button>
+              <div className="space-y-3">
+                {secondaryItem.children?.map((child) => {
+                  const childActive = isActive(child.path);
+                  const ChildIcon = child.icon;
+                  return (
+                    <button
+                      key={child.path}
+                      type="button"
+                      onClick={() => navigate(child.path)}
+                      className={`flex w-full items-center gap-1.5 rounded-[6px] p-1.5 text-[12px] font-normal transition-all duration-200 ease-in-out ${
+                        childActive
+                          ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
+                          : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
+                      }`}
+                    >
+                      <ChildIcon className="h-[15px] w-[15px] shrink-0" strokeWidth={1.5} />
+                      <span>{tr(child.labelEn, child.labelZh)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })() : (
+          <div className={`oq-sidebar-nav-page space-y-3 ${navTransition === "primary" ? "oq-sidebar-nav-page-primary" : ""}`}>
+            {navItems.map((item) => {
           const Icon = item.icon;
           const hasChildren = item.children && item.children.length > 0;
           const sectionActive = hasChildren ? isSectionActive(item.path) : isActive(item.path);
           const parentHighlighted = sectionActive && collapsed && !isMobile;
-          const showExpanded = collapsed && !isMobile ? false : (hasChildren && ((expandedSections[item.path] ?? false) || sectionActive));
 
           if (hasChildren) {
             return (
@@ -419,11 +522,9 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                 {/* Parent item */}
                 <button
                   onClick={() => {
-                    if (!collapsed || isMobile) {
-                      setExpandedSections((prev) => ({ ...prev, [item.path]: !prev[item.path] }));
-                    } else {
-                      navigate(item.children![0].path);
-                    }
+                    setNavTransition("secondary");
+                    setSecondarySection(item.path);
+                    navigate(item.children![0].path);
                   }}
                   className={`flex w-full items-center rounded-[6px] text-[12px] font-normal transition-all duration-200 ease-in-out ${
                     collapsed && !isMobile
@@ -439,35 +540,10 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   {(!collapsed || isMobile) && (
                     <>
                       <span className="flex-1 text-left">{tr(item.labelEn, item.labelZh)}</span>
-                      <ChevronDown className={`w-3 h-3 shrink-0 transition-transform duration-200 ${
-                        showExpanded ? "rotate-0" : "-rotate-90"
-                      }`} />
+                      <ChevronRight className="h-3 w-3 shrink-0" strokeWidth={1.7} aria-hidden="true" />
                     </>
                   )}
                 </button>
-                {/* Children */}
-                {showExpanded && (
-                  <div className="mt-0.5 space-y-0.5 ml-3 pl-3 border-l border-border">
-                    {item.children!.map((child) => {
-                      const childActive = isActive(child.path);
-                      const ChildIcon = child.icon;
-                      return (
-                        <button
-                          key={child.path}
-                          onClick={() => navigate(child.path)}
-                          className={`flex w-full items-center gap-1.5 rounded-[6px] px-2 py-1.5 text-[12px] font-normal transition-all duration-200 ease-in-out ${
-                            childActive
-                              ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
-                              : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
-                          }`}
-                        >
-                          <ChildIcon className="h-[13px] w-[13px] shrink-0" strokeWidth={1.5} />
-                          <span>{tr(child.labelEn, child.labelZh)}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             );
           }
@@ -481,7 +557,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                 collapsed && !isMobile
                   ? "justify-center p-1.5"
                   : "gap-1.5 p-1.5"
-              } ${
+              } ${item.path === "/marketplace" && collapsed && !isMobile ? "-mt-[18px]" : ""} ${
                 active
                   ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
                   : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
@@ -492,7 +568,9 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               {(!collapsed || isMobile) && <span>{tr(item.labelEn, item.labelZh)}</span>}
             </button>
           );
-        })}
+            })}
+          </div>
+        )}
       </nav>
 
       {/* Bottom Section */}
@@ -594,15 +672,41 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           className="fixed left-[var(--sidebar-width)] right-0 top-0 z-10 hidden shrink-0 items-center justify-between border-b-[0.5px] border-[#ece6df] bg-[#faf8f6]/85 backdrop-blur-[4.5px] dark:border-[#4b4036] dark:bg-[#14110f]/85 md:flex"
           style={{ height: FIGMA_HEADER_H }}
         >
-          <div className="ml-[21px] flex h-[35px] items-start gap-[9px]">
-            <div className="flex min-w-0 flex-col justify-start">
-              <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d] dark:text-[#fff7ef]">
-                {tr(pageHeader.titleEn, pageHeader.titleZh)}
-              </h1>
-              <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378] dark:text-[#b2a69b]">
-                {tr(pageHeader.subtitleEn, pageHeader.subtitleZh)}
-              </p>
-            </div>
+          <div className="ml-[21px] flex h-full min-w-0 items-center gap-[26px]">
+            {!showExploreTabs && (
+              <div className="flex h-[35px] min-w-0 flex-col justify-start">
+                <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d] dark:text-[#fff7ef]">
+                  {tr(pageHeader.titleEn, pageHeader.titleZh)}
+                </h1>
+                <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378] dark:text-[#b2a69b]">
+                  {tr(pageHeader.subtitleEn, pageHeader.subtitleZh)}
+                </p>
+              </div>
+            )}
+            {showExploreTabs && (
+              <nav
+                aria-label={tr("Explore navigation", "探索导航")}
+                className="hidden h-full items-stretch gap-[2px] lg:flex"
+              >
+                {exploreTabs.map((tab) => {
+                  const active = isExploreTabActive(tab.key);
+                  return (
+                    <Link
+                      key={tab.key}
+                      href={tab.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`oq-explore-tab flex h-full items-center border-b-0 px-[10px] pt-[1px] text-[14px] font-medium transition-colors focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 ${
+                        active
+                          ? "is-active"
+                          : "border-transparent text-[#8c8378] hover:text-[#0d0d0d] dark:text-[#b2a69b] dark:hover:text-[#fff7ef]"
+                      }`}
+                    >
+                      {tr(tab.labelEn, tab.labelZh)}
+                    </Link>
+                  );
+                })}
+              </nav>
+            )}
           </div>
           <div className="mr-[21px] flex h-[30px] items-center gap-[20px]">
             {hasHeaderSearch && (

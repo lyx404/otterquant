@@ -1,7 +1,10 @@
 .oq-marketplace {
   --oq-market-primary: #dc4900;
   --oq-market-positive: #1f8a5b;
+  --oq-market-risk: #cf534b;
+  --oq-market-chart: #d45b52;
   --oq-market-surface: #ffffff;
+  --oq-market-panel: #f7f5f2;
   --oq-market-border: #e2dad0;
   --oq-market-border-soft: #eee8e1;
   --oq-market-text: #0d0d0d;
@@ -12,9 +15,101 @@
   margin: 0;
 }
 
+.oq-marketplace-summary {
+  display: flex;
+  min-height: 94px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 18px;
+  border: 0.5px solid var(--oq-market-border);
+  border-radius: 8px;
+  background: var(--oq-market-surface);
+  padding: 18px 20px;
+  box-shadow: var(--qt-shadow-3, 0 1.5px 6px rgba(60, 40, 20, 0.06));
+}
+
+.oq-marketplace-summary-values {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 22px;
+}
+
+.oq-marketplace-summary-item {
+  display: grid;
+  min-width: 154px;
+  gap: 7px;
+}
+
+.oq-marketplace-summary-item span {
+  color: var(--oq-market-muted);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.oq-marketplace-summary-item strong {
+  color: var(--oq-market-text);
+  font-family: var(--font-mono);
+  font-size: 21px;
+  font-weight: 650;
+  line-height: 27px;
+  letter-spacing: 0;
+}
+
+.oq-marketplace-summary-item strong.is-muted {
+  color: var(--oq-market-muted);
+  font-weight: 500;
+}
+
+.oq-marketplace-summary-divider {
+  width: 1px;
+  height: 42px;
+  background: var(--oq-market-border-soft);
+}
+
+.oq-marketplace-summary-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 9px;
+}
+
+.oq-marketplace-action-button {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 5px;
+  background: #f5b31f;
+  padding: 0 12px;
+  color: #2d210b;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  transition: background-color 160ms ease, transform 160ms ease;
+}
+
+.oq-marketplace-action-button:hover {
+  background: #e9a50d;
+  transform: translateY(-1px);
+}
+
+.oq-marketplace-action-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--oq-market-primary) 40%, transparent);
+  outline-offset: 2px;
+}
+
+.oq-marketplace-action-button svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.8;
+}
+
 .oq-marketplace-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -40,8 +135,8 @@
   border: 0.5px solid var(--oq-market-border);
   border-radius: 8px;
   background: var(--oq-market-surface);
-  min-height: 310px;
-  padding: 20px;
+  min-height: 304px;
+  padding: 0;
   box-shadow: 0 1.5px 6px rgba(60, 40, 20, 0.06);
   transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
@@ -54,7 +149,8 @@
 
 .oq-marketplace-card-header {
   display: grid;
-  gap: 5px;
+  gap: 12px;
+  padding: 16px 16px 14px;
 }
 
 .oq-marketplace-card-title-row {
@@ -65,13 +161,47 @@
   gap: 12px;
 }
 
+.oq-marketplace-author {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.oq-marketplace-author > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.oq-marketplace-avatar {
+  display: inline-flex;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.oq-marketplace-avatar.is-orange { background: #d88231; }
+.oq-marketplace-avatar.is-teal { background: #46a89c; }
+.oq-marketplace-avatar.is-violet { background: #8b76b7; }
+.oq-marketplace-avatar.is-blue { background: #5b8cc7; }
+.oq-marketplace-avatar.is-green { background: #5f9f72; }
+.oq-marketplace-avatar.is-rose { background: #c77b83; }
+
 .oq-marketplace-card h3 {
   min-width: 0;
   overflow: hidden;
   margin: 0;
   color: var(--oq-market-text);
   font-family: var(--font-heading);
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 21px;
   text-overflow: ellipsis;
@@ -86,13 +216,39 @@
   font-variant-numeric: tabular-nums;
 }
 
+.oq-marketplace-status {
+  display: inline-flex;
+  min-width: 39px;
+  height: 23px;
+  align-items: center;
+  justify-content: center;
+  border: 0.5px solid transparent;
+  border-radius: 4px;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.oq-marketplace-status.is-full {
+  border-color: #f0d6d1;
+  background: #fff4f1;
+  color: var(--oq-market-risk);
+}
+
+.oq-marketplace-status.is-open {
+  border-color: #f0d59c;
+  background: #fff8e7;
+  color: #ad7008;
+}
+
 .oq-marketplace-subscribers {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   gap: 5px;
-  color: var(--oq-market-text-soft);
-  font-size: 10px;
+  color: var(--oq-market-muted);
+  font-size: 9px;
   font-weight: 500;
   line-height: 13px;
   white-space: nowrap;
@@ -105,16 +261,22 @@
 }
 
 .oq-marketplace-card-description {
-  display: -webkit-box;
-  min-height: 34px;
+  min-height: 16px;
   overflow: hidden;
-  margin-top: 5px;
-  color: var(--oq-market-text-soft) !important;
-  font-size: 10px !important;
-  font-weight: 400;
-  line-height: 17px !important;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  margin: 0;
+  color: var(--oq-market-text) !important;
+  font-size: 13px !important;
+  font-weight: 650;
+  line-height: 16px !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-marketplace-performance-panel {
+  margin: 0 12px 12px;
+  border-radius: 6px;
+  background: var(--oq-market-panel);
+  padding: 13px 13px 12px;
 }
 
 .oq-marketplace-performance {
@@ -122,32 +284,29 @@
   min-width: 0;
   grid-template-columns: minmax(124px, 0.9fr) minmax(0, 1.1fr);
   align-items: end;
-  gap: 12px;
-  margin-top: 17px;
-  border-top: 1px solid var(--oq-market-border-soft);
-  padding-top: 17px;
+  gap: 9px;
 }
 
 .oq-marketplace-return {
   display: grid;
   min-width: 0;
   align-content: end;
-  gap: 4px;
+  gap: 5px;
 }
 
 .oq-marketplace-return > span {
   color: var(--oq-market-muted);
-  font-size: 10px;
+  font-size: 9px;
   line-height: 14px;
 }
 
 .oq-marketplace-return > strong {
   overflow: hidden;
-  color: var(--oq-market-positive);
+  color: var(--oq-market-risk);
   font-family: var(--font-mono);
-  font-size: 28px;
+  font-size: 23px;
   font-weight: 700;
-  line-height: 34px;
+  line-height: 28px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -155,7 +314,8 @@
 .oq-marketplace-return > small {
   color: var(--oq-market-text-soft);
   font-family: var(--font-mono);
-  font-size: 10px;
+  color: var(--oq-market-text-soft);
+  font-size: 9px;
   font-weight: 550;
   line-height: 15px;
 }
@@ -163,23 +323,23 @@
 .oq-marketplace-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: auto;
+  gap: 12px;
+  margin-top: 12px;
   border-top: 1px solid var(--oq-market-border-soft);
-  padding-top: 15px;
+  padding-top: 11px;
 }
 
 .oq-marketplace-metric {
   display: grid;
   min-width: 0;
-  gap: 3px;
+  gap: 4px;
 }
 
 .oq-marketplace-metric strong {
   overflow: hidden;
   color: var(--oq-market-text);
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 650;
   line-height: 21px;
   text-overflow: ellipsis;
@@ -191,7 +351,7 @@
 }
 
 .oq-marketplace-metric strong.is-risk {
-  color: var(--market-red);
+  color: var(--oq-market-risk);
 }
 
 .oq-marketplace-metric span {
@@ -210,13 +370,13 @@
 .oq-marketplace-chart-block svg {
   display: block;
   width: 100%;
-  height: 92px;
+  height: 77px;
   overflow: visible;
 }
 
 .oq-marketplace-chart-strategy {
   fill: none;
-  stroke: var(--oq-market-positive);
+  stroke: var(--oq-market-chart);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 2.4;
@@ -233,7 +393,10 @@
 .dark.oq-trade-active .oq-marketplace {
   --oq-market-primary: var(--oq-trade-accent);
   --oq-market-positive: var(--oq-trade-success);
+  --oq-market-risk: var(--oq-trade-risk);
+  --oq-market-chart: var(--oq-trade-risk);
   --oq-market-surface: var(--oq-trade-surface-1);
+  --oq-market-panel: var(--oq-trade-surface-2);
   --oq-market-border: var(--oq-trade-border);
   --oq-market-border-soft: var(--oq-trade-border);
   --oq-market-text: var(--oq-trade-text);
@@ -260,10 +423,32 @@
 }
 
 @media (max-width: 560px) {
+  .oq-marketplace-summary {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .oq-marketplace-summary-values {
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .oq-marketplace-summary-item {
+    min-width: 0;
+  }
+
+  .oq-marketplace-summary-actions {
+    width: 100%;
+  }
+
+  .oq-marketplace-action-button {
+    flex: 1;
+    justify-content: center;
+  }
+
   .oq-marketplace-card {
     min-height: 300px;
-    padding-right: 14px;
-    padding-left: 14px;
   }
 
   .oq-marketplace-performance {
