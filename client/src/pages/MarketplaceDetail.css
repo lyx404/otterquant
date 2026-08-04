@@ -1,0 +1,611 @@
+.oq-marketplace-detail {
+  --md-page: #fafafa;
+  --md-surface: #ffffff;
+  --md-surface-soft: #f5f7fa;
+  --md-border: #ebebeb;
+  --md-border-soft: #f1f1f1;
+  --md-text: #111111;
+  --md-text-soft: #4c4c4c;
+  --md-muted: #929292;
+  --md-accent: #dc4900;
+  --md-success: #10b981;
+  --md-risk: #ff4d63;
+  min-width: 0;
+  width: 100%;
+  color: var(--md-text);
+  font-family: var(--font-body);
+}
+
+.oq-marketplace-detail-active .oq-app-main-column {
+  background: var(--md-page);
+  color: var(--md-text);
+}
+
+.oq-marketplace-detail-active .oq-app-main-column > header {
+  background: rgb(250 250 250 / 85%);
+}
+
+.oq-marketplace-detail-shell {
+  width: min(100%, 1200px);
+  min-width: 0;
+  margin: 0 auto;
+}
+
+.oq-marketplace-detail-back {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  border: 1px solid var(--md-border);
+  border-radius: 8px;
+  background: var(--md-surface);
+  padding: 0 13px;
+  color: var(--md-text-soft);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.oq-marketplace-detail-back svg {
+  width: 15px;
+  height: 15px;
+}
+
+.oq-marketplace-detail-back:hover {
+  border-color: color-mix(in srgb, var(--md-accent) 36%, var(--md-border));
+  color: var(--md-accent);
+  transform: translateX(-1px);
+}
+
+.oq-marketplace-detail-back:focus-visible,
+.oq-marketplace-detail-follow:focus-visible,
+.oq-marketplace-detail-chart-switcher button:focus-visible,
+.oq-marketplace-detail-tabs button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--md-accent) 32%, transparent);
+  outline-offset: 2px;
+}
+
+.oq-marketplace-detail-hero {
+  display: flex;
+  min-width: 0;
+  min-height: 112px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid var(--md-border);
+  background: var(--md-surface);
+  padding: 25px 36px;
+}
+
+.oq-marketplace-detail-hero-copy {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 14px;
+}
+
+.oq-marketplace-detail-avatar,
+.oq-marketplace-detail-follower-avatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #3d9880;
+  color: #ffffff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+
+.oq-marketplace-detail-avatar {
+  width: 42px;
+  height: 42px;
+  font-size: 16px;
+}
+
+.oq-marketplace-detail-hero-copy h1 {
+  margin: 0;
+  color: var(--md-text);
+  font-family: var(--font-heading);
+  font-size: clamp(24px, 2.5vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.oq-marketplace-detail-hero-copy p {
+  margin: 8px 0 0;
+  color: var(--md-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.oq-marketplace-detail-hero-copy p span {
+  margin: 0 6px;
+  color: #c4c4c4;
+}
+
+.oq-marketplace-detail-follow {
+  display: inline-flex;
+  min-width: 94px;
+  min-height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--md-accent);
+  border-radius: 6px;
+  background: var(--md-accent);
+  padding: 0 15px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.oq-marketplace-detail-follow svg {
+  width: 14px;
+  height: 14px;
+}
+
+.oq-marketplace-detail-follow:hover {
+  border-color: #c33f00;
+  background: #c33f00;
+  transform: translateY(-1px);
+}
+
+.oq-marketplace-detail-follow.is-following {
+  border-color: #18815d;
+  background: #18815d;
+}
+
+.oq-marketplace-detail-content {
+  display: grid;
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.oq-marketplace-detail-intro-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+  gap: 16px;
+}
+
+.oq-marketplace-detail-insights,
+.oq-marketplace-detail-summary,
+.oq-marketplace-detail-chart-section,
+.oq-marketplace-detail-records,
+.oq-marketplace-detail-followers {
+  min-width: 0;
+  border: 1px solid var(--md-border);
+  background: var(--md-surface);
+}
+
+.oq-marketplace-detail-insights {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 28px;
+  padding: 22px 26px;
+}
+
+.oq-marketplace-detail-insight {
+  display: flex;
+  min-width: 0;
+  gap: 10px;
+  padding: 0 0 18px;
+}
+
+.oq-marketplace-detail-insight:nth-last-child(-n + 2) {
+  padding-bottom: 0;
+}
+
+.oq-marketplace-detail-insight > span {
+  width: 3px;
+  min-height: 17px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  border-radius: 3px;
+  background: #546ef4;
+}
+
+.oq-marketplace-detail-insight h3 {
+  margin: 0 0 5px;
+  color: var(--md-text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.oq-marketplace-detail-insight p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 0;
+  color: #737373;
+  font-size: 12px;
+  line-height: 19px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.oq-marketplace-detail-summary {
+  padding: 22px 24px;
+}
+
+.oq-marketplace-detail-summary h2,
+.oq-marketplace-detail-section-header h2 {
+  margin: 0;
+  color: var(--md-text);
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 22px;
+}
+
+.oq-marketplace-detail-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 24px;
+  margin-top: 22px;
+}
+
+.oq-marketplace-detail-metric {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.oq-marketplace-detail-metric span {
+  color: var(--md-muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.oq-marketplace-detail-metric strong {
+  overflow: hidden;
+  color: var(--md-text);
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-marketplace-detail-metric strong.is-positive,
+.oq-marketplace-detail-table .is-positive {
+  color: var(--md-success);
+}
+
+.oq-marketplace-detail-metric strong.is-risk,
+.oq-marketplace-detail-table .is-negative {
+  color: var(--md-risk);
+}
+
+.oq-marketplace-detail-chart-section,
+.oq-marketplace-detail-records,
+.oq-marketplace-detail-followers {
+  padding: 20px 24px 24px;
+}
+
+.oq-marketplace-detail-section-header {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.oq-marketplace-detail-section-header p {
+  margin: 4px 0 0;
+  color: var(--md-muted);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.oq-marketplace-detail-chart-switcher,
+.oq-marketplace-detail-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.oq-marketplace-detail-chart-switcher button,
+.oq-marketplace-detail-tabs button {
+  min-height: 30px;
+  border: 1px solid var(--md-border);
+  border-radius: 999px;
+  background: transparent;
+  padding: 0 13px;
+  color: var(--md-muted);
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.oq-marketplace-detail-chart-switcher button.is-active,
+.oq-marketplace-detail-tabs button.is-active {
+  border-color: color-mix(in srgb, var(--md-accent) 45%, var(--md-border));
+  background: #fff7f3;
+  color: var(--md-accent);
+}
+
+.oq-marketplace-detail-chart-wrap {
+  position: relative;
+  min-width: 0;
+  margin-top: 14px;
+  border: 1px solid var(--md-border-soft);
+  background: #fcfcfd;
+  padding: 10px 16px 0;
+}
+
+.oq-marketplace-detail-chart {
+  display: block;
+  width: 100%;
+  height: clamp(240px, 29vw, 330px);
+}
+
+.oq-marketplace-detail-chart-grid {
+  stroke: #e8e9ec;
+  stroke-width: 1;
+}
+
+.oq-marketplace-detail-chart-baseline {
+  stroke: #bfc2c8;
+  stroke-dasharray: 4 5;
+  stroke-width: 1;
+}
+
+.oq-marketplace-detail-chart-area {
+  opacity: 0.92;
+}
+
+.oq-marketplace-detail-chart-line {
+  fill: none;
+  stroke: var(--md-accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3.2;
+  vector-effect: non-scaling-stroke;
+}
+
+.oq-marketplace-detail-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1px 11px;
+  color: var(--md-muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.oq-marketplace-detail-period {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--md-border);
+  border-radius: 7px;
+  padding: 0 10px;
+  color: var(--md-text-soft);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.oq-marketplace-detail-period svg {
+  width: 12px;
+  height: 12px;
+  color: var(--md-muted);
+}
+
+.oq-marketplace-detail-tabs {
+  margin-top: 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--md-border);
+}
+
+.oq-marketplace-detail-tabs button {
+  border-color: transparent;
+  border-radius: 7px;
+  padding-inline: 13px;
+}
+
+.oq-marketplace-detail-table-wrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.oq-marketplace-detail-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+  color: var(--md-text-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  table-layout: auto;
+}
+
+.oq-marketplace-detail-table th {
+  padding: 14px 10px 11px;
+  color: var(--md-muted);
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 14px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.oq-marketplace-detail-table td {
+  border-top: 1px solid var(--md-border-soft);
+  padding: 14px 10px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.oq-marketplace-detail-table th:first-child,
+.oq-marketplace-detail-table td:first-child {
+  padding-left: 0;
+}
+
+.oq-marketplace-detail-table th:last-child,
+.oq-marketplace-detail-table td:last-child {
+  padding-right: 0;
+}
+
+.oq-marketplace-detail-table td strong {
+  display: block;
+  color: var(--md-text);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.oq-marketplace-detail-table td small {
+  display: block;
+  margin-top: 3px;
+  color: var(--md-muted);
+  font-family: var(--font-body);
+  font-size: 9px;
+  line-height: 13px;
+}
+
+.oq-marketplace-detail-empty {
+  display: grid;
+  min-height: 140px;
+  place-items: center;
+  color: var(--md-muted);
+  font-size: 12px;
+}
+
+.oq-marketplace-detail-follower-avatar {
+  width: 28px;
+  height: 28px;
+  margin-right: 9px;
+  font-size: 10px;
+  vertical-align: middle;
+}
+
+.oq-marketplace-detail-follower-avatar.is-sunset { background: #d28a42; }
+.oq-marketplace-detail-follower-avatar.is-ink { background: #68758c; }
+.oq-marketplace-detail-follower-avatar.is-mist { background: #8c9da9; }
+.oq-marketplace-detail-follower-avatar.is-sky { background: #4b86bb; }
+.oq-marketplace-detail-follower-avatar.is-violet { background: #866db1; }
+.oq-marketplace-detail-follower-avatar.is-rose { background: #ba6770; }
+
+.oq-marketplace-detail-not-found {
+  display: grid;
+  min-height: 300px;
+  place-items: center;
+  align-content: center;
+  gap: 14px;
+  color: var(--md-muted);
+}
+
+.oq-marketplace-detail-not-found p {
+  margin: 0;
+}
+
+.oq-marketplace-detail-not-found button {
+  min-height: 36px;
+  border: 1px solid var(--md-border);
+  border-radius: 7px;
+  background: var(--md-surface);
+  padding: 0 14px;
+  color: var(--md-text-soft);
+  cursor: pointer;
+}
+
+@media (max-width: 920px) {
+  .oq-marketplace-detail-intro-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-marketplace-detail-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .oq-marketplace-detail-shell {
+    width: 100%;
+  }
+
+  .oq-marketplace-detail-back {
+    margin-left: 12px;
+  }
+
+  .oq-marketplace-detail-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 22px 18px;
+  }
+
+  .oq-marketplace-detail-hero-copy h1 {
+    font-size: 24px;
+  }
+
+  .oq-marketplace-detail-follow {
+    width: 100%;
+  }
+
+  .oq-marketplace-detail-content {
+    gap: 14px;
+    margin-top: 14px;
+  }
+
+  .oq-marketplace-detail-insights {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 18px;
+  }
+
+  .oq-marketplace-detail-insight,
+  .oq-marketplace-detail-insight:nth-last-child(-n + 2) {
+    padding-bottom: 0;
+  }
+
+  .oq-marketplace-detail-summary,
+  .oq-marketplace-detail-chart-section,
+  .oq-marketplace-detail-records,
+  .oq-marketplace-detail-followers {
+    padding: 18px;
+  }
+
+  .oq-marketplace-detail-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 17px 16px;
+  }
+
+  .oq-marketplace-detail-section-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .oq-marketplace-detail-chart-switcher,
+  .oq-marketplace-detail-period {
+    align-self: flex-start;
+  }
+
+  .oq-marketplace-detail-chart-wrap {
+    padding-inline: 8px;
+  }
+
+  .oq-marketplace-detail-chart {
+    height: 220px;
+  }
+
+  .oq-marketplace-detail-tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .oq-marketplace-detail-tabs button {
+    flex: 0 0 auto;
+  }
+}
