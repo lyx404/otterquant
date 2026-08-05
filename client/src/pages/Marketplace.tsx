@@ -4,7 +4,6 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
 } from "lucide-react";
 import { CopyTradeDialog } from "@/components/CopyTradeDialog";
 import {
@@ -158,21 +157,15 @@ function MarketplaceSummary({ tr }: { tr: (en: string, zh: string) => string }) 
         <div className="oq-marketplace-copy-summary">
           <div className="oq-marketplace-copy-summary-metrics">
             <div>
-              <span>{tr("Copy P&L (USDT)", "跟单盈亏(USDT)")}</span>
+              <span>{tr("Copy P&L (USDT)", "带单盈亏(USDT)")}</span>
               <strong>323,827.08</strong>
             </div>
             <div>
-              <span>{tr("Copy count", "跟单数量")}</span>
+              <span>{tr("Copy count", "带单数量")}</span>
               <strong>2</strong>
             </div>
           </div>
         </div>
-      </div>
-      <div className="oq-marketplace-summary-actions">
-        <Link href="/marketplace?tab=mine" className="oq-marketplace-action-button">
-          <ClipboardList aria-hidden="true" />
-          {tr("Copy management", "我的跟单")}
-        </Link>
       </div>
     </section>
   );

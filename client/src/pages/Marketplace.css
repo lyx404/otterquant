@@ -182,14 +182,6 @@
   white-space: nowrap;
 }
 
-.oq-marketplace-summary-actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.oq-marketplace-action-button,
 .oq-marketplace-cta-button {
   display: inline-flex;
   align-items: center;
@@ -198,24 +190,6 @@
   transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
 }
 
-.oq-marketplace-action-button {
-  height: 31px;
-  gap: 7px;
-  border-radius: 5px;
-  background: var(--oq-market-primary);
-  padding: 0 12px;
-  color: #ffffff;
-  font-size: 10px;
-  font-weight: 650;
-  line-height: 1;
-}
-
-.oq-marketplace-action-button:hover {
-  background: var(--qt-accent-hover);
-  transform: translateY(-1px);
-}
-
-.oq-marketplace-action-button:focus-visible,
 .oq-marketplace-cta-button:focus-visible,
 .oq-marketplace-card-link:focus-visible,
 .oq-marketplace-status:focus-visible,
@@ -223,12 +197,6 @@
 .oq-marketplace-profile-button:focus-visible {
   outline: 2px solid #e8ae47;
   outline-offset: 3px;
-}
-
-.oq-marketplace-action-button svg {
-  width: 14px;
-  height: 14px;
-  stroke-width: 1.8;
 }
 
 .oq-marketplace-strategy-groups {
@@ -942,8 +910,6 @@
   .oq-marketplace-summary-item strong { font-size: 18px; }
   .oq-marketplace-copy-summary { min-width: 0; flex: 1 1 280px; }
   .oq-marketplace-copy-summary-metrics { gap: 20px; }
-  .oq-marketplace-summary-actions { width: 100%; }
-  .oq-marketplace-action-button { flex: 1; }
   .oq-marketplace-carousel-controls.has-controls {
     position: relative;
     display: grid;

@@ -206,16 +206,16 @@ export default function MarketplaceDetail() {
               <div className={`oq-marketplace-detail-avatar${heroIdentity.usesEntryAvatar ? " is-entry" : ""}`} aria-hidden="true">{heroIdentity.avatar}</div>
               <div className="oq-marketplace-detail-hero-details">
                 <h1>{heroIdentity.author}</h1>
-                <div className="oq-marketplace-detail-hero-stats" aria-label={tr("Strategy activity", "策略数据")}>
-                  <div className="oq-marketplace-detail-hero-stat">
-                    <span>{tr("Followers", "跟单人数")}</span>
-                    <strong>{followerCount}</strong>
-                  </div>
-                  <div className="oq-marketplace-detail-hero-stat">
-                    <span>{tr("Lead days", "带单天数")}</span>
-                    <strong>{strategyAgeDays}</strong>
-                  </div>
-                </div>
+              </div>
+            </div>
+            <div className="oq-marketplace-detail-hero-stats" aria-label={tr("Strategy activity", "策略数据")}>
+              <div className="oq-marketplace-detail-hero-stat">
+                <span>{tr("Followers", "跟单人数")}</span>
+                <strong>{followerCount}</strong>
+              </div>
+              <div className="oq-marketplace-detail-hero-stat">
+                <span>{tr("Lead days", "带单天数")}</span>
+                <strong>{strategyAgeDays}</strong>
               </div>
             </div>
             <button
