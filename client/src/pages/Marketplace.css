@@ -157,13 +157,13 @@
 
 .oq-marketplace-copy-summary-metrics {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   gap: 34px;
 }
 
 .oq-marketplace-copy-summary-metrics > div {
   display: grid;
-  gap: 2px;
+  gap: 6px;
 }
 
 .oq-marketplace-copy-summary-metrics strong {

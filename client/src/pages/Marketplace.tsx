@@ -158,12 +158,12 @@ function MarketplaceSummary({ tr }: { tr: (en: string, zh: string) => string }) 
         <div className="oq-marketplace-copy-summary">
           <div className="oq-marketplace-copy-summary-metrics">
             <div>
-              <strong>323,827.08</strong>
               <span>{tr("Copy P&L (USDT)", "跟单盈亏(USDT)")}</span>
+              <strong>323,827.08</strong>
             </div>
             <div>
-              <strong>2</strong>
               <span>{tr("Copy count", "跟单数量")}</span>
+              <strong>2</strong>
             </div>
           </div>
         </div>
