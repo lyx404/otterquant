@@ -22,6 +22,7 @@ import {
   Settings2,
   Menu,
   X,
+  ArrowLeft,
   ChevronLeft,
   ChevronRight,
   PanelLeftClose,
@@ -111,6 +112,13 @@ const pageHeaders = [
     titleZh: "交易",
     subtitleEn: "Review assets, PnL & strategy status",
     subtitleZh: "查看资产、盈亏与策略运行状态",
+  },
+  {
+    match: (path: string) => /^\/marketplace\/[^/]+$/.test(path),
+    titleEn: "Fund Detail",
+    titleZh: "基金详情",
+    subtitleEn: "Review fund performance and copy-trading activity",
+    subtitleZh: "查看基金表现与跟单数据",
   },
   {
     match: (path: string) => path.startsWith("/marketplace"),
@@ -244,9 +252,13 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const [secondarySection, setSecondarySection] = useState<string | null>(null);
   const [navTransition, setNavTransition] = useState<"primary" | "secondary" | null>(null);
   const currentPathname = location.split("?")[0];
-  const currentSearch = search
-    ? `?${search.replace(/^\?/, "")}`
-    : "";
+  // Read the live URL so same-path query navigation updates the shared Explore tabs.
+  const currentSearch = typeof window !== "undefined"
+    ? window.location.search
+    : search
+      ? `?${search.replace(/^\?/, "")}`
+      : "";
+  const isMarketplaceDetail = /^\/marketplace\/[^/]+$/.test(currentPathname);
   const showExploreTabs = currentPathname === "/marketplace";
   const activeExploreTab = new URLSearchParams(currentSearch).get("tab") ?? "marketplace";
   const isExploreTabActive = (key: string) => showExploreTabs && activeExploreTab === key;
@@ -674,13 +686,44 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         >
           <div className="ml-[21px] flex h-full min-w-0 items-center gap-[26px]">
             {!showExploreTabs && (
-              <div className="flex h-[35px] min-w-0 flex-col justify-start">
-                <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d] dark:text-[#fff7ef]">
-                  {tr(pageHeader.titleEn, pageHeader.titleZh)}
-                </h1>
-                <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378] dark:text-[#b2a69b]">
-                  {tr(pageHeader.subtitleEn, pageHeader.subtitleZh)}
-                </p>
+              <div className={`flex min-w-0 ${isMarketplaceDetail ? "h-[30px] items-center gap-2" : "h-[35px] flex-col justify-start"}`}>
+                {isMarketplaceDetail ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => navigate("/marketplace")}
+                      aria-label={tr("Back to Explore", "返回探索")}
+                      title={tr("Back to Explore", "返回探索")}
+                      className="flex h-6 w-6 shrink-0 items-center justify-center text-[#6f675f] transition-colors hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:text-[#b2a69b] dark:hover:text-[#ff6a1a]"
+                    >
+                      <ArrowLeft className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+                    </button>
+                    <nav
+                      aria-label={tr("Page path", "页面路径")}
+                      className="flex min-w-0 items-center gap-[8px]"
+                    >
+                      <Link
+                        href="/marketplace"
+                        className="text-[12px] font-normal leading-[18px] text-[#8c8378] transition-colors hover:text-[#dc4900] dark:text-[#b2a69b] dark:hover:text-[#ff6a1a]"
+                      >
+                        {tr("Explore", "探索")}
+                      </Link>
+                      <span aria-hidden="true" className="text-[12px] text-[#b5aba0] dark:text-[#75695e]">/</span>
+                      <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d] dark:text-[#fff7ef]">
+                        {tr("Fund Detail", "基金详情")}
+                      </h1>
+                    </nav>
+                  </>
+                ) : (
+                  <div>
+                    <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d] dark:text-[#fff7ef]">
+                      {tr(pageHeader.titleEn, pageHeader.titleZh)}
+                    </h1>
+                    <p className="mt-[2.6px] text-[9.375px] font-normal leading-[15.188px] text-[#8c8378] dark:text-[#b2a69b]">
+                      {tr(pageHeader.subtitleEn, pageHeader.subtitleZh)}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
             {showExploreTabs && (
@@ -760,20 +803,39 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <Link href="/">
-            <div className="flex items-center gap-2">
-              <img
-                src="/quandora-wordmark.png"
-                alt="Quandora"
-                className="h-[13px] w-24 object-contain object-left dark:hidden"
-              />
-              <img
-                src="/quandora-wordmark-dark.svg"
-                alt="Quandora"
-                className="hidden h-[13px] w-24 object-contain object-left dark:block"
-              />
-            </div>
-          </Link>
+          {isMarketplaceDetail ? (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate("/marketplace")}
+                aria-label={tr("Back to Explore", "返回探索")}
+                title={tr("Back to Explore", "返回探索")}
+                className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ArrowLeft className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
+              </button>
+              <nav aria-label={tr("Page path", "页面路径")} className="flex min-w-0 items-center gap-1.5">
+                <Link href="/marketplace" className="text-xs font-normal text-muted-foreground">{tr("Explore", "探索")}</Link>
+                <span aria-hidden="true" className="text-xs text-muted-foreground/60">/</span>
+                <h1 className="text-[15px] font-semibold text-foreground">{tr("Fund Detail", "基金详情")}</h1>
+              </nav>
+            </>
+          ) : (
+            <Link href="/">
+              <div className="flex items-center gap-2">
+                <img
+                  src="/quandora-wordmark.png"
+                  alt="Quandora"
+                  className="h-[13px] w-24 object-contain object-left dark:hidden"
+                />
+                <img
+                  src="/quandora-wordmark-dark.svg"
+                  alt="Quandora"
+                  className="hidden h-[13px] w-24 object-contain object-left dark:block"
+                />
+              </div>
+            </Link>
+          )}
           <div className="ml-auto flex items-center gap-2">
             <AnimatedThemeToggler
               aria-label={theme === "dark" ? tr("Switch to light mode", "切换到浅色模式") : tr("Switch to dark mode", "切换到深色模式")}

@@ -5,8 +5,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  ListChecks,
 } from "lucide-react";
+import { CopyTradeDialog } from "@/components/CopyTradeDialog";
 import {
   translateUi,
   useAppLanguage,
@@ -137,27 +137,6 @@ function PerformanceChart({
   );
 }
 
-function RankingSparkline({ values, label, tone }: { values: number[]; label: string; tone: "positive" | "risk" }) {
-  const gradientId = useId().replace(/:/g, "");
-  const min = Math.min(...values) - 1;
-  const max = Math.max(...values) + 1;
-  const linePath = buildChartPath(values, min, max);
-  const areaPath = `${linePath} L 508 124 L 12 124 Z`;
-  return (
-    <svg className={`oq-marketplace-ranking-sparkline is-${tone}`} viewBox="0 0 520 140" role="img" aria-label={label}>
-      <title>{label}</title>
-      <path className="oq-marketplace-ranking-sparkline-area" d={areaPath} fill={`url(#${gradientId})`} />
-      <path className="oq-marketplace-ranking-sparkline-line" d={linePath} />
-      <defs>
-        <linearGradient id={gradientId} x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={tone === "risk" ? "var(--oq-market-risk)" : "var(--oq-market-positive)"} stopOpacity="0.24" />
-          <stop offset="100%" stopColor={tone === "risk" ? "var(--oq-market-risk)" : "var(--oq-market-positive)"} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
 function Metric({ label, value, tone }: { label: string; value: string; tone?: "positive" | "risk" }) {
   return (
     <div className="oq-marketplace-metric">
@@ -176,17 +155,21 @@ function MarketplaceSummary({ tr }: { tr: (en: string, zh: string) => string }) 
           <strong>438,473.00</strong>
         </div>
         <div className="oq-marketplace-summary-divider" aria-hidden="true" />
-        <div className="oq-marketplace-summary-item">
-          <span>{tr("Unrealized PnL (USDT)", "未实现总盈亏 (USDT)")}</span>
-          <strong className="is-muted">--</strong>
+        <div className="oq-marketplace-copy-summary">
+          <div className="oq-marketplace-copy-summary-metrics">
+            <div>
+              <strong>323,827.08</strong>
+              <span>{tr("Copy P&L (USDT)", "跟单盈亏(USDT)")}</span>
+            </div>
+            <div>
+              <strong>2</strong>
+              <span>{tr("Copy count", "跟单数量")}</span>
+            </div>
+          </div>
         </div>
       </div>
       <div className="oq-marketplace-summary-actions">
-        <Link href="/strategies" className="oq-marketplace-action-button">
-          <ListChecks aria-hidden="true" />
-          {tr("Lead management", "我的带单")}
-        </Link>
-        <Link href="/trade" className="oq-marketplace-action-button">
+        <Link href="/marketplace?tab=mine" className="oq-marketplace-action-button">
           <ClipboardList aria-hidden="true" />
           {tr("Copy management", "我的跟单")}
         </Link>
@@ -199,16 +182,15 @@ function TradingCard({
   strategy,
   details,
   tr,
+  isFollowing,
+  onFollow,
 }: {
   strategy: Strategy;
   details: MarketplaceCardDetails;
   tr: (en: string, zh: string) => string;
+  isFollowing: boolean;
+  onFollow: () => void;
 }) {
-  const description = tr(strategy.description, details.descriptionZh);
-  const bio = tr(
-    "A concise, data-led approach to disciplined market execution.",
-    "以数据驱动策略，专注稳健执行，持续跟踪市场波动与风险管理。",
-  );
   const view = marketplaceCardViews[strategy.id];
   if (!view) return null;
 
@@ -225,17 +207,25 @@ function TradingCard({
               <span className={`oq-marketplace-avatar is-${view.avatarTone}`} aria-hidden="true">{view.avatar}</span>
               <div>
                 <h3 id={`marketplace-card-title-${strategy.id}`}>{view.author}</h3>
-                <p className="oq-marketplace-author-bio" title={bio}>{bio}</p>
+                <p className="oq-marketplace-author-strategy" title={view.title}>{view.title}</p>
               </div>
             </div>
-          </div>
-          <div className="oq-marketplace-card-strategy-row">
-            <div className="oq-marketplace-strategy-copy">
-              <p className="oq-marketplace-card-description" title={description}>{view.title}</p>
-            </div>
-            <span className={`oq-marketplace-status is-${view.status === "满员" ? "full" : "open"}`}>
-              {view.status}
-            </span>
+            {view.status === "满员" ? (
+              <span className="oq-marketplace-status is-full">{view.status}</span>
+            ) : (
+              <button
+                type="button"
+                className="oq-marketplace-status is-open"
+                aria-pressed={isFollowing}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onFollow();
+                }}
+              >
+                {isFollowing ? tr("Following", "已跟单") : tr("Copy", "跟单")}
+              </button>
+            )}
           </div>
         </div>
 
@@ -269,6 +259,8 @@ type StrategyCarouselProps = {
   descriptionZh: string;
   strategies: Strategy[];
   tr: (en: string, zh: string) => string;
+  isFollowing: (strategyId: string) => boolean;
+  onFollow: (strategy: Strategy) => void;
 };
 
 function StrategyCarousel({
@@ -278,6 +270,8 @@ function StrategyCarousel({
   descriptionZh,
   strategies,
   tr,
+  isFollowing,
+  onFollow,
 }: StrategyCarouselProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const showControls = strategies.length > 4;
@@ -295,38 +289,45 @@ function StrategyCarousel({
           <h3 id={`marketplace-strategy-group-${title}`}>{tr(title, titleZh)}</h3>
           <p>{tr(description, descriptionZh)}</p>
         </div>
-        {showControls && (
-          <div className="oq-marketplace-carousel-controls" aria-label={tr("Strategy carousel controls", "策略横向浏览")}>
-            <button
-              type="button"
-              aria-label={tr(`Previous ${title}`, `查看上一组${titleZh}`)}
-              title={tr("Previous", "向左")}
-              onClick={() => scrollStrategies(-1)}
-            >
-              <ChevronLeft aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              aria-label={tr(`Next ${title}`, `查看下一组${titleZh}`)}
-              title={tr("Next", "向右")}
-              onClick={() => scrollStrategies(1)}
-            >
-              <ChevronRight aria-hidden="true" />
-            </button>
-          </div>
-        )}
       </header>
-      <div className="oq-marketplace-carousel-viewport">
-        <div ref={listRef} className="oq-marketplace-carousel-list">
-          {strategies.map((strategy) => (
-            <TradingCard
-              key={strategy.id}
-              strategy={strategy}
-              details={marketplaceCardDetails[strategy.id]}
-              tr={tr}
-            />
-          ))}
+      <div
+        className={`oq-marketplace-carousel-controls${showControls ? " has-controls" : ""}`}
+        aria-label={showControls ? tr("Strategy carousel controls", "策略横向浏览") : undefined}
+      >
+        {showControls && (
+          <button
+            type="button"
+            aria-label={tr(`Previous ${title}`, `查看上一组${titleZh}`)}
+            title={tr("Previous", "向左")}
+            onClick={() => scrollStrategies(-1)}
+          >
+            <ChevronLeft aria-hidden="true" />
+          </button>
+        )}
+        <div className="oq-marketplace-carousel-viewport">
+          <div ref={listRef} className="oq-marketplace-carousel-list">
+            {strategies.map((strategy) => (
+              <TradingCard
+                key={strategy.id}
+                strategy={strategy}
+                details={marketplaceCardDetails[strategy.id]}
+                tr={tr}
+                isFollowing={isFollowing(strategy.id)}
+                onFollow={() => onFollow(strategy)}
+              />
+            ))}
+          </div>
         </div>
+        {showControls && (
+          <button
+            type="button"
+            aria-label={tr(`Next ${title}`, `查看下一组${titleZh}`)}
+            title={tr("Next", "向右")}
+            onClick={() => scrollStrategies(1)}
+          >
+            <ChevronRight aria-hidden="true" />
+          </button>
+        )}
       </div>
     </section>
   );
@@ -355,33 +356,33 @@ const rankingBoards: RankingBoardDefinition[] = [
     id: "managers",
     title: "Best fund managers",
     titleZh: "最佳基金管理员",
-    description: "Who grew followers' simulated capital",
-    descriptionZh: "谁提升了跟单者的模拟资金",
+    description: "Fund managers ranked by 30-day lead return",
+    descriptionZh: "按近30天带单收益率排名的基金管理员",
     metric: "returnRate",
-    metricLabel: "30-day return",
-    metricLabelZh: "近30天收益率",
+    metricLabel: "30-day lead return",
+    metricLabelZh: "近30天带单收益率",
     rows: [...rankingRows].sort((a, b) => metricNumber(b.returnRate) - metricNumber(a.returnRate)),
   },
   {
     id: "investors",
     title: "Best investors",
     titleZh: "最佳投资者",
-    description: "Steady results across the latest cycle",
-    descriptionZh: "在最近一轮市场周期中保持稳定",
-    metric: "assets",
-    metricLabel: "Assets",
-    metricLabelZh: "资产规模",
-    rows: [...rankingRows].sort((a, b) => metricNumber(b.assets) - metricNumber(a.assets)),
+    description: "Investors ranked by 30-day copy return",
+    descriptionZh: "按近30天跟单收益率排名的投资者",
+    metric: "returnRate",
+    metricLabel: "30-day copy return",
+    metricLabelZh: "近30天跟单收益率",
+    rows: [...rankingRows].sort((a, b) => metricNumber(b.returnRate) - metricNumber(a.returnRate)),
   },
   {
     id: "returns",
     title: "Highest returns",
     titleZh: "最高收益",
-    description: "The strongest return among open strategies",
-    descriptionZh: "公开策略中的最高收益",
+    description: "Total 30-day copy and lead P&L",
+    descriptionZh: "近30天跟单与带单总收益排行",
     metric: "returnValue",
-    metricLabel: "Total return",
-    metricLabelZh: "累计收益",
+    metricLabel: "30-day P&L",
+    metricLabelZh: "近30天盈亏",
     rows: [...rankingRows].sort((a, b) => metricNumber(b.returnValue) - metricNumber(a.returnValue)),
   },
 ];
@@ -423,19 +424,19 @@ function RankingBoards({ tr }: { tr: (en: string, zh: string) => string }) {
                         <span aria-hidden="true">{countryFlags[row.country]}</span>
                       </span>
                     </span>
-                    <small aria-label={tr(`Rank ${index + 1}, ${rankingMetricValue(row, board.metric)}`, `排名 ${index + 1}，${rankingMetricValue(row, board.metric)}`)}>
-                      {tr(`Rank ${index + 1}`, `排名 ${index + 1}`)}
+                    <small
+                      className="oq-marketplace-ranking-rank"
+                      aria-label={tr(`Rank ${index + 1}`, `排名 ${index + 1}`)}
+                    >
+                      {tr("Rank", "排名")} {index + 1}
                     </small>
                   </span>
                   <span className="oq-marketplace-ranking-item-stat">
                     <strong>{rankingMetricValue(row, board.metric)}</strong>
-                    <small>{tr(board.metricLabel, board.metricLabelZh)}</small>
+                    <small className="oq-marketplace-ranking-item-metric-label">
+                      {tr(board.metricLabel, board.metricLabelZh)}
+                    </small>
                   </span>
-                  <RankingSparkline
-                    values={row.series}
-                    tone={row.tone}
-                    label={`${row.name} ${tr("return curve", "收益曲线")}`}
-                  />
                   <ChevronRight aria-hidden="true" />
                 </Link>
               ))}
@@ -459,6 +460,8 @@ export default function Marketplace() {
   const { uiLang } = useAppLanguage();
   const search = useSearch();
   const tr = (en: string, zh: string) => translateUi(uiLang, en, zh);
+  const [copyTarget, setCopyTarget] = useState<Strategy | null>(null);
+  const [followingStrategyIds, setFollowingStrategyIds] = useState<Set<string>>(() => new Set());
   const query = new URLSearchParams(search).get("q")?.trim().toLowerCase() ?? "";
   const activeTab = new URLSearchParams(search).get("tab") ?? "marketplace";
   const visibleStrategies = useMemo(() => {
@@ -525,6 +528,8 @@ export default function Marketplace() {
                 descriptionZh={group.descriptionZh}
                 strategies={group.strategies}
                 tr={tr}
+                isFollowing={(strategyId) => followingStrategyIds.has(strategyId)}
+                onFollow={setCopyTarget}
               />
             ))}
           </section>
@@ -554,6 +559,23 @@ export default function Marketplace() {
           </Link>
         </div>
       </section>
+
+      <CopyTradeDialog
+        strategy={copyTarget}
+        tr={tr}
+        onOpenChange={(open) => {
+          if (!open) setCopyTarget(null);
+        }}
+        onConfirm={() => {
+          if (!copyTarget) return;
+          setFollowingStrategyIds((current) => {
+            const next = new Set(current);
+            next.add(copyTarget.id);
+            return next;
+          });
+          setCopyTarget(null);
+        }}
+      />
     </div>
   );
 }

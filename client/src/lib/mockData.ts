@@ -244,6 +244,7 @@ export interface Strategy {
   winRate: string;
   status: "live" | "backtested" | "new";
   subscribers: number;
+  capacity?: number;
   author: string;
   updatedAt: string;
   tags: string[];

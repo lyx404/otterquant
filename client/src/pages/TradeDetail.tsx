@@ -2,15 +2,10 @@ import { useEffect, useMemo, useRef, useState, type ComponentType, type CSSPrope
 import { Link, useLocation, useParams, useSearch } from "wouter";
 import { toast } from "sonner";
 import {
-  Area,
-  AreaChart,
-  CartesianGrid,
   Cell,
   Pie,
   PieChart as RechartsPieChart,
   Tooltip as RechartsTooltip,
-  XAxis,
-  YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
 import { ChartContainer } from "@/components/ui/chart";
@@ -19,6 +14,11 @@ import {
   localizeDateRangeLabel,
   StrategyReportDateControl,
 } from "./StrategyReportDateControl";
+import {
+  buildTradeTrendData,
+  TradeTrendChart,
+  type TradeTrendMetric,
+} from "@/components/TradeTrendChart";
 import { TRADE_RETURN_TRANSITION_STORAGE_KEY, tradeCopy } from "./Trade";
 import {
   Tooltip,
@@ -271,8 +271,6 @@ function isTradeEnvironment(value: string | null): value is TradeEnvironment {
 }
 
 type TradeViewMode = "trading" | "analysis";
-type OverviewMetric = "return" | "pnl";
-type OverviewTrendMetricKey = "returnValue" | "pnlValue";
 type AnalysisRange = "7D" | "30D" | "90D" | "365D";
 type CurvePoint = { x: number; y: number; value: number };
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
@@ -318,64 +316,6 @@ function getChartColorTokens(mode: ChartColorMode) {
         upHex: "#10B981",
         downHex: "#F43F5E",
       };
-}
-
-function OverviewTrendActiveDot({
-  cx,
-  cy,
-  payload,
-  metricKey,
-}: {
-  cx?: number;
-  cy?: number;
-  payload?: Partial<Record<OverviewTrendMetricKey, number>>;
-  metricKey: OverviewTrendMetricKey;
-}) {
-  if (typeof cx !== "number" || typeof cy !== "number") return null;
-
-  const value = payload?.[metricKey] ?? 0;
-  const stroke = value >= 0 ? "var(--semantic-up)" : "var(--semantic-down)";
-
-  return <circle cx={cx} cy={cy} r={4} fill="var(--td-bg)" stroke={stroke} strokeWidth={2.4} />;
-}
-
-function getNiceOverviewTrendStep(rawStep: number, minimumStep: number) {
-  const safeStep = Math.max(Math.abs(rawStep), minimumStep);
-  const magnitude = 10 ** Math.floor(Math.log10(safeStep));
-  const normalized = safeStep / magnitude;
-  const multiplier = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 2.5 ? 2.5 : normalized <= 5 ? 5 : 10;
-  return multiplier * magnitude;
-}
-
-function roundOverviewTrendAxisValue(value: number, step: number) {
-  const precision = Math.min(8, Math.max(0, Math.ceil(-Math.log10(step)) + 2));
-  return Number(value.toFixed(precision));
-}
-
-function getOverviewTrendAxis(values: number[], minimumStep: number) {
-  const finiteValues = values.filter(Number.isFinite);
-  const dataMin = Math.min(0, ...finiteValues);
-  const dataMax = Math.max(0, ...finiteValues);
-  const step = getNiceOverviewTrendStep((dataMax - dataMin) / 4, minimumStep);
-
-  let domainMin = Math.floor(dataMin / step) * step;
-  let domainMax = Math.ceil(dataMax / step) * step;
-  if (domainMin === domainMax) {
-    domainMin -= step * 2;
-    domainMax += step * 2;
-  }
-
-  domainMin = roundOverviewTrendAxisValue(domainMin, step);
-  domainMax = roundOverviewTrendAxisValue(domainMax, step);
-  const intervalCount = Math.round((domainMax - domainMin) / step);
-  const ticks = Array.from({ length: intervalCount + 1 }, (_, index) => (
-    roundOverviewTrendAxisValue(domainMin + index * step, step)
-  ));
-
-  return {
-    domain: [domainMin, domainMax] as [number, number],
-    ticks,
-  };
 }
 
 function parseNumeric(text: string) {
@@ -466,7 +406,7 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
   const searchParams = new URLSearchParams(search);
   const [viewMode] = useState<TradeViewMode>("trading");
   const [activePerformancePeriod, setActivePerformancePeriod] = useState(performanceDateLabel);
-  const [overviewMetric, setOverviewMetric] = useState<OverviewMetric>("return");
+  const [overviewMetric, setOverviewMetric] = useState<TradeTrendMetric>("return");
   const [activeAllocationAsset, setActiveAllocationAsset] = useState<string | null>(null);
   const [analysisCurveRange, setAnalysisCurveRange] = useState<AnalysisRange>("90D");
   const [analysisReturnRange, setAnalysisReturnRange] = useState<AnalysisRange>("30D");
@@ -721,28 +661,7 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
   ];
 
   const overviewTrendData = useMemo(() => {
-    const parsedDate = new Date(`${trade.updatedAt.slice(0, 10)}T00:00:00`);
-    const endDate = Number.isNaN(parsedDate.getTime()) ? new Date("2026-04-18T00:00:00") : parsedDate;
-
-    return Array.from({ length: 30 }, (_, index) => {
-      const progress = index / 29;
-      const date = new Date(endDate);
-      date.setDate(endDate.getDate() - (29 - index));
-      const wave = Math.sin(index * 0.58) * Math.sin(progress * Math.PI);
-      const drawdownEnvelope = Math.sin(progress * Math.PI) * ((1 - progress) ** 1.4);
-      const returnValue = roi * progress
-        + wave * Math.max(Math.abs(roi) * 0.28, 0.04)
-        - drawdownEnvelope * Math.max(Math.abs(roi) * 0.75, 0.75);
-      const pnlValue = totalPnl * progress
-        + wave * Math.max(Math.abs(totalPnl) * 0.08, 8)
-        - drawdownEnvelope * Math.max(Math.abs(totalPnl) * 0.75, 25);
-
-      return {
-        date: `${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
-        returnValue: Number(returnValue.toFixed(3)),
-        pnlValue: Number(pnlValue.toFixed(2)),
-      };
-    });
+    return buildTradeTrendData({ returnRate: roi, pnl: totalPnl, updatedAt: trade.updatedAt });
   }, [roi, totalPnl, trade.updatedAt]);
 
   const overviewAllocation = useMemo(() => {
@@ -846,26 +765,6 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
         }
       );
 
-  const overviewMetricKey: OverviewTrendMetricKey = overviewMetric === "return" ? "returnValue" : "pnlValue";
-  const overviewTrendValues = overviewTrendData.map((row) => row[overviewMetricKey]);
-  const overviewTrendFinalValue = overviewTrendValues.at(-1) ?? 0;
-  const overviewTrendEndColor = overviewTrendFinalValue >= 0 ? "var(--semantic-up)" : "var(--semantic-down)";
-  const overviewTrendAxis = getOverviewTrendAxis(
-    overviewTrendValues,
-    overviewMetric === "return" ? 0.1 : 10
-  );
-  const overviewTrendDomain = overviewTrendAxis.domain;
-  const overviewTrendYAxisTicks = overviewTrendAxis.ticks;
-  const overviewTrendValueMin = Math.min(0, ...overviewTrendValues);
-  const overviewTrendValueMax = Math.max(0, ...overviewTrendValues);
-  const overviewTrendZeroOffset = overviewTrendValueMax <= 0
-    ? 0
-    : overviewTrendValueMin >= 0
-      ? 1
-      : overviewTrendValueMax / (overviewTrendValueMax - overviewTrendValueMin);
-  const overviewTrendGradientSuffix = `${tradeId}-${overviewMetric}`;
-  const overviewTrendStrokeId = `trade-overview-stroke-${overviewTrendGradientSuffix}`;
-  const overviewTrendFillId = `trade-overview-fill-${overviewTrendGradientSuffix}`;
   const analysisCurve = useMemo(() => {
     const cfg = analysisCurveConfig[analysisCurveRange];
     const width = 960;
@@ -1216,105 +1115,17 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
               </div>
             </header>
 
-            <div className="oq-trade-trend-body">
-              <ChartContainer
-                className="oq-trade-trend-chart"
-                config={{
-                  [overviewMetricKey]: {
-                    label: overviewMetric === "return" ? tr("Return", "收益率") : tr("PnL", "盈亏"),
-                    color: overviewTrendEndColor,
-                  },
-                }}
-                role="img"
-                aria-label={
-                  overviewMetric === "return"
-                    ? tr(
-                        `30-day return trend ending at ${formatSigned(roi)}%.`,
-                        `近 30 天收益率走势，期末为 ${formatSigned(roi)}%。`,
-                        {
-                          ja: `30 日間のリターン推移。期末値は ${formatSigned(roi)}%。`,
-                          ko: `30일 수익률 추이, 기말 값 ${formatSigned(roi)}%.`,
-                          es: `Tendencia del retorno a 30 días, con valor final de ${formatSigned(roi)}%.`,
-                          fr: `Évolution du rendement sur 30 jours, valeur finale ${formatSigned(roi)} %.`,
-                        }
-                      )
-                    : tr(
-                        `30-day PnL trend ending at ${formatSigned(totalPnl)} USDT.`,
-                        `近 30 天盈亏走势，期末为 ${formatSigned(totalPnl)} USDT。`,
-                        {
-                          ja: `30 日間の PnL 推移。期末値は ${formatSigned(totalPnl)} USDT。`,
-                          ko: `30일 PnL 추이, 기말 값 ${formatSigned(totalPnl)} USDT.`,
-                          es: `Tendencia del PnL a 30 días, con valor final de ${formatSigned(totalPnl)} USDT.`,
-                          fr: `Évolution du PnL sur 30 jours, valeur finale ${formatSigned(totalPnl)} USDT.`,
-                        }
-                      )
-                }
-              >
-                <AreaChart data={overviewTrendData} accessibilityLayer margin={{ top: 8, right: 8, bottom: 4, left: 0 }}>
-                  <defs>
-                    <linearGradient id={overviewTrendStrokeId} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset={`${overviewTrendZeroOffset * 100}%`} stopColor="var(--semantic-up)" />
-                      <stop offset={`${overviewTrendZeroOffset * 100}%`} stopColor="var(--semantic-down)" />
-                    </linearGradient>
-                    <linearGradient id={overviewTrendFillId} x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--semantic-up)" stopOpacity={0.08} />
-                      <stop offset={`${overviewTrendZeroOffset * 100}%`} stopColor="var(--semantic-up)" stopOpacity={0.08} />
-                      <stop offset={`${overviewTrendZeroOffset * 100}%`} stopColor="var(--semantic-down)" stopOpacity={0.08} />
-                      <stop offset="100%" stopColor="var(--semantic-down)" stopOpacity={0.08} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="var(--td-chart-grid)" />
-                  <XAxis
-                    dataKey="date"
-                    axisLine={false}
-                    tickLine={false}
-                    tickMargin={10}
-                    interval={5}
-                    minTickGap={24}
-                    tick={{ fill: "var(--td-muted)", fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 500 }}
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tickMargin={8}
-                    width={48}
-                    domain={overviewTrendDomain}
-                    ticks={overviewTrendYAxisTicks}
-                    tick={{ fill: "var(--td-muted)", fontFamily: "var(--font-body)", fontSize: 10, fontWeight: 500 }}
-                    tickFormatter={(value) => {
-                      const numericValue = Number(value);
-                      if (numericValue === 0) return overviewMetric === "return" ? "0%" : "0";
-
-                      return overviewMetric === "return"
-                        ? `${numericValue.toFixed(1)}%`
-                        : numericValue.toLocaleString(undefined, { maximumFractionDigits: 0 });
-                    }}
-                  />
-                  <RechartsTooltip
-                    cursor={{ stroke: "var(--td-muted)", strokeDasharray: "4 6", strokeOpacity: 0.45 }}
-                    wrapperStyle={{ zIndex: 8, pointerEvents: "none" }}
-                    content={(
-                      <TradeTrendTooltip
-                        metric={overviewMetric}
-                        metricLabel={overviewMetric === "return" ? tr("Return", "收益率") : tr("PnL", "盈亏")}
-                        year={trade.updatedAt.slice(0, 4)}
-                      />
-                    )}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey={overviewMetricKey}
-                    stroke={`url(#${overviewTrendStrokeId})`}
-                    strokeWidth={2.4}
-                    fill={`url(#${overviewTrendFillId})`}
-                    fillOpacity={1}
-                    dot={false}
-                    activeDot={<OverviewTrendActiveDot metricKey={overviewMetricKey} />}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ChartContainer>
-            </div>
+            <TradeTrendChart
+              data={overviewTrendData}
+              metric={overviewMetric}
+              metricLabel={overviewMetric === "return" ? tr("Return", "收益率") : tr("PnL", "盈亏")}
+              year={trade.updatedAt.slice(0, 4)}
+              ariaLabel={
+                overviewMetric === "return"
+                  ? tr(`30-day return trend ending at ${formatSigned(roi)}%.`, `近 30 天收益率走势，期末为 ${formatSigned(roi)}%。`)
+                  : tr(`30-day PnL trend ending at ${formatSigned(totalPnl)} USDT.`, `近 30 天盈亏走势，期末为 ${formatSigned(totalPnl)} USDT。`)
+              }
+            />
           </article>
 
           <article className="oq-trade-overview-card oq-trade-allocation-card" aria-labelledby="trade-allocation-title">
@@ -2093,45 +1904,6 @@ function TradeWorkspaceTable({
         </thead>
         <tbody>{children}</tbody>
       </table>
-    </div>
-  );
-}
-
-function TradeTrendTooltip({
-  active,
-  label,
-  payload,
-  metric,
-  metricLabel,
-  year,
-}: {
-  active?: boolean;
-  label?: string | number;
-  payload?: readonly { value?: string | number }[];
-  metric: OverviewMetric;
-  metricLabel: string;
-  year: string;
-}) {
-  const numericValue = Number(payload?.[0]?.value);
-
-  if (!active || !Number.isFinite(numericValue)) return null;
-
-  const formattedValue = `${numericValue > 0 ? "+" : ""}${numericValue.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}${metric === "return" ? "%" : " USDT"}`;
-
-  return (
-    <div className="oq-trade-trend-tooltip" role="status">
-      <div className="oq-trade-trend-tooltip-date">{year}-{String(label ?? "--")}</div>
-      <div className="oq-trade-trend-tooltip-row">
-        <i
-          style={{ backgroundColor: numericValue >= 0 ? "var(--semantic-up)" : "var(--semantic-down)" }}
-          aria-hidden="true"
-        />
-        <span>{metricLabel}</span>
-        <strong>{formattedValue}</strong>
-      </div>
     </div>
   );
 }
