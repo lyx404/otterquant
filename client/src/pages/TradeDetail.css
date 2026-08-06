@@ -35,7 +35,7 @@
 }
 
 .oq-trade-detail.is-marketplace-detail {
-  width: 100%;
+  width: min(100%, 900px);
 }
 
 /* Route scope keeps portal-based dialogs, menus, tooltips and toasts on the same palette. */
@@ -358,10 +358,12 @@
 }
 
 .oq-trade-detail.is-marketplace-detail .oq-trade-detail-hero {
-  min-height: 132px;
-  border-radius: 0;
+  width: min(100%, 900px);
+  min-height: 90px;
+  margin-inline: auto;
+  border-radius: 10px;
   padding: 28px clamp(24px, 3vw, 44px);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--td-border) 76%, transparent);
+  box-shadow: 0 8px 24px rgb(60 40 20 / 6%);
 }
 
 .oq-trade-detail-view {
@@ -377,13 +379,14 @@
 }
 
 .oq-trade-detail.is-marketplace-detail .oq-trade-detail-view {
+  width: min(100%, 900px);
+  margin: 0 auto;
   gap: 24px;
 }
 
 .oq-marketplace-detail-tabs-bar {
   display: flex;
   min-width: 0;
-  border-bottom: 0.75px solid var(--td-border);
   background: transparent;
 }
 
@@ -392,8 +395,8 @@
   width: min(100%, 900px);
   height: 52px;
   justify-content: flex-start;
-  gap: 32px;
-  margin: 0 auto;
+  gap: 8px;
+  margin: 0 auto -10px;
   border-radius: 0;
   background: transparent;
   padding: 0;
@@ -410,20 +413,21 @@
   padding: 0 2px;
   color: var(--td-muted-strong);
   font-family: var(--font-body);
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
   box-shadow: none;
 }
 
 .oq-marketplace-detail-tabs-list > button::after {
   position: absolute;
-  right: 0;
+  right: 50%;
   bottom: -1px;
-  left: 0;
+  width: 24px;
   height: 2px;
   background: transparent;
   content: "";
+  transform: translateX(50%);
 }
 
 .oq-marketplace-detail-tabs-list > button:hover:not([data-state="active"]) {
@@ -433,11 +437,15 @@
 .oq-marketplace-detail-tabs-list > button[data-state="active"] {
   background: transparent;
   color: var(--td-text);
+  font-family: var(--font-heading);
+  font-size: 16.5px;
+  font-weight: 700;
+  line-height: 18.15px;
   box-shadow: none;
 }
 
 .oq-marketplace-detail-tabs-list > button[data-state="active"]::after {
-  background: var(--td-accent);
+  background: var(--td-text);
 }
 
 .oq-marketplace-detail-tabs-list > button:focus-visible {
@@ -571,9 +579,147 @@
 }
 
 .oq-trade-detail-subscribe.is-subscribed {
-  border-color: color-mix(in srgb, var(--semantic-up) 34%, var(--td-border));
-  background: color-mix(in srgb, var(--semantic-up) 10%, var(--td-bg));
+  border-color: var(--td-border);
+  background: var(--td-bg);
+  color: var(--td-text-soft);
+  font-weight: 500;
+}
+
+.oq-trade-detail-subscribe.is-subscribed:hover {
+  border-color: color-mix(in srgb, var(--td-accent) 42%, var(--td-border));
+  background: var(--td-bg-warm);
+  color: var(--td-accent);
+}
+
+.oq-trade-signal-dialog {
+  --td-bg: #ffffff;
+  --td-bg-warm: #fef6ef;
+  --td-border: #e2dad0;
+  --td-border-strong: #d2c8bc;
+  --td-text: #0d0d0d;
+  --td-text-soft: #4a443d;
+  --td-muted: #8c8378;
+  --td-muted-strong: #6b635a;
+  --td-accent: #dc4900;
+  --semantic-up: #1f8a5b;
+  width: min(430px, calc(100vw - 32px));
+  max-width: 430px;
+  gap: 20px;
+  border: 1px solid var(--td-border) !important;
+  border-radius: 10px !important;
+  background: var(--td-bg) !important;
+  color: var(--td-text);
+  box-shadow: 0 16px 40px rgb(60 40 20 / 14%) !important;
+  padding: 24px;
+}
+
+.oq-trade-signal-dialog > button {
+  border-radius: 5px;
+  color: var(--td-muted-strong);
+}
+
+.oq-trade-signal-dialog > button:hover {
+  background: var(--td-bg-warm);
+  color: var(--td-text);
+}
+
+.oq-trade-signal-dialog-header {
+  gap: 6px;
+}
+
+.oq-trade-signal-dialog-header h2 {
+  color: var(--td-text);
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+}
+
+.oq-trade-signal-dialog-header p {
+  color: var(--td-muted-strong);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.oq-trade-signal-options {
+  display: grid;
+  gap: 10px;
+}
+
+.oq-trade-signal-option {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--td-border) !important;
+  border-radius: 10px;
+  background: var(--td-bg) !important;
+  padding: 12px;
+  color: var(--td-text);
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.oq-trade-signal-option:hover {
+  border-color: color-mix(in srgb, var(--td-accent) 42%, var(--td-border));
+  background: var(--td-bg-warm);
+  transform: translateY(-1px);
+}
+
+.oq-trade-signal-option:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--td-accent) 32%, transparent);
+  outline-offset: 2px;
+}
+
+.oq-trade-signal-option-icon {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--td-accent) 10%, var(--td-bg));
+  color: var(--td-accent);
+}
+
+.oq-trade-signal-option-icon.is-telegram {
+  background: color-mix(in srgb, #229ed9 12%, var(--td-bg));
+  color: #229ed9;
+}
+
+.oq-trade-signal-option-icon svg,
+.oq-trade-signal-option-check,
+.oq-trade-signal-option-external {
+  width: 16px;
+  height: 16px;
+}
+
+.oq-trade-signal-option-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.oq-trade-signal-option-copy strong {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.oq-trade-signal-option-copy small {
+  color: var(--td-muted-strong);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.oq-trade-signal-option-check {
   color: var(--semantic-up);
+  opacity: 0;
+}
+
+.oq-trade-signal-option-external {
+  color: var(--td-muted-strong);
 }
 
 .oq-trade-detail-action {
@@ -848,7 +994,7 @@
   min-width: 0;
   overflow: hidden;
   border: 0.75px solid var(--td-border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--td-bg);
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.045);
 }
@@ -1336,7 +1482,7 @@
   min-width: 0;
   overflow: hidden;
   border: 0.75px solid var(--td-border);
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--td-bg);
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.045);
 }
@@ -2025,6 +2171,7 @@
 
   .oq-trade-detail.is-marketplace-detail .oq-trade-detail-hero {
     min-height: 0;
+    border-radius: 10px;
     padding: 22px 18px;
   }
 

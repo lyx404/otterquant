@@ -149,7 +149,7 @@
   overflow: visible;
   gap: 10px;
   border: var(--report-divider-width) solid var(--report-border);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--report-bg);
   padding: 12px;
   box-shadow: var(--report-shadow);
@@ -699,7 +699,7 @@
   --chart-space-3: 12px;
   --chart-space-4: 16px;
   --chart-space-5: 24px;
-  --chart-card-radius: var(--radius-md, 8px);
+  --chart-card-radius: 10px;
   --chart-control-radius: var(--radius-sm, 4px);
   --chart-axis-size: 0.625rem;
   --chart-legend-size: 0.625rem;
@@ -722,7 +722,7 @@
   gap: var(--chart-space-4);
 }
 
-main:has(.oq-strategy-figma-report) {
+main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-detail)) {
   width: min(932px, calc(100vw - 32px));
   max-width: min(932px, calc(100vw - 32px));
 }
@@ -1546,7 +1546,7 @@ main:has(.oq-strategy-figma-report) {
 }
 
 @media (min-width: 761px) and (max-width: 1180px) {
-  main:has(.oq-strategy-figma-report) {
+  main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-detail)) {
     width: calc(100vw - var(--sidebar-width, 186px) - 32px);
     max-width: calc(100vw - var(--sidebar-width, 186px) - 32px);
     margin-right: 0;

@@ -238,7 +238,7 @@
 .oq-report-card {
   overflow: hidden;
   border: 1px solid var(--report-gold-soft);
-  border-radius: 8px;
+  border-radius: 10px;
   background:
     radial-gradient(
       circle at 22% 0%,
@@ -574,7 +574,7 @@
   overflow: hidden;
   width: min(1100px, 100%);
   border: 1px solid #e2e8f0;
-  border-radius: 24px;
+  border-radius: 10px;
   background: #ffffff;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.04),
@@ -908,7 +908,7 @@
   font-kerning: normal;
 }
 
-main:has(.oq-strategy-figma-report) {
+main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-detail)) {
   max-width: min(932px, calc(100vw - 32px));
 }
 
@@ -1369,7 +1369,7 @@ main:has(.oq-strategy-figma-report) {
   min-width: 0;
   max-width: 100%;
   border: 1px solid var(--report-border);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--report-bg);
   box-shadow: var(--report-shadow);
 }

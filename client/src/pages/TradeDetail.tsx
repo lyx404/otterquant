@@ -19,6 +19,7 @@ import {
   TradeTrendChart,
   type TradeTrendMetric,
 } from "@/components/TradeTrendChart";
+import { StrategyFigmaReport } from "./StrategyFigmaReport";
 import { TRADE_RETURN_TRANSITION_STORAGE_KEY, tradeCopy } from "./Trade";
 import {
   Tooltip,
@@ -35,6 +36,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +66,8 @@ import {
   Activity,
   BarChart3,
   Check,
+  ExternalLink,
+  Mail,
   MoreHorizontal,
   PieChart,
   Play,
@@ -279,6 +289,7 @@ type PendingTradeAction = "stop" | "delete" | null;
 const analysisRanges: AnalysisRange[] = ["7D", "30D", "90D", "365D"];
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+const TELEGRAM_SIGNALS_URL = "https://t.me/quandora";
 const analysisCurveConfig: Record<AnalysisRange, { points: number; slope: number; volatility: number; labels: string[] }> = {
   "7D": { points: 18, slope: 46, volatility: 22, labels: ["04-12", "04-14", "04-16", "04-18"] },
   "30D": { points: 30, slope: 84, volatility: 38, labels: ["03-20", "03-27", "04-03", "04-10", "04-17"] },
@@ -389,9 +400,20 @@ function classForTone(tone?: "positive" | "negative" | "neutral") {
 type TradeDetailProps = {
   mode?: "trade" | "marketplace";
   tradeOverride?: (typeof tradeBots)[number] | null;
+  backHref?: string;
+  backLabel?: string;
+  marketplaceBackHref?: string;
+  minimalHero?: boolean;
 };
 
-export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDetailProps = {}) {
+export default function TradeDetail({
+  mode = "trade",
+  tradeOverride,
+  backHref,
+  backLabel,
+  marketplaceBackHref = "/marketplace",
+  minimalHero = false,
+}: TradeDetailProps = {}) {
   const { uiLang } = useAppLanguage();
   const tr = (en: string, zh: string, copy: UiCopy = {}) =>
     translateUi(uiLang, en, zh, {
@@ -418,12 +440,17 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
   const [isReturningToTrade, setIsReturningToTrade] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSignalDialogOpen, setIsSignalDialogOpen] = useState(false);
   const [executionStatusOverride, setExecutionStatusOverride] = useState<{ tradeId: string; status: "running" | "paused" } | null>(null);
   const [refreshedAtByTrade, setRefreshedAtByTrade] = useState<Record<string, string>>({});
   const returnNavigationTimerRef = useRef<number | null>(null);
   const refreshTimerRef = useRef<number | null>(null);
   const tradeId = params?.id ?? "";
   const isMarketplaceDetail = mode === "marketplace";
+  const detailBackHref = backHref ?? (isMarketplaceDetail ? marketplaceBackHref : "/trade");
+  const detailBackLabel = backLabel ?? (isMarketplaceDetail
+    ? (marketplaceBackHref === "/marketplace" ? tr("Back to Marketplace", "返回探索") : tr("Back to Portfolio Detail", "返回投资组合详情"))
+    : tr("Back to Trade", "返回交易"));
   const trade = useMemo(
     () => tradeOverride ?? getTradeBotsWithDeployments(tradeBots).find((item) => item.id === tradeId),
     [tradeId, tradeOverride]
@@ -481,9 +508,9 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
           <p className="mt-2 text-sm text-muted-foreground">
             {tr("The selected trade id does not exist in the current workspace.", "当前工作区中不存在所选交易 ID。")}
           </p>
-          <Link href={isMarketplaceDetail ? "/marketplace" : "/trade"}>
+          <Link href={detailBackHref}>
             <Button className="mt-4 h-8 rounded-full bg-primary px-4 text-xs text-primary-foreground hover:bg-primary/90">
-              {isMarketplaceDetail ? tr("Back to Marketplace", "返回广场") : tr("Back to Trade", "返回交易页")}
+              {detailBackLabel}
             </Button>
           </Link>
         </div>
@@ -523,7 +550,7 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
   };
   const returnToTrade = (event: ReactMouseEvent<HTMLAnchorElement>) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    if (isMarketplaceDetail) return;
+    if (isMarketplaceDetail || backHref) return;
     event.preventDefault();
     if (returnNavigationTimerRef.current !== null) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -538,13 +565,28 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
       navigate("/trade");
     }, 220);
   };
-  const toggleMarketplaceSubscription = () => {
-    const nextSubscribed = !isSubscribed;
-    setIsSubscribed(nextSubscribed);
+  const subscribeByEmail = () => {
+    setIsSubscribed(true);
+    setIsSignalDialogOpen(false);
     toast.success(
-      nextSubscribed
-        ? tr(`Telegram updates enabled for ${trade.name}.`, `已通过 Telegram 订阅「${trade.name}」交易动态。`)
-        : tr(`Telegram updates disabled for ${trade.name}.`, `已取消「${trade.name}」的 Telegram 交易动态。`)
+      tr(
+        `Trading signals for ${trade.name} will be sent to your registered email.`,
+        `「${trade.name}」的交易信号将发送至当前注册邮箱。`
+      )
+    );
+  };
+  const subscribeByTelegram = () => {
+    setIsSubscribed(true);
+    setIsSignalDialogOpen(false);
+    window.open(TELEGRAM_SIGNALS_URL, "_blank", "noopener,noreferrer");
+  };
+  const unsubscribeFromSignals = () => {
+    setIsSubscribed(false);
+    toast.success(
+      tr(
+        `Trading signal updates for ${trade.name} have been disabled.`,
+        `已取消「${trade.name}」的交易信号订阅。`
+      )
     );
   };
   const stopTrade = () => {
@@ -882,48 +924,52 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
     return parts[uiLang];
   };
   return (
-    <div className={`oq-trade-detail min-w-0${isMarketplaceDetail ? " is-marketplace-detail" : ""}${isReturningToTrade ? " is-returning" : ""}${isRefreshing ? " is-refreshing" : ""}`} style={semanticColorVars}>
+      <div className={`oq-trade-detail min-w-0${isMarketplaceDetail ? " is-marketplace-detail" : ""}${isReturningToTrade ? " is-returning" : ""}${isRefreshing ? " is-refreshing" : ""}`} style={semanticColorVars}>
       <div className="oq-trade-detail-heading">
-        <Link href={isMarketplaceDetail ? "/marketplace" : "/trade"} className="oq-trade-detail-back" onClick={returnToTrade}>
-          <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
-          <span>{isMarketplaceDetail ? tr("Back to Marketplace", "返回广场") : tr("Back to Trade", "返回交易")}</span>
-        </Link>
+        {!minimalHero ? (
+          <Link href={detailBackHref} className="oq-trade-detail-back" onClick={returnToTrade}>
+            <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
+            <span>{detailBackLabel}</span>
+          </Link>
+        ) : null}
 
         <header className="oq-trade-detail-hero">
           <div className="oq-trade-detail-title-copy">
             <div className="oq-trade-detail-title-line">
-              {!isMarketplaceDetail ? <span className="oq-trade-detail-id">{trade.id}</span> : null}
+              {!minimalHero && !isMarketplaceDetail ? <span className="oq-trade-detail-id">{trade.id}</span> : null}
               <h1>{trade.name}</h1>
             </div>
-            <div className="oq-trade-detail-meta">
-              <span aria-live="polite">{tr("Updated", "更新于")} {displayedUpdatedAt}</span>
-              <span className="oq-trade-detail-record-id">{trade.recordId}</span>
-              {!isMarketplaceDetail ? <div className="oq-trade-detail-title-tags">
-                <span className={`oq-trade-detail-mode ${runtimeEnvironment === "paper" ? "is-paper" : "is-live"}`}>
-                  {runtimeEnvironment === "paper" ? tr("Paper", "模拟") : tr("Live", "实盘")}
-                </span>
-                <span
-                  className={`oq-trade-detail-status ${runtimeStatus === "running" ? "is-running" : "is-paused"}`}
-                  aria-live="polite"
-                >
-                  <span aria-hidden="true" />
-                  {runtimeStatus === "running" ? tr("Running", "运行中") : tr("Stopped", "已停止")}
-                </span>
-              </div> : null}
-            </div>
+            {!minimalHero ? (
+              <div className="oq-trade-detail-meta">
+                <span aria-live="polite">{tr("Updated", "更新于")} {displayedUpdatedAt}</span>
+                <span className="oq-trade-detail-record-id">{trade.recordId}</span>
+                {!isMarketplaceDetail ? <div className="oq-trade-detail-title-tags">
+                  <span className={`oq-trade-detail-mode ${runtimeEnvironment === "paper" ? "is-paper" : "is-live"}`}>
+                    {runtimeEnvironment === "paper" ? tr("Paper", "模拟") : tr("Live", "实盘")}
+                  </span>
+                  <span
+                    className={`oq-trade-detail-status ${runtimeStatus === "running" ? "is-running" : "is-paused"}`}
+                    aria-live="polite"
+                  >
+                    <span aria-hidden="true" />
+                    {runtimeStatus === "running" ? tr("Running", "运行中") : tr("Stopped", "已停止")}
+                  </span>
+                </div> : null}
+              </div>
+            ) : null}
           </div>
 
-          <div className="oq-trade-detail-statuses" aria-label={tr("Trade controls", "交易控制")}>
+          {(isMarketplaceDetail || !minimalHero) ? <div className="oq-trade-detail-statuses" aria-label={tr("Trade controls", "交易控制")}>
             {isMarketplaceDetail ? (
               <button
                 type="button"
                 className={`oq-trade-detail-subscribe${isSubscribed ? " is-subscribed" : ""}`}
                 aria-pressed={isSubscribed}
-                aria-label={isSubscribed ? tr("Subscribed on Telegram", "已通过 Telegram 订阅") : tr("Subscribe on Telegram", "通过 Telegram 订阅")}
-                onClick={toggleMarketplaceSubscription}
+                aria-label={isSubscribed ? tr("Unsubscribe from trading signals", "取消订阅") : tr("Subscribe to trading signals", "订阅交易信号")}
+                onClick={() => isSubscribed ? unsubscribeFromSignals() : setIsSignalDialogOpen(true)}
               >
-                {isSubscribed ? <Check aria-hidden="true" /> : <Send aria-hidden="true" />}
-                {isSubscribed ? tr("Subscribed", "已订阅") : tr("Subscribe", "订阅")}
+                {!isSubscribed ? <Send aria-hidden="true" /> : null}
+                {isSubscribed ? tr("Unsubscribe", "取消订阅") : tr("Subscribe to trading signals", "订阅交易信号")}
               </button>
             ) : runtimeStatus === "running" ? (
               <>
@@ -1025,7 +1071,7 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu> : null}
-          </div>
+          </div> : null}
         </header>
       </div>
 
@@ -1823,9 +1869,61 @@ export default function TradeDetail({ mode = "trade", tradeOverride }: TradeDeta
             value="backtest"
             className="oq-marketplace-detail-backtest"
             aria-label={tr("Backtest", "回测")}
-          />
+          >
+            <StrategyFigmaReport
+              title={trade.name}
+              subtitle={tr("Backtest report", "回测报告")}
+              showHeader={false}
+              metricSectionTitle={tr("Past 30 days", "过去 30 天")}
+              dateLabel={tr("Past 30 days", "过去 30 天")}
+              dateOptions={[
+                tr("Past 30 days", "过去 30 天"),
+                tr("Past 90 days", "过去 90 天"),
+                tr("Past 180 days", "过去 180 天"),
+                tr("Past year", "过去 1 年"),
+                tr("Custom start date", "自定义起始时间"),
+              ]}
+              customDateOption={tr("Custom start date", "自定义起始时间")}
+              uiLang={uiLang}
+              plainExplainEnabled={plainExplainEnabled}
+              chartColorMode={chartColorMode}
+              tr={tr}
+            />
+          </TabsContent>
         ) : null}
       </Tabs>
+
+      {isMarketplaceDetail ? (
+        <Dialog open={isSignalDialogOpen} onOpenChange={setIsSignalDialogOpen}>
+          <DialogContent className="oq-trade-signal-dialog">
+            <DialogHeader className="oq-trade-signal-dialog-header">
+              <DialogTitle>{tr("Subscribe to trading signals", "订阅交易信号")}</DialogTitle>
+              <DialogDescription>
+                {tr("Choose where to receive updates for this strategy.", "选择接收该策略交易动态的方式。")}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="oq-trade-signal-options">
+              <button type="button" className="oq-trade-signal-option" onClick={subscribeByEmail}>
+                <span className="oq-trade-signal-option-icon" aria-hidden="true"><Mail /></span>
+                <span className="oq-trade-signal-option-copy">
+                  <strong>{tr("Email", "邮箱")}</strong>
+                  <small>{tr("Send to your registered email", "发送到当前注册邮箱")}</small>
+                </span>
+                <Check className="oq-trade-signal-option-check" aria-hidden="true" />
+              </button>
+              <button type="button" className="oq-trade-signal-option" onClick={subscribeByTelegram}>
+                <span className="oq-trade-signal-option-icon is-telegram" aria-hidden="true"><Send /></span>
+                <span className="oq-trade-signal-option-copy">
+                  <strong>Telegram</strong>
+                  <small>{tr("Open the Telegram subscription page", "打开 Telegram 订阅页")}</small>
+                </span>
+                <ExternalLink className="oq-trade-signal-option-external" aria-hidden="true" />
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       {!isMarketplaceDetail ? <AlertDialog
         open={pendingAction !== null}

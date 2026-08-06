@@ -164,6 +164,46 @@ const bundledOfficialStrategies = strategies.filter(
 
 export const marketplaceStrategies = [...bundledOfficialStrategies, ...marketplaceExamples];
 
+export const marketplaceFundNames: Record<string, string> = {
+  "STR-001": "基金名称基金名称",
+  "STR-002": "BTCETH 趋势反转",
+  "STR-003": "多因子稳健策略",
+  "STR-005": "稳健套利增强",
+  "STR-007": "ETH 波动率捕获",
+  "STR-008": "SOL 动量趋势",
+  "STR-009": "多资产风险平价",
+  "STR-010": "资金费率中性套利",
+  "STR-011": "链上流动性脉冲",
+};
+
+export type MarketplaceAvatarTone = "orange" | "teal" | "violet" | "blue" | "green" | "rose";
+
+export const marketplaceUserProfiles: Record<string, { author: string; avatar: string; avatarTone: MarketplaceAvatarTone }> = {
+  "STR-001": { author: "枫1008", avatar: "枫", avatarTone: "orange" },
+  "STR-002": { author: "成成狼兜", avatar: "成", avatarTone: "teal" },
+  "STR-003": { author: "量化小王子", avatar: "量", avatarTone: "violet" },
+  "STR-005": { author: "七月流火", avatar: "七", avatarTone: "blue" },
+  "STR-007": { author: "阿尔法研究所", avatar: "阿", avatarTone: "orange" },
+  "STR-008": { author: "南山有鹿", avatar: "南", avatarTone: "rose" },
+  "STR-009": { author: "均衡之道", avatar: "均", avatarTone: "teal" },
+  "STR-010": { author: "中性先生", avatar: "中", avatarTone: "orange" },
+  "STR-011": { author: "链上观察员", avatar: "链", avatarTone: "violet" },
+};
+
+// The marketplace cards use curated follower limits that are distinct from the
+// generic strategy fixtures used by other pages.
+export const marketplaceFollowerLimits: Record<string, { subscribers: number; capacity: number }> = {
+  "STR-001": { subscribers: 200, capacity: 200 },
+  "STR-002": { subscribers: 147, capacity: 200 },
+  "STR-003": { subscribers: 88, capacity: 120 },
+  "STR-005": { subscribers: 200, capacity: 200 },
+  "STR-007": { subscribers: 64, capacity: 100 },
+  "STR-008": { subscribers: 169, capacity: 200 },
+  "STR-009": { subscribers: 112, capacity: 150 },
+  "STR-010": { subscribers: 200, capacity: 200 },
+  "STR-011": { subscribers: 93, capacity: 120 },
+};
+
 export const marketplaceTradeSource: Record<string, string> = {
   "STR-001": "TRD-101",
   "STR-002": "TRD-102",

@@ -1,9 +1,11 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Link, useSearch } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   ArrowUpRight,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
 } from "lucide-react";
 import { CopyTradeDialog } from "@/components/CopyTradeDialog";
 import {
@@ -13,22 +15,26 @@ import {
 import type { Strategy } from "@/lib/mockData";
 import {
   marketplaceCardDetails,
+  marketplaceFundNames,
   marketplaceStrategies,
+  marketplaceUserProfiles,
+  type MarketplaceAvatarTone,
   type MarketplaceCardDetails,
 } from "@/lib/marketplaceData";
+import { useFollowingStrategyIds } from "@/lib/marketplaceState";
 import "./Trade.css";
 import "./Marketplace.css";
 
 const SHOW_MARKETPLACE_CONTENT = true;
 
-type AvatarTone = "orange" | "teal" | "violet" | "blue" | "green" | "rose";
+type AvatarTone = MarketplaceAvatarTone;
 
 type MarketplaceCardView = {
   author: string;
   avatar: string;
   subscribers: number;
   capacity: number;
-  status: "满员" | "跟单";
+  status: "满员" | "跟投";
   title: string;
   return30d: string;
   pnl30d: string;
@@ -39,15 +45,15 @@ type MarketplaceCardView = {
 };
 
 const marketplaceCardViews: Record<string, MarketplaceCardView> = {
-  "STR-001": { author: "枫1008", avatar: "枫", subscribers: 200, capacity: 200, status: "满员", title: "基金名称基金名称", return30d: "+18.06%", pnl30d: "+902.89 USDT", maxDrawdown: "-0.2%", sharpe: "9.16", winRate: "35%", avatarTone: "orange" },
-  "STR-002": { author: "成成狼兜", avatar: "成", subscribers: 147, capacity: 200, status: "跟单", title: "BTCETH 趋势反转", return30d: "+12.84%", pnl30d: "+640.20 USDT", maxDrawdown: "-1.8%", sharpe: "4.82", winRate: "48%", avatarTone: "teal" },
-  "STR-003": { author: "量化小王子", avatar: "量", subscribers: 88, capacity: 120, status: "跟单", title: "多因子稳健策略", return30d: "+9.42%", pnl30d: "+471.00 USDT", maxDrawdown: "-0.9%", sharpe: "5.74", winRate: "52%", avatarTone: "violet" },
-  "STR-005": { author: "七月流火", avatar: "七", subscribers: 200, capacity: 200, status: "满员", title: "稳健套利增强", return30d: "+7.18%", pnl30d: "+358.90 USDT", maxDrawdown: "-0.4%", sharpe: "7.31", winRate: "61%", avatarTone: "blue" },
-  "STR-007": { author: "阿尔法研究所", avatar: "阿", subscribers: 64, capacity: 100, status: "跟单", title: "ETH 波动率捕获", return30d: "+15.63%", pnl30d: "+781.50 USDT", maxDrawdown: "-2.6%", sharpe: "3.88", winRate: "47%", avatarTone: "green" },
-  "STR-008": { author: "南山有鹿", avatar: "南", subscribers: 176, capacity: 200, status: "跟单", title: "SOL 动量趋势", return30d: "+20.40%", pnl30d: "+1,020.00 USDT", maxDrawdown: "-3.1%", sharpe: "3.45", winRate: "55%", avatarTone: "rose" },
-  "STR-009": { author: "均衡之道", avatar: "均", subscribers: 112, capacity: 150, status: "跟单", title: "多资产风险平价", return30d: "+10.80%", pnl30d: "+540.00 USDT", maxDrawdown: "-1.1%", sharpe: "6.02", winRate: "58%", avatarTone: "teal" },
-  "STR-010": { author: "中性先生", avatar: "中", subscribers: 200, capacity: 200, status: "满员", title: "资金费率中性套利", return30d: "+8.90%", pnl30d: "+445.00 USDT", maxDrawdown: "-0.3%", sharpe: "8.12", winRate: "68%", avatarTone: "orange" },
-  "STR-011": { author: "链上观察员", avatar: "链", subscribers: 93, capacity: 120, status: "跟单", title: "链上流动性脉冲", return30d: "+17.10%", pnl30d: "+855.00 USDT", maxDrawdown: "-2.4%", sharpe: "4.26", winRate: "51%", avatarTone: "violet" },
+  "STR-001": { ...marketplaceUserProfiles["STR-001"], subscribers: 200, capacity: 200, status: "满员", title: marketplaceFundNames["STR-001"], return30d: "+18.06%", pnl30d: "+902.89 USDT", maxDrawdown: "-0.2%", sharpe: "9.16", winRate: "35%" },
+  "STR-002": { ...marketplaceUserProfiles["STR-002"], subscribers: 147, capacity: 200, status: "跟投", title: marketplaceFundNames["STR-002"], return30d: "+12.84%", pnl30d: "+640.20 USDT", maxDrawdown: "-1.8%", sharpe: "4.82", winRate: "48%" },
+  "STR-003": { ...marketplaceUserProfiles["STR-003"], subscribers: 88, capacity: 120, status: "跟投", title: marketplaceFundNames["STR-003"], return30d: "+9.42%", pnl30d: "+471.00 USDT", maxDrawdown: "-0.9%", sharpe: "5.74", winRate: "52%" },
+  "STR-005": { ...marketplaceUserProfiles["STR-005"], subscribers: 200, capacity: 200, status: "满员", title: marketplaceFundNames["STR-005"], return30d: "+7.18%", pnl30d: "+358.90 USDT", maxDrawdown: "-0.4%", sharpe: "7.31", winRate: "61%" },
+  "STR-007": { ...marketplaceUserProfiles["STR-007"], subscribers: 64, capacity: 100, status: "跟投", title: marketplaceFundNames["STR-007"], return30d: "+15.63%", pnl30d: "+781.50 USDT", maxDrawdown: "-2.6%", sharpe: "3.88", winRate: "47%" },
+  "STR-008": { ...marketplaceUserProfiles["STR-008"], subscribers: 176, capacity: 200, status: "跟投", title: marketplaceFundNames["STR-008"], return30d: "+20.40%", pnl30d: "+1,020.00 USDT", maxDrawdown: "-3.1%", sharpe: "3.45", winRate: "55%" },
+  "STR-009": { ...marketplaceUserProfiles["STR-009"], subscribers: 112, capacity: 150, status: "跟投", title: marketplaceFundNames["STR-009"], return30d: "+10.80%", pnl30d: "+540.00 USDT", maxDrawdown: "-1.1%", sharpe: "6.02", winRate: "58%" },
+  "STR-010": { ...marketplaceUserProfiles["STR-010"], subscribers: 200, capacity: 200, status: "满员", title: marketplaceFundNames["STR-010"], return30d: "+8.90%", pnl30d: "+445.00 USDT", maxDrawdown: "-0.3%", sharpe: "8.12", winRate: "68%" },
+  "STR-011": { ...marketplaceUserProfiles["STR-011"], subscribers: 93, capacity: 120, status: "跟投", title: marketplaceFundNames["STR-011"], return30d: "+17.10%", pnl30d: "+855.00 USDT", maxDrawdown: "-2.4%", sharpe: "4.26", winRate: "51%" },
 };
 
 type RankingRow = {
@@ -150,21 +156,40 @@ function MarketplaceSummary({ tr }: { tr: (en: string, zh: string) => string }) 
     <section className="oq-marketplace-summary" aria-label={tr("Account overview", "资产概览")}>
       <div className="oq-marketplace-summary-values">
         <div className="oq-marketplace-summary-item">
-          <span>{tr("Assets (USDT)", "资产 (USDT)")}</span>
+          <span>{tr("Available assets (USDT)", "可用资产 (USDT)")}</span>
           <strong>438,473.00</strong>
         </div>
         <div className="oq-marketplace-summary-divider" aria-hidden="true" />
         <div className="oq-marketplace-copy-summary">
           <div className="oq-marketplace-copy-summary-metrics">
             <div>
-              <span>{tr("Copy P&L (USDT)", "带单盈亏(USDT)")}</span>
-              <strong>323,827.08</strong>
+              <span>{tr("Portfolio P&L (USDT)", "组合盈亏(USDT)")}</span>
+              <strong className="is-positive">+323,827.08</strong>
             </div>
             <div>
-              <span>{tr("Copy count", "带单数量")}</span>
+              <span>{tr("Portfolio count", "创建组合数量")}</span>
               <strong>2</strong>
             </div>
           </div>
+          <Link href="/marketplace?tab=mine" className="oq-marketplace-summary-detail-button">
+            {tr("Details", "详情")}
+          </Link>
+        </div>
+        <div className="oq-marketplace-summary-divider" aria-hidden="true" />
+        <div className="oq-marketplace-copy-summary is-copy-summary">
+          <div className="oq-marketplace-copy-summary-metrics">
+            <div>
+              <span>{tr("Invested P&L (USDT)", "跟投盈亏(USDT)")}</span>
+              <strong className="is-positive">+323,827.08</strong>
+            </div>
+            <div>
+              <span>{tr("Follower count", "跟投人数")}</span>
+              <strong>2</strong>
+            </div>
+          </div>
+          <Link href="/marketplace?tab=mine" className="oq-marketplace-summary-detail-button">
+            {tr("Details", "详情")}
+          </Link>
         </div>
       </div>
     </section>
@@ -216,7 +241,7 @@ function TradingCard({
                   onFollow();
                 }}
               >
-                {isFollowing ? tr("Following", "已跟单") : tr("Copy", "跟单")}
+                {isFollowing ? tr("Copy Investing details", "跟投详情") : tr("Copy Investing", "跟投")}
               </button>
             )}
           </div>
@@ -268,12 +293,46 @@ function StrategyCarousel({
 }: StrategyCarouselProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const showControls = strategies.length > 4;
+  const [scrollState, setScrollState] = useState({ canScrollPrev: false, canScrollNext: showControls });
+
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const updateScrollState = () => {
+      const maxScrollLeft = Math.max(0, list.scrollWidth - list.clientWidth);
+      setScrollState({
+        canScrollPrev: list.scrollLeft > 1,
+        canScrollNext: maxScrollLeft > 1 && list.scrollLeft < maxScrollLeft - 1,
+      });
+    };
+
+    updateScrollState();
+    list.addEventListener("scroll", updateScrollState, { passive: true });
+
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateScrollState);
+    resizeObserver?.observe(list);
+
+    return () => {
+      list.removeEventListener("scroll", updateScrollState);
+      resizeObserver?.disconnect();
+    };
+  }, [strategies.length]);
 
   const scrollStrategies = (direction: number) => {
     const list = listRef.current;
     if (!list) return;
     list.scrollBy({ left: direction * Math.max(280, list.clientWidth * 0.82), behavior: "smooth" });
   };
+
+  const canScrollPrev = showControls && scrollState.canScrollPrev;
+  const canScrollNext = showControls && scrollState.canScrollNext;
+  const controlsClassName = [
+    "oq-marketplace-carousel-controls",
+    showControls ? "has-controls" : "",
+    canScrollPrev ? "has-prev" : "",
+    canScrollNext ? "has-next" : "",
+  ].filter(Boolean).join(" ");
 
   return (
     <section className="oq-marketplace-strategy-group" aria-labelledby={`marketplace-strategy-group-${title}`}>
@@ -284,10 +343,10 @@ function StrategyCarousel({
         </div>
       </header>
       <div
-        className={`oq-marketplace-carousel-controls${showControls ? " has-controls" : ""}`}
+        className={controlsClassName}
         aria-label={showControls ? tr("Strategy carousel controls", "策略横向浏览") : undefined}
       >
-        {showControls && (
+        {canScrollPrev && (
           <button
             type="button"
             aria-label={tr(`Previous ${title}`, `查看上一组${titleZh}`)}
@@ -311,7 +370,7 @@ function StrategyCarousel({
             ))}
           </div>
         </div>
-        {showControls && (
+        {canScrollNext && (
           <button
             type="button"
             aria-label={tr(`Next ${title}`, `查看下一组${titleZh}`)}
@@ -347,32 +406,32 @@ function metricNumber(value: string) {
 const rankingBoards: RankingBoardDefinition[] = [
   {
     id: "managers",
-    title: "Best fund managers",
-    titleZh: "最佳基金管理员",
-    description: "Fund managers ranked by 30-day lead return",
-    descriptionZh: "按近30天带单收益率排名的基金管理员",
+    title: "Top Portfolio Managers",
+    titleZh: "最佳组合管理员",
+    description: "Portfolio Managers ranked by 30-day portfolio return",
+    descriptionZh: "按近30天组合收益率排名的组合管理员",
     metric: "returnRate",
-    metricLabel: "30-day lead return",
-    metricLabelZh: "近30天带单收益率",
+    metricLabel: "30-day portfolio return",
+    metricLabelZh: "近30天组合收益率",
     rows: [...rankingRows].sort((a, b) => metricNumber(b.returnRate) - metricNumber(a.returnRate)),
   },
   {
     id: "investors",
-    title: "Best investors",
-    titleZh: "最佳投资者",
-    description: "Investors ranked by 30-day copy return",
-    descriptionZh: "按近30天跟单收益率排名的投资者",
+    title: "Top Portfolio Investors",
+    titleZh: "最佳跟投者",
+    description: "Portfolio Investors ranked by 30-day copy investing return",
+    descriptionZh: "按近30天跟投收益率排名的跟投者",
     metric: "returnRate",
-    metricLabel: "30-day copy return",
-    metricLabelZh: "近30天跟单收益率",
+    metricLabel: "30-day copy investing return",
+    metricLabelZh: "近30天跟投收益率",
     rows: [...rankingRows].sort((a, b) => metricNumber(b.returnRate) - metricNumber(a.returnRate)),
   },
   {
     id: "returns",
     title: "Highest returns",
     titleZh: "最高收益",
-    description: "Total 30-day copy and lead P&L",
-    descriptionZh: "近30天跟单与带单总收益排行",
+    description: "Total 30-day portfolio and copy investing P&L",
+    descriptionZh: "近30天组合与跟投总收益排行",
     metric: "returnValue",
     metricLabel: "30-day P&L",
     metricLabelZh: "近30天盈亏",
@@ -399,6 +458,12 @@ function RankingBoards({ tr }: { tr: (en: string, zh: string) => string }) {
                 <p>{tr(board.description, board.descriptionZh)}</p>
               </div>
             </header>
+            <div className="oq-marketplace-ranking-columns">
+              <span>{tr("Rank", "排名")}</span>
+              <span>{tr("User", "用户昵称")}</span>
+              <span>{tr(board.metricLabel, board.metricLabelZh)}</span>
+              <span />
+            </div>
             <div className="oq-marketplace-ranking-list">
               {board.rows.slice(0, visibleCount).map((row, index) => (
                 <Link
@@ -407,28 +472,25 @@ function RankingBoards({ tr }: { tr: (en: string, zh: string) => string }) {
                   className="oq-marketplace-ranking-item"
                   aria-label={tr(`View ${row.name}'s profile`, `查看 ${row.name} 的主页`)}
                 >
-                  <span className={`oq-marketplace-avatar is-${row.avatarTone}`} aria-hidden="true">
-                    {row.avatarSrc ? <img src={row.avatarSrc} alt="" /> : row.avatar}
+                  <span
+                    className={`oq-marketplace-ranking-rank${index < 3 ? ` is-top is-rank-${index + 1}` : ""}`}
+                    aria-label={tr(`Rank ${index + 1}`, `排名 ${index + 1}`)}
+                  >
+                    {index + 1}
                   </span>
-                  <span className="oq-marketplace-ranking-item-copy">
+                  <span className="oq-marketplace-ranking-user">
+                    <span className={`oq-marketplace-avatar is-${row.avatarTone}`} aria-hidden="true">
+                      {row.avatarSrc ? <img src={row.avatarSrc} alt="" /> : row.avatar}
+                    </span>
                     <span className="oq-marketplace-ranking-item-name">
-                      <strong>{row.name}</strong>
                       <span className="oq-marketplace-country-flag" aria-label={tr(`Region: ${row.country}`, `所在地区：${row.country}`)}>
                         <span aria-hidden="true">{countryFlags[row.country]}</span>
                       </span>
+                      <strong>{row.name}</strong>
                     </span>
-                    <small
-                      className="oq-marketplace-ranking-rank"
-                      aria-label={tr(`Rank ${index + 1}`, `排名 ${index + 1}`)}
-                    >
-                      {tr("Rank", "排名")} {index + 1}
-                    </small>
                   </span>
                   <span className="oq-marketplace-ranking-item-stat">
                     <strong>{rankingMetricValue(row, board.metric)}</strong>
-                    <small className="oq-marketplace-ranking-item-metric-label">
-                      {tr(board.metricLabel, board.metricLabelZh)}
-                    </small>
                   </span>
                   <ChevronRight aria-hidden="true" />
                 </Link>
@@ -444,6 +506,7 @@ function RankingBoards({ tr }: { tr: (en: string, zh: string) => string }) {
         onClick={() => setShowAll((current) => !current)}
       >
         {showAll ? tr("Show less", "收起") : tr("More", "更多")}
+        {showAll ? <ChevronUp aria-hidden="true" /> : <ChevronDown aria-hidden="true" />}
       </button>
     </>
   );
@@ -452,9 +515,10 @@ function RankingBoards({ tr }: { tr: (en: string, zh: string) => string }) {
 export default function Marketplace() {
   const { uiLang } = useAppLanguage();
   const search = useSearch();
+  const [, navigate] = useLocation();
   const tr = (en: string, zh: string) => translateUi(uiLang, en, zh);
   const [copyTarget, setCopyTarget] = useState<Strategy | null>(null);
-  const [followingStrategyIds, setFollowingStrategyIds] = useState<Set<string>>(() => new Set());
+  const { followingStrategyIds, addFollowing } = useFollowingStrategyIds();
   const query = new URLSearchParams(search).get("q")?.trim().toLowerCase() ?? "";
   const activeTab = new URLSearchParams(search).get("tab") ?? "marketplace";
   const visibleStrategies = useMemo(() => {
@@ -471,28 +535,38 @@ export default function Marketplace() {
     const available = visibleStrategies.filter((strategy) => marketplaceCardViews[strategy.id]);
     return available.length > 8 && !query ? available.slice(0, 8) : available;
   }, [query, visibleStrategies]);
-  const strategyGroups = useMemo(() => [
-    {
-      id: "highest-return",
-      title: "Highest returns",
-      titleZh: "最高收益率",
-      description: "The strongest 30-day return",
-      descriptionZh: "近30天收益率最高的策略",
-      strategies: [...carouselStrategies].sort((a, b) => (
-        metricNumber(marketplaceCardViews[b.id].return30d) - metricNumber(marketplaceCardViews[a.id].return30d)
-      )),
-    },
-    {
-      id: "lowest-drawdown",
-      title: "Lowest drawdown",
-      titleZh: "最低回撤",
-      description: "The most stable risk profile",
-      descriptionZh: "风险控制最稳健的策略",
-      strategies: [...carouselStrategies].sort((a, b) => (
-        Math.abs(metricNumber(marketplaceCardViews[a.id].maxDrawdown)) - Math.abs(metricNumber(marketplaceCardViews[b.id].maxDrawdown))
-      )),
-    },
-  ], [carouselStrategies]);
+  const strategyGroups = useMemo(() => {
+    const statusRank = (strategy: Strategy) => {
+      if (followingStrategyIds.has(strategy.id)) return 2;
+      return marketplaceCardViews[strategy.id].status === "满员" ? 1 : 0;
+    };
+    const prioritize = (a: Strategy, b: Strategy, metricComparison: number) => (
+      statusRank(a) - statusRank(b) || metricComparison
+    );
+
+    return [
+      {
+        id: "highest-return",
+        title: "Highest returns",
+        titleZh: "最高收益率",
+        description: "The strongest 30-day return",
+        descriptionZh: "近30天收益率最高的策略",
+        strategies: [...carouselStrategies].sort((a, b) => (
+          prioritize(a, b, metricNumber(marketplaceCardViews[b.id].return30d) - metricNumber(marketplaceCardViews[a.id].return30d))
+        )),
+      },
+      {
+        id: "lowest-drawdown",
+        title: "Lowest drawdown",
+        titleZh: "最低回撤",
+        description: "The most stable risk profile",
+        descriptionZh: "风险控制最稳健的策略",
+        strategies: [...carouselStrategies].sort((a, b) => (
+          prioritize(a, b, Math.abs(metricNumber(marketplaceCardViews[a.id].maxDrawdown)) - Math.abs(metricNumber(marketplaceCardViews[b.id].maxDrawdown)))
+        )),
+      },
+    ];
+  }, [carouselStrategies, followingStrategyIds]);
 
   useEffect(() => {
     document.documentElement.classList.add("oq-marketplace-active");
@@ -501,14 +575,15 @@ export default function Marketplace() {
     };
   }, []);
 
-  if (!SHOW_MARKETPLACE_CONTENT || activeTab !== "marketplace") return null;
+  if (!SHOW_MARKETPLACE_CONTENT) return null;
+  if (activeTab !== "marketplace") return null;
 
   return (
     <div className="oq-trade oq-marketplace">
       <section className="oq-marketplace-hero" aria-labelledby="oq-marketplace-hero-title">
         <div className="oq-marketplace-hero-inner">
           <header className="oq-marketplace-hero-heading">
-            <h1 id="oq-marketplace-hero-title">{tr("Follow fund managers, trade with clarity", "跟随基金管理员，轻松进行交易")}</h1>
+            <h1 id="oq-marketplace-hero-title">{tr("Follow strategy portfolios, invest with clarity", "跟随策略组合，轻松进行投资")}</h1>
           </header>
           <MarketplaceSummary tr={tr} />
           <section className="oq-marketplace-strategy-groups" aria-label={tr("Official trading strategies", "官方交易策略")}>
@@ -522,7 +597,13 @@ export default function Marketplace() {
                 strategies={group.strategies}
                 tr={tr}
                 isFollowing={(strategyId) => followingStrategyIds.has(strategyId)}
-                onFollow={setCopyTarget}
+                onFollow={(strategy) => {
+                  if (followingStrategyIds.has(strategy.id)) {
+                    navigate("/marketplace?tab=mine");
+                    return;
+                  }
+                  setCopyTarget(strategy);
+                }}
               />
             ))}
           </section>
@@ -533,7 +614,7 @@ export default function Marketplace() {
         <div className="oq-marketplace-ranking-inner">
           <header className="oq-marketplace-section-heading">
             <div>
-              <h2 id="oq-marketplace-ranking-title">{tr("Fund manager performance rankings", "基金管理员表现排名")}</h2>
+              <h2 id="oq-marketplace-ranking-title">{tr("User performance rankings", "用户表现排名")}</h2>
             </div>
           </header>
           <RankingBoards tr={tr} />
@@ -543,11 +624,11 @@ export default function Marketplace() {
       <section className="oq-marketplace-cta" aria-labelledby="oq-marketplace-cta-title">
         <div className="oq-marketplace-cta-inner">
           <div>
-            <h2 id="oq-marketplace-cta-title">{tr("Become a fund manager and earn copy trading income", "成为基金管理员，赚取带单收入")}</h2>
-            <p>{tr("Earn up to 31% in lead trading income.", "赚取最高 31% 带单收入")}</p>
+            <h2 id="oq-marketplace-cta-title">{tr("Become a Portfolio Manager and earn Copy Investing income", "成为组合管理员，赚取跟投收入")}</h2>
+            <p>{tr("Earn up to 30% in portfolio management income.", "赚取最高 30% 组合管理收入")}</p>
           </div>
           <Link href="/strategies/new" className="oq-marketplace-cta-button">
-            {tr("Create fund", "创建基金")}
+            {tr("Create Portfolio", "创建组合")}
             <ArrowUpRight aria-hidden="true" />
           </Link>
         </div>
@@ -555,17 +636,20 @@ export default function Marketplace() {
 
       <CopyTradeDialog
         strategy={copyTarget}
+        identity={copyTarget && marketplaceCardViews[copyTarget.id]
+          ? {
+              avatar: marketplaceCardViews[copyTarget.id].avatar,
+              author: marketplaceCardViews[copyTarget.id].author,
+              strategyName: marketplaceCardViews[copyTarget.id].title,
+            }
+          : undefined}
         tr={tr}
         onOpenChange={(open) => {
           if (!open) setCopyTarget(null);
         }}
         onConfirm={() => {
           if (!copyTarget) return;
-          setFollowingStrategyIds((current) => {
-            const next = new Set(current);
-            next.add(copyTarget.id);
-            return next;
-          });
+          addFollowing(copyTarget.id);
           setCopyTarget(null);
         }}
       />

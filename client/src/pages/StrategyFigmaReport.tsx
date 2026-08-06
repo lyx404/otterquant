@@ -2900,6 +2900,7 @@ export function StrategyFigmaReport({
   titleAction,
   actions,
   historicalVersionView = false,
+  showHeader = true,
   metricRows = navMetrics,
   positions = defaultPositions,
   tr = defaultTr,
@@ -2918,6 +2919,7 @@ export function StrategyFigmaReport({
   titleAction?: ReactNode;
   actions?: ReactNode;
   historicalVersionView?: boolean;
+  showHeader?: boolean;
   metricRows?: ReportMetricRow[];
   positions?: ReportPositionRecord[];
   tr?: Tr;
@@ -2939,21 +2941,25 @@ export function StrategyFigmaReport({
 
   return (
     <div className="oq-strategy-figma-report" style={reportColorVars}>
-      {topAction ? <div className="oq-report-top-action">{topAction}</div> : null}
-      <header className={`oq-report-top${historicalVersionView ? " is-historical-version" : ""}`}>
-        <div className="oq-report-title-block">
-          <div className="oq-report-title-row">
-            <div className="oq-report-title-copy">
-              <div className="oq-report-title-line">
-                {titleAction}
-                <h1>{title}</h1>
+      {showHeader ? (
+        <>
+          {topAction ? <div className="oq-report-top-action">{topAction}</div> : null}
+          <header className={`oq-report-top${historicalVersionView ? " is-historical-version" : ""}`}>
+            <div className="oq-report-title-block">
+              <div className="oq-report-title-row">
+                <div className="oq-report-title-copy">
+                  <div className="oq-report-title-line">
+                    {titleAction}
+                    <h1>{title}</h1>
+                  </div>
+                  <p className="oq-report-title-meta">{subtitle}</p>
+                </div>
+                <div className="oq-report-head-controls">{actions ? <div className="oq-report-actions">{actions}</div> : null}</div>
               </div>
-              <p className="oq-report-title-meta">{subtitle}</p>
             </div>
-            <div className="oq-report-head-controls">{actions ? <div className="oq-report-actions">{actions}</div> : null}</div>
-          </div>
-        </div>
-      </header>
+          </header>
+        </>
+      ) : null}
 
       <section className="oq-report-metric-panel" aria-label={tReport(tr, "Strategy summary metrics", "策略概览指标")}>
         <div className="oq-report-metric-header">

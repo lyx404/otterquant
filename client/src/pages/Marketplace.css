@@ -22,6 +22,7 @@
   min-width: 0;
   max-width: 100%;
   margin: 0;
+  gap: 32px;
   overflow-x: visible;
   color: var(--oq-market-text);
   font-family: var(--font-body);
@@ -46,9 +47,14 @@
   margin-inline: auto;
 }
 
+.oq-marketplace-hero-inner {
+  display: grid;
+  gap: 24px;
+}
+
 .oq-marketplace-hero-heading {
   max-width: 650px;
-  margin-bottom: 26px;
+  margin-bottom: 0;
 }
 
 .oq-marketplace-eyebrow {
@@ -72,6 +78,7 @@
 
 .oq-marketplace-hero h1 {
   max-width: 640px;
+  padding-top: 20px;
   color: var(--oq-market-hero-text);
   font-size: 26px;
   font-weight: 650;
@@ -93,16 +100,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  margin-bottom: 18px;
-  border: 1px solid var(--oq-market-border);
+  margin-bottom: 16px;
+  border: 0;
   border-radius: 10px;
   background: var(--oq-market-surface);
-  padding: 17px 20px;
+  padding: 22px 20px;
   color: var(--oq-market-text);
 }
 
 .oq-marketplace-summary-values {
   display: flex;
+  flex: 1 1 auto;
   min-width: 0;
   align-items: center;
   gap: 24px;
@@ -141,9 +149,15 @@
 }
 
 .oq-marketplace-copy-summary {
-  display: grid;
-  min-width: 286px;
-  gap: 8px;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  min-width: 0;
+  gap: 24px;
+}
+
+.oq-marketplace-copy-summary.is-copy-summary {
+  margin-left: 0;
 }
 
 .oq-marketplace-copy-summary h3 {
@@ -157,6 +171,7 @@
 
 .oq-marketplace-copy-summary-metrics {
   display: flex;
+  flex: 1 1 auto;
   align-items: flex-start;
   gap: 34px;
 }
@@ -175,11 +190,40 @@
   white-space: nowrap;
 }
 
+.oq-marketplace-copy-summary-metrics strong.is-positive {
+  color: var(--oq-market-positive);
+}
+
 .oq-marketplace-copy-summary-metrics span {
   color: var(--oq-market-muted);
   font-size: 10px;
   line-height: 14px;
   white-space: nowrap;
+}
+
+.oq-marketplace-summary-detail-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 34px;
+  border: 1px solid #f44e4e;
+  border-radius: 6px;
+  background: #f44e4e;
+  padding: 0 10px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.oq-marketplace-summary-detail-button:hover {
+  border-color: #ff6a6a;
+  background: #ff6a6a;
+  transform: translateY(-1px);
 }
 
 .oq-marketplace-cta-button {
@@ -191,6 +235,7 @@
 }
 
 .oq-marketplace-cta-button:focus-visible,
+.oq-marketplace-summary-detail-button:focus-visible,
 .oq-marketplace-card-link:focus-visible,
 .oq-marketplace-status:focus-visible,
 .oq-marketplace-ranking-user:focus-visible,
@@ -201,7 +246,7 @@
 
 .oq-marketplace-strategy-groups {
   display: grid;
-  gap: 32px;
+  gap: 16px;
 }
 
 .oq-marketplace-strategy-group {
@@ -209,9 +254,15 @@
 }
 
 .oq-marketplace-ranking-board-heading.oq-marketplace-strategy-group-heading {
+  height: auto;
+  min-height: 0;
   margin-bottom: 0;
   border-bottom: 0;
   padding-bottom: 0;
+}
+
+.oq-marketplace-ranking-board-heading.oq-marketplace-strategy-group-heading > div {
+  margin-bottom: 8px;
 }
 
 .oq-marketplace-carousel-controls {
@@ -278,8 +329,9 @@
   display: flex;
   min-width: 0;
   align-items: flex-start;
-  gap: 14px;
+  gap: 12px;
   overflow-x: auto;
+  margin-bottom: 16px;
   padding: 3px 1px 6px;
   scroll-behavior: smooth;
   scrollbar-width: none;
@@ -288,7 +340,7 @@
 .oq-marketplace-carousel-list::-webkit-scrollbar { display: none; }
 
 .oq-marketplace-carousel-list > .oq-marketplace-card-link {
-  flex: 0 0 calc((100% - 42px) / 4);
+  flex: 0 0 calc((100% - 36px) / 4);
   min-width: 250px;
 }
 
@@ -314,7 +366,7 @@
   height: auto;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--oq-market-hero-border);
+  border: 0;
   border-radius: 10px;
   background: var(--oq-market-hero-card);
   transition: border-color 180ms ease, transform 180ms ease;
@@ -328,7 +380,7 @@
 .oq-marketplace-card-header {
   display: grid;
   gap: 9px;
-  padding: 15px 15px 12px;
+  padding: 20px 16px 12px;
 }
 
 .oq-marketplace-card-author-row,
@@ -492,7 +544,7 @@
 .oq-marketplace-performance-panel {
   display: grid;
   gap: 12px;
-  margin: 0 15px 14px;
+  margin: 0 16px 14px;
   padding: 6px 0 0;
 }
 
@@ -594,7 +646,7 @@
   min-width: 0;
   margin-inline: -32px;
   background: var(--oq-market-page);
-  padding: 58px 32px 68px;
+  padding: 60px 32px 60px;
 }
 
 .oq-marketplace-section-heading {
@@ -617,12 +669,12 @@
 .oq-marketplace-ranking-boards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 28px;
+  gap: 12px;
 }
 
 .oq-marketplace-ranking-board {
   min-width: 0;
-  border: 1px solid var(--oq-market-border);
+  border: 0;
   border-radius: 10px;
   background: var(--oq-market-surface);
   padding: 20px 20px 8px;
@@ -663,13 +715,33 @@
   border-bottom: 0;
 }
 
+.oq-marketplace-ranking-columns,
 .oq-marketplace-ranking-item {
   display: grid;
   min-width: 0;
-  min-height: 88px;
-  grid-template-columns: 36px minmax(0, 1fr) 120px 16px;
+  grid-template-columns: 28px minmax(0, 1fr) 112px 14px;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+.oq-marketplace-ranking-columns {
+  min-height: 30px;
+  border: 0;
+  border-top: 0.5px solid var(--oq-market-border-soft);
+  color: #e2e8f0;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 13px;
+  margin-top: -10px;
+  padding-top: 4px;
+}
+
+.oq-marketplace-ranking-columns > span:nth-child(3) {
+  text-align: right;
+}
+
+.oq-marketplace-ranking-item {
+  min-height: 64px;
   border-radius: 8px;
   color: inherit;
   text-decoration: none;
@@ -683,23 +755,56 @@
 }
 
 .oq-marketplace-ranking-rank {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   color: var(--oq-market-muted);
-  font-size: 9px;
-  font-weight: 400;
-  line-height: 13px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1;
 }
 
-.oq-marketplace-ranking-item > .oq-marketplace-avatar {
-  width: 36px;
-  height: 36px;
-  background: linear-gradient(to bottom, #d99100, #dc4900);
-  font-size: 12px;
+.oq-marketplace-ranking-rank.is-top {
+  border: 1px solid transparent;
+  font-weight: 750;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 52%);
 }
 
-.oq-marketplace-ranking-item-copy {
-  display: grid;
+.oq-marketplace-ranking-rank.is-rank-1 {
+  border-color: #e2aa2f;
+  background: #ffd466;
+  color: #815300;
+}
+
+.oq-marketplace-ranking-rank.is-rank-2 {
+  border-color: #c8ced5;
+  background: #e9edf1;
+  color: #636d78;
+}
+
+.oq-marketplace-ranking-rank.is-rank-3 {
+  border-color: #d9a17d;
+  background: #f2c8ad;
+  color: #8e4f28;
+}
+
+.oq-marketplace-ranking-user {
+  display: flex;
   min-width: 0;
-  gap: 2px;
+  align-items: center;
+  gap: 7px;
+}
+
+.oq-marketplace-ranking-user > .oq-marketplace-avatar {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  background: linear-gradient(to bottom, #d99100, #dc4900);
+  font-size: 9px;
 }
 
 .oq-marketplace-ranking-item-name {
@@ -714,7 +819,7 @@
   color: var(--oq-market-text);
   font-family: var(--font-heading);
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 600;
   line-height: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -727,10 +832,9 @@
 }
 
 .oq-marketplace-ranking-item-stat {
-  display: grid;
+  display: block;
   min-width: 0;
-  gap: 2px;
-  justify-items: end;
+  text-align: right;
 }
 
 .oq-marketplace-ranking-item-stat strong {
@@ -778,13 +882,17 @@
 }
 
 .oq-marketplace-ranking-more {
-  display: block;
+  display: flex;
+  width: max-content;
   min-width: 84px;
   min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   margin: 24px auto 0;
-  border: 1px solid var(--qt-border-strong);
+  border: 1px solid #ebebeb;
   border-radius: 999px;
-  background: transparent;
+  background: #ffffff;
   padding: 0 16px;
   color: var(--oq-market-text);
   font-family: var(--font-body);
@@ -795,6 +903,12 @@
   transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
 }
 
+.oq-marketplace-ranking-more svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.8;
+}
+
 .oq-marketplace-ranking-more:hover {
   border-color: var(--oq-market-primary);
   background: #fff7f3;
@@ -803,7 +917,7 @@
 
 .oq-marketplace-cta {
   background: var(--oq-market-page);
-  padding: 40px 32px 64px;
+  padding: 0 32px 60px;
 }
 
 .oq-marketplace-cta-inner {
@@ -815,9 +929,9 @@
   justify-content: space-between;
   gap: 32px;
   margin-inline: auto;
-  border: 1px solid var(--oq-market-border);
+  border: 0;
   border-radius: 10px;
-  background: var(--oq-market-surface);
+  background: linear-gradient(135deg, #fff0e4 0%, #fff8f3 54%, var(--oq-market-surface) 100%);
   padding: 30px 36px;
 }
 
@@ -882,7 +996,8 @@
   }
 
   .oq-marketplace-ranking-boards { grid-template-columns: 1fr; gap: 32px; }
-  .oq-marketplace-ranking-item { grid-template-columns: 36px minmax(0, 1fr) 120px 16px; }
+  .oq-marketplace-ranking-columns,
+  .oq-marketplace-ranking-item { grid-template-columns: 32px minmax(0, 1fr) 160px 16px; }
   .oq-marketplace-cta-inner { align-items: flex-start; flex-direction: column; }
 }
 
@@ -909,6 +1024,7 @@
   .oq-marketplace-summary-item { min-width: 0; }
   .oq-marketplace-summary-item strong { font-size: 18px; }
   .oq-marketplace-copy-summary { min-width: 0; flex: 1 1 280px; }
+  .oq-marketplace-copy-summary.is-copy-summary { margin-left: 0; }
   .oq-marketplace-copy-summary-metrics { gap: 20px; }
   .oq-marketplace-carousel-controls.has-controls {
     position: relative;
@@ -921,12 +1037,22 @@
     position: static;
     transform: none;
   }
+  .oq-marketplace-carousel-controls.has-controls:not(.has-prev):not(.has-next) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .oq-marketplace-carousel-controls.has-controls:not(.has-prev).has-next {
+    grid-template-columns: minmax(0, 1fr) 28px;
+  }
+  .oq-marketplace-carousel-controls.has-controls.has-prev:not(.has-next) {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
   .oq-marketplace-carousel-controls button {
     width: 28px;
     height: 28px;
   }
   .oq-marketplace-carousel-list > .oq-marketplace-card-link { flex-basis: 78%; min-width: 0; }
-  .oq-marketplace-ranking-item { grid-template-columns: 36px minmax(0, 1fr) 120px 14px; }
+  .oq-marketplace-ranking-columns,
+  .oq-marketplace-ranking-item { grid-template-columns: 28px minmax(0, 1fr) 100px 14px; }
   .oq-marketplace-ranking-board { padding: 16px 16px 8px; }
   .oq-marketplace-section-heading { align-items: flex-start; }
   .oq-marketplace-cta { padding: 28px 16px 44px; }

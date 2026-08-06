@@ -115,10 +115,10 @@ const pageHeaders = [
   },
   {
     match: (path: string) => /^\/marketplace\/[^/]+$/.test(path),
-    titleEn: "Fund Detail",
-    titleZh: "基金详情",
-    subtitleEn: "Review fund performance and copy-trading activity",
-    subtitleZh: "查看基金表现与跟单数据",
+    titleEn: "Portfolio Detail",
+    titleZh: "投资组合详情",
+    subtitleEn: "Review portfolio performance and copy-investing activity",
+    subtitleZh: "查看投资组合表现与跟投数据",
   },
   {
     match: (path: string) => path.startsWith("/marketplace"),
@@ -258,7 +258,14 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     : search
       ? `?${search.replace(/^\?/, "")}`
       : "";
-  const isMarketplaceDetail = /^\/marketplace\/[^/]+$/.test(currentPathname);
+  const isMarketplaceFundDetail = /^\/marketplace\/[^/]+$/.test(currentPathname);
+  const isMarketplaceStrategyDetail = /^\/marketplace\/[^/]+\/strategies\/[^/]+$/.test(currentPathname);
+  const isMarketplaceUserProfile = /^\/marketplace\/users\/[^/]+$/.test(currentPathname);
+  const isMarketplaceDetail = isMarketplaceFundDetail || isMarketplaceStrategyDetail;
+  const isMarketplaceHeaderDetail = isMarketplaceDetail || isMarketplaceUserProfile;
+  const marketplaceFundPath = isMarketplaceStrategyDetail
+    ? currentPathname.split("/").slice(0, 3).join("/")
+    : "/marketplace";
   const showExploreTabs = currentPathname === "/marketplace";
   const activeExploreTab = new URLSearchParams(currentSearch).get("tab") ?? "marketplace";
   const isExploreTabActive = (key: string) => showExploreTabs && activeExploreTab === key;
@@ -319,6 +326,9 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const originalTextCacheRef = useRef<WeakMap<Text, string>>(new WeakMap());
   const syncingCopyRef = useRef(false);
   const tr = (en: string, zh: string) => translateUi(uiLang, en, zh, sidebarCopy[en]);
+  const marketplaceBackLabel = isMarketplaceStrategyDetail
+    ? tr("Back to Portfolio Detail", "返回投资组合详情")
+    : tr("Back to Explore", "返回探索");
   const displayName = user?.displayName || (user?.username ? `@${user.username}` : "Nicole Ong");
   const userHandle = user?.username
     ? `@${user.username}`
@@ -686,14 +696,14 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
         >
           <div className="ml-[21px] flex h-full min-w-0 items-center gap-[26px]">
             {!showExploreTabs && (
-              <div className={`flex min-w-0 ${isMarketplaceDetail ? "h-[30px] items-center gap-2" : "h-[35px] flex-col justify-start"}`}>
-                {isMarketplaceDetail ? (
+              <div className={`flex min-w-0 ${isMarketplaceHeaderDetail ? "h-[30px] items-center gap-2" : "h-[35px] flex-col justify-start"}`}>
+                {isMarketplaceHeaderDetail ? (
                   <>
                     <button
                       type="button"
-                      onClick={() => navigate("/marketplace")}
-                      aria-label={tr("Back to Explore", "返回探索")}
-                      title={tr("Back to Explore", "返回探索")}
+                      onClick={() => navigate(isMarketplaceStrategyDetail ? marketplaceFundPath : "/marketplace")}
+                      aria-label={marketplaceBackLabel}
+                      title={marketplaceBackLabel}
                       className="flex h-6 w-6 shrink-0 items-center justify-center text-[#6f675f] transition-colors hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:text-[#b2a69b] dark:hover:text-[#ff6a1a]"
                     >
                       <ArrowLeft className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
@@ -709,9 +719,28 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                         {tr("Explore", "探索")}
                       </Link>
                       <span aria-hidden="true" className="text-[12px] text-[#b5aba0] dark:text-[#75695e]">/</span>
+                      {isMarketplaceStrategyDetail ? (
+                        <>
+                          <Link
+                            href={marketplaceFundPath}
+                            className="text-[12px] font-normal leading-[18px] text-[#8c8378] transition-colors hover:text-[#dc4900] dark:text-[#b2a69b] dark:hover:text-[#ff6a1a]"
+                          >
+                            {tr("Portfolio Detail", "投资组合详情")}
+                          </Link>
+                          <span aria-hidden="true" className="text-[12px] text-[#b5aba0] dark:text-[#75695e]">/</span>
+                        </>
+                      ) : null}
+                      {isMarketplaceUserProfile ? (
+                        <>
+                          <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d] dark:text-[#fff7ef]">
+                            {tr("User Profile", "用户主页")}
+                          </h1>
+                        </>
+                      ) : (
                       <h1 className="text-[16.5px] font-bold leading-[18.15px] tracking-[-0.33px] text-[#0d0d0d] dark:text-[#fff7ef]">
-                        {tr("Fund Detail", "基金详情")}
+                        {isMarketplaceStrategyDetail ? tr("Strategy Detail", "策略详情") : tr("Portfolio Detail", "投资组合详情")}
                       </h1>
+                      )}
                     </nav>
                   </>
                 ) : (
@@ -803,13 +832,13 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          {isMarketplaceDetail ? (
+          {isMarketplaceHeaderDetail ? (
             <>
               <button
                 type="button"
-                onClick={() => navigate("/marketplace")}
-                aria-label={tr("Back to Explore", "返回探索")}
-                title={tr("Back to Explore", "返回探索")}
+                onClick={() => navigate(isMarketplaceStrategyDetail ? marketplaceFundPath : "/marketplace")}
+                aria-label={marketplaceBackLabel}
+                title={marketplaceBackLabel}
                 className="flex h-8 w-8 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <ArrowLeft className="h-4 w-4" strokeWidth={1.8} aria-hidden="true" />
@@ -817,7 +846,9 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
               <nav aria-label={tr("Page path", "页面路径")} className="flex min-w-0 items-center gap-1.5">
                 <Link href="/marketplace" className="text-xs font-normal text-muted-foreground">{tr("Explore", "探索")}</Link>
                 <span aria-hidden="true" className="text-xs text-muted-foreground/60">/</span>
-                <h1 className="text-[15px] font-semibold text-foreground">{tr("Fund Detail", "基金详情")}</h1>
+                <h1 className="text-[15px] font-semibold text-foreground">
+                  {isMarketplaceUserProfile ? tr("User Profile", "用户主页") : tr("Portfolio Detail", "投资组合详情")}
+                </h1>
               </nav>
             </>
           ) : (
