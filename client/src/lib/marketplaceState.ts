@@ -2,14 +2,16 @@ import { useCallback, useEffect, useState } from "react";
 
 const FOLLOWING_STORAGE_KEY = "otterquant.marketplace.following";
 const FOLLOWING_EVENT = "otterquant:marketplace-following-change";
+const DEFAULT_FOLLOWING_STRATEGY_IDS = ["STR-005"];
 
 function readFollowingIds() {
-  if (typeof window === "undefined") return new Set<string>();
+  if (typeof window === "undefined") return new Set(DEFAULT_FOLLOWING_STRATEGY_IDS);
   try {
     const value = JSON.parse(window.localStorage.getItem(FOLLOWING_STORAGE_KEY) ?? "[]");
-    return new Set<string>(Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : []);
+    const storedIds = Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : [];
+    return new Set([...DEFAULT_FOLLOWING_STRATEGY_IDS, ...storedIds]);
   } catch {
-    return new Set<string>();
+    return new Set(DEFAULT_FOLLOWING_STRATEGY_IDS);
   }
 }
 

@@ -1659,7 +1659,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
 }
 
 /* Strategy detail dark mode: Workbench Design.md OKLCH surface ladder. */
-.dark.oq-strategies-active .oq-strategy-figma-report {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-strategy-figma-report {
   --report-bg: var(--oq-strategy-surface-1);
   --report-panel: var(--oq-strategy-surface-2);
   --report-panel-deep: var(--oq-strategy-surface-3);
@@ -1705,11 +1705,11 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   --chart-zero-color: var(--report-border-strong);
 }
 
-.dark.oq-strategies-active main:has(.oq-strategy-figma-report) {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) main:has(.oq-strategy-figma-report) {
   color: var(--oq-strategy-text);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-top, .oq-report-metric-panel, .oq-report-card, .oq-position-card) {
   border-color: var(--report-border);
@@ -1718,24 +1718,24 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   box-shadow: var(--report-shadow);
 }
 
-.dark.oq-strategies-active .oq-strategy-figma-report .oq-report-top {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-strategy-figma-report .oq-report-top {
   box-shadow: 0 12px 30px oklch(0 0 0 / 0.34);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-metric, .oq-report-metrics-table, .oq-position-head) {
   border-color: var(--report-subtle-border);
   background: var(--report-subtle-surface);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-metric, .oq-report-card, .oq-position-card) {
   color: var(--report-text);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-back-button, .oq-report-action, .oq-report-date-select > button) {
   border-color: var(--report-border-strong);
@@ -1744,10 +1744,10 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   box-shadow: none;
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-back-button, .oq-report-action, .oq-report-date-select > button):hover,
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-report-date-select
   > button[aria-expanded="true"] {
@@ -1756,7 +1756,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   color: var(--report-gold);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-action.is-primary, .oq-report-action.is-live) {
   border-color: var(--report-gold);
@@ -1764,7 +1764,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   color: var(--oq-strategy-canvas);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-action.is-primary, .oq-report-action.is-live):hover {
   border-color: var(--report-gold-soft);
@@ -1772,7 +1772,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   color: var(--oq-strategy-canvas);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-date-menu, .oq-report-date-calendar-panel) {
   border-color: var(--report-border-strong);
@@ -1781,15 +1781,15 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   box-shadow: var(--report-shadow-lift);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-report-date-menu
   button:hover,
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-report-date-menu
   button:focus-visible,
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-report-date-menu
   button[aria-selected="true"] {
@@ -1797,7 +1797,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   color: var(--report-gold);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-chart-tooltip, .oq-dense-tooltip-card) {
   border-color: var(--report-border-strong);
@@ -1806,23 +1806,23 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   box-shadow: var(--report-shadow-lift);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-chart-grid line, .oq-dense-lines line) {
   stroke: var(--chart-grid-color);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-legend-item.is-interactive, .oq-symbol-rank-legend button, .oq-attribution-switch button):hover,
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-report-legend-item.is-interactive, .oq-symbol-rank-legend button)[aria-pressed="true"],
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-attribution-switch
   button[aria-selected="true"],
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-attribution-switch
   button[data-state="active"] {
@@ -1831,21 +1831,21 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   color: var(--report-text);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-position-table
   article:hover {
   background: var(--report-warm);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   :is(.oq-position-symbol span, .oq-position-symbol small, .oq-position-symbol .oq-position-status) {
   background: var(--report-panel-deep);
   color: var(--report-text-soft);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-position-symbol
   .oq-position-direction.is-long {
@@ -1853,7 +1853,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   color: color-mix(in srgb, var(--report-green) 82%, var(--report-text));
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-position-symbol
   .oq-position-direction.is-short {
@@ -1861,31 +1861,31 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   color: color-mix(in srgb, var(--report-red) 82%, var(--report-text));
 }
 
-.dark.oq-strategies-active .oq-report-more-content {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-report-more-content {
   border-color: var(--oq-strategy-border-strong);
   background: var(--oq-strategy-surface-2);
   color: var(--oq-strategy-text);
   box-shadow: 0 16px 38px oklch(0 0 0 / 0.52);
 }
 
-.dark.oq-strategies-active .oq-report-more-item {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-report-more-item {
   color: var(--oq-strategy-text-warm);
 }
 
-.dark.oq-strategies-active .oq-report-more-item[data-highlighted] {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-report-more-item[data-highlighted] {
   background: var(--oq-strategy-surface-warm);
   color: var(--oq-strategy-accent);
 }
 
-.dark.oq-strategies-active .oq-report-more-item.is-destructive {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-report-more-item.is-destructive {
   color: var(--oq-strategy-risk);
 }
 
-.dark.oq-strategies-active .oq-report-more-separator {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-report-more-separator {
   background: var(--oq-strategy-border);
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-report-date-select.oq-report-date-select--compact {
   --report-bg: var(--oq-strategy-surface-2);
@@ -1904,25 +1904,25 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   --ring: var(--oq-strategy-accent);
 }
 
-.dark.oq-strategies-active [data-sonner-toast][data-type="success"] {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) [data-sonner-toast][data-type="success"] {
   border-color: var(--oq-toast-success-border) !important;
   background: var(--oq-toast-success-bg) !important;
   color: var(--oq-toast-success-text) !important;
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   [data-sonner-toast][data-type="success"]
   [data-icon] {
   color: var(--oq-strategy-success) !important;
 }
 
-.dark.oq-strategies-active [data-sonner-toast][data-type="error"] {
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) [data-sonner-toast][data-type="error"] {
   border-color: var(--oq-toast-error-border) !important;
   background: var(--oq-toast-error-bg) !important;
   color: var(--oq-toast-error-text) !important;
 }
 
-.dark.oq-strategies-active
+:is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   [data-sonner-toast][data-type="error"]
   [data-icon] {
   color: var(--oq-strategy-risk) !important;

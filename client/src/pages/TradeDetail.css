@@ -89,6 +89,24 @@
   --oq-toast-error-bg: var(--oq-trade-detail-risk-bg);
   --oq-toast-error-text: var(--oq-trade-detail-text);
   --oq-toast-error-border: oklch(0.55 0.1 25);
+  /* Allows the shared strategy-report dark rules to serve marketplace strategy detail. */
+  --oq-strategy-canvas: var(--oq-trade-detail-canvas);
+  --oq-strategy-surface-1: var(--oq-trade-detail-surface-1);
+  --oq-strategy-surface-2: var(--oq-trade-detail-surface-2);
+  --oq-strategy-surface-3: var(--oq-trade-detail-surface-3);
+  --oq-strategy-surface-warm: var(--oq-trade-detail-surface-warm);
+  --oq-strategy-border: var(--oq-trade-detail-border);
+  --oq-strategy-border-strong: var(--oq-trade-detail-border-strong);
+  --oq-strategy-border-emphasis: color-mix(in oklch, var(--oq-trade-detail-accent) 48%, var(--oq-trade-detail-border));
+  --oq-strategy-text: var(--oq-trade-detail-text);
+  --oq-strategy-text-warm: var(--oq-trade-detail-text-warm);
+  --oq-strategy-text-soft: var(--oq-trade-detail-text-soft);
+  --oq-strategy-muted: var(--oq-trade-detail-muted);
+  --oq-strategy-muted-strong: var(--oq-trade-detail-muted-strong);
+  --oq-strategy-accent: var(--oq-trade-detail-accent);
+  --oq-strategy-accent-2: var(--oq-trade-detail-accent-hover);
+  --oq-strategy-success: var(--oq-trade-detail-success);
+  --oq-strategy-risk: var(--oq-trade-detail-risk);
 }
 
 .dark.oq-trade-detail-active .oq-app-main-column {
@@ -191,6 +209,24 @@
   --td-muted: var(--oq-trade-detail-muted);
   --td-accent: var(--oq-trade-detail-accent);
   box-shadow: 0 6px 18px oklch(0 0 0 / 0.28) !important;
+}
+
+.dark.oq-trade-detail-active .oq-trade-signal-dialog {
+  --td-bg: var(--oq-trade-detail-surface-1);
+  --td-bg-warm: var(--oq-trade-detail-surface-warm);
+  --td-border: var(--oq-trade-detail-border-strong);
+  --td-border-strong: var(--oq-trade-detail-border-strong);
+  --td-text: var(--oq-trade-detail-text);
+  --td-text-soft: var(--oq-trade-detail-text-soft);
+  --td-muted: var(--oq-trade-detail-muted);
+  --td-muted-strong: var(--oq-trade-detail-muted-strong);
+  --td-accent: var(--oq-trade-detail-accent);
+  --semantic-up: var(--oq-trade-detail-success);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-trade-detail-active .oq-trade-signal-option {
+  background: var(--oq-trade-detail-surface-2) !important;
 }
 
 .dark.oq-trade-detail-active .oq-trade-detail-dialog-button.is-primary {
@@ -547,9 +583,8 @@
   height: 38px;
   align-items: center;
   justify-content: center;
-  gap: 7px;
   border: 1px solid var(--td-accent);
-  border-radius: 6px;
+  border-radius: 40px;
   background: var(--td-accent);
   padding: 0 14px;
   color: #ffffff;
@@ -558,13 +593,6 @@
   line-height: 1;
   cursor: pointer;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
-}
-
-.oq-trade-detail-subscribe svg {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-  stroke-width: 1.8;
 }
 
 .oq-trade-detail-subscribe:hover {
@@ -579,7 +607,7 @@
 }
 
 .oq-trade-detail-subscribe.is-subscribed {
-  border-color: var(--td-border);
+  border-color: #ebebeb;
   background: var(--td-bg);
   color: var(--td-text-soft);
   font-weight: 500;
@@ -652,9 +680,9 @@
   min-width: 0;
   align-items: center;
   gap: 12px;
-  border: 1px solid var(--td-border) !important;
+  border: 0 !important;
   border-radius: 10px;
-  background: var(--td-bg) !important;
+  background: rgb(251 251 252) !important;
   padding: 12px;
   color: var(--td-text);
   text-align: left;

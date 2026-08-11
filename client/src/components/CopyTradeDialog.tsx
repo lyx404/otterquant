@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Check } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MarketplaceAvatar } from "@/components/MarketplaceAvatar";
 import type { Strategy } from "@/lib/mockData";
+import type { MarketplaceAvatarTone } from "@/lib/marketplaceData";
 import "./CopyTradeDialog.css";
 
 const AVAILABLE_FUNDS = 438_473;
@@ -10,13 +11,6 @@ const COPY_AMOUNT_STEP = 1_000;
 
 function formatUsdt(value: number) {
   return value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function normalizeCopyAmount(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return 0;
-  const maxSteppedAmount = Math.floor(AVAILABLE_FUNDS / COPY_AMOUNT_STEP) * COPY_AMOUNT_STEP;
-  const roundedAmount = Math.round(value / COPY_AMOUNT_STEP) * COPY_AMOUNT_STEP;
-  return Math.min(Math.max(roundedAmount, 0), maxSteppedAmount);
 }
 
 export function CopyTradeDialog({
@@ -31,13 +25,17 @@ export function CopyTradeDialog({
     avatar: string;
     author: string;
     strategyName: string;
+    avatarTone?: MarketplaceAvatarTone;
   };
   tr: (en: string, zh: string) => string;
   onOpenChange: (open: boolean) => void;
   onConfirm: (amount: number) => void;
 }) {
   const [amount, setAmount] = useState(0);
+  const [amountInput, setAmountInput] = useState("");
   const [error, setError] = useState("");
+  const [adjustmentFeedback, setAdjustmentFeedback] = useState("");
+  const fieldMessage = error || adjustmentFeedback;
   const displayIdentity = strategy
     ? identity ?? {
         avatar: strategy.author.slice(0, 1),
@@ -49,39 +47,89 @@ export function CopyTradeDialog({
   useEffect(() => {
     if (strategy) {
       setAmount(0);
+      setAmountInput("");
       setError("");
+      setAdjustmentFeedback("");
     }
   }, [strategy?.id]);
+
+  useEffect(() => {
+    if (!adjustmentFeedback) return;
+    const timeoutId = window.setTimeout(() => setAdjustmentFeedback(""), 2_000);
+    return () => window.clearTimeout(timeoutId);
+  }, [adjustmentFeedback]);
+
+  const normalizedAmount = (value: number) => {
+    const boundedAmount = Math.max(value, 0);
+    return Math.round(boundedAmount / COPY_AMOUNT_STEP) * COPY_AMOUNT_STEP;
+  };
+
+  const getValidationMessage = (value: number) => {
+    if (!Number.isFinite(value) || value < MIN_COPY_AMOUNT) {
+      return tr(`Enter at least ${MIN_COPY_AMOUNT.toLocaleString()} USDT to continue.`, `跟投金额最低为 ${MIN_COPY_AMOUNT.toLocaleString()} USDT。`);
+    }
+    if (value > AVAILABLE_FUNDS) {
+      return tr("The copy investing amount exceeds your available funds.", "跟投金额超过可用资金余额。");
+    }
+    if (value % COPY_AMOUNT_STEP !== 0) {
+      return tr(
+        `Copy investing amount must be a multiple of ${COPY_AMOUNT_STEP.toLocaleString()} USDT.`,
+        `跟投资金需为 ${COPY_AMOUNT_STEP.toLocaleString()} USDT 的倍数。`,
+      );
+    }
+    return "";
+  };
+
+  const showAdjustmentFeedback = (value: number) => {
+    setAdjustmentFeedback(tr(
+      `Copy investing amount must be a multiple of ${COPY_AMOUNT_STEP.toLocaleString()} USDT. Adjusted to ${value.toLocaleString()} USDT.`,
+      `跟投资金需为 ${COPY_AMOUNT_STEP.toLocaleString()} USDT 的倍数，已自动调整至 ${value.toLocaleString()} USDT。`,
+    ));
+  };
 
   const handleAmountChange = (value: string) => {
     if (!value.trim()) {
       setAmount(0);
+      setAmountInput("");
       setError("");
+      setAdjustmentFeedback("");
       return;
     }
     const nextAmount = Number(value);
-    setAmount(Number.isFinite(nextAmount) ? Math.min(Math.max(nextAmount, 0), AVAILABLE_FUNDS) : 0);
-    setError("");
+    const sanitizedAmount = Number.isFinite(nextAmount) ? Math.max(nextAmount, 0) : 0;
+    setAmount(sanitizedAmount);
+    setAmountInput(value);
+    setError(getValidationMessage(sanitizedAmount));
+    setAdjustmentFeedback("");
   };
 
   const handleConfirm = () => {
-    const normalizedAmount = normalizeCopyAmount(amount);
-    if (normalizedAmount < MIN_COPY_AMOUNT) {
-      setError(tr(`Enter at least ${MIN_COPY_AMOUNT.toLocaleString()} USDT to continue.`, `跟投金额最低为 ${MIN_COPY_AMOUNT.toLocaleString()} USDT。`));
+    const nextAmount = normalizedAmount(amount);
+    if (nextAmount !== amount) {
+      setAmount(nextAmount);
+      setAmountInput(String(nextAmount));
+      showAdjustmentFeedback(nextAmount);
+    }
+    const validationMessage = getValidationMessage(nextAmount);
+    setError(validationMessage);
+    if (validationMessage) {
       return;
     }
-    setAmount(normalizedAmount);
-    onConfirm(normalizedAmount);
+    onConfirm(nextAmount);
   };
 
   const handleAmountBlur = () => {
     if (amount <= 0) return;
-    const normalizedAmount = normalizeCopyAmount(amount);
-    setAmount(normalizedAmount);
-    setError(normalizedAmount < MIN_COPY_AMOUNT
-      ? tr(`Enter at least ${MIN_COPY_AMOUNT.toLocaleString()} USDT to continue.`, `跟投金额最低为 ${MIN_COPY_AMOUNT.toLocaleString()} USDT。`)
-      : "");
+    const nextAmount = normalizedAmount(amount);
+    if (nextAmount !== amount) {
+      setAmount(nextAmount);
+      setAmountInput(String(nextAmount));
+      showAdjustmentFeedback(nextAmount);
+    }
+    setError(getValidationMessage(nextAmount));
   };
+
+  const isAmountValid = amount > 0 && !getValidationMessage(amount);
 
   return (
     <Dialog open={Boolean(strategy)} onOpenChange={onOpenChange}>
@@ -89,7 +137,13 @@ export function CopyTradeDialog({
         <DialogContent className="oq-marketplace-copy-dialog">
           <DialogHeader className="oq-marketplace-copy-dialog-header">
             <DialogTitle>
-              <span className="oq-marketplace-copy-dialog-avatar" aria-hidden="true">{displayIdentity?.avatar}</span>
+              <MarketplaceAvatar
+                strategyId={strategy.id}
+                name={displayIdentity?.author ?? strategy.author}
+                avatar={displayIdentity?.avatar ?? strategy.author.slice(0, 1)}
+                avatarTone={displayIdentity?.avatarTone ?? "orange"}
+                className="oq-marketplace-copy-dialog-avatar"
+              />
               <span className="oq-marketplace-copy-dialog-identity">
                 <span className="oq-marketplace-copy-dialog-author">{displayIdentity?.author}</span>
                 <span className="oq-marketplace-copy-dialog-strategy">{displayIdentity?.strategyName}</span>
@@ -114,23 +168,32 @@ export function CopyTradeDialog({
                   max={AVAILABLE_FUNDS}
                   step={COPY_AMOUNT_STEP}
                   inputMode="decimal"
-                  value={amount || ""}
+                  value={amountInput}
                   placeholder={tr(`Min. ${MIN_COPY_AMOUNT.toLocaleString()}`, `最低 ${MIN_COPY_AMOUNT.toLocaleString()}`)}
                   aria-invalid={Boolean(error)}
-                  aria-describedby={error ? "marketplace-copy-error" : undefined}
+                  aria-describedby={fieldMessage ? "marketplace-copy-error" : undefined}
                   onChange={(event) => handleAmountChange(event.target.value)}
                   onBlur={handleAmountBlur}
                 />
                 <span aria-hidden="true">USDT</span>
               </div>
-              {error ? <p id="marketplace-copy-error" className="oq-marketplace-copy-error" role="alert">{error}</p> : null}
+              <p
+                id="marketplace-copy-error"
+                className={`oq-marketplace-copy-message${error ? " is-error" : adjustmentFeedback ? " is-feedback" : ""}`}
+                role={error ? "alert" : adjustmentFeedback ? "status" : undefined}
+                aria-live="polite"
+              >
+                {fieldMessage}
+              </p>
             </div>
           </div>
 
           <DialogFooter className="oq-marketplace-copy-dialog-footer">
-            <button type="button" className="oq-marketplace-copy-button is-primary" onClick={handleConfirm}>
-              <Check aria-hidden="true" />
-              {tr("Confirm Copy Investing", "确认跟投")}
+            <button type="button" className="oq-marketplace-copy-button" onClick={() => onOpenChange(false)}>
+              {tr("Cancel", "取消")}
+            </button>
+            <button type="button" className="oq-marketplace-copy-button is-primary" disabled={!isAmountValid} onClick={handleConfirm}>
+              {tr("Confirm", "确认跟投")}
             </button>
           </DialogFooter>
         </DialogContent>

@@ -10,7 +10,6 @@ import CustomCursor from "./components/CustomCursor";
 import { Suspense, lazy, useState, useEffect, useCallback, createContext, useContext } from "react";
 
 const NotFound = lazy(() => import("@/pages/NotFound"));
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const MyAlphas = lazy(() => import("@/pages/MyAlphas"));
 const AlphaDetail = lazy(() => import("@/pages/AlphaDetail"));
 const Account = lazy(() => import("@/pages/Account"));
@@ -146,8 +145,10 @@ function Router() {
           <ProtectedRoute component={Account} />
         </Route>
 
-        {/* Dashboard entry */}
-        <Route path="/" component={Dashboard} />
+        {/* Default entry */}
+        <Route path="/">
+          <Redirect to="/marketplace" />
+        </Route>
 
         <Route path="/404" component={NotFound} />
         <Route component={NotFound} />

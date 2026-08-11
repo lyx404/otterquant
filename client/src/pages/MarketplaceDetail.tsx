@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, UserRoundPlus } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Link, useLocation, useParams } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MarketplaceAvatar } from "@/components/MarketplaceAvatar";
 import { translateUi, useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import {
   marketplaceCardDetails,
@@ -24,16 +25,18 @@ import {
   TradeTrendChart,
   type TradeTrendMetric,
 } from "@/components/TradeTrendChart";
-import { StrategyReportDateControl } from "./StrategyReportDateControl";
+import { localizeDateRangeLabel, StrategyReportDateControl } from "./StrategyReportDateControl";
 import { CopyTradeDialog } from "@/components/CopyTradeDialog";
+import { toast } from "sonner";
 import "./MarketplaceDetail.css";
 import "./TradeDetail.css";
 
 type Follower = {
   name: string;
+  avatarSrc?: string;
   amount: string;
   pnl: string;
-  days: string;
+  days: number;
   tone: string;
 };
 
@@ -86,12 +89,28 @@ function ProfileBio({ text, tr }: { text: string; tr: (en: string, zh: string) =
 }
 
 const followers: Follower[] = [
-  { name: "一海人", amount: "60,000", pnl: "+38,977.91", days: "49天", tone: "sunset" },
-  { name: "静心·语", amount: "100,000", pnl: "+31,497.94", days: "37天", tone: "ink" },
-  { name: "NeuralTrader", amount: "50,000", pnl: "+19,290.74", days: "32天", tone: "mist" },
-  { name: "寂静**者", amount: "30,000", pnl: "+17,552.73", days: "48天", tone: "sky" },
-  { name: "chi******n", amount: "1,000", pnl: "+13,104.27", days: "38天", tone: "violet" },
-  { name: "找我·事", amount: "11,011", pnl: "+5,006.77", days: "30天", tone: "rose" },
+  { name: "一海人", amount: "60,000", pnl: "+38,977.91", days: 49, tone: "sunset" },
+  { name: "静心·语", amount: "100,000", pnl: "+31,497.94", days: 37, tone: "ink" },
+  { name: "NeuralTrader", avatarSrc: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/toon_2.png", amount: "50,000", pnl: "+19,290.74", days: 32, tone: "mist" },
+  { name: "寂静行者", avatarSrc: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/toon_10.png", amount: "30,000", pnl: "+17,552.73", days: 48, tone: "sky" },
+  { name: "chiyun", avatarSrc: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/upstream_13.png", amount: "1,000", pnl: "+13,104.27", days: 38, tone: "violet" },
+  { name: "找我·事", avatarSrc: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/upstream_5.png", amount: "11,011", pnl: "+5,006.77", days: 30, tone: "rose" },
+  { name: "Northstar", amount: "24,000", pnl: "+4,862.40", days: 42, tone: "teal" },
+  { name: "Mori", amount: "18,500", pnl: "+4,201.89", days: 27, tone: "green" },
+  { name: "白鲸", amount: "35,000", pnl: "+3,978.62", days: 41, tone: "blue" },
+  { name: "Sora", amount: "12,000", pnl: "+3,447.15", days: 25, tone: "orange" },
+  { name: "远山", avatarSrc: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/memo_2.png", amount: "28,000", pnl: "+3,188.50", days: 39, tone: "violet" },
+  { name: "DeltaFox", amount: "16,000", pnl: "+2,946.70", days: 22, tone: "teal" },
+  { name: "逐日", amount: "22,000", pnl: "+2,714.36", days: 34, tone: "sunset" },
+  { name: "Aria", avatarSrc: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/memo_14.png", amount: "9,000", pnl: "+2,312.82", days: 19, tone: "rose" },
+  { name: "小满", amount: "15,000", pnl: "+2,064.18", days: 28, tone: "green" },
+  { name: "Vector", amount: "40,000", pnl: "+1,986.25", days: 46, tone: "ink" },
+  { name: "云帆", avatarSrc: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/memo_17.png", amount: "20,000", pnl: "+1,758.96", days: 31, tone: "sky" },
+  { name: "Orion", avatarSrc: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/notion_5.png", amount: "26,000", pnl: "+1,526.44", days: 36, tone: "mist" },
+  { name: "知秋", amount: "14,000", pnl: "+1,298.30", days: 24, tone: "orange" },
+  { name: "Lumen", amount: "32,000", pnl: "+1,084.72", days: 44, tone: "blue" },
+  { name: "澄明", amount: "10,000", pnl: "+867.50", days: 17, tone: "violet" },
+  { name: "Atlas", amount: "19,000", pnl: "+642.18", days: 21, tone: "teal" },
 ];
 
 const FOLLOWERS_PAGE_SIZE = 20;
@@ -147,6 +166,7 @@ export default function MarketplaceDetail() {
   const [chartMetric, setChartMetric] = useState<TradeTrendMetric>("return");
   const [timeRange, setTimeRange] = useState<MarketplaceTimeRange>("30d");
   const [timeRangeLabel, setTimeRangeLabel] = useState(tr("Past 30 days", "近 30 天"));
+  const [isStrategyOverviewExpanded, setIsStrategyOverviewExpanded] = useState(true);
   const strategyId = params?.id ?? "";
   const strategy = marketplaceStrategies.find((item) => item.id === strategyId);
   const details = strategy ? marketplaceCardDetails[strategy.id] : undefined;
@@ -155,6 +175,7 @@ export default function MarketplaceDetail() {
 
   useEffect(() => {
     document.documentElement.classList.add("oq-marketplace-detail-active");
+    setIsStrategyOverviewExpanded(true);
     window.scrollTo(0, 0);
     return () => document.documentElement.classList.remove("oq-marketplace-detail-active");
   }, [strategyId]);
@@ -219,8 +240,12 @@ export default function MarketplaceDetail() {
     avatarTone: userProfile?.avatarTone,
     strategyName: marketplaceFundNames[strategy.id] ?? strategy.name,
     bio: marketplaceProfileBios[strategy.id] ?? "专注系统化交易与风险控制，持续优化执行节奏和仓位管理。",
-    usesEntryAvatar: strategy.id === "STR-008",
   };
+  const strategyGuidance = [
+    { title: tr("When to enter", "何时入场"), text: tr("Enter when SOL flow and momentum confirm the same direction across the active cycle.", "当 SOL 资金流与动量在当前周期确认同向时入场。") },
+    { title: tr("When to exit", "何时离场"), text: tr("Reduce exposure when momentum fades or the position reaches its risk budget.", "当动量减弱或仓位触及风险预算时逐步减仓。") },
+    { title: tr("Risk controls", "如何控制风险"), text: tr("Exposure is sized around volatility and liquidity so the strategy stays within its drawdown guardrail.", "根据波动率与流动性配置仓位，将策略控制在回撤边界内。") },
+  ];
   const trendData = useMemo(
     () => buildTradeTrendData({ returnRate: roi, pnl: totalPnl, updatedAt: trade.updatedAt }),
     [roi, totalPnl, trade.updatedAt],
@@ -246,20 +271,46 @@ export default function MarketplaceDetail() {
         <header className="oq-marketplace-detail-hero">
           <div className="oq-marketplace-detail-hero-inner">
             <div className="oq-marketplace-detail-hero-copy">
-              <div className={`oq-marketplace-detail-avatar${heroIdentity.avatarTone ? ` is-${heroIdentity.avatarTone}` : ""}${heroIdentity.usesEntryAvatar ? " is-entry" : ""}`} aria-hidden="true">{heroIdentity.avatar}</div>
+              <MarketplaceAvatar
+                strategyId={strategy.id}
+                name={heroIdentity.author}
+                avatar={heroIdentity.avatar}
+                avatarTone={heroIdentity.avatarTone ?? "orange"}
+                className="oq-marketplace-detail-avatar"
+              />
               <div className="oq-marketplace-detail-hero-details">
                 <h1>{heroIdentity.author}</h1>
                 <ProfileBio text={heroIdentity.bio} tr={tr} />
-              </div>
-            </div>
-            <div className="oq-marketplace-detail-hero-stats" aria-label={tr("Strategy activity", "策略数据")}>
-              <div className="oq-marketplace-detail-hero-stat">
-                <span>{tr("Followers", "跟投人数")}</span>
-                <strong>{followerCount}</strong>
-              </div>
-              <div className="oq-marketplace-detail-hero-stat">
-                <span>{tr("Portfolio days", "创建组合天数")}</span>
-                <strong>{strategyAgeDays}</strong>
+                <div className="oq-marketplace-detail-portfolio-overview">
+                  <div className="oq-marketplace-detail-portfolio-name">
+                    <button
+                      type="button"
+                      className="oq-marketplace-detail-strategy-overview-toggle"
+                      aria-expanded={isStrategyOverviewExpanded}
+                      aria-controls="marketplace-detail-strategy-dimensions"
+                      aria-label={isStrategyOverviewExpanded ? tr("Collapse strategy overview", "收起策略信息") : tr("Expand strategy overview", "展开策略信息")}
+                      title={isStrategyOverviewExpanded ? tr("Collapse strategy overview", "收起策略信息") : tr("Expand strategy overview", "展开策略信息")}
+                      onClick={() => setIsStrategyOverviewExpanded((value) => !value)}
+                    >
+                      <strong>{heroIdentity.strategyName}</strong>
+                      <ChevronDown aria-hidden="true" />
+                    </button>
+                  </div>
+                  {isStrategyOverviewExpanded ? (
+                    <div id="marketplace-detail-strategy-dimensions" className="oq-marketplace-detail-strategy-dimensions is-expanded">
+                      <div className="oq-marketplace-detail-strategy-dimension">
+                        <span>{tr("Strategy thesis", "策略思路")}</span>
+                        <p>{tr(strategy.description, details.descriptionZh)}</p>
+                      </div>
+                      {strategyGuidance.map((item) => (
+                        <div className="oq-marketplace-detail-strategy-dimension" key={item.title}>
+                          <span>{item.title}</span>
+                          <p>{item.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             </div>
             <button
@@ -275,12 +326,11 @@ export default function MarketplaceDetail() {
                 }
               }}
             >
-              <UserRoundPlus aria-hidden="true" />
               {isFollowing
-                ? tr("Copy Investing details", "跟投详情")
+                ? tr("Investing", "跟投中")
                 : isFull
                   ? tr("Full", "满员")
-                  : tr("Copy Investing", "跟投")}
+                  : tr("Copy", "跟投")}
             </button>
           </div>
         </header>
@@ -288,8 +338,8 @@ export default function MarketplaceDetail() {
 
       <div className="oq-marketplace-detail-shell">
         <div className="oq-marketplace-detail-content">
-          <div className="oq-marketplace-detail-fund-heading">
-            <h2 className="oq-marketplace-detail-fund-title">{heroIdentity.strategyName}</h2>
+          <div className="oq-marketplace-detail-fund-heading is-time-control">
+            <h2 id="marketplace-detail-period-title">{localizeDateRangeLabel(timeRangeLabel, uiLang)}</h2>
             <StrategyReportDateControl
               dateLabel={tr("Past 30 days", "近 30 天")}
               dateOptions={[
@@ -305,13 +355,14 @@ export default function MarketplaceDetail() {
               uiLang={uiLang}
               variant="compact"
               triggerMode="switch"
+              iconOnly
               onSelectionChange={handleTimeRangeSelection}
               labels={{
                 selectPeriod: tr("Select time range", "选择时间范围"),
                 customRange: tr("Custom date range", "自定义时间范围"),
                 startDate: tr("Start date", "开始日期"),
                 endDate: tr("End date", "结束日期"),
-                switchPeriod: timeRangeLabel,
+                switchPeriod: tr("Switch time range", "切换时间范围"),
               }}
             />
           </div>
@@ -331,6 +382,8 @@ export default function MarketplaceDetail() {
                   <Metric label={tr("Sharpe ratio", "夏普比率")} value={sharpe.toFixed(2)} />
                   <Metric label={tr("Win rate", "胜率")} value={strategy.winRate} />
                   <Metric label={tr("Assets under management", "资产管理规模")} value={`$${assetsUnderManagement.toLocaleString("en-US")}`} />
+                  <Metric label={tr("Portfolio days", "创建组合天数")} value={String(strategyAgeDays)} />
+                  <Metric label={tr("Portfolio Investors", "跟投人数")} value={followerCount} />
                 </div>
               </div>
             </article>
@@ -379,18 +432,12 @@ export default function MarketplaceDetail() {
             <Tabs defaultValue="strategies" className="oq-trade-workspace-tabs">
               <div className="oq-trade-workspace-tabs-header">
                 <TabsList className="oq-trade-workspace-tabs-list" aria-label={tr("Portfolio views", "投资组合视图")}>
-                  <TabsTrigger value="strategies">{tr("Strategy allocation", "投资组合情况")}</TabsTrigger>
+                  <TabsTrigger value="strategies">{tr("Portfolio allocation", "投资组合情况")}</TabsTrigger>
                   <TabsTrigger value="followers">{tr("Portfolio Investors", "跟投者")}</TabsTrigger>
                 </TabsList>
               </div>
 
               <TabsContent value="strategies" className="oq-trade-workspace-tab-panel">
-                <article className="oq-marketplace-detail-description" aria-label={tr("Strategy description", "策略描述")}>
-                  <StrategyDescriptionItem title={tr("Strategy thesis", "策略思路")} text={tr(strategy.description, details.descriptionZh)} />
-                  <StrategyDescriptionItem title={tr("When to enter", "何时入场")} text={tr("Enter when SOL flow and momentum confirm the same direction across the active cycle.", "当 SOL 资金流与动量在当前周期确认同向时入场。")} />
-                  <StrategyDescriptionItem title={tr("When to exit", "何时离场")} text={tr("Reduce exposure when momentum fades or the position reaches its risk budget.", "当动量减弱或仓位触及风险预算时逐步减仓。")} />
-                  <StrategyDescriptionItem title={tr("Risk controls", "如何控制风险")} text={tr("Exposure is sized around volatility and liquidity so the strategy stays within its drawdown guardrail.", "根据波动率与流动性配置仓位，将策略控制在回撤边界内。")} />
-                </article>
                 <StrategyAllocationList fundId={strategy.id} rows={strategyAllocations} tr={tr} />
               </TabsContent>
               <TabsContent value="followers" className="oq-trade-workspace-tab-panel">
@@ -405,6 +452,7 @@ export default function MarketplaceDetail() {
         strategy={copyTarget}
         identity={{
           avatar: heroIdentity.avatar,
+          avatarTone: heroIdentity.avatarTone,
           author: heroIdentity.author,
           strategyName: heroIdentity.strategyName,
         }}
@@ -415,20 +463,9 @@ export default function MarketplaceDetail() {
         onConfirm={() => {
           addFollowing(strategy.id);
           setCopyTarget(null);
+          toast.success(tr("Copy investing started.", "已开始跟投。"));
         }}
       />
-    </div>
-  );
-}
-
-function StrategyDescriptionItem({ title, text }: { title: string; text: string }) {
-  return (
-    <div className="oq-marketplace-detail-description-item">
-      <span aria-hidden="true" />
-      <div>
-        <h3>{title}</h3>
-        <p>{text}</p>
-      </div>
     </div>
   );
 }
@@ -593,52 +630,74 @@ function FollowersTable({ rows, tr }: { rows: Follower[]; tr: (en: string, zh: s
           <tr key={follower.name}>
             <td>
               <div className="oq-marketplace-detail-follower-cell">
-                <span className={`oq-marketplace-detail-follower-avatar is-${follower.tone}`} aria-hidden="true">{follower.name.slice(0, 1)}</span>
+                <span className={`oq-marketplace-detail-follower-avatar is-${follower.tone}`} aria-hidden="true">
+                  {follower.avatarSrc ? <img src={follower.avatarSrc} alt="" /> : follower.name.slice(0, 1)}
+                </span>
                 <strong>{follower.name}</strong>
               </div>
             </td>
-            <td>{follower.amount}</td>
+            <td className="oq-marketplace-detail-follower-amount">{follower.amount}</td>
             <td className="oq-trade-workspace-value is-positive"><strong>{follower.pnl}</strong></td>
-            <td>{follower.days}</td>
+            <td>{tr(`${follower.days} days`, `${follower.days}天`)}</td>
           </tr>
         ))}
       </TradeWorkspaceTable>
 
       {pageCount > 1 ? (
         <nav className="oq-marketplace-detail-pagination" aria-label={tr("Portfolio investor pages", "跟投者分页")}>
-          <span className="oq-marketplace-detail-pagination-count">
+          <div className="oq-marketplace-detail-pagination-count">
             {pageStart + 1}-{Math.min(pageStart + FOLLOWERS_PAGE_SIZE, rows.length)} / {rows.length}
-          </span>
-          <button
-            type="button"
-            aria-label={tr("Previous page", "上一页")}
-            title={tr("Previous page", "上一页")}
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-          >
-            <ChevronLeft aria-hidden="true" />
-          </button>
-          {visiblePages.map((page) => (
+          </div>
+          <div className="oq-marketplace-detail-pagination-controls">
             <button
-              key={page}
               type="button"
-              className={page === currentPage ? "is-active" : undefined}
-              aria-label={tr(`Page ${page}`, `第 ${page} 页`)}
-              aria-current={page === currentPage ? "page" : undefined}
-              onClick={() => setCurrentPage(page)}
+              aria-label={tr("First page", "第一页")}
+              title={tr("First page", "第一页")}
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(1)}
             >
-              {page}
+              <ChevronsLeft aria-hidden="true" />
             </button>
-          ))}
-          <button
-            type="button"
-            aria-label={tr("Next page", "下一页")}
-            title={tr("Next page", "下一页")}
-            disabled={currentPage === pageCount}
-            onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
-          >
-            <ChevronRight aria-hidden="true" />
-          </button>
+            <button
+              type="button"
+              aria-label={tr("Previous page", "上一页")}
+              title={tr("Previous page", "上一页")}
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </button>
+            {visiblePages.map((page) => (
+              <button
+                key={page}
+                type="button"
+                className={page === currentPage ? "is-active" : undefined}
+                aria-label={tr(`Page ${page}`, `第 ${page} 页`)}
+                aria-current={page === currentPage ? "page" : undefined}
+                onClick={() => setCurrentPage(page)}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              type="button"
+              aria-label={tr("Next page", "下一页")}
+              title={tr("Next page", "下一页")}
+              disabled={currentPage === pageCount}
+              onClick={() => setCurrentPage((page) => Math.min(pageCount, page + 1))}
+            >
+              <ChevronRight aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label={tr("Last page", "最后一页")}
+              title={tr("Last page", "最后一页")}
+              disabled={currentPage === pageCount}
+              onClick={() => setCurrentPage(pageCount)}
+            >
+              <ChevronsRight aria-hidden="true" />
+            </button>
+          </div>
         </nav>
       ) : null}
     </div>

@@ -48,6 +48,231 @@
   background: rgb(250 250 250 / 85%);
 }
 
+/* Workbench dark palette for portfolio detail and its data workspace. */
+.dark.oq-marketplace-detail-active {
+  --oq-detail-dark-canvas: oklch(0.155 0.006 57.433);
+  --oq-detail-dark-surface-1: oklch(0.215 0.009 57);
+  --oq-detail-dark-surface-2: oklch(0.255 0.012 60);
+  --oq-detail-dark-surface-warm: oklch(0.235 0.025 55);
+  --oq-detail-dark-surface-3: oklch(0.295 0.014 65);
+  --oq-detail-dark-border: oklch(0.34 0.016 67);
+  --oq-detail-dark-border-strong: oklch(0.51 0.023 67);
+  --oq-detail-dark-text: oklch(0.95 0.014 68);
+  --oq-detail-dark-text-soft: oklch(0.8 0.022 65);
+  --oq-detail-dark-muted: oklch(0.68 0.021 67);
+  --oq-detail-dark-accent: oklch(0.72 0.185 47);
+  --oq-detail-dark-accent-hover: oklch(0.81 0.13 58);
+  --oq-detail-dark-success: oklch(0.75 0.12 155);
+  --oq-detail-dark-success-bg: oklch(0.235 0.04 155);
+  --oq-detail-dark-risk: oklch(0.72 0.17 25);
+  --oq-detail-dark-risk-bg: oklch(0.235 0.045 25);
+  --background: var(--oq-detail-dark-canvas);
+  --foreground: var(--oq-detail-dark-text);
+  --card: var(--oq-detail-dark-surface-1);
+  --card-foreground: var(--oq-detail-dark-text);
+  --popover: var(--oq-detail-dark-surface-2);
+  --popover-foreground: var(--oq-detail-dark-text);
+  --primary: var(--oq-detail-dark-accent);
+  --primary-foreground: var(--oq-detail-dark-canvas);
+  --muted: var(--oq-detail-dark-surface-3);
+  --muted-foreground: var(--oq-detail-dark-muted);
+  --accent: var(--oq-detail-dark-surface-3);
+  --accent-foreground: var(--oq-detail-dark-text);
+  --destructive: var(--oq-detail-dark-risk);
+  --border: var(--oq-detail-dark-border);
+  --input: var(--oq-detail-dark-border-strong);
+  --ring: var(--oq-detail-dark-accent);
+  --oq-workbench-tooltip-bg: var(--oq-detail-dark-surface-3);
+  --oq-workbench-tooltip-border: var(--oq-detail-dark-border-strong);
+  --oq-workbench-tooltip-text: var(--oq-detail-dark-text-soft);
+  --oq-workbench-tooltip-shadow: 0 8px 22px oklch(0 0 0 / 0.36);
+  --oq-toast-success-bg: var(--oq-detail-dark-success-bg);
+  --oq-toast-success-text: var(--oq-detail-dark-text);
+  --oq-toast-success-border: oklch(0.55 0.08 155);
+  --oq-toast-error-bg: var(--oq-detail-dark-risk-bg);
+  --oq-toast-error-text: var(--oq-detail-dark-text);
+  --oq-toast-error-border: oklch(0.55 0.1 25);
+}
+
+.dark.oq-marketplace-detail-active .oq-app-main-column {
+  background: var(--oq-detail-dark-canvas);
+  color: var(--oq-detail-dark-text);
+}
+
+.dark.oq-marketplace-detail-active .oq-app-main-column > header {
+  border-color: var(--oq-detail-dark-border);
+  background: color-mix(in oklch, var(--oq-detail-dark-canvas) 88%, transparent);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail {
+  --md-page: var(--oq-detail-dark-canvas);
+  --md-surface: var(--oq-detail-dark-surface-1);
+  --md-surface-soft: var(--oq-detail-dark-surface-2);
+  --md-border: var(--oq-detail-dark-border);
+  --md-border-soft: color-mix(in oklch, var(--oq-detail-dark-border) 72%, transparent);
+  --md-text: var(--oq-detail-dark-text);
+  --md-text-soft: var(--oq-detail-dark-text-soft);
+  --md-muted: var(--oq-detail-dark-muted);
+  --md-accent: var(--oq-detail-dark-accent);
+  --md-success: var(--oq-detail-dark-success);
+  --md-risk: var(--oq-detail-dark-risk);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-records.oq-trade-workspace {
+  --td-bg: var(--oq-detail-dark-surface-1);
+  --td-bg-warm: var(--oq-detail-dark-surface-warm);
+  --td-surface: var(--oq-detail-dark-surface-2);
+  --td-border: var(--oq-detail-dark-border);
+  --td-border-strong: var(--oq-detail-dark-border-strong);
+  --td-text: var(--oq-detail-dark-text);
+  --td-text-soft: var(--oq-detail-dark-text-soft);
+  --td-muted: var(--oq-detail-dark-muted);
+  --td-muted-strong: var(--oq-detail-dark-text-soft);
+  --td-accent: var(--oq-detail-dark-accent);
+  --td-success: var(--oq-detail-dark-success);
+  --td-risk: var(--oq-detail-dark-risk);
+  --semantic-up: var(--oq-detail-dark-success);
+  --semantic-down: var(--oq-detail-dark-risk);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-hero-inner {
+  border-color: var(--oq-detail-dark-border);
+  background: linear-gradient(183deg, var(--oq-detail-dark-surface-1) 43%, var(--oq-detail-dark-surface-warm) 100%);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-follow {
+  border-color: var(--oq-detail-dark-accent);
+  background: var(--oq-detail-dark-accent);
+  color: var(--oq-detail-dark-canvas);
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.32);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-follow:not(.is-following):not(.is-full):hover {
+  border-color: var(--oq-detail-dark-accent-hover);
+  background: var(--oq-detail-dark-accent-hover);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-follow.is-following {
+  background: var(--oq-detail-dark-success-bg);
+  color: var(--oq-detail-dark-success);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-follow.is-following:hover {
+  background: color-mix(in oklch, var(--oq-detail-dark-success-bg) 76%, var(--oq-detail-dark-success));
+  color: var(--oq-detail-dark-text);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-follow.is-full:disabled {
+  background: var(--oq-detail-dark-surface-3);
+  color: var(--oq-detail-dark-muted);
+}
+
+.dark.oq-marketplace-detail-active :is(.oq-marketplace-detail-summary, .oq-marketplace-detail-chart-section, .oq-marketplace-detail-records) {
+  border-color: var(--oq-detail-dark-border);
+  background: var(--oq-detail-dark-surface-1);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-chart-switcher,
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-strategy-allocation-header {
+  background: var(--oq-detail-dark-surface-2);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-chart-actions .oq-trade-trend-selector button {
+  border-color: var(--oq-detail-dark-border);
+  background: var(--oq-detail-dark-surface-2);
+  color: var(--oq-detail-dark-text-soft);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-chart-actions .oq-trade-trend-selector button:hover:not(.is-active) {
+  border-color: color-mix(in oklch, var(--oq-detail-dark-accent) 42%, var(--oq-detail-dark-border));
+  background: var(--oq-detail-dark-surface-warm);
+  color: var(--oq-detail-dark-accent-hover);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-chart-actions .oq-trade-trend-selector button.is-active {
+  border-color: color-mix(in oklch, var(--oq-detail-dark-accent) 52%, var(--oq-detail-dark-border));
+  background: color-mix(in oklch, var(--oq-detail-dark-accent) 16%, var(--oq-detail-dark-surface-2));
+  color: var(--oq-detail-dark-accent-hover);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-chart-actions .oq-trade-trend-selector button:focus-visible {
+  outline-color: color-mix(in oklch, var(--oq-detail-dark-accent) 58%, transparent);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-list {
+  background: transparent;
+  color: var(--oq-detail-dark-muted);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-list > button {
+  color: var(--oq-detail-dark-muted);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-list > button:hover:not([data-state="active"]) {
+  color: var(--oq-detail-dark-text-soft);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-list > button[data-state="active"] {
+  color: var(--oq-detail-dark-text);
+}
+
+.dark.oq-marketplace-detail-active :is(.oq-marketplace-detail-chart-switcher button.is-active, .oq-marketplace-detail-tabs button.is-active) {
+  background: var(--oq-detail-dark-surface-3);
+  color: var(--oq-detail-dark-text);
+  box-shadow: none;
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-list > button[data-state="active"]::after {
+  background: var(--oq-detail-dark-accent);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-strategy-allocation-row:hover,
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-pagination button:hover:not(:disabled),
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-pagination button:focus-visible {
+  background: var(--oq-detail-dark-surface-warm);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-pagination {
+  background: var(--oq-detail-dark-surface-2);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-pagination button {
+  border-color: var(--oq-detail-dark-border-strong);
+  background: var(--oq-detail-dark-surface-1);
+  color: var(--oq-detail-dark-text-soft);
+}
+
+.dark.oq-marketplace-detail-active .oq-marketplace-detail-pagination button.is-active {
+  border-color: var(--oq-detail-dark-accent);
+  background: var(--oq-detail-dark-accent);
+  color: var(--oq-detail-dark-canvas);
+}
+
+.dark.oq-marketplace-detail-active [data-sonner-toast] {
+  border-color: var(--oq-detail-dark-border-strong) !important;
+  background: var(--oq-detail-dark-surface-1) !important;
+  color: var(--oq-detail-dark-text) !important;
+  box-shadow: 0 16px 38px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-marketplace-detail-active [data-sonner-toast][data-type="success"] {
+  border-color: var(--oq-toast-success-border) !important;
+  background: var(--oq-toast-success-bg) !important;
+}
+
+.dark.oq-marketplace-detail-active [data-sonner-toast][data-type="success"] [data-icon] {
+  color: var(--oq-detail-dark-success) !important;
+}
+
+.dark.oq-marketplace-detail-active [data-sonner-toast][data-type="error"] {
+  border-color: var(--oq-toast-error-border) !important;
+  background: var(--oq-toast-error-bg) !important;
+}
+
+.dark.oq-marketplace-detail-active [data-sonner-toast][data-type="error"] [data-icon] {
+  color: var(--oq-detail-dark-risk) !important;
+}
+
 .oq-marketplace-detail-shell {
   width: min(100%, 1200px);
   min-width: 0;
@@ -55,10 +280,10 @@
 }
 
 .oq-marketplace-detail-topbar {
+  width: min(100%, 1200px);
   min-width: 0;
-  margin-inline: calc(var(--md-page-gutter) * -1);
-  margin-top: calc(var(--md-topbar-offset) * -1);
-  background: var(--md-surface);
+  margin: 0 auto;
+  background: transparent;
 }
 .oq-marketplace-detail-follow:focus-visible,
 .oq-marketplace-detail-chart-switcher button:focus-visible,
@@ -70,31 +295,39 @@
 .oq-marketplace-detail-hero {
   display: block;
   min-width: 0;
-  min-height: 168px;
-  margin-top: -100px;
-  border-bottom: 0;
-  background: linear-gradient(180deg, #fff0e4 0%, #fff8f3 52%, var(--md-surface) 100%);
-  padding-top: 60px;
+  margin-top: 0;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  padding: 0;
 }
 
 .oq-marketplace-detail-hero-inner {
-  display: flex;
-  width: min(100%, 1200px);
+  display: grid;
+  grid-template-areas: "copy follow";
+  grid-template-columns: minmax(0, 1fr) max-content;
+  grid-template-rows: auto;
+  width: 100%;
   min-width: 0;
-  min-height: 168px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin-inline: auto;
-  padding: 30px 36px;
+  align-items: flex-start;
+  column-gap: 32px;
+  row-gap: 16px;
+  margin: 0;
+  border: 1px solid #fff;
+  border-radius: 20px;
+  background:
+    linear-gradient(183deg, rgb(255 255 252 / 50%) 43.1%, rgb(255 249 241 / 50%) 69.5%, rgb(255 241 228 / 50%) 97.5%),
+    #fff;
+  padding: 24px;
 }
 
 .oq-marketplace-detail-hero-copy {
+  grid-area: copy;
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 24px;
 }
 
 .oq-marketplace-detail-avatar,
@@ -111,12 +344,20 @@
 }
 
 .oq-marketplace-detail-avatar {
-  width: 56px;
-  height: 56px;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
   border: 0;
   background: linear-gradient(145deg, #6f61dc, #3b2d9b);
   box-shadow: none;
-  font-size: 27px;
+  font-size: 36px;
+}
+
+.oq-marketplace-detail-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .oq-marketplace-detail-avatar.is-orange,
@@ -128,22 +369,28 @@
   background: linear-gradient(to bottom, #d99100, #dc4900);
 }
 
-.oq-marketplace-detail-avatar.is-entry {
-  border: 0;
-  background: linear-gradient(to bottom, #d99100, #dc4900);
-  box-shadow: none;
+.oq-marketplace-detail-avatar.is-beam {
+  background: #13141a;
+}
+
+.oq-marketplace-detail-avatar.is-beam svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .oq-marketplace-detail-hero-details {
+  width: 100%;
+  flex: 1 1 auto;
   min-width: 0;
-  max-width: min(100%, 640px);
+  max-width: none;
 }
 
 .oq-marketplace-detail-hero-copy h1 {
   margin: 0;
   color: var(--md-text);
   font-family: var(--font-heading);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1.1;
@@ -152,7 +399,7 @@
 .oq-marketplace-detail-profile-bio {
   display: flex;
   min-width: 0;
-  max-width: min(100%, 640px);
+  max-width: min(100%, 680px);
   align-items: center;
   gap: 4px;
   margin-top: 8px;
@@ -202,6 +449,104 @@
   outline-offset: 1px;
 }
 
+.oq-marketplace-detail-portfolio-overview {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.oq-marketplace-detail-portfolio-name {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.oq-marketplace-detail-portfolio-name strong {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--md-text-soft);
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-marketplace-detail-strategy-overview-toggle {
+  display: inline-flex;
+  min-width: 0;
+  height: 20px;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--md-muted);
+  font-size: 10px;
+  line-height: 15px;
+  cursor: pointer;
+}
+
+.oq-marketplace-detail-strategy-overview-toggle:hover {
+  color: var(--md-text);
+}
+
+.oq-marketplace-detail-strategy-overview-toggle:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid color-mix(in srgb, var(--md-accent) 30%, transparent);
+  outline-offset: 2px;
+}
+
+.oq-marketplace-detail-strategy-overview-toggle svg {
+  width: 12px;
+  height: 12px;
+  transition: transform 160ms ease;
+}
+
+.oq-marketplace-detail-strategy-overview-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.oq-marketplace-detail-strategy-dimensions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 0;
+}
+
+.oq-marketplace-detail-strategy-dimension {
+  min-width: 0;
+}
+
+.oq-marketplace-detail-strategy-dimension > span {
+  display: block;
+  color: var(--md-text-soft);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 15px;
+}
+
+.oq-marketplace-detail-strategy-dimension p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 2px 0 0;
+  color: var(--md-muted);
+  font-size: 10px;
+  line-height: 14px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.oq-marketplace-detail-strategy-dimensions.is-expanded p {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
 .oq-marketplace-detail-profile-bio-toggle svg {
   width: 14px;
   height: 14px;
@@ -212,87 +557,58 @@
   transform: rotate(180deg);
 }
 
-.oq-marketplace-detail-hero-copy p {
-  margin: 8px 0 0;
-  color: var(--md-muted);
-  font-family: var(--font-mono);
-  font-size: 10px;
-  line-height: 16px;
-}
-
-.oq-marketplace-detail-hero-copy p span {
-  margin: 0 6px;
-  color: var(--md-border);
-}
-
-.oq-marketplace-detail-hero-stats {
-  display: flex;
-  align-items: flex-start;
-  gap: 30px;
-  margin-left: auto;
-  margin-top: 0;
-}
-
-.oq-marketplace-detail-hero-stat {
-  display: grid;
-  gap: 4px;
-  min-width: 72px;
-}
-
-.oq-marketplace-detail-hero-stat span {
-  color: var(--md-muted);
-  font-size: 10px;
-  line-height: 14px;
-}
-
-.oq-marketplace-detail-hero-stat strong {
-  color: var(--md-text);
-  font-family: var(--font-mono);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 22px;
-}
-
 .oq-marketplace-detail-follow {
+  grid-area: follow;
+  align-self: start;
+  justify-self: end;
   display: inline-flex;
-  min-width: 108px;
-  min-height: 46px;
+  min-width: 58px;
+  height: 38px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  border: 1px solid #f44e4e;
-  border-radius: 8px;
-  background: #f44e4e;
-  padding: 0 20px;
+  border: 1px solid var(--md-accent);
+  border-radius: 40px;
+  background: #dc4900;
+  padding-inline: 18px;
   color: #ffffff;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgb(220 73 0 / 14%);
   cursor: pointer;
   transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
-.oq-marketplace-detail-follow svg {
-  width: 14px;
-  height: 14px;
-}
-
-.oq-marketplace-detail-follow:hover {
-  border-color: #ff6a6a;
-  background: #ff6a6a;
-  transform: translateY(-1px);
+.oq-marketplace-detail-follow:not(.is-following):not(.is-full):hover {
+  border-color: #e8750c;
+  background: #e8750c;
+  box-shadow: 0 4px 10px rgb(220 73 0 / 18%);
+  transform: translateY(-2px) scale(1.03);
 }
 
 .oq-marketplace-detail-follow.is-following {
-  border-color: #24a477;
-  background: #24a477;
+  border-width: 0;
+  background: #ebf9f2;
+  box-shadow: none;
+  color: #0f8c5c;
+}
+
+.oq-marketplace-detail-follow.is-following:hover {
+  background: #ddf5e8;
+  color: #0f8c5c;
+  box-shadow: 0 4px 10px rgb(15 140 92 / 14%);
+  transform: translateY(-2px) scale(1.03);
 }
 
 .oq-marketplace-detail-follow.is-full:disabled {
-  border-color: var(--md-border);
-  background: var(--md-surface-soft);
-  color: var(--md-muted);
+  border-width: 0;
+  background: #f1f1f1;
+  color: #9a9a9a;
+  box-shadow: none;
   cursor: not-allowed;
+  opacity: 0.9;
 }
 
 .oq-marketplace-detail-content {
@@ -321,7 +637,7 @@
 
 .oq-marketplace-detail-description {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0 24px;
   border: 0;
   border-radius: 0;
@@ -373,6 +689,22 @@
   margin-top: 20px;
 }
 
+.oq-marketplace-detail-fund-heading.is-time-control {
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.oq-marketplace-detail-fund-heading.is-time-control h2 {
+  min-width: 0;
+  margin: 0;
+  color: var(--md-text);
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 32px;
+  letter-spacing: 0;
+}
+
 .oq-marketplace-detail-fund-heading .oq-report-date-select {
   flex: 0 0 auto;
 }
@@ -384,7 +716,7 @@
 }
 
 .oq-marketplace-detail-fund-heading .oq-report-date-select--compact.oq-report-date-select--switch > button {
-  padding: 8px 12px;
+  padding: 0;
 }
 
 .oq-marketplace-detail-fund-title {
@@ -399,7 +731,11 @@
 }
 
 .oq-marketplace-detail-summary {
+  display: flex;
+  flex-direction: column;
   align-self: stretch;
+  align-items: flex-start;
+  justify-content: space-between;
   border-radius: 8px;
   height: auto;
   padding: 20px;
@@ -446,10 +782,11 @@
   border-radius: 0;
   background: transparent;
   padding: 0 2px;
-  color: var(--td-muted-strong);
-  font-size: 13px;
-  font-weight: 650;
-  line-height: 20px;
+  color: rgb(17 17 17 / 50%);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 18px;
   box-shadow: none;
 }
 
@@ -474,7 +811,7 @@
 }
 
 .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-list > button[data-state="active"]::after {
-  background: var(--td-accent);
+  background: rgb(17, 17, 17);
 }
 
 .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-list > button:focus-visible {
@@ -502,7 +839,7 @@
 
 .oq-marketplace-detail-strategy-allocation-header {
   min-height: 38px;
-  border-bottom: 0.75px solid var(--md-border);
+  border-block: 0.5px solid var(--md-border);
   background: color-mix(in srgb, var(--md-muted) 4%, var(--md-surface));
   color: color-mix(in srgb, var(--md-muted) 72%, var(--md-text));
   font-size: 10px;
@@ -550,8 +887,8 @@
 .oq-marketplace-detail-strategy-allocation-name strong {
   overflow: hidden;
   color: var(--md-text);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 600;
   line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -561,7 +898,7 @@
   justify-self: end;
   color: var(--md-text-soft);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   line-height: 16px;
 }
@@ -575,8 +912,8 @@
 .oq-marketplace-detail-strategy-allocation-metric strong {
   color: var(--md-success);
   font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 600;
   line-height: 16px;
 }
 
@@ -599,15 +936,56 @@
 .oq-marketplace-detail-follower-cell strong {
   color: var(--td-text);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 650;
+  line-height: 16px;
 }
 
 .oq-trade-workspace-table.is-followers {
   min-width: 640px;
 }
 
+.oq-trade-workspace-table.is-followers thead th {
+  border-top: 0.75px solid var(--td-border);
+}
+
+.oq-trade-workspace-table.is-followers :is(th, td):first-child {
+  padding-left: 24px;
+}
+
 .oq-trade-workspace-table.is-followers :is(th, td):not(:first-child) {
   text-align: right;
+}
+
+.oq-trade-workspace-table.is-followers tbody td {
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.oq-trade-workspace-table.is-followers tbody td:not(:first-child) {
+  color: var(--td-text-soft);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-trade-workspace-table.is-followers .oq-marketplace-detail-follower-amount {
+  color: var(--md-text-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.oq-trade-workspace-table.is-followers .oq-trade-workspace-value {
+  font-weight: 600;
+}
+
+.oq-trade-workspace-table.is-followers .oq-trade-workspace-value > strong {
+  color: inherit;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
 }
 
 .oq-trade-workspace-table.is-followers .oq-trade-workspace-value.is-positive > strong {
@@ -616,54 +994,70 @@
 
 .oq-marketplace-detail-pagination {
   display: flex;
-  min-height: 52px;
+  min-height: 48px;
   align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  border-top: 1px solid var(--md-border-soft);
-  padding: 10px 16px;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 0.75px solid var(--md-border);
+  background: color-mix(in srgb, var(--td-muted) 4%, var(--td-bg));
+  padding: 10px 12px 10px 16px;
 }
 
 .oq-marketplace-detail-pagination-count {
-  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   color: var(--md-muted);
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9.375px;
   line-height: 14px;
+}
+
+.oq-marketplace-detail-pagination-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .oq-marketplace-detail-pagination button {
   display: inline-flex;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--md-border);
-  border-radius: 6px;
+  border: 0.75px solid var(--td-border-strong);
+  border-radius: 999px;
   background: var(--md-surface);
   color: var(--md-text-soft);
   font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 650;
+  font-size: 9px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
+  transition:
+    border-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    background-color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    color 160ms cubic-bezier(0.25, 1, 0.5, 1),
+    opacity 160ms cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .oq-marketplace-detail-pagination button:hover:not(:disabled),
-.oq-marketplace-detail-pagination button.is-active {
-  border-color: color-mix(in srgb, var(--md-accent) 48%, var(--md-border));
+.oq-marketplace-detail-pagination button:focus-visible {
+  border-color: var(--md-accent);
   background: #fff7f3;
   color: var(--md-accent);
+  outline: none;
+}
+
+.oq-marketplace-detail-pagination button.is-active {
+  border-color: var(--md-accent);
+  background: var(--md-accent);
+  color: #ffffff;
 }
 
 .oq-marketplace-detail-pagination button:disabled {
   cursor: not-allowed;
   opacity: 0.38;
-}
-
-.oq-marketplace-detail-pagination button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--md-accent) 30%, transparent);
-  outline-offset: 2px;
 }
 
 .oq-marketplace-detail-pagination svg {
@@ -684,6 +1078,7 @@
 
 .oq-marketplace-detail-summary-grid {
   display: grid;
+  align-self: stretch;
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   margin-top: 12px;
@@ -717,7 +1112,7 @@
 }
 
 .oq-marketplace-detail-summary-featured .oq-marketplace-detail-metric span {
-  font-size: 12px;
+  font-size: 10px;
   line-height: 16px;
 }
 
@@ -725,7 +1120,7 @@
 .oq-marketplace-detail-summary-featured .oq-marketplace-detail-metric:first-child strong,
 .oq-marketplace-detail-summary-featured .oq-marketplace-detail-metric:nth-child(2) strong {
   font-size: 18px;
-  line-height: 24px;
+  line-height: 26px;
 }
 
 .oq-marketplace-detail-summary-list {
@@ -736,13 +1131,18 @@
 .oq-marketplace-detail-summary-list .oq-marketplace-detail-metric,
 .oq-marketplace-detail-summary-list .oq-marketplace-detail-metric:first-child,
 .oq-marketplace-detail-summary-list .oq-marketplace-detail-metric:nth-child(2) {
-  min-height: 36px;
+  min-height: 28px;
   padding: 8px 0;
 }
 
 .oq-marketplace-detail-summary-list .oq-marketplace-detail-metric strong {
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.oq-marketplace-detail-summary-list .oq-marketplace-detail-metric span {
+  font-size: 10px;
+  line-height: 16px;
 }
 
 .oq-marketplace-detail-metric {
@@ -784,7 +1184,7 @@
 
 .oq-marketplace-detail-summary-featured .oq-marketplace-detail-metric strong {
   font-size: 18px;
-  line-height: 24px;
+  line-height: 26px;
 }
 
 .oq-marketplace-detail-metric strong.is-positive,
@@ -813,8 +1213,9 @@
   --td-chart-grid: color-mix(in srgb, var(--md-border) 68%, transparent);
   --semantic-up: var(--md-success);
   --semantic-down: var(--md-risk);
+  align-self: start;
   border-radius: 8px;
-  padding: 24px;
+  padding: 20px 20px 8px;
 }
 
 .oq-marketplace-detail-section-header {
@@ -830,7 +1231,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 18px;
-  padding-bottom: 12px;
+  padding-bottom: 0;
 }
 
 .oq-marketplace-detail-chart-heading {
@@ -911,6 +1312,13 @@
   border: 0;
   background: transparent;
   padding: 0;
+}
+
+.oq-marketplace-detail-chart-section .oq-trade-trend-body,
+.oq-marketplace-detail-chart-section .oq-trade-trend-chart,
+.oq-marketplace-detail-chart-section .recharts-responsive-container {
+  width: 100%;
+  min-width: 0;
 }
 
 .oq-marketplace-detail-chart {
@@ -1056,9 +1464,17 @@
   width: 28px;
   height: 28px;
   margin-right: 9px;
+  overflow: hidden;
   background: linear-gradient(to bottom, #d99100, #dc4900);
   font-size: 10px;
   vertical-align: middle;
+}
+
+.oq-marketplace-detail-follower-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .oq-marketplace-detail-follower-avatar.is-sunset { background: linear-gradient(to bottom, #d99100, #dc4900); }
@@ -1103,13 +1519,17 @@
   .oq-marketplace-detail-summary-featured .oq-marketplace-detail-metric:first-child strong,
   .oq-marketplace-detail-summary-featured .oq-marketplace-detail-metric:nth-child(2) strong {
     font-size: 18px;
-    line-height: 24px;
+    line-height: 26px;
   }
 }
 
 @media (max-width: 920px) {
   .oq-marketplace-detail-analytics-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .oq-marketplace-detail-strategy-dimensions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .oq-marketplace-detail-description {
@@ -1120,7 +1540,7 @@
     padding-bottom: 18px;
   }
 
-  .oq-marketplace-detail-description-item:nth-last-child(-n + 2) {
+  .oq-marketplace-detail-description-item:nth-last-child(-n + 1) {
     padding-bottom: 0;
   }
 }
@@ -1146,19 +1566,26 @@
   }
 
   .oq-marketplace-detail-hero-inner {
+    display: flex;
     align-items: flex-start;
     flex-direction: column;
-    padding: 22px 18px;
+    gap: 16px;
+    padding: 24px 16px;
+  }
+
+  .oq-marketplace-detail-avatar {
+    width: 56px;
+    height: 56px;
+    font-size: 27px;
   }
 
   .oq-marketplace-detail-hero-copy h1 {
     font-size: 24px;
   }
 
-  .oq-marketplace-detail-hero-stats {
-    margin-left: 0;
-    flex-wrap: wrap;
-    gap: 16px 24px;
+  .oq-marketplace-detail-strategy-dimensions {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
   }
 
   .oq-marketplace-detail-follow {
@@ -1180,6 +1607,10 @@
   .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-header {
     gap: 12px;
     padding-inline: 16px;
+  }
+
+  .oq-trade-workspace-table.is-followers :is(th, td):first-child {
+    padding-left: 16px;
   }
 
   .oq-marketplace-detail-records.oq-trade-workspace .oq-trade-workspace-tabs-list {

@@ -158,6 +158,56 @@
   flex-basis: 13px;
 }
 
+.dark.oq-marketplace-detail-active .oq-report-date-select.oq-report-date-select--compact {
+  --report-bg: var(--oq-detail-dark-surface-1);
+  --report-panel: var(--oq-detail-dark-surface-2);
+  --report-subtle-surface: var(--oq-detail-dark-surface-2);
+  --report-border: var(--oq-detail-dark-border);
+  --report-subtle-border: var(--oq-detail-dark-border-strong);
+  --report-gold: var(--oq-detail-dark-accent);
+  --report-text: var(--oq-detail-dark-text);
+  --report-text-soft: var(--oq-detail-dark-text-soft);
+  --report-muted: var(--oq-detail-dark-muted);
+  --report-warm: var(--oq-detail-dark-surface-warm);
+  --report-shadow: 0 8px 22px oklch(0 0 0 / 0.36);
+  --report-shadow-lift: 0 16px 38px oklch(0 0 0 / 0.52);
+  --background: var(--report-bg);
+  --foreground: var(--report-text);
+  --popover: var(--report-bg);
+  --popover-foreground: var(--report-text);
+  --primary: var(--report-gold);
+  --primary-foreground: var(--oq-detail-dark-canvas);
+  --muted: var(--report-panel);
+  --muted-foreground: var(--report-muted);
+  --accent: var(--report-warm);
+  --accent-foreground: var(--report-text);
+  --border: var(--report-border);
+  --input: var(--report-border);
+  --ring: var(--report-gold);
+}
+
+.dark.oq-marketplace-detail-active .oq-report-date-select.oq-report-date-select--compact > button,
+.dark.oq-marketplace-detail-active .oq-report-date-select.oq-report-date-select--compact > button:hover,
+.dark.oq-marketplace-detail-active .oq-report-date-select.oq-report-date-select--compact > button[aria-expanded="true"] {
+  border-color: var(--report-subtle-border);
+  background: var(--report-subtle-surface);
+  color: var(--report-text-soft);
+}
+
+.dark.oq-marketplace-detail-active .oq-report-date-select--compact .oq-report-date-menu,
+.dark.oq-marketplace-detail-active .oq-report-date-select--compact .oq-report-date-calendar-panel {
+  border-color: var(--report-border);
+  background: var(--report-bg);
+  box-shadow: var(--report-shadow-lift);
+}
+
+.dark.oq-marketplace-detail-active .oq-report-date-select--compact .oq-report-date-menu button:hover,
+.dark.oq-marketplace-detail-active .oq-report-date-select--compact .oq-report-date-menu button:focus-visible,
+.dark.oq-marketplace-detail-active .oq-report-date-select--compact .oq-report-date-menu button[aria-selected="true"] {
+  background: var(--report-warm);
+  color: var(--report-gold);
+}
+
 .oq-report-date-select--compact .oq-report-date-menu {
   position: absolute;
   top: calc(100% + 6px);

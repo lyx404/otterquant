@@ -965,12 +965,11 @@ export default function TradeDetail({
                 type="button"
                 className={`oq-trade-detail-subscribe${isSubscribed ? " is-subscribed" : ""}`}
                 aria-pressed={isSubscribed}
-                aria-label={isSubscribed ? tr("Unsubscribe from trading signals", "取消订阅") : tr("Subscribe to trading signals", "订阅交易信号")}
-                onClick={() => isSubscribed ? unsubscribeFromSignals() : setIsSignalDialogOpen(true)}
-              >
-                {!isSubscribed ? <Send aria-hidden="true" /> : null}
-                {isSubscribed ? tr("Unsubscribe", "取消订阅") : tr("Subscribe to trading signals", "订阅交易信号")}
-              </button>
+              aria-label={isSubscribed ? tr("Unsubscribe from trading signals", "取消订阅") : tr("Subscribe to trading signals", "订阅交易信号")}
+              onClick={() => isSubscribed ? unsubscribeFromSignals() : setIsSignalDialogOpen(true)}
+            >
+              {isSubscribed ? tr("Subscribed", "已订阅") : tr("Subscribe to trading signals", "订阅交易信号")}
+            </button>
             ) : runtimeStatus === "running" ? (
               <>
                 <Tooltip>

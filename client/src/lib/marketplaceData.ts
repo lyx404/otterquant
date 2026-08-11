@@ -165,7 +165,7 @@ const bundledOfficialStrategies = strategies.filter(
 export const marketplaceStrategies = [...bundledOfficialStrategies, ...marketplaceExamples];
 
 export const marketplaceFundNames: Record<string, string> = {
-  "STR-001": "基金名称基金名称",
+  "STR-001": "投资组合名称",
   "STR-002": "BTCETH 趋势反转",
   "STR-003": "多因子稳健策略",
   "STR-005": "稳健套利增强",
@@ -177,6 +177,17 @@ export const marketplaceFundNames: Record<string, string> = {
 };
 
 export type MarketplaceAvatarTone = "orange" | "teal" | "violet" | "blue" | "green" | "rose";
+
+export const marketplaceAvatarImages = {
+  notion: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/notion_1.png",
+  notion5: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/notion_5.png",
+  toon: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/toon_1.png",
+  toon10: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/toon_10.png",
+  threeDimensional: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/3d_2.png",
+  memo: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/memo_1.png",
+  memo17: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/memo_17.png",
+  teams5: "https://cdn.jsdelivr.net/gh/alohe/memojis/png/teams_5.png",
+};
 
 export const marketplaceUserProfiles: Record<string, { author: string; avatar: string; avatarTone: MarketplaceAvatarTone }> = {
   "STR-001": { author: "枫1008", avatar: "枫", avatarTone: "orange" },
