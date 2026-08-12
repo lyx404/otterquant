@@ -170,19 +170,24 @@ function MarketplaceSummary({ tr }: { tr: (en: string, zh: string) => string }) 
   ];
 
   return (
-    <Link
-      href="/marketplace?tab=mine"
-      className="oq-marketplace-summary"
-      aria-label={tr("View account", "查看个人资料")}
-    >
-      <div className="oq-marketplace-summary-profile">
-        <span className="oq-marketplace-summary-avatar" aria-hidden="true">
-          {user?.avatar ? <img src={user.avatar} alt="" /> : avatarInitial}
-        </span>
-        <span className="oq-marketplace-summary-name">{displayName}</span>
-        <span className="oq-marketplace-summary-profile-link" aria-hidden="true">
-          <ChevronRight size={16} aria-hidden="true" />
-        </span>
+    <div className="oq-marketplace-summary">
+      <div className="oq-marketplace-summary-head">
+        <Link
+          href="/marketplace?tab=mine"
+          className="oq-marketplace-summary-profile"
+          aria-label={tr("View account", "查看个人资料")}
+        >
+          <span className="oq-marketplace-summary-avatar" aria-hidden="true">
+            {user?.avatar ? <img src={user.avatar} alt="" /> : avatarInitial}
+          </span>
+          <span className="oq-marketplace-summary-name">{displayName}</span>
+          <span className="oq-marketplace-summary-profile-link" aria-hidden="true">
+            <ChevronRight size={16} aria-hidden="true" />
+          </span>
+        </Link>
+        <Link href="/marketplace?tab=mine" className="oq-marketplace-summary-create">
+          {tr("Create Portfolio", "创建投资组合")}
+        </Link>
       </div>
       <div className="oq-marketplace-summary-metrics">
         {metrics.map((metric) => (
@@ -192,7 +197,7 @@ function MarketplaceSummary({ tr }: { tr: (en: string, zh: string) => string }) 
           </div>
         ))}
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -573,6 +578,22 @@ export default function Marketplace() {
   }, []);
 
   if (!SHOW_MARKETPLACE_CONTENT) return null;
+  if (activeTab === "mine") {
+    return (
+      <div className="oq-trade oq-marketplace oq-marketplace-mine-demo">
+        <section className="oq-marketplace-mine-demo-panel" aria-labelledby="oq-marketplace-mine-demo-title">
+          <div>
+            <h1 id="oq-marketplace-mine-demo-title">{tr("My portfolios", "我的投资组合")}</h1>
+            <p>{tr("Open the portfolio detail demo.", "打开投资组合详情页演示。")}</p>
+          </div>
+          <Link href="/marketplace/STR-008?from=mine" className="oq-marketplace-mine-demo-button">
+            {tr("View portfolio detail", "查看投资组合详情")}
+            <ArrowUpRight aria-hidden="true" />
+          </Link>
+        </section>
+      </div>
+    );
+  }
   if (activeTab !== "marketplace") return null;
 
   return (
