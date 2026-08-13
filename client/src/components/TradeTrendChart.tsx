@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { Chart } from "@antv/g2";
 
 export type TradeTrendMetric = "return" | "pnl";
@@ -92,6 +92,17 @@ type TrendSeriesPoint = {
   series: string;
 };
 
+type NavigatorCurvePoint = {
+  x: number;
+  y: number;
+};
+
+const NAVIGATOR_CURVE_HEIGHT = 10;
+const NAVIGATOR_CURVE_INSET = 2;
+const NAVIGATOR_CURVE_SPAN = NAVIGATOR_CURVE_HEIGHT - NAVIGATOR_CURVE_INSET * 2;
+const NAVIGATOR_HEIGHT = 48;
+const NAVIGATOR_TRACK_INSET = 6;
+
 function formatTrendDate(value: Date | number | string) {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return "--";
@@ -112,6 +123,29 @@ function formatTrendValue(value: number, metric: TradeTrendMetric) {
     maximumFractionDigits: metric === "return" ? 2 : 2,
   });
   return `${value > 0 ? "+" : ""}${formatted}${metric === "return" ? "%" : " USDT"}`;
+}
+
+function createNavigatorCurvePath(points: NavigatorCurvePoint[]) {
+  if (points.length === 0) return "";
+  const format = (value: number) => Number(value.toFixed(3));
+  if (points.length === 1) return `M ${format(points[0].x)} ${format(points[0].y)}`;
+
+  const segments = points.slice(0, -1).map((point, index) => {
+    const previous = points[index - 1] ?? point;
+    const next = points[index + 1];
+    const afterNext = points[index + 2] ?? next;
+    const firstControl = {
+      x: point.x + (next.x - previous.x) / 6,
+      y: point.y + (next.y - previous.y) / 6,
+    };
+    const secondControl = {
+      x: next.x - (afterNext.x - point.x) / 6,
+      y: next.y - (afterNext.y - point.y) / 6,
+    };
+    return `C ${format(firstControl.x)} ${format(firstControl.y)} ${format(secondControl.x)} ${format(secondControl.y)} ${format(next.x)} ${format(next.y)}`;
+  });
+
+  return `M ${format(points[0].x)} ${format(points[0].y)} ${segments.join(" ")}`;
 }
 
 function escapeTooltipText(value: unknown) {
@@ -153,6 +187,8 @@ export function TradeTrendChart({
   liveLabel = "Live",
   showBacktest = true,
   showLive = true,
+  seriesSplitIndex,
+  dataOffset = 0,
 }: {
   data: TradeTrendPoint[];
   metric: TradeTrendMetric;
@@ -164,12 +200,17 @@ export function TradeTrendChart({
   liveLabel?: string;
   showBacktest?: boolean;
   showLive?: boolean;
+  seriesSplitIndex?: number;
+  dataOffset?: number;
 }) {
   const metricKey: TradeTrendMetricKey = metric === "return" ? "returnValue" : "pnlValue";
   const values = data.map((row) => row[metricKey]);
   const axis = getTrendAxis(values, metric === "return" ? 0.1 : 10);
-  const splitIndex = Math.max(1, Math.floor((data.length - 1) * 0.72));
+  const defaultSplitIndex = Math.max(1, Math.floor((data.length - 1) * 0.72));
+  const globalSplitIndex = Math.max(0, Math.min(seriesSplitIndex ?? defaultSplitIndex, data.length - 1));
+  const splitIndex = globalSplitIndex - dataOffset;
   const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<Chart | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -183,13 +224,15 @@ export function TradeTrendChart({
       const point = { date: new Date(`${row.date}T00:00:00`), value: row[metricKey] };
       if (!showBacktestLive) return [{ ...point, series: metricLabel }];
       const series: TrendSeriesPoint[] = [];
-      if (showBacktest && index <= splitIndex) series.push({ ...point, series: backtestLabel });
-      if (showLive && index >= splitIndex) series.push({ ...point, series: liveLabel });
+      const globalIndex = dataOffset + index;
+      if (showBacktest && globalIndex <= globalSplitIndex) series.push({ ...point, series: backtestLabel });
+      if (showLive && globalIndex >= globalSplitIndex) series.push({ ...point, series: liveLabel });
       return series;
     });
     const colorDomain = showBacktestLive ? [backtestLabel, liveLabel] : [metricLabel];
     const colorRange = showBacktestLive ? [palette.backtest, palette.live] : [singleSeriesColor];
-    const chart = new Chart({ container, autoFit: true });
+    const chart = chartRef.current ?? new Chart({ container, autoFit: true });
+    chartRef.current = chart;
 
     chart.options({
       type: "view",
@@ -235,17 +278,6 @@ export function TradeTrendChart({
           },
         },
       },
-      tooltip: {
-        title: (datum: TrendSeriesPoint) => formatTrendDate(datum.date),
-        render: (_event: unknown, { title, items }: { title: string; items: Array<{ color?: string; name?: string; value?: number | string }> }) => {
-          const rows = items.map((item) => {
-            const series = item.name || metricLabel;
-            const value = Number(item.value);
-            return `<div style="display:grid;grid-template-columns:7px minmax(0,1fr) auto;align-items:center;gap:7px;margin-top:6px"><i style="display:block;width:7px;height:7px;border-radius:50%;background:${escapeTooltipText(item.color || singleSeriesColor)}"></i><span style="overflow:hidden;color:#767d87;font-size:11px;line-height:16px;text-overflow:ellipsis;white-space:nowrap">${escapeTooltipText(series)}</span><strong style="color:#20242a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700;line-height:16px;white-space:nowrap">${escapeTooltipText(formatTrendValue(value, metric))}</strong></div>`;
-          }).join("");
-          return `<div style="display:inline-block;width:max-content;max-width:calc(100vw - 40px);box-sizing:border-box;border:1px solid #e3e6ea;border-radius:6px;background:#ffffff;padding:9px 10px;box-shadow:0 8px 20px rgba(33,38,45,.1)"><div style="color:#323840;font-size:11px;font-weight:700;line-height:16px">${escapeTooltipText(title)}</div>${rows}</div>`;
-        },
-      },
       interaction: {
         tooltip: {
           shared: true,
@@ -255,6 +287,14 @@ export function TradeTrendChart({
           crosshairsStroke: palette.crosshair,
           crosshairsLineDash: [4, 4],
           crosshairsLineWidth: 1,
+          render: (_event: unknown, { title, items }: { title: string; items: Array<{ color?: unknown; name?: unknown; value?: unknown }> }) => {
+            const rows = items.map((item) => {
+              const series = item.name || metricLabel;
+              const value = Number(item.value);
+              return `<div style="display:grid;grid-template-columns:7px minmax(0,1fr) auto;align-items:center;gap:7px;margin-top:6px"><i style="display:block;width:7px;height:7px;border-radius:50%;background:${escapeTooltipText(item.color || singleSeriesColor)}"></i><span style="overflow:hidden;color:#767d87;font-size:11px;line-height:16px;text-overflow:ellipsis;white-space:nowrap">${escapeTooltipText(series)}</span><strong style="color:#20242a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700;line-height:16px;white-space:nowrap">${escapeTooltipText(formatTrendValue(value, metric))}</strong></div>`;
+            }).join("");
+            return `<div style="display:inline-block;width:max-content;max-width:calc(100vw - 40px);box-sizing:border-box;border:1px solid #e3e6ea;border-radius:6px;background:#ffffff;padding:9px 10px;box-shadow:0 8px 20px rgba(33,38,45,.1)"><div style="color:#323840;font-size:11px;font-weight:700;line-height:16px">${escapeTooltipText(title)}</div>${rows}</div>`;
+          },
         },
       },
       children: [
@@ -269,19 +309,22 @@ export function TradeTrendChart({
           encode: { x: "date", y: "value", color: "series", shape: "smooth" },
           style: { lineWidth: 2.25 },
         },
-        ...(showBacktestLive && showLive && splitDate ? [{
+        ...(showBacktestLive && showBacktest && showLive && splitDate ? [{
           type: "lineX" as const,
           data: [splitDate],
-          style: { stroke: palette.liveMarker, strokeOpacity: 0.9, strokeDasharray: "5 5", lineWidth: 1.2 },
+          style: { stroke: palette.liveMarker, strokeOpacity: 0.9, lineDash: [5, 5], lineWidth: 1.2 },
           labels: [{ text: () => liveLabel, position: "top", style: { fill: palette.liveMarker, fontSize: 10, fontWeight: 700 } }],
           tooltip: false,
         }] : []),
       ],
     });
     void chart.render();
+  }, [axis.domain, axis.ticks.length, backtestLabel, data, dataOffset, globalSplitIndex, liveLabel, metric, metricKey, metricLabel, showBacktest, showBacktestLive, showLive, splitIndex, values]);
 
-    return () => chart.destroy();
-  }, [axis.domain, axis.ticks.length, backtestLabel, data, liveLabel, metric, metricKey, metricLabel, showBacktest, showBacktestLive, showLive, splitIndex, values]);
+  useEffect(() => () => {
+    chartRef.current?.destroy();
+    chartRef.current = null;
+  }, []);
 
   return (
     <div className="oq-trade-trend-body">
@@ -322,6 +365,9 @@ export function TradeTrendNavigator({
   endIndex,
   onRangeChange,
   ariaLabel,
+  showBacktest = true,
+  showLive = true,
+  seriesSplitIndex,
 }: {
   data: TradeTrendPoint[];
   metric?: TradeTrendMetric;
@@ -329,14 +375,118 @@ export function TradeTrendNavigator({
   endIndex: number;
   onRangeChange: (range: { startIndex: number; endIndex: number }) => void;
   ariaLabel: string;
+  showBacktest?: boolean;
+  showLive?: boolean;
+  seriesSplitIndex?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<Chart | null>(null);
   const onRangeChangeRef = useRef(onRangeChange);
   const lastEmittedRef = useRef(`${startIndex}:${endIndex}`);
   const [isInteracting, setIsInteracting] = useState(false);
+  const pointerInteractionRef = useRef<{
+    pointerId: number;
+    mode: "start" | "end" | "selection";
+    initialRatio: number;
+    initialStart: number;
+    initialEnd: number;
+  } | null>(null);
   const selectionStart = Math.max(0, Math.min(startIndex, data.length - 1));
   const selectionEnd = Math.max(selectionStart, Math.min(endIndex, data.length - 1));
+  const visibleData = data.slice(selectionStart, selectionEnd + 1);
+  const defaultSplitIndex = Math.max(1, Math.floor((data.length - 1) * 0.72));
+  const globalSplitIndex = Math.max(0, Math.min(seriesSplitIndex ?? defaultSplitIndex, data.length - 1));
+  const metricKey: TradeTrendMetricKey = metric === "return" ? "returnValue" : "pnlValue";
+  const visibleAxis = getTrendAxis(visibleData.map((row) => row[metricKey]), metric === "return" ? 0.1 : 10);
+  const [axisMin, axisMax] = visibleAxis.domain;
+  const axisSpan = Math.max(axisMax - axisMin, Number.EPSILON);
+  const navigatorCurvePoints = visibleData.map((row, index) => ({
+    x: (index / Math.max(visibleData.length - 1, 1)) * 100,
+    y: NAVIGATOR_CURVE_INSET + (1 - (row[metricKey] - axisMin) / axisSpan) * NAVIGATOR_CURVE_SPAN,
+  }));
+  const backtestPointCount = Math.max(0, Math.min(navigatorCurvePoints.length, globalSplitIndex - selectionStart + 1));
+  const liveStartIndex = Math.max(0, Math.min(navigatorCurvePoints.length, globalSplitIndex - selectionStart));
+  const backtestCurvePath = createNavigatorCurvePath(navigatorCurvePoints.slice(0, backtestPointCount));
+  const liveCurvePath = createNavigatorCurvePath(navigatorCurvePoints.slice(liveStartIndex));
+
+  const emitRangeChange = useCallback((range: { startIndex: number; endIndex: number }) => {
+    const nextKey = `${range.startIndex}:${range.endIndex}`;
+    if (nextKey === lastEmittedRef.current) return false;
+    lastEmittedRef.current = nextKey;
+    onRangeChangeRef.current(range);
+    return true;
+  }, []);
+
+  const setSliderValues = useCallback((startRatio: number, endRatio: number) => {
+    const slider = chartRef.current?.getContext().canvas?.document?.getElementsByClassName("slider")[0] as { setValues?: (values: [number, number]) => void } | undefined;
+    slider?.setValues?.([startRatio, endRatio]);
+  }, []);
+
+  const getTrackRatio = useCallback((clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width <= 0) return 0;
+    return Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  }, []);
+
+  const handleNavigatorPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const denominator = Math.max(data.length - 1, 1);
+    const ratio = getTrackRatio(event.clientX);
+    const startRatio = selectionStart / denominator;
+    const endRatio = selectionEnd / denominator;
+    const distanceToStart = Math.abs(ratio - startRatio);
+    const distanceToEnd = Math.abs(ratio - endRatio);
+    const selectionIsFullRange = endRatio - startRatio >= 1 - 1 / denominator;
+    const mode = selectionIsFullRange
+      ? distanceToStart <= distanceToEnd ? "start" : "end"
+      : ratio >= startRatio && ratio <= endRatio
+        ? "selection"
+        : distanceToStart <= distanceToEnd ? "start" : "end";
+
+    pointerInteractionRef.current = {
+      pointerId: event.pointerId,
+      mode,
+      initialRatio: ratio,
+      initialStart: startRatio,
+      initialEnd: endRatio,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsInteracting(true);
+    event.preventDefault();
+  };
+
+  const handleNavigatorPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const interaction = pointerInteractionRef.current;
+    if (!interaction || interaction.pointerId !== event.pointerId) return;
+    const denominator = Math.max(data.length - 1, 1);
+    const ratio = getTrackRatio(event.clientX);
+    const delta = ratio - interaction.initialRatio;
+    const span = interaction.initialEnd - interaction.initialStart;
+    let nextStart = interaction.initialStart;
+    let nextEnd = interaction.initialEnd;
+    if (interaction.mode === "start") {
+      nextStart = Math.max(0, Math.min(interaction.initialEnd - 1 / denominator, ratio));
+    } else if (interaction.mode === "end") {
+      nextEnd = Math.min(1, Math.max(interaction.initialStart + 1 / denominator, ratio));
+    } else {
+      nextStart = Math.max(0, Math.min(1 - span, interaction.initialStart + delta));
+      nextEnd = nextStart + span;
+    }
+    setSliderValues(nextStart, nextEnd);
+    emitRangeChange({
+      startIndex: Math.round(nextStart * denominator),
+      endIndex: Math.round(nextEnd * denominator),
+    });
+    event.preventDefault();
+  };
+
+  const handleNavigatorPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerInteractionRef.current?.pointerId === event.pointerId) {
+      pointerInteractionRef.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+      setIsInteracting(false);
+    }
+  };
 
   useEffect(() => {
     onRangeChangeRef.current = onRangeChange;
@@ -365,7 +515,7 @@ export function TradeTrendNavigator({
     const dataMin = Math.min(...values);
     const dataMax = Math.max(...values);
     const padding = Math.max((dataMax - dataMin) * 0.08, 0.02);
-    const chart = new Chart({ container, autoFit: true, height: 46 });
+    const chart = new Chart({ container, autoFit: true, height: NAVIGATOR_HEIGHT });
     chartRef.current = chart;
     chart.on("sliderX:filter", (event: { data?: { selection?: [[Date | number, Date | number]] } }) => {
       const selection = event.data?.selection?.[0];
@@ -377,18 +527,19 @@ export function TradeTrendNavigator({
         if (value instanceof Date) return (value.getTime() - firstTime) / timeSpan;
         return value >= 0 && value <= 1 ? value : (value - firstTime) / timeSpan;
       };
-      const nextStart = Math.max(0, Math.min(denominator, Math.round(toRatio(selection[0]) * denominator)));
-      const nextEnd = Math.max(nextStart + 1, Math.min(denominator, Math.round(toRatio(selection[1]) * denominator)));
-      const nextKey = `${nextStart}:${nextEnd}`;
-      if (nextKey === lastEmittedRef.current) return;
-      lastEmittedRef.current = nextKey;
-      setIsInteracting(true);
-      onRangeChangeRef.current({ startIndex: nextStart, endIndex: nextEnd });
+      const minimumSpan = 1;
+      const rawStart = Math.max(0, Math.min(denominator, Math.round(toRatio(selection[0]) * denominator)));
+      const rawEnd = Math.max(0, Math.min(denominator, Math.round(toRatio(selection[1]) * denominator)));
+      const nextStart = Math.min(rawStart, denominator - minimumSpan);
+      const nextEnd = Math.max(rawEnd, nextStart + minimumSpan);
+      emitRangeChange({ startIndex: nextStart, endIndex: nextEnd });
     });
     chart.options({
       type: "line",
       data: overviewData,
       padding: 0,
+      paddingLeft: 6,
+      paddingRight: 6,
       animate: false,
       axis: { x: false, y: false },
       legend: false,
@@ -402,20 +553,30 @@ export function TradeTrendNavigator({
       style: { stroke: "transparent", lineWidth: 0, strokeOpacity: 0, fillOpacity: 0 },
       slider: {
         x: {
+          position: "top",
           values: [selectionStart / denominator, selectionEnd / denominator],
           labelFormatter: (value: Date | number | string) => formatNavigatorSliderDate(value),
           showLabel: false,
+          showLabelOnInteraction: false,
           style: {
-            trackSize: 6,
+            trackSize: 12,
             trackFill: "transparent",
             trackFillOpacity: 0,
-            selectionFill: "#7f8792",
-            selectionFillOpacity: 0.16,
+            trackZIndex: 1,
+            selectionFill: "transparent",
+            selectionFillOpacity: 0,
+            selectionZIndex: 2,
+            sparklineColor: ["transparent"],
+            sparklineLineLineWidth: 0,
             handleIconSize: 8,
-            handleIconFill: "#ffffff",
-            handleIconStroke: "#7f8792",
+            handleIconFill: "transparent",
+            handleIconStroke: "transparent",
+            handleIconStrokeOpacity: 0,
             handleIconLineWidth: 1,
-            scrollable: false,
+            handleIconZIndex: 3,
+            handleLabelFill: "#6f7782",
+            handleLabelFillOpacity: 1,
+            handleLabelFontSize: 10,
           },
         },
       },
@@ -426,12 +587,14 @@ export function TradeTrendNavigator({
     void chart.render().then(() => {
       const slider = chart.getContext().canvas?.document?.getElementsByClassName("slider")[0] as { addEventListener?: (event: string, handler: () => void) => void } | undefined;
       slider?.addEventListener?.("pointerdown", () => setIsInteracting(true));
+      slider?.addEventListener?.("pointerup", () => setIsInteracting(false));
+      slider?.addEventListener?.("pointercancel", () => setIsInteracting(false));
     });
     return () => {
       chartRef.current = null;
       chart.destroy();
     };
-  }, [data, metric]);
+  }, [data, emitRangeChange, metric]);
 
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     const chart = chartRef.current;
@@ -450,10 +613,10 @@ export function TradeTrendNavigator({
     const nextEndRatio = Math.min(1, nextStartRatio + nextRange);
     slider.setValues([nextStartRatio, nextEndRatio]);
     const denominator = Math.max(data.length - 1, 1);
-    onRangeChangeRef.current({
-      startIndex: Math.round(nextStartRatio * denominator),
-      endIndex: Math.max(1, Math.round(nextEndRatio * denominator)),
-    });
+    const rawStart = Math.round(nextStartRatio * denominator);
+    const rawEnd = Math.round(nextEndRatio * denominator);
+    const startIndex = Math.min(rawStart, denominator - 1);
+    emitRangeChange({ startIndex, endIndex: Math.max(rawEnd, startIndex + 1) });
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -469,7 +632,7 @@ export function TradeTrendNavigator({
     else return;
     event.preventDefault();
     const nextStart = Math.max(0, Math.min(selectionStart + offset, data.length - 1 - span));
-    onRangeChange({ startIndex: nextStart, endIndex: nextStart + span });
+    emitRangeChange({ startIndex: nextStart, endIndex: nextStart + span });
   };
 
   return (
@@ -485,12 +648,43 @@ export function TradeTrendNavigator({
       onKeyDown={handleKeyDown}
       onWheel={handleWheel}
       onPointerUp={() => setIsInteracting(false)}
+      onPointerCancel={() => setIsInteracting(false)}
     >
-      <div ref={containerRef} className="oq-trade-trend-navigator-chart" aria-hidden="true" />
-      <div className="oq-trade-trend-navigator-labels" aria-hidden="true">
-        <span>{data[selectionStart] ? formatNavigatorMonth(data[selectionStart].date) : "--"}</span>
-        <span>{data[selectionEnd] ? formatNavigatorMonth(data[selectionEnd].date) : "--"}</span>
+      <div className="oq-trade-trend-navigator-track" aria-hidden="true" ref={trackRef}>
+        <div
+          className="oq-trade-trend-navigator-selection"
+          style={{
+            left: `${(selectionStart / Math.max(data.length - 1, 1)) * 100}%`,
+            width: `${((selectionEnd - selectionStart) / Math.max(data.length - 1, 1)) * 100}%`,
+          }}
+        />
+        <span
+          className="oq-trade-trend-navigator-handle is-start"
+          style={{ left: `${(selectionStart / Math.max(data.length - 1, 1)) * 100}%` }}
+        />
+        <span
+          className="oq-trade-trend-navigator-handle is-end"
+          style={{ left: `${(selectionEnd / Math.max(data.length - 1, 1)) * 100}%` }}
+        />
       </div>
+      <div ref={containerRef} className="oq-trade-trend-navigator-chart" aria-hidden="true" />
+      <div
+        className="oq-trade-trend-navigator-interaction"
+        aria-hidden="true"
+        onPointerDown={handleNavigatorPointerDown}
+        onPointerMove={handleNavigatorPointerMove}
+        onPointerUp={handleNavigatorPointerEnd}
+        onPointerCancel={handleNavigatorPointerEnd}
+      />
+      <svg
+        className="oq-trade-trend-navigator-curve"
+        viewBox={`0 0 100 ${NAVIGATOR_CURVE_HEIGHT}`}
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        {showBacktest && backtestCurvePath && <path d={backtestCurvePath} className="is-backtest" />}
+        {showLive && liveCurvePath && <path d={liveCurvePath} className="is-live" />}
+      </svg>
     </div>
   );
 }

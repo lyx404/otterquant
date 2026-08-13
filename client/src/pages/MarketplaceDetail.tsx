@@ -1,7 +1,14 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Pause, Play, Square } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Pause, Play, RefreshCw, Square } from "lucide-react";
 import { Link, useLocation, useParams, useSearch } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { MarketplaceAvatar } from "@/components/MarketplaceAvatar";
 import { translateUi, useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
 import {
@@ -50,6 +57,21 @@ type StrategyAllocation = {
   pnl: string;
   returnRate: string;
 };
+
+function normalizeChartWindow(
+  range: { startIndex: number; endIndex: number },
+  dataLength: number,
+) {
+  const maximumIndex = Math.max(dataLength - 1, 0);
+  if (maximumIndex === 0) return { startIndex: 0, endIndex: 0 };
+
+  const startIndex = Math.min(Math.max(Math.round(range.startIndex), 0), maximumIndex - 1);
+  const endIndex = Math.min(
+    Math.max(Math.round(range.endIndex), startIndex + 1),
+    maximumIndex,
+  );
+  return { startIndex, endIndex };
+}
 
 function ProfileBio({ text, tr }: { text: string; tr: (en: string, zh: string) => string }) {
   const textRef = useRef<HTMLSpanElement>(null);
@@ -167,9 +189,9 @@ export default function MarketplaceDetail() {
   const [copyTarget, setCopyTarget] = useState<typeof marketplaceStrategies[number] | null>(null);
   const [chartMetric, setChartMetric] = useState<TradeTrendMetric>("return");
   const [visibleChartSources, setVisibleChartSources] = useState({ backtest: true, live: true });
-  const [timeRange, setTimeRange] = useState<MarketplaceTimeRange>("30d");
-  const [chartWindow, setChartWindow] = useState({ startIndex: 335, endIndex: 364 });
-  const [timeRangeLabel, setTimeRangeLabel] = useState(tr("Past 30 days", "近 30 天"));
+  const [timeRange, setTimeRange] = useState<MarketplaceTimeRange>("1y");
+  const [chartWindow, setChartWindow] = useState({ startIndex: 0, endIndex: 364 });
+  const [timeRangeLabel, setTimeRangeLabel] = useState(tr("Past year", "近 1 年"));
   const [isStrategyOverviewExpanded, setIsStrategyOverviewExpanded] = useState(true);
   const [creatorRunState, setCreatorRunState] = useState<"running" | "paused" | "stopped">("running");
   const strategyId = params?.id ?? "";
@@ -184,9 +206,11 @@ export default function MarketplaceDetail() {
     setIsStrategyOverviewExpanded(true);
     setVisibleChartSources({ backtest: true, live: true });
     setCreatorRunState("running");
+    setTimeRange("1y");
+    setTimeRangeLabel(translateUi(uiLang, "Past year", "近 1 年"));
     window.scrollTo(0, 0);
     return () => document.documentElement.classList.remove("oq-marketplace-detail-active");
-  }, [isCreatorView, strategyId]);
+  }, [isCreatorView, strategyId, uiLang]);
 
   const currentPositions = useMemo(
     () => tradePositionRows.filter((row) => row.environment === trade?.environment),
@@ -258,10 +282,18 @@ export default function MarketplaceDetail() {
     () => buildTradeTrendData({ returnRate: roi, pnl: totalPnl, updatedAt: trade.updatedAt }),
     [roi, totalPnl, trade.updatedAt],
   );
-  const visibleTrendData = useMemo(
-    () => trendData.slice(chartWindow.startIndex, chartWindow.endIndex + 1),
-    [chartWindow, trendData],
+  useEffect(() => {
+    setChartWindow({ startIndex: 0, endIndex: Math.max(trendData.length - 1, 0) });
+  }, [strategyId, trendData.length]);
+  const visibleTrendWindow = useMemo(
+    () => normalizeChartWindow(chartWindow, trendData.length),
+    [chartWindow, trendData.length],
   );
+  const visibleTrendData = useMemo(
+    () => trendData.slice(visibleTrendWindow.startIndex, visibleTrendWindow.endIndex + 1),
+    [trendData, visibleTrendWindow],
+  );
+  const trendSeriesSplitIndex = Math.floor((trendData.length - 1) * 0.72);
   const selectTimeRange = (nextRange: MarketplaceTimeRange, label: string) => {
     const pointCount = { today: 2, "7d": 7, "30d": 30, "90d": 90, "180d": 180, "1y": 365 }[nextRange];
     setTimeRange(nextRange);
@@ -331,49 +363,78 @@ export default function MarketplaceDetail() {
             </div>
             {isCreatorView ? (
               <div className="oq-marketplace-detail-creator-actions" role="group" aria-label={tr("Portfolio controls", "投资组合控制") }>
-                {creatorRunState === "running" ? (
-                  <>
+                {creatorRunState === "stopped" ? (
+                  <button
+                    type="button"
+                    className="oq-marketplace-detail-creator-stopped"
+                    disabled
+                    aria-label={tr("Portfolio terminated", "已终止")}
+                  >
+                    {tr("Terminated", "已终止")}
+                  </button>
+                ) : <>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="oq-marketplace-detail-creator-action is-stop"
+                      className="oq-trade-detail-action"
+                      aria-label={tr("Refresh portfolio", "刷新投资组合")}
+                      onClick={() => toast.success(tr("Portfolio refreshed.", "投资组合已刷新。"))}
+                    >
+                      <RefreshCw aria-hidden="true" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{tr("Refresh", "刷新")}</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="oq-trade-detail-action"
+                      aria-label={creatorRunState === "paused" ? tr("Resume portfolio", "恢复投资组合") : tr("Pause portfolio", "暂停投资组合")}
                       onClick={() => {
+                        const nextState = creatorRunState === "paused" ? "running" : "paused";
+                        setCreatorRunState(nextState);
+                        toast.success(nextState === "running" ? tr("Portfolio resumed.", "投资组合已恢复运行。") : tr("Portfolio paused.", "投资组合已暂停。"));
+                      }}
+                    >
+                      {creatorRunState === "paused" ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{creatorRunState === "paused" ? tr("Resume", "恢复") : tr("Pause", "暂停")}</TooltipContent>
+                </Tooltip>
+
+                <DropdownMenu>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="oq-trade-detail-action"
+                          aria-label={tr("More portfolio controls", "更多投资组合控制")}
+                        >
+                          <MoreHorizontal aria-hidden="true" />
+                        </button>
+                      </DropdownMenuTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{tr("More", "更多")}</TooltipContent>
+                  </Tooltip>
+                  <DropdownMenuContent align="end" sideOffset={8} className="oq-trade-detail-action-menu">
+                    <DropdownMenuItem
+                      className="oq-trade-detail-action-menu-item is-destructive"
+                      variant="destructive"
+                      onSelect={() => {
                         setCreatorRunState("stopped");
                         toast.success(tr("Portfolio stopped.", "投资组合已停止。"));
                       }}
                     >
                       <Square aria-hidden="true" />
-                      {tr("Stop", "停止")}
-                    </button>
-                    <button
-                      type="button"
-                      className="oq-marketplace-detail-creator-action is-pause"
-                      onClick={() => {
-                        setCreatorRunState("paused");
-                        toast.success(tr("Portfolio paused.", "投资组合已暂停。"));
-                      }}
-                    >
-                      <Pause aria-hidden="true" />
-                      {tr("Pause", "暂停")}
-                    </button>
-                  </>
-                ) : creatorRunState === "paused" ? (
-                  <button
-                    type="button"
-                    className="oq-marketplace-detail-creator-action is-restart"
-                    onClick={() => {
-                      setCreatorRunState("running");
-                      toast.success(tr("Portfolio resumed.", "投资组合已恢复运行。"));
-                    }}
-                  >
-                    <Play aria-hidden="true" />
-                    {tr("Restart", "重启")}
-                  </button>
-                ) : (
-                  <button type="button" className="oq-marketplace-detail-creator-action is-stopped" disabled>
-                    <Square aria-hidden="true" />
-                    {tr("Stopped", "已停止")}
-                  </button>
-                )}
+                      {tr("Stop portfolio", "终止投资组合")}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                </>}
               </div>
             ) : (
               <button
@@ -509,6 +570,8 @@ export default function MarketplaceDetail() {
                 backtestLabel={tr("Backtest", "回测")}
                 showBacktest={visibleChartSources.backtest}
                 showLive={visibleChartSources.live}
+                seriesSplitIndex={trendSeriesSplitIndex}
+                dataOffset={visibleTrendWindow.startIndex}
                 liveLabel={tr("Live", "实盘")}
                 ariaLabel={
                   chartMetric === "return"
@@ -522,9 +585,12 @@ export default function MarketplaceDetail() {
                   metric={chartMetric}
                   startIndex={chartWindow.startIndex}
                   endIndex={chartWindow.endIndex}
+                  showBacktest={visibleChartSources.backtest}
+                  showLive={visibleChartSources.live}
+                  seriesSplitIndex={trendSeriesSplitIndex}
                   ariaLabel={tr("Drag to adjust chart time range", "拖动调整图表时间区间")}
                   onRangeChange={(range) => {
-                    setChartWindow(range);
+                    setChartWindow(normalizeChartWindow(range, trendData.length));
                     setTimeRange("30d");
                     setTimeRangeLabel(tr("Custom range", "自定义区间"));
                   }}

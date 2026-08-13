@@ -581,13 +581,9 @@ export default function Marketplace() {
   if (activeTab === "mine") {
     return (
       <div className="oq-trade oq-marketplace oq-marketplace-mine-demo">
-        <section className="oq-marketplace-mine-demo-panel" aria-labelledby="oq-marketplace-mine-demo-title">
-          <div>
-            <h1 id="oq-marketplace-mine-demo-title">{tr("My portfolios", "我的投资组合")}</h1>
-            <p>{tr("Open the portfolio detail demo.", "打开投资组合详情页演示。")}</p>
-          </div>
+        <section className="oq-marketplace-mine-demo-panel">
           <Link href="/marketplace/STR-008?from=mine" className="oq-marketplace-mine-demo-button">
-            {tr("View portfolio detail", "查看投资组合详情")}
+            {tr("My portfolio detail page", "我的-投资组合详情页")}
             <ArrowUpRight aria-hidden="true" />
           </Link>
         </section>

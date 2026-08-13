@@ -253,16 +253,10 @@
 
 .oq-marketplace-mine-demo-panel {
   display: flex;
-  width: min(760px, 100%);
-  min-height: 176px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  margin: 0 auto;
-  border: 1px solid var(--oq-market-border);
-  border-radius: 10px;
-  background: var(--oq-market-surface);
-  padding: 28px 32px;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0;
 }
 
 .oq-marketplace-mine-demo-panel h1,
@@ -1331,7 +1325,7 @@
 
   .oq-marketplace-hero { padding-top: 0; padding-bottom: 0; }
   .oq-marketplace-mine-demo { padding: 24px 16px; }
-  .oq-marketplace-mine-demo-panel { align-items: flex-start; flex-direction: column; padding: 22px 20px; }
+  .oq-marketplace-mine-demo-panel { align-items: flex-start; padding: 0; }
   .oq-marketplace-hero-inner,
   .oq-marketplace-ranking-inner,
   .oq-marketplace-cta-inner { width: 100%; max-width: 100%; }
