@@ -173,6 +173,11 @@ function chartPalette(container: HTMLElement) {
     grid: isDark ? "#30353c" : "#e8eaed",
     crosshair: isDark ? "#7c8591" : "#a7adb5",
     liveMarker: isDark ? "#f2a75d" : "#dc6a18",
+    tooltipSurface: isDark ? "#292d33" : "#ffffff",
+    tooltipBorder: isDark ? "#454c56" : "#e3e6ea",
+    tooltipText: isDark ? "#f1f4f7" : "#20242a",
+    tooltipMuted: isDark ? "#b8c0ca" : "#68717c",
+    tooltipShadow: isDark ? "0 10px 24px rgba(0,0,0,.34)" : "0 10px 24px rgba(31,38,47,.12)",
   };
 }
 
@@ -291,9 +296,9 @@ export function TradeTrendChart({
             const rows = items.map((item) => {
               const series = item.name || metricLabel;
               const value = Number(item.value);
-              return `<div style="display:grid;grid-template-columns:7px minmax(0,1fr) auto;align-items:center;gap:7px;margin-top:6px"><i style="display:block;width:7px;height:7px;border-radius:50%;background:${escapeTooltipText(item.color || singleSeriesColor)}"></i><span style="overflow:hidden;color:#767d87;font-size:11px;line-height:16px;text-overflow:ellipsis;white-space:nowrap">${escapeTooltipText(series)}</span><strong style="color:#20242a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700;line-height:16px;white-space:nowrap">${escapeTooltipText(formatTrendValue(value, metric))}</strong></div>`;
+              return `<div style="display:grid;grid-template-columns:7px minmax(0,1fr) auto;align-items:center;gap:8px"><i style="display:block;width:7px;height:7px;border-radius:50%;background:${escapeTooltipText(item.color || singleSeriesColor)}"></i><span style="overflow:hidden;color:${palette.tooltipMuted};font-family:var(--font-body,ui-sans-serif,sans-serif);font-size:12px;font-weight:550;line-height:18px;letter-spacing:0;text-overflow:ellipsis;white-space:nowrap">${escapeTooltipText(series)}</span><strong style="color:${palette.tooltipText};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;line-height:18px;letter-spacing:0;white-space:nowrap">${escapeTooltipText(formatTrendValue(value, metric))}</strong></div>`;
             }).join("");
-            return `<div style="display:inline-block;width:max-content;max-width:calc(100vw - 40px);box-sizing:border-box;border:1px solid #e3e6ea;border-radius:6px;background:#ffffff;padding:9px 10px;box-shadow:0 8px 20px rgba(33,38,45,.1)"><div style="color:#323840;font-size:11px;font-weight:700;line-height:16px">${escapeTooltipText(title)}</div>${rows}</div>`;
+            return `<div style="display:grid;width:max-content;max-width:min(300px,calc(100vw - 32px));box-sizing:border-box;gap:8px;border:1px solid ${palette.tooltipBorder};border-radius:12px;background:${palette.tooltipSurface};padding:12px 14px;color:${palette.tooltipText};font-family:var(--font-body,ui-sans-serif,sans-serif);box-shadow:${palette.tooltipShadow}"><div style="color:${palette.tooltipText};font-size:12px;font-weight:650;line-height:18px;letter-spacing:0">${escapeTooltipText(title)}</div>${rows}</div>`;
           },
         },
       },

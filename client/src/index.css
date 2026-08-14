@@ -1225,6 +1225,845 @@
   }
 }
 
+/* Factory notification flyout, activated only while Explore is open. */
+.oq-marketplace-factory-active .oq-notification {
+  --oq-bg: #101010;
+  --oq-bg-soft: #1d1a18;
+  --oq-bg-warm: #24201d;
+  --oq-surface: #1d1a18;
+  --oq-surface-strong: #2a2725;
+  --oq-border: #3d3a39;
+  --oq-border-strong: #5e5753;
+  --oq-text: #eeeeee;
+  --oq-text-soft: #b8b3b0;
+  --oq-muted: #8a8380;
+  --oq-muted-strong: #b8b3b0;
+  --oq-accent: #ee6018;
+  --oq-success: #a0ca92;
+  --oq-success-bg: #1d2a1d;
+  --oq-risk: #ee6018;
+  --oq-risk-bg: #2a1c16;
+  --oq-warning: #ee6018;
+  --oq-warning-bg: #2a1c16;
+  --oq-shadow-1: none;
+  --oq-shadow-3: none;
+  --oq-shadow-4: none;
+  font-family: "Geist", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.oq-marketplace-factory-active .oq-notification-trigger {
+  border-color: #3d3a39 !important;
+  border-radius: 3px !important;
+  background: #1d1a18 !important;
+  box-shadow: none !important;
+  color: #eeeeee;
+}
+
+.oq-marketplace-factory-active .oq-notification-trigger:hover,
+.oq-marketplace-factory-active .oq-notification-trigger.is-open {
+  border-color: #ee6018 !important;
+  background: #1d1a18 !important;
+  box-shadow: none !important;
+  transform: none;
+}
+
+.oq-marketplace-factory-active .oq-notification-panel {
+  border: 1px solid #3d3a39;
+  border-radius: 3px;
+  background: #101010;
+  box-shadow: none;
+  animation: oq-notification-panel-in 160ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.oq-marketplace-factory-active .oq-notification-header {
+  border-bottom-color: #3d3a39;
+  background: #101010;
+}
+
+.oq-marketplace-factory-active .oq-notification-heading,
+.oq-marketplace-factory-active .oq-notification-item-title {
+  color: #eeeeee;
+  font-family: "Geist", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active :is(.oq-notification-mark-read, .oq-notification-close, .oq-notification-tab) {
+  border-radius: 3px;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.oq-marketplace-factory-active .oq-notification-mark-read {
+  border-color: #3d3a39;
+  color: #eeeeee;
+}
+
+.oq-marketplace-factory-active .oq-notification-mark-read:hover {
+  border-color: #ee6018;
+  background: #1d1a18;
+  color: #ee6018;
+  transform: none;
+}
+
+.oq-marketplace-factory-active .oq-notification-close:hover {
+  background: #1d1a18;
+  color: #ee6018;
+  transform: none;
+}
+
+.oq-marketplace-factory-active .oq-notification-tabs {
+  gap: 0;
+  border-bottom: 1px solid #3d3a39;
+  background: #101010;
+  padding: 8px 12px;
+}
+
+.oq-marketplace-factory-active .oq-notification-tab {
+  border: 1px solid transparent;
+  color: #8a8380;
+}
+
+.oq-marketplace-factory-active .oq-notification-tab:hover {
+  background: #1d1a18;
+  color: #eeeeee;
+}
+
+.oq-marketplace-factory-active .oq-notification-tab.is-active {
+  border-color: #3d3a39;
+  background: #1d1a18;
+  box-shadow: none;
+  color: #eeeeee;
+}
+
+.oq-marketplace-factory-active :is(.oq-notification-tab-count, .oq-notification-unread-pill) {
+  border-radius: 0;
+  background: #ee6018;
+  color: #101010;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active .oq-notification-scroll {
+  background: #101010;
+  padding: 0 12px 12px;
+}
+
+.oq-marketplace-factory-active .oq-notification-list { gap: 0; }
+
+.oq-marketplace-factory-active .oq-notification-item {
+  min-height: 78px;
+  border: 0;
+  border-bottom: 1px solid #3d3a39;
+  border-radius: 0;
+  background: transparent;
+  padding-inline: 4px;
+  color: #eeeeee;
+}
+
+.oq-marketplace-factory-active .oq-notification-item:hover,
+.oq-marketplace-factory-active .oq-notification-item.is-unread:hover {
+  border-color: #3d3a39;
+  background: #1d1a18;
+  box-shadow: none;
+  transform: none;
+}
+
+.oq-marketplace-factory-active .oq-notification-item.is-unread { background: transparent; }
+
+.oq-marketplace-factory-active .oq-notification-item-icon,
+.oq-marketplace-factory-active .oq-notification-empty-icon {
+  border: 1px solid #3d3a39;
+  border-radius: 0;
+  background: #1d1a18;
+}
+
+.oq-marketplace-factory-active .oq-notification-item-icon.is-success { color: #a0ca92; }
+.oq-marketplace-factory-active .oq-notification-item-icon.is-risk,
+.oq-marketplace-factory-active .oq-notification-item-icon.is-announcement,
+.oq-marketplace-factory-active .oq-notification-empty-icon { color: #ee6018; }
+
+.oq-marketplace-factory-active :is(.oq-notification-item-message, .oq-notification-item-time) {
+  color: #8a8380;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active .oq-notification-chevron { color: #8a8380; }
+.oq-marketplace-factory-active .oq-notification-item:hover .oq-notification-chevron {
+  color: #ee6018;
+  transform: translateX(2px);
+}
+
+.oq-marketplace-factory-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) {
+  border-color: #3d3a39 !important;
+  border-radius: 3px !important;
+  background: #1d1a18 !important;
+  box-shadow: none !important;
+  color: #eeeeee !important;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace !important;
+  font-size: 12px;
+}
+
+.oq-marketplace-factory-active :is(
+  [data-slot="dropdown-menu-item"],
+  [data-slot="select-item"]
+):focus {
+  background: #24201d !important;
+  color: #eeeeee !important;
+}
+
+.oq-design-mode-menu {
+  border-color: #e2dad0;
+  border-radius: 3px;
+  box-shadow: 0 8px 18px rgb(60 40 20 / 8%);
+}
+
+.oq-design-mode-menu-item {
+  border-radius: 3px;
+}
+
+.oq-marketplace-factory-active .oq-design-mode-trigger {
+  border-color: #3d3a39 !important;
+  border-radius: 50% !important;
+  background: #1d1a18 !important;
+  box-shadow: none !important;
+  color: #eeeeee !important;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active .oq-design-mode-trigger:hover {
+  border-color: #ee6018 !important;
+  color: #ee6018 !important;
+}
+
+.oq-marketplace-factory-active .oq-design-mode-menu {
+  border-color: #3d3a39 !important;
+  border-radius: 3px !important;
+  background: #1d1a18 !important;
+  box-shadow: none !important;
+}
+
+.oq-marketplace-factory-active .oq-design-mode-menu-item {
+  border-radius: 3px;
+  color: #b8b3b0;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active .oq-design-mode-menu-item:focus,
+.oq-marketplace-factory-active .oq-design-mode-menu-item[data-state="checked"] {
+  background: #24201d !important;
+  color: #eeeeee !important;
+}
+
+/* Factory Industrial menus, notifications, and utility floating surfaces. */
+.oq-marketplace-factory-industrial-active .oq-notification {
+  --oq-bg: #ffffff;
+  --oq-bg-soft: #f5f5f5;
+  --oq-bg-warm: #ebebeb;
+  --oq-surface: #ebebeb;
+  --oq-surface-strong: #b8b3b0;
+  --oq-border: #b8b3b0;
+  --oq-border-strong: #3d3a39;
+  --oq-text: #020202;
+  --oq-text-soft: #5c5855;
+  --oq-muted: #8a8380;
+  --oq-muted-strong: #3d3a39;
+  --oq-accent: #ef6f2e;
+  --oq-success: #247c54;
+  --oq-success-bg: #eaf2ed;
+  --oq-risk: #bd4d25;
+  --oq-risk-bg: #f7e8e1;
+  --oq-warning: #ef6f2e;
+  --oq-warning-bg: #f7e8e1;
+  --oq-shadow-1: none;
+  --oq-shadow-3: none;
+  --oq-shadow-4: none;
+  font-family: "Geist", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-trigger {
+  border-color: #b8b3b0 !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  color: #020202;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-trigger:hover,
+.oq-marketplace-factory-industrial-active .oq-notification-trigger.is-open {
+  border-color: #ef6f2e !important;
+  background: #f5f5f5 !important;
+  box-shadow: none !important;
+  color: #ef6f2e;
+  transform: none;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-panel {
+  border: 1px solid #b8b3b0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: none;
+  animation: oq-notification-panel-in 160ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-header {
+  border-bottom-color: #b8b3b0;
+  background: #ffffff;
+}
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-heading, .oq-notification-item-title) {
+  color: #020202;
+  font-family: "Geist", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 500;
+}
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-mark-read, .oq-notification-close, .oq-notification-tab) {
+  border-radius: 4px;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-mark-read {
+  border-color: #b8b3b0;
+  color: #020202;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-mark-read:hover {
+  border-color: #ef6f2e;
+  background: #f7e8e1;
+  color: #ef6f2e;
+  transform: none;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-close:hover {
+  background: #ebebeb;
+  color: #ef6f2e;
+  transform: none;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-tabs {
+  gap: 0;
+  border-bottom: 1px solid #b8b3b0;
+  background: #ffffff;
+  padding: 8px 12px;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-tab {
+  border: 1px solid transparent;
+  color: #5c5855;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-tab:hover { background: #ebebeb; color: #020202; }
+
+.oq-marketplace-factory-industrial-active .oq-notification-tab.is-active {
+  border-color: #b8b3b0;
+  background: #ebebeb;
+  box-shadow: none;
+  color: #020202;
+}
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-tab-count, .oq-notification-unread-pill) {
+  border-radius: 3px;
+  background: #ef6f2e;
+  color: #020202;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-scroll {
+  background: #ffffff;
+  padding: 0 12px 12px;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-list { gap: 0; }
+
+.oq-marketplace-factory-industrial-active .oq-notification-item {
+  min-height: 78px;
+  border: 0;
+  border-bottom: 1px solid #b8b3b0;
+  border-radius: 0;
+  background: transparent;
+  padding-inline: 4px;
+  color: #020202;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-item:hover,
+.oq-marketplace-factory-industrial-active .oq-notification-item.is-unread:hover {
+  border-color: #b8b3b0;
+  background: #f5f5f5;
+  box-shadow: none;
+  transform: none;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-item.is-unread { background: transparent; }
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-item-icon, .oq-notification-empty-icon) {
+  border: 1px solid #b8b3b0;
+  border-radius: 3px;
+  background: #ffffff;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-item-icon.is-success { color: #247c54; }
+.oq-marketplace-factory-industrial-active :is(.oq-notification-item-icon.is-risk, .oq-notification-item-icon.is-announcement, .oq-notification-empty-icon) { color: #ef6f2e; }
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-item-message, .oq-notification-item-time) {
+  color: #8a8380;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-chevron { color: #8a8380; }
+.oq-marketplace-factory-industrial-active .oq-notification-item:hover .oq-notification-chevron { color: #ef6f2e; transform: translateX(2px); }
+
+.oq-marketplace-factory-industrial-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) {
+  border-color: #b8b3b0 !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  color: #020202 !important;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace !important;
+  font-size: 12px;
+}
+
+.oq-marketplace-factory-industrial-active :is([data-slot="dropdown-menu-item"], [data-slot="select-item"]):focus {
+  background: #ebebeb !important;
+  color: #020202 !important;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-trigger {
+  border-color: #b8b3b0 !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  color: #020202 !important;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-trigger:hover {
+  border-color: #ef6f2e !important;
+  background: #f5f5f5 !important;
+  color: #ef6f2e !important;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-menu {
+  border-color: #b8b3b0 !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item {
+  border-radius: 4px;
+  color: #5c5855;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item:focus,
+.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item[data-state="checked"] {
+  background: #ebebeb !important;
+  color: #020202 !important;
+}
+
+/* Factory Industrial dark utility surfaces use the same semantic palette as the page. */
+.dark.oq-marketplace-factory-industrial-active .oq-notification {
+  --oq-bg: #1d1a18;
+  --oq-bg-soft: #171514;
+  --oq-bg-warm: #101010;
+  --oq-surface: #171514;
+  --oq-surface-strong: #3d3a39;
+  --oq-border: #3d3a39;
+  --oq-border-strong: #b8b3b0;
+  --oq-text: #eeeeee;
+  --oq-text-soft: #b8b3b0;
+  --oq-muted: #8a8380;
+  --oq-muted-strong: #b8b3b0;
+  --oq-accent: #ef6f2e;
+  --oq-success: #a0ca92;
+  --oq-success-bg: #182017;
+  --oq-risk: #ef6f2e;
+  --oq-risk-bg: #2a1a15;
+  --oq-warning: #ef6f2e;
+  --oq-warning-bg: #2a1a15;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-trigger {
+  border-color: #3d3a39 !important;
+  background: #1d1a18 !important;
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-trigger:hover,
+.dark.oq-marketplace-factory-industrial-active .oq-notification-trigger.is-open {
+  border-color: #ef6f2e !important;
+  background: #101010 !important;
+  color: #ef6f2e;
+}
+
+.dark.oq-marketplace-factory-industrial-active :is(
+  .oq-notification-panel,
+  .oq-notification-header,
+  .oq-notification-tabs,
+  .oq-notification-scroll
+) {
+  border-color: #3d3a39;
+  background: #1d1a18;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-panel { box-shadow: none; }
+
+.dark.oq-marketplace-factory-industrial-active :is(.oq-notification-heading, .oq-notification-item-title) {
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-mark-read {
+  border-color: #3d3a39;
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-mark-read:hover {
+  border-color: #ef6f2e;
+  background: #2a1a15;
+  color: #ef6f2e;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-close:hover,
+.dark.oq-marketplace-factory-industrial-active .oq-notification-tab:hover {
+  background: #171514;
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-tab { color: #b8b3b0; }
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-tab.is-active {
+  border-color: #3d3a39;
+  background: #171514;
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active :is(.oq-notification-tab-count, .oq-notification-unread-pill) {
+  background: #ef6f2e;
+  color: #020202;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item {
+  border-bottom-color: #3d3a39;
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item:hover,
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item.is-unread:hover {
+  border-color: #3d3a39;
+  background: #171514;
+}
+
+.dark.oq-marketplace-factory-industrial-active :is(.oq-notification-item-icon, .oq-notification-empty-icon) {
+  border-color: #3d3a39;
+  background: #101010;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item-icon.is-success { color: #a0ca92; }
+.dark.oq-marketplace-factory-industrial-active :is(.oq-notification-item-icon.is-risk, .oq-notification-item-icon.is-announcement, .oq-notification-empty-icon) { color: #ef6f2e; }
+
+.dark.oq-marketplace-factory-industrial-active :is(.oq-notification-item-message, .oq-notification-item-time, .oq-notification-chevron) {
+  color: #8a8380;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item:hover .oq-notification-chevron { color: #ef6f2e; }
+
+.dark.oq-marketplace-factory-industrial-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) {
+  border-color: #3d3a39 !important;
+  background: #1d1a18 !important;
+  color: #eeeeee !important;
+}
+
+.dark.oq-marketplace-factory-industrial-active :is([data-slot="dropdown-menu-item"], [data-slot="select-item"]):focus {
+  background: #171514 !important;
+  color: #eeeeee !important;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-design-mode-trigger {
+  border-color: #3d3a39 !important;
+  background: #1d1a18 !important;
+  color: #eeeeee !important;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-design-mode-trigger:hover {
+  border-color: #ef6f2e !important;
+  background: #101010 !important;
+  color: #ef6f2e !important;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-design-mode-menu {
+  border-color: #3d3a39 !important;
+  background: #1d1a18 !important;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item { color: #b8b3b0; }
+
+.dark.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item:focus,
+.dark.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item[data-state="checked"] {
+  background: #171514 !important;
+  color: #eeeeee !important;
+}
+
+/* Factory Industrial floating surfaces share the page's OKLCH lightness scale. */
+.oq-marketplace-factory-industrial-active .oq-notification {
+  --oq-bg: var(--oq-industrial-raised);
+  --oq-bg-soft: var(--oq-industrial-page);
+  --oq-bg-warm: var(--oq-industrial-sunken);
+  --oq-surface: var(--oq-industrial-sunken);
+  --oq-surface-strong: var(--oq-industrial-border);
+  --oq-border: var(--oq-industrial-border);
+  --oq-border-strong: var(--oq-industrial-rule);
+  --oq-text: var(--oq-industrial-ink);
+  --oq-text-soft: var(--oq-industrial-subtle);
+  --oq-muted: var(--oq-industrial-muted);
+  --oq-muted-strong: var(--oq-industrial-subtle);
+  --oq-accent: var(--oq-industrial-accent);
+  --oq-success: var(--oq-industrial-positive);
+  --oq-success-bg: var(--oq-industrial-positive-soft);
+  --oq-risk: var(--oq-industrial-risk);
+  --oq-risk-bg: var(--oq-industrial-risk-soft);
+  --oq-warning: var(--oq-industrial-accent);
+  --oq-warning-bg: var(--oq-industrial-accent-soft);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-trigger {
+  border-color: var(--oq-industrial-border) !important;
+  background: var(--oq-industrial-raised) !important;
+  color: var(--oq-industrial-ink);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-trigger:hover,
+.oq-marketplace-factory-industrial-active .oq-notification-trigger.is-open {
+  border-color: var(--oq-industrial-accent) !important;
+  background: var(--oq-industrial-accent-soft) !important;
+  color: var(--oq-industrial-accent);
+}
+
+.oq-marketplace-factory-industrial-active :is(
+  .oq-notification-panel,
+  .oq-notification-header,
+  .oq-notification-tabs,
+  .oq-notification-scroll
+) {
+  border-color: var(--oq-industrial-border);
+  background: var(--oq-industrial-raised);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-panel {
+  box-shadow: 0 18px 46px oklch(0.265 0.018 55 / 0.14);
+}
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-heading, .oq-notification-item-title) {
+  color: var(--oq-industrial-ink);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-mark-read {
+  border-color: var(--oq-industrial-border);
+  color: var(--oq-industrial-ink);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-mark-read:hover {
+  border-color: var(--oq-industrial-accent);
+  background: var(--oq-industrial-accent-soft);
+  color: var(--oq-industrial-accent);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-close:hover,
+.oq-marketplace-factory-industrial-active .oq-notification-tab:hover {
+  background: var(--oq-industrial-sunken);
+  color: var(--oq-industrial-ink);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-tab { color: var(--oq-industrial-subtle); }
+
+.oq-marketplace-factory-industrial-active .oq-notification-tab.is-active {
+  border-color: var(--oq-industrial-border);
+  background: var(--oq-industrial-sunken);
+  color: var(--oq-industrial-ink);
+}
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-tab-count, .oq-notification-unread-pill) {
+  background: var(--oq-industrial-accent);
+  color: var(--oq-industrial-raised);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-item {
+  border-bottom-color: var(--oq-industrial-border);
+  color: var(--oq-industrial-ink);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-item:hover,
+.oq-marketplace-factory-industrial-active .oq-notification-item.is-unread:hover {
+  border-color: var(--oq-industrial-border);
+  background: var(--oq-industrial-sunken);
+}
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-item-icon, .oq-notification-empty-icon) {
+  border-color: var(--oq-industrial-border);
+  background: var(--oq-industrial-raised);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-item-icon.is-success { color: var(--oq-industrial-positive); }
+.oq-marketplace-factory-industrial-active :is(.oq-notification-item-icon.is-risk, .oq-notification-item-icon.is-announcement, .oq-notification-empty-icon) { color: var(--oq-industrial-risk); }
+
+.oq-marketplace-factory-industrial-active :is(.oq-notification-item-message, .oq-notification-item-time, .oq-notification-chevron) {
+  color: var(--oq-industrial-muted);
+}
+
+.oq-marketplace-factory-industrial-active .oq-notification-item:hover .oq-notification-chevron { color: var(--oq-industrial-accent); }
+
+.oq-marketplace-factory-industrial-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) {
+  border-color: var(--oq-industrial-border) !important;
+  background: var(--oq-industrial-raised) !important;
+  box-shadow: 0 12px 28px oklch(0.265 0.018 55 / 0.1) !important;
+  color: var(--oq-industrial-ink) !important;
+}
+
+.oq-marketplace-factory-industrial-active :is([data-slot="dropdown-menu-item"], [data-slot="select-item"]):focus {
+  background: var(--oq-industrial-sunken) !important;
+  color: var(--oq-industrial-ink) !important;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-trigger {
+  border-color: var(--oq-industrial-border) !important;
+  background: var(--oq-industrial-raised) !important;
+  color: var(--oq-industrial-ink) !important;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-trigger:hover {
+  border-color: var(--oq-industrial-accent) !important;
+  background: var(--oq-industrial-accent-soft) !important;
+  color: var(--oq-industrial-accent) !important;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-menu {
+  border-color: var(--oq-industrial-border) !important;
+  background: var(--oq-industrial-raised) !important;
+  box-shadow: 0 12px 28px oklch(0.265 0.018 55 / 0.1) !important;
+}
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item { color: var(--oq-industrial-subtle); }
+
+.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item:focus,
+.oq-marketplace-factory-industrial-active .oq-design-mode-menu-item[data-state="checked"] {
+  background: var(--oq-industrial-sunken) !important;
+  color: var(--oq-industrial-ink) !important;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-panel,
+.dark.oq-marketplace-factory-industrial-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"],
+  .oq-design-mode-menu
+) { box-shadow: none !important; }
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification {
+  --oq-bg: var(--oq-industrial-raised);
+  --oq-bg-soft: var(--oq-industrial-page);
+  --oq-bg-warm: var(--oq-industrial-sunken);
+  --oq-surface: var(--oq-industrial-sunken);
+  --oq-surface-strong: var(--oq-industrial-border);
+  --oq-border: var(--oq-industrial-border);
+  --oq-border-strong: var(--oq-industrial-rule);
+  --oq-text: var(--oq-industrial-ink);
+  --oq-text-soft: var(--oq-industrial-subtle);
+  --oq-muted: var(--oq-industrial-muted);
+  --oq-muted-strong: var(--oq-industrial-subtle);
+  --oq-accent: var(--oq-industrial-accent);
+  --oq-success: var(--oq-industrial-positive);
+  --oq-success-bg: var(--oq-industrial-positive-soft);
+  --oq-risk: var(--oq-industrial-risk);
+  --oq-risk-bg: var(--oq-industrial-risk-soft);
+  --oq-warning: var(--oq-industrial-accent);
+  --oq-warning-bg: var(--oq-industrial-accent-soft);
+}
+
+.dark.oq-marketplace-factory-industrial-active :is(
+  .oq-notification-panel,
+  .oq-notification-header,
+  .oq-notification-tabs,
+  .oq-notification-scroll
+) {
+  border-color: var(--oq-industrial-border);
+  background: var(--oq-industrial-raised);
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-trigger {
+  border-color: var(--oq-industrial-border) !important;
+  background: var(--oq-industrial-raised) !important;
+  color: var(--oq-industrial-ink);
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-trigger:hover,
+.dark.oq-marketplace-factory-industrial-active .oq-notification-trigger.is-open {
+  border-color: var(--oq-industrial-accent) !important;
+  background: var(--oq-industrial-accent-soft) !important;
+  color: var(--oq-industrial-accent);
+}
+
+.dark.oq-marketplace-factory-industrial-active :is(.oq-notification-heading, .oq-notification-item-title) {
+  color: var(--oq-industrial-ink);
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-tab { color: var(--oq-industrial-subtle); }
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-tab.is-active,
+.dark.oq-marketplace-factory-industrial-active .oq-notification-tab:hover,
+.dark.oq-marketplace-factory-industrial-active .oq-notification-close:hover {
+  border-color: var(--oq-industrial-border);
+  background: var(--oq-industrial-sunken);
+  color: var(--oq-industrial-ink);
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item {
+  border-bottom-color: var(--oq-industrial-border);
+  color: var(--oq-industrial-ink);
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item:hover,
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item.is-unread:hover {
+  background: var(--oq-industrial-sunken);
+}
+
+.dark.oq-marketplace-factory-industrial-active :is(.oq-notification-item-message, .oq-notification-item-time, .oq-notification-chevron) {
+  color: var(--oq-industrial-muted);
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-notification-item-icon.is-success { color: var(--oq-industrial-positive); }
+.dark.oq-marketplace-factory-industrial-active :is(.oq-notification-item-icon.is-risk, .oq-notification-item-icon.is-announcement, .oq-notification-empty-icon) { color: var(--oq-industrial-risk); }
+
 .oq-sidebar-nav-page {
   will-change: opacity, transform;
   animation-duration: 180ms;
@@ -1311,3 +2150,614 @@
     transition-duration: 0.01ms;
   }
 }
+
+/* Style optimization 3: compact, consistently squared controls and floating surfaces. */
+.oq-marketplace-baseline-active :is(button, [role="button"]) { border-radius: 4px !important; }
+
+.oq-marketplace-baseline-active :is(
+  .oq-notification-panel,
+  .oq-design-mode-menu,
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) { border-radius: 4px !important; }
+
+/* Style optimization 3 floating surfaces use the same flat fal.ai paper palette. */
+.oq-marketplace-baseline-active .oq-notification {
+  --oq-bg: var(--oq-fal-paper);
+  --oq-bg-soft: var(--oq-fal-fog);
+  --oq-bg-warm: var(--oq-fal-lime);
+  --oq-surface: var(--oq-fal-fog);
+  --oq-surface-strong: var(--oq-fal-lilac);
+  --oq-border: var(--oq-fal-border);
+  --oq-border-strong: var(--oq-fal-ink);
+  --oq-text: var(--oq-fal-ink);
+  --oq-text-soft: var(--oq-fal-body);
+  --oq-muted: var(--oq-fal-muted);
+  --oq-muted-strong: var(--oq-fal-body);
+  --oq-accent: var(--oq-fal-violet);
+  --oq-success: var(--oq-fal-positive);
+  --oq-success-bg: var(--oq-fal-lime);
+  --oq-risk: var(--oq-fal-risk);
+  --oq-risk-bg: var(--oq-fal-pink);
+  --oq-warning: var(--oq-fal-violet);
+  --oq-warning-bg: var(--oq-fal-lilac);
+  --oq-shadow-1: none;
+  --oq-shadow-3: none;
+  --oq-shadow-4: none;
+  font-family: var(--oq-fal-sans);
+}
+
+.oq-marketplace-baseline-active .oq-notification-trigger,
+.oq-marketplace-baseline-active .oq-design-mode-trigger {
+  border-color: var(--oq-fal-border) !important;
+  border-radius: 4px !important;
+  background: var(--oq-fal-paper) !important;
+  box-shadow: none !important;
+  color: var(--oq-fal-ink) !important;
+}
+
+.oq-marketplace-baseline-active .oq-notification-trigger:hover,
+.oq-marketplace-baseline-active .oq-notification-trigger.is-open,
+.oq-marketplace-baseline-active .oq-design-mode-trigger:hover {
+  border-color: var(--oq-fal-carbon) !important;
+  background: var(--oq-fal-lime) !important;
+  box-shadow: none !important;
+  color: var(--oq-fal-ink) !important;
+  transform: none;
+}
+
+.oq-marketplace-baseline-active .oq-notification-trigger:focus-visible,
+.oq-marketplace-baseline-active .oq-design-mode-trigger:focus-visible {
+  box-shadow: 0 0 0 2px oklch(0.497 0.255 291 / 0.22) !important;
+}
+
+.oq-marketplace-baseline-active .oq-notification-panel {
+  border: 1px solid var(--oq-fal-border);
+  border-radius: 4px;
+  background: var(--oq-fal-paper);
+  box-shadow: none;
+  animation: oq-notification-panel-in 160ms ease-out both;
+}
+
+.oq-marketplace-baseline-active :is(.oq-notification-header, .oq-notification-tabs, .oq-notification-scroll) {
+  border-color: var(--oq-fal-border);
+  background: var(--oq-fal-paper);
+}
+
+.oq-marketplace-baseline-active :is(
+  .oq-notification-heading,
+  .oq-notification-item-title
+) {
+  color: var(--oq-fal-ink);
+  font-family: var(--oq-fal-sans);
+}
+
+.oq-marketplace-baseline-active :is(.oq-notification-mark-read, .oq-notification-close, .oq-notification-tab) {
+  border-radius: 4px;
+  box-shadow: none;
+  font-family: var(--oq-fal-sans);
+}
+
+.oq-marketplace-baseline-active .oq-notification-mark-read {
+  border-color: var(--oq-fal-border);
+  color: var(--oq-fal-ink);
+}
+
+.oq-marketplace-baseline-active .oq-notification-mark-read:hover,
+.oq-marketplace-baseline-active .oq-notification-close:hover,
+.oq-marketplace-baseline-active .oq-notification-tab:hover {
+  border-color: var(--oq-fal-border);
+  background: var(--oq-fal-fog);
+  color: var(--oq-fal-ink);
+  transform: none;
+}
+
+.oq-marketplace-baseline-active .oq-notification-tab { color: var(--oq-fal-muted); }
+
+.oq-marketplace-baseline-active .oq-notification-tab.is-active {
+  border-color: var(--oq-fal-violet);
+  background: var(--oq-fal-lilac);
+  box-shadow: none;
+  color: var(--oq-fal-ink);
+}
+
+.oq-marketplace-baseline-active :is(.oq-notification-tab-count, .oq-notification-unread-pill) {
+  border-radius: 4px;
+  background: var(--oq-fal-violet);
+  color: var(--oq-fal-paper);
+  font-family: var(--oq-fal-mono);
+}
+
+.oq-marketplace-baseline-active .oq-notification-item {
+  border-bottom-color: var(--oq-fal-border);
+  border-radius: 0;
+  color: var(--oq-fal-ink);
+}
+
+.oq-marketplace-baseline-active .oq-notification-item:hover,
+.oq-marketplace-baseline-active .oq-notification-item.is-unread:hover {
+  border-color: var(--oq-fal-border);
+  background: var(--oq-fal-fog);
+  box-shadow: none;
+  transform: none;
+}
+
+.oq-marketplace-baseline-active :is(.oq-notification-item-icon, .oq-notification-empty-icon) { border-radius: 4px; }
+.oq-marketplace-baseline-active .oq-notification-item-icon.is-success { background: var(--oq-fal-lime); color: var(--oq-fal-positive); }
+.oq-marketplace-baseline-active .oq-notification-item-icon.is-risk { background: var(--oq-fal-pink); color: var(--oq-fal-risk); }
+.oq-marketplace-baseline-active :is(.oq-notification-item-icon.is-announcement, .oq-notification-empty-icon) { background: var(--oq-fal-lilac); color: var(--oq-fal-violet); }
+.oq-marketplace-baseline-active :is(.oq-notification-item-message, .oq-notification-item-time, .oq-notification-chevron) { color: var(--oq-fal-muted); }
+.oq-marketplace-baseline-active .oq-notification-item:hover .oq-notification-chevron { color: var(--oq-fal-violet); transform: none; }
+
+.oq-marketplace-baseline-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) {
+  border-color: var(--oq-fal-border) !important;
+  border-radius: 4px !important;
+  background: var(--oq-fal-paper) !important;
+  box-shadow: none !important;
+  color: var(--oq-fal-ink) !important;
+  font-family: var(--oq-fal-sans) !important;
+}
+
+.oq-marketplace-baseline-active :is([data-slot="dropdown-menu-item"], [data-slot="select-item"]):focus {
+  background: var(--oq-fal-fog) !important;
+  color: var(--oq-fal-ink) !important;
+}
+
+.oq-marketplace-baseline-active .oq-design-mode-menu {
+  border-color: var(--oq-fal-border) !important;
+  border-radius: 4px !important;
+  background: var(--oq-fal-paper) !important;
+  box-shadow: none !important;
+}
+
+.oq-marketplace-baseline-active .oq-design-mode-menu-item {
+  border-radius: 4px;
+  color: var(--oq-fal-body);
+  font-family: var(--oq-fal-sans);
+}
+
+.oq-marketplace-baseline-active .oq-design-mode-menu-item:focus,
+.oq-marketplace-baseline-active .oq-design-mode-menu-item[data-state="checked"] {
+  background: var(--oq-fal-lilac) !important;
+  color: var(--oq-fal-ink) !important;
+}
+
+.dark.oq-marketplace-baseline-active :is(
+  .oq-notification-panel,
+  .oq-design-mode-menu,
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) { box-shadow: none !important; }
+
+/* Style optimization 1 floating surfaces follow the Vercel monochrome scale. */
+.oq-marketplace-factory-active .oq-notification {
+  --oq-bg: var(--oq-vercel-canvas);
+  --oq-bg-soft: var(--oq-vercel-surface);
+  --oq-bg-warm: var(--oq-vercel-subtle);
+  --oq-surface: var(--oq-vercel-canvas);
+  --oq-surface-strong: var(--oq-vercel-subtle);
+  --oq-border: var(--oq-vercel-border);
+  --oq-border-strong: var(--oq-vercel-border-strong);
+  --oq-text: var(--oq-vercel-ink);
+  --oq-text-soft: var(--oq-vercel-text-secondary);
+  --oq-muted: var(--oq-vercel-text-muted);
+  --oq-muted-strong: var(--oq-vercel-text-secondary);
+  --oq-accent: var(--oq-vercel-ink);
+  --oq-success: var(--oq-vercel-positive);
+  --oq-success-bg: var(--oq-vercel-subtle);
+  --oq-risk: var(--oq-vercel-risk);
+  --oq-risk-bg: var(--oq-vercel-subtle);
+  --oq-warning: var(--oq-vercel-ink);
+  --oq-warning-bg: var(--oq-vercel-subtle);
+  --oq-shadow-1: 0 8px 20px oklch(0 0 0 / 0.08);
+  --oq-shadow-3: 0 14px 36px oklch(0 0 0 / 0.1);
+  --oq-shadow-4: 0 20px 44px oklch(0 0 0 / 0.14);
+  font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.oq-marketplace-factory-active .oq-notification-trigger,
+.oq-marketplace-factory-active .oq-design-mode-trigger {
+  border-color: var(--oq-vercel-border) !important;
+  background: var(--oq-vercel-canvas) !important;
+  box-shadow: none !important;
+  color: var(--oq-vercel-ink) !important;
+}
+
+.oq-marketplace-factory-active .oq-notification-trigger:hover,
+.oq-marketplace-factory-active .oq-notification-trigger.is-open,
+.oq-marketplace-factory-active .oq-design-mode-trigger:hover {
+  border-color: var(--oq-vercel-border-strong) !important;
+  background: var(--oq-vercel-subtle) !important;
+  color: var(--oq-vercel-ink) !important;
+  transform: none;
+}
+
+.oq-marketplace-factory-active .oq-notification-panel,
+.oq-marketplace-factory-active .oq-design-mode-menu,
+.oq-marketplace-factory-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) {
+  border: 1px solid var(--oq-vercel-border) !important;
+  border-radius: 6px !important;
+  background: var(--oq-vercel-canvas) !important;
+  box-shadow: 0 12px 34px oklch(0 0 0 / 0.12) !important;
+  color: var(--oq-vercel-ink) !important;
+  font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.oq-marketplace-factory-active .oq-notification-header,
+.oq-marketplace-factory-active .oq-notification-tabs,
+.oq-marketplace-factory-active .oq-notification-scroll { background: var(--oq-vercel-canvas); }
+.oq-marketplace-factory-active :is(.oq-notification-header, .oq-notification-tabs) { border-bottom-color: var(--oq-vercel-border); }
+.oq-marketplace-factory-active :is(.oq-notification-heading, .oq-notification-item-title) { color: var(--oq-vercel-ink); font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif; }
+
+.oq-marketplace-factory-active :is(.oq-notification-mark-read, .oq-notification-close, .oq-notification-tab) {
+  border-radius: 6px;
+  font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.oq-marketplace-factory-active .oq-notification-mark-read { border-color: var(--oq-vercel-border); color: var(--oq-vercel-ink); }
+.oq-marketplace-factory-active .oq-notification-mark-read:hover,
+.oq-marketplace-factory-active .oq-notification-close:hover,
+.oq-marketplace-factory-active .oq-notification-tab:hover {
+  background: var(--oq-vercel-subtle);
+  color: var(--oq-vercel-ink);
+  transform: none;
+}
+
+.oq-marketplace-factory-active .oq-notification-tab { color: var(--oq-vercel-text-secondary); }
+.oq-marketplace-factory-active .oq-notification-tab.is-active {
+  border-color: var(--oq-vercel-border);
+  background: var(--oq-vercel-subtle);
+  box-shadow: none;
+  color: var(--oq-vercel-ink);
+}
+
+.oq-marketplace-factory-active :is(.oq-notification-tab-count, .oq-notification-unread-pill) {
+  border-radius: 999px;
+  background: var(--oq-vercel-ink);
+  color: var(--oq-vercel-canvas);
+  font-family: var(--oq-vercel-sans);
+}
+
+.oq-marketplace-factory-active .oq-notification-item {
+  border-bottom-color: var(--oq-vercel-border);
+  color: var(--oq-vercel-ink);
+}
+
+.oq-marketplace-factory-active .oq-notification-item:hover,
+.oq-marketplace-factory-active .oq-notification-item.is-unread:hover { background: var(--oq-vercel-subtle); }
+.oq-marketplace-factory-active :is(.oq-notification-item-icon, .oq-notification-empty-icon) {
+  border-color: var(--oq-vercel-border);
+  background: var(--oq-vercel-surface);
+}
+.oq-marketplace-factory-active .oq-notification-item-icon.is-success { color: var(--oq-vercel-positive); }
+.oq-marketplace-factory-active :is(.oq-notification-item-icon.is-risk, .oq-notification-item-icon.is-announcement, .oq-notification-empty-icon) { color: var(--oq-vercel-risk); }
+.oq-marketplace-factory-active :is(.oq-notification-item-message, .oq-notification-item-time, .oq-notification-chevron) { color: var(--oq-vercel-text-muted); }
+.oq-marketplace-factory-active .oq-notification-item:hover .oq-notification-chevron { color: var(--oq-vercel-ink); }
+
+.oq-marketplace-factory-active .oq-design-mode-menu-item {
+  border-radius: 4px;
+  color: var(--oq-vercel-text-secondary);
+  font-family: Geist, Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.oq-marketplace-factory-active .oq-design-mode-menu-item:focus,
+.oq-marketplace-factory-active .oq-design-mode-menu-item[data-state="checked"] {
+  background: var(--oq-vercel-subtle) !important;
+  color: var(--oq-vercel-ink) !important;
+}
+
+.dark.oq-marketplace-factory-active .oq-notification-panel,
+.dark.oq-marketplace-factory-active .oq-design-mode-menu,
+.dark.oq-marketplace-factory-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) { box-shadow: 0 16px 38px oklch(0 0 0 / 0.5) !important; }
+
+/* Style optimization 4: global utility surfaces follow the Parallel paper system. */
+.oq-marketplace-current-4-active .oq-design-mode-trigger {
+  border-color: var(--oq-parallel-hairline) !important;
+  border-radius: 2px !important;
+  background: var(--oq-parallel-white) !important;
+  box-shadow: none !important;
+  color: var(--oq-parallel-graphite) !important;
+}
+
+.oq-marketplace-current-4-active .oq-design-mode-trigger:hover,
+.oq-marketplace-current-4-active .oq-design-mode-trigger:focus-visible {
+  border-color: var(--oq-parallel-ink) !important;
+  background: var(--oq-parallel-fog) !important;
+  color: var(--oq-parallel-ink) !important;
+}
+
+.oq-marketplace-current-4-active .oq-design-mode-menu,
+.oq-marketplace-current-4-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) {
+  border: 1px solid var(--oq-parallel-hairline) !important;
+  border-radius: 2px !important;
+  background: var(--oq-parallel-white) !important;
+  box-shadow: 0 1px 3px oklch(0.216 0 0 / 0.06), 0 12px 24px oklch(0.216 0 0 / 0.07) !important;
+  color: var(--oq-parallel-ink) !important;
+  font-family: var(--oq-parallel-mono) !important;
+}
+
+.oq-marketplace-current-4-active .oq-design-mode-menu-item {
+  border-radius: 2px;
+  color: var(--oq-parallel-graphite);
+  font-family: var(--oq-parallel-mono);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+.oq-marketplace-current-4-active .oq-design-mode-menu-item:focus,
+.oq-marketplace-current-4-active .oq-design-mode-menu-item[data-state="checked"] {
+  background: var(--oq-parallel-fog) !important;
+  color: var(--oq-parallel-ink) !important;
+}
+
+.oq-marketplace-current-4-active [data-slot="dialog-overlay"] {
+  background: oklch(0.216 0 0 / 0.38) !important;
+  backdrop-filter: none !important;
+}
+
+.oq-marketplace-current-4-active [data-sonner-toast] {
+  border: 1px solid var(--oq-parallel-hairline) !important;
+  border-left: 3px solid var(--oq-parallel-accent) !important;
+  border-radius: 2px !important;
+  background: var(--oq-parallel-white) !important;
+  box-shadow: 0 1px 3px oklch(0.216 0 0 / 0.06), 0 10px 22px oklch(0.216 0 0 / 0.06) !important;
+  color: var(--oq-parallel-ink) !important;
+  font-family: var(--oq-parallel-mono) !important;
+}
+
+.oq-marketplace-current-4-active [data-sonner-toast][data-type="success"] { border-left-color: var(--oq-parallel-positive) !important; }
+.oq-marketplace-current-4-active [data-sonner-toast][data-type="error"] { border-left-color: var(--oq-parallel-risk) !important; }
+.oq-marketplace-current-4-active [data-sonner-toast] [data-icon] { color: var(--oq-parallel-accent) !important; }
+.oq-marketplace-current-4-active [data-sonner-toast][data-type="success"] [data-icon] { color: var(--oq-parallel-positive) !important; }
+.oq-marketplace-current-4-active [data-sonner-toast][data-type="error"] [data-icon] { color: var(--oq-parallel-risk) !important; }
+
+.oq-marketplace-current-4-active .oq-notification {
+  --oq-notification-surface: var(--oq-parallel-white);
+  --oq-notification-border: var(--oq-parallel-hairline);
+  --oq-notification-text: var(--oq-parallel-ink);
+  --oq-notification-muted: var(--oq-parallel-slate);
+  background: var(--oq-parallel-paper);
+  color: var(--oq-parallel-ink);
+  font-family: var(--oq-parallel-serif);
+}
+
+.oq-marketplace-current-4-active .oq-notification-trigger,
+.oq-marketplace-current-4-active .oq-notification-trigger:hover,
+.oq-marketplace-current-4-active .oq-notification-trigger.is-open {
+  border-color: var(--oq-parallel-hairline);
+  border-radius: 2px;
+  background: var(--oq-parallel-white);
+  box-shadow: none;
+  color: var(--oq-parallel-ink);
+  transform: none;
+}
+
+.oq-marketplace-current-4-active .oq-notification-trigger:hover,
+.oq-marketplace-current-4-active .oq-notification-trigger.is-open { border-color: var(--oq-parallel-ink); background: var(--oq-parallel-fog); }
+
+.oq-marketplace-current-4-active .oq-notification-panel {
+  border: 1px solid var(--oq-parallel-hairline);
+  border-radius: 2px;
+  background: var(--oq-parallel-white);
+  box-shadow: 0 1px 3px oklch(0.216 0 0 / 0.06), 0 14px 28px oklch(0.216 0 0 / 0.08);
+}
+
+.oq-marketplace-current-4-active :is(.oq-notification-header, .oq-notification-tabs, .oq-notification-scroll) { background: var(--oq-parallel-white); }
+.oq-marketplace-current-4-active :is(.oq-notification-header, .oq-notification-tabs) { border-bottom-color: var(--oq-parallel-hairline); }
+.oq-marketplace-current-4-active :is(.oq-notification-heading, .oq-notification-item-title) { color: var(--oq-parallel-ink); font-family: var(--oq-parallel-serif); font-weight: 500; }
+
+.oq-marketplace-current-4-active :is(.oq-notification-mark-read, .oq-notification-close, .oq-notification-tab) {
+  border-radius: 2px;
+  color: var(--oq-parallel-graphite);
+  font-family: var(--oq-parallel-mono);
+  font-weight: 500;
+}
+
+.oq-marketplace-current-4-active .oq-notification-mark-read { border-color: var(--oq-parallel-hairline); }
+.oq-marketplace-current-4-active :is(.oq-notification-mark-read:hover, .oq-notification-close:hover, .oq-notification-tab:hover) { background: var(--oq-parallel-fog); color: var(--oq-parallel-ink); transform: none; }
+.oq-marketplace-current-4-active .oq-notification-tab { color: var(--oq-parallel-slate); }
+.oq-marketplace-current-4-active .oq-notification-tab.is-active { border-color: var(--oq-parallel-ink); background: var(--oq-parallel-ink); box-shadow: none; color: var(--oq-parallel-paper); }
+.oq-marketplace-current-4-active :is(.oq-notification-tab-count, .oq-notification-unread-pill) { border-radius: 2px; background: var(--oq-parallel-accent); color: var(--oq-parallel-white); font-family: var(--oq-parallel-mono); }
+.oq-marketplace-current-4-active .oq-notification-item { border-bottom-color: var(--oq-parallel-hairline); color: var(--oq-parallel-ink); }
+.oq-marketplace-current-4-active :is(.oq-notification-item:hover, .oq-notification-item.is-unread:hover) { background: var(--oq-parallel-fog); }
+.oq-marketplace-current-4-active :is(.oq-notification-item-icon, .oq-notification-empty-icon) { border: 1px solid var(--oq-parallel-hairline); border-radius: 2px; background: var(--oq-parallel-fog); }
+.oq-marketplace-current-4-active .oq-notification-item-icon.is-success { color: var(--oq-parallel-positive); }
+.oq-marketplace-current-4-active :is(.oq-notification-item-icon.is-risk, .oq-notification-item-icon.is-announcement, .oq-notification-empty-icon) { color: var(--oq-parallel-risk); }
+.oq-marketplace-current-4-active :is(.oq-notification-item-message, .oq-notification-item-time, .oq-notification-chevron) { color: var(--oq-parallel-slate); }
+.oq-marketplace-current-4-active .oq-notification-item:hover .oq-notification-chevron { color: var(--oq-parallel-accent); transform: none; }
+
+.dark.oq-marketplace-current-4-active .oq-design-mode-trigger,
+.dark.oq-marketplace-current-4-active .oq-notification-trigger,
+.dark.oq-marketplace-current-4-active .oq-notification-panel,
+.dark.oq-marketplace-current-4-active .oq-notification-header,
+.dark.oq-marketplace-current-4-active .oq-notification-tabs,
+.dark.oq-marketplace-current-4-active .oq-notification-scroll,
+.dark.oq-marketplace-current-4-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) { background: var(--oq-parallel-white) !important; }
+
+.dark.oq-marketplace-current-4-active :is(.oq-design-mode-menu, .oq-notification-panel) { box-shadow: 0 16px 30px oklch(0 0 0 / 0.3) !important; }
+.dark.oq-marketplace-current-4-active [data-sonner-toast] { box-shadow: 0 12px 24px oklch(0 0 0 / 0.26) !important; }
+
+/* Style optimization 5: Midday utility surfaces are flat, warm, and pill-led. */
+.oq-marketplace-current-5-active .oq-design-mode-trigger {
+  border-color: var(--oq-midday-parchment) !important;
+  border-radius: 999px !important;
+  background: var(--oq-midday-paper) !important;
+  box-shadow: none !important;
+  color: var(--oq-midday-smoke) !important;
+}
+
+.oq-marketplace-current-5-active .oq-design-mode-trigger:hover,
+.oq-marketplace-current-5-active .oq-design-mode-trigger:focus-visible {
+  border-color: var(--oq-midday-ink) !important;
+  background: var(--oq-midday-sand) !important;
+  box-shadow: none !important;
+  color: var(--oq-midday-ink) !important;
+}
+
+.oq-marketplace-current-5-active .oq-design-mode-menu,
+.oq-marketplace-current-5-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) {
+  border: 1px solid var(--oq-midday-parchment) !important;
+  border-radius: 8px !important;
+  background: var(--oq-midday-paper) !important;
+  box-shadow: none !important;
+  color: var(--oq-midday-ink) !important;
+  font-family: var(--oq-midday-sans) !important;
+  letter-spacing: 0.04em;
+}
+
+.oq-marketplace-current-5-active .oq-design-mode-menu-item {
+  border-radius: 999px;
+  color: var(--oq-midday-smoke);
+  font-family: var(--oq-midday-sans);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.oq-marketplace-current-5-active .oq-design-mode-menu-item:focus,
+.oq-marketplace-current-5-active .oq-design-mode-menu-item[data-state="checked"] {
+  background: var(--oq-midday-sand) !important;
+  color: var(--oq-midday-ink) !important;
+}
+
+.oq-marketplace-current-5-active [data-slot="dialog-overlay"] {
+  background: oklch(0.192 0 0 / 0.34) !important;
+  backdrop-filter: none !important;
+}
+
+.oq-marketplace-current-5-active [data-sonner-toast] {
+  border: 1px solid var(--oq-midday-parchment) !important;
+  border-radius: 999px !important;
+  background: var(--oq-midday-paper) !important;
+  box-shadow: none !important;
+  color: var(--oq-midday-ink) !important;
+  font-family: var(--oq-midday-sans) !important;
+  font-size: 11px !important;
+  letter-spacing: 0.04em;
+}
+
+.oq-marketplace-current-5-active [data-sonner-toast][data-type="success"] { border-color: var(--oq-midday-positive) !important; }
+.oq-marketplace-current-5-active [data-sonner-toast][data-type="error"] { border-color: var(--oq-midday-risk) !important; }
+.oq-marketplace-current-5-active [data-sonner-toast] [data-icon] { color: var(--oq-midday-charcoal) !important; }
+.oq-marketplace-current-5-active [data-sonner-toast][data-type="success"] [data-icon] { color: var(--oq-midday-positive) !important; }
+.oq-marketplace-current-5-active [data-sonner-toast][data-type="error"] [data-icon] { color: var(--oq-midday-risk) !important; }
+
+.oq-marketplace-current-5-active [data-sonner-toast][data-type="success"] [data-icon],
+.oq-marketplace-current-5-active .oq-notification-item-icon.is-success {
+  background-image: var(--oq-midday-positive-gradient);
+  background-clip: text;
+  color: transparent !important;
+}
+
+.oq-marketplace-current-5-active .oq-notification {
+  background: var(--oq-midday-parchment);
+  color: var(--oq-midday-ink);
+  font-family: var(--oq-midday-sans);
+  letter-spacing: 0.04em;
+}
+
+.oq-marketplace-current-5-active .oq-notification-trigger,
+.oq-marketplace-current-5-active .oq-notification-trigger:hover,
+.oq-marketplace-current-5-active .oq-notification-trigger.is-open {
+  border-color: var(--oq-midday-parchment);
+  border-radius: 999px;
+  background: var(--oq-midday-paper);
+  box-shadow: none;
+  color: var(--oq-midday-ink);
+  transform: none;
+}
+
+.oq-marketplace-current-5-active .oq-notification-trigger:hover,
+.oq-marketplace-current-5-active .oq-notification-trigger.is-open { border-color: var(--oq-midday-ink); background: var(--oq-midday-sand); }
+
+.oq-marketplace-current-5-active .oq-notification-panel {
+  border: 1px solid var(--oq-midday-parchment);
+  border-radius: 8px;
+  background: var(--oq-midday-paper);
+  box-shadow: none;
+}
+
+.oq-marketplace-current-5-active :is(.oq-notification-header, .oq-notification-tabs, .oq-notification-scroll) { background: var(--oq-midday-paper); }
+.oq-marketplace-current-5-active :is(.oq-notification-header, .oq-notification-tabs) { border-bottom-color: var(--oq-midday-parchment); }
+.oq-marketplace-current-5-active :is(.oq-notification-heading, .oq-notification-item-title) { color: var(--oq-midday-ink); font-family: var(--oq-midday-sans); font-weight: 500; letter-spacing: 0.04em; }
+
+.oq-marketplace-current-5-active :is(.oq-notification-mark-read, .oq-notification-close, .oq-notification-tab) {
+  border-radius: 999px;
+  color: var(--oq-midday-smoke);
+  font-family: var(--oq-midday-sans);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.oq-marketplace-current-5-active .oq-notification-mark-read { border-color: var(--oq-midday-parchment); }
+.oq-marketplace-current-5-active :is(.oq-notification-mark-read:hover, .oq-notification-close:hover, .oq-notification-tab:hover) { background: var(--oq-midday-sand); color: var(--oq-midday-ink); transform: none; }
+.oq-marketplace-current-5-active .oq-notification-tab { color: var(--oq-midday-smoke); }
+.oq-marketplace-current-5-active .oq-notification-tab.is-active { border-color: var(--oq-midday-charcoal); background: var(--oq-midday-charcoal); box-shadow: none; color: var(--oq-midday-paper); }
+.oq-marketplace-current-5-active :is(.oq-notification-tab-count, .oq-notification-unread-pill) { border-radius: 999px; background: var(--oq-midday-charcoal); color: var(--oq-midday-paper); font-family: var(--oq-midday-sans); }
+.oq-marketplace-current-5-active .oq-notification-item { border-bottom-color: var(--oq-midday-parchment); color: var(--oq-midday-ink); }
+.oq-marketplace-current-5-active :is(.oq-notification-item:hover, .oq-notification-item.is-unread:hover) { background: var(--oq-midday-sand); }
+.oq-marketplace-current-5-active :is(.oq-notification-item-icon, .oq-notification-empty-icon) { border: 1px solid var(--oq-midday-parchment); border-radius: 8px; background: var(--oq-midday-sand); }
+.oq-marketplace-current-5-active .oq-notification-item-icon.is-success { color: var(--oq-midday-positive); }
+.oq-marketplace-current-5-active :is(.oq-notification-item-icon.is-risk, .oq-notification-item-icon.is-announcement, .oq-notification-empty-icon) { color: var(--oq-midday-risk); }
+.oq-marketplace-current-5-active :is(.oq-notification-item-message, .oq-notification-item-time, .oq-notification-chevron) { color: var(--oq-midday-smoke); }
+.oq-marketplace-current-5-active .oq-notification-item:hover .oq-notification-chevron { color: var(--oq-midday-ink); transform: none; }
+
+.dark.oq-marketplace-current-5-active .oq-design-mode-trigger,
+.dark.oq-marketplace-current-5-active .oq-notification-trigger,
+.dark.oq-marketplace-current-5-active .oq-notification-panel,
+.dark.oq-marketplace-current-5-active .oq-notification-header,
+.dark.oq-marketplace-current-5-active .oq-notification-tabs,
+.dark.oq-marketplace-current-5-active .oq-notification-scroll,
+.dark.oq-marketplace-current-5-active :is(
+  [data-slot="tooltip-content"],
+  [data-slot="popover-content"],
+  [data-slot="hover-card-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"]
+) { background: var(--oq-midday-paper) !important; }
+
+.dark.oq-marketplace-current-5-active :is(.oq-design-mode-menu, .oq-notification-panel, [data-sonner-toast]) { box-shadow: none !important; }

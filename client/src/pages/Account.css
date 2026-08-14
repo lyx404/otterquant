@@ -1826,6 +1826,15 @@
   }
 }
 
+/* Keep the account canvas and translucent shell aligned with Explore in light mode. */
+.oq-account-active .oq-app-main-column {
+  background: rgb(251 251 252);
+}
+
+.oq-account-active .oq-app-main-column > header {
+  background: rgb(251 251 252 / 85%);
+}
+
 /* Route scope also themes portal-based selects, tooltips and toasts. */
 .dark.oq-account-active {
   --oq-account-canvas: oklch(0.155 0.006 57.433);

@@ -39,6 +39,13 @@ import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 const SIDEBAR_W = 186;
 const SIDEBAR_COLLAPSED_W = 64;
 const FIGMA_HEADER_H = 60;
+const LEGACY_MARKETPLACE_STYLE_CLASSES = [
+  "oq-marketplace-factory-active",
+  "oq-marketplace-factory-industrial-active",
+  "oq-marketplace-baseline-active",
+  "oq-marketplace-current-4-active",
+  "oq-marketplace-current-5-active",
+];
 
 type NavItem = {
   path: string;
@@ -300,6 +307,11 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     const timeout = window.setTimeout(() => setNavTransition(null), 180);
     return () => window.clearTimeout(timeout);
   }, [navTransition]);
+
+  useEffect(() => {
+    document.documentElement.classList.remove(...LEGACY_MARKETPLACE_STYLE_CLASSES);
+    window.localStorage.removeItem("otter_explore_design_mode");
+  }, []);
 
   const isActive = (path: string) => {
     if (path === "/") return currentPathname === "/";

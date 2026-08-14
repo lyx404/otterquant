@@ -401,3 +401,1062 @@
   background: var(--oq-detail-dark-surface-3);
   color: var(--oq-detail-dark-muted);
 }
+
+/* Factory variant is limited to the Explore tab through the root state class. */
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: #3d3a39;
+  --oq-copy-dialog-surface-soft: #1d1a18;
+  --oq-copy-dialog-border-strong: #5e5753;
+  --oq-copy-dialog-muted: #8a8380;
+  --oq-copy-dialog-text: #eeeeee;
+  --oq-copy-dialog-accent: #ee6018;
+  --oq-market-muted: #8a8380;
+  border-color: var(--oq-copy-dialog-border) !important;
+  border-radius: 3px !important;
+  background: #101010 !important;
+  box-shadow: none !important;
+  color: var(--oq-copy-dialog-text);
+  font-family: "Geist", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-header {
+  border-bottom-color: var(--oq-copy-dialog-border);
+  padding: 16px 52px 16px 20px;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-header [data-slot="dialog-title"] {
+  color: var(--oq-copy-dialog-text);
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-avatar {
+  border-radius: 3px;
+  background: #eeeeee;
+  color: #101010;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-author {
+  color: #eeeeee;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-strategy,
+.oq-marketplace-factory-active .oq-marketplace-copy-input-available span,
+.oq-marketplace-factory-active .oq-marketplace-copy-field > label,
+.oq-marketplace-factory-active .oq-marketplace-copy-field-heading > label {
+  color: #b8b3b0;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-form {
+  background: #1d1a18;
+  padding: 20px;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-input-available strong {
+  color: #eeeeee;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap {
+  border-color: #5e5753;
+  border-radius: 3px;
+  background: #101010;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap:focus-within {
+  border-color: #ee6018;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap.is-invalid {
+  border-color: #ee6018;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap input,
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap > span {
+  color: #eeeeee;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-message.is-error { color: #ee6018; }
+.oq-marketplace-factory-active .oq-marketplace-copy-message.is-feedback { color: #a0ca92; }
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-footer {
+  border-top-color: #3d3a39;
+  padding: 16px 20px;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button {
+  border: 1px solid #3d3a39;
+  border-radius: 3px;
+  background: #1d1a18;
+  box-shadow: none;
+  color: #eeeeee;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button:hover {
+  border-color: #ee6018;
+  background: #1d1a18;
+  box-shadow: none;
+  color: #ee6018;
+  transform: none;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary,
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: #eeeeee;
+  background: #eeeeee;
+  box-shadow: none;
+  color: #101010;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: #ee6018;
+  background: #ee6018;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary:disabled,
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: #3d3a39;
+  background: #2a2725;
+  color: #8a8380;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: #b8b3b0;
+  --oq-copy-dialog-surface-soft: #ebebeb;
+  --oq-copy-dialog-border-strong: #3d3a39;
+  --oq-copy-dialog-muted: #8a8380;
+  --oq-copy-dialog-text: #020202;
+  --oq-copy-dialog-accent: #ef6f2e;
+  --oq-market-muted: #8a8380;
+  border-color: var(--oq-copy-dialog-border) !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+  color: var(--oq-copy-dialog-text);
+  font-family: "Geist", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-header {
+  border-bottom-color: var(--oq-copy-dialog-border);
+  padding: 16px 52px 16px 20px;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-header [data-slot="dialog-title"],
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-author {
+  color: #020202;
+  font-weight: 500;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-avatar {
+  border-radius: 50%;
+  background: #ef6f2e;
+  color: #020202;
+}
+
+.oq-marketplace-factory-industrial-active :is(
+  .oq-marketplace-copy-dialog-strategy,
+  .oq-marketplace-copy-input-available span,
+  .oq-marketplace-copy-field > label,
+  .oq-marketplace-copy-field-heading > label
+) {
+  color: #8a8380;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-form {
+  background: #ebebeb;
+  padding: 20px;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-available strong {
+  color: #020202;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap {
+  border-color: #b8b3b0;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap:focus-within { border-color: #ef6f2e; }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap.is-invalid { border-color: #ef6f2e; }
+
+.oq-marketplace-factory-industrial-active :is(
+  .oq-marketplace-copy-input-wrap input,
+  .oq-marketplace-copy-input-wrap > span
+) {
+  color: #020202;
+  font-family: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-message.is-error { color: #bd4d25; }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-message.is-feedback { color: #247c54; }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-footer {
+  border-top-color: #b8b3b0;
+  padding: 16px 20px;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button {
+  border: 1px solid #020202;
+  border-radius: 4px;
+  background: #ffffff;
+  box-shadow: none;
+  color: #020202;
+  font-family: "Geist", Inter, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button:hover {
+  border-color: #ef6f2e;
+  background: #ffffff;
+  box-shadow: none;
+  color: #ef6f2e;
+  transform: none;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary,
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: #020202;
+  background: #020202;
+  box-shadow: none;
+  color: #ffffff;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: #ef6f2e;
+  background: #ef6f2e;
+  color: #020202;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:disabled,
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: #b8b3b0;
+  background: #b8b3b0;
+  color: #5c5855;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: #3d3a39;
+  --oq-copy-dialog-surface-soft: #171514;
+  --oq-copy-dialog-border-strong: #b8b3b0;
+  --oq-copy-dialog-muted: #8a8380;
+  --oq-copy-dialog-text: #eeeeee;
+  --oq-copy-dialog-accent: #ef6f2e;
+  --oq-market-muted: #8a8380;
+  background: #1d1a18 !important;
+  color: var(--oq-copy-dialog-text);
+}
+
+.dark.oq-marketplace-factory-industrial-active :is(
+  .oq-marketplace-copy-dialog-header [data-slot="dialog-title"],
+  .oq-marketplace-copy-dialog-author,
+  .oq-marketplace-copy-input-available strong
+) {
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-avatar {
+  background: #ef6f2e;
+  color: #020202;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-form {
+  background: #171514;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap {
+  border-color: #3d3a39;
+  background: #101010;
+}
+
+.dark.oq-marketplace-factory-industrial-active :is(
+  .oq-marketplace-copy-input-wrap input,
+  .oq-marketplace-copy-input-wrap > span
+) {
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-message.is-error { color: #ef6f2e; }
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-message.is-feedback { color: #a0ca92; }
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button {
+  border-color: #eeeeee;
+  background: transparent;
+  color: #eeeeee;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button:hover {
+  border-color: #ef6f2e;
+  background: transparent;
+  color: #ef6f2e;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary,
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: #eeeeee;
+  background: #eeeeee;
+  color: #101010;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: #ef6f2e;
+  background: #ef6f2e;
+  color: #020202;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:disabled,
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: #3d3a39;
+  background: #3d3a39;
+  color: #8a8380;
+}
+
+/* Factory Industrial inherits its lightness scale from the page-level OKLCH tokens. */
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: var(--oq-industrial-border);
+  --oq-copy-dialog-surface-soft: var(--oq-industrial-sunken);
+  --oq-copy-dialog-border-strong: var(--oq-industrial-rule);
+  --oq-copy-dialog-muted: var(--oq-industrial-muted);
+  --oq-copy-dialog-text: var(--oq-industrial-ink);
+  --oq-copy-dialog-accent: var(--oq-industrial-accent);
+  --oq-market-muted: var(--oq-industrial-muted);
+  background: var(--oq-industrial-raised) !important;
+  box-shadow: 0 20px 50px oklch(0.265 0.018 55 / 0.18) !important;
+}
+
+.oq-marketplace-factory-industrial-active :is(
+  .oq-marketplace-copy-dialog-header [data-slot="dialog-title"],
+  .oq-marketplace-copy-dialog-author,
+  .oq-marketplace-copy-input-available strong,
+  .oq-marketplace-copy-input-wrap input,
+  .oq-marketplace-copy-input-wrap > span
+) { color: var(--oq-industrial-ink); }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-avatar {
+  background: var(--oq-industrial-accent);
+  color: var(--oq-industrial-raised);
+}
+
+.oq-marketplace-factory-industrial-active :is(
+  .oq-marketplace-copy-dialog-strategy,
+  .oq-marketplace-copy-input-available span,
+  .oq-marketplace-copy-field > label,
+  .oq-marketplace-copy-field-heading > label
+) { color: var(--oq-industrial-muted); }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-form { background: var(--oq-industrial-sunken); }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap {
+  border-color: var(--oq-industrial-border);
+  background: var(--oq-industrial-raised);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap:focus-within { border-color: var(--oq-industrial-accent); }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap.is-invalid { border-color: var(--oq-industrial-risk); }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-message.is-error { color: var(--oq-industrial-risk); }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-message.is-feedback { color: var(--oq-industrial-positive); }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-footer { border-top-color: var(--oq-industrial-border); }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button {
+  border-color: var(--oq-industrial-ink);
+  background: var(--oq-industrial-raised);
+  color: var(--oq-industrial-ink);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button:hover {
+  border-color: var(--oq-industrial-accent);
+  background: var(--oq-industrial-accent-soft);
+  color: var(--oq-industrial-accent);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary,
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: var(--oq-industrial-ink);
+  background: var(--oq-industrial-ink);
+  color: var(--oq-industrial-raised);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: var(--oq-industrial-accent);
+  background: var(--oq-industrial-accent);
+  color: var(--oq-industrial-raised);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:disabled,
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: var(--oq-industrial-border);
+  background: var(--oq-industrial-sunken);
+  color: var(--oq-industrial-muted);
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog { box-shadow: none !important; }
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap {
+  background: var(--oq-industrial-page);
+}
+
+/* Amp dialog surfaces: a quiet linen form with one orange action. */
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: var(--oq-amp-rule);
+  --oq-copy-dialog-surface-soft: var(--oq-amp-linen);
+  --oq-copy-dialog-border-strong: var(--oq-amp-fog);
+  --oq-copy-dialog-muted: var(--oq-amp-slate);
+  --oq-copy-dialog-text: var(--oq-amp-ink);
+  --oq-copy-dialog-accent: var(--oq-amp-orange);
+  --oq-market-muted: var(--oq-amp-slate);
+  width: min(520px, calc(100vw - 32px));
+  border: 1px solid var(--oq-amp-rule) !important;
+  border-radius: 5px !important;
+  background: var(--oq-amp-canvas) !important;
+  box-shadow: 0 20px 50px oklch(0.145 0 0 / 0.15) !important;
+  color: var(--oq-amp-ink);
+  font-family: var(--oq-amp-sans);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-header {
+  border-bottom-color: var(--oq-amp-rule);
+  padding: 16px 56px 16px 24px;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-header [data-slot="dialog-title"] {
+  color: var(--oq-amp-ink);
+  font-family: var(--oq-amp-sans);
+  font-weight: 500;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-avatar {
+  background: var(--oq-amp-orange);
+  color: var(--oq-amp-canvas);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-author { color: var(--oq-amp-ink); font-weight: 500; }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-strategy { color: var(--oq-amp-slate); }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-form {
+  background: var(--oq-amp-linen);
+  padding: 20px 24px;
+}
+
+.oq-marketplace-factory-industrial-active :is(
+  .oq-marketplace-copy-input-available span,
+  .oq-marketplace-copy-field > label,
+  .oq-marketplace-copy-field-heading > label
+) { color: var(--oq-amp-carbon); }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-available strong,
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap input,
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap > span {
+  color: var(--oq-amp-ink);
+  font-family: var(--oq-amp-sans);
+  font-weight: 500;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap {
+  height: 50px;
+  min-height: 50px;
+  border-color: var(--oq-amp-rule);
+  border-radius: 50px;
+  background: var(--oq-amp-canvas);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap:focus-within {
+  border-color: var(--oq-amp-orange);
+  box-shadow: 0 0 0 3px oklch(0.664 0.228 40 / 0.14);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap.is-invalid { border-color: var(--oq-amp-orange); }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap input { height: 50px; }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-message.is-error { color: var(--oq-amp-orange); }
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-message.is-feedback { color: var(--oq-amp-orange); }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-footer {
+  border-top-color: var(--oq-amp-rule);
+  padding: 16px 24px 20px;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button {
+  min-height: 40px;
+  border: 1px solid var(--oq-amp-rule);
+  border-radius: 24px;
+  background: var(--oq-amp-canvas);
+  box-shadow: none;
+  color: var(--oq-amp-carbon);
+  font-family: var(--oq-amp-sans);
+  font-weight: 400;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button:hover {
+  border-color: var(--oq-amp-orange);
+  background: var(--oq-amp-linen);
+  box-shadow: none;
+  color: var(--oq-amp-orange);
+  transform: none;
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary,
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: var(--oq-amp-orange);
+  background: var(--oq-amp-orange);
+  box-shadow: 1px 6px 14px oklch(0.664 0.228 40 / 0.35), 0 1px 4px oklch(0.145 0 0 / 0.06);
+  color: var(--oq-amp-canvas);
+}
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover { background: var(--oq-amp-orange-hover); }
+
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:disabled,
+.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: var(--oq-amp-fog);
+  background: var(--oq-amp-bone);
+  box-shadow: none;
+  color: var(--oq-amp-slate);
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog {
+  border-color: var(--oq-amp-rule) !important;
+  background: var(--oq-amp-charcoal) !important;
+  box-shadow: 0 20px 50px oklch(0 0 0 / 0.5) !important;
+}
+
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-form { background: var(--oq-amp-linen); }
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-input-wrap { background: var(--oq-amp-canvas); }
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button { background: var(--oq-amp-charcoal); }
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button:hover { background: var(--oq-amp-linen); }
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary,
+.dark.oq-marketplace-factory-industrial-active .oq-marketplace-copy-button.is-primary:hover {
+  background: var(--oq-amp-orange);
+  color: var(--oq-amp-canvas);
+}
+
+@media (max-width: 640px) {
+  .oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-header { padding-inline: 18px 48px; }
+  .oq-marketplace-factory-industrial-active .oq-marketplace-copy-form { padding-inline: 18px; }
+  .oq-marketplace-factory-industrial-active .oq-marketplace-copy-dialog-footer { padding-inline: 18px; }
+}
+
+/* Style optimization 3 shares the marketplace's compact 4px shape scale. */
+.oq-marketplace-baseline-active .oq-marketplace-copy-dialog,
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap,
+.oq-marketplace-baseline-active .oq-marketplace-copy-button { border-radius: 4px !important; }
+
+/* Style optimization 3: fal.ai's restrained paper form and carbon actions. */
+.oq-marketplace-baseline-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: var(--oq-fal-border);
+  --oq-copy-dialog-surface-soft: var(--oq-fal-fog);
+  --oq-copy-dialog-border-strong: var(--oq-fal-border);
+  --oq-copy-dialog-muted: var(--oq-fal-muted);
+  --oq-copy-dialog-text: var(--oq-fal-ink);
+  --oq-copy-dialog-accent: var(--oq-fal-carbon);
+  --oq-market-muted: var(--oq-fal-muted);
+  border-color: var(--oq-fal-border) !important;
+  border-radius: 4px !important;
+  background: var(--oq-fal-paper) !important;
+  box-shadow: none !important;
+  color: var(--oq-fal-ink);
+  font-family: var(--oq-fal-sans);
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-dialog-header {
+  border-bottom-color: var(--oq-fal-border);
+  padding: 16px 52px 16px 24px;
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-dialog-header [data-slot="dialog-title"],
+.oq-marketplace-baseline-active .oq-marketplace-copy-dialog-author,
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-available strong,
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap input,
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap > span {
+  color: var(--oq-fal-ink);
+  font-family: var(--oq-fal-sans);
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-dialog-avatar {
+  border-radius: 4px;
+  background: var(--oq-fal-violet);
+  color: var(--oq-fal-paper);
+}
+
+.oq-marketplace-baseline-active :is(
+  .oq-marketplace-copy-dialog-strategy,
+  .oq-marketplace-copy-input-available span,
+  .oq-marketplace-copy-field > label,
+  .oq-marketplace-copy-field-heading > label
+) {
+  color: var(--oq-fal-muted);
+  font-family: var(--oq-fal-sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-form {
+  background: var(--oq-fal-fog);
+  padding: 20px 24px;
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap {
+  border-color: var(--oq-fal-border);
+  border-radius: 4px;
+  background: var(--oq-fal-paper);
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap:focus-within {
+  border-color: var(--oq-fal-violet);
+  box-shadow: 0 0 0 2px oklch(0.497 0.255 291 / 0.18);
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap.is-invalid { border-color: var(--oq-fal-risk); }
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap input,
+.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap > span { font-family: var(--oq-fal-mono); }
+.oq-marketplace-baseline-active .oq-marketplace-copy-message.is-error { color: var(--oq-fal-risk); }
+.oq-marketplace-baseline-active .oq-marketplace-copy-message.is-feedback { color: var(--oq-fal-positive); }
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-dialog-footer {
+  border-top-color: var(--oq-fal-border);
+  padding: 16px 24px 20px;
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-button {
+  border: 1px solid var(--oq-fal-border);
+  border-radius: 4px;
+  background: var(--oq-fal-paper);
+  box-shadow: none;
+  color: var(--oq-fal-ink);
+  font-family: var(--oq-fal-sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-button:hover {
+  border-color: var(--oq-fal-carbon);
+  background: var(--oq-fal-fog);
+  box-shadow: none;
+  color: var(--oq-fal-ink);
+  transform: none;
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-button.is-primary,
+.oq-marketplace-baseline-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: var(--oq-fal-carbon);
+  background: var(--oq-fal-carbon);
+  box-shadow: none;
+  color: var(--oq-fal-paper);
+}
+
+.oq-marketplace-baseline-active .oq-marketplace-copy-button.is-primary:disabled,
+.oq-marketplace-baseline-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: var(--oq-fal-border);
+  background: var(--oq-fal-fog);
+  color: var(--oq-fal-muted);
+}
+
+.dark.oq-marketplace-baseline-active .oq-marketplace-copy-input-wrap { background: var(--oq-fal-paper); }
+
+@media (max-width: 640px) {
+  .oq-marketplace-baseline-active .oq-marketplace-copy-dialog-header { padding-inline: 18px 48px; }
+  .oq-marketplace-baseline-active .oq-marketplace-copy-form { padding-inline: 18px; }
+  .oq-marketplace-baseline-active .oq-marketplace-copy-dialog-footer { padding-inline: 18px; }
+}
+
+/* Style optimization 1 dialog: Vercel-style neutral form surface. */
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: var(--oq-vercel-border);
+  --oq-copy-dialog-surface-soft: var(--oq-vercel-surface);
+  --oq-copy-dialog-border-strong: var(--oq-vercel-border-strong);
+  --oq-copy-dialog-muted: var(--oq-vercel-text-muted);
+  --oq-copy-dialog-text: var(--oq-vercel-ink);
+  --oq-copy-dialog-accent: var(--oq-vercel-ink);
+  --oq-market-muted: var(--oq-vercel-text-muted);
+  border-color: var(--oq-vercel-border) !important;
+  border-radius: 6px !important;
+  background: var(--oq-vercel-canvas) !important;
+  box-shadow: 0 20px 44px oklch(0 0 0 / 0.18) !important;
+  color: var(--oq-vercel-ink);
+  font-family: var(--oq-vercel-sans);
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-header {
+  border-bottom-color: var(--oq-vercel-border);
+  padding: 16px 56px 16px 24px;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-header [data-slot="dialog-title"],
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-author,
+.oq-marketplace-factory-active .oq-marketplace-copy-input-available strong,
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap input,
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap > span {
+  color: var(--oq-vercel-ink);
+  font-family: var(--oq-vercel-sans);
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-avatar {
+  border-radius: 50%;
+  background: var(--oq-vercel-ink);
+  color: var(--oq-vercel-canvas);
+}
+
+.oq-marketplace-factory-active :is(
+  .oq-marketplace-copy-dialog-strategy,
+  .oq-marketplace-copy-input-available span,
+  .oq-marketplace-copy-field > label,
+  .oq-marketplace-copy-field-heading > label
+) {
+  color: var(--oq-vercel-text-secondary);
+  font-family: var(--oq-vercel-sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-form {
+  background: var(--oq-vercel-surface);
+  padding: 20px 24px;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap {
+  border-color: var(--oq-vercel-border-strong);
+  border-radius: 6px;
+  background: var(--oq-vercel-canvas);
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap:focus-within {
+  border-color: var(--oq-vercel-focus);
+  box-shadow: 0 0 0 2px oklch(0.57 0.19 260 / 0.2);
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap.is-invalid { border-color: var(--oq-vercel-risk); }
+.oq-marketplace-factory-active .oq-marketplace-copy-message.is-error { color: var(--oq-vercel-risk); }
+.oq-marketplace-factory-active .oq-marketplace-copy-message.is-feedback { color: var(--oq-vercel-positive); }
+.oq-marketplace-factory-active .oq-marketplace-copy-dialog-footer { border-top-color: var(--oq-vercel-border); }
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button {
+  border-color: var(--oq-vercel-border-strong);
+  border-radius: 6px;
+  background: var(--oq-vercel-canvas);
+  box-shadow: none;
+  color: var(--oq-vercel-ink);
+  font-family: var(--oq-vercel-sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button:hover {
+  border-color: var(--oq-vercel-border-strong);
+  background: var(--oq-vercel-subtle);
+  box-shadow: none;
+  color: var(--oq-vercel-ink);
+  transform: none;
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary,
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: var(--oq-vercel-ink);
+  background: var(--oq-vercel-ink);
+  color: var(--oq-vercel-canvas);
+}
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary:hover { background: var(--oq-vercel-text-secondary); }
+
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary:disabled,
+.oq-marketplace-factory-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: var(--oq-vercel-border);
+  background: var(--oq-vercel-subtle);
+  color: var(--oq-vercel-text-muted);
+}
+
+.dark.oq-marketplace-factory-active .oq-marketplace-copy-dialog {
+  background: var(--oq-vercel-surface) !important;
+  box-shadow: 0 20px 44px oklch(0 0 0 / 0.58) !important;
+}
+
+.dark.oq-marketplace-factory-active .oq-marketplace-copy-input-wrap,
+.dark.oq-marketplace-factory-active .oq-marketplace-copy-button { background: var(--oq-vercel-canvas); }
+.dark.oq-marketplace-factory-active .oq-marketplace-copy-form { background: var(--oq-vercel-subtle); }
+.dark.oq-marketplace-factory-active .oq-marketplace-copy-button:hover { background: var(--oq-vercel-subtle); }
+
+/* Style optimization 4: compact, paper-based technical form. */
+.oq-marketplace-current-4-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: var(--oq-parallel-hairline);
+  --oq-copy-dialog-surface-soft: var(--oq-parallel-fog);
+  --oq-copy-dialog-border-strong: var(--oq-parallel-hairline);
+  --oq-copy-dialog-muted: var(--oq-parallel-slate);
+  --oq-copy-dialog-text: var(--oq-parallel-ink);
+  --oq-copy-dialog-accent: var(--oq-parallel-accent);
+  --oq-market-muted: var(--oq-parallel-slate);
+  border-color: var(--oq-parallel-hairline) !important;
+  border-radius: 2px !important;
+  background: var(--oq-parallel-white) !important;
+  box-shadow: 0 1px 3px oklch(0.216 0 0 / 0.06), 0 16px 32px oklch(0.216 0 0 / 0.08) !important;
+  color: var(--oq-parallel-ink);
+  font-family: var(--oq-parallel-serif);
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-dialog-header {
+  border-bottom-color: var(--oq-parallel-hairline);
+  padding: 16px 56px 16px 24px;
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-dialog-header [data-slot="dialog-title"] {
+  color: var(--oq-parallel-ink);
+  font-family: var(--oq-parallel-serif);
+  font-weight: 500;
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-dialog-avatar {
+  border: 1px solid var(--oq-parallel-hairline);
+  border-radius: 2px;
+  background: var(--oq-parallel-ink);
+  color: var(--oq-parallel-white);
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-dialog-author { color: var(--oq-parallel-ink); font-family: var(--oq-parallel-serif); font-weight: 500; }
+.oq-marketplace-current-4-active .oq-marketplace-copy-dialog-strategy { color: var(--oq-parallel-slate); font-family: var(--oq-parallel-mono); }
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-form {
+  background: var(--oq-parallel-paper);
+  padding: 20px 24px;
+}
+
+.oq-marketplace-current-4-active :is(
+  .oq-marketplace-copy-input-available span,
+  .oq-marketplace-copy-field > label,
+  .oq-marketplace-copy-field-heading > label
+) {
+  color: var(--oq-parallel-graphite);
+  font-family: var(--oq-parallel-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-input-available strong,
+.oq-marketplace-current-4-active .oq-marketplace-copy-input-wrap input,
+.oq-marketplace-current-4-active .oq-marketplace-copy-input-wrap > span {
+  color: var(--oq-parallel-ink);
+  font-family: var(--oq-parallel-mono);
+  font-weight: 500;
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-input-wrap {
+  border-color: var(--oq-parallel-hairline);
+  border-radius: 2px;
+  background: var(--oq-parallel-white);
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-input-wrap:focus-within {
+  border-color: var(--oq-parallel-accent);
+  box-shadow: 0 0 0 2px oklch(0.687 0.207 43 / 0.16);
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-input-wrap.is-invalid { border-color: var(--oq-parallel-risk); }
+.oq-marketplace-current-4-active .oq-marketplace-copy-message.is-error { color: var(--oq-parallel-risk); }
+.oq-marketplace-current-4-active .oq-marketplace-copy-message.is-feedback { color: var(--oq-parallel-positive); }
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-dialog-footer {
+  border-top-color: var(--oq-parallel-hairline);
+  padding: 16px 24px 20px;
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-button {
+  border: 1px solid var(--oq-parallel-hairline);
+  border-radius: 2px;
+  background: var(--oq-parallel-white);
+  box-shadow: none;
+  color: var(--oq-parallel-ink);
+  font-family: var(--oq-parallel-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-button:hover {
+  border-color: var(--oq-parallel-ink);
+  background: var(--oq-parallel-fog);
+  box-shadow: none;
+  color: var(--oq-parallel-ink);
+  transform: none;
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-button.is-primary,
+.oq-marketplace-current-4-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: var(--oq-parallel-ink);
+  background: var(--oq-parallel-ink);
+  box-shadow: none;
+  color: var(--oq-parallel-paper);
+}
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-button.is-primary:hover { border-color: var(--oq-parallel-accent); background: var(--oq-parallel-accent); }
+
+.oq-marketplace-current-4-active .oq-marketplace-copy-button.is-primary:disabled,
+.oq-marketplace-current-4-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: var(--oq-parallel-hairline);
+  background: var(--oq-parallel-fog);
+  color: var(--oq-parallel-slate);
+}
+
+.dark.oq-marketplace-current-4-active .oq-marketplace-copy-dialog { box-shadow: 0 18px 36px oklch(0 0 0 / 0.32) !important; }
+.dark.oq-marketplace-current-4-active .oq-marketplace-copy-input-wrap,
+.dark.oq-marketplace-current-4-active .oq-marketplace-copy-button { background: var(--oq-parallel-white); }
+.dark.oq-marketplace-current-4-active .oq-marketplace-copy-form { background: var(--oq-parallel-paper); }
+.dark.oq-marketplace-current-4-active .oq-marketplace-copy-button:hover { background: var(--oq-parallel-fog); }
+.dark.oq-marketplace-current-4-active .oq-marketplace-copy-button.is-primary,
+.dark.oq-marketplace-current-4-active .oq-marketplace-copy-button.is-primary:hover { background: var(--oq-parallel-ink); color: var(--oq-parallel-paper); }
+
+@media (max-width: 640px) {
+  .oq-marketplace-current-4-active .oq-marketplace-copy-dialog-header { padding-inline: 18px 48px; }
+  .oq-marketplace-current-4-active .oq-marketplace-copy-form { padding-inline: 18px; }
+  .oq-marketplace-current-4-active .oq-marketplace-copy-dialog-footer { padding-inline: 18px; }
+}
+
+/* Style optimization 5: Midday's flat, pill-led form language. */
+.oq-marketplace-current-5-active .oq-marketplace-copy-dialog {
+  --oq-copy-dialog-border: var(--oq-midday-parchment);
+  --oq-copy-dialog-surface-soft: var(--oq-midday-sand);
+  --oq-copy-dialog-border-strong: var(--oq-midday-parchment);
+  --oq-copy-dialog-muted: var(--oq-midday-smoke);
+  --oq-copy-dialog-text: var(--oq-midday-ink);
+  --oq-copy-dialog-accent: var(--oq-midday-charcoal);
+  --oq-market-muted: var(--oq-midday-smoke);
+  border-color: var(--oq-midday-parchment) !important;
+  border-radius: 8px !important;
+  background: var(--oq-midday-paper) !important;
+  box-shadow: none !important;
+  color: var(--oq-midday-ink);
+  font-family: var(--oq-midday-sans);
+  letter-spacing: 0.04em;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-dialog-header {
+  border-bottom-color: var(--oq-midday-parchment);
+  padding: 16px 56px 16px 24px;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-dialog-header [data-slot="dialog-title"] {
+  color: var(--oq-midday-ink);
+  font-family: var(--oq-midday-sans);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-dialog-avatar {
+  border: 1px solid var(--oq-midday-parchment);
+  border-radius: 8px;
+  background: var(--oq-midday-charcoal);
+  color: var(--oq-midday-paper);
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-dialog-author { color: var(--oq-midday-ink); font-family: var(--oq-midday-sans); font-weight: 500; }
+.oq-marketplace-current-5-active .oq-marketplace-copy-dialog-strategy { color: var(--oq-midday-smoke); font-family: var(--oq-midday-sans); letter-spacing: 0.05em; }
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-form {
+  background: var(--oq-midday-sand);
+  padding: 20px 24px;
+}
+
+.oq-marketplace-current-5-active :is(
+  .oq-marketplace-copy-input-available span,
+  .oq-marketplace-copy-field > label,
+  .oq-marketplace-copy-field-heading > label
+) {
+  color: var(--oq-midday-smoke);
+  font-family: var(--oq-midday-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-input-available strong,
+.oq-marketplace-current-5-active .oq-marketplace-copy-input-wrap input,
+.oq-marketplace-current-5-active .oq-marketplace-copy-input-wrap > span {
+  color: var(--oq-midday-ink);
+  font-family: var(--oq-midday-sans);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-input-wrap {
+  border-color: var(--oq-midday-parchment);
+  border-radius: 8px;
+  background: var(--oq-midday-paper);
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-input-wrap:focus-within {
+  border-color: var(--oq-midday-charcoal);
+  box-shadow: none;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-input-wrap.is-invalid { border-color: var(--oq-midday-risk); }
+.oq-marketplace-current-5-active .oq-marketplace-copy-message.is-error { color: var(--oq-midday-risk); }
+.oq-marketplace-current-5-active .oq-marketplace-copy-message.is-feedback { color: var(--oq-midday-accent); }
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-dialog-footer {
+  border-top-color: var(--oq-midday-parchment);
+  padding: 16px 24px 20px;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-button {
+  border: 1px solid var(--oq-midday-parchment);
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--oq-midday-ink);
+  font-family: var(--oq-midday-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-button:hover {
+  border-color: var(--oq-midday-ink);
+  background: var(--oq-midday-sand);
+  box-shadow: none;
+  color: var(--oq-midday-ink);
+  transform: none;
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-button.is-primary,
+.oq-marketplace-current-5-active .oq-marketplace-copy-button.is-primary:hover {
+  border-color: var(--oq-midday-charcoal);
+  background: var(--oq-midday-accent-gradient);
+  box-shadow: none;
+  color: var(--oq-midday-paper);
+}
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-button.is-primary:hover { filter: saturate(1.08) brightness(0.96); }
+
+.oq-marketplace-current-5-active .oq-marketplace-copy-button.is-primary:disabled,
+.oq-marketplace-current-5-active .oq-marketplace-copy-button.is-primary:disabled:hover {
+  border-color: var(--oq-midday-parchment);
+  background: var(--oq-midday-sand);
+  color: var(--oq-midday-smoke);
+}
+
+.dark.oq-marketplace-current-5-active .oq-marketplace-copy-dialog { border-color: var(--border) !important; box-shadow: none !important; }
+.dark.oq-marketplace-current-5-active .oq-marketplace-copy-input-wrap,
+.dark.oq-marketplace-current-5-active .oq-marketplace-copy-button { background: var(--oq-midday-paper); }
+.dark.oq-marketplace-current-5-active .oq-marketplace-copy-form { background: var(--oq-midday-sand); }
+.dark.oq-marketplace-current-5-active .oq-marketplace-copy-button:hover { background: var(--oq-midday-sand); }
+.dark.oq-marketplace-current-5-active .oq-marketplace-copy-button.is-primary,
+.dark.oq-marketplace-current-5-active .oq-marketplace-copy-button.is-primary:hover { background: var(--oq-midday-ink); color: var(--oq-midday-charcoal); }
+
+@media (max-width: 640px) {
+  .oq-marketplace-current-5-active .oq-marketplace-copy-dialog-header { padding-inline: 18px 48px; }
+  .oq-marketplace-current-5-active .oq-marketplace-copy-form { padding-inline: 18px; }
+  .oq-marketplace-current-5-active .oq-marketplace-copy-dialog-footer { padding-inline: 18px; }
+}

@@ -164,6 +164,8 @@ const bundledOfficialStrategies = strategies.filter(
 
 export const marketplaceStrategies = [...bundledOfficialStrategies, ...marketplaceExamples];
 
+export const marketplaceOwnedPortfolioStrategyIds = new Set(["STR-008"]);
+
 export const marketplaceFundNames: Record<string, string> = {
   "STR-001": "投资组合名称",
   "STR-002": "BTCETH 趋势反转",

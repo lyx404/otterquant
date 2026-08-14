@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Pause, Play, RefreshCw, Square } from "lucide-react";
+import { ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal, Pause, Play, Power, RefreshCw } from "lucide-react";
 import { Link, useLocation, useParams, useSearch } from "wouter";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -9,12 +9,24 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MarketplaceAvatar } from "@/components/MarketplaceAvatar";
 import { translateUi, useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   marketplaceCardDetails,
   marketplaceFollowerLimits,
   marketplaceFundNames,
+  marketplaceOwnedPortfolioStrategyIds,
   marketplaceStrategies,
   marketplaceTradeSource,
   marketplaceUserProfiles,
@@ -181,11 +193,12 @@ function EmptyState({ label }: { label: string }) {
 
 export default function MarketplaceDetail() {
   const { uiLang } = useAppLanguage();
+  const { user } = useAuth();
   const tr = (en: string, zh: string) => translateUi(uiLang, en, zh);
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const [, navigate] = useLocation();
-  const { followingStrategyIds, addFollowing } = useFollowingStrategyIds();
+  const { followingStrategyIds, addFollowing, removeFollowing } = useFollowingStrategyIds();
   const [copyTarget, setCopyTarget] = useState<typeof marketplaceStrategies[number] | null>(null);
   const [chartMetric, setChartMetric] = useState<TradeTrendMetric>("return");
   const [visibleChartSources, setVisibleChartSources] = useState({ backtest: true, live: true });
@@ -194,8 +207,13 @@ export default function MarketplaceDetail() {
   const [timeRangeLabel, setTimeRangeLabel] = useState(tr("Past year", "近 1 年"));
   const [isStrategyOverviewExpanded, setIsStrategyOverviewExpanded] = useState(true);
   const [creatorRunState, setCreatorRunState] = useState<"running" | "paused" | "stopped">("running");
+  const [isCopyInvestmentFollowing, setIsCopyInvestmentFollowing] = useState(true);
+  const [isStopConfirmOpen, setIsStopConfirmOpen] = useState(false);
+  const [isStopCopyConfirmOpen, setIsStopCopyConfirmOpen] = useState(false);
   const strategyId = params?.id ?? "";
   const isCreatorView = new URLSearchParams(search).get("from") === "mine";
+  const isCopyInvestmentView = isCreatorView && strategyId === "STR-005";
+  const isPortfolioOwnerView = isCreatorView && marketplaceOwnedPortfolioStrategyIds.has(strategyId);
   const strategy = marketplaceStrategies.find((item) => item.id === strategyId);
   const details = strategy ? marketplaceCardDetails[strategy.id] : undefined;
   const sourceTradeId = strategy ? marketplaceTradeSource[strategy.id] : undefined;
@@ -204,8 +222,11 @@ export default function MarketplaceDetail() {
   useEffect(() => {
     document.documentElement.classList.add("oq-marketplace-detail-active");
     setIsStrategyOverviewExpanded(true);
+    setIsStopConfirmOpen(false);
+    setIsStopCopyConfirmOpen(false);
     setVisibleChartSources({ backtest: true, live: true });
     setCreatorRunState("running");
+    setIsCopyInvestmentFollowing(true);
     setTimeRange("1y");
     setTimeRangeLabel(translateUi(uiLang, "Past year", "近 1 年"));
     window.scrollTo(0, 0);
@@ -264,15 +285,41 @@ export default function MarketplaceDetail() {
     ? `${subscriberCount.toLocaleString("en-US")}/${capacity.toLocaleString("en-US")}`
     : subscriberCount.toLocaleString("en-US");
   const isFull = capacity != null && subscriberCount >= capacity;
-  const isFollowing = followingStrategyIds.has(strategy.id);
+  const isFollowing = isCopyInvestmentView
+    ? isCopyInvestmentFollowing
+    : followingStrategyIds.has(strategy.id);
   const userProfile = marketplaceUserProfiles[strategy.id];
-  const heroIdentity = {
-    author: userProfile?.author ?? strategy.author,
-    avatar: userProfile?.avatar ?? strategy.author.slice(0, 1),
-    avatarTone: userProfile?.avatarTone,
-    strategyName: marketplaceFundNames[strategy.id] ?? strategy.name,
-    bio: marketplaceProfileBios[strategy.id] ?? "专注系统化交易与风险控制，持续优化执行节奏和仓位管理。",
-  };
+  const accountName = user?.displayName || user?.username || "Nicole Ong";
+  const accountInitials = accountName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join("") || "NO";
+  const heroIdentity = isCopyInvestmentView
+    ? {
+        author: marketplaceUserProfiles["STR-008"]?.author ?? "南山有鹿",
+        avatar: marketplaceUserProfiles["STR-008"]?.avatar ?? "南",
+        avatarTone: marketplaceUserProfiles["STR-008"]?.avatarTone ?? ("rose" as const),
+        strategyName: marketplaceFundNames["STR-008"] ?? "SOL 动量趋势",
+        bio: marketplaceProfileBios["STR-008"] ?? "",
+      }
+    : isPortfolioOwnerView
+    ? {
+        author: accountName,
+        avatar: accountInitials,
+        avatarTone: "orange" as const,
+        strategyName: marketplaceFundNames[strategy.id] ?? strategy.name,
+        bio: user?.bio?.trim() ?? "",
+      }
+    : {
+        author: userProfile?.author ?? strategy.author,
+        avatar: userProfile?.avatar ?? strategy.author.slice(0, 1),
+        avatarTone: userProfile?.avatarTone,
+        strategyName: marketplaceFundNames[strategy.id] ?? strategy.name,
+        bio: marketplaceProfileBios[strategy.id] ?? "专注系统化交易与风险控制，持续优化执行节奏和仓位管理。",
+      };
+  const heroAvatarStrategyId = isCopyInvestmentView ? "STR-008" : strategy.id;
   const strategyGuidance = [
     { title: tr("When to enter", "何时入场"), text: tr("Enter when SOL flow and momentum confirm the same direction across the active cycle.", "当 SOL 资金流与动量在当前周期确认同向时入场。") },
     { title: tr("When to exit", "何时离场"), text: tr("Reduce exposure when momentum fades or the position reaches its risk budget.", "当动量减弱或仓位触及风险预算时逐步减仓。") },
@@ -319,16 +366,27 @@ export default function MarketplaceDetail() {
         <header className="oq-marketplace-detail-hero">
           <div className="oq-marketplace-detail-hero-inner">
             <div className="oq-marketplace-detail-hero-copy">
-              <MarketplaceAvatar
-                strategyId={strategy.id}
-                name={heroIdentity.author}
-                avatar={heroIdentity.avatar}
-                avatarTone={heroIdentity.avatarTone ?? "orange"}
-                className="oq-marketplace-detail-avatar"
-              />
+              {isPortfolioOwnerView ? (
+                <span className="oq-marketplace-detail-avatar is-orange" aria-hidden="true">
+                  {user?.avatar ? <img src={user.avatar} alt="" /> : heroIdentity.avatar}
+                </span>
+              ) : (
+                <MarketplaceAvatar
+                  strategyId={heroAvatarStrategyId}
+                  name={heroIdentity.author}
+                  avatar={heroIdentity.avatar}
+                  avatarTone={heroIdentity.avatarTone ?? "orange"}
+                  className="oq-marketplace-detail-avatar"
+                />
+              )}
               <div className="oq-marketplace-detail-hero-details">
-                <h1>{heroIdentity.author}</h1>
-                <ProfileBio text={heroIdentity.bio} tr={tr} />
+                <div className="oq-marketplace-detail-author-line">
+                  <h1>{heroIdentity.author}</h1>
+                  {!isPortfolioOwnerView && isFollowing ? (
+                    <span className="oq-marketplace-detail-following-tag">{tr("Investing", "跟投中")}</span>
+                  ) : null}
+                </div>
+                {heroIdentity.bio ? <ProfileBio text={heroIdentity.bio} tr={tr} /> : null}
                 <div className="oq-marketplace-detail-portfolio-overview">
                   <div className="oq-marketplace-detail-portfolio-name">
                     <button
@@ -361,7 +419,7 @@ export default function MarketplaceDetail() {
                 </div>
               </div>
             </div>
-            {isCreatorView ? (
+            {isPortfolioOwnerView ? (
               <div className="oq-marketplace-detail-creator-actions" role="group" aria-label={tr("Portfolio controls", "投资组合控制") }>
                 {creatorRunState === "stopped" ? (
                   <button
@@ -392,17 +450,17 @@ export default function MarketplaceDetail() {
                     <button
                       type="button"
                       className="oq-trade-detail-action"
-                      aria-label={creatorRunState === "paused" ? tr("Resume portfolio", "恢复投资组合") : tr("Pause portfolio", "暂停投资组合")}
+                      aria-label={creatorRunState === "paused" ? tr("Restart portfolio", "重新启动投资组合") : tr("Pause portfolio", "暂停投资组合")}
                       onClick={() => {
                         const nextState = creatorRunState === "paused" ? "running" : "paused";
                         setCreatorRunState(nextState);
-                        toast.success(nextState === "running" ? tr("Portfolio resumed.", "投资组合已恢复运行。") : tr("Portfolio paused.", "投资组合已暂停。"));
+                        toast.success(nextState === "running" ? tr("Portfolio restarted.", "投资组合已重新启动。") : tr("Portfolio paused.", "投资组合已暂停。"));
                       }}
                     >
                       {creatorRunState === "paused" ? <Play aria-hidden="true" /> : <Pause aria-hidden="true" />}
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="top">{creatorRunState === "paused" ? tr("Resume", "恢复") : tr("Pause", "暂停")}</TooltipContent>
+                  <TooltipContent side="top">{creatorRunState === "paused" ? tr("Restart", "重新启动") : tr("Pause", "暂停")}</TooltipContent>
                 </Tooltip>
 
                 <DropdownMenu>
@@ -422,39 +480,82 @@ export default function MarketplaceDetail() {
                   </Tooltip>
                   <DropdownMenuContent align="end" sideOffset={8} className="oq-trade-detail-action-menu">
                     <DropdownMenuItem
+                      className="oq-trade-detail-action-menu-item"
+                      onSelect={() => navigate("/marketplace?tab=mine")}
+                    >
+                      <ArrowUpRight aria-hidden="true" />
+                      {tr("View investment details", "查看投资详情")}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
                       className="oq-trade-detail-action-menu-item is-destructive"
                       variant="destructive"
                       onSelect={() => {
-                        setCreatorRunState("stopped");
-                        toast.success(tr("Portfolio stopped.", "投资组合已停止。"));
+                        setIsStopConfirmOpen(true);
                       }}
                     >
-                      <Square aria-hidden="true" />
+                      <Power aria-hidden="true" />
                       {tr("Stop portfolio", "终止投资组合")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 </>}
               </div>
+            ) : isFollowing ? (
+              <div className="oq-marketplace-detail-following-actions" role="group" aria-label={tr("Copy investing controls", "跟投控制") }>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="oq-trade-detail-action"
+                      aria-label={tr("Refresh copy investment", "刷新跟投")}
+                      onClick={() => toast.success(tr("Copy investment refreshed.", "跟投数据已刷新。"))}
+                    >
+                      <RefreshCw aria-hidden="true" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{tr("Refresh", "刷新")}</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="oq-trade-detail-action"
+                      aria-label={tr("View copy investment details", "查看跟投详情")}
+                      onClick={() => navigate("/marketplace?tab=mine")}
+                    >
+                      <ArrowUpRight aria-hidden="true" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{tr("View copy investment details", "查看跟投详情")}</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="oq-trade-detail-action"
+                      aria-label={tr("Terminate copy investment", "终止跟投")}
+                      onClick={() => setIsStopCopyConfirmOpen(true)}
+                    >
+                      <Power aria-hidden="true" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">{tr("Terminate", "终止")}</TooltipContent>
+                </Tooltip>
+              </div>
             ) : (
               <button
                 type="button"
-                className={`oq-marketplace-detail-follow${isFollowing ? " is-following" : isFull ? " is-full" : ""}`}
-                aria-pressed={isFollowing}
-                disabled={!isFollowing && isFull}
+                className={`oq-marketplace-detail-follow${isFull ? " is-full" : ""}`}
+                disabled={isFull}
                 onClick={() => {
-                  if (isFollowing) {
-                    navigate("/marketplace?tab=mine");
-                  } else if (!isFull) {
+                  if (!isFull) {
                     setCopyTarget(strategy);
                   }
                 }}
               >
-                {isFollowing
-                  ? tr("Investing", "跟投中")
-                  : isFull
-                    ? tr("Full", "满员")
-                    : tr("Copy", "跟投")}
+                {isFull ? tr("Full", "满员") : tr("Copy", "跟投")}
               </button>
             )}
           </div>
@@ -637,6 +738,67 @@ export default function MarketplaceDetail() {
           toast.success(tr("Copy investing started.", "已开始跟投。"));
         }}
       />
+      <AlertDialog open={isStopConfirmOpen} onOpenChange={setIsStopConfirmOpen}>
+        <AlertDialogContent className="oq-marketplace-detail-stop-dialog">
+          <AlertDialogHeader className="oq-marketplace-detail-stop-dialog-header">
+            <AlertDialogTitle className="oq-marketplace-detail-stop-dialog-title">
+              {tr("Terminate this portfolio?", "确认终止投资组合？")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="oq-marketplace-detail-stop-dialog-description">
+              {tr(
+                "New trades and rebalancing will stop. Investors will no longer be able to copy this portfolio, and its positions will be handled under the current settlement rules before funds return to the relevant accounts. Historical records and settled performance remain available. This action cannot be undone.",
+                "终止后，组合将停止新开仓与调仓，用户将无法继续跟投。现有仓位会按当前结算规则处理，资金结算后返回相应账户；历史记录与已结算收益仍可查看。此操作无法撤销。",
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="oq-marketplace-detail-stop-dialog-footer">
+            <AlertDialogCancel className="oq-marketplace-detail-stop-dialog-button">
+              {tr("Cancel", "取消")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="oq-marketplace-detail-stop-dialog-button is-destructive"
+              onClick={() => {
+                setCreatorRunState("stopped");
+                setIsStopConfirmOpen(false);
+                toast.success(tr("Portfolio terminated.", "投资组合已终止。"));
+              }}
+            >
+              {tr("Confirm termination", "确认终止")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={isStopCopyConfirmOpen} onOpenChange={setIsStopCopyConfirmOpen}>
+        <AlertDialogContent className="oq-marketplace-detail-stop-dialog">
+          <AlertDialogHeader className="oq-marketplace-detail-stop-dialog-header">
+            <AlertDialogTitle className="oq-marketplace-detail-stop-dialog-title">
+              {tr("Terminate copy investment?", "确认终止跟投？")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="oq-marketplace-detail-stop-dialog-description">
+              {tr(
+                "Copy trading and future portfolio rebalancing will stop. Existing positions will be handled under the current settlement rules before funds return to your account. Historical records and settled performance remain available. This action cannot be undone.",
+                "终止后，将停止跟随该投资组合的新开仓与调仓。现有仓位会按当前结算规则处理，资金结算后返回您的账户；历史记录与已结算收益仍可查看。此操作无法撤销。",
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="oq-marketplace-detail-stop-dialog-footer">
+            <AlertDialogCancel className="oq-marketplace-detail-stop-dialog-button">
+              {tr("Cancel", "取消")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="oq-marketplace-detail-stop-dialog-button is-destructive"
+              onClick={() => {
+                removeFollowing(strategy.id);
+                if (isCopyInvestmentView) setIsCopyInvestmentFollowing(false);
+                setIsStopCopyConfirmOpen(false);
+                toast.success(tr("Copy investment terminated.", "跟投已终止。"));
+              }}
+            >
+              {tr("Confirm termination", "确认终止跟投")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
