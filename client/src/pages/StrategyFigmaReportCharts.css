@@ -273,6 +273,20 @@
   box-shadow: none;
 }
 
+/* Detail reports use surface separation instead of metric-card borders. */
+:is(.oq-trade-detail.is-marketplace-detail, .oq-strategy-detail-transition)
+  .oq-strategy-figma-report
+  .oq-report-metric-strip
+  .oq-report-metric {
+  border-width: 0;
+}
+
+:is(.oq-trade-detail.is-marketplace-detail, .oq-strategy-detail-transition)
+  .oq-strategy-figma-report
+  .oq-report-metrics-table {
+  border-width: 0;
+}
+
 .oq-strategy-figma-report .oq-report-metric-strip .oq-report-metric span {
   color: color-mix(in srgb, var(--report-muted) 82%, var(--report-text));
   font-size: 0.625rem;
@@ -1679,8 +1693,9 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   --report-warm: var(--oq-strategy-surface-warm);
   --report-teal: oklch(0.75 0.1 190);
   --report-warning: var(--oq-strategy-accent-2);
-  --report-shadow: 0 8px 22px oklch(0 0 0 / 0.3);
-  --report-shadow-lift: 0 16px 38px oklch(0 0 0 / 0.52);
+  --report-shadow: 0 10px 28px oklch(0 0 0 / 0.48);
+  --report-shadow-lift: 0 18px 48px oklch(0 0 0 / 0.52);
+  --report-shadow-tooltip: 0 12px 30px oklch(0 0 0 / 0.46);
   --background: var(--report-bg);
   --foreground: var(--report-text);
   --card: var(--report-bg);
@@ -1719,7 +1734,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
 }
 
 :is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-strategy-figma-report .oq-report-top {
-  box-shadow: 0 12px 30px oklch(0 0 0 / 0.34);
+  box-shadow: var(--report-shadow);
 }
 
 :is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
@@ -1776,7 +1791,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   .oq-strategy-figma-report
   :is(.oq-report-date-menu, .oq-report-date-calendar-panel) {
   border-color: var(--report-border-strong);
-  background: var(--report-panel);
+  background: var(--oq-strategy-surface-1);
   color: var(--report-text);
   box-shadow: var(--report-shadow-lift);
 }
@@ -1803,7 +1818,7 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   border-color: var(--report-border-strong);
   background: var(--oq-strategy-surface-3);
   color: var(--report-text-soft);
-  box-shadow: var(--report-shadow-lift);
+  box-shadow: var(--report-shadow-tooltip);
 }
 
 :is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
@@ -1826,9 +1841,9 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   .oq-strategy-figma-report
   .oq-attribution-switch
   button[data-state="active"] {
-  border-color: var(--report-border-strong);
-  background: var(--report-panel-deep);
-  color: var(--report-text);
+  border-color: var(--oq-strategy-selection-border);
+  background: var(--oq-strategy-selection);
+  color: var(--report-gold);
 }
 
 :is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
@@ -1863,9 +1878,9 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
 
 :is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-report-more-content {
   border-color: var(--oq-strategy-border-strong);
-  background: var(--oq-strategy-surface-2);
+  background: var(--oq-strategy-surface-1);
   color: var(--oq-strategy-text);
-  box-shadow: 0 16px 38px oklch(0 0 0 / 0.52);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52);
 }
 
 :is(.dark.oq-strategies-active, .dark.oq-trade-detail-active) .oq-report-more-item {
@@ -1888,8 +1903,8 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
 :is(.dark.oq-strategies-active, .dark.oq-trade-detail-active)
   .oq-strategy-figma-report
   .oq-report-date-select.oq-report-date-select--compact {
-  --report-bg: var(--oq-strategy-surface-2);
-  --report-panel: var(--oq-strategy-surface-3);
+  --report-bg: var(--oq-strategy-surface-1);
+  --report-panel: var(--oq-strategy-surface-1);
   --report-subtle-surface: var(--oq-strategy-surface-2);
   --report-border: var(--oq-strategy-border-strong);
   --report-subtle-border: var(--oq-strategy-border-strong);
@@ -1898,8 +1913,9 @@ main:has(.oq-strategy-figma-report):not(:has(.oq-trade-detail.is-marketplace-det
   --report-text-soft: var(--oq-strategy-text-soft);
   --report-muted: var(--oq-strategy-muted);
   --report-warm: var(--oq-strategy-surface-warm);
-  --report-shadow: 0 12px 30px oklch(0 0 0 / 0.46);
-  --report-shadow-lift: 0 16px 38px oklch(0 0 0 / 0.52);
+  --report-shadow: 0 10px 28px oklch(0 0 0 / 0.48);
+  --report-shadow-lift: 0 18px 48px oklch(0 0 0 / 0.52);
+  --report-shadow-tooltip: 0 12px 30px oklch(0 0 0 / 0.46);
   --primary-foreground: var(--oq-strategy-canvas);
   --ring: var(--oq-strategy-accent);
 }

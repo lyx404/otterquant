@@ -38,23 +38,34 @@
   width: min(100%, 900px);
 }
 
+.oq-trade-detail-active .oq-app-main-column {
+  background: oklch(0.976 0 0);
+}
+
+.oq-trade-detail-active .oq-app-main-column > header {
+  background: oklch(0.976 0 0 / 0.85);
+}
+
 /* Route scope keeps portal-based dialogs, menus, tooltips and toasts on the same palette. */
 .dark.oq-trade-detail-active {
-  --oq-trade-detail-canvas: oklch(0.155 0.006 57.433);
-  --oq-trade-detail-surface-1: oklch(0.215 0.009 57);
-  --oq-trade-detail-surface-2: oklch(0.255 0.012 60);
-  --oq-trade-detail-surface-warm: oklch(0.235 0.025 55);
-  --oq-trade-detail-surface-3: oklch(0.295 0.014 65);
-  --oq-trade-detail-surface-4: oklch(0.345 0.016 65);
-  --oq-trade-detail-border: oklch(0.34 0.016 67);
-  --oq-trade-detail-border-strong: oklch(0.51 0.023 67);
-  --oq-trade-detail-text: oklch(0.95 0.014 68);
-  --oq-trade-detail-text-warm: oklch(0.89 0.019 68);
-  --oq-trade-detail-text-soft: oklch(0.8 0.022 65);
-  --oq-trade-detail-muted: oklch(0.68 0.021 67);
-  --oq-trade-detail-muted-strong: oklch(0.75 0.021 65);
-  --oq-trade-detail-accent: oklch(0.72 0.185 47);
-  --oq-trade-detail-accent-hover: oklch(0.81 0.13 58);
+  --oq-trade-detail-canvas: oklch(0.135 0.003 57.433);
+  --oq-trade-detail-surface-1: oklch(0.19 0.004 57);
+  --oq-trade-detail-surface-2: oklch(0.225 0.005 60);
+  --oq-trade-detail-surface-warm: oklch(0.205 0.008 55);
+  --oq-trade-detail-surface-3: oklch(0.255 0.006 65);
+  --oq-trade-detail-surface-4: oklch(0.315 0.007 65);
+  --oq-trade-detail-border: oklch(0.31 0.007 67);
+  --oq-trade-detail-border-strong: oklch(0.47 0.009 67);
+  --oq-trade-detail-border-emphasis: oklch(0.56 0.01 65);
+  --oq-trade-detail-selection: oklch(0.205 0.008 55);
+  --oq-trade-detail-selection-border: oklch(0.482 0.078 58.6);
+  --oq-trade-detail-text: oklch(0.95 0.004 68);
+  --oq-trade-detail-text-warm: oklch(0.89 0.006 68);
+  --oq-trade-detail-text-soft: oklch(0.8 0.006 65);
+  --oq-trade-detail-muted: oklch(0.68 0.006 67);
+  --oq-trade-detail-muted-strong: oklch(0.75 0.006 65);
+  --oq-trade-detail-accent: oklch(0.72 0.175 47);
+  --oq-trade-detail-accent-hover: oklch(0.81 0.12 58);
   --oq-trade-detail-success: oklch(0.75 0.12 155);
   --oq-trade-detail-success-bg: oklch(0.235 0.04 155);
   --oq-trade-detail-risk: oklch(0.72 0.17 25);
@@ -82,7 +93,7 @@
   --oq-workbench-tooltip-bg: var(--oq-trade-detail-surface-3);
   --oq-workbench-tooltip-border: var(--oq-trade-detail-border-strong);
   --oq-workbench-tooltip-text: var(--oq-trade-detail-text-soft);
-  --oq-workbench-tooltip-shadow: 0 6px 18px oklch(0 0 0 / 0.28);
+  --oq-workbench-tooltip-shadow: 0 12px 30px oklch(0 0 0 / 0.46);
   --oq-toast-success-bg: var(--oq-trade-detail-success-bg);
   --oq-toast-success-text: var(--oq-trade-detail-text);
   --oq-toast-success-border: oklch(0.55 0.08 155);
@@ -97,7 +108,9 @@
   --oq-strategy-surface-warm: var(--oq-trade-detail-surface-warm);
   --oq-strategy-border: var(--oq-trade-detail-border);
   --oq-strategy-border-strong: var(--oq-trade-detail-border-strong);
-  --oq-strategy-border-emphasis: color-mix(in oklch, var(--oq-trade-detail-accent) 48%, var(--oq-trade-detail-border));
+  --oq-strategy-border-emphasis: var(--oq-trade-detail-border-emphasis);
+  --oq-strategy-selection: var(--oq-trade-detail-selection);
+  --oq-strategy-selection-border: var(--oq-trade-detail-selection-border);
   --oq-strategy-text: var(--oq-trade-detail-text);
   --oq-strategy-text-warm: var(--oq-trade-detail-text-warm);
   --oq-strategy-text-soft: var(--oq-trade-detail-text-soft);
@@ -165,7 +178,7 @@
 
 .dark.oq-trade-detail-active .oq-trade-detail .oq-report-date-select.oq-report-date-select--compact {
   --report-bg: var(--oq-trade-detail-surface-1);
-  --report-panel: var(--oq-trade-detail-surface-3);
+  --report-panel: var(--oq-trade-detail-surface-1);
   --report-subtle-surface: var(--oq-trade-detail-surface-2);
   --report-border: var(--oq-trade-detail-border-strong);
   --report-subtle-border: var(--oq-trade-detail-border-strong);
@@ -174,8 +187,9 @@
   --report-text-soft: var(--oq-trade-detail-text-soft);
   --report-muted: var(--oq-trade-detail-muted);
   --report-warm: var(--oq-trade-detail-surface-warm);
-  --report-shadow: 0 1.5px 6px oklch(0 0 0 / 0.24);
-  --report-shadow-lift: 0 6px 18px oklch(0 0 0 / 0.28);
+  --report-shadow: 0 10px 28px oklch(0 0 0 / 0.48);
+  --report-shadow-lift: 0 18px 48px oklch(0 0 0 / 0.52);
+  --report-shadow-tooltip: 0 12px 30px oklch(0 0 0 / 0.46);
   --primary-foreground: var(--oq-trade-detail-canvas);
   --ring: var(--oq-trade-detail-accent);
 }
@@ -184,7 +198,7 @@
   border-color: var(--oq-trade-detail-border-strong);
   background: var(--oq-trade-detail-surface-1);
   color: var(--oq-trade-detail-text);
-  box-shadow: 0 12px 30px oklch(0 0 0 / 0.46);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52);
 }
 
 .dark.oq-trade-detail-active .oq-trade-detail-action-menu-item {
@@ -208,7 +222,7 @@
   --td-text-soft: var(--oq-trade-detail-text-soft);
   --td-muted: var(--oq-trade-detail-muted);
   --td-accent: var(--oq-trade-detail-accent);
-  box-shadow: 0 6px 18px oklch(0 0 0 / 0.28) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
 }
 
 .dark.oq-trade-detail-active .oq-trade-signal-dialog {
@@ -258,10 +272,68 @@
   --oq-risk-bg: var(--oq-trade-detail-risk-bg);
 }
 
+.dark.oq-trade-detail-active .oq-notification-trigger {
+  border-color: var(--oq-trade-detail-border-strong) !important;
+  background: var(--oq-trade-detail-surface-2) !important;
+  color: var(--oq-trade-detail-text-soft) !important;
+  box-shadow: none !important;
+}
+
+.dark.oq-trade-detail-active .oq-notification-trigger.is-open {
+  border-color: var(--oq-trade-detail-selection-border) !important;
+  background: var(--oq-trade-detail-selection) !important;
+  color: var(--oq-trade-detail-accent) !important;
+}
+
+.dark.oq-trade-detail-active .oq-notification-panel {
+  border-color: var(--oq-trade-detail-border-strong) !important;
+  background: var(--oq-trade-detail-surface-1) !important;
+  color: var(--oq-trade-detail-text) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-trade-detail-active :is(.oq-notification-header, .oq-notification-tabs, .oq-notification-scroll) {
+  border-color: var(--oq-trade-detail-border) !important;
+  background: var(--oq-trade-detail-surface-1) !important;
+  color: var(--oq-trade-detail-text) !important;
+}
+
+.dark.oq-trade-detail-active .oq-notification-tab {
+  color: var(--oq-trade-detail-text-soft) !important;
+}
+
+.dark.oq-trade-detail-active :is(.oq-notification-tab:hover, .oq-notification-item:hover) {
+  background: var(--oq-trade-detail-selection) !important;
+  color: var(--oq-trade-detail-text) !important;
+}
+
+.dark.oq-trade-detail-active .oq-notification-tab.is-active {
+  border-color: var(--oq-trade-detail-selection-border) !important;
+  background: var(--oq-trade-detail-selection) !important;
+  color: var(--oq-trade-detail-accent) !important;
+  box-shadow: none !important;
+}
+
+.dark.oq-trade-detail-active .oq-notification-item {
+  background: var(--oq-trade-detail-surface-1) !important;
+  color: var(--oq-trade-detail-text) !important;
+}
+
+.dark.oq-trade-detail-active .oq-notification-item-icon.is-success {
+  background: var(--oq-trade-detail-success-bg) !important;
+  color: var(--oq-trade-detail-success) !important;
+}
+
+.dark.oq-trade-detail-active .oq-notification-item-icon.is-risk {
+  background: var(--oq-trade-detail-risk-bg) !important;
+  color: var(--oq-trade-detail-risk) !important;
+}
+
 .dark.oq-trade-detail-active [data-sonner-toast] {
   border-color: var(--oq-trade-detail-border-strong) !important;
   background: var(--oq-trade-detail-surface-1) !important;
   color: var(--oq-trade-detail-text) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
 }
 
 .dark.oq-trade-detail-active [data-sonner-toast][data-type="success"] {
@@ -280,6 +352,40 @@
 
 .dark.oq-trade-detail-active [data-sonner-toast][data-type="error"] [data-icon] {
   color: var(--oq-trade-detail-risk) !important;
+}
+
+.dark.oq-trade-detail-active :is(
+  [data-slot="dialog-content"],
+  [data-slot="alert-dialog-content"],
+  [data-slot="popover-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"],
+  [data-slot="context-menu-content"]
+) {
+  border-color: var(--oq-trade-detail-border-strong) !important;
+  background: var(--oq-trade-detail-surface-1) !important;
+  color: var(--oq-trade-detail-text) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-trade-detail-active :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"]) {
+  background: oklch(0 0 0 / 0.58) !important;
+}
+
+.dark.oq-trade-detail-active :is(
+  .oq-trade-trend-selector button.is-active,
+  .oq-trade-allocation-legend button[aria-pressed="true"]
+) {
+  border-color: var(--oq-trade-detail-selection-border);
+  background: var(--oq-trade-detail-selection);
+  color: var(--oq-trade-detail-accent);
+}
+
+.dark.oq-trade-detail-active :is(.oq-trade-trend-tooltip, .oq-trade-allocation-tooltip) {
+  border-color: var(--oq-trade-detail-border-strong);
+  background: var(--oq-trade-detail-surface-3);
+  color: var(--oq-trade-detail-text-soft);
+  box-shadow: 0 12px 30px oklch(0 0 0 / 0.46);
 }
 
 .oq-trade-detail.is-returning {
@@ -1124,6 +1230,10 @@
   background: rgb(251, 251, 252);
   padding: 12px;
   box-shadow: none;
+}
+
+.oq-trade-detail.is-marketplace-detail .oq-trade-performance-metrics > div {
+  border-width: 0;
 }
 
 .oq-trade-performance-metrics > div:last-child {

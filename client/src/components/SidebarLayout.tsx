@@ -427,7 +427,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const shellStyle = { "--sidebar-width": `${sidebarWidth}px` } as CSSProperties;
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className={`flex flex-col bg-white text-black dark:bg-[#14110f] dark:text-[#f7f1ea] ${isMobile ? "h-full" : "h-[100dvh]"}`}>
+    <div className={`oq-sidebar-content flex flex-col bg-white text-black dark:bg-[#14110f] dark:text-[#f7f1ea] ${isMobile ? "h-full" : "h-[100dvh]"}`}>
       {/* Logo + Collapse Toggle */}
       <div
         className={`flex shrink-0 items-center ${
@@ -530,7 +530,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                       onClick={() => navigate(child.path)}
                       className={`flex w-full items-center gap-1.5 rounded-[6px] p-1.5 text-[12px] font-normal transition-all duration-200 ease-in-out ${
                         childActive
-                          ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
+                          ? "oq-sidebar-nav-active border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
                           : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
                       }`}
                     >
@@ -565,7 +565,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                       ? "justify-center p-1.5"
                       : "gap-1.5 p-1.5"
                   } ${parentHighlighted
-                    ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
+                    ? "oq-sidebar-nav-active border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
                     : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
                   }`}
                   title={collapsed && !isMobile ? tr(item.labelEn, item.labelZh) : undefined}
@@ -593,7 +593,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                   : "gap-1.5 p-1.5"
               } ${item.path === "/marketplace" && collapsed && !isMobile ? "-mt-[18px]" : ""} ${
                 active
-                  ? "border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
+                  ? "oq-sidebar-nav-active border border-[rgba(220,73,0,0.10)] bg-[#fef6ef] text-[#dc4900] dark:border-[#ff6a1a]/25 dark:bg-[#1b1511] dark:text-[#ff6a1a]"
                   : "border border-transparent text-black hover:border-[rgba(220,73,0,0.10)] hover:bg-[#fef6ef] hover:text-[#dc4900] dark:text-[#f7f1ea] dark:hover:border-[#ff6a1a]/25 dark:hover:bg-[#1b1511] dark:hover:text-[#ff6a1a]"
               }`}
               title={collapsed && !isMobile ? tr(item.labelEn, item.labelZh) : undefined}
@@ -608,7 +608,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Bottom Section */}
-      <div className={`shrink-0 border-t-[0.5px] border-[#d9d9d9] dark:border-[#4b4036] ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
+      <div className={`oq-sidebar-footer shrink-0 border-t-[0.5px] border-[#d9d9d9] dark:border-[#4b4036] ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
         {collapsed && !isMobile ? (
           /* === Collapsed: vertical stack === */
           <div className="flex flex-col items-center gap-2">
@@ -664,7 +664,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={`flex min-h-screen bg-[#faf8f6] dark:bg-[#14110f] md:min-h-[1024px] md:pl-[var(--sidebar-width)] ${
+      className={`oq-app-shell flex min-h-screen bg-[#faf8f6] dark:bg-[#14110f] md:min-h-[1024px] md:pl-[var(--sidebar-width)] ${
         currentPathname.startsWith("/account") ||
         currentPathname.startsWith("/marketplace") ||
         currentPathname.startsWith("/trade") ||
@@ -676,7 +676,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     >
       {/* Desktop Sidebar */}
       <aside
-        className="fixed bottom-0 left-0 top-0 z-20 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r-[0.5px] border-[#eef0f4] bg-white transition-all duration-300 ease-in-out dark:border-[#4b4036] dark:bg-[#14110f] md:flex"
+        className="oq-sidebar-aside fixed bottom-0 left-0 top-0 z-20 hidden h-[100dvh] shrink-0 flex-col overflow-hidden border-r-[0.5px] border-[#eef0f4] bg-white transition-all duration-300 ease-in-out dark:border-[#4b4036] dark:bg-[#14110f] md:flex"
         style={{ width: sidebarWidth }}
       >
         <SidebarContent />
@@ -692,7 +692,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`fixed left-0 top-0 z-50 h-full border-r-[0.5px] border-[#eef0f4] bg-white transition-transform duration-300 ease-in-out dark:border-[#4b4036] dark:bg-[#14110f] md:hidden ${
+        className={`oq-sidebar-aside fixed left-0 top-0 z-50 h-full border-r-[0.5px] border-[#eef0f4] bg-white transition-transform duration-300 ease-in-out dark:border-[#4b4036] dark:bg-[#14110f] md:hidden ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         style={{ width: SIDEBAR_W }}
@@ -703,7 +703,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       {/* Main Content */}
       <div className="oq-app-main-column flex min-w-0 flex-1 flex-col bg-[#faf8f6] dark:bg-[#14110f]">
         <header
-          className="fixed left-[var(--sidebar-width)] right-0 top-0 z-10 hidden shrink-0 items-center justify-between border-b-[0.5px] border-[#ece6df] bg-[#faf8f6]/85 backdrop-blur-[4.5px] dark:border-[#4b4036] dark:bg-[#14110f]/85 md:flex"
+          className="oq-app-header fixed left-[var(--sidebar-width)] right-0 top-0 z-10 hidden shrink-0 items-center justify-between border-b-[0.5px] border-[#ece6df] bg-[#faf8f6]/85 backdrop-blur-[4.5px] dark:border-[#4b4036] dark:bg-[#14110f]/85 md:flex"
           style={{ height: FIGMA_HEADER_H }}
         >
           <div className="ml-[21px] flex h-full min-w-0 items-center gap-[26px]">

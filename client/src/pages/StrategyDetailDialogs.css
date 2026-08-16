@@ -1290,7 +1290,7 @@
   --sd-bg: var(--oq-strategy-surface-1);
   --sd-bg-soft: var(--oq-strategy-surface-2);
   --sd-bg-warm: var(--oq-strategy-surface-warm);
-  --sd-border: var(--oq-strategy-border);
+  --sd-border: var(--oq-strategy-border-strong);
   --sd-text: var(--oq-strategy-text);
   --sd-muted: var(--oq-strategy-muted);
   --sd-accent: var(--oq-strategy-accent);
@@ -1308,7 +1308,7 @@
   --accent: var(--sd-bg-warm);
   --accent-foreground: var(--sd-text);
   --border: var(--sd-border);
-  --input: var(--sd-border);
+  --input: var(--oq-strategy-border-strong);
   border-color: var(--sd-border) !important;
   background: var(--sd-bg) !important;
   color: var(--sd-text) !important;
@@ -1318,7 +1318,7 @@
 .dark.oq-strategies-active .oq-strategy-delete-dialog {
   --delete-dialog-bg: var(--oq-strategy-surface-1);
   --delete-dialog-warm: var(--oq-strategy-surface-warm);
-  --delete-dialog-border: var(--oq-strategy-border);
+  --delete-dialog-border: var(--oq-strategy-border-strong);
   --delete-dialog-text: var(--oq-strategy-text);
   --delete-dialog-text-soft: var(--oq-strategy-text-soft);
   --delete-dialog-muted: var(--oq-strategy-muted);

@@ -158,25 +158,25 @@
    DARK THEME — Slate-950 base
    ══════════════════════════════════════════════ */
 .dark {
-  --brand-accent: #ff6a1a;
-  --background: #020617;
-  --foreground: #F8FAFC;
-  --card: #0F172A;
-  --card-foreground: #F8FAFC;
-  --popover: #0F172A;
-  --popover-foreground: #F8FAFC;
+  --brand-accent: oklch(0.72 0.175 47);
+  --background: oklch(0.135 0.003 57.433);
+  --foreground: oklch(0.95 0.004 68);
+  --card: oklch(0.19 0.004 57);
+  --card-foreground: oklch(0.95 0.004 68);
+  --popover: oklch(0.19 0.004 57);
+  --popover-foreground: oklch(0.95 0.004 68);
   --primary: var(--brand-accent);
-  --primary-foreground: #020617;
-  --secondary: #38BDF8;
-  --secondary-foreground: #020617;
-  --muted: #1E293B;
-  --muted-foreground: #94A3B8;
-  --accent: #1E293B;
-  --accent-foreground: #F8FAFC;
+  --primary-foreground: var(--background);
+  --secondary: oklch(0.225 0.005 60);
+  --secondary-foreground: oklch(0.8 0.006 65);
+  --muted: oklch(0.255 0.006 65);
+  --muted-foreground: oklch(0.75 0.006 65);
+  --accent: oklch(0.255 0.006 65);
+  --accent-foreground: oklch(0.95 0.004 68);
   --destructive: var(--market-red);
-  --destructive-foreground: #020617;
-  --border: #1E293B;
-  --input: #1E293B;
+  --destructive-foreground: var(--background);
+  --border: oklch(0.31 0.007 67);
+  --input: oklch(0.47 0.009 67);
   --ring: var(--brand-accent);
   --success: var(--market-green);
   --warning: #FBBF24;
@@ -185,28 +185,33 @@
   --chart-3: #38BDF8;
   --chart-4: #FBBF24;
   --chart-5: var(--market-red);
-  --sidebar: #0F172A;
-  --sidebar-foreground: #94A3B8;
+  --sidebar: var(--background);
+  --sidebar-foreground: oklch(0.8 0.006 65);
   --sidebar-primary: var(--brand-accent);
-  --sidebar-primary-foreground: #020617;
-  --sidebar-accent: #1E293B;
-  --sidebar-accent-foreground: #F8FAFC;
-  --sidebar-border: #1E293B;
+  --sidebar-primary-foreground: var(--background);
+  --sidebar-accent: oklch(0.205 0.008 55);
+  --sidebar-accent-foreground: var(--brand-accent);
+  --sidebar-border: oklch(0.31 0.007 67);
   --sidebar-ring: var(--brand-accent);
+
+  --oq-workbench-surface-warm: oklch(0.205 0.008 55);
+  --oq-workbench-selection: oklch(0.205 0.008 55);
+  --oq-workbench-selection-border: oklch(0.482 0.078 58.6);
+  --oq-workbench-divider: oklch(0.235 0.005 67);
 
   /* Brand scramble effect — dark */
   --brand-scramble: var(--brand-accent);
-  --brand-glow: 0 0 10px rgba(255, 106, 26, 0.3);
+  --brand-glow: 0 0 10px oklch(0.72 0.175 47 / 0.22);
 
   /* Elevation — dark: no shadows, use border + bg-step */
   --shadow-card: none;
   --shadow-card-hover: none;
-  --shadow-dropdown: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 40px rgba(255, 106, 26, 0.1);
-  --oq-workbench-tooltip-bg: #1b1816;
-  --oq-workbench-tooltip-border: #3a332d;
-  --oq-workbench-tooltip-text: #d8d1ca;
-  --oq-workbench-tooltip-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  --shadow-dropdown: 0 18px 48px oklch(0 0 0 / 0.52);
+  --shadow-glow: 0 0 40px oklch(0.72 0.175 47 / 0.08);
+  --oq-workbench-tooltip-bg: oklch(0.255 0.006 65);
+  --oq-workbench-tooltip-border: oklch(0.47 0.009 67);
+  --oq-workbench-tooltip-text: oklch(0.8 0.006 65);
+  --oq-workbench-tooltip-shadow: 0 12px 30px oklch(0 0 0 / 0.46);
 }
 
 /* ══════════════════════════════════════════════
@@ -2761,3 +2766,69 @@
 ) { background: var(--oq-midday-paper) !important; }
 
 .dark.oq-marketplace-current-5-active :is(.oq-design-mode-menu, .oq-notification-panel, [data-sonner-toast]) { box-shadow: none !important; }
+
+/* Workbench dark shell: keep navigation and fixed headers on the same OKLCH tokens. */
+.dark .oq-app-shell,
+.dark .oq-app-main-column,
+.dark .oq-sidebar-content,
+.dark .oq-sidebar-aside {
+  background: var(--background) !important;
+  color: var(--foreground);
+}
+
+.dark .oq-sidebar-aside,
+.dark .oq-sidebar-footer,
+.dark .oq-app-header {
+  border-color: var(--border) !important;
+}
+
+.dark .oq-app-header {
+  background: color-mix(in oklch, var(--background) 88%, transparent) !important;
+}
+
+.dark .oq-sidebar-nav-active {
+  border-color: var(--oq-workbench-selection-border) !important;
+  background: var(--oq-workbench-selection) !important;
+  color: var(--brand-accent) !important;
+}
+
+.dark .oq-sidebar-content [class*="dark:bg-[#14110f]"],
+.dark .oq-app-header [class*="dark:bg-[#14110f]"] {
+  background: var(--background) !important;
+}
+
+.dark .oq-sidebar-content [class*="dark:bg-[#1b1511]"],
+.dark .oq-sidebar-content [class*="dark:hover:bg-[#1b1511]"]:hover {
+  background: var(--oq-workbench-surface-warm) !important;
+}
+
+.dark .oq-sidebar-content [class*="dark:bg-[#241e18]"],
+.dark .oq-app-header [class*="dark:bg-[#241e18]"] {
+  background: var(--card) !important;
+}
+
+.dark .oq-sidebar-content [class*="dark:hover:bg-[#2d2113]"]:hover,
+.dark .oq-app-header [class*="dark:hover:bg-[#2d2113]"]:hover {
+  background: var(--oq-workbench-surface-warm) !important;
+}
+
+.dark .oq-sidebar-content [class*="dark:border-[#4b4036]"],
+.dark .oq-app-header [class*="dark:border-[#4b4036]"],
+.dark .oq-app-header [class*="dark:border-[#6a5b4d]"] {
+  border-color: var(--border) !important;
+}
+
+.dark .oq-sidebar-content [class*="dark:text-[#f7f1ea]"],
+.dark .oq-app-header [class*="dark:text-[#f7f1ea]"] {
+  color: var(--foreground) !important;
+}
+
+.dark .oq-sidebar-content [class*="dark:text-[#b2a69b]"],
+.dark .oq-app-header [class*="dark:text-[#b2a69b]"] {
+  color: var(--oq-workbench-tooltip-text) !important;
+}
+
+.dark .oq-sidebar-content [class*="dark:hover:text-[#ff6a1a]"]:hover,
+.dark .oq-app-header [class*="dark:hover:text-[#ff6a1a]"]:hover {
+  color: var(--brand-accent) !important;
+}

@@ -1119,28 +1119,30 @@
 
 
 .oq-marketplace-active .oq-app-main-column {
-  background: rgb(251 251 252);
+  background: oklch(0.976 0 0);
 }
 
 .oq-marketplace-active .oq-app-main-column > header {
   /* Keep the shared shell's 85% translucent header while matching the page canvas. */
-  background: rgb(251 251 252 / 85%);
+  background: oklch(0.976 0 0 / 0.85);
 }
 
 /* Workbench dark palette: warm, low-chroma surfaces with semantic trading colors. */
 .dark.oq-marketplace-active {
-  --oq-market-dark-canvas: oklch(0.155 0.006 57.433);
-  --oq-market-dark-surface-1: oklch(0.215 0.009 57);
-  --oq-market-dark-surface-2: oklch(0.255 0.012 60);
-  --oq-market-dark-surface-warm: oklch(0.235 0.025 55);
-  --oq-market-dark-surface-3: oklch(0.295 0.014 65);
-  --oq-market-dark-border: oklch(0.34 0.016 67);
-  --oq-market-dark-border-strong: oklch(0.51 0.023 67);
-  --oq-market-dark-text: oklch(0.95 0.014 68);
-  --oq-market-dark-text-soft: oklch(0.8 0.022 65);
-  --oq-market-dark-muted: oklch(0.68 0.021 67);
-  --oq-market-dark-accent: oklch(0.72 0.185 47);
-  --oq-market-dark-accent-hover: oklch(0.81 0.13 58);
+  --oq-market-dark-canvas: oklch(0.135 0.003 57.433);
+  --oq-market-dark-surface-1: oklch(0.19 0.004 57);
+  --oq-market-dark-surface-2: oklch(0.225 0.005 60);
+  --oq-market-dark-surface-warm: oklch(0.205 0.008 55);
+  --oq-market-dark-surface-3: oklch(0.255 0.006 65);
+  --oq-market-dark-selection: oklch(0.205 0.008 55);
+  --oq-market-dark-selection-border: oklch(0.482 0.078 58.6);
+  --oq-market-dark-border: oklch(0.31 0.007 67);
+  --oq-market-dark-border-strong: oklch(0.47 0.009 67);
+  --oq-market-dark-text: oklch(0.95 0.004 68);
+  --oq-market-dark-text-soft: oklch(0.8 0.006 65);
+  --oq-market-dark-muted: oklch(0.68 0.006 67);
+  --oq-market-dark-accent: oklch(0.72 0.175 47);
+  --oq-market-dark-accent-hover: oklch(0.81 0.12 58);
   --oq-market-dark-success: oklch(0.75 0.12 155);
   --oq-market-dark-success-bg: oklch(0.235 0.04 155);
   --oq-market-dark-risk: oklch(0.72 0.17 25);
@@ -1149,7 +1151,7 @@
   --foreground: var(--oq-market-dark-text);
   --card: var(--oq-market-dark-surface-1);
   --card-foreground: var(--oq-market-dark-text);
-  --popover: var(--oq-market-dark-surface-2);
+  --popover: var(--oq-market-dark-surface-1);
   --popover-foreground: var(--oq-market-dark-text);
   --primary: var(--oq-market-dark-accent);
   --primary-foreground: var(--oq-market-dark-canvas);
@@ -1164,7 +1166,7 @@
   --oq-workbench-tooltip-bg: var(--oq-market-dark-surface-3);
   --oq-workbench-tooltip-border: var(--oq-market-dark-border-strong);
   --oq-workbench-tooltip-text: var(--oq-market-dark-text-soft);
-  --oq-workbench-tooltip-shadow: 0 8px 22px oklch(0 0 0 / 0.36);
+  --oq-workbench-tooltip-shadow: 0 12px 30px oklch(0 0 0 / 0.46);
   --oq-toast-success-bg: var(--oq-market-dark-success-bg);
   --oq-toast-success-text: var(--oq-market-dark-text);
   --oq-toast-success-border: oklch(0.55 0.08 155);
@@ -1181,6 +1183,64 @@
 .dark.oq-marketplace-active .oq-app-main-column > header {
   border-color: var(--oq-market-dark-border);
   background: color-mix(in oklch, var(--oq-market-dark-canvas) 88%, transparent);
+}
+
+.dark.oq-marketplace-active .oq-notification-trigger {
+  border-color: var(--oq-market-dark-border-strong) !important;
+  background: var(--oq-market-dark-surface-2) !important;
+  color: var(--oq-market-dark-text-soft) !important;
+  box-shadow: none !important;
+}
+
+.dark.oq-marketplace-active .oq-notification-trigger.is-open {
+  border-color: var(--oq-market-dark-selection-border) !important;
+  background: var(--oq-market-dark-selection) !important;
+  color: var(--oq-market-dark-accent) !important;
+}
+
+.dark.oq-marketplace-active .oq-notification-panel {
+  border-color: var(--oq-market-dark-border-strong) !important;
+  background: var(--oq-market-dark-surface-1) !important;
+  color: var(--oq-market-dark-text) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-marketplace-active :is(.oq-notification-header, .oq-notification-tabs, .oq-notification-scroll) {
+  border-color: var(--oq-market-dark-border) !important;
+  background: var(--oq-market-dark-surface-1) !important;
+  color: var(--oq-market-dark-text) !important;
+}
+
+.dark.oq-marketplace-active .oq-notification-tab {
+  color: var(--oq-market-dark-text-soft) !important;
+}
+
+.dark.oq-marketplace-active .oq-notification-tab:hover,
+.dark.oq-marketplace-active .oq-notification-item:hover {
+  background: var(--oq-market-dark-surface-warm) !important;
+  color: var(--oq-market-dark-text) !important;
+}
+
+.dark.oq-marketplace-active .oq-notification-tab.is-active {
+  border-color: var(--oq-market-dark-selection-border) !important;
+  background: var(--oq-market-dark-selection) !important;
+  color: var(--oq-market-dark-accent) !important;
+  box-shadow: none !important;
+}
+
+.dark.oq-marketplace-active .oq-notification-item {
+  background: var(--oq-market-dark-surface-1) !important;
+  color: var(--oq-market-dark-text) !important;
+}
+
+.dark.oq-marketplace-active .oq-notification-item-icon.is-success {
+  background: var(--oq-market-dark-success-bg) !important;
+  color: var(--oq-market-dark-success) !important;
+}
+
+.dark.oq-marketplace-active .oq-notification-item-icon.is-risk {
+  background: var(--oq-market-dark-risk-bg) !important;
+  color: var(--oq-market-dark-risk) !important;
 }
 
 .dark.oq-marketplace-active .oq-marketplace {
@@ -1205,13 +1265,39 @@
   --oq-market-muted: var(--oq-market-dark-muted);
 }
 
+.dark.oq-marketplace-active .oq-marketplace-card {
+  border: 0.75px solid oklch(0.265 0.006 67);
+  background: oklch(0.165 0.003 57);
+}
+
+.dark.oq-marketplace-active .oq-marketplace-ranking-board {
+  border: 1px solid var(--oq-market-dark-border);
+}
+
+.dark.oq-marketplace-active :is(.oq-marketplace-card, .oq-marketplace-ranking-board):hover {
+  border-color: var(--oq-market-dark-border-strong);
+}
+
+.dark.oq-marketplace-active :is(.oq-marketplace-ranking-more, .oq-marketplace-summary-create) {
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--oq-market-dark-border-strong);
+  background: var(--oq-market-dark-surface-1);
+  color: var(--oq-market-dark-text-soft);
+}
+
+.dark.oq-marketplace-active :is(.oq-marketplace-ranking-more, .oq-marketplace-summary-create):hover {
+  border-color: var(--oq-market-dark-accent);
+  background: var(--oq-market-dark-surface-warm);
+  color: var(--oq-market-dark-accent);
+}
+
 .dark.oq-marketplace-active .oq-marketplace-summary {
-  border-color: var(--oq-market-dark-border);
-  background: linear-gradient(0deg, var(--oq-market-dark-surface-1) 28%, var(--oq-market-dark-surface-warm) 100%);
+  border: 0.75px solid oklch(0.265 0.006 67);
+  background: oklch(0.165 0.003 57);
 }
 
 .dark.oq-marketplace-active .oq-marketplace-summary:hover {
-  border-color: var(--oq-market-dark-border-strong);
   box-shadow: 0 10px 20px oklch(0 0 0 / 0.3);
 }
 
@@ -1221,18 +1307,19 @@
 }
 
 .dark.oq-marketplace-active .oq-marketplace-summary-create {
-  border-color: var(--oq-market-dark-border);
-  background: transparent;
-  color: var(--oq-market-dark-text);
+  border-color: var(--oq-market-dark-border-strong);
+  background: var(--oq-market-dark-surface-1);
+  color: var(--oq-market-dark-text-soft);
 }
 
 .dark.oq-marketplace-active .oq-marketplace-summary-create:hover {
-  border-color: var(--oq-market-dark-border-strong);
-  background: var(--oq-market-dark-surface-3);
+  border-color: var(--oq-market-dark-accent);
+  background: var(--oq-market-dark-surface-warm);
+  color: var(--oq-market-dark-accent);
 }
 
 .dark.oq-marketplace-active :is(.oq-marketplace-carousel-controls button, .oq-marketplace-ranking-more) {
-  border-color: var(--oq-market-dark-border);
+  border-color: var(--oq-market-dark-border-strong);
   background: var(--oq-market-dark-surface-1);
   color: var(--oq-market-dark-text-soft);
 }
@@ -1289,7 +1376,7 @@
 
 .dark.oq-marketplace-active .oq-marketplace-cta-inner {
   border: 1px solid var(--oq-market-dark-border);
-  background: linear-gradient(135deg, var(--oq-market-dark-surface-warm), var(--oq-market-dark-surface-1) 64%);
+  background: var(--oq-market-dark-surface-1);
 }
 
 .dark.oq-marketplace-active .oq-marketplace-cta-button:hover {
@@ -1302,7 +1389,24 @@
   border-color: var(--oq-market-dark-border-strong) !important;
   background: var(--oq-market-dark-surface-1) !important;
   color: var(--oq-market-dark-text) !important;
-  box-shadow: 0 16px 38px oklch(0 0 0 / 0.52) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-marketplace-active :is(
+  [data-slot="dialog-content"],
+  [data-slot="popover-content"],
+  [data-slot="dropdown-menu-content"],
+  [data-slot="select-content"],
+  [data-slot="context-menu-content"]
+) {
+  border-color: var(--oq-market-dark-border-strong) !important;
+  background: var(--oq-market-dark-surface-1) !important;
+  color: var(--oq-market-dark-text) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-marketplace-active [data-slot="dialog-overlay"] {
+  background: oklch(0 0 0 / 0.58) !important;
 }
 
 .dark.oq-marketplace-active [data-sonner-toast][data-type="success"] {

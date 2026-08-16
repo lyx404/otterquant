@@ -7,6 +7,7 @@
   --qa-surface-strong: #ece6df;
   --qa-border: #ece6df;
   --qa-border-strong: #ece6df;
+  --qa-divider: var(--qa-border);
   --qa-border-width: 0.75px;
   --qa-text: #0d0d0d;
   --qa-text-soft: #4a443d;
@@ -53,6 +54,7 @@
   --qa-surface-strong: var(--oq-account-surface-4);
   --qa-border: var(--oq-account-border);
   --qa-border-strong: var(--oq-account-border-strong);
+  --qa-divider: var(--oq-account-divider);
   --qa-text: var(--oq-account-text);
   --qa-text-soft: var(--oq-account-text-soft);
   --qa-muted: var(--oq-account-muted);
@@ -578,7 +580,7 @@
   grid-template-columns: 28px minmax(0, 1fr);
   align-items: start;
   gap: 12px;
-  border-bottom: var(--qa-border-width) solid var(--qa-border);
+  border-bottom: var(--qa-border-width) solid var(--qa-divider);
   padding: 16px 0;
 }
 
@@ -681,7 +683,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  border-top: var(--qa-border-width) solid var(--qa-border);
+  border-top: var(--qa-border-width) solid var(--qa-divider);
   padding: 14px 0;
   background: transparent;
 }
@@ -833,7 +835,7 @@
 .oq-profile-section {
   margin: 0 20px;
   border: 0;
-  border-top: var(--qa-border-width) solid var(--qa-border);
+  border-top: var(--qa-border-width) solid var(--qa-divider);
   border-radius: 0;
   background: transparent;
 }
@@ -1828,31 +1830,35 @@
 
 /* Keep the account canvas and translucent shell aligned with Explore in light mode. */
 .oq-account-active .oq-app-main-column {
-  background: rgb(251 251 252);
+  background: oklch(0.976 0 0);
 }
 
 .oq-account-active .oq-app-main-column > header {
-  background: rgb(251 251 252 / 85%);
+  background: oklch(0.976 0 0 / 0.85);
 }
 
 /* Route scope also themes portal-based selects, tooltips and toasts. */
 .dark.oq-account-active {
-  --oq-account-canvas: oklch(0.155 0.006 57.433);
-  --oq-account-surface-1: oklch(0.215 0.009 57);
-  --oq-account-surface-2: oklch(0.255 0.012 60);
-  --oq-account-surface-warm: oklch(0.235 0.025 55);
-  --oq-account-surface-3: oklch(0.295 0.014 65);
-  --oq-account-surface-4: oklch(0.345 0.016 65);
-  --oq-account-border: oklch(0.34 0.016 67);
-  --oq-account-border-strong: oklch(0.51 0.023 67);
-  --oq-account-border-emphasis: oklch(0.6 0.025 65);
-  --oq-account-text: oklch(0.95 0.014 68);
-  --oq-account-text-warm: oklch(0.89 0.019 68);
-  --oq-account-text-soft: oklch(0.8 0.022 65);
-  --oq-account-muted: oklch(0.68 0.021 67);
-  --oq-account-muted-strong: oklch(0.75 0.021 65);
-  --oq-account-accent: oklch(0.72 0.185 47);
-  --oq-account-accent-hover: oklch(0.81 0.13 58);
+  /* Warm-neutral graphite surfaces keep brand orange for interaction emphasis. */
+  --oq-account-canvas: oklch(0.12 0.002 57.433);
+  --oq-account-surface-1: oklch(0.165 0.003 57);
+  --oq-account-surface-2: oklch(0.19 0.004 60);
+  --oq-account-surface-warm: oklch(0.175 0.006 55);
+  --oq-account-surface-3: oklch(0.215 0.005 65);
+  --oq-account-surface-4: oklch(0.26 0.006 65);
+  --oq-account-border: oklch(0.265 0.006 67);
+  --oq-account-border-strong: oklch(0.365 0.008 67);
+  --oq-account-border-emphasis: oklch(0.44 0.009 65);
+  --oq-account-divider: oklch(0.2 0.004 67);
+  --oq-account-selection: oklch(0.175 0.006 55);
+  --oq-account-selection-border: color-mix(in oklch, var(--oq-account-accent) 28%, var(--oq-account-border));
+  --oq-account-text: oklch(0.95 0.004 68);
+  --oq-account-text-warm: oklch(0.89 0.006 68);
+  --oq-account-text-soft: oklch(0.8 0.006 65);
+  --oq-account-muted: oklch(0.68 0.006 67);
+  --oq-account-muted-strong: oklch(0.75 0.006 65);
+  --oq-account-accent: oklch(0.72 0.175 47);
+  --oq-account-accent-hover: oklch(0.81 0.12 58);
   --oq-account-success: oklch(0.75 0.12 155);
   --oq-account-success-bg: oklch(0.235 0.04 155);
   --oq-account-risk: oklch(0.72 0.17 25);
@@ -1909,15 +1915,24 @@
   :is(
     .oq-account-language-trigger,
     .oq-input,
-    .oq-profile-code-button,
-    .oq-profile-edit-button:not(.is-primary)
+    .oq-profile-code-button
   ) {
   border-color: var(--oq-account-border-strong);
 }
 
+.dark.oq-account-active .oq-account .oq-profile-edit-button:not(.is-primary) {
+  border-color: var(--oq-account-border);
+}
+
 .dark.oq-account-active .oq-account .oq-account-nav-item.is-active {
-  border-color: var(--oq-account-border-emphasis);
-  background: var(--oq-account-surface-3);
+  border-color: var(--oq-account-selection-border);
+  background: var(--oq-account-selection);
+  color: var(--oq-account-accent);
+}
+
+.dark.oq-account-active .oq-account :is(.oq-account-color-option.is-active, .oq-account-theme-option.is-active) {
+  border-color: var(--oq-account-selection-border);
+  background: var(--oq-account-selection);
   color: var(--oq-account-accent);
 }
 
@@ -1991,7 +2006,7 @@
 }
 
 .dark.oq-account-active .oq-account-language-item[data-state="checked"] {
-  background: var(--oq-account-surface-3);
+  background: var(--oq-account-selection);
   color: var(--oq-account-text);
 }
 
