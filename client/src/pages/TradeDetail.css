@@ -48,17 +48,17 @@
 
 /* Route scope keeps portal-based dialogs, menus, tooltips and toasts on the same palette. */
 .dark.oq-trade-detail-active {
-  --oq-trade-detail-canvas: oklch(0.135 0.003 57.433);
-  --oq-trade-detail-surface-1: oklch(0.19 0.004 57);
-  --oq-trade-detail-surface-2: oklch(0.225 0.005 60);
-  --oq-trade-detail-surface-warm: oklch(0.205 0.008 55);
-  --oq-trade-detail-surface-3: oklch(0.255 0.006 65);
-  --oq-trade-detail-surface-4: oklch(0.315 0.007 65);
-  --oq-trade-detail-border: oklch(0.31 0.007 67);
-  --oq-trade-detail-border-strong: oklch(0.47 0.009 67);
-  --oq-trade-detail-border-emphasis: oklch(0.56 0.01 65);
-  --oq-trade-detail-selection: oklch(0.205 0.008 55);
-  --oq-trade-detail-selection-border: oklch(0.482 0.078 58.6);
+  --oq-trade-detail-canvas: oklch(0.12 0.002 57.433);
+  --oq-trade-detail-surface-1: oklch(0.165 0.003 57);
+  --oq-trade-detail-surface-2: oklch(0.19 0.004 60);
+  --oq-trade-detail-surface-warm: oklch(0.175 0.006 55);
+  --oq-trade-detail-surface-3: oklch(0.215 0.005 65);
+  --oq-trade-detail-surface-4: oklch(0.26 0.006 65);
+  --oq-trade-detail-border: oklch(0.265 0.006 67);
+  --oq-trade-detail-border-strong: oklch(0.365 0.008 67);
+  --oq-trade-detail-border-emphasis: oklch(0.44 0.009 65);
+  --oq-trade-detail-selection: oklch(0.175 0.006 55);
+  --oq-trade-detail-selection-border: color-mix(in oklch, var(--oq-trade-detail-accent) 28%, var(--oq-trade-detail-border));
   --oq-trade-detail-text: oklch(0.95 0.004 68);
   --oq-trade-detail-text-warm: oklch(0.89 0.006 68);
   --oq-trade-detail-text-soft: oklch(0.8 0.006 65);
@@ -163,8 +163,20 @@
   --td-risk: var(--oq-trade-detail-risk);
 }
 
+/* Marketplace strategy details use one shared card treatment across the hero,
+   overview panels, and the position workspace container. */
+.dark.oq-trade-detail-active .oq-trade-detail.is-marketplace-detail :is(
+  .oq-trade-detail-hero,
+  .oq-trade-overview-card,
+  .oq-trade-workspace
+) {
+  border: 0.75px solid var(--oq-trade-detail-border);
+  background: var(--oq-trade-detail-surface-1);
+}
+
 .dark.oq-trade-detail-active .oq-trade-performance-metrics > div {
   border-color: var(--oq-trade-detail-border);
+  border-width: 0;
   background: var(--oq-trade-detail-surface-2);
 }
 
@@ -366,6 +378,13 @@
   background: var(--oq-trade-detail-surface-1) !important;
   color: var(--oq-trade-detail-text) !important;
   box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-trade-detail-active :is([data-slot="tooltip-content"], [data-slot="hover-card-content"]) {
+  border-color: var(--oq-trade-detail-border-strong) !important;
+  background: var(--oq-trade-detail-surface-3) !important;
+  color: var(--oq-trade-detail-text-soft) !important;
+  box-shadow: var(--oq-workbench-tooltip-shadow) !important;
 }
 
 .dark.oq-trade-detail-active :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"]) {

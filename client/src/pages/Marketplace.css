@@ -1271,7 +1271,8 @@
 }
 
 .dark.oq-marketplace-active .oq-marketplace-ranking-board {
-  border: 1px solid var(--oq-market-dark-border);
+  border: 0.75px solid oklch(0.265 0.006 67);
+  background: oklch(0.165 0.003 57);
 }
 
 .dark.oq-marketplace-active :is(.oq-marketplace-card, .oq-marketplace-ranking-board):hover {
@@ -1375,8 +1376,8 @@
 }
 
 .dark.oq-marketplace-active .oq-marketplace-cta-inner {
-  border: 1px solid var(--oq-market-dark-border);
-  background: var(--oq-market-dark-surface-1);
+  border: 0.75px solid oklch(0.265 0.006 67);
+  background: oklch(0.165 0.003 57);
 }
 
 .dark.oq-marketplace-active .oq-marketplace-cta-button:hover {
@@ -1403,6 +1404,12 @@
   background: var(--oq-market-dark-surface-1) !important;
   color: var(--oq-market-dark-text) !important;
   box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-marketplace-active .oq-marketplace-copy-dialog {
+  border: 0.75px solid oklch(0.265 0.006 67) !important;
+  background: oklch(0.165 0.003 57) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.54) !important;
 }
 
 .dark.oq-marketplace-active [data-slot="dialog-overlay"] {

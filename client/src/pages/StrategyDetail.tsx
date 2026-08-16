@@ -62,6 +62,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import "./StrategyDetailTheme.css";
 
 const SHOW_LIVE_DEPLOY_ACTION = false;
 const DELETED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:deleted-strategies";
@@ -471,7 +472,11 @@ export default function StrategyDetail() {
 
   useEffect(() => {
     document.documentElement.classList.add("oq-strategies-active");
-    return () => document.documentElement.classList.remove("oq-strategies-active");
+    document.documentElement.classList.add("oq-strategy-detail-active");
+    return () => {
+      document.documentElement.classList.remove("oq-strategies-active");
+      document.documentElement.classList.remove("oq-strategy-detail-active");
+    };
   }, []);
   const [strategyEditValues, setStrategyEditValues] = useState<StrategyComposerValues | null>(null);
   const [sessionStrategyVersions, setSessionStrategyVersions] = useState<StrategyVersion[]>([]);
