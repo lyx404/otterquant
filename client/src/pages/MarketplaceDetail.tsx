@@ -674,6 +674,7 @@ export default function MarketplaceDetail() {
                 seriesSplitIndex={trendSeriesSplitIndex}
                 dataOffset={visibleTrendWindow.startIndex}
                 liveLabel={tr("Live", "实盘")}
+                tooltipVariant="workbench"
                 ariaLabel={
                   chartMetric === "return"
                     ? tr(`${strategy.name} performance curve`, `${strategy.name} 收益曲线`)

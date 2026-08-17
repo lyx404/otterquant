@@ -1651,6 +1651,13 @@
   margin-top: 0;
 }
 
+.oq-marketplace-detail-chart-section .oq-trade-trend-chart .g2-tooltip {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
 .oq-marketplace-detail-chart-range {
   display: grid;
   min-width: 0;

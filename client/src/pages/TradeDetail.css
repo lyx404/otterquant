@@ -1377,6 +1377,13 @@
   aspect-ratio: auto;
 }
 
+.oq-trade-detail .oq-trade-trend-chart .g2-tooltip {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
 .oq-trade-trend-chart .recharts-cartesian-axis-tick-value {
   fill: var(--td-muted);
   font-family: var(--font-body);

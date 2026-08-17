@@ -3,6 +3,7 @@ import { Chart } from "@antv/g2";
 
 export type TradeTrendMetric = "return" | "pnl";
 export type TradeTrendMetricKey = "returnValue" | "pnlValue";
+export type TradeTrendTooltipVariant = "compact" | "workbench";
 
 export type TradeTrendPoint = {
   date: string;
@@ -181,6 +182,47 @@ function chartPalette(container: HTMLElement) {
   };
 }
 
+function renderTrendTooltip({
+  title,
+  items,
+  metric,
+  metricLabel,
+  singleSeriesColor,
+  palette,
+  variant,
+}: {
+  title: string;
+  items: Array<{ color?: unknown; name?: unknown; value?: unknown }>;
+  metric: TradeTrendMetric;
+  metricLabel: string;
+  singleSeriesColor: string;
+  palette: ReturnType<typeof chartPalette>;
+  variant: TradeTrendTooltipVariant;
+}) {
+  const isWorkbench = variant === "workbench";
+  const rowStyle = isWorkbench
+    ? "display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;gap:8px"
+    : "display:grid;grid-template-columns:7px minmax(0,1fr) auto;align-items:center;gap:8px";
+  const dotSize = isWorkbench ? 8 : 7;
+  const labelStyle = isWorkbench
+    ? `overflow:hidden;color:${palette.tooltipMuted};font-family:var(--font-body,ui-sans-serif,sans-serif);font-size:12px;font-weight:600;line-height:18px;letter-spacing:0;text-overflow:ellipsis;white-space:nowrap`
+    : `overflow:hidden;color:${palette.tooltipMuted};font-family:var(--font-body,ui-sans-serif,sans-serif);font-size:12px;font-weight:550;line-height:18px;letter-spacing:0;text-overflow:ellipsis;white-space:nowrap`;
+  const valueStyle = isWorkbench
+    ? `color:${palette.tooltipText};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;line-height:20px;letter-spacing:0;white-space:nowrap`
+    : `color:${palette.tooltipText};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;line-height:18px;letter-spacing:0;white-space:nowrap`;
+  const rows = items.map((item) => {
+    const series = item.name || metricLabel;
+    const value = Number(item.value);
+    return `<div style="${rowStyle}"><i style="display:block;width:${dotSize}px;height:${dotSize}px;border-radius:50%;background:${escapeTooltipText(item.color || singleSeriesColor)}"></i><span style="${labelStyle}">${escapeTooltipText(series)}</span><strong style="${valueStyle}">${escapeTooltipText(formatTrendValue(value, metric))}</strong></div>`;
+  }).join("");
+
+  if (isWorkbench) {
+    return `<div style="display:grid;width:100%;min-width:min(252px,calc(100vw - 24px));max-width:100%;box-sizing:border-box;gap:10px;border:1px solid ${palette.tooltipBorder};border-radius:10px;background:${palette.tooltipSurface};padding:12px 14px;color:${palette.tooltipText};font-family:var(--font-body,ui-sans-serif,sans-serif);box-shadow:${palette.tooltipShadow}"><div style="color:${palette.tooltipText};font-size:14px;font-weight:650;line-height:20px;letter-spacing:0">${escapeTooltipText(title)}</div><div style="display:grid;gap:6px">${rows}</div></div>`;
+  }
+
+  return `<div style="display:grid;width:max-content;max-width:min(300px,calc(100vw - 32px));box-sizing:border-box;gap:8px;border:1px solid ${palette.tooltipBorder};border-radius:12px;background:${palette.tooltipSurface};padding:12px 14px;color:${palette.tooltipText};font-family:var(--font-body,ui-sans-serif,sans-serif);box-shadow:${palette.tooltipShadow}"><div style="color:${palette.tooltipText};font-size:12px;font-weight:650;line-height:18px;letter-spacing:0">${escapeTooltipText(title)}</div>${rows}</div>`;
+}
+
 export function TradeTrendChart({
   data,
   metric,
@@ -194,6 +236,7 @@ export function TradeTrendChart({
   showLive = true,
   seriesSplitIndex,
   dataOffset = 0,
+  tooltipVariant = "compact",
 }: {
   data: TradeTrendPoint[];
   metric: TradeTrendMetric;
@@ -207,6 +250,7 @@ export function TradeTrendChart({
   showLive?: boolean;
   seriesSplitIndex?: number;
   dataOffset?: number;
+  tooltipVariant?: TradeTrendTooltipVariant;
 }) {
   const metricKey: TradeTrendMetricKey = metric === "return" ? "returnValue" : "pnlValue";
   const values = data.map((row) => row[metricKey]);
@@ -293,12 +337,7 @@ export function TradeTrendChart({
           crosshairsLineDash: [4, 4],
           crosshairsLineWidth: 1,
           render: (_event: unknown, { title, items }: { title: string; items: Array<{ color?: unknown; name?: unknown; value?: unknown }> }) => {
-            const rows = items.map((item) => {
-              const series = item.name || metricLabel;
-              const value = Number(item.value);
-              return `<div style="display:grid;grid-template-columns:7px minmax(0,1fr) auto;align-items:center;gap:8px"><i style="display:block;width:7px;height:7px;border-radius:50%;background:${escapeTooltipText(item.color || singleSeriesColor)}"></i><span style="overflow:hidden;color:${palette.tooltipMuted};font-family:var(--font-body,ui-sans-serif,sans-serif);font-size:12px;font-weight:550;line-height:18px;letter-spacing:0;text-overflow:ellipsis;white-space:nowrap">${escapeTooltipText(series)}</span><strong style="color:${palette.tooltipText};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:650;font-variant-numeric:tabular-nums;line-height:18px;letter-spacing:0;white-space:nowrap">${escapeTooltipText(formatTrendValue(value, metric))}</strong></div>`;
-            }).join("");
-            return `<div style="display:grid;width:max-content;max-width:min(300px,calc(100vw - 32px));box-sizing:border-box;gap:8px;border:1px solid ${palette.tooltipBorder};border-radius:12px;background:${palette.tooltipSurface};padding:12px 14px;color:${palette.tooltipText};font-family:var(--font-body,ui-sans-serif,sans-serif);box-shadow:${palette.tooltipShadow}"><div style="color:${palette.tooltipText};font-size:12px;font-weight:650;line-height:18px;letter-spacing:0">${escapeTooltipText(title)}</div>${rows}</div>`;
+            return renderTrendTooltip({ title, items, metric, metricLabel, singleSeriesColor, palette, variant: tooltipVariant });
           },
         },
       },
@@ -324,7 +363,7 @@ export function TradeTrendChart({
       ],
     });
     void chart.render();
-  }, [axis.domain, axis.ticks.length, backtestLabel, data, dataOffset, globalSplitIndex, liveLabel, metric, metricKey, metricLabel, showBacktest, showBacktestLive, showLive, splitIndex, values]);
+  }, [axis.domain, axis.ticks.length, backtestLabel, data, dataOffset, globalSplitIndex, liveLabel, metric, metricKey, metricLabel, showBacktest, showBacktestLive, showLive, splitIndex, tooltipVariant, values]);
 
   useEffect(() => () => {
     chartRef.current?.destroy();
