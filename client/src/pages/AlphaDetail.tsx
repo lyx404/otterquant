@@ -30,6 +30,7 @@ import {
   yearlySummary, osYearlySummary, testingStatus, correlationData,
   getAlphaGrade, GRADE_CONFIG, type Factor,
 } from "@/lib/mockData";
+import "./AlphaDetail.css";
 
 type SummaryPeriod = "IS" | "OS" | "DIFF";
 type PnlSamplePeriod = "IS" | "OS";
@@ -334,6 +335,153 @@ function PnlLineChart({
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+type ReferenceFactorDetailProps = {
+  factor: Factor;
+  uiLang: string;
+  detailBackPath: string;
+  isOfficialLibraryView: boolean;
+  officialTier: "official" | "graduated";
+  usedCount: string;
+  chartColors: ReturnType<typeof getChartColorTokens>;
+  chartData: PnlChartPoint[];
+  expressionCopied: boolean;
+  isFavorite: boolean;
+  onBack: () => void;
+  onCopyExpression: () => void;
+  onToggleFavorite: () => void;
+};
+
+function ReferenceFactorDetail({
+  factor,
+  uiLang,
+  isOfficialLibraryView,
+  officialTier,
+  usedCount,
+  chartColors,
+  chartData,
+  expressionCopied,
+  isFavorite,
+  onBack,
+  onCopyExpression,
+  onToggleFavorite,
+}: ReferenceFactorDetailProps) {
+  const tr = (en: string, zh: string) => (uiLang === "zh" ? zh : en);
+  const [sampleWindow, setSampleWindow] = useState<"IS" | "ALL">("IS");
+  const [chartTab, setChartTab] = useState("PnL");
+  const passed = factor.testsPassed;
+  const total = factor.testsPassed + factor.testsFailed;
+  const statusLabel = factor.testsFailed > 0 ? tr("Failed", "未通过") : tr("Passed", "已通过");
+  const grade = getAlphaGrade(factor.osSharpe);
+  const sidebarMetrics = [
+    [tr("Sharpe", "夏普比率"), factor.sharpe.toFixed(2)],
+    ["RANK IC", factor.fitness.toFixed(4)],
+    ["RANK ICIR", (factor.fitness * 0.08).toFixed(2)],
+    [tr("Returns", "收益"), factor.returns],
+    [tr("Max Drawdown", "最大回撤"), factor.drawdown],
+  ];
+  const isMetrics = [
+    [tr("Turnover", "换手率"), factor.turnover],
+    [tr("Fitness", "适应度"), factor.fitness.toFixed(2)],
+    [tr("Margin", "保证金"), "0.0004"],
+    [tr("Self Correlation", "自相关（滞后1）"), correlationData.selfCorrelation.maximum],
+    ["IC", "-0.0005"],
+    ["ICIR", "-0.00"],
+  ];
+  const archiveItems = [
+    [tr("Market", "赛道"), factor.market],
+    [tr("Holding Period", "前瞻周期"), "7 天"],
+    [tr("K-line Period", "K线周期"), "1d"],
+    [tr("Backtest Range", "回测区间"), "2022-01-01 → 2023-12-31"],
+  ];
+  const tests = [
+    { label: "|Rank IC|", value: factor.fitness.toFixed(4), threshold: "≤ 0.02", passed: false, detail: tr("The factor's ranking has predictive power for future returns.", "因子对资产的排序在多大程度上预测了它们的未来收益。") },
+    { label: tr("Sharpe Ratio", "夏普比率"), value: factor.osSharpe.toFixed(4), threshold: "≥ 0.8", passed: factor.osSharpe >= 0.8, detail: tr("Risk-adjusted return per unit of volatility.", "风险调整后收益，衡量每承担一单位波动所获得的收益。") },
+    { label: "IS Sharpe", value: factor.sharpe.toFixed(4), threshold: "> 0", passed: factor.sharpe > 0, detail: tr("The in-sample performance is positive.", "样本内表现为正。") },
+  ];
+
+  return (
+    <div className="oq-factor-detail-reference">
+      <div className="oq-factor-detail-back-row">
+        <button type="button" className="oq-factor-detail-back" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4" />
+          {tr("Back to my factors", "返回我的因子")}
+        </button>
+      </div>
+
+      <section className="oq-factor-detail-identity">
+        <div className="oq-factor-detail-identity-copy">
+          <span className="oq-factor-detail-index">NO.{factor.id.replace(/\D/g, "") || "1"}</span>
+          <div>
+            <h1>{factor.name}</h1>
+            <p>{tr("Created", "创建于")} {factor.createdAt} <span>·</span> {factor.id}</p>
+          </div>
+        </div>
+        <div className="oq-factor-detail-identity-status">
+          <span className="oq-factor-detail-grade">{grade}</span>
+          <span className={factor.testsFailed > 0 ? "is-failed" : "is-passed"}>{statusLabel}</span>
+          <button type="button" className={`oq-factor-detail-star ${isFavorite ? "is-active" : ""}`} onClick={onToggleFavorite} aria-label={isFavorite ? tr("Unfavorite factor", "取消收藏因子") : tr("Favorite factor", "收藏因子")}>
+            <Star className="h-4 w-4" />
+          </button>
+        </div>
+      </section>
+
+      <section className="oq-factor-detail-sample-window">
+        <div>
+          <strong>{tr("Sample window", "样本窗口")}</strong>
+          <span>{tr("IS = In-sample · ALL = Full backtest (IS + OS)", "IS = 样本内 · ALL = 完整回测（样本内 + 样本外）")}</span>
+        </div>
+        <div className="oq-factor-detail-segmented">
+          {(["IS", "ALL"] as const).map((item) => (
+            <button key={item} type="button" className={sampleWindow === item ? "is-active" : ""} onClick={() => setSampleWindow(item)}>{item}</button>
+          ))}
+        </div>
+      </section>
+
+      <div className="oq-factor-detail-main-grid">
+        <div className="oq-factor-detail-primary-column">
+          <section className="oq-factor-detail-chart-card">
+            <div className="oq-factor-detail-section-heading">
+              <h2>{tr("Chart", "图表")}</h2>
+              <div className="oq-factor-detail-chart-tabs">
+                {["PnL", "截面净值曲线", "截面 WPCC", "IC衰减", "因子自相关", "分组累计收益率"].map((tab) => (
+                  <button key={tab} type="button" className={chartTab === tab ? "is-active" : ""} onClick={() => setChartTab(tab)}>{tab}</button>
+                ))}
+              </div>
+            </div>
+            <div className="oq-factor-detail-chart">
+              <PnlLineChart data={sampleWindow === "IS" ? chartData : [...chartData, ...chartData.slice(-Math.max(1, Math.floor(chartData.length / 5)))]} upColor={chartColors.upHex} downColor={chartColors.downHex} />
+            </div>
+          </section>
+
+          <section className="oq-factor-detail-expression">
+            <div className="oq-factor-detail-section-heading"><h2>{tr("Expression", "表达式")}</h2><button type="button" onClick={onCopyExpression}><Copy className="h-3.5 w-3.5" />{expressionCopied ? tr("Copied", "已复制") : tr("Copy", "复制")}</button></div>
+            <code>{factor.expression}</code>
+          </section>
+
+          <section className="oq-factor-detail-tests">
+            <div className="oq-factor-detail-section-heading"><h2>{tr("Test results", "检验结果")}</h2><span>{passed}/{total} {tr("passed", "通过")}</span></div>
+            <div className="oq-factor-detail-test-list">
+              {tests.map((test) => (
+                <article key={test.label} className={test.passed ? "is-passed" : "is-failed"}>
+                  <div className="oq-factor-detail-test-title"><span>{test.passed ? "✓" : "×"}</span><strong>{test.label}</strong></div>
+                  <div className="oq-factor-detail-test-value">{test.value} <em>{test.threshold}</em></div>
+                  <p>{test.detail}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <aside className="oq-factor-detail-sidebar">
+          <section className="oq-factor-detail-side-card"><h2>{tr("Metrics", "指标")}</h2><div className="oq-factor-detail-metric-grid">{sidebarMetrics.map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div><h3>{tr("IS window", "IS 窗口")}</h3><div className="oq-factor-detail-metric-grid">{isMetrics.map(([label, value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</div></section>
+          <section className="oq-factor-detail-side-card"><h2>{tr("Archive", "档案")}</h2><div className="oq-factor-detail-archive-grid">{archiveItems.map(([label, value]) => <div key={label} className={label === tr("Backtest Range", "回测区间") ? "is-wide" : ""}><span>{label}</span><strong>{value}</strong></div>)}</div></section>
+          {isOfficialLibraryView ? <p className="oq-factor-detail-library-note">{officialTier === "official" ? tr(`Official factor · used ${usedCount} times`, `官方因子 · 已使用${usedCount}次`) : tr(`Graduated factor · used ${usedCount} times`, `三方因子 · 已使用${usedCount}次`)}</p> : null}
+        </aside>
+      </div>
     </div>
   );
 }
@@ -845,6 +993,29 @@ export default function AlphaDetail({ embedded = false, factorIdOverride, factor
           <p className="mt-4 text-sm text-muted-foreground">{tr("Generating factor...", "正在生成因子...")}</p>
         </div>
       </div>
+    );
+  }
+
+  if (!embedded) {
+    return (
+      <ReferenceFactorDetail
+        factor={factor}
+        uiLang={uiLang}
+        detailBackPath={detailBackPath}
+        isOfficialLibraryView={isOfficialLibraryView}
+        officialTier={officialTier}
+        usedCount={usedCount}
+        chartColors={chartColors}
+        chartData={proPnlData}
+        expressionCopied={copiedExpression}
+        isFavorite={isFavorite}
+        onBack={() => window.location.assign(detailBackPath)}
+        onCopyExpression={handleCopyExpression}
+        onToggleFavorite={() => {
+          setIsFavorite((value) => !value);
+          toast.success(isFavorite ? tr("Removed from favorites", "已取消收藏") : tr("Added to favorites", "已加入收藏"));
+        }}
+      />
     );
   }
 

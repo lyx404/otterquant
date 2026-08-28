@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MarketplaceAvatar } from "@/components/MarketplaceAvatar";
-import { translateUi, useAppLanguage, type UiLang } from "@/contexts/AppLanguageContext";
+import { translateUi, useAppLanguage, type UiCopy, type UiLang } from "@/contexts/AppLanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   marketplaceCardDetails,
@@ -68,6 +68,120 @@ type StrategyAllocation = {
   allocation: string;
   pnl: string;
   returnRate: string;
+};
+
+const marketplaceDetailCopy: Record<string, UiCopy> = {
+  "Strategy not found": { ja: "ストラテジーが見つかりません", ko: "전략을 찾을 수 없습니다", es: "Estrategia no encontrada", fr: "Stratégie introuvable" },
+  "Back to Explore": { ja: "探索に戻る", ko: "탐색으로 돌아가기", es: "Volver a Explorar", fr: "Retour à Explorer" },
+  "Strategy heading": { ja: "ストラテジー概要", ko: "전략 개요", es: "Resumen de la estrategia", fr: "Aperçu de la stratégie" },
+  Investing: { ja: "コピートレード中", ko: "카피 트레이딩 중", es: "Copy trading activo", fr: "Copy trading en cours" },
+  "Collapse profile bio": { ja: "プロフィールを閉じる", ko: "프로필 소개 접기", es: "Contraer perfil", fr: "Réduire le profil" },
+  "Expand profile bio": { ja: "プロフィールを展開", ko: "프로필 소개 펼치기", es: "Expandir perfil", fr: "Développer le profil" },
+  "Collapse strategy overview": { ja: "ストラテジー概要を閉じる", ko: "전략 개요 접기", es: "Contraer resumen de estrategia", fr: "Réduire le résumé de la stratégie" },
+  "Expand strategy overview": { ja: "ストラテジー概要を展開", ko: "전략 개요 펼치기", es: "Expandir resumen de estrategia", fr: "Développer le résumé de la stratégie" },
+  "Strategy thesis": { ja: "ストラテジーの考え方", ko: "전략 논리", es: "Tesis de la estrategia", fr: "Thèse de la stratégie" },
+  "When to enter": { ja: "エントリー条件", ko: "진입 시점", es: "Cuándo entrar", fr: "Quand entrer" },
+  "Enter when SOL flow and momentum confirm the same direction across the active cycle.": { ja: "SOL のフローとモメンタムが、運用サイクル内で同方向を確認したときにエントリーします。", ko: "SOL 자금 흐름과 모멘텀이 운용 주기 내에서 같은 방향을 확인할 때 진입합니다.", es: "Entra cuando el flujo y el momentum de SOL confirmen la misma dirección durante el ciclo activo.", fr: "Entrez lorsque les flux et le momentum de SOL confirment la même direction pendant le cycle actif." },
+  "When to exit": { ja: "エグジット条件", ko: "청산 시점", es: "Cuándo salir", fr: "Quand sortir" },
+  "Reduce exposure when momentum fades or the position reaches its risk budget.": { ja: "モメンタムが弱まる、またはポジションがリスク予算に達した場合にエクスポージャーを縮小します。", ko: "모멘텀이 약해지거나 포지션이 리스크 예산에 도달하면 익스포저를 줄입니다.", es: "Reduce la exposición cuando el momentum se debilite o la posición alcance su presupuesto de riesgo.", fr: "Réduisez l’exposition lorsque le momentum s’essouffle ou que la position atteint son budget de risque." },
+  "Risk controls": { ja: "リスク管理", ko: "리스크 관리", es: "Controles de riesgo", fr: "Contrôles du risque" },
+  "Exposure is sized around volatility and liquidity so the strategy stays within its drawdown guardrail.": { ja: "ボラティリティと流動性に応じてエクスポージャーを調整し、ストラテジーをドローダウン許容範囲内に保ちます。", ko: "변동성과 유동성에 맞춰 익스포저를 조정하여 전략이 최대 낙폭 한도 내에 유지되도록 합니다.", es: "La exposición se dimensiona según la volatilidad y la liquidez para mantener la estrategia dentro de su límite de drawdown.", fr: "L’exposition est calibrée selon la volatilité et la liquidité afin de maintenir la stratégie dans sa limite de drawdown." },
+  Today: { ja: "今日", ko: "오늘", es: "Hoy", fr: "Aujourd’hui" },
+  "Past 7 days": { ja: "過去 7 日", ko: "지난 7일", es: "Últimos 7 días", fr: "7 derniers jours" },
+  "Past 30 days": { ja: "過去 30 日", ko: "지난 30일", es: "Últimos 30 días", fr: "30 derniers jours" },
+  "Past 90 days": { ja: "過去 90 日", ko: "지난 90일", es: "Últimos 90 días", fr: "90 derniers jours" },
+  "Past 180 days": { ja: "過去 180 日", ko: "지난 180일", es: "Últimos 180 días", fr: "180 derniers jours" },
+  "Past year": { ja: "過去 1 年", ko: "지난 1년", es: "Último año", fr: "Année écoulée" },
+  "Custom date range": { ja: "カスタム期間", ko: "사용자 지정 기간", es: "Rango personalizado", fr: "Période personnalisée" },
+  "Select time range": { ja: "期間を選択", ko: "기간 선택", es: "Seleccionar período", fr: "Sélectionner une période" },
+  "Start date": { ja: "開始日", ko: "시작일", es: "Fecha de inicio", fr: "Date de début" },
+  "End date": { ja: "終了日", ko: "종료일", es: "Fecha de fin", fr: "Date de fin" },
+  "Switch time range": { ja: "期間を切り替える", ko: "기간 전환", es: "Cambiar período", fr: "Changer de période" },
+  "Performance overview": { ja: "パフォーマンス概要", ko: "성과 개요", es: "Resumen de rendimiento", fr: "Vue d’ensemble des performances" },
+  "Return rate": { ja: "リターン", ko: "수익률", es: "Rentabilidad", fr: "Rendement" },
+  "P&L (USDT)": { ja: "損益 (USDT)", ko: "손익 (USDT)", es: "P&L (USDT)", fr: "PnL (USDT)" },
+  "Max drawdown": { ja: "最大ドローダウン", ko: "최대 낙폭", es: "Drawdown máximo", fr: "Drawdown maximal" },
+  "Sharpe ratio": { ja: "シャープレシオ", ko: "샤프 비율", es: "Ratio de Sharpe", fr: "Ratio de Sharpe" },
+  "Win rate": { ja: "勝率", ko: "승률", es: "Tasa de acierto", fr: "Taux de réussite" },
+  "Assets under management": { ja: "運用資産残高", ko: "운용 자산", es: "Activos bajo gestión", fr: "Actifs sous gestion" },
+  "Portfolio days": { ja: "ポートフォリオ運用日数", ko: "포트폴리오 운용 일수", es: "Días de cartera", fr: "Jours du portefeuille" },
+  "Portfolio Investors": { ja: "コピートレーダー", ko: "카피 트레이더", es: "Copy traders", fr: "Copy traders" },
+  Performance: { ja: "パフォーマンス", ko: "성과", es: "Rendimiento", fr: "Performance" },
+  "Performance sources": { ja: "パフォーマンスのデータソース", ko: "성과 데이터 소스", es: "Fuentes de rendimiento", fr: "Sources de performance" },
+  Backtest: { ja: "バックテスト", ko: "백테스트", es: "Backtest", fr: "Backtest" },
+  Live: { ja: "実運用", ko: "실거래", es: "En vivo", fr: "En direct" },
+  "Chart metric": { ja: "チャート指標", ko: "차트 지표", es: "Métrica del gráfico", fr: "Indicateur du graphique" },
+  "P&L": { ja: "損益", ko: "손익", es: "P&L", fr: "PnL" },
+  "Performance curve": { ja: "パフォーマンス曲線", ko: "성과 곡선", es: "Curva de rendimiento", fr: "Courbe de performance" },
+  "P&L curve": { ja: "損益曲線", ko: "손익 곡선", es: "Curva de P&L", fr: "Courbe de PnL" },
+  "Chart time navigator": { ja: "チャート期間ナビゲーター", ko: "차트 기간 탐색기", es: "Navegador temporal del gráfico", fr: "Navigateur temporel du graphique" },
+  "Drag to adjust chart time range": { ja: "ドラッグしてチャート期間を調整", ko: "드래그하여 차트 기간 조정", es: "Arrastra para ajustar el período del gráfico", fr: "Faites glisser pour ajuster la période du graphique" },
+  "Custom range": { ja: "カスタム期間", ko: "사용자 지정 기간", es: "Rango personalizado", fr: "Période personnalisée" },
+  "Portfolio strategies and portfolio investors": { ja: "ポートフォリオ戦略とコピートレーダー", ko: "포트폴리오 전략 및 카피 트레이더", es: "Estrategias de cartera y copy traders", fr: "Stratégies du portefeuille et copy traders" },
+  "Portfolio views": { ja: "ポートフォリオビュー", ko: "포트폴리오 보기", es: "Vistas de cartera", fr: "Vues du portefeuille" },
+  "Portfolio allocation": { ja: "ポートフォリオ配分", ko: "포트폴리오 배분", es: "Asignación de cartera", fr: "Allocation du portefeuille" },
+  "Strategy allocation (5)": { ja: "ストラテジー配分 (5)", ko: "전략 배분 (5)", es: "Asignación de estrategias (5)", fr: "Allocation des stratégies (5)" },
+  Allocation: { ja: "配分", ko: "배분", es: "Asignación", fr: "Allocation" },
+  Return: { ja: "リターン", ko: "수익률", es: "Rentabilidad", fr: "Rendement" },
+  "Copy investing started.": { ja: "コピートレードを開始しました。", ko: "카피 트레이딩을 시작했습니다.", es: "El copy trading ha comenzado.", fr: "Le copy trading a commencé." },
+  "Copy Investing amount": { ja: "コピートレード額", ko: "카피 트레이딩 금액", es: "Importe de copy trading", fr: "Montant du copy trading" },
+  "Available funds": { ja: "利用可能資金", ko: "사용 가능 자금", es: "Fondos disponibles", fr: "Fonds disponibles" },
+  "Enter at least 5,000 USDT to continue.": { ja: "5,000 USDT 以上を入力してください。", ko: "최소 5,000 USDT를 입력하세요.", es: "Introduce al menos 5.000 USDT para continuar.", fr: "Saisissez au moins 5 000 USDT pour continuer." },
+  "The copy investing amount exceeds your available funds.": { ja: "コピートレード額が利用可能資金を超えています。", ko: "카피 트레이딩 금액이 사용 가능 자금을 초과합니다.", es: "El importe de copy trading supera tus fondos disponibles.", fr: "Le montant du copy trading dépasse vos fonds disponibles." },
+  "Copy investing amount must be a multiple of 1,000 USDT.": { ja: "コピートレード額は 1,000 USDT 単位で入力してください。", ko: "카피 트레이딩 금액은 1,000 USDT 단위여야 합니다.", es: "El importe de copy trading debe ser múltiplo de 1.000 USDT.", fr: "Le montant du copy trading doit être un multiple de 1 000 USDT." },
+  "Min. 5,000": { ja: "最低 5,000", ko: "최소 5,000", es: "Mín. 5.000", fr: "Min. 5 000" },
+  Cancel: { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
+  Confirm: { ja: "コピートレードを確定", ko: "카피 트레이딩 확인", es: "Confirmar copy trading", fr: "Confirmer le copy trading" },
+  "Portfolio controls": { ja: "ポートフォリオ操作", ko: "포트폴리오 제어", es: "Controles de cartera", fr: "Contrôles du portefeuille" },
+  "Portfolio terminated": { ja: "ポートフォリオを終了しました", ko: "포트폴리오가 종료되었습니다", es: "Cartera finalizada", fr: "Portefeuille clôturé" },
+  Terminated: { ja: "終了済み", ko: "종료됨", es: "Finalizado", fr: "Clôturé" },
+  "Refresh portfolio": { ja: "ポートフォリオを更新", ko: "포트폴리오 새로고침", es: "Actualizar cartera", fr: "Actualiser le portefeuille" },
+  "Portfolio refreshed.": { ja: "ポートフォリオを更新しました。", ko: "포트폴리오를 새로고침했습니다.", es: "Cartera actualizada.", fr: "Portefeuille actualisé." },
+  Refresh: { ja: "更新", ko: "새로고침", es: "Actualizar", fr: "Actualiser" },
+  "Restart portfolio": { ja: "ポートフォリオを再開", ko: "포트폴리오 재시작", es: "Reiniciar cartera", fr: "Redémarrer le portefeuille" },
+  "Pause portfolio": { ja: "ポートフォリオを一時停止", ko: "포트폴리오 일시 중지", es: "Pausar cartera", fr: "Mettre le portefeuille en pause" },
+  "Portfolio restarted.": { ja: "ポートフォリオを再開しました。", ko: "포트폴리오를 재시작했습니다.", es: "Cartera reiniciada.", fr: "Portefeuille redémarré." },
+  "Portfolio paused.": { ja: "ポートフォリオを一時停止しました。", ko: "포트폴리오를 일시 중지했습니다.", es: "Cartera pausada.", fr: "Portefeuille mis en pause." },
+  Restart: { ja: "再開", ko: "재시작", es: "Reiniciar", fr: "Redémarrer" },
+  Pause: { ja: "一時停止", ko: "일시 중지", es: "Pausar", fr: "Mettre en pause" },
+  "More portfolio controls": { ja: "その他のポートフォリオ操作", ko: "추가 포트폴리오 제어", es: "Más controles de cartera", fr: "Autres contrôles du portefeuille" },
+  More: { ja: "その他", ko: "더보기", es: "Más", fr: "Plus" },
+  "View investment details": { ja: "投資詳細を表示", ko: "투자 상세 보기", es: "Ver detalles de inversión", fr: "Voir les détails d’investissement" },
+  "Stop portfolio": { ja: "ポートフォリオを終了", ko: "포트폴리오 종료", es: "Finalizar cartera", fr: "Clôturer le portefeuille" },
+  "Copy investing controls": { ja: "コピートレード操作", ko: "카피 트레이딩 제어", es: "Controles de copy trading", fr: "Contrôles du copy trading" },
+  "Refresh copy investment": { ja: "コピートレードを更新", ko: "카피 트레이딩 새로고침", es: "Actualizar copy trading", fr: "Actualiser le copy trading" },
+  "Copy investment refreshed.": { ja: "コピートレードを更新しました。", ko: "카피 트레이딩을 새로고침했습니다.", es: "Copy trading actualizado.", fr: "Copy trading actualisé." },
+  "View copy investment details": { ja: "コピートレード詳細を表示", ko: "카피 트레이딩 상세 보기", es: "Ver detalles de copy trading", fr: "Voir les détails du copy trading" },
+  "Terminate copy investment": { ja: "コピートレードを終了", ko: "카피 트레이딩 종료", es: "Finalizar copy trading", fr: "Clôturer le copy trading" },
+  Terminate: { ja: "終了", ko: "종료", es: "Finalizar", fr: "Clôturer" },
+  Full: { ja: "満員", ko: "정원 마감", es: "Completo", fr: "Complet" },
+  Copy: { ja: "コピートレード", ko: "카피 트레이딩", es: "Copy trading", fr: "Copy trading" },
+  "Terminate this portfolio?": { ja: "このポートフォリオを終了しますか？", ko: "이 포트폴리오를 종료하시겠습니까?", es: "¿Finalizar esta cartera?", fr: "Clôturer ce portefeuille ?" },
+  "New trades and rebalancing will stop. Investors will no longer be able to copy this portfolio, and its positions will be handled under the current settlement rules before funds return to the relevant accounts. Historical records and settled performance remain available. This action cannot be undone.": { ja: "新規取引とリバランスを停止します。投資家はこのポートフォリオをコピーできなくなり、保有ポジションは現行の決済ルールに従って処理された後、資金が各アカウントへ返還されます。履歴と確定済みの成績は引き続き確認できます。この操作は取り消せません。", ko: "신규 거래와 리밸런싱이 중단됩니다. 투자자는 이 포트폴리오를 카피할 수 없으며, 기존 포지션은 현재 정산 규정에 따라 처리된 뒤 자금이 해당 계정으로 반환됩니다. 거래 내역과 확정 성과는 계속 확인할 수 있으며 이 작업은 되돌릴 수 없습니다.", es: "Se detendrán las nuevas operaciones y el rebalanceo. Los inversores ya no podrán hacer copy trading de esta cartera; las posiciones se liquidarán según las reglas actuales antes de devolver los fondos a las cuentas correspondientes. El historial y el rendimiento liquidado seguirán disponibles. Esta acción no se puede deshacer.", fr: "Les nouvelles opérations et le rééquilibrage seront arrêtés. Les investisseurs ne pourront plus faire de copy trading sur ce portefeuille et les positions seront traitées selon les règles de règlement en vigueur avant le retour des fonds aux comptes concernés. L’historique et les performances réalisées resteront disponibles. Cette action est irréversible." },
+  "Portfolio terminated.": { ja: "ポートフォリオを終了しました。", ko: "포트폴리오가 종료되었습니다.", es: "Cartera finalizada.", fr: "Portefeuille clôturé." },
+  "Confirm termination": { ja: "終了を確定", ko: "종료 확인", es: "Confirmar finalización", fr: "Confirmer la clôture" },
+  "Terminate copy investment?": { ja: "コピートレードを終了しますか？", ko: "카피 트레이딩을 종료하시겠습니까?", es: "¿Finalizar el copy trading?", fr: "Clôturer le copy trading ?" },
+  "Copy trading and future portfolio rebalancing will stop. Existing positions will be handled under the current settlement rules before funds return to your account. Historical records and settled performance remain available. This action cannot be undone.": { ja: "コピートレードと今後のポートフォリオ・リバランスを停止します。既存ポジションは現行の決済ルールに従って処理され、資金はご自身のアカウントへ返還されます。履歴と確定済みの成績は引き続き確認できます。この操作は取り消せません。", ko: "카피 트레이딩과 향후 포트폴리오 리밸런싱이 중단됩니다. 기존 포지션은 현재 정산 규정에 따라 처리된 후 자금이 계정으로 반환됩니다. 거래 내역과 확정 성과는 계속 확인할 수 있으며 이 작업은 되돌릴 수 없습니다.", es: "Se detendrán el copy trading y los futuros rebalanceos de cartera. Las posiciones existentes se gestionarán según las reglas actuales antes de devolver los fondos a tu cuenta. El historial y el rendimiento liquidado seguirán disponibles. Esta acción no se puede deshacer.", fr: "Le copy trading et les futurs rééquilibrages du portefeuille seront arrêtés. Les positions existantes seront traitées selon les règles de règlement en vigueur avant le retour des fonds sur votre compte. L’historique et les performances réalisées resteront disponibles. Cette action est irréversible." },
+  "Copy investment terminated.": { ja: "コピートレードを終了しました。", ko: "카피 트레이딩이 종료되었습니다.", es: "Copy trading finalizado.", fr: "Copy trading clôturé." },
+};
+
+const marketplaceProfileBioCopy: Record<string, UiCopy> = {
+  "STR-008": {
+    en: "Focused on trend following and risk control, combining spot order flow, validator activity, and ecosystem liquidity shifts with disciplined copy-trading execution.",
+    ja: "トレンドフォローとリスク管理に注力し、現物注文フロー、バリデーター活動、エコシステムの流動性変化を組み合わせ、規律あるコピートレードを実行します。",
+    ko: "추세 추종과 리스크 관리에 집중하며 현물 주문 흐름, 검증인 활동, 생태계 유동성 변화를 결합해 규율 있는 카피 트레이딩을 실행합니다.",
+    es: "Se centra en el seguimiento de tendencias y el control de riesgo, combinando flujo de órdenes spot, actividad de validadores y cambios de liquidez del ecosistema con una ejecución disciplinada de copy trading.",
+    fr: "Se concentre sur le suivi de tendance et le contrôle du risque, en combinant les flux d’ordres spot, l’activité des validateurs et les variations de liquidité de l’écosystème avec une exécution disciplinée du copy trading.",
+  },
+};
+
+const strategyDescriptionCopy: Record<string, UiCopy> = {
+  "STR-008": {
+    ja: "現物注文フロー、バリデーター活動、エコシステムの流動性変化を組み合わせ、SOL のモメンタム局面を特定します。",
+    ko: "현물 주문 흐름, 검증인 활동 및 생태계 유동성 변화를 결합해 SOL 모멘텀 국면을 식별합니다.",
+    es: "Combina flujo de órdenes spot, actividad de validadores y cambios de liquidez del ecosistema para identificar los regímenes de momentum de SOL.",
+    fr: "Combine les flux d’ordres spot, l’activité des validateurs et les variations de liquidité de l’écosystème afin d’identifier les régimes de momentum de SOL.",
+  },
 };
 
 function normalizeChartWindow(
@@ -194,7 +308,8 @@ function EmptyState({ label }: { label: string }) {
 export default function MarketplaceDetail() {
   const { uiLang } = useAppLanguage();
   const { user } = useAuth();
-  const tr = (en: string, zh: string) => translateUi(uiLang, en, zh);
+  const tr = (en: string, zh: string, copy: UiCopy = {}) =>
+    translateUi(uiLang, en, zh, { ...marketplaceDetailCopy[en], ...copy });
   const params = useParams<{ id: string }>();
   const search = useSearch();
   const [, navigate] = useLocation();
@@ -228,7 +343,7 @@ export default function MarketplaceDetail() {
     setCreatorRunState("running");
     setIsCopyInvestmentFollowing(true);
     setTimeRange("1y");
-    setTimeRangeLabel(translateUi(uiLang, "Past year", "近 1 年"));
+    setTimeRangeLabel(translateUi(uiLang, "Past year", "近 1 年", marketplaceDetailCopy["Past year"]));
     window.scrollTo(0, 0);
     return () => document.documentElement.classList.remove("oq-marketplace-detail-active");
   }, [isCreatorView, strategyId, uiLang]);
@@ -302,7 +417,7 @@ export default function MarketplaceDetail() {
         avatar: marketplaceUserProfiles["STR-008"]?.avatar ?? "南",
         avatarTone: marketplaceUserProfiles["STR-008"]?.avatarTone ?? ("rose" as const),
         strategyName: marketplaceFundNames["STR-008"] ?? "SOL 动量趋势",
-        bio: marketplaceProfileBios["STR-008"] ?? "",
+        bio: marketplaceProfileBioCopy["STR-008"]?.[uiLang] ?? marketplaceProfileBios["STR-008"] ?? "",
       }
     : isPortfolioOwnerView
     ? {
@@ -317,7 +432,7 @@ export default function MarketplaceDetail() {
         avatar: userProfile?.avatar ?? strategy.author.slice(0, 1),
         avatarTone: userProfile?.avatarTone,
         strategyName: marketplaceFundNames[strategy.id] ?? strategy.name,
-        bio: marketplaceProfileBios[strategy.id] ?? "专注系统化交易与风险控制，持续优化执行节奏和仓位管理。",
+        bio: marketplaceProfileBioCopy[strategy.id]?.[uiLang] ?? marketplaceProfileBios[strategy.id] ?? "专注系统化交易与风险控制，持续优化执行节奏和仓位管理。",
       };
   const heroAvatarStrategyId = isCopyInvestmentView ? "STR-008" : strategy.id;
   const strategyGuidance = [
@@ -406,7 +521,7 @@ export default function MarketplaceDetail() {
                     <div id="marketplace-detail-strategy-dimensions" className="oq-marketplace-detail-strategy-dimensions is-expanded">
                       <div className="oq-marketplace-detail-strategy-dimension">
                         <span>{tr("Strategy thesis", "策略思路")}</span>
-                        <p>{tr(strategy.description, details.descriptionZh)}</p>
+                        <p>{tr(strategy.description, details.descriptionZh, strategyDescriptionCopy[strategy.id])}</p>
                       </div>
                       {strategyGuidance.map((item) => (
                         <div className="oq-marketplace-detail-strategy-dimension" key={item.title}>
@@ -677,8 +792,8 @@ export default function MarketplaceDetail() {
                 tooltipVariant="workbench"
                 ariaLabel={
                   chartMetric === "return"
-                    ? tr(`${strategy.name} performance curve`, `${strategy.name} 收益曲线`)
-                    : tr(`${strategy.name} P&L curve`, `${strategy.name} 盈亏曲线`)
+                    ? tr("Performance curve", "收益曲线")
+                    : tr("P&L curve", "盈亏曲线")
                 }
               />
               <div className="oq-marketplace-detail-chart-range" role="group" aria-label={tr("Chart time navigator", "图表时间缩略轴")}>

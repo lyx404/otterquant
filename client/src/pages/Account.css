@@ -138,6 +138,839 @@
   line-height: 24px;
 }
 
+/* 260824 agent-management workbench */
+.oq-agent-management-page {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+
+.oq-agent-management-header h2,
+.oq-agent-management-header p,
+.oq-agent-management-card-header h3,
+.oq-agent-management-card-header p {
+  margin: 0;
+}
+
+.oq-agent-management-header h2 {
+  color: var(--qa-text);
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 760;
+  line-height: 30px;
+}
+
+.oq-agent-management-header p {
+  margin-top: 6px;
+  color: var(--qa-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.oq-agent-management-card {
+  overflow: hidden;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 12px;
+  background: var(--qa-bg);
+  box-shadow: var(--qa-shadow-1);
+}
+
+.oq-agent-management-card-header {
+  padding: 18px 20px 14px;
+}
+
+.oq-agent-management-card-header h3 {
+  color: var(--qa-text);
+  font-size: 16px;
+  font-weight: 720;
+  line-height: 24px;
+}
+
+.oq-agent-management-card-header p {
+  margin-top: 3px;
+  color: var(--qa-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.oq-agent-management-table {
+  border-top: var(--qa-border-width) solid var(--qa-border);
+}
+
+.oq-agent-management-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.35fr) minmax(120px, .8fr) minmax(180px, 1.25fr) minmax(120px, auto);
+  min-height: 78px;
+  align-items: center;
+  gap: 16px;
+  border-bottom: var(--qa-border-width) solid var(--qa-border);
+  padding: 0 20px;
+}
+
+.oq-agent-management-row:last-child {
+  border-bottom: 0;
+}
+
+.oq-agent-management-head {
+  min-height: 38px;
+  color: var(--qa-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.oq-agent-management-action-heading,
+.oq-agent-management-action {
+  justify-self: end;
+}
+
+.oq-agent-management-agent,
+.oq-agent-management-activity-agent {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+}
+
+.oq-agent-management-agent > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.oq-agent-management-agent strong,
+.oq-agent-management-activity-agent strong {
+  overflow: hidden;
+  color: var(--qa-text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-agent-management-agent small {
+  color: var(--qa-muted);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.oq-agent-management-mark {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+}
+
+.oq-agent-management-mark.is-openclaw {
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--qa-bg-soft);
+}
+
+.oq-agent-management-mark svg {
+  display: block;
+}
+
+.oq-agent-management-mark-image {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.oq-agent-management-status {
+  display: inline-flex;
+  width: max-content;
+  min-height: 24px;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.oq-agent-management-status > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.oq-agent-management-status.is-connected {
+  background: var(--qa-success-bg);
+  color: var(--qa-success);
+}
+
+.oq-agent-management-status.is-disconnected {
+  background: var(--qa-risk-bg);
+  color: var(--qa-risk);
+}
+
+.oq-agent-management-sync,
+.oq-agent-management-time {
+  color: var(--qa-muted-strong);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.oq-agent-management-action {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 0 13px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  transition: background-color 160ms cubic-bezier(.25, 1, .5, 1), border-color 160ms cubic-bezier(.25, 1, .5, 1), color 160ms cubic-bezier(.25, 1, .5, 1);
+}
+
+.oq-agent-management-action svg {
+  width: 13px;
+  height: 13px;
+}
+
+.oq-agent-management-action.is-secondary {
+  border: var(--qa-border-width) solid var(--qa-border-strong);
+  background: var(--qa-bg);
+  color: var(--qa-text-soft);
+}
+
+.oq-agent-management-action.is-secondary:hover {
+  border-color: var(--qa-risk);
+  background: var(--qa-risk-bg);
+  color: var(--qa-risk);
+}
+
+.oq-agent-management-action.is-primary {
+  border: var(--qa-border-width) solid var(--qa-accent);
+  background: var(--qa-accent);
+  color: #fff;
+}
+
+.oq-agent-management-action.is-primary:hover {
+  background: var(--qa-accent-hover);
+}
+
+.oq-agent-management-activity .oq-agent-management-row {
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.5fr) minmax(120px, auto);
+  min-height: 68px;
+}
+
+.oq-agent-management-event-heading {
+  justify-self: end;
+}
+
+@media (max-width: 767px) {
+  .oq-agent-management-row,
+  .oq-agent-management-activity .oq-agent-management-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px 14px;
+    min-height: 0;
+    padding: 14px 16px;
+  }
+
+  .oq-agent-management-head {
+    display: none;
+  }
+
+  .oq-agent-management-agent,
+  .oq-agent-management-activity-agent {
+    grid-column: 1;
+  }
+
+  .oq-agent-management-row > .oq-agent-management-status,
+  .oq-agent-management-row > .oq-agent-management-sync,
+  .oq-agent-management-row > .oq-agent-management-time {
+    grid-column: 1;
+  }
+
+  .oq-agent-management-action,
+  .oq-agent-management-activity .oq-agent-management-row > .oq-agent-management-status {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+}
+
+/* Compact account workbench density */
+.oq-agent-management-page {
+  gap: 12px;
+}
+
+.oq-agent-management-card {
+  border-radius: 10px;
+  box-shadow: var(--qa-shadow-1);
+}
+
+.oq-agent-management-card-header {
+  padding: 13px 16px 10px;
+}
+
+.oq-agent-management-card-header h3 {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.oq-agent-management-card-header p {
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.oq-agent-management-row {
+  min-height: 60px;
+  gap: 12px;
+  padding: 0 16px;
+}
+
+.oq-agent-management-head {
+  min-height: 30px;
+  font-size: 9px;
+}
+
+.oq-agent-management-agent,
+.oq-agent-management-activity-agent {
+  gap: 8px;
+}
+
+.oq-agent-management-agent strong,
+.oq-agent-management-activity-agent strong {
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.oq-agent-management-agent small {
+  font-size: 9px;
+  line-height: 13px;
+}
+
+.oq-agent-management-mark {
+  width: 26px;
+  height: 26px;
+  flex-basis: 26px;
+}
+
+.oq-agent-management-mark-image {
+  width: 23px;
+  height: 23px;
+}
+
+.oq-agent-management-status {
+  min-height: 20px;
+  gap: 5px;
+  padding: 0 8px;
+  font-size: 9px;
+  line-height: 13px;
+}
+
+.oq-agent-management-status > span {
+  width: 5px;
+  height: 5px;
+}
+
+.oq-agent-management-sync,
+.oq-agent-management-time {
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.oq-agent-management-action {
+  min-height: 27px;
+  gap: 5px;
+  padding: 0 10px;
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.oq-agent-management-action svg {
+  width: 11px;
+  height: 11px;
+}
+
+.oq-agent-management-activity .oq-agent-management-row {
+  min-height: 54px;
+}
+
+.oq-agent-install-page {
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.oq-agent-install-agent-list {
+  gap: 4px;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+.oq-agent-install-agent {
+  min-height: 48px;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.oq-agent-install-agent strong {
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.oq-agent-install-agent small {
+  font-size: 9px;
+  line-height: 13px;
+}
+
+.oq-agent-install-guide {
+  gap: 10px;
+}
+
+.oq-agent-install-guide-header {
+  min-height: 68px;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.oq-agent-install-guide-header h2 {
+  font-size: 17px;
+  line-height: 22px;
+}
+
+.oq-agent-install-guide-header p {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.oq-agent-install-mark {
+  width: 28px;
+  height: 28px;
+  flex-basis: 28px;
+}
+
+.oq-agent-install-mark-image {
+  width: 24px;
+  height: 24px;
+}
+
+.oq-agent-install-mode button {
+  min-height: 25px;
+  padding: 0 9px;
+  font-size: 10px;
+}
+
+.oq-agent-install-steps {
+  gap: 10px;
+  padding-left: 18px;
+}
+
+.oq-agent-install-step:not(:last-child)::before {
+  top: 31px;
+  bottom: -10px;
+  left: -18px;
+}
+
+.oq-agent-install-step-number {
+  top: 12px;
+  left: -31px;
+  width: 25px;
+  height: 25px;
+  font-size: 10px;
+}
+
+.oq-agent-install-step-card {
+  gap: 7px;
+  border-radius: 10px;
+  padding: 13px 16px 14px;
+}
+
+.oq-agent-install-step-card h3 {
+  font-size: 13px;
+  line-height: 19px;
+}
+
+.oq-agent-install-step-card p {
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.oq-agent-install-step-card label {
+  font-size: 9px;
+  line-height: 13px;
+}
+
+.oq-agent-install-copy-field {
+  min-height: 36px;
+  gap: 7px;
+  border-radius: 7px;
+  padding: 0 8px 0 10px;
+}
+
+.oq-agent-install-copy-field code {
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.oq-agent-install-copy-field button {
+  width: 23px;
+  height: 23px;
+  flex-basis: 23px;
+}
+
+.oq-agent-install-copy-field svg {
+  width: 13px;
+  height: 13px;
+}
+
+.oq-agent-install-page {
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+  width: 100%;
+}
+
+.oq-agent-install-agent-list {
+  display: grid;
+  gap: 6px;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 12px;
+  background: var(--qa-bg);
+  padding: 10px;
+  box-shadow: var(--qa-shadow-1);
+}
+
+.oq-agent-install-agent {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: 11px;
+  border: var(--qa-border-width) solid transparent;
+  border-radius: 9px;
+  padding: 8px 10px;
+  color: var(--qa-text);
+  text-align: left;
+  transition: background-color 160ms cubic-bezier(.25, 1, .5, 1), border-color 160ms cubic-bezier(.25, 1, .5, 1), color 160ms cubic-bezier(.25, 1, .5, 1);
+}
+
+.oq-agent-install-agent:hover,
+.oq-agent-install-agent.is-active {
+  border-color: color-mix(in srgb, var(--qa-accent) 22%, var(--qa-border));
+  background: var(--qa-bg-warm);
+}
+
+.oq-agent-install-agent.is-active {
+  color: var(--qa-accent);
+}
+
+.oq-agent-install-agent > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.oq-agent-install-agent strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 720;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-agent-install-agent small {
+  color: var(--qa-muted);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.oq-agent-install-guide {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.oq-agent-install-guide-header {
+  display: flex;
+  min-height: 94px;
+  align-items: center;
+  gap: 14px;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 12px;
+  background: var(--qa-bg);
+  padding: 18px 20px;
+  box-shadow: var(--qa-shadow-1);
+}
+
+.oq-agent-install-guide-header > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.oq-agent-install-guide-header h2,
+.oq-agent-install-guide-header p,
+.oq-agent-install-step-card h3,
+.oq-agent-install-step-card p,
+.oq-agent-install-unavailable h3,
+.oq-agent-install-unavailable p {
+  margin: 0;
+}
+
+.oq-agent-install-guide-header h2 {
+  color: var(--qa-text);
+  font-size: 22px;
+  font-weight: 760;
+  line-height: 28px;
+}
+
+.oq-agent-install-guide-header p {
+  overflow: hidden;
+  color: var(--qa-muted);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-agent-install-mark {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+}
+
+.oq-agent-install-mark.is-openclaw {
+  overflow: hidden;
+  border-radius: 9px;
+  background: var(--qa-bg-soft);
+}
+
+.oq-agent-install-mark-image {
+  display: block;
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.oq-agent-install-mode {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 999px;
+  background: var(--qa-bg-soft);
+  padding: 3px;
+}
+
+.oq-agent-install-mode button {
+  min-height: 30px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: var(--qa-muted-strong);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.oq-agent-install-mode button.is-active {
+  background: var(--qa-text);
+  color: var(--qa-bg);
+}
+
+.oq-agent-install-steps {
+  display: grid;
+  gap: 16px;
+  padding-left: 24px;
+}
+
+.oq-agent-install-step {
+  position: relative;
+}
+
+.oq-agent-install-step:not(:last-child)::before {
+  position: absolute;
+  top: 38px;
+  bottom: -16px;
+  left: -24px;
+  width: 1px;
+  background: var(--qa-border-strong);
+  content: "";
+}
+
+.oq-agent-install-step-number {
+  position: absolute;
+  z-index: 1;
+  top: 16px;
+  left: -40px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: var(--qa-border-width) solid var(--qa-border-strong);
+  border-radius: 999px;
+  background: var(--qa-bg);
+  color: var(--qa-muted-strong);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.oq-agent-install-step-card {
+  display: grid;
+  gap: 10px;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 12px;
+  background: var(--qa-bg);
+  padding: 18px 20px 20px;
+  box-shadow: var(--qa-shadow-1);
+}
+
+.oq-agent-install-step-card h3 {
+  color: var(--qa-text);
+  font-size: 15px;
+  font-weight: 720;
+  line-height: 22px;
+}
+
+.oq-agent-install-step-card p {
+  color: var(--qa-muted-strong);
+  font-size: 12px;
+  line-height: 19px;
+}
+
+.oq-agent-install-step-card label {
+  margin-top: 2px;
+  color: var(--qa-muted-strong);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 16px;
+}
+
+.oq-agent-install-copy-field {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 10px;
+  border: var(--qa-border-width) solid var(--qa-border-strong);
+  border-radius: 9px;
+  background: var(--qa-bg-soft);
+  padding: 0 11px 0 14px;
+}
+
+.oq-agent-install-copy-field code {
+  overflow: hidden;
+  flex: 1 1 auto;
+  color: var(--qa-text-soft);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-agent-install-copy-field button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--qa-muted);
+}
+
+.oq-agent-install-copy-field button:hover {
+  background: var(--qa-bg-warm);
+  color: var(--qa-accent);
+}
+
+.oq-agent-install-copy-field svg {
+  width: 15px;
+  height: 15px;
+}
+
+.oq-agent-install-unavailable {
+  display: grid;
+  min-height: 300px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  border: var(--qa-border-width) solid var(--qa-border);
+  border-radius: 12px;
+  background: var(--qa-bg);
+  padding: 24px;
+  text-align: center;
+}
+
+.oq-agent-install-unavailable h3 {
+  margin-top: 4px;
+  color: var(--qa-text);
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.oq-agent-install-unavailable p {
+  color: var(--qa-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+@media (max-width: 980px) {
+  .oq-agent-install-page {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .oq-agent-install-agent-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow-x: auto;
+  }
+
+  .oq-agent-install-agent {
+    min-width: 144px;
+  }
+
+  .oq-agent-install-guide-header {
+    flex-wrap: wrap;
+    padding: 16px;
+  }
+
+  .oq-agent-install-mode {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .oq-agent-install-mode button {
+    flex: 1 1 0;
+  }
+
+  .oq-agent-install-steps {
+    gap: 12px;
+    padding-left: 0;
+  }
+
+  .oq-agent-install-step:not(:last-child)::before {
+    display: none;
+  }
+
+  .oq-agent-install-step-number {
+    top: 12px;
+    left: 12px;
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .oq-agent-install-step-card {
+    padding: 16px 16px 16px 52px;
+  }
+}
+
 .oq-agent-settings {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
@@ -2039,4 +2872,164 @@
 
 .dark.oq-account-active [data-sonner-toast][data-type="error"] [data-icon] {
   color: var(--oq-account-risk) !important;
+}
+
+/* Account deep-neutral colors for the onboarding, notification and toast surfaces. */
+.dark.oq-account-active [data-slot="dialog-overlay"] {
+  background: oklch(0 0 0 / 0.62);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog {
+  border-color: var(--oq-account-border-strong);
+  background: var(--oq-account-surface-1);
+  color: var(--oq-account-text);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog [data-slot="dialog-description"] {
+  color: var(--oq-account-text-soft);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog .space-y-4 > .inline-flex {
+  border-color: var(--oq-account-border);
+  background: var(--oq-account-surface-2);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog section[aria-label] > div {
+  border-color: var(--oq-account-border);
+  background: var(--oq-account-surface-1);
+  color: var(--oq-account-text);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog section[aria-label] > div > div:first-child {
+  border-color: var(--oq-account-divider);
+  background: var(--oq-account-surface-2);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog section[aria-label] [role="tab"] {
+  color: var(--oq-account-muted-strong);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog section[aria-label] [role="tab"][aria-selected="true"] {
+  border-color: var(--oq-account-accent);
+  color: var(--oq-account-text);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog section[aria-label] button[aria-label] {
+  color: var(--oq-account-text-soft);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog section[aria-label] button[aria-label]:hover {
+  background: var(--oq-account-surface-warm);
+  color: var(--oq-account-text);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog section[aria-label] pre,
+.dark.oq-account-active .oq-factor-guide-dialog section[aria-label] code {
+  color: var(--oq-account-text-warm);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog [data-slot="dialog-footer"] > div:first-child {
+  color: var(--oq-account-accent);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog [data-slot="dialog-footer"] > div:last-child > button:not(:last-child) {
+  background: var(--oq-account-surface-3);
+  color: var(--oq-account-text-soft);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog [data-slot="dialog-footer"] > div:last-child > button:not(:last-child):hover {
+  background: var(--oq-account-surface-warm);
+  color: var(--oq-account-text);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog [data-slot="dialog-footer"] > div:last-child > button:last-child {
+  background: var(--oq-account-accent);
+  color: var(--oq-account-canvas);
+}
+
+.dark.oq-account-active .oq-factor-guide-dialog [data-slot="dialog-footer"] > div:last-child > button:last-child:hover {
+  background: var(--oq-account-accent-hover);
+}
+
+.dark.oq-account-active #oq-onboarding-popover {
+  border-color: var(--oq-account-border);
+  background: var(--oq-account-surface-1);
+  color: var(--oq-account-text);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-group {
+  background: var(--oq-account-surface-2) !important;
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-node {
+  background: var(--oq-account-surface-1);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-node.is-pending {
+  border-color: var(--oq-account-border-strong);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-node.is-complete {
+  border-color: var(--oq-account-accent);
+  background: var(--oq-account-accent);
+  color: var(--oq-account-canvas);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-node.is-progress {
+  background: conic-gradient(from -90deg, var(--oq-account-accent) 0 var(--oq-task-progress), var(--oq-account-border) var(--oq-task-progress) 100%);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-node.is-progress::after {
+  background: var(--oq-account-surface-1);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-children::before {
+  background: var(--oq-account-border);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-step {
+  color: var(--oq-account-text-soft);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-step.line-through {
+  color: var(--oq-account-muted);
+}
+
+.dark.oq-account-active #oq-onboarding-popover .oq-onboarding-task-step:hover {
+  color: var(--oq-account-accent);
+}
+
+.dark.oq-account-active #oq-onboarding-popover [aria-label="关闭新手任务"] {
+  color: var(--oq-account-muted-strong);
+}
+
+.dark.oq-account-active #oq-onboarding-popover [aria-label="关闭新手任务"]:hover {
+  background: var(--oq-account-surface-warm);
+  color: var(--oq-account-accent);
+}
+
+.dark.oq-account-active .oq-notification {
+  --oq-bg: var(--oq-account-surface-1);
+  --oq-bg-soft: var(--oq-account-surface-2);
+  --oq-bg-warm: var(--oq-account-surface-warm);
+  --oq-surface: var(--oq-account-surface-3);
+  --oq-surface-strong: var(--oq-account-surface-3);
+  --oq-border: var(--oq-account-border);
+  --oq-border-strong: var(--oq-account-border-strong);
+  --oq-text: var(--oq-account-text);
+  --oq-text-soft: var(--oq-account-text-soft);
+  --oq-muted: var(--oq-account-muted);
+  --oq-muted-strong: var(--oq-account-muted-strong);
+  --oq-accent: var(--oq-account-accent);
+  --oq-success: var(--oq-account-success);
+  --oq-success-bg: var(--oq-account-success-bg);
+  --oq-risk: var(--oq-account-risk);
+  --oq-risk-bg: var(--oq-account-risk-bg);
+  --oq-warning: var(--oq-account-accent-hover);
+  --oq-warning-bg: var(--oq-account-surface-warm);
+  --oq-shadow-1: 0 1px 2px oklch(0 0 0 / 0.3);
+  --oq-shadow-3: 0 10px 28px oklch(0 0 0 / 0.48);
+  --oq-shadow-4: 0 18px 48px oklch(0 0 0 / 0.52);
 }

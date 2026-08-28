@@ -32,9 +32,26 @@ import {
   Compass,
   Search,
   SquarePen,
+  Bot,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import NotificationPanel from "@/components/NotificationPanel";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { CodeBlock } from "@/components/ui/code-block";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import {
+  isStrategyCreationTaskComplete,
+  isPaperDeploymentTaskComplete,
+  isStrategyRunTaskComplete,
+  PAPER_DEPLOYMENT_TASK_CHANGE_EVENT,
+  STRATEGY_CREATION_TASK_CHANGE_EVENT,
+  STRATEGY_RUN_TASK_CHANGE_EVENT,
+} from "@/lib/strategyOnboarding";
+import {
+  isFactorCreationTaskComplete,
+  FACTOR_CREATION_TASK_CHANGE_EVENT,
+} from "@/lib/factorOnboarding";
 
 const SIDEBAR_W = 186;
 const SIDEBAR_COLLAPSED_W = 64;
@@ -103,8 +120,8 @@ const pageHeaders = [
     match: (path: string) => path.startsWith("/strategies"),
     titleEn: "My Strategy",
     titleZh: "我的策略",
-    subtitleEn: "Review performance and manage paper status & versions",
-    subtitleZh: "查看策略表现，管理模拟盘状态与版本记录",
+    subtitleEn: "Build and backtest strategies from your factor combinations",
+    subtitleZh: "用你的因子组合策略并进行回测",
   },
   {
     match: (path: string) => /^\/trade\/[^/]+$/.test(path),
@@ -165,6 +182,7 @@ const sidebarCopy: Record<string, UiCopy> = {
   Subscription: { ja: "サブスクリプション", ko: "구독", es: "Suscripción", fr: "Abonnement" },
   Settings: { ja: "設定", ko: "설정", es: "Configuración", fr: "Paramètres" },
   "Strategy Detail": { ja: "ストラテジー詳細", ko: "전략 상세", es: "Detalle de estrategia", fr: "Détail de la stratégie" },
+  "Portfolio Detail": { ja: "ポートフォリオ詳細", ko: "포트폴리오 상세", es: "Detalle de cartera", fr: "Détail du portefeuille" },
   "Trade Detail": { ja: "取引詳細", ko: "거래 상세", es: "Detalle de operación", fr: "Détail de la transaction" },
   "Build and monitor strategy workflows": {
     ja: "ストラテジーワークフローを構築・監視",
@@ -221,6 +239,7 @@ const sidebarCopy: Record<string, UiCopy> = {
     fr: "Gérer les préférences, le profil et les paramètres de l’Agent",
   },
   "Back to strategies": { ja: "ストラテジー一覧に戻る", ko: "전략 목록으로 돌아가기", es: "Volver a estrategias", fr: "Retour aux stratégies" },
+  "Back to Explore": { ja: "探索に戻る", ko: "탐색으로 돌아가기", es: "Volver a Explorar", fr: "Retour à Explorer" },
   Back: { ja: "戻る", ko: "뒤로", es: "Atrás", fr: "Retour" },
   "Pro plan": { ja: "Pro プラン", ko: "Pro 플랜", es: "Plan Pro", fr: "Offre Pro" },
   "Collapse sidebar": { ja: "サイドバーを折りたたむ", ko: "사이드바 접기", es: "Contraer barra lateral", fr: "Réduire la barre latérale" },
@@ -237,7 +256,208 @@ const sidebarCopy: Record<string, UiCopy> = {
     es: "Borrar búsqueda",
     fr: "Effacer la recherche",
   },
+  "Beginner tasks": { ja: "初心者タスク", ko: "초보자 작업", es: "Tareas iniciales", fr: "Tâches de démarrage" },
+  "AI agents": { ja: "AI エージェント", ko: "AI 에이전트", es: "Agentes de IA", fr: "Agents IA" },
+  "You're making progress!": { ja: "順調に進んでいます！", ko: "잘 진행하고 있어요!", es: "¡Vas por buen camino!", fr: "Vous progressez bien !" },
+  "Close beginner tasks": { ja: "初心者タスクを閉じる", ko: "초보자 작업 닫기", es: "Cerrar tareas iniciales", fr: "Fermer les tâches de démarrage" },
+  "Task progress": { ja: "タスクの進行状況", ko: "작업 진행 상황", es: "Progreso de la tarea", fr: "Progression de la tâche" },
+  "Create a factor": { ja: "ファクターを1つ作成", ko: "팩터 1개 만들기", es: "Crear un factor", fr: "Créer un facteur" },
+  "Connect an AI agent": { ja: "AI エージェントを接続", ko: "AI 에이전트 연결", es: "Conectar un agente de IA", fr: "Connecter un agent IA" },
+  "Create a factor with an AI agent": { ja: "AI エージェントでファクターを1つ作成", ko: "AI 에이전트에서 팩터 1개 만들기", es: "Crear un factor con un agente de IA", fr: "Créer un facteur avec un agent IA" },
+  "Deploy a paper trading bot": { ja: "ペーパートレードボットをデプロイ", ko: "모의 거래 봇 배포", es: "Desplegar un bot de paper trading", fr: "Déployer un bot de paper trading" },
+  "Create strategy": { ja: "ストラテジーを作成", ko: "전략 만들기", es: "Crear estrategia", fr: "Créer une stratégie" },
+  "Run strategy": { ja: "ストラテジーを実行", ko: "전략 실행", es: "Ejecutar estrategia", fr: "Exécuter la stratégie" },
+  "Deploy strategy to paper trading": { ja: "ストラテジーをペーパートレードへデプロイ", ko: "전략을 모의 거래에 배포", es: "Desplegar la estrategia en paper trading", fr: "Déployer la stratégie en paper trading" },
+  "Create a factor with your AI agent": {
+    ja: "AI エージェントでファクターを作成",
+    ko: "AI 에이전트로 팩터 만들기",
+    es: "Crear un factor con tu agente de IA",
+    fr: "Créer un facteur avec votre agent IA",
+  },
+  "Check your new factor": {
+    ja: "新しく作成したファクターを確認",
+    ko: "새로 생성한 팩터 확인",
+    es: "Revisar tu nuevo factor",
+    fr: "Vérifier votre nouveau facteur",
+  },
+  "Paste the example prompt into an AI agent such as Claude or ChatGPT and let Quandora mine the factor.": {
+    ja: "サンプルプロンプトを Claude や ChatGPT などの AI エージェントに貼り付け、Quandora でファクターを発掘します。",
+    ko: "예시 프롬프트를 Claude 또는 ChatGPT 같은 AI 에이전트에 붙여 넣으면 Quandora가 팩터를 발굴합니다.",
+    es: "Pega el prompt de ejemplo en un agente de IA como Claude o ChatGPT y deja que Quandora descubra el factor.",
+    fr: "Collez le prompt d’exemple dans un agent IA tel que Claude ou ChatGPT, puis laissez Quandora extraire le facteur.",
+  },
+  "Return to My Factors to review the factor your AI agent created.": {
+    ja: "マイファクターに戻り、AI エージェントが作成したファクターを確認します。",
+    ko: "내 팩터로 돌아가 AI 에이전트가 만든 팩터를 확인하세요.",
+    es: "Vuelve a Mis factores para revisar el factor creado por tu agente de IA.",
+    fr: "Retournez à Mes facteurs pour examiner le facteur créé par votre agent IA.",
+  },
+  "Factor analysis prompt": { ja: "ファクター分析プロンプト", ko: "팩터 분석 프롬프트", es: "Prompt de análisis de factores", fr: "Prompt d’analyse de facteurs" },
+  "Generated factor list": { ja: "生成されたファクター一覧", ko: "생성된 팩터 목록", es: "Lista de factores generados", fr: "Liste des facteurs générés" },
+  "Example prompt": { ja: "サンプルプロンプト", ko: "예시 프롬프트", es: "Prompt de ejemplo", fr: "Prompt d’exemple" },
+  "Factor analysis": { ja: "ファクター分析", ko: "팩터 분석", es: "Análisis de factores", fr: "Analyse de facteurs" },
+  "Strategy building": { ja: "ストラテジー構築", ko: "전략 구축", es: "Construcción de estrategias", fr: "Construction de stratégies" },
+  Copy: { ja: "コピー", ko: "복사", es: "Copiar", fr: "Copier" },
+  Copied: { ja: "コピー済み", ko: "복사됨", es: "Copiado", fr: "Copié" },
+  Skip: { ja: "スキップ", ko: "건너뛰기", es: "Omitir", fr: "Passer" },
+  Next: { ja: "次へ", ko: "다음", es: "Siguiente", fr: "Suivant" },
+  "View My Factors": { ja: "マイファクターを見る", ko: "내 팩터 보기", es: "Ver mis factores", fr: "Voir mes facteurs" },
+  "2 connected": { ja: "2 件接続済み", ko: "2개 연결됨", es: "2 conectados", fr: "2 connectés" },
 };
+
+type OnboardingTaskStep = {
+  id: string;
+  label: string;
+};
+
+function FactorCreationGuideDialog({
+  open,
+  onOpenChange,
+  step,
+  onStepChange,
+  onOpenFactors,
+  tr,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  step: 0 | 1;
+  onStepChange: (step: 0 | 1) => void;
+  onOpenFactors: () => void;
+  tr: (en: string, zh: string) => string;
+}) {
+  const factorAnalysisPrompt = "@quandora:factor-analysis analyze my latest factor result";
+  const strategyBuildingPrompt = "@quandora:strategy-building help me build a strategy";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent showCloseButton={false} className="oq-factor-guide-dialog w-[calc(100%-2rem)] max-w-[420px] gap-0 overflow-hidden rounded-[10px] border border-[#dc4900]/30 bg-[#fffaf6] p-0 text-[#171411] shadow-[0_10px_26px_rgba(60,40,20,0.16)] dark:border-[#ff6a1a]/35 dark:bg-[#241b17] dark:text-[#f7f1ea] sm:max-w-[420px]">
+        <div className="px-5 pb-0 pt-5 sm:px-5 sm:pt-5">
+          <DialogTitle className="text-[13px] font-bold leading-[18px] tracking-normal">
+            {step === 0 ? tr("Create a factor with your AI agent", "在 AI 智能体中创建因子") : tr("Check your new factor", "查看新生成的因子")}
+          </DialogTitle>
+          <DialogDescription className="mb-3 mt-1 max-w-none text-[11px] font-normal leading-4 text-[#766d64] dark:text-[#b9aca0]">
+            {step === 0
+              ? tr("Paste the example prompt into an AI agent such as Claude or ChatGPT and let Quandora mine the factor.", "将示例提示词粘贴到 AI 智能体（如 Claude 或 ChatGPT）中，让 Quandora 自动完成因子挖掘。")
+              : tr("Return to My Factors to review the factor your AI agent created.", "回到“我的因子”，查看 AI 智能体创建的因子。")}
+          </DialogDescription>
+        </div>
+
+        <div className="px-5 pb-5 sm:px-5 sm:pb-5">
+          {step === 0 ? (
+            <div className="space-y-4">
+              <div className="inline-flex max-w-full overflow-hidden rounded-[8px] border border-[#eadfd7] bg-[#f8f4f0] dark:border-[#4b4036] dark:bg-[#241b17]">
+                <img src="/landing/factor-analysis-prompt.svg" alt={tr("Factor analysis prompt", "因子分析提示词界面")} className="block h-auto w-auto max-w-full rounded-[8px]" />
+              </div>
+              <section className="space-y-2" aria-label={tr("Example prompt", "示例提示词")}>
+                <h3 className="text-[12px] font-semibold leading-4 text-[#2f2924] dark:text-[#f7f1ea]">{tr("Example prompt", "示例提示词")}</h3>
+                <CodeBlock
+                  tabs={[
+                    { label: tr("Factor analysis", "因子分析"), code: factorAnalysisPrompt, language: "text" },
+                    { label: tr("Strategy building", "策略构建"), code: strategyBuildingPrompt, language: "text" },
+                  ]}
+                  copyLabel={tr("Copy", "复制")}
+                  copiedLabel={tr("Copied", "已复制")}
+                />
+              </section>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="inline-flex max-w-full overflow-hidden rounded-[8px] border border-[#eadfd7] bg-[#f8f4f0] dark:border-[#4b4036] dark:bg-[#241b17]"><img src="/landing/my-factors-preview.png" alt={tr("Generated factor list", "生成的因子列表")} className="block h-auto w-auto max-w-full rounded-[8px]" /></div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex-row min-h-8 items-center justify-between gap-2 border-t-0 px-5 pb-5 pt-0 dark:border-t-0 sm:justify-between sm:px-5">
+          <div className="flex-[0_0_auto] text-[10px] font-bold leading-8 text-[#dc4900] dark:text-[#ff6a1a]">{step + 1} / 2</div>
+          <div className="flex flex-[0_0_auto] items-center justify-end gap-2">
+            <button type="button" onClick={() => onOpenChange(false)} className="rounded-full border-0 bg-[#f1eee9] px-2.5 text-[10px] font-semibold leading-8 text-[#766d64] transition-colors hover:bg-[#e9e2db] hover:text-[#4a443d] dark:bg-[#2d2621] dark:text-[#cfc2b7] dark:hover:bg-[#3a3029] dark:hover:text-[#f7f1ea]">{tr("Skip", "跳过")}</button>
+            {step === 1 ? <button type="button" onClick={() => onStepChange(0)} className="rounded-full border-0 bg-[#f1eee9] px-2.5 text-[10px] font-semibold leading-8 text-[#766d64] transition-colors hover:bg-[#e9e2db] hover:text-[#4a443d] dark:bg-[#2d2621] dark:text-[#cfc2b7] dark:hover:bg-[#3a3029] dark:hover:text-[#f7f1ea]">{tr("Back", "上一步")}</button> : null}
+            <button type="button" onClick={() => step === 0 ? onStepChange(1) : onOpenFactors()} className="flex items-center rounded-full border-0 bg-[#dc4900] px-3 text-[10px] font-semibold leading-8 text-white transition-colors hover:bg-[#c84200]">{step === 0 ? tr("Next", "下一步") : tr("View My Factors", "查看我的因子")}</button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function OnboardingTaskGroup({
+  title,
+  steps,
+  progressLabel,
+  completedSteps = 0,
+  completedStepStates,
+  onStepClick,
+  clickCompletedSteps = false,
+}: {
+  title: string;
+  steps: OnboardingTaskStep[];
+  progressLabel: string;
+  completedSteps?: number;
+  completedStepStates?: boolean[];
+  onStepClick?: (stepId: string) => void;
+  clickCompletedSteps?: boolean;
+}) {
+  const [open, setOpen] = useState(true);
+  const stepCompletionStates = steps.map(
+    (_, index) => completedStepStates?.[index] ?? index < completedSteps,
+  );
+  const completedCount = stepCompletionStates.filter(Boolean).length;
+  const progress = steps.length > 0 ? Math.min(1, completedCount / steps.length) : 0;
+  const isComplete = progress >= 1;
+  const isInProgress = progress > 0 && !isComplete;
+  const progressPercent = Math.round(progress * 100);
+  return (
+    <div className="oq-onboarding-task-group rounded-[8px] bg-white px-2.5 py-2 dark:bg-[#241812]">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="oq-onboarding-task-step flex w-full items-center justify-between gap-2 text-left"
+      >
+        <span className="flex min-w-0 items-center gap-2 text-[12px] font-semibold">
+          <span
+            className={`oq-onboarding-task-node relative flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] ${isComplete ? "is-complete" : isInProgress ? "is-progress" : "is-pending"}`}
+            role="progressbar"
+            aria-label={`${title} ${progressLabel}`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={progressPercent}
+            style={isInProgress ? { "--oq-task-progress": `${progressPercent}%` } as React.CSSProperties : undefined}
+          >
+            {isComplete ? <Check className="h-3 w-3" /> : null}
+          </span>
+          <span className="truncate">{title}</span>
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-[#8c8378] transition-transform ${open ? "rotate-180" : ""}`} strokeWidth={1.7} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="oq-onboarding-task-children mt-2 space-y-1.5">
+          {steps.map((step, index) => {
+            const complete = stepCompletionStates[index];
+            const canNavigate = onStepClick != null && (!complete || clickCompletedSteps);
+            const stepContent = <>
+              <span className={`oq-onboarding-task-node flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border ${complete ? "is-complete" : "is-pending"}`}>
+                {complete && <Check className="h-2.5 w-2.5" strokeWidth={2.3} aria-hidden="true" />}
+              </span>
+              <span>{step.label}</span>
+            </>;
+            return (
+              canNavigate ? (
+                <button key={step.id} type="button" onClick={() => onStepClick(step.id)} className={`oq-onboarding-task-step flex w-full items-center gap-2 text-left text-[11px] leading-4 transition-colors hover:text-[#dc4900] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:text-[#d5c9bc] dark:hover:text-[#ff6a1a] ${complete ? "text-[#8c8378] line-through" : "text-[#4a443d]"}`}>
+                  {stepContent}
+                </button>
+              ) : (
+                <div key={step.id} className={`oq-onboarding-task-step flex items-center gap-2 text-[11px] leading-4 ${complete ? "text-[#8c8378] line-through" : "text-[#4a443d] dark:text-[#d5c9bc]"}`}>
+                  {stepContent}
+                </div>
+              )
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function SidebarLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -256,9 +476,21 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
   const { alphaViewMode } = useAlphaViewMode();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [factorGuideOpen, setFactorGuideOpen] = useState(false);
+  const [factorGuideStep, setFactorGuideStep] = useState<0 | 1>(0);
+  const [strategyCreationTaskComplete, setStrategyCreationTaskComplete] = useState(isStrategyCreationTaskComplete);
+  const [strategyRunTaskComplete, setStrategyRunTaskComplete] = useState(isStrategyRunTaskComplete);
+  const [paperDeploymentTaskComplete, setPaperDeploymentTaskComplete] = useState(isPaperDeploymentTaskComplete);
+  const [factorCreationTaskComplete, setFactorCreationTaskComplete] = useState(isFactorCreationTaskComplete);
+  const onboardingPopoverRef = useRef<HTMLElement>(null);
+  const onboardingTriggerRef = useRef<HTMLButtonElement>(null);
   const [secondarySection, setSecondarySection] = useState<string | null>(null);
   const [navTransition, setNavTransition] = useState<"primary" | "secondary" | null>(null);
   const currentPathname = location.split("?")[0];
+  const usesExplorePageCanvas = ["/alphas", "/strategies", "/trade"].some(
+    (path) => currentPathname === path || currentPathname.startsWith(`${path}/`),
+  );
   // Read the live URL so same-path query navigation updates the shared Explore tabs.
   const currentSearch = typeof window !== "undefined"
     ? window.location.search
@@ -307,6 +539,50 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     const timeout = window.setTimeout(() => setNavTransition(null), 180);
     return () => window.clearTimeout(timeout);
   }, [navTransition]);
+
+  useEffect(() => {
+    if (!onboardingOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOnboardingOpen(false);
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        onboardingPopoverRef.current?.contains(target) ||
+        onboardingTriggerRef.current?.contains(target)
+      ) return;
+      setOnboardingOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [onboardingOpen]);
+
+  useEffect(() => {
+    const syncStrategyCreationTask = () => setStrategyCreationTaskComplete(isStrategyCreationTaskComplete());
+    const syncStrategyRunTask = () => setStrategyRunTaskComplete(isStrategyRunTaskComplete());
+    const syncPaperDeploymentTask = () => setPaperDeploymentTaskComplete(isPaperDeploymentTaskComplete());
+    const syncFactorCreationTask = () => setFactorCreationTaskComplete(isFactorCreationTaskComplete());
+    window.addEventListener("storage", syncStrategyCreationTask);
+    window.addEventListener(STRATEGY_CREATION_TASK_CHANGE_EVENT, syncStrategyCreationTask);
+    window.addEventListener("storage", syncStrategyRunTask);
+    window.addEventListener(STRATEGY_RUN_TASK_CHANGE_EVENT, syncStrategyRunTask);
+    window.addEventListener("storage", syncPaperDeploymentTask);
+    window.addEventListener(PAPER_DEPLOYMENT_TASK_CHANGE_EVENT, syncPaperDeploymentTask);
+    window.addEventListener(FACTOR_CREATION_TASK_CHANGE_EVENT, syncFactorCreationTask);
+    return () => {
+      window.removeEventListener("storage", syncStrategyCreationTask);
+      window.removeEventListener(STRATEGY_CREATION_TASK_CHANGE_EVENT, syncStrategyCreationTask);
+      window.removeEventListener("storage", syncStrategyRunTask);
+      window.removeEventListener(STRATEGY_RUN_TASK_CHANGE_EVENT, syncStrategyRunTask);
+      window.removeEventListener("storage", syncPaperDeploymentTask);
+      window.removeEventListener(PAPER_DEPLOYMENT_TASK_CHANGE_EVENT, syncPaperDeploymentTask);
+      window.removeEventListener(FACTOR_CREATION_TASK_CHANGE_EVENT, syncFactorCreationTask);
+    };
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.remove(...LEGACY_MARKETPLACE_STYLE_CLASSES);
@@ -608,7 +884,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Bottom Section */}
-      <div className={`oq-sidebar-footer shrink-0 border-t-[0.5px] border-[#d9d9d9] dark:border-[#4b4036] ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
+      <div className={`oq-sidebar-footer shrink-0 ${collapsed && !isMobile ? "px-2 py-3" : "mx-3 pb-[18px] pt-[18px]"}`}>
         {collapsed && !isMobile ? (
           /* === Collapsed: vertical stack === */
           <div className="flex flex-col items-center gap-2">
@@ -627,8 +903,30 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         ) : (
-          /* === Expanded: Figma-aligned user block + plan entry === */
-          <div className="space-y-[9px]">
+          /* === Expanded: quick actions + user block === */
+          <div className="space-y-2">
+            <button
+              ref={onboardingTriggerRef}
+              type="button"
+              onClick={() => setOnboardingOpen((open) => !open)}
+              aria-expanded={onboardingOpen}
+              aria-controls="oq-onboarding-popover"
+              className="oq-sidebar-quick-card flex w-full items-center justify-between rounded-[8px] border-[0.5px] border-[#ece6df] bg-white px-2.5 py-2 text-left shadow-none transition-colors hover:border-[#dc4900]/35 hover:bg-[#fff1e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:border-[#4b4036] dark:bg-[#241812] dark:hover:border-[#ff6a1a]/45 dark:hover:bg-[#2d2113]"
+            >
+              <span className="flex items-center gap-2 text-[12px] font-medium text-[#171411] dark:text-[#f7f1ea]">
+                <span className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-[#dc49001a] text-[#dc4900]">✦</span>
+                {tr("Beginner tasks", "开启新手任务")}
+              </span>
+              <span className="text-[11px] tabular-nums text-[#8c8378]">33%</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setOnboardingOpen(false); navigate("/account?tab=agent"); }}
+              className="oq-sidebar-quick-card flex w-full items-center justify-between rounded-[8px] border-[0.5px] border-[#ece6df] bg-white px-2.5 py-2 text-left shadow-none transition-colors hover:border-[#dc4900]/35 hover:bg-[#fff1e8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:border-[#4b4036] dark:bg-[#241812] dark:hover:border-[#ff6a1a]/45 dark:hover:bg-[#2d2113]"
+            >
+              <span className="flex min-w-0 items-center gap-2"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[6px] bg-[#f1f1ed] text-[#4a443d] dark:bg-[#2b251f] dark:text-[#d5c9bc]"><Bot className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" /></span><span className="min-w-0"><span className="mb-[-2px] block truncate text-[12px] font-medium text-[#171411] dark:text-[#f7f1ea]">{tr("AI agents", "AI 智能体")}</span><span className="mt-0.5 block text-[10px] text-[#1f8a5b] dark:text-[#74d6a5]">{tr("2 connected", "已连接 2 个")}</span></span></span>
+              <Settings2 className="h-3.5 w-3.5 shrink-0 text-[#8c8378]" strokeWidth={1.6} aria-hidden="true" />
+            </button>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => navigate("/account")}
@@ -647,15 +945,6 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
                 </span>
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate("/subscription")}
-              aria-label={tr("Subscription", "订阅")}
-              className="flex w-full items-center gap-[7.5px] rounded-[3px] bg-[#fef6ef] px-[7.5px] py-1.5 text-left text-[12px] font-medium text-[#dc4900] transition-colors hover:bg-[#fde9dc] dark:bg-[#1b1511] dark:text-[#ff6a1a] dark:hover:bg-[#2d2113]"
-            >
-              <img src="/sidebar-pro-icon.svg" alt="" className="h-[15px] w-[15px] shrink-0" />
-              <span>{tr("Pro plan", "Pro plan")}</span>
-            </button>
           </div>
         )}
       </div>
@@ -666,6 +955,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
     <div
       className={`oq-app-shell flex min-h-screen bg-[#faf8f6] dark:bg-[#14110f] md:min-h-[1024px] md:pl-[var(--sidebar-width)] ${
         currentPathname.startsWith("/account") ||
+        currentPathname.startsWith("/alphas") ||
         currentPathname.startsWith("/marketplace") ||
         currentPathname.startsWith("/trade") ||
         currentPathname.startsWith("/strategies")
@@ -681,6 +971,31 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       >
         <SidebarContent />
       </aside>
+
+      {onboardingOpen && (
+        <section
+          ref={onboardingPopoverRef}
+          id="oq-onboarding-popover"
+          role="dialog"
+          aria-label={tr("Beginner tasks", "新手任务")}
+          className="fixed bottom-[126px] left-4 z-40 mb-8 -ml-1.5 w-[min(300px,calc(100vw-32px))] overflow-hidden rounded-[12px] border border-[#ece6df] bg-[#faf8f6] p-2.5 text-[#171411] shadow-[0_12px_34px_rgba(60,40,20,0.14)] dark:border-[#4b4036] dark:bg-[#1b1511] dark:text-[#f7f1ea] dark:shadow-[0_16px_42px_oklch(0_0_0_/_0.5)] md:bottom-[128px]"
+        >
+          <div className="flex items-center justify-between px-2 pb-2"><h2 className="text-[15px] font-semibold tracking-[-0.01em]">{tr("You're making progress!", "你渐入佳境啦!")}</h2><button type="button" onClick={() => setOnboardingOpen(false)} aria-label={tr("Close beginner tasks", "关闭新手任务")} className="mr-[-4px] flex h-6 w-6 items-center justify-center rounded-full text-[#8c8378] transition-colors hover:bg-[#f0e8e1] hover:text-[#171411] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#dc4900]/25 dark:hover:bg-[#2d2113] dark:hover:text-[#f7f1ea]"><X className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" /></button></div>
+        <div className="space-y-2"><OnboardingTaskGroup title={tr("Create a factor", "创建 1 个因子")} progressLabel={tr("Task progress", "任务进度")} steps={[{ id: "connect-agent", label: tr("Connect an AI agent", "连接 AI 智能体") }, { id: "create-factor-with-agent", label: tr("Create a factor with an AI agent", "在 AI 智能体中创建 1 个因子") }]} completedStepStates={[false, factorCreationTaskComplete]} clickCompletedSteps onStepClick={(stepId) => { if (stepId === "connect-agent") { setOnboardingOpen(false); navigate("/account?tab=installGuide"); } if (stepId === "create-factor-with-agent") { setOnboardingOpen(false); setFactorGuideStep(0); setFactorGuideOpen(true); } }} /><OnboardingTaskGroup title={tr("Deploy a paper trading bot", "创建 1 个模拟交易")} progressLabel={tr("Task progress", "任务进度")} steps={[{ id: "create-strategy", label: tr("Create strategy", "创建策略") }, { id: "run-strategy", label: tr("Run strategy", "运行策略") }, { id: "deploy-paper", label: tr("Deploy strategy to paper trading", "将策略部署到模拟交易") }]} completedStepStates={[strategyCreationTaskComplete, strategyRunTaskComplete, paperDeploymentTaskComplete]} clickCompletedSteps onStepClick={(stepId) => { if (stepId === "create-strategy") { setOnboardingOpen(false); navigate("/strategies?onboarding=create-strategy"); } if (stepId === "run-strategy") { setOnboardingOpen(false); navigate("/strategies?onboarding=run-strategy"); } if (stepId === "deploy-paper") { setOnboardingOpen(false); navigate("/trade?onboarding=deploy-paper"); } }} /></div>
+        </section>
+      )}
+
+      <FactorCreationGuideDialog
+        open={factorGuideOpen}
+        onOpenChange={setFactorGuideOpen}
+        step={factorGuideStep}
+        onStepChange={setFactorGuideStep}
+        onOpenFactors={() => {
+          setFactorGuideOpen(false);
+          navigate("/alphas");
+        }}
+        tr={tr}
+      />
 
       {/* Mobile Overlay */}
       {mobileOpen && (
@@ -701,7 +1016,7 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content */}
-      <div className="oq-app-main-column flex min-w-0 flex-1 flex-col bg-[#faf8f6] dark:bg-[#14110f]">
+      <div className={`oq-app-main-column flex min-w-0 flex-1 flex-col bg-[#faf8f6] dark:bg-[#14110f] ${usesExplorePageCanvas ? "oq-app-explore-canvas" : ""}`}>
         <header
           className="oq-app-header fixed left-[var(--sidebar-width)] right-0 top-0 z-10 hidden shrink-0 items-center justify-between border-b-[0.5px] border-[#ece6df] bg-[#faf8f6]/85 backdrop-blur-[4.5px] dark:border-[#4b4036] dark:bg-[#14110f]/85 md:flex"
           style={{ height: FIGMA_HEADER_H }}
@@ -900,7 +1215,9 @@ function SidebarLayoutInner({ children }: { children: React.ReactNode }) {
           className={`mx-auto w-full flex-1 py-6 md:pt-[calc(60px+1.5rem)] lg:pb-8 lg:pt-[calc(60px+2rem)] ${
             currentPathname.startsWith("/marketplace")
               ? "max-w-none px-4 md:px-6 lg:px-8"
-              : "max-w-[1100px] px-0"
+              : currentPathname === "/alphas" || currentPathname === "/strategies" || currentPathname === "/trade"
+                ? "max-w-[1200px] px-0"
+                : "max-w-[1100px] px-0"
           }`}
         >
           {children}

@@ -14,6 +14,7 @@
   --os-success-bg: #e6f4ec;
   --os-risk: #d64550;
   --os-shadow: 0 1.5px 6px rgba(60, 40, 20, 0.06);
+  --os-fixed-column-shadow-color: rgb(60 40 20 / 0.14);
   display: grid;
   width: min(100%, 900px);
   gap: 16px;
@@ -1046,7 +1047,8 @@
 
 .oq-strategy-table-head {
   height: 27.75px;
-  border-bottom: 0.75px solid var(--os-border);
+  border-top: 0.5px solid var(--os-border);
+  border-bottom: 0.5px solid var(--os-border);
   color: var(--os-muted);
   font-family: "JetBrains Mono", ui-monospace, monospace;
   font-size: 7.5px;
@@ -1088,7 +1090,7 @@
 .oq-strategy-row-link {
   position: absolute;
   z-index: 1;
-  inset: 0 112px 0 40px;
+  inset: 0 96px 0 56px;
   cursor: pointer;
   outline: none;
 }
@@ -1227,18 +1229,21 @@
 .oq-strategy-status {
   display: inline-flex;
   width: max-content;
-  min-height: 19px;
+  min-height: 20px;
   align-items: center;
   gap: 6px;
   border-radius: 749px;
   padding: 0 8px;
-  font-size: 8.25px;
+  font-size: 8.5px;
   font-weight: 600;
+  line-height: 12px;
 }
 
-.oq-strategy-status.is-running {
-  background: var(--os-success-bg);
-  color: var(--os-success);
+.oq-strategy-status.is-running,
+.oq-strategy-status.is-queued,
+.oq-strategy-status.is-awaiting-confirmation {
+  background: #eff6ff;
+  color: #2563eb;
 }
 
 .oq-strategy-status.is-stopped {
@@ -1247,17 +1252,61 @@
 }
 
 .oq-strategy-status.is-not-started {
+  background: var(--os-surface);
+  color: #6b635a;
+  font-weight: 600;
+}
+
+.oq-strategy-status.is-completed {
+  background: #e9fbf2;
+  color: #138a59;
+}
+
+.oq-strategy-status.is-pending {
+  background: #fff4e8;
+  color: var(--os-accent);
+}
+
+.oq-strategy-status.is-awaiting-run {
+  background: #f4f2ef;
+  color: #756f68;
+}
+
+.oq-strategy-row-grip {
+  justify-self: center;
+  color: #c8c0b7;
+}
+
+.oq-strategy-row-star {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
   background: transparent;
-  color: var(--os-muted);
-  font-weight: 500;
+  color: #c8c0b7;
+  cursor: pointer;
+}
+
+.oq-strategy-row-star:hover,
+.oq-strategy-row-star.is-starred {
+  color: #f59e0b;
+}
+
+.oq-strategy-row-star.is-starred svg {
+  fill: currentColor;
 }
 
 .oq-strategy-created-at {
   justify-self: start;
   color: var(--os-text-soft);
   font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 9.375px;
+  font-size: 9.5px;
   font-weight: 500;
+  line-height: 14px;
   white-space: nowrap;
 }
 
@@ -1707,7 +1756,7 @@
   --oq-strategy-surface-warm: oklch(0.175 0.006 55);
   --oq-strategy-surface-3: oklch(0.215 0.005 65);
   --oq-strategy-surface-4: oklch(0.26 0.006 65);
-  --oq-strategy-selection: oklch(0.175 0.006 55);
+  --oq-strategy-selection: oklch(0.235 0.009 55);
   --oq-strategy-selection-border: color-mix(in oklch, var(--oq-strategy-accent) 28%, var(--oq-strategy-border));
   --oq-strategy-border: oklch(0.265 0.006 67);
   --oq-strategy-border-strong: oklch(0.365 0.008 67);
@@ -1872,6 +1921,7 @@
   --os-success-bg: var(--oq-strategy-success-bg);
   --os-risk: var(--oq-strategy-risk);
   --os-shadow: 0 10px 28px oklch(0 0 0 / 0.48);
+  --os-fixed-column-shadow-color: oklch(0 0 0 / 0.32);
 }
 
 .dark.oq-strategies-active :is(.oq-strategy-create-dialog, .oq-strategy-factor-dialog) {
@@ -1969,6 +2019,135 @@
   border: 0.75px solid var(--oq-strategy-border);
 }
 
+/* Dark palette for fixed table surfaces and in-page onboarding guides. */
+.dark.oq-strategies-active .oq-strategy-table-head,
+.dark.oq-strategies-active .oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-head > :first-child,
+.dark.oq-strategies-active .oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-head > :last-child {
+  background: var(--oq-strategy-surface-2);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-popover {
+  border-color: var(--oq-strategy-border-strong);
+  background: var(--oq-strategy-surface-1);
+  color: var(--oq-strategy-text);
+  box-shadow: 0 16px 42px oklch(0 0 0 / 0.5);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-actions button {
+  background: var(--oq-strategy-surface-3);
+  color: var(--oq-strategy-text-soft);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-actions button:hover {
+  background: var(--oq-strategy-surface-warm);
+  color: var(--oq-strategy-accent-2);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-actions button.is-primary {
+  background: var(--oq-strategy-accent);
+  color: var(--oq-strategy-canvas);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-actions button.is-primary:hover {
+  background: var(--oq-strategy-accent-2);
+  color: var(--oq-strategy-canvas);
+}
+
+/* Final color guard for the strategy workbench when utility rules are emitted later. */
+.dark .oq-strategy-workbench {
+  --os-bg: var(--card);
+  --os-bg-soft: var(--card);
+  --os-bg-warm: var(--oq-workbench-surface-warm);
+  --os-surface: var(--muted);
+  --os-border: var(--border);
+  --os-border-strong: var(--input);
+  --os-text: var(--foreground);
+  --os-text-soft: var(--secondary-foreground);
+  --os-muted: var(--muted-foreground);
+  --os-accent: var(--brand-accent);
+  --os-success: var(--market-green);
+  --os-risk: var(--market-red);
+}
+
+.dark .oq-strategy-workbench .oq-strategy-table-head {
+  background: var(--os-surface) !important;
+  color: var(--os-muted) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-table-head > :first-child,
+.dark .oq-strategy-workbench .oq-strategy-table-head > :last-child {
+  background: var(--os-surface) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-table-row > .oq-strategy-selection-cell,
+.dark .oq-strategy-workbench .oq-strategy-table-row > .oq-strategy-row-actions {
+  background: var(--os-bg) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-table-row.is-selected > .oq-strategy-row-actions {
+  background: var(--os-bg-warm) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-table-row.is-selected > .oq-strategy-selection-cell {
+  background: var(--os-bg-warm) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-table-pagination {
+  border-color: var(--os-border) !important;
+  background: var(--os-bg-soft) !important;
+  color: var(--os-muted) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-guide-popover {
+  border-color: var(--os-border-strong) !important;
+  background: var(--os-bg) !important;
+  color: var(--os-text) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-folder-panel {
+  border-color: var(--os-border) !important;
+  background: var(--os-bg) !important;
+  color: var(--os-text) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-folder-panel-head,
+.dark .oq-strategy-workbench .oq-strategy-folder-info-icon {
+  color: var(--os-muted) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-folder-icon-button {
+  background: transparent !important;
+  color: var(--os-muted) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-folder-icon-button:hover {
+  background: var(--os-bg-warm) !important;
+  color: var(--os-accent) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-folder-nav button {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--os-text-soft) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-folder-nav button:hover,
+.dark .oq-strategy-workbench .oq-strategy-folder-nav button.is-active {
+  border-color: color-mix(in oklch, var(--os-accent) 30%, var(--os-border)) !important;
+  background: var(--os-bg-warm) !important;
+  color: var(--os-accent) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-folder-nav button strong {
+  background: var(--os-surface) !important;
+  color: var(--os-muted) !important;
+}
+
+.dark .oq-strategy-workbench .oq-strategy-folder-nav button.is-active strong {
+  background: color-mix(in oklch, var(--os-accent) 14%, var(--os-surface)) !important;
+  color: var(--os-accent) !important;
+}
+
 .dark.oq-strategies-active :is(.oq-strategy-sync-icon, .oq-strategy-sync-title) {
   color: var(--oq-strategy-text);
 }
@@ -1992,13 +2171,34 @@
   color: var(--oq-strategy-muted-strong);
 }
 
+.dark.oq-strategies-active .oq-strategy-status.is-running,
+.dark.oq-strategies-active .oq-strategy-status.is-queued,
+.dark.oq-strategies-active .oq-strategy-status.is-awaiting-confirmation {
+  background: rgb(59 130 246 / 0.18);
+  color: #60a5fa;
+}
+
+.dark.oq-strategies-active .oq-strategy-status.is-completed {
+  background: rgb(16 185 129 / 0.16);
+  color: #6ee7b7;
+}
+
+.dark.oq-strategies-active .oq-strategy-status.is-awaiting-run {
+  background: rgb(148 163 184 / 0.16);
+  color: #cbd5e1;
+}
+
 .dark.oq-strategies-active :is(.oq-strategy-create-button, .oq-strategy-form-primary) {
   color: var(--oq-strategy-canvas);
 }
 
 .dark.oq-strategies-active .oq-strategy-table-row.is-selected {
   background: var(--oq-strategy-selection);
-  box-shadow: inset 0 0 0 1px var(--oq-strategy-selection-border);
+  box-shadow: none;
+}
+
+.dark.oq-strategies-active .oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-row.is-selected > :is(.oq-strategy-selection-cell, .oq-strategy-row-actions) {
+  background: var(--oq-strategy-selection) !important;
 }
 
 .dark.oq-strategies-active .oq-strategy-page-controls button.is-active {
@@ -2097,6 +2297,816 @@
   box-shadow: var(--oq-workbench-tooltip-shadow) !important;
 }
 
+/* 260824 strategy workbench overrides */
+.oq-strategy-workbench {
+  width: min(100%, 1080px);
+  gap: 20px;
+}
+
+.oq-strategy-page-intro {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.oq-strategy-page-intro h1 {
+  margin: 0;
+  color: var(--os-text);
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.oq-strategy-page-intro p {
+  margin: 7px 0 0;
+  color: var(--os-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.oq-strategy-search-wrap {
+  display: flex;
+  width: min(280px, 100%);
+  min-height: 36px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--os-border-strong);
+  border-radius: 9px;
+  background: var(--os-bg);
+  padding: 0 12px;
+  color: var(--os-muted);
+}
+
+.oq-strategy-search-wrap:focus-within {
+  border-color: color-mix(in srgb, var(--os-accent) 60%, var(--os-border-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--os-accent) 12%, transparent);
+}
+
+.oq-strategy-search-wrap input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--os-text);
+  font-size: 12px;
+}
+
+.oq-strategy-search-wrap input::placeholder {
+  color: var(--os-muted);
+}
+
+.oq-strategy-folders {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--os-border);
+}
+
+.oq-strategy-folders button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid transparent;
+  padding: 0 12px;
+  color: var(--os-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.oq-strategy-folders button:hover,
+.oq-strategy-folders button.is-active {
+  border-bottom-color: var(--os-accent);
+  color: var(--os-accent);
+}
+
+.oq-strategy-folders button strong {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--os-bg-soft);
+  color: var(--os-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.oq-strategy-folders button.is-active strong {
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+}
+
+.oq-strategy-table-grid {
+  grid-template-columns: 48px 24px minmax(160px, 1fr) 58px 72px 86px 86px 74px 160px 94px 84px 96px;
+}
+
+.oq-strategy-table-head {
+  min-height: 28px;
+  height: 28px;
+  background: #fbfbfb;
+  padding: 0 16px;
+  color: var(--os-muted);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 500;
+  line-height: 12px;
+  letter-spacing: 0;
+}
+
+.oq-strategy-table-row {
+  min-height: 46px;
+  height: 46px;
+  padding: 0 16px;
+}
+
+.oq-strategy-table-row > * {
+  min-width: 0;
+}
+
+.oq-strategy-name-cell {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: var(--os-text);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.oq-strategy-name-cell > div {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.oq-strategy-name-cell small {
+  color: var(--os-muted);
+  font-size: 8.5px;
+  font-weight: 500;
+  line-height: 12px;
+}
+
+.oq-strategy-mono {
+  color: var(--os-text-soft);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.oq-strategy-pnl {
+  color: var(--market-green);
+}
+
+.oq-strategy-table-head > div:not(:first-child) {
+  padding: 0;
+}
+
+.oq-strategy-table-head .oq-strategy-sort-heading {
+  height: auto;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-head > :last-child,
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-row > .oq-strategy-row-actions {
+  align-self: stretch;
+  position: sticky;
+  right: 0;
+  z-index: 30;
+  width: 96px;
+  min-width: 96px;
+  max-width: 96px;
+  box-sizing: border-box;
+  background: var(--os-bg);
+  box-shadow: none;
+  isolation: isolate;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-row > .oq-strategy-row-actions.is-run-guide-target {
+  z-index: 90;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-head > :first-child {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: sticky;
+  left: 0;
+  z-index: 31;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  box-sizing: border-box;
+  background: #fbfbfb;
+  isolation: isolate;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-row > .oq-strategy-selection-cell {
+  align-self: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: sticky;
+  left: 0;
+  z-index: 31;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  box-sizing: border-box;
+  background: var(--os-bg);
+  isolation: isolate;
+  touch-action: pan-y;
+  overscroll-behavior-x: none;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-row.is-selected > .oq-strategy-selection-cell {
+  background: var(--os-bg-warm);
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-head > :last-child {
+  display: flex;
+  align-items: center;
+  background: #fbfbfb;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-row.is-selected > .oq-strategy-row-actions {
+  background: var(--os-bg-warm);
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll.is-overflowing:not(.is-at-start) > .oq-strategy-table-head > :first-child::after,
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll.is-overflowing:not(.is-at-start) > .oq-strategy-table-row > .oq-strategy-selection-cell::after {
+  position: absolute;
+  top: 0;
+  right: -10px;
+  bottom: 0;
+  width: 10px;
+  box-shadow: inset 6px 0 7px -7px var(--os-fixed-column-shadow-color);
+  content: "";
+  pointer-events: none;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll.is-overflowing:not(.is-at-end) > .oq-strategy-table-head > :last-child::before,
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll.is-overflowing:not(.is-at-end) > .oq-strategy-table-row > .oq-strategy-row-actions::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -10px;
+  width: 10px;
+  box-shadow: inset -6px 0 7px -7px var(--os-fixed-column-shadow-color);
+  content: "";
+  pointer-events: none;
+}
+
+.oq-strategy-table-pagination,
+.oq-strategy-compare-card {
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .oq-strategy-page-intro {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .oq-strategy-search-wrap {
+    width: 100%;
+  }
+
+  .oq-strategy-folders {
+    overflow-x: auto;
+  }
+
+  .oq-strategy-table-card {
+    overflow-x: auto;
+  }
+
+  .oq-strategy-table-grid {
+    min-width: 1060px;
+  }
+}
+
 .dark.oq-strategies-active :is([data-slot="dialog-overlay"], [data-slot="alert-dialog-overlay"]) {
   background: oklch(0 0 0 / 0.58) !important;
+}
+
+/* Legacy folder workspace layout used by the strategy board. */
+.oq-strategy-workbench {
+  width: min(100%, 1375px);
+  gap: 18px;
+  margin-top: -20px;
+}
+
+.oq-strategy-intro {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  min-height: 48px;
+}
+
+.oq-strategy-guide-target {
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--os-accent) 28%, transparent), 0 0 0 6px color-mix(in srgb, var(--os-accent) 10%, transparent);
+}
+
+.oq-strategy-guide-dialog {
+  isolation: isolate;
+}
+
+.oq-strategy-guide-popover {
+  position: absolute;
+  z-index: 10;
+  width: min(280px, calc(100vw - 36px));
+  border: 1px solid color-mix(in srgb, var(--os-accent) 28%, var(--os-border));
+  border-radius: 10px;
+  background: #fffaf6;
+  box-shadow: 0 10px 26px rgba(60, 40, 20, 0.16);
+  padding: 12px;
+  color: var(--os-text);
+}
+
+.oq-strategy-intro > .oq-strategy-guide-popover {
+  top: calc(100% + 8px);
+  right: 0;
+}
+
+.oq-strategy-intro > .oq-strategy-create-button {
+  grid-column: 2;
+}
+
+.oq-strategy-guide-anchor {
+  position: relative;
+}
+
+.oq-strategy-run-guide-anchor {
+  position: relative;
+  display: inline-flex;
+  z-index: 1;
+}
+
+.oq-strategy-run-guide-anchor > .oq-strategy-guide-popover {
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 90;
+}
+
+.oq-strategy-guide-anchor > .oq-strategy-guide-popover {
+  top: calc(100% + 10px);
+  right: 0;
+}
+
+.oq-strategy-create-actions.oq-strategy-guide-anchor > .oq-strategy-guide-popover {
+  top: auto;
+  right: 0;
+  bottom: calc(100% + 10px);
+}
+
+.oq-strategy-create-actions.oq-strategy-guide-anchor > .oq-strategy-guide-popover.is-step-4 {
+  right: 16px;
+}
+
+.oq-strategy-guide-step {
+  flex: 0 0 auto;
+  color: var(--os-accent);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 32px;
+}
+
+.oq-strategy-guide-popover strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.oq-strategy-guide-popover p {
+  margin: 4px 0 14px;
+  color: var(--os-text-soft);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  white-space: pre-line;
+}
+
+.oq-strategy-guide-footer {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.oq-strategy-guide-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.oq-strategy-guide-actions button {
+  border: 0;
+  border-radius: 50px;
+  background: color-mix(in srgb, var(--os-border) 56%, #ffffff);
+  padding: 0 10px;
+  color: var(--os-text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 32px;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.oq-strategy-guide-actions button:hover {
+  background: color-mix(in srgb, var(--os-accent) 12%, var(--os-border));
+  color: var(--os-accent);
+}
+
+.oq-strategy-guide-actions button.is-primary {
+  border-radius: 50px;
+  background: var(--os-accent);
+  padding: 0 11px;
+  color: white;
+}
+
+.oq-strategy-guide-actions button.is-primary:hover {
+  background: color-mix(in srgb, var(--os-accent) 88%, #000000);
+  color: white;
+}
+
+.oq-strategy-intro p {
+  margin: 0;
+  color: var(--os-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.oq-strategy-intro > .oq-strategy-guide-popover p {
+  margin: 4px 0 14px;
+  color: var(--os-text-soft);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: pre-line;
+}
+
+.oq-strategy-intro > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--os-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.oq-strategy-workspace-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  height: auto;
+  min-height: 590px;
+  margin-top: -10px;
+  overflow: hidden;
+  border: 0.75px solid var(--os-border);
+  border-radius: 10px;
+  background: var(--os-bg);
+  box-shadow: none;
+  transition: grid-template-columns 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-strategy-workspace-shell.is-folder-panel-collapsed {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
+.oq-strategy-folder-panel {
+  min-width: 0;
+  border-right: 0.5px solid var(--os-border);
+  background: var(--os-bg);
+  padding: 18px 14px;
+  overflow: hidden;
+}
+
+.oq-strategy-folder-panel-head,
+.oq-strategy-workspace-heading,
+.oq-strategy-workspace-heading > div {
+  display: flex;
+  align-items: center;
+}
+
+.oq-strategy-folder-panel-head {
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--os-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.oq-strategy-folder-panel-title {
+  cursor: help;
+}
+
+.oq-strategy-folder-info-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--os-muted);
+  stroke-width: 1.7;
+}
+
+.oq-strategy-folder-panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.oq-strategy-folder-icon-button {
+  display: inline-flex;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #687180;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.oq-strategy-folder-icon-button:hover {
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+}
+
+.oq-strategy-folder-icon-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--os-accent) 30%, transparent);
+  outline-offset: 1px;
+}
+
+.oq-strategy-folder-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.oq-strategy-folder-nav button {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  padding: 0 10px;
+  color: var(--os-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.oq-strategy-folder-nav button:hover,
+.oq-strategy-folder-nav button.is-active {
+  border-color: color-mix(in srgb, var(--os-accent) 30%, var(--os-border));
+  background: var(--os-bg);
+  color: var(--os-accent);
+  box-shadow: none;
+}
+
+.oq-strategy-folder-nav button strong,
+.oq-strategy-workspace-heading > div > span {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--os-surface);
+  color: var(--os-muted);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-folder-panel {
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-folder-panel-title,
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-folder-icon-button:first-child,
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-folder-nav button > span,
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-folder-nav button > strong {
+  display: none;
+}
+
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-folder-panel-head {
+  justify-content: center;
+}
+
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-folder-nav {
+  margin-top: 16px;
+}
+
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-folder-nav button {
+  display: flex;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0;
+}
+
+.oq-strategy-folder-nav button.is-active strong,
+.oq-strategy-workspace-heading > div > span {
+  background: var(--os-bg-warm);
+  color: var(--os-accent);
+}
+
+.oq-strategy-workspace-main {
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+  flex-direction: column;
+  background: var(--os-bg);
+}
+
+.oq-strategy-workspace-heading {
+  min-height: 54px;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 0;
+  padding: 0 18px;
+}
+
+.oq-strategy-workspace-heading > div {
+  gap: 9px;
+  color: var(--os-accent);
+}
+
+.oq-strategy-workspace-heading strong {
+  color: var(--os-text);
+  font-size: 14px;
+}
+
+.oq-strategy-workspace-compare-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  color: var(--os-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.oq-strategy-workspace-heading p {
+  margin: 0;
+  color: var(--os-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-toolbar {
+  display: none;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll::-webkit-scrollbar {
+  height: 0;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll.is-scrolling {
+  scrollbar-width: thin;
+  scrollbar-color: #c8c0b7 transparent;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll.is-scrolling::-webkit-scrollbar {
+  height: 6px;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll.is-scrolling::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #c8c0b7;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > :is(
+  .oq-strategy-table-head,
+  .oq-strategy-table-row
+) {
+  min-width: 1084px;
+}
+
+.oq-strategy-workspace-shell.is-folder-panel-collapsed .oq-strategy-table-scroll > :is(
+  .oq-strategy-table-head,
+  .oq-strategy-table-row
+) {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 48px 24px minmax(160px, 1fr) 48px 60px 68px 68px 64px 160px 80px 80px 96px;
+}
+
+.oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-pagination {
+  width: 100%;
+  min-width: 0;
+  margin-top: auto;
+}
+
+@media (max-width: 760px) {
+  .oq-strategy-intro {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .oq-strategy-intro > span {
+    display: none;
+  }
+
+  .oq-strategy-workspace-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .oq-strategy-workspace-main > .oq-strategy-table-card {
+    flex: initial;
+  }
+
+  .oq-strategy-folder-panel {
+    border-right: 0;
+    border-bottom: 1px solid var(--os-border);
+  }
+
+  .oq-strategy-folder-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .oq-strategy-workspace-heading p {
+    display: none;
+  }
+
+  .oq-strategy-workspace-compare-note {
+    display: none;
+  }
+}
+
+/* Keep route-scoped dark colors ahead of no-structure legacy rules. */
+.dark.oq-strategies-active .oq-strategy-table-head,
+.dark.oq-strategies-active .oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-head > :first-child,
+.dark.oq-strategies-active .oq-strategy-workspace-main > .oq-strategy-table-card > .oq-strategy-table-scroll > .oq-strategy-table-head > :last-child {
+  background: var(--oq-strategy-surface-2);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-popover {
+  border-color: var(--oq-strategy-border-strong);
+  background: var(--oq-strategy-surface-1);
+  color: var(--oq-strategy-text);
+  box-shadow: 0 16px 42px oklch(0 0 0 / 0.5);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-actions button {
+  background: var(--oq-strategy-surface-3);
+  color: var(--oq-strategy-text-soft);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-actions button:hover {
+  background: var(--oq-strategy-surface-warm);
+  color: var(--oq-strategy-accent-2);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-actions button.is-primary {
+  background: var(--oq-strategy-accent);
+  color: var(--oq-strategy-canvas);
+}
+
+.dark.oq-strategies-active .oq-strategy-guide-actions button.is-primary:hover {
+  background: var(--oq-strategy-accent-2);
+  color: var(--oq-strategy-canvas);
 }

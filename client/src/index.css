@@ -2084,6 +2084,129 @@
   animation-name: oq-sidebar-nav-secondary-in;
 }
 
+.oq-onboarding-task-group {
+  position: relative;
+}
+
+.oq-onboarding-task-step {
+  position: relative;
+  min-height: 24px;
+}
+
+.oq-onboarding-task-node {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  background: #faf8f6;
+}
+
+.oq-onboarding-task-node.is-pending {
+  border: 1px solid #d9d2cb;
+  color: transparent;
+}
+
+.oq-onboarding-task-node.is-complete {
+  border: 1px solid #171411;
+  background: #171411;
+  color: #ffffff;
+}
+
+.oq-onboarding-task-node.is-progress {
+  overflow: hidden;
+  background: conic-gradient(from -90deg, #171411 0 var(--oq-task-progress), #d9d2cb var(--oq-task-progress) 100%);
+}
+
+.oq-onboarding-task-node.is-progress::after {
+  position: absolute;
+  inset: 2px;
+  border-radius: 999px;
+  background: #faf8f6;
+  content: "";
+}
+
+.dark .oq-onboarding-task-node.is-progress::after {
+  background: #241812;
+}
+
+.dark #oq-onboarding-popover {
+  border-color: var(--border);
+  color: var(--foreground);
+  box-shadow: 0 16px 42px oklch(0 0 0 / 0.5);
+}
+
+.dark #oq-onboarding-popover .oq-onboarding-task-group {
+  background: var(--card) !important;
+}
+
+.dark #oq-onboarding-popover .oq-onboarding-task-node {
+  background: var(--card);
+}
+
+.dark #oq-onboarding-popover .oq-onboarding-task-node.is-pending {
+  border-color: var(--border);
+}
+
+.dark #oq-onboarding-popover .oq-onboarding-task-node.is-complete {
+  border-color: var(--brand-accent);
+  background: var(--brand-accent);
+  color: var(--primary-foreground);
+}
+
+.dark #oq-onboarding-popover .oq-onboarding-task-node.is-progress {
+  background: conic-gradient(from -90deg, var(--brand-accent) 0 var(--oq-task-progress), var(--border) var(--oq-task-progress) 100%);
+}
+
+.dark #oq-onboarding-popover .oq-onboarding-task-node.is-progress::after {
+  background: var(--card);
+}
+
+.dark #oq-onboarding-popover .oq-onboarding-task-children::before {
+  background: var(--border);
+}
+
+.oq-onboarding-task-children {
+  position: relative;
+}
+
+.oq-onboarding-task-children::before {
+  position: absolute;
+  top: -20px;
+  bottom: 12px;
+  left: 8px;
+  width: 1px;
+  background: #e7ded5;
+  content: "";
+}
+
+.oq-onboarding-task-children .oq-onboarding-task-step > span:last-child {
+  min-width: 0;
+}
+
+/* Reuse the Explore canvas on the core workbench routes. */
+.oq-app-main-column.oq-app-explore-canvas {
+  background: oklch(0.976 0 0);
+}
+
+.oq-app-main-column.oq-app-explore-canvas > .oq-app-header {
+  background: oklch(0.976 0 0 / 0.85);
+}
+
+#oq-onboarding-popover {
+  background: oklch(0.976 0 0);
+}
+
+.dark .oq-app-main-column.oq-app-explore-canvas {
+  background: oklch(0.135 0.003 57.433) !important;
+}
+
+.dark .oq-app-main-column.oq-app-explore-canvas > .oq-app-header {
+  background: color-mix(in oklch, oklch(0.135 0.003 57.433) 88%, transparent) !important;
+}
+
+.dark #oq-onboarding-popover {
+  background: oklch(0.135 0.003 57.433);
+}
+
 .oq-explore-tab {
   position: relative;
 }
@@ -2831,4 +2954,38 @@
 .dark .oq-sidebar-content [class*="dark:hover:text-[#ff6a1a]"]:hover,
 .dark .oq-app-header [class*="dark:hover:text-[#ff6a1a]"]:hover {
   color: var(--brand-accent) !important;
+}
+
+/* Sidebar quick actions: map legacy utility colors to the shared dark palette. */
+.dark .oq-sidebar-footer .oq-sidebar-quick-card {
+  border-color: var(--border) !important;
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+}
+
+.dark .oq-sidebar-footer .oq-sidebar-quick-card:hover {
+  border-color: color-mix(in oklch, var(--brand-accent) 48%, var(--border)) !important;
+  background: var(--oq-workbench-surface-warm) !important;
+}
+
+.dark .oq-sidebar-footer .oq-sidebar-quick-card:first-child > span:first-child > span {
+  background: color-mix(in oklch, var(--brand-accent) 12%, transparent) !important;
+  color: var(--brand-accent) !important;
+}
+
+.dark .oq-sidebar-footer .oq-sidebar-quick-card:nth-child(2) > span:first-child > span:first-child {
+  background: var(--oq-workbench-surface-warm) !important;
+  color: var(--oq-workbench-tooltip-text) !important;
+}
+
+.dark .oq-sidebar-footer .oq-sidebar-quick-card [class*="text-[#8c8378]"] {
+  color: var(--oq-workbench-tooltip-text) !important;
+}
+
+.dark .oq-sidebar-footer .oq-sidebar-quick-card [class*="text-[#1f8a5b]"] {
+  color: var(--market-green) !important;
+}
+
+.dark .oq-sidebar-footer > .space-y-2 > div > button:hover {
+  background: var(--oq-workbench-surface-warm) !important;
 }

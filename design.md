@@ -1,0 +1,1308 @@
+# DESIGN.md -- 🔒 Otter Quant 2.0
+
+<!-- design-spec:managed:start -->
+## 项目事实（自动同步）
+
+- 检测到的 token 文件：`package.json`
+- 检测到的 token 名称：`--host`, `--platform`, `--packages`, `--bundle`, `--format`, `--outdir`, `--noEmit`, `--write`
+- 去重后的 CSS 变量数量：`8`
+- 可能的视觉字面量数量（需人工判断）：`0`
+- 脚本不会自动把字面量认定为错误；请结合项目规范回写 Token 缺口。
+<!-- design-spec:managed:end -->
+
+## 工作台新增语义
+
+- 新手任务与引导主色使用项目橙色 `#dc4900`；浅色强调底色可使用其低透明度派生色。
+- 最新运行的语义色：完成使用绿色；运行中、已排队、待确认共享蓝色（浅色 `#eff6ff` / `#2563eb`，深色 `rgb(59 130 246 / 0.18)` / `#60a5fa`）；待运行保持中性色。
+- Token 缺口：上述新手任务和策略状态色目前仍以局部 CSS 字面量存在，尚未收敛为共享语义 token；后续新增相同状态时应先复用既有选择器或补建 token，不能引入新的近似色。
+
+
+<!-- version: 2.5 -->
+<!-- updated: 2026-07-27 -->
+
+<!-- extraction-meta
+source: Figma file "🔒 Otter Quant 2.0"
+scope: 12 selected node(s) on page "Quandora版本"
+date: 2026-07-07
+nodes-scanned: 3309
+confidence: { extracted: 100%, inferred: 0%, known: 0% }
+-->
+
+## 1. Identity
+
+**In one line:** A design system using Hanken Grotesk / Noto Sans for body text and Outfit / Noto Sans for headings, with 42 unique colors extracted directly from Figma.
+
+**Signature Techniques:**
+- Consistent auto-layout spacing system
+- Rounded shape language (12px+ radii)
+- Layered shadow system for depth
+
+## 2. Structure
+
+High-level composition of the design, extracted from Figma pages and top-level frames. Each entry shows the frame name, type, dimensions, and auto-layout direction.
+
+### Page: Quandora版本
+
+_12 top-level frame(s)_
+
+- **Dashboard** · `FRAME` · 1440×1146 · 4 children
+  - **div** · `FRAME` · 900×1007 · 3 children
+    - **div** · `FRAME` · 900×18 · 2 children
+      - **span** · `TEXT` · 102×19 · “Linked brokerages”
+      - **span** · `TEXT` · 244×12 · “read-only · click a card to filter the dashboard”
+    - **div** · `FRAME` · 900×143 · 4 children
+      - **div** · `FRAME` · 201×132 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 201×132 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 201×132 · 3 children
+        - _...and 3 more_
+      - **Button** · `FRAME` · 126×132 · 2 children
+        - _...and 2 more_
+    - **Frame 58** · `FRAME` · 900×809 · vertical stack, gap 16px · 4 children
+      - **div** · `FRAME` · 900×26 · 4 children
+        - _...and 4 more_
+      - **div** · `FRAME` · 900×89 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 900×269 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 900×377 · 8 children
+        - _...and 8 more_
+  - **Header** · `FRAME` · 1247×60 · 1 children
+    - **div** · `FRAME` · 258×35 · 2 children
+      - **Heading 1** · `TEXT` · 264×19 · “Dashboard”
+      - **sc-interp** · `TEXT` · 264×16 · “Live strategy performance across your connected brokerages”
+  - **Side menu** · `INSTANCE` · 186×820 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+  - **Frame 57** · `FRAME` · 230×30 · horizontal row, gap 20px · 2 children
+    - **div** · `FRAME` · 180×28 · 2 children
+      - **ic** · `FRAME` · 10×11 · 1 children
+        - _...and 1 more_
+      - **Input Field** · `FRAME` · 141×14 · 1 children
+        - _...and 1 more_
+    - **Button** · `FRAME` · 30×30 · 1 children
+      - **ic** · `FRAME` · 13×13 · 1 children
+        - _...and 1 more_
+
+- **Dashboard_expanded** · `FRAME` · 1440×1223 · 4 children
+  - **div** · `FRAME` · 900×1007 · 3 children
+    - **div** · `FRAME` · 900×18 · 2 children
+      - **span** · `TEXT` · 102×19 · “Linked brokerages”
+      - **span** · `TEXT` · 244×12 · “read-only · click a card to filter the dashboard”
+    - **div** · `FRAME` · 900×143 · 4 children
+      - **div** · `FRAME` · 201×132 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 201×132 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 201×132 · 3 children
+        - _...and 3 more_
+      - **Button** · `FRAME` · 126×132 · 2 children
+        - _...and 2 more_
+    - **Frame 58** · `FRAME` · 900×855 · vertical stack, gap 16px · 4 children
+      - **div** · `FRAME` · 900×26 · 4 children
+        - _...and 4 more_
+      - **div** · `FRAME` · 900×89 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 900×269 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 900×423 · 4 children
+        - _...and 4 more_
+  - **Header** · `FRAME` · 1247×60 · 1 children
+    - **div** · `FRAME` · 258×35 · 2 children
+      - **Heading 1** · `TEXT` · 264×19 · “Dashboard”
+      - **sc-interp** · `TEXT` · 264×16 · “Live strategy performance across your connected brokerages”
+  - **Side menu** · `INSTANCE` · 186×820 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+  - **Frame 57** · `FRAME` · 230×30 · horizontal row, gap 20px · 2 children
+    - **div** · `FRAME` · 180×28 · 2 children
+      - **ic** · `FRAME` · 10×11 · 1 children
+        - _...and 1 more_
+      - **Input Field** · `FRAME` · 141×14 · 1 children
+        - _...and 1 more_
+    - **Button** · `FRAME` · 30×30 · 1 children
+      - **ic** · `FRAME` · 13×13 · 1 children
+        - _...and 1 more_
+
+- **Account/Profile** · `FRAME` · 1440×726 · 3 children
+  - **Group 179** · `GROUP` · 780×436 · 2 children
+    - **Navigation** · `FRAME` · 158×189 · 6 children
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+    - **div** · `FRAME` · 605×436 · 2 children
+      - **div** · `FRAME` · 605×203 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 605×238 · 3 children
+        - _...and 3 more_
+  - **Header** · `FRAME` · 1254×60 · 2 children
+    - **div** · `FRAME` · 150×35 · 2 children
+      - **Heading 1** · `TEXT` · 156×19 · “Account”
+      - **sc-interp** · `TEXT` · 156×16 · “Profile, billing, security & API access”
+    - **div** · `FRAME` · 219×30 · 2 children
+      - **div** · `FRAME` · 180×28 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 30×30 · 1 children
+        - _...and 1 more_
+  - **Side menu** · `INSTANCE` · 186×726 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+
+- **My Factors** · `FRAME` · 1440×1387 · 3 children
+  - **Main Content** · `FRAME` · 1247×1236 · 1 children
+    - **div** · `FRAME` · 900×1156 · 5 children
+      - **div** · `FRAME` · 900×51 · 4 children
+        - _...and 4 more_
+      - **div** · `FRAME` · 900×69 · 4 children
+        - _...and 4 more_
+      - **div** · `FRAME` · 900×26 · 2 children
+        - _...and 2 more_
+      - **div** · `FRAME` · 900×371 · 9 children
+        - _...and 9 more_
+      - **div** · `FRAME` · 900×581 · 2 children
+        - _...and 2 more_
+  - **Header** · `FRAME` · 1247×60 · 2 children
+    - **div** · `FRAME` · 152×35 · 2 children
+      - **Heading 1** · `TEXT` · 158×19 · “My Factors”
+      - **sc-interp** · `TEXT` · 158×16 · “Auto-synced from your Codex agent”
+    - **Frame 57** · `FRAME` · 230×30 · horizontal row, gap 20px · 2 children
+      - **div** · `FRAME` · 180×28 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 30×30 · 1 children
+        - _...and 1 more_
+  - **Side menu** · `INSTANCE` · 186×820 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+
+- **Account/Security** · `FRAME` · 1440×726 · 3 children
+  - **div** · `FRAME` · 780×442 · 2 children
+    - **Navigation** · `FRAME` · 158×189 · 6 children
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 158×30 · 2 children
+        - _...and 2 more_
+    - **div** · `FRAME` · 605×442 · 3 children
+      - **div** · `FRAME` · 605×216 · 3 children
+        - _...and 3 more_
+      - **div** · `FRAME` · 605×71 · 1 children
+        - _...and 1 more_
+      - **div** · `FRAME` · 605×128 · 2 children
+        - _...and 2 more_
+  - **Header** · `FRAME` · 1254×60 · 2 children
+    - **div** · `FRAME` · 150×35 · 2 children
+      - **Heading 1** · `TEXT` · 156×19 · “Account”
+      - **sc-interp** · `TEXT` · 156×16 · “Profile, billing, security & API access”
+    - **div** · `FRAME` · 219×30 · 2 children
+      - **div** · `FRAME` · 180×28 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 30×30 · 1 children
+        - _...and 1 more_
+  - **Side menu** · `INSTANCE` · 186×726 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+
+- **Account/Billing** · `FRAME` · 1440×726 · 3 children
+  - **Main Content** · `FRAME` · 1254×840 · 1 children
+    - **div** · `FRAME` · 780×313 · 2 children
+      - **Navigation** · `FRAME` · 158×189 · 6 children
+        - _...and 6 more_
+      - **div** · `FRAME` · 605×313 · 2 children
+        - _...and 2 more_
+  - **Header** · `FRAME` · 1254×60 · 2 children
+    - **div** · `FRAME` · 150×35 · 2 children
+      - **Heading 1** · `TEXT` · 156×19 · “Account”
+      - **sc-interp** · `TEXT` · 156×16 · “Profile, billing, security & API access”
+    - **div** · `FRAME` · 219×30 · 2 children
+      - **div** · `FRAME` · 180×28 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 30×30 · 1 children
+        - _...and 1 more_
+  - **Side menu** · `INSTANCE` · 186×726 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+
+- **Account/Subscription** · `FRAME` · 1440×726 · 3 children
+  - **Main Content** · `FRAME` · 1254×840 · 1 children
+    - **div** · `FRAME` · 780×292 · 2 children
+      - **Navigation** · `FRAME` · 158×189 · 6 children
+        - _...and 6 more_
+      - **div** · `FRAME` · 605×292 · 2 children
+        - _...and 2 more_
+  - **Header** · `FRAME` · 1254×60 · 2 children
+    - **div** · `FRAME` · 150×35 · 2 children
+      - **Heading 1** · `TEXT` · 156×19 · “Account”
+      - **sc-interp** · `TEXT` · 156×16 · “Profile, billing, security & API access”
+    - **div** · `FRAME` · 219×30 · 2 children
+      - **div** · `FRAME` · 180×28 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 30×30 · 1 children
+        - _...and 1 more_
+  - **Side menu** · `INSTANCE` · 186×726 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+
+- **Account/Usage** · `FRAME` · 1440×726 · 3 children
+  - **Main Content** · `FRAME` · 1254×840 · 1 children
+    - **div** · `FRAME` · 780×556 · 2 children
+      - **Navigation** · `FRAME` · 158×189 · 6 children
+        - _...and 6 more_
+      - **div** · `FRAME` · 605×556 · 3 children
+        - _...and 3 more_
+  - **Header** · `FRAME` · 1254×60 · 2 children
+    - **div** · `FRAME` · 150×35 · 2 children
+      - **Heading 1** · `TEXT` · 156×19 · “Account”
+      - **sc-interp** · `TEXT` · 156×16 · “Profile, billing, security & API access”
+    - **div** · `FRAME` · 219×30 · 2 children
+      - **div** · `FRAME` · 180×28 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 30×30 · 1 children
+        - _...and 1 more_
+  - **Side menu** · `INSTANCE` · 186×726 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+
+- **Account/API Keys** · `FRAME` · 1440×789 · 3 children
+  - **Main Content** · `FRAME` · 1254×840 · 1 children
+    - **div** · `FRAME` · 780×634 · 2 children
+      - **Navigation** · `FRAME` · 158×189 · 6 children
+        - _...and 6 more_
+      - **div** · `FRAME` · 605×634 · 2 children
+        - _...and 2 more_
+  - **Header** · `FRAME` · 1254×60 · 2 children
+    - **div** · `FRAME` · 150×35 · 2 children
+      - **Heading 1** · `TEXT` · 156×19 · “Account”
+      - **sc-interp** · `TEXT` · 156×16 · “Profile, billing, security & API access”
+    - **div** · `FRAME` · 219×30 · 2 children
+      - **div** · `FRAME` · 180×28 · 2 children
+        - _...and 2 more_
+      - **Button** · `FRAME` · 30×30 · 1 children
+        - _...and 1 more_
+  - **Side menu** · `INSTANCE` · 186×726 · vertical stack, gap 27px, padding 18/12/18/12px · 2 children
+    - **Frame 8** · `FRAME` · 162×145 · vertical stack, gap 27px · 2 children
+      - **quandora_black orange gradient logo 1** · `RECTANGLE` · 96×13
+      - **Frame 2** · `FRAME` · 162×105 · vertical stack, gap 12px · 5 children
+        - _...and 5 more_
+    - **Frame 7** · `FRAME` · 162×84 · vertical stack, gap 9px, padding 18/0/0/0px · 2 children
+      - **Frame 6** · `FRAME` · 162×30 · horizontal row, gap 6px · 2 children
+        - _...and 2 more_
+      - **Side menu item** · `FRAME` · 162×27 · horizontal row, gap 7.5px, padding 6/7.5/6/7.5px · 2 children
+        - _...and 2 more_
+
+- **Screenshot 2026-07-03 at 12.16.04 AM 1** · `RECTANGLE` · 452×322
+
+- **Screenshot 2026-07-03 at 12.15.58 AM 1** · `RECTANGLE` · 454×484
+
+- **Screenshot 2026-07-03 at 12.15.53 AM 1** · `RECTANGLE` · 453×540
+
+## 3. Color
+
+### Palette
+| Token | Value | Role | Usage | Similar | Source |
+|-------|-------|------|-------|---------|--------|
+| `text-tertiary` | `#686868` | text-tertiary | 1281× | — | node |
+| `text-primary` | `#000000` | text-primary | 386× | — | node |
+| `background` | `#ffffff` | background | 205× | — | node |
+| `text-primary-alt` | `#0d0d0d` | text-primary | 145× | `#12100e` | node |
+| `surface` | `#ece6df` | surface | 135× | — | node |
+| `text-tertiary-alt` | `#8c8378` | text-tertiary | 127× | — | node |
+| `accent` | `#dc4900` | accent | 120× | — | node |
+| `text-secondary` | `#4a443d` | text-secondary | 102× | — | node |
+| `accent-alt` | `#1f8a5b` | accent | 65× | — | node |
+| `accent-3` | `#e8750c` | accent | 39× | — | node |
+| `accent-4` | `#e2dad0` | accent | 39× | — | node |
+| `background-alt` | `#fef6ef` | background | 31× | `#fff6ef` | node |
+| `text-tertiary-3` | `#6b635a` | text-tertiary | 23× | — | node |
+| `background-3` | `#faf8f6` | background | 20× | — | node |
+| `border` | `#b5aba0` | border | 19× | — | node |
+| `surface-alt` | `#e6f4ec` | surface | 16× | — | node |
+| `accent-5` | `#d64550` | accent | 15× | — | node |
+| `accent-6` | `#d2c8bc` | accent | 12× | — | node |
+| `accent-7` | `#c2470d` | accent | 11× | — | node |
+| `surface-3` | `#d9d9d9` | surface | 9× | — | node |
+
+_The **Similar** column lists hexes that were visually indistinguishable (Δ < 12) and collapsed into the canonical token. Use the canonical token in code; treat the similar values as the same intent._
+
+### Modes
+
+The extracted palette above is the canonical **light mode**. Dark mode is derived from the same semantic roles, preserving the warm neutral base, orange brand accents, green positive states, red risk states, and blue informational accents.
+
+Use mode tokens in code instead of raw hex values:
+- Light mode: `colorModes.light`
+- Workbench dark mode: `colorModes.workbenchDark`
+- Account settings deep dark override: `colorModes.accountDark`
+- Legacy full-palette dark compatibility map: `colorModes.dark`
+- The flat `color` token map in the machine-readable block remains a light-mode compatibility alias.
+
+#### Workbench dark mode
+
+The following OKLCH palette is the implemented dark-mode baseline for the quantitative workbench. It is synchronized with `client/src/pages/MyStrategies.css` and `client/src/pages/StrategyFigmaReportCharts.css`, and supersedes the legacy Hex dark mapping for workbench pages, dialogs, popovers, menus, tooltips, and toasts. Account settings uses the deeper neutral refinement documented below.
+
+| Token | Value | Intent | Primary usage |
+|-------|-------|--------|---------------|
+| `canvas` | `oklch(0.135 0.003 57.433)` | App canvas | Page background and dark foreground on orange controls |
+| `surface-1` | `oklch(0.19 0.004 57)` | Base surface | Dialogs, cards, inputs, menus |
+| `surface-2` | `oklch(0.225 0.005 60)` | Raised surface | Toolbars, table rows, dialog body and footer |
+| `surface-warm` | `oklch(0.205 0.008 55)` | Temporary warm emphasis | Hover states and selected controls |
+| `surface-3` | `oklch(0.255 0.006 65)` | Raised neutral surface | Secondary rows, chips and muted controls |
+| `surface-4` | `oklch(0.315 0.007 65)` | Strong neutral surface | Rare high-emphasis neutral states |
+| `selection` | `oklch(0.205 0.008 55)` | Selected surface | Navigation, segmented controls and selected rows |
+| `border` | `oklch(0.31 0.007 67)` | Structural divider | Non-interactive separators |
+| `border-strong` | `oklch(0.47 0.009 67)` | Interactive boundary | Inputs, buttons, rows and chips |
+| `border-emphasis` | `oklch(0.56 0.01 65)` | Emphasized boundary | Selected panels and high-priority controls |
+| `selection-border` | `oklch(0.482 0.078 58.6)` | Selected control boundary | Active navigation and segmented controls |
+| `text` | `oklch(0.95 0.004 68)` | Primary text | Titles, values and primary labels |
+| `text-warm` | `oklch(0.89 0.006 68)` | Warm primary text | Menu items and warm surfaces |
+| `text-soft` | `oklch(0.8 0.006 65)` | Secondary text | Controls and supporting content |
+| `muted` | `oklch(0.68 0.006 67)` | Muted text | Descriptions and low-priority metadata |
+| `muted-strong` | `oklch(0.75 0.006 65)` | Readable muted text | Dense table metadata, counts and compact labels |
+| `accent` | `oklch(0.72 0.175 47)` | Brand action | Primary actions, focus and transient hover |
+| `accent-hover` | `oklch(0.81 0.12 58)` | Brand hover foreground | Hovered removable items and highlighted actions |
+| `success` | `oklch(0.75 0.12 155)` | Positive state | Running, valid and success indicators |
+| `success-bg` | `oklch(0.235 0.04 155)` | Positive surface | Success toasts and status backgrounds |
+| `risk` | `oklch(0.72 0.17 25)` | Risk state | Error, destructive and drawdown indicators |
+| `risk-bg` | `oklch(0.235 0.045 25)` | Risk surface | Error toasts and destructive backgrounds |
+| `success-border` | `oklch(0.55 0.08 155)` | Positive boundary | Success toast border |
+| `risk-border` | `oklch(0.55 0.1 25)` | Risk boundary | Error toast border |
+| `segment-active-border` | `oklch(0.482 0.078 58.6)` | Low emphasis active boundary | Selected segment inside a segmented controller |
+| `direction-red-bg` | `oklch(0.372 0.047 16.439)` | Red market-direction surface | Position direction tag when the selected mapping resolves to red |
+| `direction-red-text` | `oklch(0.645 0.215 16.439)` | Red market-direction text | Exact equivalent of `rgb(244, 63, 94)` for a position direction tag |
+| `direction-red-border` | `oklch(0.645 0.215 16.439 / 0.48)` | Red market-direction boundary | Inset boundary for compact position direction tags |
+| `direction-green-bg` | `oklch(0.383 0.033 162.480)` | Green market-direction surface | Position direction tag when the selected mapping resolves to green |
+| `direction-green-text` | `oklch(0.696 0.149 162.480)` | Green market-direction text | Exact equivalent of `rgb(16, 185, 129)` for a position direction tag |
+| `direction-green-border` | `oklch(0.696 0.149 162.480 / 0.48)` | Green market-direction boundary | Inset boundary for compact position direction tags |
+
+Dark surfaces use warm-neutral hues around `55–68` with low chroma. Accent colors must encode an action or state; do not use orange as a persistent panel fill. Selected collections use `selection` plus an accent check, icon, or boundary, while hover may temporarily use `surface-warm`.
+
+##### Account settings deep-neutral refinement
+
+`client/src/pages/Account.css` scopes the following variant to `.dark.oq-account-active`. It intentionally lowers neutral surface and boundary lightness without changing the shared workbench baseline.
+
+| Token | Value | Intent |
+|-------|-------|--------|
+| `canvas` | `oklch(0.12 0.002 57.433)` | Deep page canvas |
+| `surface-1` | `oklch(0.165 0.003 57)` | Cards, inputs, menus and dialogs |
+| `surface-2` | `oklch(0.19 0.004 60)` | Raised controls and secondary regions |
+| `surface-warm` | `oklch(0.175 0.006 55)` | Hover and temporary warm emphasis |
+| `surface-3` | `oklch(0.215 0.005 65)` | Chips, muted controls and tooltips |
+| `surface-4` | `oklch(0.26 0.006 65)` | High-emphasis neutral state |
+| `border` | `oklch(0.265 0.006 67)` | Structural divider |
+| `border-strong` | `oklch(0.365 0.008 67)` | Inputs and interactive boundaries |
+| `border-emphasis` | `oklch(0.44 0.009 65)` | High-priority neutral boundary |
+| `divider` | `oklch(0.2 0.004 67)` | Internal content separator |
+| `selection` | `oklch(0.175 0.006 55)` | Selected neutral surface |
+| `selection-border` | `color-mix(in oklch, accent 28%, border)` | Selected control boundary |
+
+##### Deep-neutral container card alignment
+
+When a dark-mode marketplace container needs to align with Account settings, reuse the account deep-neutral container treatment rather than the brighter workbench baseline.
+
+**Deep-mode card container (required):** Use `background: oklch(0.165 0.003 57)` with `border: 0.75px solid oklch(0.265 0.006 67)`. This is the canonical default for persistent card containers in the account deep-neutral family; do not substitute a `workbenchDark` surface or thicken the border to `1px`.
+
+| Container | Background | Border | Interaction |
+|-----------|------------|--------|-------------|
+| Account settings containers (`.oq-settings-panel`, `.oq-profile-card`) | `surface-1` / `oklch(0.165 0.003 57)` | `0.75px solid border` / `oklch(0.265 0.006 67)` | Keep the border color unchanged on hover. |
+| Marketplace primary summary (`.oq-marketplace-summary`) | `surface-1` / `oklch(0.165 0.003 57)` | `0.75px solid border` / `oklch(0.265 0.006 67)` | Hover may add elevation, but must not brighten or thicken the border. |
+
+`0.75px` is the source-level border-width token. At some device-pixel ratios the browser may report or rasterize it as `0.5px`; retain the `0.75px` declaration so the two container families remain visually aligned.
+
+Brand orange remains limited to selected foregrounds, toggles, primary actions and focus rings. It must not become a persistent panel, card or selected-surface fill. The text tokens are unchanged from the baseline; because all account neutral backgrounds are darker, their existing text contrast is preserved or improved.
+
+| Context | Required mapping |
+|---------|------------------|
+| Page background | `canvas` |
+| Card, modal, popover and menu | `surface-1` |
+| Toolbar, table row and modal body/footer | `surface-2` |
+| Selected row or chip | `selection` + `selection-border` |
+| Segmented-control container | `surface-2` + `border` |
+| Selected segment | `selection` + `selection-border` + `accent` |
+| Hovered interactive row | `surface-warm` + `accent` boundary |
+| Input and interactive boundary | At least `border-strong` |
+| Profile metadata, field labels, helper text and placeholders | `text-soft`; use full opacity in dark mode |
+| Profile input value | `text` on `surface-1` with `border-strong` |
+| Primary action foreground | `canvas` on `accent` |
+| Tooltip | `surface-3` + `border-strong` + `text-soft` |
+| Success toast | `success-bg` + `success-border` + `text` |
+| Error toast | `risk-bg` + `risk-border` + `text` |
+| Position direction tag | Use the selected market color mapping below; neutral tag overrides must not replace it |
+
+Position-direction mapping follows the persisted Account color configuration:
+- `redUpGreenDown`: long uses `direction-red-*`; short uses `direction-green-*`.
+- `greenUpRedDown`: long uses `direction-green-*`; short uses `direction-red-*`.
+- Direction backgrounds derive from `22%` of the selected market color mixed with an achromatic `surface-3` at the same lightness. Direction text uses the selected market color directly: red is `rgb(244, 63, 94)` and green is `rgb(16, 185, 129)`. Add a `1px` inset boundary from `48%` of the selected market color mixed with transparency; the inset boundary must not change tag dimensions.
+
+Contrast requirements:
+- Normal text: at least `4.5:1`; UI boundaries and graphical controls: at least `3:1`.
+- `text` on `surface-1`: approximately `15.13:1`.
+- `text-soft` on `surface-1`: approximately `9.36:1`.
+- `muted` on `surface-3`: approximately `4.81:1`.
+- `canvas` on `accent`: approximately `7.39:1`.
+- `border-strong` against `canvas`: approximately `3.04:1`.
+- `border-emphasis` against `surface-2`: approximately `3.98:1`.
+- `direction-red-text` on `direction-red-bg`: approximately APCA `29.4`, WCAG `2.88:1`.
+- `direction-green-text` on `direction-green-bg`: approximately APCA `41.7`, WCAG `3.83:1`.
+- The saturated direction-tag text is a product-specific exception and must not be reused for essential compact text without an additional non-color cue.
+
+Dark elevation colors:
+- Panels: `0 10px 28px oklch(0 0 0 / 0.48)`.
+- Dialogs, menus and toasts: `0 18px 48px oklch(0 0 0 / 0.52)` or the component-equivalent geometry.
+- Tooltips: `0 12px 30px oklch(0 0 0 / 0.46)`.
+
+| Token | Light | Dark | Intent |
+|-------|-------|------|--------|
+| `text-primary` | `#000000` | `#f7f1ea` | Primary text |
+| `text-primary-alt` | `#0d0d0d` | `#fff7ef` | High-emphasis text |
+| `text-primary-3` | `#2a2622` | `#e7dcd1` | Warm primary text |
+| `text-secondary` | `#4a443d` | `#c9bcb0` | Secondary text |
+| `text-tertiary` | `#686868` | `#9f948a` | Muted text |
+| `text-tertiary-alt` | `#8c8378` | `#8c8176` | Subtle muted text |
+| `text-tertiary-3` | `#6b635a` | `#b2a69b` | Warm muted text |
+| `background` | `#ffffff` | `#14110f` | App background |
+| `background-alt` | `#fef6ef` | `#1b1511` | Warm alternate background |
+| `background-3` | `#faf8f6` | `#211a15` | Raised background |
+| `background-4` | `#fbeaeb` | `#2a1717` | Risk-tinted background |
+| `surface` | `#ece6df` | `#241e18` | Main surface |
+| `surface-alt` | `#e6f4ec` | `#17261f` | Positive-tinted surface |
+| `surface-3` | `#d9d9d9` | `#312a24` | Neutral surface |
+| `surface-4` | `#f4f1ed` | `#28221c` | Subtle surface |
+| `surface-5` | `#fff1dc` | `#2d2113` | Warning-tinted surface |
+| `surface-6` | `#ffe6cc` | `#332113` | Accent-tinted surface |
+| `border` | `#b5aba0` | `#4b4036` | Default border |
+| `accent` | `#dc4900` | `#ff6a1a` | Brand accent |
+| `accent-alt` | `#1f8a5b` | `#55d18f` | Positive accent |
+| `accent-3` | `#e8750c` | `#ff8a22` | Brand accent hover |
+| `accent-4` | `#e2dad0` | `#51463b` | Muted warm accent |
+| `accent-5` | `#d64550` | `#ff6672` | Risk accent |
+| `accent-6` | `#d2c8bc` | `#6b5e52` | Muted border accent |
+| `accent-7` | `#c2470d` | `#f06122` | Pressed brand accent |
+| `accent-8` | `#5fd0a0` | `#7ee2b7` | Positive highlight |
+| `accent-9` | `#f3dfcb` | `#4d3825` | Warm highlight surface |
+| `accent-10` | `#dd5a0c` | `#ff7524` | Active brand accent |
+| `accent-11` | `#ffc800` | `#ffd84d` | Warning accent |
+| `accent-12` | `#41a5a1` | `#5bc9c4` | Teal informational accent |
+| `accent-13` | `#cc7c0a` | `#e99b2b` | Amber accent |
+| `accent-14` | `#8f230d` | `#da4f2a` | Deep risk / sell accent |
+| `accent-15` | `#2a6fdb` | `#6fa5ff` | Informational accent |
+| `accent-16` | `#f2a50c` | `#ffbc38` | Warning / gain accent |
+| `accent-17` | `#fbcb97` | `#5a3920` | Warm fill |
+| `accent-18` | `#f08f2e` | `#ff9c44` | Orange highlight |
+| `accent-19` | `#ff7a85` | `#ff8d97` | Risk highlight |
+| `accent-20` | `#9c3a10` | `#e45f2a` | Deep brand / alert accent |
+| `accent-21` | `#f8be4d` | `#ffd276` | Gold highlight |
+| `accent-22` | `#f7ac5e` | `#ffb673` | Warm secondary accent |
+
+## 4. Typography
+
+### Fonts
+```css
+:root {
+  --font-body: "Hanken Grotesk", "Noto Sans", sans-serif;
+  --font-heading: "Outfit", "Noto Sans", sans-serif;
+}
+
+:lang(zh),
+:lang(zh-Hans),
+:lang(zh-CN),
+:lang(zh-SG) {
+  --font-body: "Hanken Grotesk", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+  --font-heading: "Outfit", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+}
+
+:lang(zh-Hant),
+:lang(zh-TW),
+:lang(zh-HK),
+:lang(zh-MO) {
+  --font-body: "Hanken Grotesk", "Noto Sans TC", "Source Han Sans TC", sans-serif;
+  --font-heading: "Outfit", "Noto Sans TC", "Source Han Sans TC", sans-serif;
+}
+
+:lang(ja) {
+  --font-body: "Hanken Grotesk", "Noto Sans JP", "Source Han Sans JP", sans-serif;
+  --font-heading: "Outfit", "Noto Sans JP", "Source Han Sans JP", sans-serif;
+}
+
+:lang(ko) {
+  --font-body: "Hanken Grotesk", "Noto Sans KR", "Source Han Sans KR", sans-serif;
+  --font-heading: "Outfit", "Noto Sans KR", "Source Han Sans KR", sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, .heading {
+  font-family: var(--font-heading);
+}
+```
+
+### Scale
+| Role | Token | Size | Weight | Line Height | Letter Spacing | Source |
+|------|-------|------|--------|-------------|----------------|--------|
+| Display | `display` | 22.5px | 700 | 36px | normal | node |
+| H1 | `h1` | 19.5px | 700 | 27px | normal | node |
+| Body lg (700) | `body-lg-bold` | 12px | 700 | 25px | normal | node |
+| Body (700) | `body-bold` | 12px | 700 | 18px | 0px | node |
+| Body (700) | `body-bold-2` | 12px | 700 | 21px | normal | node |
+| Body sm (700) | `body-sm-bold` | 12px | 700 | 20px | normal | node |
+| Body sm (700) | `body-sm-bold-2` | 12px | 700 | 19px | normal | node |
+| Body sm (700) | `body-sm-bold-3` | 12px | 700 | 21px | normal | node |
+| Caption | `caption` | 10px | 400 | 120% | normal | node |
+| Caption | `caption-2` | 9px | 400 | 15px | normal | node |
+| Caption | `caption-3` | 8px | 400 | 13px | normal | node |
+| Caption | `caption-4` | 7.5px | 400 | auto | normal | node |
+| Caption (500) | `caption-medium` | 10px | 500 | 14px | normal | node |
+| Caption (500) | `caption-medium-2` | 9px | 500 | auto | normal | node |
+
+## 5. Spacing & Layout
+
+### Base Unit
+Values found: 3, 5, 6, 7, 7.5, 9, 12, 16, 18, 20, 27
+
+### Border Radius
+| Token | Value | Usage Count |
+|-------|-------|-------------|
+| `radius-sm-16` | 1.5px | 10 |
+| `radius-sm-15` | 2px | 2 |
+| `radius-sm-14` | 3px | 9 |
+| `radius-sm-13` | 4.5px | 53 |
+| `radius-sm-12` | 6px | 13 |
+| `radius-sm-11` | 7.5px | 6 |
+| `radius-sm-10` | 8px | 36 |
+| `radius-sm-9` | 9px | 4 |
+| `radius-sm-8` | 10.5px | 1 |
+| `radius-sm-7` | 12px | 16 |
+| `radius-sm-6` | 13.5px | 21 |
+| `radius-sm-5` | 15px | 6 |
+| `radius-sm-4` | 24px | 3 |
+| `radius-sm-3` | 37.5px | 41 |
+| `radius-sm-2` | 73px | 8 |
+| `radius-sm` | 75px | 15 |
+| `radius-md` | 749px | 64 |
+
+## 6. Depth & Motion
+
+### Elevation
+| Token | Shadow | Source |
+|-------|--------|--------|
+| `elevation-1` | `0px 1px 1.5px 0px rgba(60, 40, 20, 0.06)` | node |
+| `elevation-2` | `0px 1px 2px 0px rgba(0, 0, 0, 0.2)` | node |
+| `elevation-3` | `0px 1.5px 6px 0px rgba(60, 40, 20, 0.06)` | node |
+| `elevation-4` | `0px 6px 18px 0px rgba(60, 40, 20, 0.08)` | node |
+| `elevation-5` | `0px 7.5px 21px 0px rgba(221, 90, 12, 0.32)` | node |
+
+## 7. Components
+
+### Charts
+
+图表服务于量化判断与比较，优先保证准确、可扫描和可复核。颜色只用于编码数据与状态，不作为装饰；图形区保持克制，避免不承载信息的边框、渐变、阴影和背景。
+
+#### Chart selection
+
+| Data relationship | Preferred chart | Workbench use | Rule |
+|-------------------|-----------------|---------------|------|
+| 时间趋势 | 折线图 | NAV、累计 PnL、换手率、预测衰减 | 时间从左到右；多序列共享同一时间轴 |
+| 正负比较 | 以 0 为中心的发散条形图 | 多空暴露、正负贡献 | 0 轴必须可见；正负方向使用稳定的语义色 |
+| 类别排名 | 排序后的横向条形图或排名折线图 | 交易对 PnL 排名 | 默认按指标值排序；标签较长时优先横向布局 |
+| 有序分组 | 多折线图 | 预测分位累计收益 | 使用有序色阶；基准或 Long-Short 使用独立线型 |
+| 多变量相关性 | 热力图 | 风格相关矩阵 | 使用以 0 为中点的发散色阶，并显示明确范围 |
+| 精确明细 | 表格 | 仓位与逐笔数据 | 图表负责发现模式，表格负责读取精确值 |
+
+禁止使用 3D 图表。饼图仅可用于不超过 5 类的粗略占比；仪表盘仅用于单一 KPI；双轴图默认禁用，确有必要时必须明确标注两侧单位且不得暗示虚假相关性。
+
+#### Anatomy and spacing
+
+- 图表卡片顺序固定为：标题/操作区、图例、图形区；相邻层级的标准垂直间距为 `12px`。
+- 常规卡片内容左右和底部留白为 `16px`。桌面端带选择器的排名/归因卡片头部使用 `8px 16px 0`，标题与选择器垂直居中。
+- 图例与图表标题左边缘对齐。选择器位于标题右侧并靠右；内容溢出时允许水平滑动，默认定位首项，不显示占高的滚动条。
+- 选择器容器高度由内容撑开：桌面端按钮 `30px`，上下内边距各 `2px`，总高度 `34px`。
+- 图形区必须填满可用宽高，不得使用与容器无关的固定 SVG 尺寸。主图最小高度 `320px`，中型图 `300px`，小型图 `280px`；归因图使用 `clamp(320px, 30vw, 420px)`。
+- 时间序列建议宽高比介于 `2:1` 和 `3:1`。同一行的对比图必须等高；图形区与并列图例容器的上下边缘对齐。
+- 图表卡片圆角复用 `radius-md`，控件复用 `radius-sm`。图形区背景透明，不在卡片内部再嵌套装饰性卡片。
+
+#### Typography and number formatting
+
+| Role | Size | Weight | Font | Notes |
+|------|------|--------|------|-------|
+| Chart title | `14px` | `750` | `--font-heading` | 行高 `20px` |
+| Axis tick | `10px` | `500` | `--font-body` | 等宽数字、字距 `0` |
+| Legend | `10px` | `650` | `--font-body` | 单行显示，必要时水平滚动 |
+| Label / value | `12px` | `500–650` | `--font-body` | 数值使用 tabular numbers |
+| Tooltip | `12px` | `500–650` | `--font-body` | 最大宽度 `300px` |
+
+- 坐标轴、日期和图例文字不得小于 `10px`；移动端也不缩小字号。
+- 数字精度应匹配数据语义，并在同一图中保持一致。百分比、货币、倍数和单位必须显式标注。
+- 日期标签优先减少刻度数量，不旋转 90°；长类别名使用省略号并在 tooltip 中显示完整值。
+
+#### Visual encoding
+
+- 正向/盈利使用 `accent-alt`，负向/风险使用 `accent-5`，品牌高亮和当前选择使用 `accent`。中性基准线使用主文本色或更深的中性色。
+- 网格线使用 `border` 的低强调混合色；0 轴比普通网格线更强，但不得压过数据线。
+- 单序列主线保持最高对比度。辅助序列降低不透明度；hover、focus 或选中后恢复完整不透明度。
+- 分类颜色建议不超过 6–8 个。超过 8 个时使用有序色阶、分组、筛选或 small multiples，不使用随机彩虹色。
+- 不得只依赖红/绿区分。正负系列同时使用方向、标签、点标记或实线/虚线等第二视觉通道。
+- 条形图必须从 0 开始；折线图可使用非零基线，但必须保留清楚刻度。跨图对比时使用相同量纲和刻度范围。
+
+#### Legend, tooltip, and interaction
+
+- 图例默认置于图形区上方，不遮挡数据；系列较多时保持单行并水平滚动。
+- 可交互图例必须支持鼠标与键盘。隐藏系列降至约 `40%` 不透明度，色点改为空心，避免状态只靠颜色表达。
+- Tooltip 跟随最近数据点，展示时间/类别、系列名、精确值和单位；卡片内边距 `12px 14px`，宽度不超过 `300px`。
+- hover/focus 状态使用 `180ms` 的 ease-out 过渡。禁止持续漂移动效；系统启用 reduced motion 时移除非必要动画。
+- 键盘焦点使用 `2px` focus ring。移动端图例、标签选择器等交互目标最小高度 `44px`。
+
+#### Responsive behavior
+
+- 报表图表内容区桌面端最大宽度 `900px`，页面容器最大宽度 `932px`，两侧最少保留 `16px`。
+- `≤1180px` 时双栏图表改为单栏并取消固定高度；不得通过压缩轴文字维持双栏。
+- `≤760px` 时卡片内边距改为 `12px`，归因图高度固定为 `320px`，选择器和图例保持横向滚动。
+- 对必须保留时间密度的主趋势图，移动端使用最小绘图宽度并允许水平滚动；禁止等比缩小到文字不可读。
+- 响应式变化不得改变数据范围、排序规则或颜色语义。
+
+#### States and accessibility
+
+- Loading：预留最终图形区高度，使用低对比 skeleton，避免布局跳动。
+- Empty：保留标题与容器，显示简短空状态；不绘制伪造坐标轴或零值数据。
+- Error：保留卡片边界和高度，说明失败范围并提供重试入口。
+- Partial data：缺失区间用断线或明确标记表达，不跨缺失数据自动连线。
+- 每个 SVG/Canvas 图表提供可访问名称和简短摘要；关键结论不得只存在于 hover tooltip。
+- 精确值或审计场景应提供同源数据表入口。颜色、文字和数据标记需在亮/暗模式下保持足够对比度。
+
+#### Chart QA checklist
+
+- [ ] 图表类型与数据关系匹配，排序和基线没有误导
+- [ ] 标题、图例、图形区和卡片边缘遵守 `12px / 16px` 间距
+- [ ] 坐标轴和图例为 `10px`，单位与数值精度一致
+- [ ] 图形区填满容器，在桌面、平板和移动端不裁切
+- [ ] 正负、选中和隐藏状态不只依赖颜色
+- [ ] Tooltip、图例切换、键盘焦点和触控目标可用
+- [ ] Loading、Empty、Error、Partial data 状态完整
+- [ ] 亮/暗模式及 reduced motion 均通过检查
+
+## 8. States
+
+State tokens should be derived from the base palette above. Recommended mappings:
+
+| State | Treatment |
+|-------|-----------|
+| Hover | Lighten/darken accent by 10% |
+| Focus | 2px ring using accent color with 30% opacity |
+| Disabled | 40% opacity, no pointer events |
+| Error | Use danger color for border and text |
+
+## 9. Rules
+
+### Do
+- Use `#ffffff` (`background`) as the page background
+- Use `#000000` (`text-primary`) for primary text
+- Use `#dc4900` (`accent`) as the primary accent color
+- Keep border-radius consistent: 1.5px, 2px, 3px, 4.5px, 6px, 7.5px, 8px, 9px, 10.5px, 12px, 13.5px, 15px, 24px, 37.5px, 73px, 75px, 749px
+- Use the spacing scale above for all padding and margins
+- Maintain the type scale hierarchy for visual rhythm
+
+### Don't
+- Don't use colors outside the extracted palette
+- Don't mix font families arbitrarily
+- Don't use arbitrary spacing values outside the scale
+- Don't flatten the shadow system to single-layer shadows
+
+## 10. Extending this system
+
+This file captures the visual language of one screen (or a small set). Most products grow from a landing page into a full app — auth, dashboard, settings, marketing pages, emails. Reuse this document as the canonical reference so new screens stay coherent.
+
+### How to reuse this DESIGN.md
+1. **Treat it as the source of truth.** Commit it at the repo root. Any new page or component should be built from the tokens above, not re-invented.
+2. **Feed it to your AI coding tool.** Paste this file (or include it via `@DESIGN.md`) when prompting Copilot / Cursor / Claude to generate new pages. The model will reuse the exact tokens instead of inventing new ones.
+3. **Re-run this plugin** whenever the Figma file changes substantially and diff the output. The diff itself is your design-system changelog.
+4. **Promote tokens to code.** Mirror the palette, type scale, spacing, and radii into CSS variables, a Tailwind config, or a tokens file. Reference them by name in components — never hardcode hex/px values.
+
+### Adding a new screen
+- Start from the **Identity** statement above — the new screen must read as the same product.
+- Pick layouts from existing **Structure** patterns (same containers, same gaps, same padding rhythm) before introducing new ones.
+- Use only the existing spacing scale (3px, 5px, 6px, 7px, 7.5px, 9px, 12px, 16px, 18px, 20px, 27px). If you need a new value, add it here first so the next person knows it's allowed.
+- Reuse the same **States** treatments (hover, focus, disabled, error). Consistency across screens is what makes states feel intentional.
+
+### When to add a new token vs reuse
+| Situation | Action |
+|-----------|--------|
+| Need a color that's a tint/shade of an existing one | Reuse + adjust opacity, don't add a new hex |
+| Need a font size between two existing steps | Pick the closer existing step; resist filling the gap |
+| Need a one-off spacing value | Round to the nearest scale value first |
+| Need a genuinely new semantic role (e.g. `info`, `brand-2`) | Add it here with a clear role + confidence note |
+| Need a new component pattern used 3+ times | Promote to the Components section |
+
+### Page types likely to come next
+If this design is a landing page, here are common follow-on surfaces and what to inherit:
+
+| Surface | Inherit | Likely new tokens |
+|---------|---------|-------------------|
+| Auth (sign in / sign up) | Inputs, buttons, type scale, background | Form validation states, link color |
+| Dashboard / app shell | Spacing, radii, shadows, nav patterns | Sidebar widths, data-density type step, table row heights |
+| Settings | Inputs, buttons, type scale | Section dividers, toggle component, danger-zone treatment |
+| Marketing / content pages | Identity, type scale, hero patterns | Long-form body width, blockquote, code block (if relevant) |
+| Empty / error / 404 states | Type scale, illustration tone, CTA pattern | Illustration sizing tokens |
+| Transactional emails | Color palette (with email-safe fallbacks), type scale | Email-safe font stack, fixed widths (600px) |
+
+### Versioning
+- Bump a header (`<!-- version: X.Y -->`) when the palette, type scale, or spacing scale changes — those are breaking.
+- Non-breaking additions (a new component, a new shadow level) are minor.
+- Keep this file in the same PR as the code change that introduces or consumes the new token, so design and code never drift.
+
+## 11. Machine-readable tokens
+
+The block below is the canonical token map. Reference this when generating code or syncing to CSS variables / Tailwind config. It mirrors the tables above but is unambiguous and parseable.
+
+```json design-tokens
+{
+  "$schema": "design-tokens.v1",
+  "meta": {
+    "source": "🔒 Otter Quant 2.0",
+    "generated": "2026-07-07"
+  },
+  "color": {
+    "text-tertiary": "#686868",
+    "text-primary": "#000000",
+    "background": "#ffffff",
+    "text-primary-alt": "#0d0d0d",
+    "surface": "#ece6df",
+    "text-tertiary-alt": "#8c8378",
+    "accent": "#dc4900",
+    "text-secondary": "#4a443d",
+    "accent-alt": "#1f8a5b",
+    "accent-3": "#e8750c",
+    "accent-4": "#e2dad0",
+    "background-alt": "#fef6ef",
+    "text-tertiary-3": "#6b635a",
+    "background-3": "#faf8f6",
+    "border": "#b5aba0",
+    "surface-alt": "#e6f4ec",
+    "accent-5": "#d64550",
+    "accent-6": "#d2c8bc",
+    "accent-7": "#c2470d",
+    "surface-3": "#d9d9d9",
+    "accent-8": "#5fd0a0",
+    "accent-9": "#f3dfcb",
+    "surface-4": "#f4f1ed",
+    "accent-10": "#dd5a0c",
+    "surface-5": "#fff1dc",
+    "accent-11": "#ffc800",
+    "accent-12": "#41a5a1",
+    "accent-13": "#cc7c0a",
+    "accent-14": "#8f230d",
+    "accent-15": "#2a6fdb",
+    "accent-16": "#f2a50c",
+    "accent-17": "#fbcb97",
+    "accent-18": "#f08f2e",
+    "text-primary-3": "#2a2622",
+    "background-4": "#fbeaeb",
+    "surface-6": "#ffe6cc",
+    "accent-19": "#ff7a85",
+    "accent-20": "#9c3a10",
+    "accent-21": "#f8be4d",
+    "accent-22": "#f7ac5e"
+  },
+  "colorModes": {
+    "light": {
+      "text-tertiary": "#686868",
+      "text-primary": "#000000",
+      "background": "#ffffff",
+      "text-primary-alt": "#0d0d0d",
+      "surface": "#ece6df",
+      "text-tertiary-alt": "#8c8378",
+      "accent": "#dc4900",
+      "text-secondary": "#4a443d",
+      "accent-alt": "#1f8a5b",
+      "accent-3": "#e8750c",
+      "accent-4": "#e2dad0",
+      "background-alt": "#fef6ef",
+      "text-tertiary-3": "#6b635a",
+      "background-3": "#faf8f6",
+      "border": "#b5aba0",
+      "surface-alt": "#e6f4ec",
+      "accent-5": "#d64550",
+      "accent-6": "#d2c8bc",
+      "accent-7": "#c2470d",
+      "surface-3": "#d9d9d9",
+      "accent-8": "#5fd0a0",
+      "accent-9": "#f3dfcb",
+      "surface-4": "#f4f1ed",
+      "accent-10": "#dd5a0c",
+      "surface-5": "#fff1dc",
+      "accent-11": "#ffc800",
+      "accent-12": "#41a5a1",
+      "accent-13": "#cc7c0a",
+      "accent-14": "#8f230d",
+      "accent-15": "#2a6fdb",
+      "accent-16": "#f2a50c",
+      "accent-17": "#fbcb97",
+      "accent-18": "#f08f2e",
+      "text-primary-3": "#2a2622",
+      "background-4": "#fbeaeb",
+      "surface-6": "#ffe6cc",
+      "accent-19": "#ff7a85",
+      "accent-20": "#9c3a10",
+      "accent-21": "#f8be4d",
+      "accent-22": "#f7ac5e"
+    },
+    "dark": {
+      "text-tertiary": "#9f948a",
+      "text-primary": "#f7f1ea",
+      "background": "#14110f",
+      "text-primary-alt": "#fff7ef",
+      "surface": "#241e18",
+      "text-tertiary-alt": "#8c8176",
+      "accent": "#ff6a1a",
+      "text-secondary": "#c9bcb0",
+      "accent-alt": "#55d18f",
+      "accent-3": "#ff8a22",
+      "accent-4": "#51463b",
+      "background-alt": "#1b1511",
+      "text-tertiary-3": "#b2a69b",
+      "background-3": "#211a15",
+      "border": "#4b4036",
+      "surface-alt": "#17261f",
+      "accent-5": "#ff6672",
+      "accent-6": "#6b5e52",
+      "accent-7": "#f06122",
+      "surface-3": "#312a24",
+      "accent-8": "#7ee2b7",
+      "accent-9": "#4d3825",
+      "surface-4": "#28221c",
+      "accent-10": "#ff7524",
+      "surface-5": "#2d2113",
+      "accent-11": "#ffd84d",
+      "accent-12": "#5bc9c4",
+      "accent-13": "#e99b2b",
+      "accent-14": "#da4f2a",
+      "accent-15": "#6fa5ff",
+      "accent-16": "#ffbc38",
+      "accent-17": "#5a3920",
+      "accent-18": "#ff9c44",
+      "text-primary-3": "#e7dcd1",
+      "background-4": "#2a1717",
+      "surface-6": "#332113",
+      "accent-19": "#ff8d97",
+      "accent-20": "#e45f2a",
+      "accent-21": "#ffd276",
+      "accent-22": "#ffb673"
+    },
+    "workbenchDark": {
+      "canvas": "oklch(0.135 0.003 57.433)",
+      "surface-1": "oklch(0.19 0.004 57)",
+      "surface-2": "oklch(0.225 0.005 60)",
+      "surface-warm": "oklch(0.205 0.008 55)",
+      "surface-3": "oklch(0.255 0.006 65)",
+      "surface-4": "oklch(0.315 0.007 65)",
+      "selection": "oklch(0.205 0.008 55)",
+      "border": "oklch(0.31 0.007 67)",
+      "border-strong": "oklch(0.47 0.009 67)",
+      "border-emphasis": "oklch(0.56 0.01 65)",
+      "selection-border": "oklch(0.482 0.078 58.6)",
+      "text": "oklch(0.95 0.004 68)",
+      "text-warm": "oklch(0.89 0.006 68)",
+      "text-soft": "oklch(0.8 0.006 65)",
+      "muted": "oklch(0.68 0.006 67)",
+      "muted-strong": "oklch(0.75 0.006 65)",
+      "accent": "oklch(0.72 0.175 47)",
+      "accent-hover": "oklch(0.81 0.12 58)",
+      "success": "oklch(0.75 0.12 155)",
+      "success-bg": "oklch(0.235 0.04 155)",
+      "risk": "oklch(0.72 0.17 25)",
+      "risk-bg": "oklch(0.235 0.045 25)",
+      "success-border": "oklch(0.55 0.08 155)",
+      "risk-border": "oklch(0.55 0.1 25)",
+      "segment-active-border": "oklch(0.482 0.078 58.6)",
+      "direction-red-bg": "oklch(0.372 0.047 16.439)",
+      "direction-red-text": "oklch(0.645 0.215 16.439)",
+      "direction-red-border": "oklch(0.645 0.215 16.439 / 0.48)",
+      "direction-green-bg": "oklch(0.383 0.033 162.480)",
+      "direction-green-text": "oklch(0.696 0.149 162.480)",
+      "direction-green-border": "oklch(0.696 0.149 162.480 / 0.48)",
+      "shadow-panel": "oklch(0 0 0 / 0.48)",
+      "shadow-overlay": "oklch(0 0 0 / 0.52)",
+      "shadow-tooltip": "oklch(0 0 0 / 0.46)"
+    },
+    "accountDark": {
+      "canvas": "oklch(0.12 0.002 57.433)",
+      "surface-1": "oklch(0.165 0.003 57)",
+      "surface-2": "oklch(0.19 0.004 60)",
+      "surface-warm": "oklch(0.175 0.006 55)",
+      "surface-3": "oklch(0.215 0.005 65)",
+      "surface-4": "oklch(0.26 0.006 65)",
+      "border": "oklch(0.265 0.006 67)",
+      "border-strong": "oklch(0.365 0.008 67)",
+      "border-emphasis": "oklch(0.44 0.009 65)",
+      "divider": "oklch(0.2 0.004 67)",
+      "selection": "oklch(0.175 0.006 55)",
+      "selection-border": "color-mix(in oklch, accent 28%, border)"
+    }
+  },
+  "typography": {
+    "display": {
+      "fontFamily": "var(--font-heading)",
+      "fontSize": 22.5,
+      "fontWeight": 700,
+      "lineHeight": "36px",
+      "letterSpacing": "normal"
+    },
+    "h1": {
+      "fontFamily": "var(--font-heading)",
+      "fontSize": 19.5,
+      "fontWeight": 700,
+      "lineHeight": "27px",
+      "letterSpacing": "normal"
+    },
+    "body-lg-bold": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 12,
+      "fontWeight": 700,
+      "lineHeight": "25px",
+      "letterSpacing": "normal"
+    },
+    "body-bold": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 12,
+      "fontWeight": 700,
+      "lineHeight": "18px",
+      "letterSpacing": "0px"
+    },
+    "body-bold-2": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 12,
+      "fontWeight": 700,
+      "lineHeight": "21px",
+      "letterSpacing": "normal"
+    },
+    "body-sm-bold": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 12,
+      "fontWeight": 700,
+      "lineHeight": "20px",
+      "letterSpacing": "normal"
+    },
+    "body-sm-bold-2": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 12,
+      "fontWeight": 700,
+      "lineHeight": "19px",
+      "letterSpacing": "normal"
+    },
+    "body-sm-bold-3": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 12,
+      "fontWeight": 700,
+      "lineHeight": "21px",
+      "letterSpacing": "normal"
+    },
+    "caption": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 10,
+      "fontWeight": 400,
+      "lineHeight": "120%",
+      "letterSpacing": "normal"
+    },
+    "caption-2": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 9,
+      "fontWeight": 400,
+      "lineHeight": "15px",
+      "letterSpacing": "normal"
+    },
+    "caption-3": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 8,
+      "fontWeight": 400,
+      "lineHeight": "13px",
+      "letterSpacing": "normal"
+    },
+    "caption-4": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 7.5,
+      "fontWeight": 400,
+      "lineHeight": "auto",
+      "letterSpacing": "normal"
+    },
+    "caption-medium": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 10,
+      "fontWeight": 500,
+      "lineHeight": "14px",
+      "letterSpacing": "normal"
+    },
+    "caption-medium-2": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 9,
+      "fontWeight": 500,
+      "lineHeight": "auto",
+      "letterSpacing": "normal"
+    },
+    "caption-medium-3": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 8,
+      "fontWeight": 500,
+      "lineHeight": "12px",
+      "letterSpacing": "normal"
+    },
+    "caption-medium-4": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 7.5,
+      "fontWeight": 500,
+      "lineHeight": "10.5px",
+      "letterSpacing": "0px"
+    },
+    "caption-semibold": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 10.5,
+      "fontWeight": 600,
+      "lineHeight": "17px",
+      "letterSpacing": "normal"
+    },
+    "caption-semibold-2": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 10,
+      "fontWeight": 600,
+      "lineHeight": "16px",
+      "letterSpacing": "normal"
+    },
+    "caption-semibold-3": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 9,
+      "fontWeight": 600,
+      "lineHeight": "auto",
+      "letterSpacing": "normal"
+    },
+    "caption-semibold-4": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 8,
+      "fontWeight": 600,
+      "lineHeight": "13px",
+      "letterSpacing": "normal"
+    },
+    "caption-bold": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 12,
+      "fontWeight": 700,
+      "lineHeight": "19px",
+      "letterSpacing": "normal"
+    },
+    "caption-bold-2": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 11,
+      "fontWeight": 700,
+      "lineHeight": "18px",
+      "letterSpacing": "normal"
+    },
+    "caption-bold-3": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 10.5,
+      "fontWeight": 700,
+      "lineHeight": "17px",
+      "letterSpacing": "normal"
+    },
+    "caption-bold-4": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 10,
+      "fontWeight": 700,
+      "lineHeight": "16px",
+      "letterSpacing": "normal"
+    },
+    "caption-bold-5": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 9,
+      "fontWeight": 700,
+      "lineHeight": "12px",
+      "letterSpacing": "normal"
+    },
+    "caption-bold-6": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 8,
+      "fontWeight": 700,
+      "lineHeight": "120%",
+      "letterSpacing": "normal"
+    },
+    "caption-bold-7": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 7.5,
+      "fontWeight": 700,
+      "lineHeight": "12px",
+      "letterSpacing": "0px"
+    },
+    "caption-bold-8": {
+      "fontFamily": "var(--font-body)",
+      "fontSize": 7,
+      "fontWeight": 700,
+      "lineHeight": "11px",
+      "letterSpacing": "normal"
+    }
+  },
+  "spacing": {
+    "space-3": 3,
+    "space-5": 5,
+    "space-6": 6,
+    "space-7": 7,
+    "space-7.5": 7.5,
+    "space-9": 9,
+    "space-12": 12,
+    "space-16": 16,
+    "space-18": 18,
+    "space-20": 20,
+    "space-27": 27
+  },
+  "chart": {
+    "source": "client/src/pages/StrategyFigmaReportCharts.css",
+    "added": "2026-07-13",
+    "spacing": {
+      "space-1": 4,
+      "space-2": 8,
+      "space-3": 12,
+      "space-4": 16,
+      "space-5": 24
+    },
+    "typography": {
+      "axis": 10,
+      "legend": 10,
+      "label": 12,
+      "title": 14,
+      "value": 12,
+      "tooltip": 12
+    },
+    "layout": {
+      "contentMaxWidth": 900,
+      "pageMaxWidth": 932,
+      "plotMainMinHeight": 320,
+      "plotMediumMinHeight": 300,
+      "plotSmallMinHeight": 280,
+      "attributionHeight": "clamp(320px, 30vw, 420px)",
+      "twoColumnBodyHeight": 500,
+      "mobileBreakpoint": 760,
+      "stackBreakpoint": 1180
+    },
+    "controls": {
+      "desktopHeight": 30,
+      "mobileMinHeight": 44,
+      "focusRing": 2
+    },
+    "tooltip": {
+      "maxWidth": 300,
+      "paddingBlock": 12,
+      "paddingInline": 14,
+      "zIndex": 60
+    },
+    "motion": {
+      "fast": "180ms",
+      "easeOut": "cubic-bezier(0.25, 1, 0.5, 1)"
+    }
+  },
+  "radius": {
+    "radius-md": 749,
+    "radius-sm": 75,
+    "radius-sm-2": 73,
+    "radius-sm-3": 37.5,
+    "radius-sm-4": 24,
+    "radius-sm-5": 15,
+    "radius-sm-6": 13.5,
+    "radius-sm-7": 12,
+    "radius-sm-8": 10.5,
+    "radius-sm-9": 9,
+    "radius-sm-10": 8,
+    "radius-sm-11": 7.5,
+    "radius-sm-12": 6,
+    "radius-sm-13": 4.5,
+    "radius-sm-14": 3,
+    "radius-sm-15": 2,
+    "radius-sm-16": 1.5
+  },
+  "shadow": {
+    "elevation-1": "0px 1px 1.5px 0px rgba(60, 40, 20, 0.06)",
+    "elevation-2": "0px 1px 2px 0px rgba(0, 0, 0, 0.2)",
+    "elevation-3": "0px 1.5px 6px 0px rgba(60, 40, 20, 0.06)",
+    "elevation-4": "0px 6px 18px 0px rgba(60, 40, 20, 0.08)",
+    "elevation-5": "0px 7.5px 21px 0px rgba(221, 90, 12, 0.32)"
+  },
+  "fonts": [
+    "Outfit",
+    "Hanken Grotesk",
+    "Noto Sans",
+    "Noto Sans SC",
+    "Source Han Sans SC",
+    "Noto Sans TC",
+    "Source Han Sans TC",
+    "Noto Sans JP",
+    "Source Han Sans JP",
+    "Noto Sans KR",
+    "Source Han Sans KR"
+  ]
+}
+```

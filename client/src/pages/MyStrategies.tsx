@@ -57,6 +57,7 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowUpRight,
+  Archive,
   Check,
   ChevronDown,
   ChevronLeft,
@@ -66,13 +67,19 @@ import {
   Circle,
   Columns3,
   Download,
+  FolderOpen,
   GitCompareArrows,
+  GripVertical,
   Grid2x2,
   History,
+  Info,
   Layers3,
   List,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
   Pencil,
+  Play,
   Plus,
   RefreshCw,
   Search,
@@ -82,6 +89,10 @@ import {
   X,
 } from "lucide-react";
 import "./MyStrategies.css";
+import {
+  completeStrategyCreationTask,
+  syncStrategyRunTaskCompletion,
+} from "@/lib/strategyOnboarding";
 
 type SortKey = "updated" | "name" | "roi" | "winRate" | "sharpe" | "rankIc" | "maxDd" | "turn";
 type ViewMode = "grid" | "list";
@@ -92,6 +103,7 @@ type ExecutionMode = "paper" | "live" | "idle";
 type StrategyDirection = "long" | "short" | "neutral";
 type StrategyLayerUnit = "N" | "percent";
 type StrategyFactorSource = "official" | "my";
+type LatestRunStatus = "completed" | "running" | "queued" | "awaiting-confirmation" | "awaiting-run";
 
 export type StrategyComposerValues = {
   selectedFactorIds: string[];
@@ -175,7 +187,22 @@ const strategyCopy: Record<string, UiCopy> = {
   "Updated Time": { ja: "更新日時", ko: "업데이트 시간", es: "Fecha de actualizacion", fr: "Date de mise a jour" },
   "Download all": { ja: "すべてダウンロード", ko: "전체 다운로드", es: "Descargar todo", fr: "Tout telecharger" },
   "Tick rows to compare ·": { ja: "比較する行を選択 ·", ko: "비교할 행 선택 ·", es: "Marca filas para comparar ·", fr: "Cochez les lignes a comparer ·" },
+  "Tick rows to compare": { ja: "比較する行を選択", ko: "비교할 행 선택", es: "Marca filas para comparar", fr: "Cochez les lignes a comparer" },
   "Toggle compare": { ja: "比較対象を切替", ko: "비교 선택 전환", es: "Alternar comparacion", fr: "Basculer la comparaison" },
+  Favorites: { ja: "お気に入り", ko: "즐겨찾기", es: "Favoritos", fr: "Favoris" },
+  Archive: { ja: "アーカイブ", ko: "보관함", es: "Archivo", fr: "Archives" },
+  Candidates: { ja: "候補", ko: "후보", es: "Candidatas", fr: "Candidates" },
+  Folders: { ja: "フォルダ", ko: "폴더", es: "Carpetas", fr: "Dossiers" },
+  "Drag strategies into folders to organize them, or use the row menu.": {
+    ja: "ストラテジーをフォルダへドラッグして整理するか、行メニューを使用します。",
+    ko: "전략을 폴더로 드래그해 정리하거나 행 메뉴를 사용하세요.",
+    es: "Arrastra las estrategias a carpetas para organizarlas o usa el menú de fila.",
+    fr: "Faites glisser les stratégies dans des dossiers pour les organiser, ou utilisez le menu de ligne.",
+  },
+  "Create folder": { ja: "フォルダを作成", ko: "폴더 만들기", es: "Crear carpeta", fr: "Créer un dossier" },
+  "Expand folders": { ja: "フォルダを展開", ko: "폴더 펼치기", es: "Expandir carpetas", fr: "Développer les dossiers" },
+  "Collapse folders": { ja: "フォルダを折りたたむ", ko: "폴더 접기", es: "Contraer carpetas", fr: "Réduire les dossiers" },
+  "Strategy folders": { ja: "ストラテジーフォルダ", ko: "전략 폴더", es: "Carpetas de estrategias", fr: "Dossiers de stratégies" },
   "No matching strategies": { ja: "一致する戦略がありません", ko: "일치하는 전략이 없습니다", es: "No hay estrategias coincidentes", fr: "Aucune strategie correspondante" },
   "Adjust the keyword or filter.": { ja: "キーワードまたはフィルターを調整してください。", ko: "키워드 또는 필터를 조정하세요.", es: "Ajusta la palabra clave o el filtro.", fr: "Ajustez le mot-cle ou le filtre." },
   Rows: { ja: "行", ko: "행", es: "Filas", fr: "Lignes" },
@@ -202,6 +229,11 @@ const strategyCopy: Record<string, UiCopy> = {
   "List view": { ja: "リスト表示", ko: "목록 보기", es: "Vista de lista", fr: "Vue en liste" },
   "Grid view": { ja: "グリッド表示", ko: "그리드 보기", es: "Vista de cuadricula", fr: "Vue en grille" },
   Strategy: { ja: "戦略", ko: "전략", es: "Estrategia", fr: "Strategie" },
+  Factors: { ja: "ファクター数", ko: "팩터 수", es: "Factores", fr: "Facteurs" },
+  "Total PnL": { ja: "累計損益", ko: "누적 손익", es: "PnL total", fr: "PnL total" },
+  "90-day curve": { ja: "90日間の曲線", ko: "90일 수익 곡선", es: "Curva de 90 días", fr: "Courbe sur 90 jours" },
+  "Latest run": { ja: "最新実行", ko: "최근 실행", es: "Última ejecución", fr: "Dernière exécution" },
+  Updated: { ja: "更新日時", ko: "업데이트", es: "Actualizada", fr: "Mise à jour" },
   RankIC: { ja: "RankIC", ko: "RankIC", es: "RankIC", fr: "RankIC" },
   MaxDD: { ja: "MaxDD", ko: "MaxDD", es: "MaxDD", fr: "MaxDD" },
   Turn: { ja: "売買回転率", ko: "회전율", es: "Rotacion", fr: "Rotation" },
@@ -211,6 +243,10 @@ const strategyCopy: Record<string, UiCopy> = {
   "Not Started": { ja: "未開始", ko: "시작 안 함", es: "No iniciada", fr: "Non demarree" },
   Stopped: { ja: "停止済み", ko: "중지됨", es: "Detenida", fr: "Arretee" },
   Running: { ja: "稼働中", ko: "실행 중", es: "En ejecucion", fr: "En cours" },
+  Queued: { ja: "待機中", ko: "대기 중", es: "En cola", fr: "En attente" },
+  "Awaiting confirmation": { ja: "確認待ち", ko: "확인 대기", es: "Pendiente de confirmación", fr: "En attente de confirmation" },
+  "Awaiting run": { ja: "実行待ち", ko: "실행 대기", es: "Pendiente de ejecución", fr: "En attente d'exécution" },
+  Completed: { ja: "完了", ko: "완료", es: "Completada", fr: "Terminée" },
   Performance: { ja: "パフォーマンス", ko: "성과", es: "Rendimiento", fr: "Performance" },
   "CS Sharpe": { ja: "クロスセクショナルSharpe", ko: "횡단면 Sharpe", es: "Sharpe transversal", fr: "Sharpe transversal" },
   Best: { ja: "最高", ko: "최고", es: "Mejor", fr: "Meilleur" },
@@ -224,6 +260,19 @@ const strategyCopy: Record<string, UiCopy> = {
   "Version History": { ja: "バージョン履歴", ko: "버전 기록", es: "Historial de versiones", fr: "Historique des versions" },
   More: { ja: "その他", ko: "더보기", es: "Más", fr: "Plus" },
   Edit: { ja: "編集", ko: "편집", es: "Editar", fr: "Modifier" },
+  "Save changes": { ja: "変更を保存", ko: "변경 사항 저장", es: "Guardar cambios", fr: "Enregistrer les modifications" },
+  "Run strategy": { ja: "ストラテジーを実行", ko: "전략 실행", es: "Ejecutar estrategia", fr: "Exécuter la stratégie" },
+  "Strategy run started.": { ja: "ストラテジーの実行を開始しました。", ko: "전략 실행을 시작했습니다.", es: "La estrategia ha comenzado a ejecutarse.", fr: "L'exécution de la stratégie a démarré." },
+  Skip: { ja: "スキップ", ko: "건너뛰기", es: "Omitir", fr: "Passer" },
+  Previous: { ja: "前へ", ko: "이전", es: "Anterior", fr: "Précédent" },
+  Okay: { ja: "了解", ko: "확인", es: "Entendido", fr: "OK" },
+  Next: { ja: "次へ", ko: "다음", es: "Siguiente", fr: "Suivant" },
+  "Click here to start running this strategy.": {
+    ja: "ここをクリックして、このストラテジーの実行を開始します。",
+    ko: "여기를 클릭해 이 전략 실행을 시작하세요.",
+    es: "Haz clic aquí para iniciar la ejecución de esta estrategia.",
+    fr: "Cliquez ici pour lancer l'exécution de cette stratégie.",
+  },
   Optimizer: { ja: "オプティマイザー", ko: "옵티마이저", es: "Optimizador", fr: "Optimiseur" },
   Starred: { ja: "お気に入り登録済み", ko: "즐겨찾기됨", es: "En favoritos", fr: "Ajoutée aux favoris" },
   Favorite: { ja: "お気に入り", ko: "즐겨찾기", es: "Favorito", fr: "Favori" },
@@ -532,12 +581,16 @@ interface StrategyViewRow {
   winRate: string;
   sharpe: string;
   maxDrawdown: string;
+  factorCount?: number;
+  totalPnl?: string;
+  folder?: "candidate" | "favorite" | "archive";
   backtestStatus?: "pending" | "ready";
 }
 
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
 const DELETED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:deleted-strategies";
 const CREATED_STRATEGIES_STORAGE_KEY = "otterquant:mystrategies:created-strategies";
+const FOLDER_PANEL_COLLAPSED_STORAGE_KEY = "otterquant:mystrategies:folder-panel-collapsed";
 export const STRATEGY_RETURN_TRANSITION_STORAGE_KEY = "otterquant:strategy-return-transition";
 const STRATEGY_BACKTEST_DURATION_MS = 3.5 * 60 * 1000;
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
@@ -563,11 +616,17 @@ function readCreatedStrategyRecords(): CreatedStrategyRecord[] {
         typeof record?.name === "string" &&
         (record?.note === undefined || typeof record.note === "string") &&
         typeof record?.createdAt === "string" &&
-        typeof record?.readyAt === "number"
+        typeof record?.readyAt === "number" &&
+        !(record.name === "BTC Alpha Composite" && record.createdAt < "2026-08-24")
     );
   } catch {
     return [];
   }
+}
+
+function readFolderPanelCollapsed() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(FOLDER_PANEL_COLLAPSED_STORAGE_KEY) === "true";
 }
 
 function readChartColorMode(): ChartColorMode {
@@ -833,54 +892,232 @@ const defaultVisibleItems: Record<DisplayItemKey, boolean> = {
   id: true,
 };
 
-function toStrategyViewRow(index: number): StrategyViewRow {
-  const strategy = strategies[index % strategies.length];
-  const baseExecutionMode: ExecutionMode =
-    strategy.status === "live"
-      ? "live"
-      : (strategy.status as string) === "paper"
-        ? "paper"
-        : "idle";
-  const id = `STR-${463 + index}`;
-  const statusSamples: Partial<Record<string, ExecutionMode>> = {
-    "STR-467": "idle",
-    "STR-471": "live",
-    "STR-473": "paper",
-    "STR-477": "idle",
-  };
-  const demoStatusSequence: ExecutionMode[] = ["idle", "live", "paper", "idle"];
-  const executionMode = statusSamples[id] ?? demoStatusSequence[index % demoStatusSequence.length] ?? baseExecutionMode;
-
-  const statusLabel =
-    executionMode === "live"
-      ? "Live Trading"
-      : executionMode === "paper"
-        ? "Paper Trading"
-        : "Not Running";
-
-  const statusClass =
-    executionMode === "live"
-      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
-      : executionMode === "paper"
-        ? "border-primary/25 bg-primary/10 text-primary"
-        : "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300";
-
-  return {
-    id,
-    name: strategy.name,
-    description: strategy.description,
-    updatedAt: strategy.updatedAt,
-    statusLabel,
-    executionMode,
-    statusClass,
-    roi: strategy.annualReturn,
-    winRate: strategy.winRate,
-    sharpe: strategy.sharpe.toFixed(2),
-    maxDrawdown: strategy.maxDrawdown,
-  };
-}
-
-const strategyRows: StrategyViewRow[] = Array.from({ length: 20 }, (_, index) => toStrategyViewRow(index));
+const strategyRows: StrategyViewRow[] = [
+  {
+    id: "STR-463",
+    name: "测试 2",
+    description: "由 3 个因子组成的候选策略。",
+    updatedAt: "2026-08-24",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "—",
+    winRate: "—",
+    sharpe: "—",
+    maxDrawdown: "—",
+    factorCount: 3,
+    totalPnl: "—",
+    folder: "candidate",
+  },
+  {
+    id: "STR-464",
+    name: "测试 1",
+    description: "由 2 个因子组成的候选策略。",
+    updatedAt: "2026-08-24",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "168.78%",
+    winRate: "—",
+    sharpe: "0.91",
+    maxDrawdown: "41.30%",
+    factorCount: 2,
+    totalPnl: "168.78%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-465",
+    name: "BTC 趋势跟随",
+    description: "结合动量与成交量信号的 BTC 趋势策略。",
+    updatedAt: "2026-08-25",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "42.61%",
+    winRate: "61.20%",
+    sharpe: "1.46",
+    maxDrawdown: "12.84%",
+    factorCount: 4,
+    totalPnl: "42.61%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-466",
+    name: "ETH 资金费率反转",
+    description: "利用资金费率极值与持仓变化进行均值回归。",
+    updatedAt: "2026-08-25",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "31.28%",
+    winRate: "58.40%",
+    sharpe: "1.21",
+    maxDrawdown: "9.56%",
+    factorCount: 3,
+    totalPnl: "31.28%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-467",
+    name: "SOL 订单簿动量",
+    description: "基于买卖盘深度失衡的短周期动量组合。",
+    updatedAt: "2026-08-24",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "25.72%",
+    winRate: "56.10%",
+    sharpe: "1.08",
+    maxDrawdown: "14.32%",
+    factorCount: 3,
+    totalPnl: "25.72%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-468",
+    name: "跨交易所价差",
+    description: "跟踪主流交易所价差与流动性变化的套利策略。",
+    updatedAt: "2026-08-24",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "53.19%",
+    winRate: "68.70%",
+    sharpe: "1.88",
+    maxDrawdown: "7.28%",
+    factorCount: 5,
+    totalPnl: "53.19%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-469",
+    name: "山寨币轮动",
+    description: "依据相对强弱与资金流的多币种轮动策略。",
+    updatedAt: "2026-08-23",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "37.46%",
+    winRate: "54.60%",
+    sharpe: "1.17",
+    maxDrawdown: "18.74%",
+    factorCount: 6,
+    totalPnl: "37.46%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-470",
+    name: "稳定币流向观察",
+    description: "通过稳定币净流入与市场广度识别风险偏好。",
+    updatedAt: "2026-08-23",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "18.93%",
+    winRate: "57.20%",
+    sharpe: "0.94",
+    maxDrawdown: "11.46%",
+    factorCount: 2,
+    totalPnl: "18.93%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-471",
+    name: "链上鲸鱼跟随",
+    description: "基于高价值地址持仓变化构建的方向策略。",
+    updatedAt: "2026-08-22",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "46.85%",
+    winRate: "63.50%",
+    sharpe: "1.52",
+    maxDrawdown: "13.19%",
+    factorCount: 4,
+    totalPnl: "46.85%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-472",
+    name: "波动率风险溢价",
+    description: "捕捉隐含与实现波动率差异的中性策略。",
+    updatedAt: "2026-08-22",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "29.74%",
+    winRate: "59.10%",
+    sharpe: "1.34",
+    maxDrawdown: "8.91%",
+    factorCount: 3,
+    totalPnl: "29.74%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-473",
+    name: "DeFi 流动性回归",
+    description: "从流动性池资金变化中提取短期反转信号。",
+    updatedAt: "2026-08-21",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "22.18%",
+    winRate: "55.80%",
+    sharpe: "1.02",
+    maxDrawdown: "15.67%",
+    factorCount: 4,
+    totalPnl: "22.18%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-474",
+    name: "清算瀑布反转",
+    description: "在极端清算后捕捉价格均值回归机会。",
+    updatedAt: "2026-08-21",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "34.62%",
+    winRate: "60.30%",
+    sharpe: "1.39",
+    maxDrawdown: "10.24%",
+    factorCount: 3,
+    totalPnl: "34.62%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-475",
+    name: "BTC-ETH 相对价值",
+    description: "利用 BTC 与 ETH 的相对强弱构建配对交易组合。",
+    updatedAt: "2026-08-20",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "27.95%",
+    winRate: "58.90%",
+    sharpe: "1.26",
+    maxDrawdown: "9.83%",
+    factorCount: 2,
+    totalPnl: "27.95%",
+    folder: "candidate",
+  },
+  {
+    id: "STR-476",
+    name: "成交量突破确认",
+    description: "使用成交量冲击确认价格突破的趋势策略。",
+    updatedAt: "2026-08-20",
+    statusLabel: "Not Running",
+    executionMode: "idle",
+    statusClass: "border-slate-400/25 bg-slate-500/10 text-slate-600 dark:text-slate-300",
+    roi: "39.87%",
+    winRate: "62.70%",
+    sharpe: "1.43",
+    maxDrawdown: "12.06%",
+    factorCount: 4,
+    totalPnl: "39.87%",
+    folder: "candidate",
+  },
+];
 
 type WorkbenchStatus = "not-started" | "running" | "stopped";
 
@@ -962,6 +1199,17 @@ function getStrategyRowIndex(row: StrategyViewRow) {
 }
 
 function getWorkbenchMetaForRow(row: StrategyViewRow) {
+  if (row.factorCount !== undefined) {
+    return {
+      title: row.name,
+      category: "Composite",
+      sharpe: row.sharpe,
+      rankIc: "—",
+      maxDd: row.maxDrawdown,
+      turn: row.id === "STR-464" ? "32.44%" : "—",
+      status: "not-started",
+    } satisfies WorkbenchMeta;
+  }
   if (row.backtestStatus) {
     const pending = row.backtestStatus === "pending";
     return {
@@ -978,6 +1226,28 @@ function getWorkbenchMetaForRow(row: StrategyViewRow) {
   return row.executionMode === "idle" ? { ...meta, status: "not-started" as const } : meta;
 }
 
+function getLatestRunStatus(row: StrategyViewRow): LatestRunStatus {
+  if (row.backtestStatus === "pending") return "running";
+  if (row.backtestStatus === "ready") return "completed";
+
+  const sampleStatuses: Partial<Record<string, LatestRunStatus>> = {
+    "STR-463": "queued",
+    "STR-464": "awaiting-confirmation",
+    "STR-465": "awaiting-run",
+    "STR-466": "running",
+  };
+
+  return sampleStatuses[row.id] ?? "completed";
+}
+
+function formatLatestRunStatus(status: LatestRunStatus, tr: StrategyTr) {
+  if (status === "running") return tr("Running", "运行中");
+  if (status === "queued") return tr("Queued", "已排队");
+  if (status === "awaiting-confirmation") return tr("Awaiting confirmation", "待确认");
+  if (status === "awaiting-run") return tr("Awaiting run", "待运行");
+  return tr("Completed", "已完成");
+}
+
 function toCreatedStrategyViewRow(record: CreatedStrategyRecord, now: number): StrategyViewRow {
   const pending = now < record.readyAt;
   return {
@@ -992,6 +1262,7 @@ function toCreatedStrategyViewRow(record: CreatedStrategyRecord, now: number): S
     winRate: pending ? "—" : "58.2%",
     sharpe: pending ? "—" : "1.18",
     maxDrawdown: pending ? "—" : "-7.6%",
+    folder: "candidate",
     backtestStatus: pending ? "pending" : "ready",
   };
 }
@@ -1047,6 +1318,8 @@ function StrategyWorkbenchActions({
   onOpenOptimizer,
   onToggleFavorite,
   onRequestDelete,
+  isRunGuideTarget = false,
+  onDismissRunGuide,
 }: {
   row: StrategyViewRow;
   isStarred: boolean;
@@ -1057,39 +1330,50 @@ function StrategyWorkbenchActions({
   onOpenOptimizer: (row: StrategyViewRow) => void;
   onToggleFavorite: (strategyId: string) => void;
   onRequestDelete: (row: StrategyViewRow) => void;
+  isRunGuideTarget?: boolean;
+  onDismissRunGuide?: () => void;
 }) {
   return (
-    <div className="oq-strategy-row-actions">
+    <div className={`oq-strategy-row-actions ${isRunGuideTarget ? "is-run-guide-target" : ""}`}>
+      <div className="oq-strategy-run-guide-anchor">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              className={`oq-strategy-action-button ${isRunGuideTarget ? "oq-strategy-guide-target" : ""}`}
+              aria-label={tr("Run strategy", "运行策略")}
+              onClick={() => {
+                toast.success(tr("Strategy run started.", "策略已开始运行。", {
+                  ja: "ストラテジーの実行を開始しました。",
+                  ko: "전략 실행을 시작했습니다.",
+                  es: "La estrategia ha comenzado a ejecutarse.",
+                  fr: "L’exécution de la stratégie a démarré.",
+                }));
+                if (isRunGuideTarget) onDismissRunGuide?.();
+              }}
+            >
+              <Play aria-hidden="true" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top">{tr("Run strategy", "运行策略")}</TooltipContent>
+        </Tooltip>
+        {isRunGuideTarget && onDismissRunGuide ? <StrategyRunGuidePopover onClose={onDismissRunGuide} /> : null}
+      </div>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             type="button"
             variant="outline"
             className="oq-strategy-action-button"
-            aria-label={tr("Strategy Composition", "策略构成")}
-            onClick={() => onOpenConfig(row)}
+            aria-label={tr("Edit", "编辑")}
+            onClick={() => onOpenEditor(row)}
           >
-            <Layers3 aria-hidden="true" />
+            <Pencil aria-hidden="true" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="top">{tr("Strategy Composition", "策略构成")}</TooltipContent>
+        <TooltipContent side="top">{tr("Edit", "编辑")}</TooltipContent>
       </Tooltip>
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            className="oq-strategy-action-button"
-            aria-label={tr("Version History", "历史版本")}
-            onClick={() => onOpenHistory(row)}
-          >
-            <History aria-hidden="true" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">{tr("Version History", "历史版本")}</TooltipContent>
-      </Tooltip>
-
       <DropdownMenu>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -1107,6 +1391,14 @@ function StrategyWorkbenchActions({
           <TooltipContent side="top">{tr("More", "更多")}</TooltipContent>
         </Tooltip>
         <DropdownMenuContent align="end" sideOffset={6} className="oq-strategy-action-menu">
+          <DropdownMenuItem className="oq-strategy-action-menu-item" onSelect={() => onOpenConfig(row)}>
+            <Layers3 aria-hidden="true" />
+            {tr("Strategy Composition", "策略构成")}
+          </DropdownMenuItem>
+          <DropdownMenuItem className="oq-strategy-action-menu-item" onSelect={() => onOpenHistory(row)}>
+            <History aria-hidden="true" />
+            {tr("Version History", "历史版本")}
+          </DropdownMenuItem>
           <DropdownMenuItem className="oq-strategy-action-menu-item" onSelect={() => onOpenEditor(row)}>
             <Pencil aria-hidden="true" />
             {tr("Edit", "编辑")}
@@ -1325,6 +1617,10 @@ export function CreateStrategyComposer({
   plainExplainEnabled,
   mode = "create",
   initialValues,
+  guideStep = -1,
+  onGuideNext,
+  onGuideSkip,
+  onGuidePrev,
   onClose,
   onSubmit,
 }: {
@@ -1332,9 +1628,21 @@ export function CreateStrategyComposer({
   plainExplainEnabled: boolean;
   mode?: "create" | "edit";
   initialValues?: Partial<StrategyComposerValues>;
+  guideStep?: number;
+  onGuideNext?: () => void;
+  onGuideSkip?: () => void;
+  onGuidePrev?: () => void;
   onClose: () => void;
   onSubmit: (values: StrategyComposerValues) => void;
 }) {
+  const guideTargetClassName = (target: "factor" | "direction" | "layer" | "submit") =>
+    (guideStep === { factor: 1, direction: 2, layer: 3, submit: 4 }[target] ? "oq-strategy-guide-target" : "");
+  const renderGuide = (target: "factor" | "direction" | "layer" | "submit") => {
+    const step = { factor: 1, direction: 2, layer: 3, submit: 4 }[target];
+    return guideStep === step && onGuideNext && onGuideSkip ? (
+      <StrategyCreateGuidePopover step={step} onNext={onGuideNext} onSkip={onGuideSkip} onPrev={onGuidePrev} />
+    ) : null;
+  };
   const initialFactorIds = initialValues?.selectedFactorIds ?? [];
   const [selectedFactorIds, setSelectedFactorIds] = useState<string[]>(initialFactorIds);
   const [customWeights, setCustomWeights] = useState<Record<string, string>>(
@@ -1446,7 +1754,7 @@ export function CreateStrategyComposer({
         onClose();
       }}
     >
-      <div className="oq-strategy-form-field is-wide">
+      <div className={`oq-strategy-form-field is-wide ${guideStep === 1 ? "oq-strategy-guide-anchor" : ""}`}>
         <span>
           {tr("Factor selection", "因子选择")}
           <b>*</b>
@@ -1454,7 +1762,7 @@ export function CreateStrategyComposer({
         <div
           className={`oq-strategy-factor-selection ${selectedFactors.length > 0 ? "has-selection" : ""} ${
             selectedFactors.length > 0 ? "has-multiple" : ""
-          } ${showValidation && selectedFactorIds.length === 0 ? "is-invalid" : ""}`}
+          } ${showValidation && selectedFactorIds.length === 0 ? "is-invalid" : ""} ${guideTargetClassName("factor")}`}
         >
           <button
             type="button"
@@ -1523,9 +1831,10 @@ export function CreateStrategyComposer({
         {showValidation && !customWeightValid ? (
           <small className="oq-strategy-field-error">{tr("Custom weights must total 1.00.", "自定义权重总和必须为 1.00。")}</small>
         ) : null}
+        {renderGuide("factor")}
       </div>
 
-      <fieldset className="oq-strategy-form-field is-wide">
+      <fieldset className={`oq-strategy-form-field is-wide ${guideTargetClassName("direction")} ${guideStep === 2 ? "oq-strategy-guide-anchor" : ""}`}>
         <legend>
           <MaybeExplainTooltip
             enabled={plainExplainEnabled}
@@ -1571,9 +1880,10 @@ export function CreateStrategyComposer({
             </button>
           ))}
         </div>
+        {renderGuide("direction")}
       </fieldset>
 
-      <div className="oq-strategy-form-field is-wide">
+      <div className={`oq-strategy-form-field is-wide ${guideTargetClassName("layer")} ${guideStep === 3 ? "oq-strategy-guide-anchor" : ""}`}>
         <span>
           <MaybeExplainTooltip
             enabled={plainExplainEnabled}
@@ -1635,6 +1945,7 @@ export function CreateStrategyComposer({
               : tr("Enter a positive integer.", "请输入正整数。")}
           </small>
         ) : null}
+        {renderGuide("layer")}
       </div>
 
       <label className="oq-strategy-form-field is-wide">
@@ -1657,11 +1968,11 @@ export function CreateStrategyComposer({
         />
       </label>
 
-      <div className="oq-strategy-create-actions">
+      <div className={`oq-strategy-create-actions ${guideStep === 4 ? "oq-strategy-guide-anchor" : ""}`}>
         <button type="button" className="oq-strategy-form-secondary" onClick={onClose}>
           {tr("Cancel", "取消")}
         </button>
-        <button type="submit" className="oq-strategy-form-primary">
+        <button type="submit" className={`oq-strategy-form-primary ${guideTargetClassName("submit")}`}>
           {mode === "edit"
             ? tr("Save changes", "保存编辑", {
                 ja: "変更を保存",
@@ -1671,6 +1982,7 @@ export function CreateStrategyComposer({
               })
             : tr("Create strategy", "创建策略")}
         </button>
+        {renderGuide("submit")}
       </div>
 
       <Dialog
@@ -1780,6 +2092,88 @@ export function CreateStrategyComposer({
         </DialogContent>
       </Dialog>
     </form>
+  );
+}
+
+function StrategyCreateGuidePopover({
+  step,
+  onNext,
+  onSkip,
+  onPrev,
+}: {
+  step: number;
+  onNext: () => void;
+  onSkip: () => void;
+  onPrev?: () => void;
+}) {
+  const { uiLang } = useAppLanguage();
+  const tr = makeStrategyTranslator(uiLang);
+  type GuideCopy = {
+    title: [string, string, UiCopy?];
+    description: [string, string, UiCopy?];
+  };
+  const guides: GuideCopy[] = [
+    {
+      title: ["Start creating a strategy", "开始创建策略", { ja: "ストラテジー作成を開始", ko: "전략 만들기 시작", es: "Empezar a crear una estrategia", fr: "Commencer à créer une stratégie" }],
+      description: ["Click Create Strategy in the upper right to build your first strategy.", "点击右上角“创建策略”，开始你的第一个策略。", { ja: "右上の「ストラテジーを作成」をクリックして、最初のストラテジーを作成します。", ko: "오른쪽 상단의 전략 만들기를 클릭해 첫 전략을 만드세요.", es: "Haz clic en Crear estrategia, arriba a la derecha, para crear tu primera estrategia.", fr: "Cliquez sur Créer une stratégie en haut à droite pour créer votre première stratégie." }],
+    },
+    {
+      title: ["Select factors", "选择因子", strategyCopy["Select factors"]],
+      description: ["Select one or more factors from the Official Library or My Factors.", "从“官方库”或“我的因子”中选择一个或多个因子。", { ja: "「公式ライブラリ」または「マイファクター」から1つ以上のファクターを選択します。", ko: "공식 라이브러리 또는 내 팩터에서 하나 이상의 팩터를 선택하세요.", es: "Selecciona uno o más factores de la Biblioteca oficial o Mis factores.", fr: "Sélectionnez un ou plusieurs facteurs dans la Bibliothèque officielle ou Mes facteurs." }],
+    },
+    {
+      title: ["Choose strategy direction", "选择策略方向", { ja: "ストラテジー方向を選択", ko: "전략 방향 선택", es: "Elegir la dirección de la estrategia", fr: "Choisir la direction de la stratégie" }],
+      description: ["Market-neutral: hold long and short positions.\nLong-only: hold assets expected to rise.\nShort-only: short assets expected to fall.", "中性：同时配置多头和空头。\n仅做多：只持有预期上涨的标的。\n仅做空：只持有预期下跌的标的。", { ja: "マーケットニュートラル：ロングとショートを保有します。\nロングのみ：上昇が見込まれる銘柄を保有します。\nショートのみ：下落が見込まれる銘柄をショートします。", ko: "시장 중립: 롱과 숏 포지션을 모두 보유합니다.\n롱 전용: 상승이 예상되는 자산만 보유합니다.\n숏 전용: 하락이 예상되는 자산만 공매도합니다.", es: "Neutral al mercado: mantiene posiciones largas y cortas.\nSolo largo: mantiene activos con expectativa alcista.\nSolo corto: vende en corto activos con expectativa bajista.", fr: "Neutre au marché : détient des positions longues et courtes.\nLong uniquement : détient les actifs dont la hausse est anticipée.\nShort uniquement : vend à découvert les actifs dont la baisse est anticipée." }],
+    },
+    {
+      title: ["Configure grouping", "设置分层", { ja: "グルーピングを設定", ko: "그룹 규칙 설정", es: "Configurar la agrupación", fr: "Configurer le regroupement" }],
+      description: ["N: select a fixed number of assets from each end of the ranking.\n%: select the same percentage of assets from each end of the ranking.", "N：从排名头部和尾部各选固定数量的标的。\n%：从排名头部和尾部各选相同比例的标的。", { ja: "N：ランキング上位と下位から固定数の銘柄を選択します。\n%：ランキング上位と下位から同じ割合の銘柄を選択します。", ko: "N: 순위 상단과 하단에서 고정 수의 자산을 각각 선택합니다.\n%: 순위 양 끝에서 동일 비율의 자산을 선택합니다.", es: "N: selecciona un número fijo de activos de cada extremo del ranking.\n%: selecciona el mismo porcentaje de activos de cada extremo del ranking.", fr: "N : sélectionnez un nombre fixe d’actifs à chaque extrémité du classement.\n% : sélectionnez le même pourcentage d’actifs à chaque extrémité du classement." }],
+    },
+    {
+      title: ["Finish creating", "完成创建", { ja: "作成を完了", ko: "생성 완료", es: "Finalizar la creación", fr: "Terminer la création" }],
+      description: ["Review the configuration, then click Create Strategy at the bottom.", "检查配置后点击底部“创建策略”按钮。", { ja: "設定を確認したら、下部の「ストラテジーを作成」をクリックします。", ko: "설정을 검토한 뒤 하단의 전략 만들기를 클릭하세요.", es: "Revisa la configuración y luego haz clic en Crear estrategia al final.", fr: "Vérifiez la configuration, puis cliquez sur Créer une stratégie en bas." }],
+    },
+  ];
+  const copy: GuideCopy = guides[step] ?? {
+    title: ["Create strategy", "创建策略", strategyCopy["Create strategy"]],
+    description: ["Follow the prompts to create a strategy.", "按提示完成策略创建。", { ja: "案内に沿ってストラテジーを作成します。", ko: "안내에 따라 전략을 만드세요.", es: "Sigue las indicaciones para crear una estrategia.", fr: "Suivez les instructions pour créer une stratégie." }],
+  };
+  const title = tr(copy.title[0], copy.title[1], copy.title[2]);
+  const description = tr(copy.description[0], copy.description[1], copy.description[2]);
+  const isFinalStep = step === 4;
+  return (
+    <div className={`oq-strategy-guide-popover is-step-${step}`} role="dialog" aria-label={title}>
+      <strong>{title}</strong>
+      <p>{description}</p>
+      <div className="oq-strategy-guide-footer">
+        <div className="oq-strategy-guide-step">{step + 1} / 5</div>
+        <div className="oq-strategy-guide-actions">
+          <button type="button" onClick={onSkip}>{tr("Skip", "跳过", { ja: "スキップ", ko: "건너뛰기", es: "Omitir", fr: "Passer" })}</button>
+          {step > 0 ? <button type="button" onClick={onPrev}>{tr("Previous", "上一步", { ja: "前へ", ko: "이전", es: "Anterior", fr: "Précédent" })}</button> : null}
+          <button type="button" className="is-primary" onClick={isFinalStep ? onSkip : onNext}>
+            {isFinalStep ? tr("Okay", "好的", { ja: "了解", ko: "확인", es: "Entendido", fr: "OK" }) : tr("Next", "下一步", { ja: "次へ", ko: "다음", es: "Siguiente", fr: "Suivant" })}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StrategyRunGuidePopover({ onClose }: { onClose: () => void }) {
+  const { uiLang } = useAppLanguage();
+  const tr = makeStrategyTranslator(uiLang);
+  return (
+    <div className="oq-strategy-guide-popover oq-strategy-run-guide-popover" role="dialog" aria-label={tr("Run strategy", "运行策略", { ja: "ストラテジーを実行", ko: "전략 실행", es: "Ejecutar estrategia", fr: "Exécuter la stratégie" })}>
+      <strong>{tr("Run strategy", "运行策略", { ja: "ストラテジーを実行", ko: "전략 실행", es: "Ejecutar estrategia", fr: "Exécuter la stratégie" })}</strong>
+      <p>{tr("Click here to start running this strategy.", "点击此按钮，开始运行策略。", { ja: "このボタンをクリックしてストラテジーを実行します。", ko: "이 버튼을 클릭해 전략을 실행하세요.", es: "Haz clic en este botón para ejecutar la estrategia.", fr: "Cliquez sur ce bouton pour exécuter la stratégie." })}</p>
+      <div className="oq-strategy-guide-footer">
+        <div className="oq-strategy-guide-step">1 / 1</div>
+        <div className="oq-strategy-guide-actions">
+          <button type="button" onClick={onClose}>{tr("Skip", "跳过", { ja: "スキップ", ko: "건너뛰기", es: "Omitir", fr: "Passer" })}</button>
+          <button type="button" className="is-primary" onClick={onClose}>{tr("Okay", "好的", { ja: "了解", ko: "확인", es: "Entendido", fr: "OK" })}</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1966,6 +2360,9 @@ export default function MyStrategies() {
   const { uiLang } = useAppLanguage();
   const [, navigate] = useLocation();
   const search = useSearch();
+  const onboardingRequest = useMemo(() => new URLSearchParams(search).get("onboarding"), [search]);
+  const strategyGuideRequested = onboardingRequest === "create-strategy";
+  const runStrategyGuideRequested = onboardingRequest === "run-strategy";
   const query = useMemo(() => new URLSearchParams(search).get("q") ?? "", [search]);
   const setQuery = (nextQuery: string) => {
     const nextSearchParams = new URLSearchParams(search);
@@ -1983,15 +2380,23 @@ export default function MyStrategies() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [strategyFilter, setStrategyFilter] = useState<StrategyFilter>("all");
+  const [workbenchFolder, setWorkbenchFolder] = useState<"candidate" | "favorites" | "archive">("candidate");
+  const [isFolderPanelCollapsed, setIsFolderPanelCollapsed] = useState(readFolderPanelCollapsed);
+  const [isStrategyTableScrolling, setIsStrategyTableScrolling] = useState(false);
+  const [isStrategyTableOverflowing, setIsStrategyTableOverflowing] = useState(false);
+  const [isStrategyTableAtStart, setIsStrategyTableAtStart] = useState(true);
+  const [isStrategyTableAtEnd, setIsStrategyTableAtEnd] = useState(true);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const [visibleItems, setVisibleItems] = useState<Record<DisplayItemKey, boolean>>(defaultVisibleItems);
-  const [starred, setStarred] = useState<Set<string>>(new Set(["STR-463", "STR-470"]));
+  const [starred, setStarred] = useState<Set<string>>(new Set());
   const [selectedStrategyIds, setSelectedStrategyIds] = useState<Set<string>>(() => new Set());
   const [deletedStrategyIds, setDeletedStrategyIds] = useState<Set<string>>(() => readDeletedStrategyIds());
   const [pendingDeleteStrategy, setPendingDeleteStrategy] = useState<StrategyViewRow | null>(null);
   const [showCreateStrategy, setShowCreateStrategy] = useState(false);
+  const [strategyGuideStep, setStrategyGuideStep] = useState<-1 | 0 | 1 | 2 | 3 | 4>(-1);
+  const [isRunStrategyGuideVisible, setIsRunStrategyGuideVisible] = useState(false);
   const [createdStrategies, setCreatedStrategies] = useState<CreatedStrategyRecord[]>(() => readCreatedStrategyRecords());
   const [backtestClock, setBacktestClock] = useState(() => Date.now());
   const [chartColorMode, setChartColorMode] = useState<ChartColorMode>(() => readChartColorMode());
@@ -2014,6 +2419,8 @@ export default function MyStrategies() {
   const filterMenuRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
   const columnMenuRef = useRef<HTMLDivElement>(null);
+  const tableScrollTimeoutRef = useRef<number | null>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     document.documentElement.classList.add("oq-strategies-active");
@@ -2021,9 +2428,92 @@ export default function MyStrategies() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const guideSeen = window.sessionStorage.getItem("oq-strategy-create-guide-seen") === "true";
+    if (runStrategyGuideRequested) return;
+    if (strategyGuideRequested || !guideSeen) {
+      setIsRunStrategyGuideVisible(false);
+      setStrategyGuideStep(0);
+    }
+  }, [runStrategyGuideRequested, strategyGuideRequested]);
+
+  useEffect(() => {
+    if (!showCreateStrategy || strategyGuideStep !== 0) return;
+    const timer = window.setTimeout(() => setStrategyGuideStep(1), 220);
+    return () => window.clearTimeout(timer);
+  }, [showCreateStrategy, strategyGuideStep]);
+
+  const finishStrategyGuide = () => {
+    if (typeof window !== "undefined") window.sessionStorage.setItem("oq-strategy-create-guide-seen", "true");
+    setStrategyGuideStep(-1);
+    if (strategyGuideRequested) navigate("/strategies", { replace: true });
+  };
+
+  const finishRunStrategyGuide = () => {
+    setIsRunStrategyGuideVisible(false);
+    if (runStrategyGuideRequested) navigate("/strategies", { replace: true });
+  };
+
+  const advanceStrategyGuide = () => {
+    setIsRunStrategyGuideVisible(false);
+    if (strategyGuideStep === 0) {
+      setShowCreateStrategy(true);
+      return;
+    }
+    if (strategyGuideStep < 4) setStrategyGuideStep((step) => (step + 1) as 1 | 2 | 3 | 4);
+  };
+
+  const retreatStrategyGuide = () => {
+    setIsRunStrategyGuideVisible(false);
+    if (strategyGuideStep <= 1) {
+      setShowCreateStrategy(false);
+      setStrategyGuideStep(0);
+      return;
+    }
+    setStrategyGuideStep((step) => Math.max(1, step - 1) as 1 | 2 | 3);
+  };
+
+  useEffect(() => {
     if (!isReturningFromDetail) return;
     window.sessionStorage.removeItem(STRATEGY_RETURN_TRANSITION_STORAGE_KEY);
   }, [isReturningFromDetail]);
+
+  useEffect(() => () => {
+    if (tableScrollTimeoutRef.current != null) window.clearTimeout(tableScrollTimeoutRef.current);
+  }, []);
+
+  const syncStrategyTableOverflow = () => {
+    const element = tableScrollRef.current;
+    if (!element) {
+      setIsStrategyTableOverflowing(false);
+      setIsStrategyTableAtStart(true);
+      setIsStrategyTableAtEnd(true);
+      return;
+    }
+    const maxScrollLeft = Math.max(0, element.scrollWidth - element.clientWidth);
+    setIsStrategyTableOverflowing(maxScrollLeft > 1);
+    setIsStrategyTableAtStart(element.scrollLeft <= 1);
+    setIsStrategyTableAtEnd(element.scrollLeft >= maxScrollLeft - 1);
+  };
+
+  useEffect(() => {
+    syncStrategyTableOverflow();
+    const element = tableScrollRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(syncStrategyTableOverflow);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [isFolderPanelCollapsed, page, pageSize, workbenchFolder]);
+
+  const handleStrategyTableScroll = () => {
+    syncStrategyTableOverflow();
+    setIsStrategyTableScrolling(true);
+    if (tableScrollTimeoutRef.current != null) window.clearTimeout(tableScrollTimeoutRef.current);
+    tableScrollTimeoutRef.current = window.setTimeout(() => {
+      setIsStrategyTableScrolling(false);
+      tableScrollTimeoutRef.current = null;
+    }, 2000);
+  };
 
   useEffect(() => {
     const onDocClick = (event: MouseEvent) => {
@@ -2103,6 +2593,11 @@ export default function MyStrategies() {
   }, [createdStrategies]);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(FOLDER_PANEL_COLLAPSED_STORAGE_KEY, String(isFolderPanelCollapsed));
+  }, [isFolderPanelCollapsed]);
+
+  useEffect(() => {
     const now = Date.now();
     const nextReadyAt = createdStrategies.reduce<number | null>((next, strategy) => {
       if (strategy.readyAt <= now) return next;
@@ -2126,8 +2621,30 @@ export default function MyStrategies() {
     [backtestClock, createdStrategies, deletedStrategyIds]
   );
 
+  useEffect(() => {
+    const completedCount = activeStrategyRows.filter(
+      (row) => getLatestRunStatus(row) === "completed",
+    ).length;
+    syncStrategyRunTaskCompletion(completedCount);
+  }, [activeStrategyRows]);
+
+  useEffect(() => {
+    if (!runStrategyGuideRequested) return;
+    if (activeStrategyRows.length > 0) {
+      setShowCreateStrategy(false);
+      setStrategyGuideStep(-1);
+      setIsRunStrategyGuideVisible(true);
+      return;
+    }
+    setIsRunStrategyGuideVisible(false);
+    setStrategyGuideStep(0);
+  }, [activeStrategyRows.length, runStrategyGuideRequested]);
+
   const filtered = useMemo(() => {
     const byTopFilter = activeStrategyRows.filter((row) => {
+      if (workbenchFolder === "candidate") return row.folder === "candidate";
+      if (workbenchFolder === "archive") return row.folder === "archive";
+      if (workbenchFolder === "favorites") return starred.has(row.id);
       if (strategyFilter === "favorites") return starred.has(row.id);
       if (strategyFilter === "trading") return row.executionMode === "paper" || row.executionMode === "live";
       if (strategyFilter === "idle") return row.executionMode === "idle";
@@ -2142,7 +2659,7 @@ export default function MyStrategies() {
       const visibleCategory = translateWorkbenchCategory(meta.category, tr).toLowerCase();
       return [visibleTitle, visibleCategory, row.name, row.id].some((value) => value.toLowerCase().includes(keyword));
     });
-  }, [activeStrategyRows, query, strategyFilter, starred, uiLang]);
+  }, [activeStrategyRows, query, strategyFilter, starred, uiLang, workbenchFolder]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return filtered;
@@ -2360,6 +2877,7 @@ export default function MyStrategies() {
     });
     setBacktestClock(createdAt.getTime());
     setPage(1);
+    completeStrategyCreationTask();
   };
 
   const confirmDeleteStrategy = () => {
@@ -2423,6 +2941,11 @@ export default function MyStrategies() {
   ];
 
   const workbenchRows = paginated;
+  const workbenchFolderHeading = workbenchFolder === "favorites"
+    ? { label: tr("Favorites", "收藏"), count: favoriteCount, icon: <Star className="h-4 w-4" /> }
+    : workbenchFolder === "archive"
+      ? { label: tr("Archive", "归档"), count: activeStrategyRows.filter((row) => row.folder === "archive").length, icon: <Archive className="h-4 w-4" /> }
+      : { label: tr("Candidates", "候选"), count: activeStrategyRows.filter((row) => row.folder === "candidate").length, icon: <FolderOpen className="h-4 w-4" /> };
   const selectedCompareRows = activeStrategyRows.filter((row) => selectedStrategyIds.has(row.id)).slice(0, 2);
   const hasCompareRows = selectedCompareRows.length > 0;
   const hasPairComparison = selectedCompareRows.length > 1;
@@ -2431,25 +2954,91 @@ export default function MyStrategies() {
   if (useFigmaWorkbenchLayout) {
     return (
       <div className={`oq-strategy-workbench${isReturningFromDetail ? " is-returning-from-detail" : ""}`}>
-        <section className="oq-strategy-sync">
-          <div className="oq-strategy-sync-icon"><RefreshCw className="h-3.5 w-3.5" /></div>
-          <div className="oq-strategy-sync-copy">
-            <div className="oq-strategy-sync-title">{tr("Synced with your Codex agent", "已与 Codex Agent 同步")}</div>
-            <div className="oq-strategy-sync-text">{tr("Mine in Codex — alphas land here automatically. Last sync 2 min ago.", "在 Codex 中挖掘，因子会自动流入这里。上次同步 2 分钟前。")}</div>
-          </div>
-          <span className="oq-strategy-live-pill"><span />{tr("Live", "实时")}</span>
-        </section>
+        <div className="oq-strategy-intro">
+          <button type="button" className={`oq-strategy-create-button ${strategyGuideStep === 0 ? "oq-strategy-guide-target" : ""}`} onClick={() => {
+            setIsRunStrategyGuideVisible(false);
+            setShowCreateStrategy(true);
+          }}>
+            <Plus className="h-3.5 w-3.5" />
+            {tr("Create strategy", "创建策略")}
+          </button>
+          {strategyGuideStep === 0 ? (
+            <StrategyCreateGuidePopover
+              step={0}
+              onNext={advanceStrategyGuide}
+              onSkip={finishStrategyGuide}
+            />
+          ) : null}
+        </div>
 
-        <div className="oq-strategy-controls">
-          <div className="oq-strategy-create-row">
-            <button type="button" className="oq-strategy-create-button" onClick={() => setShowCreateStrategy(true)}>
-              <Plus className="h-3.5 w-3.5" />
-              {tr("Create strategy", "创建策略")}
-            </button>
-          </div>
+        <div className={`oq-strategy-workspace-shell ${isFolderPanelCollapsed ? "is-folder-panel-collapsed" : ""}`}>
+          <aside className="oq-strategy-folder-panel">
+            <div className="oq-strategy-folder-panel-head">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="oq-strategy-folder-panel-title flex items-center gap-1.5">
+                    <span>{tr("Folders", "文件夹")}</span>
+                    <Info className="oq-strategy-folder-info-icon" aria-hidden="true" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  {tr("Drag strategies into folders to organize them, or use the row menu.", "将策略拖到文件夹即可归类，拖到收藏即可标星。")}
+                </TooltipContent>
+              </Tooltip>
+              <div className="oq-strategy-folder-panel-actions">
+              <button type="button" className="oq-strategy-folder-icon-button" aria-label={tr("Create folder", "新建文件夹")} title={tr("Create folder", "新建文件夹")}>
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                className="oq-strategy-folder-icon-button"
+                onClick={() => setIsFolderPanelCollapsed((collapsed) => !collapsed)}
+                aria-label={isFolderPanelCollapsed ? tr("Expand folders", "展开文件夹栏") : tr("Collapse folders", "折叠文件夹栏")}
+                title={isFolderPanelCollapsed ? tr("Expand folders", "展开文件夹栏") : tr("Collapse folders", "折叠文件夹栏")}
+              >
+                {isFolderPanelCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}
+              </button>
+              </div>
+            </div>
+            <nav className="oq-strategy-folder-nav" aria-label={tr("Strategy folders", "策略文件夹")}>
+              <button
+                type="button"
+                className={workbenchFolder === "candidate" ? "is-active" : ""}
+                onClick={() => { setWorkbenchFolder("candidate"); setPage(1); }}
+              >
+                <FolderOpen className="h-4 w-4" aria-hidden="true" />
+                <span>{tr("Candidates", "候选")}</span>
+                <strong>{activeStrategyRows.filter((row) => row.folder === "candidate").length}</strong>
+              </button>
+              <button
+                type="button"
+                className={workbenchFolder === "favorites" ? "is-active" : ""}
+                onClick={() => { setWorkbenchFolder("favorites"); setPage(1); }}
+              >
+                <Star className="h-4 w-4" aria-hidden="true" />
+                <span>{tr("Favorites", "收藏")}</span>
+                <strong>{favoriteCount}</strong>
+              </button>
+              <button
+                type="button"
+                className={workbenchFolder === "archive" ? "is-active" : ""}
+                onClick={() => { setWorkbenchFolder("archive"); setPage(1); }}
+              >
+                <Archive className="h-4 w-4" aria-hidden="true" />
+                <span>{tr("Archive", "归档")}</span>
+                <strong>{activeStrategyRows.filter((row) => row.folder === "archive").length}</strong>
+              </button>
+            </nav>
+          </aside>
 
-          <section className="oq-strategy-toolbar">
-            <div className="oq-strategy-toolbar-left">
+          <div className="oq-strategy-workspace-main">
+            <div className="oq-strategy-workspace-heading">
+              <div>{workbenchFolderHeading.icon}<strong>{workbenchFolderHeading.label}</strong><span>{workbenchFolderHeading.count}</span></div>
+              <span className="oq-strategy-workspace-compare-note"><GitCompareArrows className="h-3.5 w-3.5" />{tr("Tick rows to compare", "勾选行进行对比")}</span>
+            </div>
+
+            <section className="oq-strategy-toolbar">
+              <div className="oq-strategy-toolbar-left">
             <div className="relative" ref={filterMenuRef}>
               <button type="button" className="oq-strategy-pill-button" onClick={() => { setShowFilterMenu((prev) => !prev); setShowSortMenu(false); }}>
                 <span>{strategyFilter === "favorites" ? tr("My Favorites", "我的收藏") : tr("All", "全部")}</span>
@@ -2481,18 +3070,27 @@ export default function MyStrategies() {
             </div>
             </div>
           </section>
-        </div>
 
-        <section className="oq-strategy-table-card">
+        <section
+          className="oq-strategy-table-card"
+        >
+          <div
+            ref={tableScrollRef}
+            className={`oq-strategy-table-scroll ${isStrategyTableOverflowing ? "is-overflowing" : ""} ${isStrategyTableAtStart ? "is-at-start" : ""} ${isStrategyTableAtEnd ? "is-at-end" : ""} ${isStrategyTableScrolling ? "is-scrolling" : ""}`}
+            onScroll={handleStrategyTableScroll}
+          >
           <div className="oq-strategy-table-head oq-strategy-table-grid">
             <div />
+            <div />
             <div>{tr("Strategy", "策略")}</div>
+            <div>{tr("Factors", "因子数")}</div>
             <div>{renderWorkbenchSortHeader("sharpe", tr("Sharpe", "夏普比率"))}</div>
-            <div>{renderWorkbenchSortHeader("maxDd", tr("MaxDD", "最大回撤"))}</div>
-            <div>{renderWorkbenchSortHeader("turn", tr("Turn", "换手率"))}</div>
-            <div>NAV</div>
-            <div>{tr("Paper Status", "模拟盘状态")}</div>
-            <div>{renderWorkbenchSortHeader("updated", tr("Updated Time", "更新时间"))}</div>
+            <div>{tr("Total PnL", "总盈亏")}</div>
+            <div>{renderWorkbenchSortHeader("maxDd", tr("Max drawdown", "最大回撤"))}</div>
+            <div>{renderWorkbenchSortHeader("turn", tr("Turnover", "换手率"))}</div>
+            <div>{tr("90-day curve", "90 日曲线")}</div>
+            <div>{tr("Latest run", "最新运行")}</div>
+            <div>{tr("Updated", "更新时间")}</div>
             <div>{tr("Action", "操作")}</div>
           </div>
           {sorted.length === 0 ? (
@@ -2505,13 +3103,17 @@ export default function MyStrategies() {
             const localizedTitle = strategyEdits[row.id]?.strategyName ?? translateWorkbenchTitle(meta.title, tr);
             const isSelected = selectedStrategyIds.has(row.id);
             const isPending = row.backtestStatus === "pending";
+            const latestRunStatus = getLatestRunStatus(row);
             const isCompareDisabled = isPending || (!isSelected && selectedStrategyIds.size >= MAX_COMPARE_STRATEGY_COUNT);
             const detailParams = new URLSearchParams({ name: localizedTitle, createdAt: row.updatedAt });
             return (
               <div key={row.id} className={`oq-strategy-table-row oq-strategy-table-grid ${isSelected ? "is-selected" : ""} ${isPending ? "is-pending" : ""} ${index === workbenchRows.length - 1 ? "is-page-last" : ""}`}>
-                <button type="button" className={`oq-strategy-check ${isSelected ? "is-checked" : ""}`} disabled={isCompareDisabled} onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Toggle compare", "切换比较")}>
-                  {isSelected ? <Check className="h-3 w-3" /> : null}
-                </button>
+                <div className="oq-strategy-selection-cell">
+                  <button type="button" className={`oq-strategy-check ${isSelected ? "is-checked" : ""}`} disabled={isCompareDisabled} onClick={() => toggleSelectedStrategy(row.id)} aria-label={tr("Toggle compare", "切换比较")}>
+                    {isSelected ? <Check className="h-3 w-3" /> : null}
+                  </button>
+                </div>
+                <GripVertical className="oq-strategy-row-grip h-3.5 w-3.5" aria-hidden="true" />
                 {!isPending ? (
                   <Link
                     href={`/strategies/${encodeURIComponent(row.id)}?${detailParams.toString()}`}
@@ -2522,7 +3124,9 @@ export default function MyStrategies() {
                 <div className="oq-strategy-name-cell">
                   <div>{localizedTitle}</div>
                 </div>
+                <div className="oq-strategy-mono">{row.factorCount ?? "—"}</div>
                 <div className="oq-strategy-mono">{meta.sharpe}</div>
+                <div className="oq-strategy-mono oq-strategy-pnl">{row.totalPnl ?? "—"}</div>
                 <div
                   className="oq-strategy-mono"
                   style={{ color: strategyMetricColor("maxDrawdown", meta.maxDd, chartColors) }}
@@ -2535,12 +3139,12 @@ export default function MyStrategies() {
                 ) : (
                   <WorkbenchSparkline values={portfolioGrossNavValues} color="#2a6fdb" />
                 )}
-                <span className={`oq-strategy-status is-${meta.status}`}>
-                  {meta.status !== "not-started" ? <span /> : null}
-                  {meta.status === "not-started" ? tr("Not Started", "未启动") : meta.status === "stopped" ? tr("Stopped", "已停止") : tr("Running", "运行中")}
+                <span className={`oq-strategy-status is-${latestRunStatus}`}>
+                  <span />
+                  {formatLatestRunStatus(latestRunStatus, tr)}
                 </span>
                 <span className="oq-strategy-created-at">{formatStrategyCreatedDate(row.updatedAt)}</span>
-                <StrategyWorkbenchActions
+            <StrategyWorkbenchActions
                   row={row}
                   isStarred={starred.has(row.id)}
                   tr={tr}
@@ -2550,10 +3154,13 @@ export default function MyStrategies() {
                   onOpenOptimizer={setOptimizerStrategy}
                   onToggleFavorite={toggleFavoriteStrategy}
                   onRequestDelete={requestDeleteStrategy}
+                  isRunGuideTarget={isRunStrategyGuideVisible && index === 0}
+                  onDismissRunGuide={finishRunStrategyGuide}
                 />
               </div>
             );
           })}
+          </div>
           {sorted.length > 0 ? <div className="oq-strategy-table-pagination">
             <div className="oq-strategy-page-summary">
               <span>{tr("Rows", "行")}</span>
@@ -2589,6 +3196,8 @@ export default function MyStrategies() {
             </div>
           </div> : null}
         </section>
+          </div>
+        </div>
 
         {hasCompareRows ? (
         <section className={`oq-strategy-compare-card ${hasPairComparison ? "" : "is-single"}`}>
@@ -2649,8 +3258,12 @@ export default function MyStrategies() {
         </section>
         ) : null}
 
-        <Dialog open={showCreateStrategy} onOpenChange={setShowCreateStrategy}>
-          <DialogContent className="oq-strategy-create-dialog gap-0 rounded-2xl border-0 p-0 shadow-2xl">
+        <Dialog open={showCreateStrategy} onOpenChange={(open) => {
+          if (open) setIsRunStrategyGuideVisible(false);
+          setShowCreateStrategy(open);
+          if (!open && strategyGuideStep > 0) setStrategyGuideStep(0);
+        }}>
+          <DialogContent className={`oq-strategy-create-dialog gap-0 rounded-2xl border-0 p-0 shadow-2xl ${strategyGuideStep > 0 ? "oq-strategy-guide-dialog" : ""}`}>
             <div className="oq-strategy-create-dialog-head">
               <DialogTitle>{tr("Create strategy", "创建策略")}</DialogTitle>
               <p>{tr("Build a strategy from selected factors, weights and direction rules.", "选择因子、权重和方向规则，生成新的策略组合。")}</p>
@@ -2658,10 +3271,21 @@ export default function MyStrategies() {
             <CreateStrategyComposer
               tr={tr}
               plainExplainEnabled={shouldShowPlainExplanations}
+              guideStep={strategyGuideStep}
+              onGuideNext={advanceStrategyGuide}
+              onGuideSkip={finishStrategyGuide}
+              onGuidePrev={retreatStrategyGuide}
               onClose={() => setShowCreateStrategy(false)}
               onSubmit={(values) => {
+                const isFirstCreatedStrategy = createdStrategies.length === 0;
                 createPendingStrategy(values.strategyName, values.strategyNote);
                 toast.success(formatBacktestSubmitted(values.strategyName, tr));
+                finishStrategyGuide();
+                if (isFirstCreatedStrategy) {
+                  setShowCreateStrategy(false);
+                  setStrategyGuideStep(-1);
+                  setIsRunStrategyGuideVisible(true);
+                }
               }}
             />
           </DialogContent>

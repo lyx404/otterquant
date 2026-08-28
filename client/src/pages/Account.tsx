@@ -16,7 +16,7 @@ import {
   type UiLang,
 } from "@/contexts/AppLanguageContext";
 import {
-  User, Key, Link2, Shield, Copy, Check,
+  User, Key, Link2, Shield, Copy, Check, BookOpen,
   Eye, EyeOff, RefreshCw, AlertTriangle, Compass,
   Send, Pencil, X, Plus, Trash2, FileText, MoreHorizontal, LogOut, Camera, Sun, Moon, Monitor,
 } from "lucide-react";
@@ -39,19 +39,21 @@ import {
   type ExchangeVenue,
 } from "@/lib/exchangeApiConnections";
 import { AgentSettingsPanel } from "@/components/account/AgentSettingsPanel";
+import { AgentInstallGuidePanel } from "@/components/account/AgentInstallGuidePanel";
 import "./Account.css";
 
-type TabId = "general" | "profile" | "agent" | "exchangeApi" | "api";
+type TabId = "general" | "profile" | "agent" | "installGuide" | "exchangeApi" | "api";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const tabs: { id: TabId; labelEn: string; labelZh: string; icon: React.ElementType }[] = [
   { id: "general", labelEn: "General", labelZh: "通用", icon: Shield },
   { id: "profile", labelEn: "Profile", labelZh: "个人资料", icon: User },
-  { id: "agent", labelEn: "Agent Settings", labelZh: "Agent设置", icon: Key },
+  { id: "agent", labelEn: "Agent Settings", labelZh: "智能体管理", icon: Key },
+  { id: "installGuide", labelEn: "Installation Guide", labelZh: "安装指南", icon: BookOpen },
 ];
 
 // Switch these to true only when restoring "Workbench 260720".
 const SHOW_ACCOUNT_PROFILE_WORKBENCH_260720 = true;
-const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 = false;
+const SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 = true;
 const ENABLE_LOGIN_EMAIL_EDITING = false;
 
 const languageOptions: { value: UiLang; label: string }[] = [
@@ -67,6 +69,7 @@ const accountCopy: Record<string, UiCopy> = {
   "General": { ja: "一般", ko: "일반", es: "General", fr: "Général" },
   "Profile": { ja: "プロフィール", ko: "프로필", es: "Perfil", fr: "Profil" },
   "Agent Settings": { ja: "Agent 設定", ko: "Agent 설정", es: "Ajustes del Agent", fr: "Paramètres de l’Agent" },
+  "Installation Guide": { ja: "インストールガイド", ko: "설치 가이드", es: "Guía de instalación", fr: "Guide d’installation" },
   "Already on the latest version": { ja: "すでに最新バージョンです", ko: "이미 최신 버전입니다", es: "Ya tienes la última versión", fr: "Vous utilisez déjà la dernière version" },
   "Exchange connection updated": { ja: "取引所の接続状態を更新しました", ko: "거래소 연결 상태를 업데이트했습니다", es: "Conexión con el exchange actualizada", fr: "Connexion à la plateforme mise à jour" },
   "Use a JPEG, PNG, or WebP image": { ja: "JPEG、PNG、WebP の画像を選択してください", ko: "JPEG, PNG 또는 WebP 이미지를 선택하세요", es: "Usa una imagen JPEG, PNG o WebP", fr: "Utilisez une image JPEG, PNG ou WebP" },
@@ -541,14 +544,18 @@ function AccountWorkbench260712() {
   const { user, updateUser, logout } = useAuth();
   const { themePreference, setThemePreference } = useTheme();
   const { uiLang, setUiLang } = useAppLanguage();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
 
   useEffect(() => {
     document.documentElement.classList.add("oq-account-active");
     return () => document.documentElement.classList.remove("oq-account-active");
   }, []);
 
-  const [activeTab, setActiveTab] = useState<TabId>("general");
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window === "undefined") return "general";
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    return tabs.some((tab) => tab.id === requestedTab) ? (requestedTab as TabId) : "general";
+  });
   const [exchangeList, setExchangeList] = useState<Exchange[]>(exchanges);
   const [username, setUsername] = useState(() =>
     user?.username ?? createUsernameSeed(user?.email?.split("@")[0] || user?.displayName || "user")
@@ -586,6 +593,13 @@ function AccountWorkbench260712() {
   const [exchangeDeleteConfirmId, setExchangeDeleteConfirmId] = useState<string | null>(null);
   const [exchangeMoreMenuId, setExchangeMoreMenuId] = useState<string | null>(null);
   const exchangeMoreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const requestedTab = new URLSearchParams(location.split("?")[1] ? `?${location.split("?")[1]}` : "").get("tab");
+    if (tabs.some((tab) => tab.id === requestedTab)) {
+      setActiveTab(requestedTab as TabId);
+    }
+  }, [location]);
 
   // Edit mode states for each subsection
   const [editingProfile, setEditingProfile] = useState(false);
@@ -1549,6 +1563,10 @@ function AccountWorkbench260712() {
 
       {activeTab === "agent" && SHOW_ACCOUNT_AGENT_SETTINGS_WORKBENCH_260720 && (
         <AgentSettingsPanel tr={tr} />
+      )}
+
+      {activeTab === "installGuide" && (
+        <AgentInstallGuidePanel tr={tr} />
       )}
 
       {/* ═══════════════ Exchange API Tab ═══════════════ */}

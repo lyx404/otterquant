@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useSearch } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -17,11 +17,24 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   translateUi,
@@ -38,14 +51,22 @@ import {
 } from "@/lib/tradeData";
 import {
   deleteTradeBotDeployment,
+  deployStrategyToTrade,
   getTradeBotsWithDeployments,
 } from "@/lib/tradeDeployments";
+import { syncPaperDeploymentTaskCompletion } from "@/lib/strategyOnboarding";
 import {
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  Archive,
+  FolderOpen,
+  Info,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
   Play,
+  Plus,
   RefreshCw,
   Trash2,
 } from "lucide-react";
@@ -60,6 +81,55 @@ type PendingAction =
   | { type: "delete"; botId: string }
   | null;
 
+type PaperTradingStrategy = {
+  id: string;
+  name: string;
+  completedAt: string;
+  sharpe: string;
+  annualReturn: string;
+  winRate: string;
+  market: "CEX" | "DEX" | "Mixed";
+};
+
+const paperTradingStrategies: PaperTradingStrategy[] = [
+  {
+    id: "STR-463",
+    name: "测试 2",
+    completedAt: "8月24日",
+    sharpe: "0.97",
+    annualReturn: "18.32%",
+    winRate: "57.40%",
+    market: "CEX",
+  },
+  {
+    id: "STR-464",
+    name: "测试 1",
+    completedAt: "8月24日",
+    sharpe: "0.91",
+    annualReturn: "168.78%",
+    winRate: "59.80%",
+    market: "CEX",
+  },
+  {
+    id: "STR-465",
+    name: "BTC 趋势跟随",
+    completedAt: "8月25日",
+    sharpe: "1.46",
+    annualReturn: "42.61%",
+    winRate: "61.20%",
+    market: "CEX",
+  },
+  {
+    id: "STR-466",
+    name: "ETH 资金费率反转",
+    completedAt: "8月25日",
+    sharpe: "1.21",
+    annualReturn: "31.28%",
+    winRate: "58.40%",
+    market: "CEX",
+  },
+];
+
 export const TRADE_RETURN_TRANSITION_STORAGE_KEY = "otterquant:trade-return-transition";
 
 type BotStatusFilter = "all" | "running" | "stop";
@@ -68,6 +138,7 @@ type BotSortDirection = "default" | "desc" | "asc";
 type ChartColorMode = "redUpGreenDown" | "greenUpRedDown";
 const CHART_COLOR_MODE_STORAGE_KEY = "otterquant:chart-color-mode";
 const PLAIN_EXPLANATION_STORAGE_KEY = "otterquant:plain-explanations";
+const TRADE_FOLDER_PANEL_COLLAPSED_STORAGE_KEY = "otterquant:trade:folder-panel-collapsed";
 
 export const tradeCopy: Record<string, UiCopy> = {
   Today: { ja: "今日", ko: "오늘", es: "Hoy", fr: "Aujourd'hui" },
@@ -122,6 +193,26 @@ export const tradeCopy: Record<string, UiCopy> = {
   Cancel: { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
   "Confirm Delete": { ja: "削除を確認", ko: "삭제 확인", es: "Confirmar eliminación", fr: "Confirmer la suppression" },
   "Confirm Stop": { ja: "停止を確認", ko: "중지 확인", es: "Confirmar detención", fr: "Confirmer l'arrêt" },
+  "Deploy paper trading": { ja: "ペーパートレードをデプロイ", ko: "모의 거래 배포", es: "Desplegar paper trading", fr: "Déployer le paper trading" },
+  "Click Create Paper Trading, then choose a completed strategy backtest.": { ja: "「ペーパートレードを作成」をクリックし、完了済みのストラテジーバックテストを選択します。", ko: "모의 거래 만들기를 클릭한 뒤 완료된 전략 백테스트를 선택하세요.", es: "Haz clic en Crear paper trading y selecciona un backtest de estrategia finalizado.", fr: "Cliquez sur Créer un paper trading, puis sélectionnez un backtest de stratégie terminé." },
+  "Select a strategy": { ja: "ストラテジーを選択", ko: "전략 선택", es: "Seleccionar una estrategia", fr: "Sélectionner une stratégie" },
+  "Select a completed CS strategy backtest as the source for paper trading.": { ja: "ペーパートレードのソースとして、完了済みのCSストラテジーバックテストを選択します。", ko: "모의 거래 소스로 완료된 CS 전략 백테스트를 선택하세요.", es: "Selecciona un backtest de estrategia CS finalizado como fuente para el paper trading.", fr: "Sélectionnez un backtest de stratégie CS terminé comme source du paper trading." },
+  "Create paper trading": { ja: "ペーパートレードを作成", ko: "모의 거래 만들기", es: "Crear paper trading", fr: "Créer un paper trading" },
+  "After confirming the strategy, click Submit to create paper trading.": { ja: "ストラテジーを確認したら、「送信」をクリックしてペーパートレードを作成します。", ko: "전략을 확인한 후 제출을 클릭해 모의 거래를 만드세요.", es: "Tras confirmar la estrategia, haz clic en Enviar para crear el paper trading.", fr: "Après avoir confirmé la stratégie, cliquez sur Envoyer pour créer le paper trading." },
+  Skip: { ja: "スキップ", ko: "건너뛰기", es: "Omitir", fr: "Passer" },
+  Next: { ja: "次へ", ko: "다음", es: "Siguiente", fr: "Suivant" },
+  Okay: { ja: "了解", ko: "확인", es: "Entendido", fr: "OK" },
+  "Paper trading created.": { ja: "ペーパートレードを作成しました。", ko: "모의 거래가 생성되었습니다.", es: "Paper trading creado.", fr: "Paper trading créé." },
+  "Create Paper Trading": { ja: "ペーパートレードを作成", ko: "모의 거래 만들기", es: "Crear paper trading", fr: "Créer un paper trading" },
+  "Select Strategy": { ja: "ストラテジーを選択", ko: "전략 선택", es: "Seleccionar estrategia", fr: "Sélectionner une stratégie" },
+  "(Only completed strategy can be selected)": { ja: "（完了済みのストラテジーのみ選択できます）", ko: "(완료된 전략만 선택할 수 있습니다)", es: "(Solo se pueden seleccionar estrategias completadas)", fr: "(Seules les stratégies terminées peuvent être sélectionnées)" },
+  Submit: { ja: "送信", ko: "제출", es: "Enviar", fr: "Envoyer" },
+  Previous: { ja: "前へ", ko: "이전", es: "Anterior", fr: "Précédent" },
+  Folders: { ja: "フォルダー", ko: "폴더", es: "Carpetas", fr: "Dossiers" },
+  "Filter paper-trading deployments by status.": { ja: "ペーパートレードのデプロイを状態で絞り込む", ko: "모의 거래 배포를 상태별로 필터링합니다.", es: "Filtra los despliegues de paper trading por estado.", fr: "Filtrer les déploiements de paper trading par statut." },
+  "Create folder": { ja: "フォルダーを作成", ko: "폴더 만들기", es: "Crear carpeta", fr: "Créer un dossier" },
+  "Expand folders": { ja: "フォルダーを展開", ko: "폴더 펼치기", es: "Expandir carpetas", fr: "Développer les dossiers" },
+  "Collapse folders": { ja: "フォルダーを折りたたむ", ko: "폴더 접기", es: "Contraer carpetas", fr: "Réduire les dossiers" },
 };
 
 const tradeSortLabels: Record<BotSortKey, Record<UiLang, string>> = {
@@ -154,6 +245,11 @@ function readPlainExplanationEnabled() {
   if (stored === "true") return true;
   if (stored === "false") return false;
   return true;
+}
+
+function readTradeFolderPanelCollapsed() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(TRADE_FOLDER_PANEL_COLLAPSED_STORAGE_KEY) === "true";
 }
 
 function formatRefreshTimestamp(date: Date) {
@@ -189,12 +285,51 @@ function MaybeExplainTooltip({
 
 const SHOW_WORKBENCH_260712 = true;
 
+function TradeDeployGuidePopover({
+  step,
+  tr,
+  onNext,
+  onSkip,
+  onPrev,
+}: {
+  step: 0 | 1 | 2;
+  tr: (en: string, zh: string, copy?: UiCopy) => string;
+  onNext: () => void;
+  onSkip: () => void;
+  onPrev?: () => void;
+}) {
+  const copy = [
+    ["Deploy paper trading", "部署模拟交易", "Click Create Paper Trading, then choose a completed strategy backtest.", "点击“创建模拟盘”，选择一条已完成的策略回测。"],
+    ["Select a strategy", "选择策略", "Select a completed CS strategy backtest as the source for paper trading.", "选择一条已完成的 CS 策略回测作为模拟盘来源。"],
+    ["Create paper trading", "创建模拟盘", "After confirming the strategy, click Submit to create paper trading.", "确认策略后，点击“提交”创建模拟盘。"],
+  ][step];
+  const isFinalStep = step === 2;
+
+  return (
+    <div className={`oq-trade-guide-popover is-step-${step}`} role="dialog" aria-label={tr(copy[0], copy[1])}>
+      <strong>{tr(copy[0], copy[1])}</strong>
+      <p>{tr(copy[2], copy[3])}</p>
+      <div className="oq-trade-guide-footer">
+        <div className="oq-trade-guide-step">{step + 1} / 3</div>
+        <div className="oq-trade-guide-actions">
+          <button type="button" onClick={onSkip}>{tr("Skip", "跳过")}</button>
+          {step > 0 && onPrev ? <button type="button" onClick={onPrev}>{tr("Previous", "上一步")}</button> : null}
+          <button type="button" className="is-primary" onClick={onNext}>
+            {isFinalStep ? tr("Okay", "好的") : tr("Next", "下一步")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Trade() {
   return SHOW_WORKBENCH_260712 ? <TradeWorkbench260712 /> : null;
 }
 
 function TradeWorkbench260712() {
   const { uiLang } = useAppLanguage();
+  const [, navigate] = useLocation();
   const tr = (en: string, zh: string, copy: UiCopy = {}) =>
     translateUi(uiLang, en, zh, { ...tradeCopy[en], ...copy });
   const search = useSearch();
@@ -203,6 +338,7 @@ function TradeWorkbench260712() {
   const focusStrategyId = searchParams.get("focusStrategy");
   const focusTradeId = searchParams.get("focusTradeId");
   const tradeSearchQuery = (searchParams.get("q") ?? "").trim().toLowerCase();
+  const deployGuideRequested = searchParams.get("onboarding") === "deploy-paper";
   const todayLabel = tr("Today", "今天");
 
   const [environment, setEnvironment] = useState<TradeEnvironment>(
@@ -215,7 +351,14 @@ function TradeWorkbench260712() {
   });
   const [focusedBotId, setFocusedBotId] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [isCreatePaperDialogOpen, setIsCreatePaperDialogOpen] = useState(false);
+  const [deployGuideStep, setDeployGuideStep] = useState<-1 | 0 | 1 | 2>(-1);
+  const [selectedPaperStrategyId, setSelectedPaperStrategyId] = useState(
+    paperTradingStrategies[0].id
+  );
+  const [deploymentVersion, setDeploymentVersion] = useState(0);
   const [statusFilter, setStatusFilter] = useState<BotStatusFilter>("all");
+  const [isTradeFolderPanelCollapsed, setIsTradeFolderPanelCollapsed] = useState(readTradeFolderPanelCollapsed);
   const [botSort, setBotSort] = useState<{ key: BotSortKey | null; direction: BotSortDirection }>({
     key: null,
     direction: "default",
@@ -228,7 +371,7 @@ function TradeWorkbench260712() {
   );
   const allTradeBots = useMemo(
     () => getTradeBotsWithDeployments(tradeBots),
-    []
+    [deploymentVersion]
   );
   const [statusById, setStatusById] = useState<Record<string, BotStatus>>(() =>
     Object.fromEntries(
@@ -247,6 +390,33 @@ function TradeWorkbench260712() {
     document.documentElement.classList.add("oq-trade-active");
     return () => document.documentElement.classList.remove("oq-trade-active");
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const guideSeen = window.sessionStorage.getItem("oq-trade-deploy-guide-seen") === "true";
+    if (deployGuideRequested || !guideSeen) setDeployGuideStep(0);
+  }, [deployGuideRequested]);
+
+  const finishDeployGuide = () => {
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("oq-trade-deploy-guide-seen", "true");
+    }
+    setDeployGuideStep(-1);
+    if (deployGuideRequested) navigate("/trade", { replace: true });
+  };
+
+  const advanceDeployGuide = () => {
+    if (deployGuideStep === 0) {
+      setIsCreatePaperDialogOpen(true);
+      setDeployGuideStep(1);
+      return;
+    }
+    if (deployGuideStep === 1) {
+      setDeployGuideStep(2);
+      return;
+    }
+    finishDeployGuide();
+  };
 
   useEffect(() => {
     if (envFromQuery === "paper" || envFromQuery === "live") {
@@ -284,6 +454,13 @@ function TradeWorkbench260712() {
     };
   }, []);
 
+  useEffect(() => {
+    window.localStorage.setItem(
+      TRADE_FOLDER_PANEL_COLLAPSED_STORAGE_KEY,
+      String(isTradeFolderPanelCollapsed)
+    );
+  }, [isTradeFolderPanelCollapsed]);
+
   useEffect(() => () => {
     refreshTimerByBotRef.current.forEach(timerId => window.clearTimeout(timerId));
     refreshTimerByBotRef.current.clear();
@@ -300,6 +477,15 @@ function TradeWorkbench260712() {
         })),
     [allTradeBots, deletedBotIds, environment, refreshedAtById, statusById]
   );
+  const paperBots = useMemo(
+    () => allTradeBots.filter(bot => bot.environment === "paper" && !deletedBotIds.has(bot.id)),
+    [allTradeBots, deletedBotIds]
+  );
+
+  useEffect(() => {
+    syncPaperDeploymentTaskCompletion(paperBots.length);
+  }, [paperBots.length]);
+
   const pendingBotName = pendingAction
     ? allTradeBots.find(bot => bot.id === pendingAction.botId)?.name
     : undefined;
@@ -420,6 +606,34 @@ function TradeWorkbench260712() {
     if (pendingAction.type === "stop") stopBot(pendingAction.botId);
     else deleteBot(pendingAction.botId);
     setPendingAction(null);
+  };
+
+  const createPaperTrading = () => {
+    const strategy = paperTradingStrategies.find(
+      item => item.id === selectedPaperStrategyId
+    );
+    if (!strategy) return;
+
+    const bot = deployStrategyToTrade({
+      strategyId: strategy.id,
+      strategyName: strategy.name,
+      market: strategy.market,
+      annualReturn: strategy.annualReturn,
+      winRate: strategy.winRate,
+      environment: "paper",
+    });
+
+    setStatusById(current => ({ ...current, [bot.id]: "running" }));
+    setDeletedBotIds(current => {
+      if (!current.has(bot.id)) return current;
+      const next = new Set(current);
+      next.delete(bot.id);
+      return next;
+    });
+    setDeploymentVersion(version => version + 1);
+    setIsCreatePaperDialogOpen(false);
+    finishDeployGuide();
+    toast.success(tr("Paper trading created.", "模拟盘已创建。"));
   };
 
   const formatMetricNumber = (value: number, digits = 2) =>
@@ -568,6 +782,12 @@ function TradeWorkbench260712() {
     return () => window.clearTimeout(timer);
   }, [focusStrategyId, focusTradeId, visibleBots]);
 
+  const tradeFolderHeading = statusFilter === "running"
+    ? { icon: <Play aria-hidden="true" />, label: tr("Running", "运行中"), count: summary.activeBots }
+    : statusFilter === "stop"
+      ? { icon: <Archive aria-hidden="true" />, label: tr("Stopped", "已停止"), count: visibleBots.length - summary.activeBots }
+      : { icon: <FolderOpen aria-hidden="true" />, label: tr("All", "全部"), count: visibleBots.length };
+
   return (
     <div
       className={`oq-trade ${environment === "live" ? "is-live" : "is-paper"}${isReturningFromDetail ? " is-returning-from-detail" : ""}`}
@@ -602,6 +822,28 @@ function TradeWorkbench260712() {
               switchPeriod: tr("Switch", "切换"),
             }}
           />
+          <span className="oq-trade-guide-button-anchor">
+            <Button
+              type="button"
+              size="sm"
+              className={`oq-trade-create-paper-button ${deployGuideStep === 0 ? "oq-trade-guide-target" : ""}`}
+              onClick={() => {
+                setIsCreatePaperDialogOpen(true);
+                if (deployGuideStep === 0) setDeployGuideStep(1);
+              }}
+            >
+              <Plus aria-hidden="true" />
+              {tr("Create Paper Trading", "创建模拟盘")}
+            </Button>
+            {deployGuideStep === 0 ? (
+              <TradeDeployGuidePopover
+                step={0}
+                tr={tr}
+                onNext={advanceDeployGuide}
+                onSkip={finishDeployGuide}
+              />
+            ) : null}
+          </span>
         </div>
 
         <div className="oq-trade-summary-grid">
@@ -668,45 +910,54 @@ function TradeWorkbench260712() {
         </div>
       </section>
 
-      <div className="oq-trade-filter-row">
-        <div
-          className="oq-trade-filter"
-          role="group"
-          aria-label={tr("Filter strategy status", "筛选策略状态")}
-        >
-          <button
-            type="button"
-            onClick={() => setStatusFilter("all")}
-            className={`oq-trade-filter-button ${statusFilter === "all" ? "is-active" : ""}`}
-            aria-pressed={statusFilter === "all"}
-          >
-            <span>{tr("All", "全部")}</span>
-            <span className="oq-trade-filter-count">{visibleBots.length}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter("running")}
-            className={`oq-trade-filter-button ${statusFilter === "running" ? "is-active" : ""}`}
-            aria-pressed={statusFilter === "running"}
-          >
-            <span>{tr("Running", "运行中")}</span>
-            <span className="oq-trade-filter-count">{summary.activeBots}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setStatusFilter("stop")}
-            className={`oq-trade-filter-button ${statusFilter === "stop" ? "is-active" : ""}`}
-            aria-pressed={statusFilter === "stop"}
-          >
-            <span>{tr("Stopped", "已停止")}</span>
-            <span className="oq-trade-filter-count">
-              {visibleBots.length - summary.activeBots}
-            </span>
-          </button>
-        </div>
-      </div>
+      <section className={`oq-trade-workspace-shell ${isTradeFolderPanelCollapsed ? "is-folder-panel-collapsed" : ""}`}>
+        <aside className="oq-trade-folder-panel">
+          <div className="oq-trade-folder-panel-head">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="oq-trade-folder-panel-title"><span>{tr("Folders", "文件夹")}</span><Info aria-hidden="true" /></span>
+              </TooltipTrigger>
+              <TooltipContent side="top">{tr("Filter paper-trading deployments by status.", "按模拟盘运行状态筛选策略。")}</TooltipContent>
+            </Tooltip>
+            <div className="oq-trade-folder-panel-actions">
+              <button type="button" className="oq-trade-folder-icon-button" aria-label={tr("Create folder", "新建文件夹")} title={tr("Create folder", "新建文件夹")}>
+                <Plus aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="oq-trade-folder-icon-button"
+                onClick={() => setIsTradeFolderPanelCollapsed((collapsed) => !collapsed)}
+                aria-label={isTradeFolderPanelCollapsed ? tr("Expand folders", "展开文件夹栏") : tr("Collapse folders", "折叠文件夹栏")}
+                title={isTradeFolderPanelCollapsed ? tr("Expand folders", "展开文件夹栏") : tr("Collapse folders", "折叠文件夹栏")}
+              >
+                {isTradeFolderPanelCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}
+              </button>
+            </div>
+          </div>
+          <nav className="oq-trade-folder-nav" aria-label={tr("Filter strategy status", "筛选策略状态")}>
+            <button type="button" onClick={() => setStatusFilter("all")} className={statusFilter === "all" ? "is-active" : ""} aria-pressed={statusFilter === "all"}>
+              <FolderOpen aria-hidden="true" />
+              <span>{tr("All", "全部")}</span>
+              <strong>{visibleBots.length}</strong>
+            </button>
+            <button type="button" onClick={() => setStatusFilter("running")} className={statusFilter === "running" ? "is-active" : ""} aria-pressed={statusFilter === "running"}>
+              <Play aria-hidden="true" />
+              <span>{tr("Running", "运行中")}</span>
+              <strong>{summary.activeBots}</strong>
+            </button>
+            <button type="button" onClick={() => setStatusFilter("stop")} className={statusFilter === "stop" ? "is-active" : ""} aria-pressed={statusFilter === "stop"}>
+              <Archive aria-hidden="true" />
+              <span>{tr("Stopped", "已停止")}</span>
+              <strong>{visibleBots.length - summary.activeBots}</strong>
+            </button>
+          </nav>
+        </aside>
 
-      <div className="oq-trade-section">
+        <div className="oq-trade-workspace-main">
+          <div className="oq-trade-workspace-heading">
+            <div>{tradeFolderHeading.icon}<strong>{tradeFolderHeading.label}</strong><span>{tradeFolderHeading.count}</span></div>
+          </div>
+          <div className="oq-trade-section">
         <div
           className="oq-trade-table-scroll"
           role="table"
@@ -948,6 +1199,8 @@ function TradeWorkbench260712() {
           </div>
         </div>
       </div>
+        </div>
+      </section>
 
       <AlertDialog
         open={pendingAction !== null}
@@ -993,6 +1246,85 @@ function TradeWorkbench260712() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={isCreatePaperDialogOpen}
+        onOpenChange={(open) => {
+          setIsCreatePaperDialogOpen(open);
+          if (!open && deployGuideStep >= 1) finishDeployGuide();
+        }}
+      >
+        <DialogContent className="oq-trade-create-dialog" aria-describedby={undefined}>
+          <div className="oq-trade-create-dialog-head">
+            <DialogTitle>{tr("Create Paper Trading", "新建模拟盘")}</DialogTitle>
+          </div>
+          <div className="oq-trade-create-dialog-body">
+            <label className={`oq-trade-create-field ${deployGuideStep === 1 ? "oq-trade-guide-anchor oq-trade-guide-target" : ""}`}>
+              <span className="oq-trade-create-field-label">
+                <span>{tr("Select Strategy", "选择策略")}</span>
+                <span className="oq-trade-create-hint">
+                  {tr(
+                    "(Only completed strategy can be selected)",
+                    "(仅可选择“已完成”的策略)"
+                  )}
+                </span>
+              </span>
+              <Select
+                value={selectedPaperStrategyId}
+                onValueChange={setSelectedPaperStrategyId}
+              >
+                <SelectTrigger className="oq-trade-create-select" aria-label={tr("Select a strategy", "选择策略")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="oq-trade-create-select-content" align="start">
+                  {paperTradingStrategies.map(strategy => (
+                    <SelectItem key={strategy.id} value={strategy.id}>
+                      {`${strategy.name} · ${strategy.completedAt} · Sharpe ${strategy.sharpe}`}
+                    </SelectItem>
+                ))}
+              </SelectContent>
+              </Select>
+              {deployGuideStep === 1 ? (
+              <TradeDeployGuidePopover
+                step={1}
+                tr={tr}
+                onNext={advanceDeployGuide}
+                onSkip={finishDeployGuide}
+                onPrev={() => setDeployGuideStep(0)}
+              />
+              ) : null}
+            </label>
+          </div>
+          <DialogFooter className="oq-trade-create-dialog-footer">
+            <Button
+              type="button"
+              variant="outline"
+              className="oq-trade-create-dialog-button"
+              onClick={() => setIsCreatePaperDialogOpen(false)}
+            >
+              {tr("Cancel", "取消")}
+            </Button>
+            <span className={`oq-trade-guide-submit-anchor ${deployGuideStep === 2 ? "oq-trade-guide-target" : ""}`}>
+              <Button
+                type="button"
+                className="oq-trade-create-dialog-button is-primary"
+                onClick={createPaperTrading}
+              >
+                {tr("Submit", "提交")}
+              </Button>
+              {deployGuideStep === 2 ? (
+              <TradeDeployGuidePopover
+                step={2}
+                tr={tr}
+                onNext={finishDeployGuide}
+                onSkip={finishDeployGuide}
+                onPrev={() => setDeployGuideStep(1)}
+              />
+              ) : null}
+            </span>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "skills": {
+    "antv-g2-chart": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": "skills/antv-g2-chart/SKILL.md",
+      "computedHash": "204e88e4866c2035e175c936e21cf9ace40e679a4aa0c756436224da2b28dc6e"
+    },
+    "antv-g6-graph": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": "skills/antv-g6-graph/SKILL.md",
+      "computedHash": "c7b06c3760d994fe81d27f62edc67554a519a919b9c6e6e82e5c5a81a46bc567"
+    },
+    "antv-skills-maintainer": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": ".github/skills/antv-skills-maintainer/SKILL.md",
+      "computedHash": "7fd6eed1c2247370a2c38ab0b90d1519aa166cebf836da6fb46da5fd8ee48e38"
+    },
+    "antv-x6-editor": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": "skills/antv-x6-editor/SKILL.md",
+      "computedHash": "c08ae7b06ff209198d1067761da7a2409ecc0f1bfcff8f015abdb3d8c46533c0"
+    },
+    "chart-visualization": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": "skills/chart-visualization/SKILL.md",
+      "computedHash": "537be883849c5357f74188b13cff05fbac46a084f74034f7821bd17dac31f7d5"
+    },
+    "gpt-vis": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gpt-vis/SKILL.md",
+      "computedHash": "f08f50c70f378cdc9d891f965bf82824331c3f5bcc44e58179fb09847536a114"
+    },
+    "icon-retrieval": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": "skills/icon-retrieval/SKILL.md",
+      "computedHash": "5788643aba2879952a35c8f3de216378ae8515426550745078dce3985406d49a"
+    },
+    "infographic-creator": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": "skills/infographic-creator/SKILL.md",
+      "computedHash": "28d634f32712ca06aec83497aa3aef1fdc591d12845f464dd43c29d0ac0769f2"
+    },
+    "lieflat-charts": {
+      "source": "larashero3-dotcom/lieflat-charts",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "69b3caefc935d4727b4e913aaab2209b85c1e95c9f43f6d5846b3d6f49a13e93"
+    },
+    "narrative-text-visualization": {
+      "source": "antvis/chart-visualization-skills",
+      "sourceType": "github",
+      "skillPath": "skills/narrative-text-visualization/SKILL.md",
+      "computedHash": "eda161335a1d910121f1e8af1b8614aab68e6a47cef5214ddfe5b7c6e97568cb"
+    }
+  }
+}

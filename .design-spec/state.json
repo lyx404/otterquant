@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "snapshot": {
+    "package.json": {
+      "mtime_ns": 1786687219553866900,
+      "size": 3335,
+      "sha256": "f5ab57eea8de23e355214f4ff94eeed0511b417c7c1bf6a3f1d3e85724a6271d"
+    },
+    "vite.config.ts": {
+      "mtime_ns": 1776869706394400716,
+      "size": 5785,
+      "sha256": "334aa6992b105e2f9005f723c53e8f8b2b3f386c3f14e27c45ae9f160426e170"
+    }
+  },
+  "pending": null,
+  "initialized_at": "2026-08-24T06:39:15.957260+00:00",
+  "last_sync_at": "2026-08-26T09:16:29.889582+00:00",
+  "last_sync_mode": "immediate"
+}

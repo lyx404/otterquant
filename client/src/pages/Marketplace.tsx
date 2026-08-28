@@ -10,6 +10,7 @@ import {
 import { CopyTradeDialog } from "@/components/CopyTradeDialog";
 import { MarketplaceAvatar } from "@/components/MarketplaceAvatar";
 import {
+  type UiCopy,
   translateUi,
   useAppLanguage,
 } from "@/contexts/AppLanguageContext";
@@ -33,6 +34,62 @@ import "./Marketplace.css";
 
 const SHOW_MARKETPLACE_CONTENT = true;
 type AvatarTone = MarketplaceAvatarTone;
+
+const marketplaceCopy: Record<string, UiCopy> = {
+  "Follow portfolios, invest with clarity": { ja: "ポートフォリオをフォローして、確かな投資判断を", ko: "포트폴리오를 팔로우하고 명확하게 투자하세요", es: "Sigue carteras e invierte con claridad", fr: "Suivez des portefeuilles, investissez avec clarté" },
+  "Available assets (USDT)": { ja: "利用可能資産 (USDT)", ko: "사용 가능 자산 (USDT)", es: "Activos disponibles (USDT)", fr: "Actifs disponibles (USDT)" },
+  "Portfolio P&L (USDT)": { ja: "ポートフォリオ損益 (USDT)", ko: "포트폴리오 손익 (USDT)", es: "P&L de cartera (USDT)", fr: "PnL du portefeuille (USDT)" },
+  "Invested P&L (USDT)": { ja: "コピートレード損益 (USDT)", ko: "카피 트레이딩 손익 (USDT)", es: "P&L de copy trading (USDT)", fr: "PnL du copy trading (USDT)" },
+  "View account": { ja: "アカウントを表示", ko: "계정 보기", es: "Ver cuenta", fr: "Voir le compte" },
+  "Create Portfolio": { ja: "ポートフォリオを作成", ko: "포트폴리오 만들기", es: "Crear cartera", fr: "Créer un portefeuille" },
+  View: { ja: "表示", ko: "보기", es: "Ver", fr: "Voir" },
+  Full: { ja: "満員", ko: "정원 마감", es: "Completo", fr: "Complet" },
+  Investing: { ja: "コピートレード中", ko: "카피 트레이딩 중", es: "Copy trading activo", fr: "Copy trading en cours" },
+  Copy: { ja: "コピートレード", ko: "카피 트레이딩", es: "Copy trading", fr: "Copy trading" },
+  "30-day return": { ja: "30日リターン", ko: "30일 수익률", es: "Rentabilidad a 30 días", fr: "Rendement sur 30 jours" },
+  "Max drawdown": { ja: "最大ドローダウン", ko: "최대 낙폭", es: "Drawdown máximo", fr: "Drawdown maximal" },
+  "Sharpe ratio": { ja: "シャープレシオ", ko: "샤프 비율", es: "Ratio de Sharpe", fr: "Ratio de Sharpe" },
+  "30-day win rate": { ja: "30日勝率", ko: "30일 승률", es: "Tasa de acierto a 30 días", fr: "Taux de réussite sur 30 jours" },
+  "Portfolio return curve": { ja: "ポートフォリオのリターン曲線", ko: "포트폴리오 수익률 곡선", es: "Curva de rentabilidad de la cartera", fr: "Courbe de rendement du portefeuille" },
+  "Highest returns": { ja: "高リターン", ko: "최고 수익률", es: "Mayores rentabilidades", fr: "Meilleurs rendements" },
+  "The strongest 30-day return": { ja: "30日リターン上位のポートフォリオ", ko: "30일 수익률이 가장 높은 포트폴리오", es: "Las carteras con mayor rentabilidad a 30 días", fr: "Les portefeuilles aux meilleurs rendements sur 30 jours" },
+  "Lowest drawdown": { ja: "最小ドローダウン", ko: "최저 낙폭", es: "Menor drawdown", fr: "Drawdown le plus faible" },
+  "The most stable risk profile": { ja: "最も安定したリスクプロファイル", ko: "가장 안정적인 리스크 프로필", es: "El perfil de riesgo más estable", fr: "Le profil de risque le plus stable" },
+  "Strategy carousel controls": { ja: "ストラテジーのカルーセル操作", ko: "전략 캐러셀 제어", es: "Controles del carrusel de estrategias", fr: "Commandes du carrousel de stratégies" },
+  Previous: { ja: "前へ", ko: "이전", es: "Anterior", fr: "Précédent" },
+  Next: { ja: "次へ", ko: "다음", es: "Siguiente", fr: "Suivant" },
+  "Previous strategies": { ja: "前のストラテジーを表示", ko: "이전 전략 보기", es: "Ver estrategias anteriores", fr: "Voir les stratégies précédentes" },
+  "Next strategies": { ja: "次のストラテジーを表示", ko: "다음 전략 보기", es: "Ver las siguientes estrategias", fr: "Voir les stratégies suivantes" },
+  "Top Portfolio Managers": { ja: "トップポートフォリオマネージャー", ko: "최고의 포트폴리오 매니저", es: "Mejores gestores de cartera", fr: "Meilleurs gérants de portefeuille" },
+  "Portfolio Managers ranked by 30-day portfolio return": { ja: "30日ポートフォリオリターンで順位付けしたポートフォリオマネージャー", ko: "30일 포트폴리오 수익률 기준 포트폴리오 매니저 순위", es: "Gestores de cartera clasificados por rentabilidad de cartera a 30 días", fr: "Gérants classés selon le rendement du portefeuille sur 30 jours" },
+  "30-day portfolio return": { ja: "30日ポートフォリオリターン", ko: "30일 포트폴리오 수익률", es: "Rentabilidad de cartera a 30 días", fr: "Rendement du portefeuille sur 30 jours" },
+  "Top Portfolio Investors": { ja: "トップコピートレーダー", ko: "최고의 카피 트레이더", es: "Mejores copy traders", fr: "Meilleurs copy traders" },
+  "Portfolio Investors ranked by 30-day copy investing return": { ja: "30日コピートレードリターンで順位付けした投資家", ko: "30일 카피 트레이딩 수익률 기준 투자자 순위", es: "Copy traders clasificados por rentabilidad a 30 días", fr: "Copy traders classés selon le rendement sur 30 jours" },
+  "30-day copy investing return": { ja: "30日コピートレードリターン", ko: "30일 카피 트레이딩 수익률", es: "Rentabilidad de copy trading a 30 días", fr: "Rendement du copy trading sur 30 jours" },
+  "Total 30-day portfolio and copy investing P&L": { ja: "30日ポートフォリオ・コピートレード合計損益", ko: "30일 포트폴리오 및 카피 트레이딩 합산 손익", es: "P&L total de cartera y copy trading a 30 días", fr: "PnL total du portefeuille et du copy trading sur 30 jours" },
+  "30-day P&L": { ja: "30日損益", ko: "30일 손익", es: "P&L a 30 días", fr: "PnL sur 30 jours" },
+  Rank: { ja: "順位", ko: "순위", es: "Puesto", fr: "Rang" },
+  User: { ja: "ユーザー", ko: "사용자", es: "Usuario", fr: "Utilisateur" },
+  "View profile": { ja: "プロフィールを表示", ko: "프로필 보기", es: "Ver perfil", fr: "Voir le profil" },
+  Region: { ja: "地域", ko: "지역", es: "Región", fr: "Région" },
+  "Show less": { ja: "閉じる", ko: "접기", es: "Mostrar menos", fr: "Réduire" },
+  More: { ja: "もっと見る", ko: "더 보기", es: "Ver más", fr: "Voir plus" },
+  "My portfolio detail page": { ja: "マイポートフォリオ詳細", ko: "내 포트폴리오 상세", es: "Detalle de mi cartera", fr: "Détail de mon portefeuille" },
+  "My copy investment detail page": { ja: "マイコピートレード詳細", ko: "내 카피 트레이딩 상세", es: "Detalle de mi copy trading", fr: "Détail de mon copy trading" },
+  "Official trading strategies": { ja: "公式ストラテジー", ko: "공식 전략", es: "Estrategias oficiales", fr: "Stratégies officielles" },
+  "Spot standout investors, seize market momentum": { ja: "優れた投資家を見つけ、市場の勢いを捉える", ko: "뛰어난 투자자를 찾고 시장 모멘텀을 포착하세요", es: "Descubre inversores destacados y aprovecha el impulso del mercado", fr: "Repérez les investisseurs remarquables et saisissez l’élan du marché" },
+  "Become a Portfolio Manager，earn Copy Investing income": { ja: "ポートフォリオマネージャーになり、コピートレード収益を得る", ko: "포트폴리오 매니저가 되어 카피 트레이딩 수익을 얻으세요", es: "Conviértete en gestor de cartera y obtén ingresos por copy trading", fr: "Devenez gérant de portefeuille et percevez des revenus de copy trading" },
+  "Earn up to 30% in portfolio management income.": { ja: "ポートフォリオ運用収益を最大30%獲得", ko: "포트폴리오 운용 수익을 최대 30%까지 얻으세요.", es: "Obtén hasta un 30 % de ingresos por gestión de cartera.", fr: "Gagnez jusqu’à 30 % de revenus de gestion de portefeuille." },
+  "Copy investing started.": { ja: "コピートレードを開始しました。", ko: "카피 트레이딩을 시작했습니다.", es: "El copy trading ha comenzado.", fr: "Le copy trading a commencé." },
+  "Copy Investing amount": { ja: "コピートレード額", ko: "카피 트레이딩 금액", es: "Importe de copy trading", fr: "Montant du copy trading" },
+  "Available funds": { ja: "利用可能資金", ko: "사용 가능 자금", es: "Fondos disponibles", fr: "Fonds disponibles" },
+  "Enter at least 5,000 USDT to continue.": { ja: "5,000 USDT 以上を入力してください。", ko: "최소 5,000 USDT를 입력하세요.", es: "Introduce al menos 5.000 USDT para continuar.", fr: "Saisissez au moins 5 000 USDT pour continuer." },
+  "The copy investing amount exceeds your available funds.": { ja: "コピートレード額が利用可能資金を超えています。", ko: "카피 트레이딩 금액이 사용 가능 자금을 초과합니다.", es: "El importe de copy trading supera tus fondos disponibles.", fr: "Le montant du copy trading dépasse vos fonds disponibles." },
+  "Copy investing amount must be a multiple of 1,000 USDT.": { ja: "コピートレード額は 1,000 USDT 単位で入力してください。", ko: "카피 트레이딩 금액은 1,000 USDT 단위여야 합니다.", es: "El importe de copy trading debe ser múltiplo de 1.000 USDT.", fr: "Le montant du copy trading doit être un multiple de 1 000 USDT." },
+  "Min. 5,000": { ja: "最低 5,000", ko: "최소 5,000", es: "Mín. 5.000", fr: "Min. 5 000" },
+  Cancel: { ja: "キャンセル", ko: "취소", es: "Cancelar", fr: "Annuler" },
+  Confirm: { ja: "コピートレードを確定", ko: "카피 트레이딩 확인", es: "Confirmar copy trading", fr: "Confirmer le copy trading" },
+};
 
 type MarketplaceCardView = {
   author: string;
@@ -294,7 +351,7 @@ function TradingCard({
             </div>
             <PerformanceChart
               details={details}
-              label={tr(`${view.title} return curve`, `${view.title} 收益曲线`)}
+              label={tr("Portfolio return curve", "投资组合收益曲线")}
             />
           </div>
           <div className="oq-marketplace-metrics">
@@ -387,7 +444,7 @@ function StrategyCarousel({
         {canScrollPrev && (
           <button
             type="button"
-            aria-label={tr(`Previous ${title}`, `查看上一组${titleZh}`)}
+            aria-label={tr("Previous strategies", "查看上一组策略")}
             title={tr("Previous", "向左")}
             onClick={() => scrollStrategies(-1)}
           >
@@ -411,7 +468,7 @@ function StrategyCarousel({
         {canScrollNext && (
           <button
             type="button"
-            aria-label={tr(`Next ${title}`, `查看下一组${titleZh}`)}
+            aria-label={tr("Next strategies", "查看下一组策略")}
             title={tr("Next", "向右")}
             onClick={() => scrollStrategies(1)}
           >
@@ -582,11 +639,11 @@ function RankingBoards({ tr }: { tr: (en: string, zh: string) => string }) {
                     key={`${board.id}-${row.profileId}`}
                     href={`/marketplace/users/${row.profileId}`}
                     className="oq-marketplace-ranking-item"
-                    aria-label={tr(`View ${row.name}'s profile`, `查看 ${row.name} 的主页`)}
+                    aria-label={tr("View profile", "查看个人主页")}
                   >
                     <span
                       className={`oq-marketplace-ranking-rank${index < 3 ? ` is-top is-rank-${index + 1} is-medal` : ""}`}
-                      aria-label={tr(`Rank ${index + 1}`, `排名 ${index + 1}`)}
+                      aria-label={`${tr("Rank", "排名")} ${index + 1}`}
                     >
                       {index < 3 ? (
                         <RankingMedalIcon rank={(index + 1) as 1 | 2 | 3} instanceId={`${board.id}-${index + 1}`} />
@@ -597,7 +654,7 @@ function RankingBoards({ tr }: { tr: (en: string, zh: string) => string }) {
                         {row.avatarSrc ? <img src={row.avatarSrc} alt="" /> : row.avatar}
                       </span>
                       <span className="oq-marketplace-ranking-item-name">
-                        <span className="oq-marketplace-country-flag" aria-label={tr(`Region: ${row.country}`, `所在地区：${row.country}`)}>
+                        <span className="oq-marketplace-country-flag" aria-label={`${tr("Region", "所在地区")}: ${row.country}`}>
                           <span aria-hidden="true">{countryFlags[row.country]}</span>
                         </span>
                         <strong>{row.name}</strong>
@@ -631,7 +688,8 @@ export default function Marketplace() {
   const { uiLang } = useAppLanguage();
   const search = useSearch();
   const [, navigate] = useLocation();
-  const tr = (en: string, zh: string) => translateUi(uiLang, en, zh);
+  const tr = (en: string, zh: string, copy: UiCopy = {}) =>
+    translateUi(uiLang, en, zh, { ...marketplaceCopy[en], ...copy });
   const [copyTarget, setCopyTarget] = useState<Strategy | null>(null);
   const { followingStrategyIds, addFollowing } = useFollowingStrategyIds();
   const query = new URLSearchParams(search).get("q")?.trim().toLowerCase() ?? "";

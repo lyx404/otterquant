@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MarketplaceAvatar } from "@/components/MarketplaceAvatar";
+import type { UiCopy } from "@/contexts/AppLanguageContext";
 import type { Strategy } from "@/lib/mockData";
 import type { MarketplaceAvatarTone } from "@/lib/marketplaceData";
 import "./CopyTradeDialog.css";
@@ -27,7 +28,7 @@ export function CopyTradeDialog({
     strategyName: string;
     avatarTone?: MarketplaceAvatarTone;
   };
-  tr: (en: string, zh: string) => string;
+  tr: (en: string, zh: string, copy?: UiCopy) => string;
   onOpenChange: (open: boolean) => void;
   onConfirm: (amount: number) => void;
 }) {
@@ -84,6 +85,12 @@ export function CopyTradeDialog({
     setAdjustmentFeedback(tr(
       `Copy investing amount must be a multiple of ${COPY_AMOUNT_STEP.toLocaleString()} USDT. Adjusted to ${value.toLocaleString()} USDT.`,
       `跟投资金需为 ${COPY_AMOUNT_STEP.toLocaleString()} USDT 的倍数，已自动调整至 ${value.toLocaleString()} USDT。`,
+      {
+        ja: `コピートレード額は ${COPY_AMOUNT_STEP.toLocaleString()} USDT 単位です。${value.toLocaleString()} USDT に調整しました。`,
+        ko: `카피 트레이딩 금액은 ${COPY_AMOUNT_STEP.toLocaleString()} USDT 단위여야 합니다. ${value.toLocaleString()} USDT로 조정했습니다.`,
+        es: `El importe de copy trading debe ser múltiplo de ${COPY_AMOUNT_STEP.toLocaleString()} USDT. Se ajustó a ${value.toLocaleString()} USDT.`,
+        fr: `Le montant du copy trading doit être un multiple de ${COPY_AMOUNT_STEP.toLocaleString()} USDT. Il a été ajusté à ${value.toLocaleString()} USDT.`,
+      },
     ));
   };
 

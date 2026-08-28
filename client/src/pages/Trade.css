@@ -23,7 +23,7 @@
   --qt-shadow-3: 0 1.5px 6px rgba(60, 40, 20, 0.06);
   --qt-shadow-4: 0 6px 18px rgba(60, 40, 20, 0.08);
   display: grid;
-  width: min(100%, 900px);
+  width: 100%;
   gap: 16px;
   margin: 0 auto;
   color: var(--qt-text);
@@ -197,6 +197,184 @@
   letter-spacing: 0;
 }
 
+.oq-trade-create-paper-button {
+  min-height: 32px !important;
+  margin-left: 0;
+  border: 0.75px solid color-mix(in srgb, var(--qt-accent) 78%, #000000) !important;
+  border-radius: 50px !important;
+  background: var(--qt-accent) !important;
+  padding: 0 12px !important;
+  color: #ffffff !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 16px !important;
+  box-shadow: none !important;
+}
+
+.oq-trade-create-paper-button svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2;
+}
+
+.oq-trade-create-paper-button:hover {
+  background: var(--qt-accent-hover) !important;
+  transform: translateY(-1px);
+}
+
+.oq-trade-guide-button-anchor,
+.oq-trade-guide-submit-anchor {
+  position: relative;
+  display: inline-flex;
+  z-index: 3;
+}
+
+.oq-trade-create-dialog:has(.oq-trade-guide-popover) {
+  overflow: visible;
+}
+
+.oq-trade-guide-button-anchor {
+  margin-left: auto;
+}
+
+.oq-trade-guide-target {
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--qt-accent) 28%, transparent), 0 0 0 6px color-mix(in srgb, var(--qt-accent) 10%, transparent);
+}
+
+.oq-trade-guide-popover {
+  position: absolute;
+  z-index: 1000;
+  width: min(280px, calc(100vw - 36px));
+  border: 1px solid color-mix(in srgb, var(--qt-accent) 28%, var(--qt-border));
+  border-radius: 10px;
+  background: var(--qt-bg-soft);
+  box-shadow: 0 10px 26px rgba(60, 40, 20, 0.16);
+  padding: 12px;
+  color: var(--qt-text);
+}
+
+.oq-trade-guide-button-anchor > .oq-trade-guide-popover {
+  top: calc(100% + 10px);
+  right: 0;
+}
+
+.oq-trade-create-field > .oq-trade-guide-popover {
+  top: calc(100% + 10px);
+  right: 0;
+}
+
+.oq-trade-create-field.oq-trade-guide-target {
+  z-index: 100;
+}
+
+.oq-trade-create-field > .oq-trade-guide-popover.is-step-1 {
+  top: auto;
+  right: 0;
+  bottom: calc(100% + 10px);
+}
+
+.oq-trade-guide-submit-anchor > .oq-trade-guide-popover {
+  right: 0;
+  bottom: calc(100% + 10px);
+}
+
+.oq-trade-guide-popover strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.oq-trade-guide-popover p {
+  margin: 4px 0 14px;
+  color: var(--qt-text-soft);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.oq-trade-guide-footer {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.oq-trade-guide-step {
+  flex: 0 0 auto;
+  color: var(--qt-accent);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 32px;
+}
+
+.oq-trade-guide-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.oq-trade-guide-actions button {
+  border: 0;
+  border-radius: 50px;
+  background: color-mix(in srgb, var(--qt-border) 56%, var(--qt-bg));
+  padding: 0 10px;
+  color: var(--qt-text-soft);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 32px;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.oq-trade-guide-actions button:hover {
+  background: color-mix(in srgb, var(--qt-accent) 12%, var(--qt-border));
+  color: var(--qt-accent);
+}
+
+.oq-trade-guide-actions button.is-primary {
+  background: var(--qt-accent);
+  padding: 0 11px;
+  color: #ffffff;
+}
+
+.oq-trade-guide-actions button.is-primary:hover {
+  background: var(--qt-accent-hover);
+  color: #ffffff;
+}
+
+.dark.oq-trade-active .oq-trade-guide-popover {
+  border-color: var(--oq-trade-border-strong);
+  background: var(--oq-trade-surface-1);
+  color: var(--oq-trade-text);
+  box-shadow: 0 16px 42px oklch(0 0 0 / 0.5);
+}
+
+.dark.oq-trade-active .oq-trade-guide-actions button {
+  background: var(--oq-trade-surface-3);
+  color: var(--oq-trade-text-soft);
+}
+
+.dark.oq-trade-active .oq-trade-guide-actions button:hover {
+  background: var(--oq-trade-surface-warm);
+  color: var(--oq-trade-accent);
+}
+
+.dark.oq-trade-active .oq-trade-guide-actions button.is-primary {
+  background: var(--oq-trade-accent);
+  color: var(--oq-trade-canvas);
+}
+
+.dark.oq-trade-active .oq-trade-guide-actions button.is-primary:hover {
+  background: var(--oq-trade-accent-hover);
+  color: var(--oq-trade-canvas);
+}
+
 .oq-trade .oq-report-date-select--compact > button,
 .oq-trade .oq-report-date-select--compact > button:hover,
 .oq-trade .oq-report-date-select--compact > button[aria-expanded="true"] {
@@ -209,11 +387,11 @@
   min-height: 72px;
   align-content: center;
   gap: 4px;
-  border: 0;
-  border-radius: 12px;
+  border: 0.75px solid var(--qt-border);
+  border-radius: 10px;
   background: var(--qt-bg);
   padding: 8px 18px;
-  box-shadow: var(--qt-shadow-3);
+  box-shadow: none;
   transition:
     border-color 180ms cubic-bezier(0.25, 1, 0.5, 1),
     box-shadow 180ms cubic-bezier(0.25, 1, 0.5, 1);
@@ -221,7 +399,7 @@
 
 .oq-trade-metric-card:hover {
   border-color: var(--qt-border-strong);
-  box-shadow: var(--qt-shadow-4);
+  box-shadow: none;
 }
 
 .oq-trade-metric-label {
@@ -246,7 +424,7 @@
 .oq-trade-section {
   overflow: hidden;
   border: 0;
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--qt-bg);
   box-shadow: var(--qt-shadow-3);
 }
@@ -592,8 +770,9 @@
 }
 
 .oq-trade-icon-button.is-restart {
-  width: auto;
-  flex: 1 1 auto;
+  width: 54px;
+  min-width: 54px;
+  flex: 0 0 54px;
 }
 
 .oq-trade-icon-button:focus-visible {
@@ -852,6 +1031,198 @@
   color: #ffffff !important;
 }
 
+.oq-trade-create-dialog {
+  --qt-bg: #ffffff;
+  --qt-bg-soft: #faf8f6;
+  --qt-bg-warm: #fef6ef;
+  --qt-border: #e2dad0;
+  --qt-text: #171717;
+  --qt-text-soft: #4a443d;
+  --qt-muted: #a39d96;
+  --qt-accent: #dc4900;
+  width: min(620px, calc(100vw - 32px)) !important;
+  max-width: min(620px, calc(100vw - 32px)) !important;
+  max-height: calc(100dvh - 32px);
+  gap: 0 !important;
+  overflow: hidden;
+  border: 0.75px solid var(--qt-border) !important;
+  border-radius: 8px !important;
+  background: var(--qt-bg) !important;
+  color: var(--qt-text);
+  padding: 0 !important;
+  box-shadow: 0 18px 48px rgba(40, 30, 20, 0.16) !important;
+}
+
+.oq-trade-create-dialog [data-slot="dialog-close"] {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  top: 18px;
+  right: 18px;
+  border-radius: 6px;
+  color: var(--qt-muted);
+  opacity: 1;
+}
+
+.oq-trade-create-dialog [data-slot="dialog-close"] svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+}
+
+.oq-trade-create-dialog [data-slot="dialog-close"]:hover {
+  background: var(--qt-bg-warm);
+  color: var(--qt-accent);
+}
+
+.oq-trade-create-dialog-head {
+  min-height: 0;
+  border-bottom: 0.75px solid var(--qt-border);
+  padding: 18px 52px 16px 20px;
+}
+
+.oq-trade-create-dialog-head [data-slot="dialog-title"] {
+  color: var(--qt-text);
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 22px;
+}
+
+.oq-trade-create-dialog-body {
+  display: grid;
+  gap: 10px;
+  background: color-mix(in srgb, var(--qt-bg-soft) 72%, var(--qt-bg));
+  padding: 14px 20px 20px;
+}
+
+.oq-trade-create-field {
+  display: grid;
+  gap: 8px;
+  color: var(--qt-text-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 15px;
+}
+
+.oq-trade-create-field-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.oq-trade-create-select {
+  width: 100% !important;
+  height: 38px !important;
+  border: 0.75px solid var(--qt-border-strong) !important;
+  border-radius: 6px !important;
+  background: var(--qt-bg) !important;
+  padding: 0 13px !important;
+  color: var(--qt-text-soft) !important;
+  font-family: var(--font-body);
+  font-size: 12px !important;
+  font-weight: 500;
+  line-height: 18px;
+  box-shadow: none !important;
+}
+
+.oq-trade-create-select:hover,
+.oq-trade-create-select:focus-visible {
+  border-color: var(--qt-accent) !important;
+}
+
+.oq-trade-create-select:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--qt-accent) 14%, transparent) !important;
+}
+
+.oq-trade-create-select > svg {
+  width: 14px !important;
+  height: 14px !important;
+  color: var(--qt-muted-strong) !important;
+  opacity: 1 !important;
+}
+
+.oq-trade-create-hint {
+  margin: 0;
+  color: var(--qt-muted);
+  font-size: 10.5px;
+  line-height: 16px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.oq-trade-create-dialog-footer {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  border-top: 0.75px solid var(--qt-border);
+  background: var(--qt-bg);
+  padding: 14px 20px 20px;
+}
+
+.oq-trade-create-dialog-button {
+  min-width: 88px;
+  height: 32px;
+  min-height: 32px !important;
+  border: 0.75px solid var(--qt-border) !important;
+  border-radius: 999px !important;
+  background: var(--qt-bg) !important;
+  color: var(--qt-text-soft) !important;
+  padding: 0 13px !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.oq-trade-create-dialog-button:hover {
+  border-color: color-mix(in srgb, var(--qt-accent) 30%, var(--qt-border)) !important;
+  background: var(--qt-bg-warm) !important;
+  color: var(--qt-accent) !important;
+}
+
+.oq-trade-create-dialog-button.is-primary {
+  border-color: var(--qt-accent) !important;
+  background: var(--qt-accent) !important;
+  color: #ffffff !important;
+}
+
+.oq-trade-create-dialog-button.is-primary:hover {
+  border-color: var(--qt-accent-hover) !important;
+  background: var(--qt-accent-hover) !important;
+  color: #ffffff !important;
+}
+
+.oq-trade-create-select-content {
+  --qt-bg: #ffffff;
+  --qt-bg-warm: #fef6ef;
+  --qt-border-strong: #d2c8bc;
+  --qt-text: #171717;
+  --qt-text-soft: #4a443d;
+  overflow: hidden;
+  border: 0.75px solid var(--qt-border-strong) !important;
+  border-radius: 6px !important;
+  background: var(--qt-bg) !important;
+  color: var(--qt-text) !important;
+  box-shadow: 0 12px 30px rgba(40, 30, 20, 0.14) !important;
+}
+
+.oq-trade-create-select-content [data-slot="select-item"] {
+  min-height: 36px;
+  padding: 8px 32px 8px 12px;
+  color: var(--qt-text-soft);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.oq-trade-create-select-content [data-slot="select-item"][data-highlighted] {
+  background: #fef6ef;
+  color: #dc4900;
+}
+
 .dark.oq-trade-active .oq-trade-dialog-button.is-primary {
   border-color: var(--oq-trade-accent) !important;
   color: var(--oq-trade-canvas) !important;
@@ -860,6 +1231,72 @@
 .dark.oq-trade-active .oq-trade-dialog-button.is-primary:hover {
   background: var(--oq-trade-accent-hover) !important;
   color: var(--oq-trade-canvas) !important;
+}
+
+.dark.oq-trade-active .oq-trade-create-paper-button {
+  border-color: var(--oq-trade-accent) !important;
+  color: var(--oq-trade-canvas) !important;
+}
+
+.dark.oq-trade-active .oq-trade-create-dialog {
+  --qt-bg: var(--oq-trade-surface-1);
+  --qt-bg-soft: var(--oq-trade-surface-2);
+  --qt-bg-warm: var(--oq-trade-surface-warm);
+  --qt-border: var(--oq-trade-border);
+  --qt-border-strong: var(--oq-trade-border-strong);
+  --qt-text: var(--oq-trade-text);
+  --qt-text-soft: var(--oq-trade-text-soft);
+  --qt-muted: var(--oq-trade-muted);
+  --qt-muted-strong: var(--oq-trade-muted-strong);
+  --qt-accent: var(--oq-trade-accent);
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-trade-active .oq-trade-create-dialog-head,
+.dark.oq-trade-active .oq-trade-create-dialog-footer {
+  background: var(--oq-trade-surface-1);
+}
+
+.dark.oq-trade-active .oq-trade-create-dialog-body {
+  background: var(--oq-trade-surface-2);
+}
+
+.dark.oq-trade-active .oq-trade-create-select {
+  background: var(--oq-trade-surface-2) !important;
+  border-color: var(--oq-trade-border-emphasis) !important;
+  color: var(--oq-trade-text) !important;
+}
+
+.dark.oq-trade-active .oq-trade-create-select:hover,
+.dark.oq-trade-active .oq-trade-create-select[data-state="open"] {
+  background: var(--oq-trade-surface-warm) !important;
+  border-color: var(--oq-trade-accent) !important;
+}
+
+.dark.oq-trade-active .oq-trade-create-select:focus-visible {
+  border-color: var(--oq-trade-accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--oq-trade-accent) 30%, transparent) !important;
+}
+
+.dark.oq-trade-active .oq-trade-create-select > svg {
+  color: var(--oq-trade-muted-strong) !important;
+}
+
+.dark.oq-trade-active .oq-trade-create-select-content {
+  --qt-bg: var(--oq-trade-surface-1);
+  --qt-bg-warm: var(--oq-trade-surface-warm);
+  --qt-border-strong: var(--oq-trade-border-strong);
+  --qt-text: var(--oq-trade-text);
+  --qt-text-soft: var(--oq-trade-text-soft);
+  border-color: var(--oq-trade-border-strong) !important;
+  background: var(--oq-trade-surface-1) !important;
+  color: var(--oq-trade-text) !important;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.52) !important;
+}
+
+.dark.oq-trade-active .oq-trade-create-select-content [data-slot="select-item"][data-highlighted] {
+  background: var(--oq-trade-surface-warm);
+  color: var(--oq-trade-accent-hover);
 }
 
 .dark.oq-trade-active .oq-notification {
@@ -1081,6 +1518,61 @@
     width: 100%;
     min-height: 44px;
   }
+
+  .oq-trade-create-paper-button {
+    min-height: 34px !important;
+  }
+
+  .oq-trade-create-dialog {
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  .oq-trade-create-dialog-head {
+    padding: 16px 46px 14px 14px;
+  }
+
+  .oq-trade-create-dialog-head [data-slot="dialog-title"] {
+    font-size: 16px;
+    line-height: 22px;
+  }
+
+  .oq-trade-create-dialog [data-slot="dialog-close"] {
+    top: 14px;
+    right: 14px;
+  }
+
+  .oq-trade-create-dialog-body {
+    padding: 16px 14px 0;
+  }
+
+  .oq-trade-create-field {
+    font-size: 12px;
+  }
+
+  .oq-trade-create-field-label {
+    gap: 8px;
+  }
+
+  .oq-trade-create-select {
+    height: 36px !important;
+    font-size: 12px !important;
+  }
+
+  .oq-trade-create-hint {
+    font-size: 11px;
+  }
+
+  .oq-trade-create-dialog-footer {
+    padding: 14px 14px 16px;
+  }
+
+  .oq-trade-create-dialog-button {
+    width: auto;
+    min-width: 78px;
+    min-height: 32px !important;
+    font-size: 10px !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1096,4 +1588,242 @@
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Shared workbench structure with the strategy list. */
+.oq-trade-workspace-shell {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  min-height: 590px;
+  overflow: hidden;
+  border: 0.75px solid var(--qt-border);
+  border-radius: 10px;
+  background: var(--qt-bg);
+  box-shadow: none;
+  transition: grid-template-columns 180ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.oq-trade-workspace-shell.is-folder-panel-collapsed { grid-template-columns: 64px minmax(0, 1fr); }
+
+.oq-trade-folder-panel {
+  min-width: 0;
+  overflow: hidden;
+  border-right: 0.5px solid var(--qt-border);
+  background: var(--qt-bg);
+  padding: 18px 14px;
+}
+
+.oq-trade-folder-panel-head,
+.oq-trade-folder-panel-title,
+.oq-trade-folder-panel-actions,
+.oq-trade-workspace-heading,
+.oq-trade-workspace-heading > div {
+  display: flex;
+  align-items: center;
+}
+
+.oq-trade-folder-panel-head {
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--qt-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.oq-trade-folder-panel-title { gap: 6px; cursor: help; }
+.oq-trade-folder-panel-title svg { width: 12px; height: 12px; stroke-width: 1.7; }
+.oq-trade-folder-panel-actions { gap: 3px; }
+
+.oq-trade-folder-icon-button {
+  display: inline-flex;
+  width: 25px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #687180;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.oq-trade-folder-icon-button svg { width: 14px; height: 14px; }
+.oq-trade-folder-icon-button:hover { background: var(--qt-bg-warm); color: var(--qt-accent); }
+.oq-trade-folder-icon-button:focus-visible { outline: 2px solid color-mix(in srgb, var(--qt-accent) 30%, transparent); outline-offset: 1px; }
+
+.oq-trade-folder-nav { display: grid; gap: 6px; }
+
+.oq-trade-folder-nav button {
+  display: grid;
+  min-height: 36px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  padding: 0 10px;
+  color: var(--qt-text-soft);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.oq-trade-folder-nav button > svg { width: 16px; height: 16px; }
+.oq-trade-folder-nav button:hover,
+.oq-trade-folder-nav button.is-active { border-color: color-mix(in srgb, var(--qt-accent) 30%, var(--qt-border)); background: var(--qt-bg); color: var(--qt-accent); }
+
+.oq-trade-folder-nav button strong,
+.oq-trade-workspace-heading > div > span {
+  display: inline-flex;
+  min-width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--qt-surface);
+  color: var(--qt-muted);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.oq-trade-folder-nav button.is-active strong,
+.oq-trade-workspace-heading > div > span { background: var(--qt-bg-warm); color: var(--qt-accent); }
+
+.oq-trade-workspace-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  background: var(--qt-bg);
+}
+
+.oq-trade-workspace-heading {
+  min-height: 54px;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 18px;
+}
+
+.oq-trade-workspace-heading > div { gap: 9px; color: var(--qt-accent); }
+.oq-trade-workspace-heading > div > svg { width: 18px; height: 18px; }
+.oq-trade-workspace-heading strong { color: var(--qt-text); font-size: 14px; }
+
+.oq-trade-workspace-main > .oq-trade-section {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.oq-trade-workspace-main > .oq-trade-section > .oq-trade-table-scroll {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.oq-trade-workspace-main > .oq-trade-section > .oq-trade-table-scroll::-webkit-scrollbar { height: 0; }
+
+.oq-trade-workspace-main .oq-trade-table-scroll {
+  --oq-trade-table-columns: minmax(190px, 1fr) 120px 120px 78px 104px 128px 96px;
+}
+
+.oq-trade-workspace-main .oq-trade-table-grid,
+.oq-trade-workspace-main .oq-trade-bot-row { min-width: 836px; }
+
+.oq-trade-workspace-main .oq-trade-table-head {
+  height: 28px;
+  min-height: 28px;
+  border-top: 0.5px solid var(--qt-border);
+  border-bottom: 0.5px solid var(--qt-border);
+  background: #fbfbfb;
+  padding-inline: 16px;
+}
+
+.oq-trade-workspace-main .oq-trade-bot-row,
+.oq-trade-workspace-main .oq-trade-row-link {
+  height: 46px;
+  min-height: 46px;
+}
+
+.oq-trade-workspace-main .oq-trade-bot-row { border-bottom-color: var(--qt-border); }
+.oq-trade-workspace-main .oq-trade-bot-row:last-child { border-bottom: 0; }
+
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-panel { padding-right: 8px; padding-left: 8px; }
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-panel-title,
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-icon-button:first-child,
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-nav button > span,
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-nav button > strong { display: none; }
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-panel-head { justify-content: center; }
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-nav { margin-top: 16px; }
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-nav button { display: flex; min-height: 34px; justify-content: center; padding: 0; }
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-table-grid,
+.oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-bot-row { width: 100%; min-width: 0; }
+
+.dark.oq-trade-active .oq-trade-workspace-main .oq-trade-table-head { background: var(--qt-bg); }
+
+/* Dark palette for the trade folder rail; color-only overrides. */
+.dark.oq-trade-active .oq-trade-folder-panel {
+  border-color: var(--qt-border) !important;
+  background: var(--qt-bg) !important;
+  color: var(--qt-text) !important;
+}
+
+.dark.oq-trade-active .oq-trade-folder-panel-head,
+.dark.oq-trade-active .oq-trade-folder-panel-title,
+.dark.oq-trade-active .oq-trade-folder-panel-title svg {
+  color: var(--qt-muted) !important;
+}
+
+.dark.oq-trade-active .oq-trade-folder-icon-button {
+  background: transparent !important;
+  color: var(--qt-muted) !important;
+}
+
+.dark.oq-trade-active .oq-trade-folder-icon-button:hover {
+  background: var(--qt-bg-warm) !important;
+  color: var(--qt-accent) !important;
+}
+
+.dark.oq-trade-active .oq-trade-folder-nav button {
+  border-color: transparent !important;
+  background: transparent !important;
+  color: var(--qt-text-soft) !important;
+}
+
+.dark.oq-trade-active .oq-trade-folder-nav button:hover,
+.dark.oq-trade-active .oq-trade-folder-nav button.is-active {
+  border-color: color-mix(in oklch, var(--qt-accent) 30%, var(--qt-border)) !important;
+  background: var(--qt-bg-warm) !important;
+  color: var(--qt-accent) !important;
+}
+
+.dark.oq-trade-active .oq-trade-folder-nav button strong {
+  background: var(--qt-surface) !important;
+  color: var(--qt-muted) !important;
+}
+
+.dark.oq-trade-active .oq-trade-folder-nav button.is-active strong {
+  background: color-mix(in oklch, var(--qt-accent) 14%, var(--qt-surface)) !important;
+  color: var(--qt-accent) !important;
+}
+
+@media (max-width: 760px) {
+  .oq-trade-workspace-shell { grid-template-columns: 1fr; min-height: 0; }
+  .oq-trade-workspace-shell.is-folder-panel-collapsed { grid-template-columns: 1fr; }
+  .oq-trade-folder-panel { border-right: 0; border-bottom: 0.5px solid var(--qt-border); }
+  .oq-trade-folder-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-panel { padding: 18px 14px; }
+  .oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-panel-title,
+  .oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-icon-button:first-child,
+  .oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-nav button > span,
+  .oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-nav button > strong { display: inline-flex; }
+  .oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-nav { margin-top: 0; }
+  .oq-trade-workspace-shell.is-folder-panel-collapsed .oq-trade-folder-nav button { display: grid; min-height: 36px; grid-template-columns: 18px minmax(0, 1fr) auto; justify-content: initial; padding: 0 10px; }
 }
