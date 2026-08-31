@@ -200,7 +200,7 @@
 .oq-trade-create-paper-button {
   min-height: 32px !important;
   margin-left: 0;
-  border: 0.75px solid color-mix(in srgb, var(--qt-accent) 78%, #000000) !important;
+  border: 0 !important;
   border-radius: 50px !important;
   background: var(--qt-accent) !important;
   padding: 0 12px !important;

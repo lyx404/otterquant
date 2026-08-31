@@ -161,7 +161,7 @@
 
 .oq-strategy-create-button,
 .oq-strategy-form-primary {
-  border: 0.75px solid color-mix(in srgb, var(--os-accent) 78%, #000000);
+  border: 0;
   background: var(--os-accent);
   padding: 0 13px;
   color: #ffffff;
